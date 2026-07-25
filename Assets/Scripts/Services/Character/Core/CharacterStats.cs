@@ -443,9 +443,22 @@ public class CharacterStats : SerializedMonoBehaviour
 
     public void ApplyDamage(float amount, string reason = "")
     {
+        ApplyDamageInternal(amount, reason, allowAggregateDeath: true);
+    }
+
+    public void ApplyNonLethalDamage(float amount, string reason = "")
+    {
+        ApplyDamageInternal(amount, reason, allowAggregateDeath: false);
+    }
+
+    private void ApplyDamageInternal(
+        float amount,
+        string reason,
+        bool allowAggregateDeath)
+    {
         if (amount <= 0f || IsDead || DungeonDebugRuntimeRules.ShouldBlockFriendlyDamage(actor)) return;
 
-        currentHealth = Mathf.Max(0f, currentHealth - amount);
+        currentHealth = Mathf.Max(allowAggregateDeath ? 0f : 1f, currentHealth - amount);
         injurySeverity = Mathf.Clamp01(1f - (currentHealth / Mathf.Max(1f, maxHealth)));
         ApplyMoodFactor(
             "health:injury",
@@ -465,7 +478,7 @@ public class CharacterStats : SerializedMonoBehaviour
             sentiment: -0.8f,
             bubbleEligible: true));
 
-        if (currentHealth <= 0f)
+        if (allowAggregateDeath && currentHealth <= 0f)
         {
             Die(reason);
         }

@@ -1799,7 +1799,16 @@ public static class ModularFacilityDebugScenarios
         {
         }
 
-        public void RequestOneWorkerToReplanFor(WorkTypeId workTypeId, bool clearFailures = true)
+        public void RequestOneWorkerToReplanFor(
+            WorkTypeId workTypeId,
+            bool clearFailures = true,
+            bool forceInterrupt = false)
+        {
+        }
+
+        public void RequestOneHaulerToReplan(
+            bool clearFailures = true,
+            bool forceInterrupt = false)
         {
         }
 

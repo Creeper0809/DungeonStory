@@ -14,11 +14,14 @@ public class AbilityMove : CharacterAbility
     private ICharacterAiSchedulingService aiSchedulingService;
     private IGridPathSearchBroker pathSearchBroker;
     private IDefenseEngagementRuntime defenseEngagementRuntime;
+    private IDoorAccessQuery doorAccessQuery;
     private IGameClock gameClock;
     private IRandomStream movementRandom;
     private Coroutine enterDungeonRoutine;
     private Coroutine activeActionMovementRoutine;
     private Vector2Int? activeManualMoveDestination;
+    private Vector2Int? activeSystemMoveDestination;
+    private DoorAccessOverrideKind activeSystemMoveOverride;
 
     public bool LastGridMoveWasBlocked { get; private set; }
 
@@ -44,6 +47,13 @@ public class AbilityMove : CharacterAbility
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.defenseEngagementRuntime = defenseEngagementRuntime;
         TryResolveSpawner();
+    }
+
+    [Inject]
+    public void ConstructDoorAccessQuery(IDoorAccessQuery doorAccessQuery)
+    {
+        this.doorAccessQuery = doorAccessQuery
+            ?? throw new ArgumentNullException(nameof(doorAccessQuery));
     }
 
     protected override void Awake()
@@ -157,7 +167,8 @@ public class AbilityMove : CharacterAbility
 
         RefreshCurrentActionReservation();
         Vector3 startPos = transform.position;
-        if (grid.IsMovementBlockedByWall(gridPosition))
+        if (grid.IsMovementBlockedByWall(gridPosition)
+            || !CanTraverseDoor(gridPosition, out _))
         {
             SetGridMoveBlocked();
             yield break;
@@ -176,6 +187,22 @@ public class AbilityMove : CharacterAbility
 
     public void StartExitDungeon()
     {
+        StartExitDungeonInternal(
+            allowWorker: false,
+            DoorAccessOverrideKind.None);
+    }
+
+    public void StartSystemExitDungeon()
+    {
+        StartExitDungeonInternal(
+            allowWorker: true,
+            DoorAccessOverrideKind.DirectCommand);
+    }
+
+    private void StartExitDungeonInternal(
+        bool allowWorker,
+        DoorAccessOverrideKind overrideKind)
+    {
         if (actor == null
             || actor.Lifecycle == null
             || actor.Lifecycle.CurrentState == CharacterLifecycleState.ExitingDungeon)
@@ -183,7 +210,7 @@ public class AbilityMove : CharacterAbility
             return;
         }
 
-        if (CharacterWorkRoleUtility.TryGetWork(actor, out _))
+        if (!allowWorker && CharacterWorkRoleUtility.TryGetWork(actor, out _))
         {
             actor.Brain?.ClearPathSearchCache();
             return;
@@ -196,7 +223,16 @@ public class AbilityMove : CharacterAbility
         }
 
         actor.SetLifecycleState(CharacterLifecycleState.ExitingDungeon);
-        StartTrackedActionMovement(ExitDungeon());
+        if (overrideKind == DoorAccessOverrideKind.None)
+        {
+            StartTrackedActionMovement(ExitDungeon(overrideKind));
+            return;
+        }
+
+        CancelActiveMovement();
+        activeSystemMoveOverride = overrideKind;
+        activeActionMovementRoutine = StartCoroutine(
+            TrackActionMovement(ExitDungeon(overrideKind)));
     }
 
     public void StartEnterDungeon(Vector3 entryDoorWorldPosition, Vector2Int entryGridPosition)
@@ -249,6 +285,9 @@ public class AbilityMove : CharacterAbility
             activeManualMoveDestination = null;
             actor?.Brain?.CompleteManualMoveCommand(destination, succeeded: false);
         }
+
+        activeSystemMoveDestination = null;
+        activeSystemMoveOverride = DoorAccessOverrideKind.None;
     }
 
     public bool TryStartPlayerMove(Vector2Int destination, out string message)
@@ -274,7 +313,18 @@ public class AbilityMove : CharacterAbility
             return true;
         }
 
-        GridPathSearchResult search = grid.SearchPath(start);
+        GridTraversalContext directContext = GridTraversalContext.ForCharacter(
+            actor,
+            DoorAccessOverrideKind.DirectCommand);
+        GridPathSearchResult search = pathSearchBroker != null
+            && pathSearchBroker.TryGetSearch(
+                grid,
+                start,
+                out GridPathSearchResult directSearch,
+                GridPathSearchPriority.Urgent,
+                directContext)
+                ? directSearch
+                : null;
         if (search == null || !search.ContainsPosition(destination))
         {
             message = "해당 칸까지 이어지는 경로가 없습니다.";
@@ -293,6 +343,65 @@ public class AbilityMove : CharacterAbility
         activeManualMoveDestination = destination;
         activeActionMovementRoutine = StartCoroutine(
             TrackActionMovement(ExecutePlayerMove(path, destination)));
+        message = $"({destination.x}, {destination.y}) 칸으로 이동";
+        return true;
+    }
+
+    public bool TryStartSystemMove(
+        Vector2Int destination,
+        DoorAccessOverrideKind overrideKind,
+        out string message)
+    {
+        CacheCommonReferences();
+        if (actor == null || grid == null)
+        {
+            message = "이동할 캐릭터나 그리드를 찾을 수 없습니다.";
+            return false;
+        }
+
+        if (!grid.IsValidGridPos(destination) || !grid.IsWalkable(destination))
+        {
+            message = "해당 칸으로 이동할 수 없습니다.";
+            return false;
+        }
+
+        Vector2Int start = grid.GetXY(transform.position);
+        if (start == destination)
+        {
+            message = "이미 해당 칸에 있습니다.";
+            return true;
+        }
+
+        GridTraversalContext context = GridTraversalContext.ForCharacter(
+            actor,
+            overrideKind);
+        GridPathSearchResult search = pathSearchBroker != null
+            && pathSearchBroker.TryGetSearch(
+                grid,
+                start,
+                out GridPathSearchResult systemSearch,
+                GridPathSearchPriority.Urgent,
+                context)
+                ? systemSearch
+                : null;
+        if (search == null || !search.ContainsPosition(destination))
+        {
+            message = "해당 칸까지 이어지는 경로가 없습니다.";
+            return false;
+        }
+
+        Queue<GridMoveStep> path = search.GetMovePath(position => position == destination);
+        if (path == null || path.Count == 0)
+        {
+            message = "이동 경로를 만들 수 없습니다.";
+            return false;
+        }
+
+        CancelActiveMovement();
+        activeSystemMoveDestination = destination;
+        activeSystemMoveOverride = overrideKind;
+        activeActionMovementRoutine = StartCoroutine(
+            TrackActionMovement(ExecuteSystemMove(path)));
         message = $"({destination.x}, {destination.y}) 칸으로 이동";
         return true;
     }
@@ -320,6 +429,14 @@ public class AbilityMove : CharacterAbility
             && grid.GetXY(transform.position) == destination;
         activeManualMoveDestination = null;
         actor?.Brain?.CompleteManualMoveCommand(destination, succeeded);
+    }
+
+    private IEnumerator ExecuteSystemMove(Queue<GridMoveStep> path)
+    {
+        LastGridMoveWasBlocked = false;
+        yield return MoveByPath(path);
+        activeSystemMoveDestination = null;
+        activeSystemMoveOverride = DoorAccessOverrideKind.None;
     }
 
     private AIAction GetCurrentAction()
@@ -480,7 +597,8 @@ public class AbilityMove : CharacterAbility
                 grid,
                 originalPos,
                 out GridPathSearchResult search,
-                GridPathSearchPriority.Urgent)
+                GridPathSearchPriority.Urgent,
+                GridTraversalContext.ForCharacter(actor))
             ? search
             : null;
     }
@@ -625,7 +743,7 @@ public class AbilityMove : CharacterAbility
         enterDungeonRoutine = null;
     }
 
-    private IEnumerator ExitDungeon()
+    private IEnumerator ExitDungeon(DoorAccessOverrideKind overrideKind)
     {
         if (grid == null)
         {
@@ -638,6 +756,8 @@ public class AbilityMove : CharacterAbility
             {
                 actor.SetLifecycleState(CharacterLifecycleState.Active);
             }
+            activeSystemMoveDestination = null;
+            activeSystemMoveOverride = DoorAccessOverrideKind.None;
             yield break;
         }
 
@@ -647,8 +767,18 @@ public class AbilityMove : CharacterAbility
         {
             Vector2Int startPos = grid.GetXY(transform.position);
             startPos = grid.IsValidGridPos(startPos) ? startPos : Vector2Int.zero;
-            Queue<GridMoveStep> path = grid.GetMovePath(startPos, condition);
-            if (path.Count > 0)
+            GridTraversalContext traversalContext = actor != null
+                ? GridTraversalContext.ForCharacter(actor, overrideKind)
+                : default;
+            Queue<GridMoveStep> path = pathSearchBroker != null
+                ? pathSearchBroker.GetMovePath(
+                    grid,
+                    startPos,
+                    condition,
+                    GridPathSearchPriority.Urgent,
+                    traversalContext)
+                : grid.GetMovePath(startPos, condition);
+            if (path != null && path.Count > 0)
             {
                 yield return MoveByPath(path);
             }
@@ -676,6 +806,9 @@ public class AbilityMove : CharacterAbility
         {
             actor.SetLifecycleState(CharacterLifecycleState.Active);
         }
+
+        activeSystemMoveDestination = null;
+        activeSystemMoveOverride = DoorAccessOverrideKind.None;
     }
 
     private bool TryResolveSpawner()
@@ -819,6 +952,13 @@ public class AbilityMove : CharacterAbility
             return true;
         }
 
+        if (!CanTraverseDoor(blockedGridPosition.Value, out _))
+        {
+            transform.position = blockedFallbackPosition;
+            SetGridMoveBlocked();
+            return true;
+        }
+
         int currentGridVersion = grid.version;
         if (currentGridVersion == observedGridVersion)
         {
@@ -842,7 +982,30 @@ public class AbilityMove : CharacterAbility
             && step.MoveType == GridMoveType.Walk
             && grid != null
             && (grid.IsMovementBlockedByWall(step.To)
+                || !CanTraverseDoor(step.To, out _)
                 || (defenseEngagementRuntime?.IsCellReservedForOther(actor, step.To) ?? false));
+    }
+
+    private bool CanTraverseDoor(
+        Vector2Int position,
+        out string denialReason)
+    {
+        denialReason = string.Empty;
+        if (grid == null || doorAccessQuery == null || actor == null)
+        {
+            return true;
+        }
+
+        DoorAccessOverrideKind overrideKind = activeManualMoveDestination.HasValue
+            ? DoorAccessOverrideKind.DirectCommand
+            : activeSystemMoveDestination.HasValue
+                ? activeSystemMoveOverride
+                : DoorAccessOverrideKind.None;
+        return doorAccessQuery.CanTraverse(
+            grid,
+            position,
+            GridTraversalContext.ForCharacter(actor, overrideKind),
+            out denialReason);
     }
 
     private bool IsAtStepStart(GridMoveStep step)

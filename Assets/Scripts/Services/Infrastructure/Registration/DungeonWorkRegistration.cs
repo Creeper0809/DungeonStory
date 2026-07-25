@@ -26,6 +26,14 @@ public static class DungeonWorkRegistration
             .As<IWorkUrgencyProvider>();
         builder.Register<CleanWorkExecutionHandler>(Lifetime.Singleton)
             .As<IWorkExecutionHandler>();
+        builder.Register<WardenWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>()
+            .As<IWorkUrgencyProvider>();
+        builder.Register<PerformWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>()
+            .As<IWorkUrgencyProvider>();
         builder.Register<WorkExecutionHandlerRegistry>(Lifetime.Singleton)
             .As<IWorkExecutionHandlerRegistry>()
             .As<IWorkPolicyRegistry>();

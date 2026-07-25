@@ -50,6 +50,10 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<CharacterCombatCommandSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<CaptivitySaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CircusSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<ExteriorActivitySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<ExpeditionEquipmentSaveSection>(Lifetime.Singleton)

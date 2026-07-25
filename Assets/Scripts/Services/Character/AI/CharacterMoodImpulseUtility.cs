@@ -289,10 +289,17 @@ public static class CharacterMoodImpulseUtility
     public static float ApplyFinalAutonomyBias(
         CharacterActor actor,
         CharacterAiBranch branch,
-        float utility)
+        float utility,
+        AIAction action = null)
     {
         float adjusted = Mathf.Clamp01(utility);
         if (!ShouldPreferAutonomousIdle(actor, out _))
+        {
+            return adjusted;
+        }
+
+        if (branch == CharacterAiBranch.Work
+            && IsProtectedDutyAction(actor, action))
         {
             return adjusted;
         }
@@ -304,6 +311,38 @@ public static class CharacterMoodImpulseUtility
             CharacterAiBranch.LookAround => Mathf.Max(adjusted, 0.82f),
             _ => adjusted
         };
+    }
+
+    private static bool IsProtectedDutyAction(CharacterActor actor, AIAction action)
+    {
+        if (actor == null || action?.actionset == null)
+        {
+            return false;
+        }
+
+        if (action.actionset is AIRescue)
+        {
+            return true;
+        }
+
+        if (!CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work))
+        {
+            return false;
+        }
+
+        WorkTypeId workTypeId = action.actionset is AIHaul
+            ? BuiltInWorkTypeIds.Haul
+            : action.destination is ConstructionSite
+                ? BuiltInWorkTypeIds.Construct
+                : default;
+        if (!workTypeId.IsValid)
+        {
+            return false;
+        }
+
+        WorkPriorityLevel priority = work.WorkPriorities.GetPriority(workTypeId);
+        return priority == WorkPriorityLevel.Priority1
+            || priority == WorkPriorityLevel.Priority2;
     }
 
     public static CharacterAiBranch GetBranchForActionSet(AIActionSet actionSet)

@@ -38,6 +38,8 @@ public static class CombatSystemDebugScenarios
         Verify("V14 생활 전투 저장", VerifyV14CombatLifecycleSave, failures);
         Verify("V14 저장 계약", VerifySaveContract, failures);
 
+        Verify("부위 피해가 총체력 즉사를 선행하지 않음", VerifyBodyDamageOwnsDeath, failures);
+
         foreach (string failure in failures)
         {
             Debug.LogError($"Combat scenario failed: {failure}");
@@ -412,6 +414,24 @@ public static class CombatSystemDebugScenarios
                 downed: true);
             bodyHealth.ApplySnapshot(actor, recovered, "test-recovered");
             return !bodyHealth.GetSnapshot(actor).Downed;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(gameObject);
+        }
+    }
+
+    private static bool VerifyBodyDamageOwnsDeath()
+    {
+        GameObject gameObject = new GameObject("V14 Body Damage Ownership Test");
+        try
+        {
+            CharacterActor actor = gameObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(gameObject);
+            actor.ApplyBodyDamage(actor.MaxHealth * 2f, "body-system-test");
+            return !actor.IsDead
+                && actor.CurrentHealth >= 1f
+                && actor.CurrentLifecycleState != CharacterLifecycleState.Despawned;
         }
         finally
         {

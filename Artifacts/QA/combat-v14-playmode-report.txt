@@ -1,19 +1,20 @@
+PARTY_SETUP=PASS; 준비한 사장과 직원으로 새 런을 시작했습니다.
 RUNTIME=PASS; actors=2; scene=GameplayScene
-POINTER_ACTOR_LAYOUT=PASS; Sion=(18, 0); Roma=(22, 0)
-RANGED_LOADOUT=PASS; Sion: assigned=True; active=True; ammo=True; reason=
-RANGED_LOADOUT=PASS; Roma: assigned=True; active=True; ammo=True; reason=
-POINTER_MULTI_SELECT=PASS; selected=Sion,Roma
+POINTER_ACTOR_LAYOUT=PASS; Haram=(18, 0); Leon=(22, 0)
+RANGED_LOADOUT=PASS; Haram: assigned=True; active=True; ammo=True; reason=
+RANGED_LOADOUT=PASS; Leon: assigned=True; active=True; ammo=True; reason=
+POINTER_MULTI_SELECT=PASS; selected=Haram,Leon
 COMMAND_BAR=PASS; 전투 명령 바와 태세 버튼 표시
 POINTER_COMBAT_STANCE=PASS; 다중 선택 전투 태세 활성화
 RELOAD_BUTTON=PASS; 재장전 버튼 표시
-POINTER_RELOAD=PASS; staff:195459406:01=1, staff:195459406:02=1
+POINTER_RELOAD=PASS; staff:334692156:02=1, staff:334692156:01=1
 TACTICAL_BUTTONS=PASS; 사격 모드와 사격 중지 버튼 표시
 TACTICAL_PROFILE=PASS; rescuer=Aimed->Rapid/False->True; second=Aimed->Rapid/False->True
 CAPTURE=PASS; Artifacts/QA/combat-v14-command-bar.png
 STANCE_RELEASE=PASS; 생활 AI 복귀 전 태세와 명령 해제
-POINTER_ACTOR_LAYOUT=PASS; Sion=(18, 0); Roma=(22, 0)
+POINTER_ACTOR_LAYOUT=PASS; Haram=(18, 0); Leon=(22, 0)
 MEDICAL_FACILITY=PASS; available=2
-MEDICINE=PASS; stored=15
+MEDICINE=PASS; stored=12
 DOWNED=PASS; state=Downed; order=medical:1; canRunAi=False
 RESCUE_BUTTON=PASS; 구조 명령 버튼 표시
 POINTER_RESCUE_COMMAND=PASS; 구조 버튼과 쓰러진 환자 정확 클릭으로 명령 시작

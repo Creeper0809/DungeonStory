@@ -35,7 +35,12 @@ namespace DungeonStory.Tests.Architecture
                 Debug.Log(
                     $"[ArchitectureTests] finished pass={result.PassCount} "
                     + $"fail={result.FailCount} skip={result.SkipCount}");
+                int failCount = result.FailCount;
                 Cleanup();
+                if (Application.isBatchMode)
+                {
+                    EditorApplication.Exit(failCount > 0 ? 1 : 0);
+                }
             }
 
             public void TestStarted(ITestAdaptor test)

@@ -292,6 +292,7 @@ public interface IWorldItemStackRuntime
     bool TryConsumeStackQuantity(string stackId, int quantity, out WorldItemStackSnapshot consumed);
     bool SetEmergencyButcheryAllowed(string stackId, bool allowed);
     int RemoveStacksByStateAndDestination(WorldItemStackState state, string destinationId);
+    int ReleaseStacksByDestination(string destinationId, Vector2Int releasePosition);
 }
 
 internal sealed class WorldItemStackRecord

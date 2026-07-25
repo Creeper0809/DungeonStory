@@ -420,6 +420,18 @@ public sealed class DungeonDebugPaletteUiController :
     {
         lastScreenSize = new Vector2Int(Screen.width, Screen.height);
         bool portrait = Screen.height > Screen.width;
+        if (openButton != null)
+        {
+            RectTransform openRect = openButton.GetComponent<RectTransform>();
+            openRect.anchorMin = openRect.anchorMax =
+                new Vector2(portrait ? 0.3f : 0.5f, 1f);
+            openRect.pivot = new Vector2(0.5f, 1f);
+            openRect.anchoredPosition = new Vector2(0f, -16f);
+            openRect.sizeDelta = portrait
+                ? new Vector2(78f, 48f)
+                : new Vector2(138f, 48f);
+        }
+
         if (paletteRect != null)
         {
             if (portrait)

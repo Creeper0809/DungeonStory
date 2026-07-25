@@ -26,7 +26,8 @@ public enum FacilityRole
     Toilet = 1 << 7,
     Hygiene = 1 << 8,
     Administration = 1 << 9,
-    Security = 1 << 10
+    Security = 1 << 10,
+    Entertainment = 1 << 11
 }
 
 [Flags]
@@ -50,7 +51,9 @@ internal enum FacilityWorkType
     Cook = 1 << 14,
     Treat = 1 << 15,
     Refuel = 1 << 16,
-    Construct = 1 << 17
+    Construct = 1 << 17,
+    Warden = 1 << 18,
+    Perform = 1 << 19
 }
 
 public enum StockCategory

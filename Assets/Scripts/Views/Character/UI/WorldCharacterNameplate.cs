@@ -465,7 +465,16 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
             return;
         }
 
-        Camera camera = mainCameraProvider != null ? mainCameraProvider.Camera : null;
+        Camera camera = null;
+        try
+        {
+            camera = mainCameraProvider != null ? mainCameraProvider.Camera : null;
+        }
+        catch (System.InvalidOperationException)
+        {
+            // Scene services can release the registered camera before actors finish disabling.
+        }
+
         if (camera == null || !camera.orthographic || Screen.width <= 0 || Screen.height <= 0)
         {
             return;

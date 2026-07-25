@@ -222,6 +222,8 @@ public static class WorkTypeCatalog
         RegisterBuiltIn(BuiltInWorkTypeIds.Cook, FacilityWorkType.Cook, "조리", 99, WorkPriorityLevel.Priority2, "survival:cook");
         RegisterBuiltIn(BuiltInWorkTypeIds.Treat, FacilityWorkType.Treat, "치료", 100, WorkPriorityLevel.Priority2, "survival:treat");
         RegisterBuiltIn(BuiltInWorkTypeIds.Refuel, FacilityWorkType.Refuel, "연료 보충", 101, WorkPriorityLevel.Priority2, "survival:fuel");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Warden, FacilityWorkType.Warden, "관리", 102, WorkPriorityLevel.Priority2, "captivity:warden");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Perform, FacilityWorkType.Perform, "공연", 103, WorkPriorityLevel.Priority2, "circus:perform");
     }
 
     private static void RegisterBuiltIn(

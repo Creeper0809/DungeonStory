@@ -29,6 +29,7 @@ public static class GridVisualDebugScenarios
         List<string> errors = new List<string>();
         RunScenario("sprite tile visual footprint alignment", VerifySpriteTileTransformMatchesGridFootprint, errors);
         RunScenario("structural wall keeps full-height render", VerifyStructuralWallKeepsFullHeightRender, errors);
+        RunScenario("wall redraw removes foreign overlay tiles", VerifyWallRedrawRemovesForeignOverlayTiles, errors);
         RunScenario("runtime markers do not shift automatic outer walls", VerifyRuntimeMarkersDoNotShiftAutomaticOuterWalls, errors);
         RunScenario("interior wall ceiling overlay renders in front", VerifyInteriorWallCeilingOverlayRendersInFront, errors);
         RunScenario("dungeon door keeps original three-cell art", VerifyDungeonDoorKeepsOriginalArt, errors);
@@ -151,6 +152,34 @@ public static class GridVisualDebugScenarios
         Object.DestroyImmediate(wallTile);
         Object.DestroyImmediate(floorTile);
         return rendered;
+    }
+
+    private static bool VerifyWallRedrawRemovesForeignOverlayTiles()
+    {
+        Grid grid = new Grid(2, 1);
+        GameObject root = new GameObject("ForeignWallTileCleanupTest", typeof(UnityEngine.Grid));
+        GameObject tilemapObject = new GameObject("Wall", typeof(Tilemap), typeof(TilemapRenderer));
+        tilemapObject.transform.SetParent(root.transform, false);
+
+        Tilemap tilemap = tilemapObject.GetComponent<Tilemap>();
+        Tile wallTile = ScriptableObject.CreateInstance<Tile>();
+        Tile floorTile = ScriptableObject.CreateInstance<Tile>();
+        Tile foreignOverlayTile = ScriptableObject.CreateInstance<Tile>();
+        Vector3Int pollutedPosition = new Vector3Int(-1, 0, 0);
+        tilemap.SetTile(pollutedPosition, foreignOverlayTile);
+
+        GridTexture texture = root.AddComponent<GridTexture>();
+        texture.wallTilemap = tilemap;
+        texture.wall = wallTile;
+        texture.floor = floorTile;
+        texture.DrawWall(grid);
+
+        bool removed = !tilemap.HasTile(pollutedPosition);
+        Object.DestroyImmediate(root);
+        Object.DestroyImmediate(wallTile);
+        Object.DestroyImmediate(floorTile);
+        Object.DestroyImmediate(foreignOverlayTile);
+        return removed;
     }
 
     private static bool VerifyRuntimeMarkersDoNotShiftAutomaticOuterWalls()

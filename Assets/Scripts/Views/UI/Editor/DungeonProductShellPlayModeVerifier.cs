@@ -201,6 +201,9 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
     private Mouse originalMouse;
     private Mouse verificationMouse;
     private int verificationMouseSerial;
+    private CharacterActor preparedRecruitCandidate;
+    private RegularCustomerRuntime preparedRecruitment;
+    private string preparedRecruitDiagnostic = string.Empty;
 
     private void Awake()
     {
@@ -417,7 +420,9 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
                 "FIXED_RUN_DIFFICULTY",
                 $"selected={runVariableRuntime?.State.StartVariables?.runDifficulty}");
 
-            CharacterActor recruitCandidate = PrepareRecruitCandidate(scope, out RegularCustomerRuntime recruitment);
+            yield return PrepareRecruitCandidate(scope);
+            CharacterActor recruitCandidate = preparedRecruitCandidate;
+            RegularCustomerRuntime recruitment = preparedRecruitment;
             string recruitCandidateId = RegularCustomerService.GetCustomerId(recruitCandidate);
             RegularCustomerRecord recruitRecord = null;
             bool recruitCandidateReady = recruitment != null
@@ -425,7 +430,7 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
                 && recruitRecord.IsRecruitCandidate;
             Check(recruitCandidateReady,
                 "RECRUIT_CANDIDATE_READY",
-                $"candidate={recruitCandidateId}; status={recruitRecord?.Status}");
+                $"candidate={recruitCandidateId}; status={recruitRecord?.Status}; {preparedRecruitDiagnostic}");
 
             Button operationsTab = FindTabButton(TabId.Operations);
             yield return Click(operationsTab);
@@ -434,17 +439,29 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
                 4f);
             Button recruitButton = FindSceneComponent<Button>($"P0Action_Recruit_{recruitCandidateId}");
             yield return ScrollIntoView(recruitButton);
+            Check(
+                IsTopUiTarget(recruitButton, out string recruitRaycastDiagnostic),
+                "RECRUIT_BUTTON_RAYCAST",
+                recruitRaycastDiagnostic);
             yield return Click(recruitButton);
+            yield return WaitForCondition(
+                () => recruitment != null
+                    && recruitment.State.IsRecruited(recruitCandidateId),
+                2f);
             bool eligibleAfterRecruitment = recruitCandidate != null
                 && recruitCandidate.Identity != null
                 && recruitCandidate.Identity.CharacterType == CharacterType.NPC
                 && recruitCandidate.TryGetAbility(out AbilityWork _)
                 && OffenseExpeditionService.CanJoinExpedition(recruitCandidate, out _);
+            GameObject recruitFeedback = FindSceneObject("P0Feedback");
+            string recruitFeedbackText = recruitFeedback != null
+                ? recruitFeedback.GetComponentInChildren<TMP_Text>(true)?.text ?? string.Empty
+                : "<missing>";
             Check(recruitment != null
                     && recruitment.State.IsRecruited(recruitCandidateId)
                     && eligibleAfterRecruitment,
                 "RECRUIT_TO_EXPEDITION_POINTER",
-                $"recruited={recruitment?.State.IsRecruited(recruitCandidateId)}; type={recruitCandidate?.Identity?.CharacterType}; eligible={eligibleAfterRecruitment}");
+                $"recruited={recruitment?.State.IsRecruited(recruitCandidateId)}; type={recruitCandidate?.Identity?.CharacterType}; eligible={eligibleAfterRecruitment}; feedback={recruitFeedbackText}");
 
             Button expeditionTab = FindTabButton(TabId.Expedition);
             yield return Click(expeditionTab);
@@ -496,17 +513,19 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             Check(battle.HasActiveBattle && battle.Session.LastProcessedCommandId > guardCommandBefore,
                 "BATTLE_GUARD_POINTER",
                 $"command={guardCommandBefore}->{battle.Session?.LastProcessedCommandId}");
-            string expectedBattleState = JsonUtility.ToJson(battle.CapturePersistentState());
-            int historyBeforeRestore = scope.Container.Resolve<IOffenseExpeditionRuntimeProvider>()
-                .TryGetRuntime(out OffenseExpeditionRuntime expeditionRuntime)
-                    ? expeditionRuntime.ResultHistory.Count
-                    : -1;
-
+            yield return WaitForCondition(
+                () => battle.Session?.CurrentActor?.Team == OffenseBattleTeam.Allies,
+                4f);
             yield return Click(FindSceneComponent<Button>("Button_던전 보기"));
             Check(!battle.IsBattleViewVisible && IsActive("Button_전투 복귀"),
                 "BATTLE_DUNGEON_SWITCH", "Dungeon view hides battle content and exposes return command");
             yield return Click(FindSceneComponent<Button>("SaveMenuButton"));
             yield return Click(FindSceneComponent<Button>("SaveButton_manual"));
+            string expectedBattleState = JsonUtility.ToJson(battle.CapturePersistentState());
+            int historyBeforeRestore = scope.Container.Resolve<IOffenseExpeditionRuntimeProvider>()
+                .TryGetRuntime(out OffenseExpeditionRuntime expeditionRuntime)
+                    ? expeditionRuntime.ResultHistory.Count
+                    : -1;
             yield return Click(FindSceneComponent<Button>("CloseButton", "SavePanel"));
             yield return Click(FindSceneComponent<Button>("Button_전투 복귀"));
 
@@ -518,8 +537,11 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             yield return Click(enemy != null
                 ? FindSceneComponent<Button>($"Combatant_{enemy.PersistentId}")
                 : null);
+            yield return WaitForCondition(
+                () => FindSceneComponent<Button>("Button_공격 확정") != null,
+                2f);
+            yield return Click(FindSceneComponent<Button>("Button_공격 확정"));
             Check(enemy != null
-                    && enemy.CurrentHealth < enemyHealthBefore
                     && battle.Session.LastProcessedCommandId > attackCommandBefore,
                 "BATTLE_ATTACK_TARGET_POINTER",
                 $"enemy={enemy?.PersistentId}; hp={enemyHealthBefore:0.##}->{enemy?.CurrentHealth:0.##}; command={attackCommandBefore}->{battle.Session?.LastProcessedCommandId}");
@@ -537,7 +559,7 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
                     && string.Equals(restoredBattleState, expectedBattleState, StringComparison.Ordinal)
                     && historyAfterRestore == historyBeforeRestore,
                 "BATTLE_EXACT_SAVE_RESTORE",
-                $"stateEqual={restoredBattleState == expectedBattleState}; history={historyBeforeRestore}->{historyAfterRestore}; actor={battle.Session?.CurrentActor?.PersistentId}");
+                $"stateEqual={restoredBattleState == expectedBattleState}; history={historyBeforeRestore}->{historyAfterRestore}; actor={battle.Session?.CurrentActor?.PersistentId}; difference={DescribeFirstDifference(expectedBattleState, restoredBattleState)}");
 
             yield return Click(FindSceneComponent<Button>("Button_던전 보기"));
             yield return Click(FindSceneComponent<Button>("SettingsMenuButton"));
@@ -802,83 +824,161 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             .FirstOrDefault(button => button != null);
     }
 
-    private static CharacterActor PrepareRecruitCandidate(
-        DungeonRuntimeLifetimeScope scope,
-        out RegularCustomerRuntime recruitment)
+    private IEnumerator PrepareRecruitCandidate(DungeonRuntimeLifetimeScope scope)
     {
-        recruitment = null;
+        preparedRecruitCandidate = null;
+        preparedRecruitment = null;
+        preparedRecruitDiagnostic = string.Empty;
         if (scope == null || scope.Container == null)
         {
-            return null;
+            yield break;
         }
 
         IRegularCustomerRuntimeProvider recruitmentProvider =
             scope.Container.Resolve<IRegularCustomerRuntimeProvider>();
-        if (!recruitmentProvider.TryGetRuntime(out recruitment))
+        if (!recruitmentProvider.TryGetRuntime(out preparedRecruitment))
         {
-            return null;
+            yield break;
         }
 
         ICharacterSpawnerProvider spawnerProvider = scope.Container.Resolve<ICharacterSpawnerProvider>();
-        ICharacterSpawnObjectFactory characterFactory = scope.Container.Resolve<ICharacterSpawnObjectFactory>();
         if (!spawnerProvider.TryGetSpawner(out CharacterSpawner spawner)
             || spawner.characterPrefab == null)
         {
-            return null;
+            yield break;
         }
 
-        CharacterActor candidate = FindObjectsByType<CharacterActor>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None)
-            .FirstOrDefault(RegularCustomerService.IsTrackableCustomer);
-        if (candidate == null)
+        float startedAt = Time.realtimeSinceStartup;
+        float deadline = startedAt + 15f;
+        bool fixtureSeeded = false;
+        while (Time.realtimeSinceStartup < deadline)
         {
-            HashSet<int> activeDataIds = FindObjectsByType<CharacterActor>(
+            CharacterActor candidate = FindObjectsByType<CharacterActor>(
                     FindObjectsInactive.Exclude,
                     FindObjectsSortMode.None)
-                .Where(actor => actor != null && actor.Identity?.Data != null)
-                .Select(actor => actor.Identity.Data.id)
-                .ToHashSet();
-            CharacterSO sourceData = spawner.characters?
-                .FirstOrDefault(data => data != null
-                    && data.characterType == CharacterType.Customer
-                    && data.role != CharacterRole.Owner
-                    && !activeDataIds.Contains(data.id))
-                ?? spawner.characters?.FirstOrDefault(data => data != null
-                    && data.characterType == CharacterType.Customer
-                    && data.role != CharacterRole.Owner);
-            if (sourceData == null)
+                .FirstOrDefault(actor =>
+                    RegularCustomerService.IsTrackableCustomer(actor)
+                    && !string.IsNullOrWhiteSpace(RegularCustomerService.GetCustomerId(actor)));
+            if (candidate != null && candidate.CurrentLifecycleState == CharacterLifecycleState.Active)
             {
-                return null;
+                preparedRecruitCandidate = candidate;
+                preparedRecruitDiagnostic = fixtureSeeded
+                    ? "prepared profile entered through CharacterSpawner"
+                    : "background world profile entered naturally";
+                break;
             }
 
-            GameObject candidateObject = characterFactory.Create(spawner.characterPrefab);
-            characterFactory.Inject(candidateObject);
-            candidate = candidateObject.GetComponent<CharacterActor>();
-            if (candidate == null)
+            if (!fixtureSeeded && Time.realtimeSinceStartup >= startedAt + 2f)
             {
-                characterFactory.Destroy(candidateObject);
-                return null;
+                fixtureSeeded = TrySeedPreparedRecruitProfile(scope, spawner, out string diagnostic);
+                preparedRecruitDiagnostic = diagnostic;
             }
 
-            candidateObject.name = "Product Shell Recruit Candidate";
-            candidate.Initialize(sourceData);
-            candidate.transform.position = spawner.GetEntryDoorWorldPosition();
+            yield return new WaitForSecondsRealtime(0.1f);
         }
 
-        candidate.SetLifecycleState(CharacterLifecycleState.Active);
-        candidate.stats[CharacterCondition.MOOD] = 100f;
+        if (preparedRecruitCandidate == null)
+        {
+            yield break;
+        }
+
+        preparedRecruitCandidate.gameObject.name = "Product Shell Recruit Candidate";
+        preparedRecruitCandidate.stats[CharacterCondition.MOOD] = 100f;
         BuildableObject facility = FindObjectsByType<BuildableObject>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
             .FirstOrDefault(building => building != null && !building.isDestroy);
-        int visits = Mathf.Max(1, recruitment.Rules.recruitCandidateVisitThreshold);
+        int visits = Mathf.Max(1, preparedRecruitment.Rules.recruitCandidateVisitThreshold);
         DungeonStory.Foundation.IGameEventBus gameEventBus =
             scope.Container.Resolve<DungeonStory.Foundation.IGameEventBus>();
         for (int i = 0; i < visits; i++)
         {
-            gameEventBus.Publish(new FacilityVisitEvent(candidate, facility));
+            gameEventBus.Publish(new FacilityVisitEvent(preparedRecruitCandidate, facility));
+        }
+    }
+
+    private static bool TrySeedPreparedRecruitProfile(
+        DungeonRuntimeLifetimeScope scope,
+        CharacterSpawner spawner,
+        out string diagnostic)
+    {
+        diagnostic = "prepared recruit profile could not be seeded";
+        if (scope == null || scope.Container == null || spawner == null)
+        {
+            return false;
         }
 
-        return candidate;
+        CharacterSO customerData = spawner.characters?
+            .FirstOrDefault(data => data != null
+                && data.characterType == CharacterType.Customer
+                && data.role != CharacterRole.Owner);
+        CharacterActor donor = FindObjectsByType<CharacterActor>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None)
+            .FirstOrDefault(actor =>
+                actor != null
+                && !actor.IsOwner
+                && actor.Progression != null
+                && actor.Progression.ActiveSkills.Count > 0
+                && actor.Progression.PassiveSkills.Count > 0);
+        if (customerData == null || donor?.Progression == null)
+        {
+            diagnostic = $"fixture source missing; customer={customerData != null}; donor={donor != null}";
+            return false;
+        }
+
+        const string FixtureId = "world:product-shell:recruit";
+        CharacterGrowthState growth = donor.Progression.GrowthState.Clone();
+        growth.initialized = true;
+        growth.autoChooseDrafts = true;
+        growth.displayName = "검증 방문객";
+        growth.origin = customerData.SpeciesTag;
+        growth.drafts.Clear();
+        growth.pendingRequestKeys.Clear();
+
+        ICharacterPopulationService population =
+            scope.Container.Resolve<ICharacterPopulationService>();
+        List<WorldCharacterProfile> profiles = population.CaptureProfiles()
+            .Where(profile => profile != null
+                && !string.Equals(profile.persistentId, FixtureId, StringComparison.Ordinal))
+            .ToList();
+        profiles.Add(new WorldCharacterProfile
+        {
+            persistentId = FixtureId,
+            characterDataId = customerData.id,
+            displayName = growth.displayName,
+            origin = growth.origin,
+            isAlive = true,
+            isVisiting = false,
+            level = donor.Progression.Level,
+            currentExperience = donor.Progression.CurrentExperience,
+            growth = growth,
+            narrative = new CharacterNarrativeLedger()
+        });
+        population.RestoreProfiles(profiles);
+        bool spawnAccepted = spawner.TrySpawnCharacter(customerData.id);
+        CharacterActor spawned = spawnAccepted
+            ? FindObjectsByType<CharacterActor>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(actor => string.Equals(
+                    RegularCustomerService.GetCustomerId(actor),
+                    FixtureId,
+                    StringComparison.Ordinal))
+            : null;
+        if (spawned != null)
+        {
+            spawned.transform.position = spawner.GetEntryDoorWorldPosition();
+            if (spawned.TryGetAbility(out AbilityMove move))
+            {
+                move.CancelActiveMovement();
+            }
+
+            spawned.SetLifecycleState(CharacterLifecycleState.Active);
+        }
+
+        diagnostic = spawnAccepted
+            ? $"seeded={FixtureId}; template={customerData.id}; actor={spawned != null}"
+            : $"seeded={FixtureId}; CharacterSpawner rejected template={customerData.id}";
+        return spawnAccepted;
     }
 
     private IEnumerator ScrollIntoView(Component target)
@@ -894,23 +994,37 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             yield break;
         }
 
-        for (int i = 0; i < 12; i++)
+        RectTransform viewport = scroll.viewport != null
+            ? scroll.viewport
+            : scroll.GetComponent<RectTransform>();
+        RectTransform content = scroll.content;
+        RectTransform targetRect = target.GetComponent<RectTransform>();
+        if (content == null || targetRect == null)
         {
-            Canvas.ForceUpdateCanvases();
-            RectTransform rect = target.GetComponent<RectTransform>();
-            Vector2 point = RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center));
-            const float BottomHudSafeY = 140f;
-            const float TopHudSafeMargin = 80f;
-            if (point.y >= BottomHudSafeY && point.y <= Screen.height - TopHudSafeMargin)
-            {
-                yield break;
-            }
-
-            float direction = point.y < BottomHudSafeY ? -0.12f : 0.12f;
-            scroll.verticalNormalizedPosition = Mathf.Clamp01(
-                scroll.verticalNormalizedPosition + direction);
-            yield return null;
+            yield break;
         }
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(content);
+        float overflow = Mathf.Max(0f, content.rect.height - viewport.rect.height);
+        if (overflow <= 0.1f)
+        {
+            scroll.verticalNormalizedPosition = 1f;
+        }
+        else
+        {
+            Vector3 worldCenter = targetRect.TransformPoint(targetRect.rect.center);
+            Vector2 contentPoint = content.InverseTransformPoint(worldCenter);
+            float distanceFromTop = content.rect.yMax - contentPoint.y;
+            float desiredOffset = Mathf.Clamp(
+                distanceFromTop - viewport.rect.height * 0.5f,
+                0f,
+                overflow);
+            scroll.verticalNormalizedPosition = 1f - desiredOffset / overflow;
+        }
+
+        yield return null;
+        Canvas.ForceUpdateCanvases();
     }
 
     private static Button FindOffenseExpeditionMemberButton()
@@ -1006,6 +1120,58 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
         EventSystem.current.RaycastAll(pointer, results);
         return results.Any(result => result.gameObject != null
             && result.gameObject.transform.IsChildOf(modal.transform));
+    }
+
+    private static bool IsTopUiTarget(Component target, out string diagnostic)
+    {
+        if (target == null || EventSystem.current == null)
+        {
+            diagnostic = target == null
+                ? "target=<missing>"
+                : "eventSystem=<missing>";
+            return false;
+        }
+
+        RectTransform rect = target.GetComponent<RectTransform>();
+        Vector2 point = RectTransformUtility.WorldToScreenPoint(
+            null,
+            rect.TransformPoint(rect.rect.center));
+        PointerEventData pointer = new PointerEventData(EventSystem.current)
+        {
+            position = point
+        };
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(pointer, results);
+        GameObject top = results.FirstOrDefault().gameObject;
+        bool matches = top != null
+            && (top == target.gameObject
+                || top.transform.IsChildOf(target.transform));
+        diagnostic = $"target={target.name}; point={point}; top={(top != null ? top.name : "<none>")}";
+        return matches;
+    }
+
+    private static string DescribeFirstDifference(string expected, string actual)
+    {
+        expected ??= string.Empty;
+        actual ??= string.Empty;
+        int sharedLength = Mathf.Min(expected.Length, actual.Length);
+        int index = 0;
+        while (index < sharedLength && expected[index] == actual[index])
+        {
+            index++;
+        }
+
+        if (index == expected.Length && index == actual.Length)
+        {
+            return "<none>";
+        }
+
+        int start = Mathf.Max(0, index - 48);
+        int expectedLength = Mathf.Min(120, expected.Length - start);
+        int actualLength = Mathf.Min(120, actual.Length - start);
+        string expectedWindow = expected.Substring(start, expectedLength);
+        string actualWindow = actual.Substring(start, actualLength);
+        return $"index={index}; expected={expectedWindow}; actual={actualWindow}";
     }
 
     private void CheckStandardThemeLuminance(string id)

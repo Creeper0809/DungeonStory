@@ -46,6 +46,7 @@ public static class CharacterAiNaturalnessDebugScenarios
         RunScenario("Multiple low needs use weighted survival triage", VerifyWeightedSurvivalTriage, errors);
         RunScenario("Owner and worker can respond to depleted needs", VerifyWorkerSelfCareAccess, errors);
         RunScenario("Low mood chooses autonomous movement without LLM", VerifyLowMoodAutonomy, errors);
+        RunScenario("Critical logistics survives low mood autonomy", VerifyCriticalLogisticsSurvivesLowMoodAutonomy, errors);
         RunScenario("Critical mood interrupts ordinary work", VerifyCriticalMoodInterruptsWork, errors);
 
         if (errors.Count > 0)
@@ -456,6 +457,57 @@ public static class CharacterAiNaturalnessDebugScenarios
                 UnityEngine.Object.DestroyImmediate(workActionSet);
             }
         });
+    }
+
+    private static bool VerifyCriticalLogisticsSurvivesLowMoodAutonomy()
+    {
+        GameObject actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(
+            "Critical Logistics Low Mood");
+        CharacterSO data = CharacterAiPlanDebugFixtures.CreateCharacterData(
+            CharacterType.NPC,
+            "Critical Logistics Worker",
+            "Slime");
+        AIHaul haulActionSet = ScriptableObject.CreateInstance<AIHaul>();
+        try
+        {
+            actorObject.SetActive(false);
+            AbilityWork work = actorObject.GetComponent<AbilityWork>()
+                ?? actorObject.AddComponent<AbilityWork>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actorObject.SetActive(true);
+
+            CharacterActor actor = actorObject.GetComponent<CharacterActor>();
+            actor.EnsureRuntimeState();
+            actor.RefreshAbilityCache();
+            actor.Initialize(data);
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            actor.stats[CharacterCondition.MOOD] = 10f;
+            work.WorkPriorities.SetPriority(
+                BuiltInWorkTypeIds.Haul,
+                WorkPriorityLevel.Priority2);
+
+            float ordinaryWork = CharacterMoodImpulseUtility.ApplyFinalAutonomyBias(
+                actor,
+                CharacterAiBranch.Work,
+                0.8f);
+            AIAction haulAction = new AIAction(
+                haulActionSet,
+                AIActionPlan.WithoutDestination);
+            float protectedHaul = CharacterMoodImpulseUtility.ApplyFinalAutonomyBias(
+                actor,
+                CharacterAiBranch.Work,
+                0.8f,
+                haulAction);
+
+            return ordinaryWork < 0.2f
+                && Mathf.Approximately(protectedHaul, 0.8f);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(haulActionSet);
+            UnityEngine.Object.DestroyImmediate(data);
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
     }
 
     private static bool WithActor(string name, Func<CharacterActor, bool> verify)

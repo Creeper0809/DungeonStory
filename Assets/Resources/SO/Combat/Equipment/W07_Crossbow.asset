@@ -20,7 +20,7 @@ MonoBehaviour:
   occupiedHands: 2
   maxDurability: 100
   verbs:
-  - rid: 7302563146589275006
+  - rid: 7302563174523077605
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.25
@@ -44,8 +44,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563146589275006
-      type: {class: ProjectileVerb, ns: , asm: Assembly-CSharp}
+    - rid: 7302563174523077605
+      type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1
         baseDamage: 14

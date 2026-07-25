@@ -23,14 +23,17 @@ public sealed class DungeonUserSettingsRuntimeTargets
 {
     public DungeonUserSettingsRuntimeTargets(
         CameraManager cameraManager,
-        IReadOnlyList<DungeonUiThemeRuntime> themes)
+        IReadOnlyList<DungeonUiThemeRuntime> themes,
+        GameManager gameManager = null)
     {
         CameraManager = cameraManager;
         Themes = themes ?? Array.Empty<DungeonUiThemeRuntime>();
+        GameManager = gameManager;
     }
 
     public CameraManager CameraManager { get; }
     public IReadOnlyList<DungeonUiThemeRuntime> Themes { get; }
+    public GameManager GameManager { get; }
 }
 
 public sealed class SceneValidationReferences
@@ -63,7 +66,8 @@ public sealed class DungeonSceneRuntimeReferences
         DungeonStoryGridBuildingController gridBuildingController,
         GridTexture gridTexture,
         Camera mainCamera,
-        OwnerSelectionPanel ownerSelectionPanel)
+        OwnerSelectionPanel ownerSelectionPanel,
+        UIBuildingInfo buildingInfo = null)
     {
         UIManager = uiManager;
         Settlement = settlement;
@@ -76,6 +80,7 @@ public sealed class DungeonSceneRuntimeReferences
         GridTexture = gridTexture;
         MainCamera = mainCamera;
         OwnerSelectionPanel = ownerSelectionPanel;
+        BuildingInfo = buildingInfo;
     }
 
     public UIManager UIManager { get; }
@@ -89,6 +94,7 @@ public sealed class DungeonSceneRuntimeReferences
     public GridTexture GridTexture { get; private set; }
     public Camera MainCamera { get; private set; }
     public OwnerSelectionPanel OwnerSelectionPanel { get; private set; }
+    public UIBuildingInfo BuildingInfo { get; private set; }
 
     public void RegisterGameManager(GameManager gameManager)
     {
@@ -114,5 +120,10 @@ public sealed class DungeonSceneRuntimeReferences
     public void RegisterOwnerSelectionPanel(OwnerSelectionPanel panel)
     {
         OwnerSelectionPanel = panel;
+    }
+
+    public void RegisterBuildingInfo(UIBuildingInfo buildingInfo)
+    {
+        BuildingInfo = buildingInfo;
     }
 }

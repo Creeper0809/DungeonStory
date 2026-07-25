@@ -158,7 +158,9 @@ public sealed class AbilityRescue : MonoBehaviour
 
         if (patientPath.Count > 0)
         {
-            yield return move.MoveByPath(patientPath, expectedAction);
+            // The medical order owns this locked action. AIBrain may replace the
+            // equivalent AIAction instance while preserving the rescue intent.
+            yield return move.MoveByPath(patientPath);
         }
 
         if (IsActionCancelled(expectedAction))
@@ -211,7 +213,7 @@ public sealed class AbilityRescue : MonoBehaviour
         actor.Brain?.SetActionPhase("환자 이송", null, patient.Identity?.DisplayName);
         if (bedPath.Count > 0)
         {
-            yield return move.MoveByPath(bedPath, expectedAction);
+            yield return move.MoveByPath(bedPath);
         }
 
         string placementFailure = string.Empty;
@@ -292,11 +294,22 @@ public sealed class AbilityRescue : MonoBehaviour
 
     private bool IsActionCancelled(AIAction expectedAction)
     {
-        return expectedAction != null
-            && (actor == null
-                || actor.Brain == null
-                || actor.Brain.bestAction != expectedAction
-                || actor.CurrentLifecycleState != CharacterLifecycleState.Active);
+        if (expectedAction == null)
+        {
+            return actor == null
+                || actor.CurrentLifecycleState != CharacterLifecycleState.Active;
+        }
+
+        if (actor == null
+            || actor.Brain == null
+            || actor.CurrentLifecycleState != CharacterLifecycleState.Active)
+        {
+            return true;
+        }
+
+        AIAction currentAction = actor.Brain.bestAction;
+        return currentAction != null
+            && currentAction.actionset is not AIRescue;
     }
 
     private bool TryGetGrid(out Grid grid)

@@ -26,6 +26,7 @@ public static class UiPlayModeRegressionBatchRunner
     private const string SkillRuntimeReportPath = "Temp/character-skill-runtime-playmode-report.txt";
     private const string GameplayVerificationScenePath = "Assets/Scenes/GameplayScene.unity";
     private const string TitleVerificationScenePath = "Assets/Scenes/TitleScene.unity";
+    private const string PreparationVerificationScenePath = "Assets/Scenes/StartPreparationScene.unity";
     private const double TargetTimeoutSeconds = 420d;
     private const double MissingReportGraceSeconds = 12d;
 
@@ -459,7 +460,9 @@ public static class UiPlayModeRegressionBatchRunner
     {
         string verificationScenePath = target.Name.Equals("ProductShell", StringComparison.OrdinalIgnoreCase)
             ? TitleVerificationScenePath
-            : GameplayVerificationScenePath;
+            : target.Name.Equals("StartParty", StringComparison.OrdinalIgnoreCase)
+                ? PreparationVerificationScenePath
+                : GameplayVerificationScenePath;
         string projectRoot = Directory.GetParent(Application.dataPath)?.FullName ?? Application.dataPath;
         string fullPath = Path.Combine(projectRoot, verificationScenePath.Replace('/', Path.DirectorySeparatorChar));
         if (!File.Exists(fullPath))

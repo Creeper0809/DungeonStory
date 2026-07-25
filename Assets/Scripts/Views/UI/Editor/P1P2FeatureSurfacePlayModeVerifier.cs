@@ -8,6 +8,7 @@ using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
@@ -238,6 +239,8 @@ public static class P1P2FeatureSurfacePlayModeVerifier
                 yield return null;
                 yield return Capture("Temp/p2-ui-events.png", lines);
                 yield return null;
+
+                yield return VerifyResponsivePointerSurfaces(manager, lines);
 
                 RunStep("VISUAL", lines, () =>
                 {
@@ -609,26 +612,34 @@ public static class P1P2FeatureSurfacePlayModeVerifier
 
             OpenTab(manager, 5);
 
-            bool startStateVisible = HasActiveObject("P1State_RunStartVariables");
-            bool operationStateVisible = HasActiveObject("P1State_RunOperationVariables")
-                || HasActiveObjectStartingWith("P1State_RunOperationVariable_");
-            bool invasionStateVisible = HasActiveObject("P1State_RunInvasionVariable");
+            int runVariableRows = CountActiveObjectsStartingWith("P1State_RunVariable_");
+            bool flowStateVisible = HasActiveObjectStartingWith("P0State_Flow_");
+            bool survivalStateVisible = HasActiveObjectStartingWith("P0State_Survival_");
+            bool exteriorStateVisible = HasActiveObjectStartingWith("P0State_Exterior_");
             int publicVariableShortcuts = CountButtons("P1Action_Run");
             AddResult(lines, "P1-01 RUN_INVASION_VARIABLES",
                 run?.State.HasStarted == true
-                && startStateVisible
-                && operationStateVisible
-                && invasionStateVisible
+                && runVariableRows >= 2
+                && flowStateVisible
+                && survivalStateVisible
+                && exteriorStateVisible
                 && publicVariableShortcuts == 0,
-                $"started={run?.State.HasStarted}; operationCount={run?.State.ActiveOperationVariables.Count ?? -1}; invasion={run?.State.CurrentInvasionVariable?.id ?? "waiting"}; states={startStateVisible}/{operationStateVisible}/{invasionStateVisible}; publicShortcuts={publicVariableShortcuts}");
+                $"started={run?.State.HasStarted}; operationCount={run?.State.ActiveOperationVariables.Count ?? -1}; invasion={run?.State.CurrentInvasionVariable?.id ?? "waiting"}; runRows={runVariableRows}; flow/survival/exterior={flowStateVisible}/{survivalStateVisible}/{exteriorStateVisible}; publicShortcuts={publicVariableShortcuts}");
 
             bool settleShortcutPresent = FindActiveButtons("P0Action_OperationSettleDay", exact: true).Count > 0;
-            bool currentClicked = ClickExact("P2Action_EconomyCurrent");
-            bool historyClicked = ClickExact("P2Action_EconomyHistory");
-            bool historySelected = ButtonTextContains("P2Action_EconomyHistory", "선택됨");
+            bool emergencyFundingVisible =
+                FindActiveButtons("P0Action_OperationEmergencyFunding", exact: true).Count == 1;
+            bool settlementSectionVisible = HasVisibleTextContaining("운영 정산");
+            bool legacyEconomyButtonsAbsent =
+                FindActiveButtons("P2Action_EconomyCurrent", exact: true).Count == 0
+                && FindActiveButtons("P2Action_EconomyHistory", exact: true).Count == 0;
             AddResult(lines, "P2-03 ECONOMY_HUD_DETAIL",
-                !settleShortcutPresent && currentClicked && historyClicked && historySelected && settlement != null,
-                $"settleShortcutPresent={settleShortcutPresent}; currentClicked={currentClicked}; historyClicked={historyClicked}; historySelected={historySelected}; reports={settlement?.ReportHistory.Count ?? -1}; revenue={settlement?.LatestReport?.totalRevenue ?? -1}");
+                !settleShortcutPresent
+                && emergencyFundingVisible
+                && settlementSectionVisible
+                && legacyEconomyButtonsAbsent
+                && settlement != null,
+                $"settleShortcutPresent={settleShortcutPresent}; emergencyFunding={emergencyFundingVisible}; settlementSection={settlementSectionVisible}; legacyButtonsAbsent={legacyEconomyButtonsAbsent}; reports={settlement?.ReportHistory.Count ?? -1}; revenue={settlement?.LatestReport?.totalRevenue ?? -1}");
             ScrollActivePanel(0f);
         }
 
@@ -643,7 +654,7 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             float threatBefore = threat?.CurrentThreat ?? -1f;
             threat?.Tick(1f);
             float threatAfter = threat?.CurrentThreat ?? -1f;
-            bool threatStateVisible = HasActiveObject("P1State_Threat");
+            bool threatStateVisible = HasVisibleTextContaining("침공 위협");
             bool threatShortcutPresent = FindActiveButtons("P1Action_ThreatIncrease", exact: true).Count > 0;
             AddResult(lines, "P1-04 INVASION_THREAT",
                 threat != null && threatAfter >= threatBefore && threatStateVisible && !threatShortcutPresent,
@@ -964,6 +975,173 @@ public static class P1P2FeatureSurfacePlayModeVerifier
                 reportsClicked && reportDetailClicked && eventsClicked && filterClicked && recordClicked && events?.SelectedRecord != null,
                 $"reportsClicked={reportsClicked}; reportDetailClicked={reportDetailClicked}; eventsClicked={eventsClicked}; filterClicked={filterClicked}; recordClicked={recordClicked}; selected={events?.SelectedRecord?.Title ?? "<none>"}; log={events?.EventLog.Count ?? -1}");
             ScrollActivePanel(0f);
+        }
+
+        private IEnumerator VerifyResponsivePointerSurfaces(
+            UITabManager manager,
+            List<string> lines)
+        {
+            int originalResolutionIndex = GameViewResolutionController.SelectedSizeIndex;
+            Vector2Int[] resolutions =
+            {
+                new Vector2Int(1600, 900),
+                new Vector2Int(900, 1600)
+            };
+
+            try
+            {
+                foreach (Vector2Int resolution in resolutions)
+                {
+                    yield return SelectResolution(resolution);
+
+                    Button operationsButton = FindTopTabButton(TabId.Operations);
+                    bool operationsClicked = ClickPointer(operationsButton);
+                    yield return null;
+                    ForceLayout();
+                    UITab operationsTab = FindActiveTab(TabId.Operations);
+                    bool operationsVisible = operationsTab != null
+                        && IsInsideScreen(operationsTab.GetComponent<RectTransform>());
+                    bool currentStatusVisible =
+                        HasActiveObjectStartingWith("P0State_Flow_")
+                        && HasActiveObjectStartingWith("P0State_Survival_")
+                        && HasActiveObjectStartingWith("P0State_Exterior_");
+
+                    Button wildlifeButton = FindActiveButtons(
+                            "WildlifeEcosystemViewToggle",
+                            exact: true)
+                        .FirstOrDefault();
+                    IWildlifeEcosystemRuntime wildlife =
+                        ResolveFromLifetimeScope<IWildlifeEcosystemRuntime>();
+                    bool wildlifeBefore = wildlife?.OverlayEnabled == true;
+                    bool wildlifeClicked = ClickPointer(wildlifeButton);
+                    bool wildlifeChanged = wildlife != null
+                        && wildlife.OverlayEnabled != wildlifeBefore;
+                    if (wildlifeChanged)
+                    {
+                        ClickPointer(wildlifeButton);
+                    }
+
+                    Button defenseButton = FindTopTabButton(TabId.Defense);
+                    bool defenseClicked = ClickPointer(defenseButton);
+                    yield return null;
+                    ForceLayout();
+                    UITab defenseTab = FindActiveTab(TabId.Defense);
+                    bool defenseVisible = defenseTab != null
+                        && IsInsideScreen(defenseTab.GetComponent<RectTransform>())
+                        && HasVisibleTextContaining("침공 위협");
+
+                    Button saveButton = FindActiveButtons(
+                            "SaveMenuButton",
+                            exact: true)
+                        .FirstOrDefault();
+                    bool saveClicked = ClickPointer(saveButton);
+                    yield return null;
+                    ForceLayout();
+                    GameObject saveModal = FindSceneObject("SaveModal");
+                    bool saveVisible = saveModal != null
+                        && saveModal.activeInHierarchy
+                        && IsInsideScreen(saveModal.GetComponent<RectTransform>());
+                    Button saveClose = saveModal != null
+                        ? saveModal.GetComponentsInChildren<Button>(true)
+                            .FirstOrDefault(button =>
+                                button != null
+                                && button.gameObject.activeInHierarchy
+                                && button.name == "CloseButton")
+                        : null;
+                    bool saveClosed = ClickPointer(saveClose);
+
+                    string[] unreadableLabels = FindUnreadableVisibleLabels();
+                    bool responsivePass =
+                        operationsClicked
+                        && operationsVisible
+                        && currentStatusVisible
+                        && wildlifeClicked
+                        && wildlifeChanged
+                        && defenseClicked
+                        && defenseVisible
+                        && saveClicked
+                        && saveVisible
+                        && saveClosed
+                        && unreadableLabels.Length == 0;
+                    AddResult(
+                        lines,
+                        resolution.x > resolution.y
+                            ? "P1-15 DESKTOP_POINTER_SURFACES"
+                            : "P1-16 PORTRAIT_POINTER_SURFACES",
+                        responsivePass,
+                        $"resolution={Screen.width}x{Screen.height}; operations={operationsClicked}/{operationsVisible}/{currentStatusVisible}; wildlife={wildlifeClicked}/{wildlifeChanged}; defense={defenseClicked}/{defenseVisible}; save={saveClicked}/{saveVisible}/{saveClosed}; unreadable={CompactList(unreadableLabels)}");
+
+                    yield return Capture(
+                        $"Temp/p1-closure-ui-{resolution.x}x{resolution.y}.png",
+                        lines);
+                }
+
+                EventAlertRuntime events = FindActiveSceneComponent<EventAlertRuntime>();
+                EventAlertRecord dismissTarget = null;
+                bool rightClicked = false;
+                foreach (EventAlertRecord record in
+                         events?.EventLog.Reverse()
+                         ?? Enumerable.Empty<EventAlertRecord>())
+                {
+                    if (record == null || events.IsDismissed(record))
+                    {
+                        continue;
+                    }
+
+                    Button alertButton = FindActiveButtons(
+                            $"EventAlertButton_{record.Id}",
+                            exact: true)
+                        .FirstOrDefault();
+                    if (!ClickPointer(
+                            alertButton,
+                            PointerEventData.InputButton.Right))
+                    {
+                        continue;
+                    }
+
+                    dismissTarget = record;
+                    rightClicked = true;
+                    break;
+                }
+
+                yield return null;
+                bool dismissed = dismissTarget != null
+                    && events != null
+                    && events.IsDismissed(dismissTarget)
+                    && FindActiveButtons(
+                            $"EventAlertButton_{dismissTarget.Id}",
+                            exact: true)
+                        .Count == 0;
+                AddResult(
+                    lines,
+                    "P2-05 ALERT_RIGHT_CLICK_DISMISS",
+                    rightClicked && dismissed,
+                    $"target={dismissTarget?.Title ?? "<none>"}; rightClicked={rightClicked}; dismissed={dismissed}; historyPreserved={events?.EventLog.Contains(dismissTarget) == true}");
+            }
+            finally
+            {
+                if (originalResolutionIndex >= 0)
+                {
+                    GameViewResolutionController.SelectedSizeIndex =
+                        originalResolutionIndex;
+                }
+            }
+
+            yield return null;
+        }
+
+        private static IEnumerator SelectResolution(Vector2Int resolution)
+        {
+            GameViewResolutionController.Select(resolution.x, resolution.y);
+            float deadline = Time.realtimeSinceStartup + 3f;
+            while ((Screen.width != resolution.x || Screen.height != resolution.y)
+                && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+            }
+
+            yield return new WaitForEndOfFrame();
+            ForceLayout();
         }
 
         private CharacterActor CreateQaCharacter(string name, CharacterType type, bool addWork)
@@ -1814,6 +1992,131 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             return true;
         }
 
+        private static bool ClickPointer(
+            Button button,
+            PointerEventData.InputButton inputButton =
+                PointerEventData.InputButton.Left)
+        {
+            if (button == null
+                || !button.gameObject.activeInHierarchy
+                || !button.IsInteractable()
+                || EventSystem.current == null)
+            {
+                return false;
+            }
+
+            RectTransform rect = button.transform as RectTransform;
+            if (rect == null || !IsInsideScreen(rect))
+            {
+                return false;
+            }
+
+            Vector2 point = RectTransformUtility.WorldToScreenPoint(
+                null,
+                rect.TransformPoint(rect.rect.center));
+            PointerEventData pointer = new PointerEventData(EventSystem.current)
+            {
+                position = point,
+                button = inputButton
+            };
+            List<RaycastResult> hits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(pointer, hits);
+            RaycastResult top = hits.FirstOrDefault(hit =>
+                hit.gameObject != null
+                && hit.gameObject.activeInHierarchy);
+            if (top.gameObject == null
+                || (top.gameObject != button.gameObject
+                    && !top.gameObject.transform.IsChildOf(button.transform)))
+            {
+                return false;
+            }
+
+            ExecuteEvents.ExecuteHierarchy(
+                top.gameObject,
+                pointer,
+                ExecuteEvents.pointerDownHandler);
+            ExecuteEvents.ExecuteHierarchy(
+                top.gameObject,
+                pointer,
+                ExecuteEvents.pointerUpHandler);
+            ExecuteEvents.ExecuteHierarchy(
+                top.gameObject,
+                pointer,
+                ExecuteEvents.pointerClickHandler);
+            ForceLayout();
+            return true;
+        }
+
+        private static Button FindTopTabButton(TabId id)
+        {
+            return UnityEngine.Object.FindObjectsByType<UITabButtonBinding>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Where(binding =>
+                    binding != null
+                    && binding.gameObject.activeInHierarchy
+                    && binding.Id == id)
+                .Select(binding => binding.GetComponent<Button>())
+                .FirstOrDefault(button => button != null);
+        }
+
+        private static UITab FindActiveTab(TabId id)
+        {
+            return UnityEngine.Object.FindObjectsByType<UITabIdentity>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Where(identity =>
+                    identity != null
+                    && identity.gameObject.activeInHierarchy
+                    && identity.Id == id)
+                .Select(identity => identity.GetComponent<UITab>())
+                .FirstOrDefault(tab => tab != null);
+        }
+
+        private static bool IsInsideScreen(RectTransform rect)
+        {
+            if (rect == null)
+            {
+                return false;
+            }
+
+            Rect target = GetWorldRect(rect);
+            const float tolerance = 1f;
+            return target.width > 0f
+                && target.height > 0f
+                && target.xMin >= -tolerance
+                && target.yMin >= -tolerance
+                && target.xMax <= Screen.width + tolerance
+                && target.yMax <= Screen.height + tolerance;
+        }
+
+        private static string[] FindUnreadableVisibleLabels()
+        {
+            string[] markers =
+            {
+                "\uFFFD",
+                "吏",
+                "寃",
+                "移",
+                "援",
+                "諛",
+                "묒",
+                "앹"
+            };
+            return UnityEngine.Object.FindObjectsByType<TMP_Text>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Where(label =>
+                    label != null
+                    && label.gameObject.activeInHierarchy
+                    && label.text != null
+                    && markers.Any(marker =>
+                        label.text.Contains(marker, StringComparison.Ordinal)))
+                .Select(label => $"{label.name}:{label.text}")
+                .Take(8)
+                .ToArray();
+        }
+
         private static int CountButtons(string prefix)
         {
             return FindActiveButtons(prefix).Count;
@@ -1835,6 +2138,30 @@ public static class P1P2FeatureSurfacePlayModeVerifier
                 .Any((item) => item != null
                     && item.gameObject.activeInHierarchy
                     && item.name.StartsWith(prefix, StringComparison.Ordinal));
+        }
+
+        private static int CountActiveObjectsStartingWith(string prefix)
+        {
+            return UnityEngine.Object.FindObjectsByType<Transform>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Count(item =>
+                    item != null
+                    && item.gameObject.activeInHierarchy
+                    && item.name.StartsWith(prefix, StringComparison.Ordinal));
+        }
+
+        private static bool HasVisibleTextContaining(string value)
+        {
+            return !string.IsNullOrWhiteSpace(value)
+                && UnityEngine.Object.FindObjectsByType<TMP_Text>(
+                        FindObjectsInactive.Exclude,
+                        FindObjectsSortMode.None)
+                    .Any(label =>
+                        label != null
+                        && label.gameObject.activeInHierarchy
+                        && label.text != null
+                        && label.text.Contains(value, StringComparison.Ordinal));
         }
 
         private static GameObject FindSceneObject(string name)
@@ -2144,7 +2471,7 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             StopLogCapture();
             int passCount = lines.Count((line) => line.Contains(" PASS=True;"));
             int failCount = lines.Count((line) => line.Contains(" PASS=False;"));
-            lines.Add($"RESULT rowsPassed={passCount}/18; rowsFailed={failCount}");
+            lines.Add($"RESULT rowsPassed={passCount}/{passCount + failCount}; rowsFailed={failCount}");
             lines.Add($"capturedErrors={capturedErrors.Count}; errors={CompactList(capturedErrors)}");
             lines.Add($"capturedWarnings={capturedWarnings.Count}; warnings={CompactList(capturedWarnings)}");
             File.WriteAllText(ReportPath, string.Join("\n", lines));

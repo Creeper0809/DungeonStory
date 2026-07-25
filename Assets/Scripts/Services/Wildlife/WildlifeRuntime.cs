@@ -29,6 +29,7 @@ public sealed class WildlifeRuntime :
     private readonly IWildlifeCarcassService carcassService;
     private readonly IGameClock gameClock;
     private readonly IRandomStreamProvider randomStreamProvider;
+    private readonly IDoorAccessQuery doorAccessQuery;
     private readonly IRandomStream randomStream;
     private readonly List<WildlifeActor> wildlife = new List<WildlifeActor>();
     private readonly Dictionary<string, float> nextBehaviorTickByWildlifeId =
@@ -56,7 +57,8 @@ public sealed class WildlifeRuntime :
         IWorldItemStackRuntime itemStackRuntime = null,
         IWildlifeCarcassService carcassService = null,
         IGameClock gameClock = null,
-        IRandomStreamProvider randomStreamProvider = null)
+        IRandomStreamProvider randomStreamProvider = null,
+        IDoorAccessQuery doorAccessQuery = null)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.speciesCatalog = speciesCatalog ?? throw new ArgumentNullException(nameof(speciesCatalog));
@@ -77,6 +79,7 @@ public sealed class WildlifeRuntime :
         this.carcassService = carcassService;
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.randomStreamProvider = randomStreamProvider ?? new RandomStreamProvider(1);
+        this.doorAccessQuery = doorAccessQuery;
         randomStream = this.randomStreamProvider.Get("wildlife.runtime");
     }
 
@@ -1071,7 +1074,8 @@ public sealed class WildlifeRuntime :
                 pathSearchBroker,
                 worldRegistry,
                 gameClock,
-                randomStreamProvider);
+                randomStreamProvider,
+                doorAccessQuery);
         }
         actor.Initialize(grid, species, wildlifeId, position, saveData);
         wildlife.Add(actor);
@@ -1107,6 +1111,11 @@ public sealed class WildlifeRuntime :
     private bool ShouldTickBehavior(WildlifeActor actor, float now, Camera mainCamera)
     {
         if (actor == null || !actor.IsAlive)
+        {
+            return false;
+        }
+
+        if (actor.State == WildlifeState.Captured)
         {
             return false;
         }

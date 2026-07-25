@@ -13,7 +13,8 @@ public enum WildlifeState
     Retaliating = 4,
     PredatorStalking = 5,
     Dead = 6,
-    Leaving = 7
+    Leaving = 7,
+    Captured = 8
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

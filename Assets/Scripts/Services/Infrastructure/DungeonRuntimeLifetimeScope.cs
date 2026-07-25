@@ -110,7 +110,8 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
             sceneQuery.First<DungeonStoryGridBuildingController>(includeInactive: true),
             sceneQuery.First<GridTexture>(includeInactive: true),
             sceneQuery.First<Camera>(includeInactive: true),
-            sceneQuery.First<OwnerSelectionPanel>(includeInactive: true));
+            sceneQuery.First<OwnerSelectionPanel>(includeInactive: true),
+            sceneQuery.First<UIBuildingInfo>(includeInactive: true));
     }
 
     private static DungeonUserSettingsRuntimeTargets CaptureUserSettingsTargets(
@@ -118,7 +119,8 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
     {
         return new DungeonUserSettingsRuntimeTargets(
             sceneQuery.First<CameraManager>(includeInactive: true),
-            sceneQuery.All<DungeonUiThemeRuntime>(includeInactive: true));
+            sceneQuery.All<DungeonUiThemeRuntime>(includeInactive: true),
+            sceneQuery.First<GameManager>(includeInactive: true));
     }
 
     private static SceneValidationReferences CaptureSceneValidationReferences(

@@ -20,12 +20,14 @@ public interface IGridPathSearchBroker
         Grid grid,
         Vector2Int start,
         out GridPathSearchResult result,
-        GridPathSearchPriority priority = GridPathSearchPriority.Normal);
+        GridPathSearchPriority priority = GridPathSearchPriority.Normal,
+        GridTraversalContext traversalContext = default);
     Queue<GridMoveStep> GetMovePath(
         Grid grid,
         Vector2Int start,
         Func<Vector2Int, bool> terminateEndCondition,
-        GridPathSearchPriority priority = GridPathSearchPriority.Normal);
+        GridPathSearchPriority priority = GridPathSearchPriority.Normal,
+        GridTraversalContext traversalContext = default);
     void Clear();
 }
 
@@ -36,19 +38,33 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         private readonly int gridHash;
         private readonly int gridVersion;
         private readonly Vector2Int start;
+        private readonly int traversalContextHash;
+        private readonly int doorAccessVersion;
 
-        public PathKey(Grid grid, Vector2Int start)
+        public PathKey(
+            Grid grid,
+            Vector2Int start,
+            GridTraversalContext traversalContext,
+            int doorAccessVersion)
         {
             gridHash = grid != null ? grid.GetHashCode() : 0;
             gridVersion = grid != null ? grid.version : -1;
             this.start = start;
+            traversalContextHash = traversalContext.HasSubject
+                ? traversalContext.GetHashCode()
+                : 0;
+            this.doorAccessVersion = traversalContext.HasSubject
+                ? doorAccessVersion
+                : 0;
         }
 
         public bool Equals(PathKey other)
         {
             return gridHash == other.gridHash
                 && gridVersion == other.gridVersion
-                && start == other.start;
+                && start == other.start
+                && traversalContextHash == other.traversalContextHash
+                && doorAccessVersion == other.doorAccessVersion;
         }
 
         public override bool Equals(object obj)
@@ -63,6 +79,8 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
                 int hash = gridHash;
                 hash = (hash * 397) ^ gridVersion;
                 hash = (hash * 397) ^ start.GetHashCode();
+                hash = (hash * 397) ^ traversalContextHash;
+                hash = (hash * 397) ^ doorAccessVersion;
                 return hash;
             }
         }
@@ -70,6 +88,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
 
     private const int DefaultSearchBudget = 8;
     private readonly IGameClock gameClock;
+    private readonly IDoorAccessQuery doorAccessQuery;
     private readonly Dictionary<PathKey, GridPathSearchResult> frameCache =
         new Dictionary<PathKey, GridPathSearchResult>();
 
@@ -77,9 +96,12 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
     private int searchBudget = DefaultSearchBudget;
     private bool enforceBudget = true;
 
-    public GridPathSearchBroker(IGameClock gameClock)
+    public GridPathSearchBroker(
+        IGameClock gameClock,
+        IDoorAccessQuery doorAccessQuery = null)
     {
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.doorAccessQuery = doorAccessQuery;
     }
 
     public int SearchesThisFrame { get; private set; }
@@ -97,7 +119,8 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         Grid grid,
         Vector2Int start,
         out GridPathSearchResult result,
-        GridPathSearchPriority priority = GridPathSearchPriority.Normal)
+        GridPathSearchPriority priority = GridPathSearchPriority.Normal,
+        GridTraversalContext traversalContext = default)
     {
         BeginFrameIfNeeded();
         result = null;
@@ -106,7 +129,14 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             return false;
         }
 
-        PathKey key = new PathKey(grid, start);
+        int doorAccessVersion = traversalContext.HasSubject
+            ? doorAccessQuery?.DoorAccessVersion ?? 0
+            : 0;
+        PathKey key = new PathKey(
+            grid,
+            start,
+            traversalContext,
+            doorAccessVersion);
         if (frameCache.TryGetValue(key, out result)
             && result != null
             && result.sourceGrid == grid
@@ -126,7 +156,15 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             return false;
         }
 
-        result = grid.SearchPath(start);
+        result = traversalContext.HasSubject && doorAccessQuery != null
+            ? grid.SearchPathWithTraversalFilter(
+                start,
+                position => doorAccessQuery.CanTraverse(
+                    grid,
+                    position,
+                    traversalContext,
+                    out _))
+            : grid.SearchPath(start);
         frameCache[key] = result;
         SearchesThisFrame++;
         return true;
@@ -136,14 +174,20 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         Grid grid,
         Vector2Int start,
         Func<Vector2Int, bool> terminateEndCondition,
-        GridPathSearchPriority priority = GridPathSearchPriority.Normal)
+        GridPathSearchPriority priority = GridPathSearchPriority.Normal,
+        GridTraversalContext traversalContext = default)
     {
         if (terminateEndCondition == null)
         {
             throw new ArgumentNullException(nameof(terminateEndCondition));
         }
 
-        return TryGetSearch(grid, start, out GridPathSearchResult search, priority)
+        return TryGetSearch(
+                grid,
+                start,
+                out GridPathSearchResult search,
+                priority,
+                traversalContext)
             ? search.GetMovePath(terminateEndCondition)
             : null;
     }

@@ -23,6 +23,8 @@ public static class WorkAmountDebugScenarios
         RunScenario("save V14 carries work orders", VerifySaveV12CarriesWorkOrders, errors);
         RunScenario("configured work amount fallback", VerifyConfiguredWorkAmountFallback, errors);
         RunScenario("construction order lifecycle", VerifyConstructionOrderLifecycle, errors);
+        RunScenario("construction cancellation refunds materials", VerifyConstructionCancellationRefund, errors);
+        RunScenario("orphan construction auto-recovers materials", VerifyOrphanConstructionRecovery, errors);
 
         if (errors.Count > 0)
         {
@@ -88,7 +90,10 @@ public static class WorkAmountDebugScenarios
                 && configuredMaterials == 4;
 
             bool fallbackValid = fallback.GetRequiredWork(BuiltInWorkTypeIds.Construct) > 0f
-                && fallback.GetRequiredWork(BuiltInWorkTypeIds.Repair) > 0f;
+                && fallback.GetRequiredWork(BuiltInWorkTypeIds.Repair) > 0f
+                && fallback.GetConstructionMaterials()
+                    .TryGetValue(StockCategory.General, out int fallbackMaterials)
+                && fallbackMaterials == 1;
             return configuredValid && fallbackValid;
         }
         finally
@@ -104,10 +109,13 @@ public static class WorkAmountDebugScenarios
         GameObject siteObject = new GameObject("WorkAmountConstructionSite");
         ConstructionSite site = siteObject.AddComponent<ConstructionSite>();
         FakeWorldItemStackRuntime itemRuntime = new FakeWorldItemStackRuntime();
+        TrackingWorkforceReplanService workforceReplan = new TrackingWorkforceReplanService();
         WorkOrderRuntime runtime = new WorkOrderRuntime(
             new NoGridProvider(),
             itemRuntime,
-            new SingleBuildingLookup(building));
+            new SingleBuildingLookup(building),
+            workforceReplan,
+            new DungeonStory.Foundation.UnityGameClock());
         bool placed = false;
         bool removed = false;
         try
@@ -140,7 +148,9 @@ public static class WorkAmountDebugScenarios
                     out WorkOrderProgressState order)
                 && order.Status == WorkOrderStatus.WaitingForMaterials
                 && itemRuntime.Requested.TryGetValue(StockCategory.General, out int requested)
-                && requested == 2;
+                && requested == 2
+                && itemRuntime.PrioritizedStackIds.Count == 1
+                && workforceReplan.HaulReplans == 1;
             if (!waiting)
             {
                 return false;
@@ -199,6 +209,97 @@ public static class WorkAmountDebugScenarios
         finally
         {
             UnityEngine.Object.DestroyImmediate(siteObject);
+            UnityEngine.Object.DestroyImmediate(building);
+        }
+    }
+
+    private static bool VerifyConstructionCancellationRefund()
+    {
+        BuildingSO building = CreateTestBuilding(
+            91004,
+            "Construction cancellation refund",
+            1,
+            1,
+            5f,
+            2);
+        GameObject siteObject = new GameObject("WorkAmountCancellationSite");
+        ConstructionSite site = siteObject.AddComponent<ConstructionSite>();
+        FakeWorldItemStackRuntime itemRuntime = new FakeWorldItemStackRuntime();
+        WorkOrderRuntime runtime = new WorkOrderRuntime(
+            new NoGridProvider(),
+            itemRuntime,
+            new SingleBuildingLookup(building),
+            new TrackingWorkforceReplanService(),
+            new DungeonStory.Foundation.UnityGameClock());
+        try
+        {
+            site.Initialization(building, new Vector2Int(5, 0));
+            if (!runtime.TryCreateConstructionOrder(
+                    site,
+                    building,
+                    site.centerPos,
+                    out string orderId,
+                    out _))
+            {
+                return false;
+            }
+
+            return runtime.CancelOrder(orderId, refundDeliveredMaterials: true)
+                && itemRuntime.ReleasedQuantity == 2
+                && !runtime.TryGetOrderFor(
+                    site,
+                    BuiltInWorkTypeIds.Construct,
+                    out _);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(siteObject);
+            UnityEngine.Object.DestroyImmediate(building);
+        }
+    }
+
+    private static bool VerifyOrphanConstructionRecovery()
+    {
+        BuildingSO building = CreateTestBuilding(
+            91005,
+            "Orphan construction recovery",
+            1,
+            1,
+            5f,
+            2);
+        GameObject siteObject = new GameObject("WorkAmountOrphanSite");
+        ConstructionSite site = siteObject.AddComponent<ConstructionSite>();
+        FakeWorldItemStackRuntime itemRuntime = new FakeWorldItemStackRuntime();
+        WorkOrderRuntime runtime = new WorkOrderRuntime(
+            new NoGridProvider(),
+            itemRuntime,
+            new SingleBuildingLookup(building),
+            new TrackingWorkforceReplanService(),
+            new DungeonStory.Foundation.UnityGameClock());
+        try
+        {
+            site.Initialization(building, new Vector2Int(6, 0));
+            if (!runtime.TryCreateConstructionOrder(
+                    site,
+                    building,
+                    site.centerPos,
+                    out _,
+                    out _))
+            {
+                return false;
+            }
+
+            UnityEngine.Object.DestroyImmediate(siteObject);
+            runtime.Tick();
+            return runtime.Capture().orders.Count == 0
+                && itemRuntime.ReleasedQuantity == 2;
+        }
+        finally
+        {
+            if (siteObject != null)
+            {
+                UnityEngine.Object.DestroyImmediate(siteObject);
+            }
             UnityEngine.Object.DestroyImmediate(building);
         }
     }
@@ -274,8 +375,13 @@ public static class WorkAmountDebugScenarios
     {
         private readonly Dictionary<string, Dictionary<StockCategory, int>> buffers =
             new Dictionary<string, Dictionary<StockCategory, int>>(StringComparer.Ordinal);
+        private readonly List<WorldItemStackSnapshot> stacks =
+            new List<WorldItemStackSnapshot>();
 
         public readonly Dictionary<StockCategory, int> Requested = new Dictionary<StockCategory, int>();
+        public readonly HashSet<string> PrioritizedStackIds =
+            new HashSet<string>(StringComparer.Ordinal);
+        public int ReleasedQuantity { get; private set; }
 
         public IDungeonItemCatalogProvider CatalogProvider => null;
         public IItemHaulingSettingsProvider HaulingSettingsProvider => null;
@@ -350,6 +456,22 @@ public static class WorkAmountDebugScenarios
             Requested[category] = Requested.TryGetValue(category, out int current)
                 ? current + requested
                 : requested;
+            if (requested > 0)
+            {
+                stacks.Add(new WorldItemStackSnapshot
+                {
+                    StackId = $"fake-request:{stacks.Count + 1}",
+                    ItemId = DungeonItemCatalogSO.StockItemId(category),
+                    StockCategory = category,
+                    Quantity = requested,
+                    State = WorldItemStackState.Loose,
+                    Position = Vector2Int.zero,
+                    DestinationId = destinationId ?? string.Empty,
+                    HasDestinationPosition = true,
+                    DestinationPosition = destinationPosition
+                });
+            }
+
             return requested > 0;
         }
 
@@ -372,8 +494,7 @@ public static class WorkAmountDebugScenarios
         public IReadOnlyList<WorldItemStackSnapshot> GetStacksAt(Vector2Int position, bool includeStored = false) =>
             Array.Empty<WorldItemStackSnapshot>();
 
-        public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
-            Array.Empty<WorldItemStackSnapshot>();
+        public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() => stacks;
 
         public bool HasAvailableHaulJob(CharacterActor actor) => false;
         public bool TryReserveBestHaulPlan(CharacterActor actor, out WorldItemHaulPlan plan, out string failureReason)
@@ -491,7 +612,8 @@ public static class WorkAmountDebugScenarios
         public void ReleaseReservation(string stackId, string persistentId) { }
         public bool TryClearReservation(string stackId) => false;
         public bool SetForbidden(string stackId, bool forbidden) => false;
-        public bool PrioritizeHaul(string stackId) => false;
+        public bool PrioritizeHaul(string stackId) =>
+            !string.IsNullOrWhiteSpace(stackId) && PrioritizedStackIds.Add(stackId);
         public bool DeleteStack(string stackId) => false;
         public bool TryConsumeStackQuantity(
             string stackId,
@@ -504,6 +626,23 @@ public static class WorkAmountDebugScenarios
 
         public bool SetEmergencyButcheryAllowed(string stackId, bool allowed) => false;
         public int RemoveStacksByStateAndDestination(WorldItemStackState state, string destinationId) => 0;
+        public int ReleaseStacksByDestination(
+            string destinationId,
+            Vector2Int releasePosition)
+        {
+            int released = stacks
+                .Where(stack => string.Equals(
+                    stack.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal))
+                .Sum(stack => stack.Quantity);
+            ReleasedQuantity += released;
+            stacks.RemoveAll(stack => string.Equals(
+                stack.DestinationId,
+                destinationId,
+                StringComparison.Ordinal));
+            return released;
+        }
 
         public void AddFacilityBuffer(string destinationId, StockCategory category, int amount)
         {
@@ -517,6 +656,29 @@ public static class WorkAmountDebugScenarios
             byCategory[category] = byCategory.TryGetValue(category, out int current)
                 ? current + amount
                 : amount;
+        }
+    }
+
+    private sealed class TrackingWorkforceReplanService : IWorkforceReplanService
+    {
+        public int HaulReplans { get; private set; }
+
+        public void RequestIdleWorkersToReplan(bool clearFailures = true)
+        {
+        }
+
+        public void RequestOneWorkerToReplanFor(
+            WorkTypeId workTypeId,
+            bool clearFailures = true,
+            bool forceInterrupt = false)
+        {
+        }
+
+        public void RequestOneHaulerToReplan(
+            bool clearFailures = true,
+            bool forceInterrupt = false)
+        {
+            HaulReplans++;
         }
     }
 }

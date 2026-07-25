@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
@@ -9,6 +10,7 @@ public static class EventAlertUiFactory
         Transform buttonRoot,
         EventAlertRecord record,
         UnityAction onClick,
+        UnityAction onRightClick,
         ITmpKoreanFontService tmpKoreanFontService)
     {
         if (buttonRoot == null || record == null)
@@ -34,6 +36,10 @@ public static class EventAlertUiFactory
         {
             button.onClick.AddListener(onClick);
         }
+
+        EventAlertPointerHandler pointerHandler =
+            buttonObject.AddComponent<EventAlertPointerHandler>();
+        pointerHandler.Initialize(onRightClick);
 
         TMP_Text label = CreateText(buttonObject.transform, "Label", record.ButtonText, 15, TextAlignmentOptions.Center, tmpKoreanFontService);
         RectTransform labelRect = label.GetComponent<RectTransform>();
@@ -140,7 +146,11 @@ public static class EventAlertUiFactory
 
 public interface IEventAlertButtonFactory
 {
-    Button CreateAlertButton(Transform buttonRoot, EventAlertRecord record, UnityAction onClick);
+    Button CreateAlertButton(
+        Transform buttonRoot,
+        EventAlertRecord record,
+        UnityAction onClick,
+        UnityAction onRightClick);
     void UpdateAlertButton(Button button, EventAlertRecord record);
     Button CreateChoiceButton(Transform parent, EventAlertChoice choice, int choiceIndex, UnityAction onClick);
     void Release(Button button);
@@ -156,12 +166,17 @@ public sealed class EventAlertButtonFactory : IEventAlertButtonFactory
             ?? throw new System.ArgumentNullException(nameof(tmpKoreanFontService));
     }
 
-    public Button CreateAlertButton(Transform buttonRoot, EventAlertRecord record, UnityAction onClick)
+    public Button CreateAlertButton(
+        Transform buttonRoot,
+        EventAlertRecord record,
+        UnityAction onClick,
+        UnityAction onRightClick)
     {
         return EventAlertUiFactory.CreateAlertButton(
             buttonRoot,
             record,
             onClick,
+            onRightClick,
             tmpKoreanFontService);
     }
 
@@ -203,5 +218,29 @@ public sealed class EventAlertButtonFactory : IEventAlertButtonFactory
         {
             UnityEngine.Object.DestroyImmediate(buttonObject);
         }
+    }
+}
+
+internal sealed class EventAlertPointerHandler : MonoBehaviour, IPointerClickHandler
+{
+    private UnityAction onRightClick;
+
+    public void Initialize(UnityAction rightClickAction)
+    {
+        onRightClick = rightClickAction;
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData != null
+            && eventData.button == PointerEventData.InputButton.Right)
+        {
+            onRightClick?.Invoke();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        onRightClick = null;
     }
 }

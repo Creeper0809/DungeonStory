@@ -153,7 +153,7 @@ public sealed class OffenseBattleCombatant
     public string DisplayName { get; }
     public string SpeciesTag { get; }
     public OffenseBattleTeam Team { get; }
-    public OffenseBattleStats Stats { get; }
+    public OffenseBattleStats Stats { get; private set; }
     public float CurrentHealth { get; private set; }
     public float HealthRatio => CurrentHealth / Mathf.Max(1f, Stats.MaxHealth);
     public bool IsDead => CurrentHealth <= 0f || IsVitalPartDestroyed();
@@ -378,6 +378,11 @@ public sealed class OffenseBattleCombatant
         CurrentHealth = Mathf.Clamp(currentHealth, 0f, Stats.MaxHealth);
         TotalDamageTaken = Mathf.Max(0f, totalDamageTaken);
         UpdateDowned();
+    }
+
+    internal void RestoreStats(OffenseBattleStats stats)
+    {
+        Stats = stats ?? throw new ArgumentNullException(nameof(stats));
     }
 
     internal void AddStatus(OffenseBattleStatus status)
@@ -617,6 +622,14 @@ public sealed class OffenseThrownEquipmentPersistenceState
 public sealed class OffenseBattleCombatantPersistenceState
 {
     public string persistentId = string.Empty;
+    public float maxHealth;
+    public float attack;
+    public float strength;
+    public float toughness;
+    public float dexterity;
+    public float moveSpeed;
+    public float shooting;
+    public float evasion;
     public float currentHealth;
     public float totalDamageTaken;
     public float initiativePenalty;
@@ -786,6 +799,14 @@ public sealed class OffenseBattleSession
             combatants = combatants.Select(combatant => new OffenseBattleCombatantPersistenceState
             {
                 persistentId = combatant.PersistentId,
+                maxHealth = combatant.Stats.MaxHealth,
+                attack = combatant.Stats.Attack,
+                strength = combatant.Stats.Strength,
+                toughness = combatant.Stats.Toughness,
+                dexterity = combatant.Stats.Dexterity,
+                moveSpeed = combatant.Stats.MoveSpeed,
+                shooting = combatant.Stats.Shooting,
+                evasion = combatant.Stats.Evasion,
                 currentHealth = combatant.CurrentHealth,
                 totalDamageTaken = combatant.TotalDamageTaken,
                 initiativePenalty = combatant.InitiativePenalty,
@@ -852,6 +873,18 @@ public sealed class OffenseBattleSession
             OffenseBattleCombatant combatant = session.FindCombatant(saved?.persistentId);
             if (combatant == null) continue;
 
+            if (saved.maxHealth > 0f)
+            {
+                combatant.RestoreStats(new OffenseBattleStats(
+                    saved.maxHealth,
+                    saved.attack,
+                    saved.strength,
+                    saved.toughness,
+                    saved.dexterity,
+                    saved.moveSpeed,
+                    saved.shooting,
+                    saved.evasion));
+            }
             combatant.RestoreHealth(saved.currentHealth, saved.totalDamageTaken);
             combatant.RestoreInitiativePenalty(saved.initiativePenalty);
             combatant.RestoreTurnsStarted(saved.turnsStarted);

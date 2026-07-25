@@ -9,6 +9,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VContainer;
 
@@ -155,6 +156,7 @@ public sealed class StartPartyPreparationPlayModeRunner : MonoBehaviour
 
     private IEnumerator Start()
     {
+        DontDestroyOnLoad(gameObject);
         Directory.CreateDirectory("Artifacts/QA");
         Application.logMessageReceived += CaptureLog;
         SetupInput();
@@ -162,13 +164,18 @@ public sealed class StartPartyPreparationPlayModeRunner : MonoBehaviour
         try
         {
             yield return new WaitForSecondsRealtime(1f);
-            OwnerRunManager ownerManager = FindFirstObjectByType<OwnerRunManager>();
-            Check(ownerManager != null, "OWNER_MANAGER", "owner manager resolved");
-            Check(ownerManager != null && ownerManager.CurrentOwnerActor == null,
+            DungeonPreparationLifetimeScope preparationScope =
+                FindFirstObjectByType<DungeonPreparationLifetimeScope>();
+            IStartPartyPreparationService preparation = preparationScope?.Container?
+                .Resolve<IStartPartyPreparationService>();
+            Check(preparationScope != null && preparation != null,
+                "PREPARATION_SCOPE",
+                "dedicated preparation scene and service resolved");
+            Check(preparation != null && !preparation.IsPreparing,
                 "FRESH_RUN",
                 "verification starts before a party is committed");
 
-            Button owner = FindButtonPrefix("OwnerOption_", true);
+            Button owner = FindButtonPrefix("OwnerCandidate_", true);
             Check(owner != null, "OWNER_OPTION", "owner candidate visible");
             if (owner == null)
             {
@@ -176,41 +183,90 @@ public sealed class StartPartyPreparationPlayModeRunner : MonoBehaviour
             }
 
             yield return Click(owner);
+            yield return Click(FindButton("PreparationOwnerNextButton", true));
             yield return new WaitForSecondsRealtime(0.25f);
-            Check(FindButtonsPrefix("PreparationTab_").Length == 9,
-                "THREE_MEMBER_TABS",
-                "three members expose identity, aptitude, and skill tabs");
+            Check(FindButtonsPrefix("PreparationRosterCard_").Length == 7
+                    && FindButtonsPrefix("PreparationTab_").Length == 3,
+                "ROSTER_AND_DETAIL_TABS",
+                "selected and reserve roster exposes one RimWorld-style detail surface");
             Check(FindButtonsPrefix("PartyBackToOwnerButton").Length == 1
                 && FindButtonsPrefix("PreparationStartRunButton").Length == 1,
                 "SINGLE_ACTION_ROW",
                 "preparation actions are not duplicated");
 
-            Button partial = FindButton("PartialReroll_0_Identity", true);
-            Check(partial != null, "PARTIAL_REROLL", "identity partial reroll visible");
+            StartPartyMemberPreparation selectedBeforeDrag = preparation?.Members
+                .FirstOrDefault(member => member != null && !member.IsOwner);
+            StartPartyMemberPreparation reserveBeforeDrag = preparation?.Reserves
+                .FirstOrDefault(member => member != null);
+            int selectedSlotBeforeDrag = selectedBeforeDrag?.PartySlot ?? -1;
+            Button selectedCard = selectedBeforeDrag != null
+                ? FindButton($"PreparationRosterCard_{selectedBeforeDrag.Index}", true)
+                : null;
+            Button reserveCard = reserveBeforeDrag != null
+                ? FindButton($"PreparationRosterCard_{reserveBeforeDrag.Index}", true)
+                : null;
+            Check(selectedCard != null && reserveCard != null,
+                "ROSTER_DRAG_TARGETS",
+                "selected and reserve cards accept pointer input");
+            if (selectedCard != null && reserveCard != null)
+            {
+                yield return Drag(selectedCard, reserveCard);
+                StartPartyMemberPreparation draggedOut = preparation.Roster
+                    .FirstOrDefault(member => member != null
+                        && member.Index == selectedBeforeDrag.Index);
+                StartPartyMemberPreparation draggedIn = preparation.Roster
+                    .FirstOrDefault(member => member != null
+                        && member.Index == reserveBeforeDrag.Index);
+                Check(draggedOut != null
+                        && draggedOut.IsReserve
+                        && draggedIn != null
+                        && !draggedIn.IsReserve
+                        && draggedIn.PartySlot == selectedSlotBeforeDrag,
+                    "ROSTER_DRAG_SWAP",
+                    $"out={draggedOut?.RosterLabel}; in={draggedIn?.RosterLabel}; slot={draggedIn?.PartySlot}");
+            }
+
+            int selectedStaffIndex = preparation?.Members
+                .FirstOrDefault(member => member != null && !member.IsOwner)?.Index ?? 1;
+            yield return Click(FindButton($"PreparationRosterCard_{selectedStaffIndex}", true));
+            yield return Click(FindButton(
+                $"PreparationTab_{selectedStaffIndex}_Identity",
+                true));
+            Button partial = FindButton(
+                $"PreparationIdentityRerollDice_{selectedStaffIndex}",
+                true);
+            Check(partial != null, "PARTIAL_REROLL", "identity dice reroll visible");
             if (partial != null)
             {
                 yield return Click(partial);
-                partial = FindButton("PartialReroll_0_Identity", false);
-                Check(GetLabel(partial).Contains("2/3"),
+                partial = FindButton(
+                    $"PreparationIdentityRerollDice_{selectedStaffIndex}",
+                    false);
+                Check(GetLabel(partial).Contains("2"),
                     "PARTIAL_CHARGE",
                     GetLabel(partial));
             }
 
-            Button full = FindButton("FullReroll_0", true);
-            Check(full != null, "FULL_REROLL", "full reroll visible");
+            Button full = FindButton(
+                $"PreparationFullRerollDice_{selectedStaffIndex}",
+                true);
+            Check(full != null, "FULL_REROLL", "full dice reroll visible");
             if (full != null)
             {
                 yield return Click(full);
-                partial = FindButton("PartialReroll_0_Identity", false);
-                Check(GetLabel(partial).Contains("3/3"),
+                partial = FindButton(
+                    $"PreparationIdentityRerollDice_{selectedStaffIndex}",
+                    false);
+                Check(GetLabel(partial).Contains("3"),
                     "FULL_RECHARGE",
                     GetLabel(partial));
             }
 
-            for (int memberIndex = 0; memberIndex < 3; memberIndex++)
+            foreach (StartPartyMemberPreparation member in preparation.Members)
             {
-                Button skillTab = FindButton($"PreparationTab_{memberIndex}_Skill", true);
-                Check(skillTab != null, $"SKILL_TAB_{memberIndex}", "skill tab visible");
+                yield return Click(FindButton($"PreparationRosterCard_{member.Index}", true));
+                Button skillTab = FindButton($"PreparationTab_{member.Index}_Skill", true);
+                Check(skillTab != null, $"SKILL_TAB_{member.Index}", "skill tab visible");
                 if (skillTab != null)
                 {
                     yield return Click(skillTab);
@@ -242,7 +298,8 @@ public sealed class StartPartyPreparationPlayModeRunner : MonoBehaviour
             Check(confirm != null, "PARTY_READY", "all three selections unlock the start command");
 
             yield return SelectResolution(new Vector2Int(900, 1600), "MOBILE_RESOLUTION");
-            Check(FindMemberCards().All(IsInsideScreen),
+            RectTransform[] memberCards = FindMemberCards();
+            Check(memberCards.Length == 7 && memberCards.All(IsInsideScreen),
                 "MOBILE_BOUNDS",
                 "all party cards remain inside the portrait viewport");
             yield return Capture(
@@ -254,9 +311,17 @@ public sealed class StartPartyPreparationPlayModeRunner : MonoBehaviour
             {
                 confirm = FindButton("PreparationStartRunButton", true);
                 yield return Click(confirm);
+                float gameplayDeadline = Time.realtimeSinceStartup + 12f;
+                while (SceneManager.GetActiveScene().name != DungeonSceneNavigator.GameplaySceneName
+                    && Time.realtimeSinceStartup < gameplayDeadline)
+                {
+                    yield return null;
+                }
+
                 yield return new WaitForSecondsRealtime(0.75f);
             }
 
+            OwnerRunManager ownerManager = FindFirstObjectByType<OwnerRunManager>();
             CharacterActor ownerActor = ownerManager?.CurrentOwnerActor;
             CharacterActor[] staff = CharacterActorCollection.DistinctByGameObject(
                 FindObjectsByType<CharacterActor>(
@@ -273,12 +338,18 @@ public sealed class StartPartyPreparationPlayModeRunner : MonoBehaviour
                 && staff.All(actor => string.Equals(actor.SpeciesTag, ownerActor.SpeciesTag, StringComparison.OrdinalIgnoreCase)),
                 "SAME_SPECIES",
                 ownerActor != null ? ownerActor.SpeciesTag : "owner missing");
-            Check(ownerActor != null
-                && new[] { ownerActor }.Concat(staff).All(actor => actor.Progression != null
+            Check(ownerActor?.Progression != null
+                    && ownerActor.Progression.OwnerFixedSkills.Count
+                        == CharacterOwnerFixedSkillUtility.FixedSlotCount,
+                "OWNER_FIXED_SKILLS",
+                $"owner fixed skills={ownerActor?.Progression?.OwnerFixedSkills.Count ?? 0}");
+            Check(staff.All(actor => actor.Progression != null
                     && actor.Progression.ActiveSkills.Count == 1
                     && actor.Progression.PassiveSkills.Count == 1),
-                "READY_SKILLS",
-                "owner and staff each retain one confirmed active and first passive");
+                "STAFF_READY_SKILLS",
+                string.Join(", ", staff.Select(actor =>
+                    $"{actor.name}: active={actor.Progression?.ActiveSkills.Count ?? 0}, "
+                    + $"passive={actor.Progression?.PassiveSkills.Count ?? 0}")));
             Check(FindButton("PreparationStartRunButton", false) == null,
                 "PREPARATION_CLOSED",
                 "preparation UI closes after commit");
@@ -349,6 +420,52 @@ public sealed class StartPartyPreparationPlayModeRunner : MonoBehaviour
         yield return null;
         verificationMouse.MakeCurrent();
         InputSystem.QueueStateEvent(verificationMouse, new MouseState { position = point });
+        yield return null;
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+        yield return null;
+    }
+
+    private IEnumerator Drag(Button source, Button target)
+    {
+        if (source == null || target == null || verificationMouse == null)
+        {
+            yield break;
+        }
+
+        RectTransform sourceRect = source.transform as RectTransform;
+        RectTransform targetRect = target.transform as RectTransform;
+        Vector2 sourcePoint = RectTransformUtility.WorldToScreenPoint(
+            null,
+            sourceRect != null ? sourceRect.TransformPoint(sourceRect.rect.center) : source.transform.position);
+        Vector2 targetPoint = RectTransformUtility.WorldToScreenPoint(
+            null,
+            targetRect != null ? targetRect.TransformPoint(targetRect.rect.center) : target.transform.position);
+        Vector2 midpoint = Vector2.Lerp(sourcePoint, targetPoint, 0.5f);
+
+        verificationMouse.MakeCurrent();
+        InputSystem.QueueStateEvent(
+            verificationMouse,
+            new MouseState { position = sourcePoint }.WithButton(MouseButton.Left, true));
+        yield return null;
+        yield return null;
+
+        verificationMouse.MakeCurrent();
+        InputSystem.QueueStateEvent(
+            verificationMouse,
+            new MouseState { position = midpoint }.WithButton(MouseButton.Left, true));
+        yield return null;
+        yield return null;
+
+        verificationMouse.MakeCurrent();
+        InputSystem.QueueStateEvent(
+            verificationMouse,
+            new MouseState { position = targetPoint }.WithButton(MouseButton.Left, true));
+        yield return null;
+        yield return null;
+
+        verificationMouse.MakeCurrent();
+        InputSystem.QueueStateEvent(verificationMouse, new MouseState { position = targetPoint });
         yield return null;
         yield return null;
         Canvas.ForceUpdateCanvases();
@@ -456,7 +573,7 @@ public sealed class StartPartyPreparationPlayModeRunner : MonoBehaviour
             .Where(rect => rect != null
                 && rect.gameObject.scene.IsValid()
                 && rect.gameObject.activeInHierarchy
-                && rect.name.StartsWith("StartPartyMember_", StringComparison.Ordinal))
+                && rect.name.StartsWith("PreparationRosterCard_", StringComparison.Ordinal))
             .ToArray();
     }
 

@@ -174,7 +174,8 @@ public sealed class EventAlertRecordSnapshot
         EventAlertImportance importance,
         string category,
         int count,
-        IReadOnlyList<EventAlertChoice> choices)
+        IReadOnlyList<EventAlertChoice> choices,
+        bool isDismissed = false)
     {
         Id = id;
         Title = title ?? string.Empty;
@@ -183,6 +184,7 @@ public sealed class EventAlertRecordSnapshot
         Category = category ?? string.Empty;
         Count = Math.Max(1, count);
         Choices = EventPayloadSnapshot.Copy(choices);
+        IsDismissed = isDismissed;
     }
 
     public int Id { get; }
@@ -192,5 +194,6 @@ public sealed class EventAlertRecordSnapshot
     public string Category { get; }
     public int Count { get; }
     public IReadOnlyList<EventAlertChoice> Choices { get; }
+    public bool IsDismissed { get; }
     public string ButtonText => Count > 1 ? $"{Title} x{Count}" : Title;
 }

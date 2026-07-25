@@ -54,6 +54,7 @@ public class AbilityWork : CharacterAbility
     private IWorkPolicyRegistry workPolicyRegistry;
     private IWorkOrderRuntime workOrderRuntime;
     private IWorkAmountCalculator workAmountCalculator;
+    private ICaptiveLaborQuery captiveLaborQuery;
     private IGameClock gameClock;
     private IDefenseEngagementRuntime defenseEngagementRuntime;
     private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
@@ -199,6 +200,7 @@ public class AbilityWork : CharacterAbility
         IWorkPolicyRegistry workPolicyRegistry = null,
         IWorkOrderRuntime workOrderRuntime = null,
         IWorkAmountCalculator workAmountCalculator = null,
+        ICaptiveLaborQuery captiveLaborQuery = null,
         IGameClock gameClock = null,
         IDefenseEngagementRuntime defenseEngagementRuntime = null,
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null)
@@ -219,6 +221,7 @@ public class AbilityWork : CharacterAbility
         this.workPolicyRegistry = workPolicyRegistry;
         this.workOrderRuntime = workOrderRuntime;
         this.workAmountCalculator = workAmountCalculator;
+        this.captiveLaborQuery = captiveLaborQuery;
         this.gameClock = gameClock;
         this.defenseEngagementRuntime = defenseEngagementRuntime;
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
@@ -845,7 +848,10 @@ public class AbilityWork : CharacterAbility
             return;
         }
 
-        targetSelector ??= new WorkTargetSelector(this, workPolicyRegistry);
+        targetSelector ??= new WorkTargetSelector(
+            this,
+            workPolicyRegistry,
+            captiveLaborQuery);
         taskExecutor ??= new WorkTaskExecutor(
             this,
             targetSelector,

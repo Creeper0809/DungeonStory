@@ -56,4 +56,6 @@ public static class BuiltInWorkTypeIds
     public static readonly WorkTypeId Cook = new WorkTypeId("work:cook");
     public static readonly WorkTypeId Treat = new WorkTypeId("work:treat");
     public static readonly WorkTypeId Refuel = new WorkTypeId("work:refuel");
+    public static readonly WorkTypeId Warden = new WorkTypeId("work:warden");
+    public static readonly WorkTypeId Perform = new WorkTypeId("work:perform");
 }

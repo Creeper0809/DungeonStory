@@ -63,7 +63,6 @@ public sealed class ItemReservationService : IItemReservationService
         foreach (WorldItemStackRecord record in selected)
         {
             record.reservedByPersistentId = persistentId;
-            repository.PrioritizedHaulStackIds.Remove(record.stackId);
         }
 
         repository.MarkChanged();

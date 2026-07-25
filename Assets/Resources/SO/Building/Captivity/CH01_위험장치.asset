@@ -1,0 +1,97 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "CH01_\uC704\uD5D8\uC7A5\uCE58"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: Facility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1207
+  objectName: "\uACF5\uC5F0 \uC704\uD5D8 \uC7A5\uCE58"
+  sprite: {fileID: 21300000, guid: 32456faaa86eb5846a20025260c71c3e, type: 3}
+  icon: {fileID: 21300000, guid: 32456faaa86eb5846a20025260c71c3e, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563192359357980
+    - rid: 7302563192359357981
+    - rid: 7302563192359357982
+    - rid: 7302563192359357983
+    - rid: 7302563192359357984
+  width: 1
+  height: 1
+  layer: 1
+  category: 3
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563192359357980
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: CH01
+    - rid: 7302563192359357981
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionCost: 90
+        maintenance: 1
+        unlockPhase: 1
+        demolitionRefundRate: 0.5
+    - rid: 7302563192359357982
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 2048
+          capacity: 1
+          useDuration: 1
+          requiredWorkers: 0
+          supportedWorkTypes: 0
+          disabledWhenDamaged: 1
+    - rid: 7302563192359357983
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingRoomRequirementAbility
+    - rid: 7302563192359357984
+      type: {class: BuildingCircusHazardAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingCircusHazardAbility
+        accidentRiskBonus: 0.08
+        satisfactionBonus: 8

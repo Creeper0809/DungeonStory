@@ -26,7 +26,7 @@ public sealed class DungeonSettingsUiController :
     private readonly IDungeonUserSettingsService settingsService;
     private readonly IDungeonUiCanvasProvider canvasProvider;
     private readonly ITmpKoreanFontService fontService;
-    private readonly DungeonSceneRuntimeReferences sceneReferences;
+    private readonly DungeonUserSettingsRuntimeTargets runtimeTargets;
     private readonly IUiClock uiClock;
     private readonly IGameTimeScaleController timeScaleController;
 
@@ -77,15 +77,15 @@ public sealed class DungeonSettingsUiController :
         IDungeonUserSettingsService settingsService,
         IDungeonUiCanvasProvider canvasProvider,
         ITmpKoreanFontService fontService,
-        DungeonSceneRuntimeReferences sceneReferences,
+        DungeonUserSettingsRuntimeTargets runtimeTargets,
         IUiClock uiClock,
         IGameTimeScaleController timeScaleController)
     {
         this.settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         this.canvasProvider = canvasProvider ?? throw new ArgumentNullException(nameof(canvasProvider));
         this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
-        this.sceneReferences = sceneReferences
-            ?? throw new ArgumentNullException(nameof(sceneReferences));
+        this.runtimeTargets = runtimeTargets
+            ?? throw new ArgumentNullException(nameof(runtimeTargets));
         this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
         this.timeScaleController = timeScaleController
             ?? throw new ArgumentNullException(nameof(timeScaleController));
@@ -684,7 +684,7 @@ public sealed class DungeonSettingsUiController :
             return;
         }
 
-        gameManager = sceneReferences.GameManager;
+        gameManager = runtimeTargets.GameManager;
         wasPaused = gameManager != null && gameManager.isPause;
         previousTimeScale = timeScaleController.Scale;
         pauseCaptured = true;

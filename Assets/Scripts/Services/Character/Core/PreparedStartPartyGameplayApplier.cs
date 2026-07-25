@@ -73,10 +73,21 @@ public sealed class PreparedStartPartyCommitService :
 
 public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGameplayApplier
 {
+    private static readonly (StockCategory Category, int Amount)[] StarterSupplies =
+    {
+        (StockCategory.Food, 12),
+        (StockCategory.Water, 12),
+        (StockCategory.General, 24),
+        (StockCategory.Fuel, 8),
+        (StockCategory.Medicine, 4)
+    };
+
     private readonly IRunCharacterCatalog characterCatalog;
     private readonly IOwnerRunManagerProvider ownerRunManagerProvider;
     private readonly ICharacterSpawnerProvider characterSpawnerProvider;
     private readonly ICharacterSpawnObjectFactory characterObjectFactory;
+    private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly IWarehouseWorldQuery warehouseWorldQuery;
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IDungeonGridBuildingControllerProvider gridBuildingControllerProvider;
     private readonly IRunVariableRuntimeProvider runVariableRuntimeProvider;
@@ -89,6 +100,8 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
         IOwnerRunManagerProvider ownerRunManagerProvider,
         ICharacterSpawnerProvider characterSpawnerProvider,
         ICharacterSpawnObjectFactory characterObjectFactory,
+        IWorldItemStackRuntime itemStackRuntime,
+        IWarehouseWorldQuery warehouseWorldQuery,
         IGridSystemProvider gridSystemProvider,
         IDungeonGridBuildingControllerProvider gridBuildingControllerProvider,
         IRunVariableRuntimeProvider runVariableRuntimeProvider,
@@ -104,6 +117,10 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
             ?? throw new ArgumentNullException(nameof(characterSpawnerProvider));
         this.characterObjectFactory = characterObjectFactory
             ?? throw new ArgumentNullException(nameof(characterObjectFactory));
+        this.itemStackRuntime = itemStackRuntime
+            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
+        this.warehouseWorldQuery = warehouseWorldQuery
+            ?? throw new ArgumentNullException(nameof(warehouseWorldQuery));
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.gridBuildingControllerProvider = gridBuildingControllerProvider
@@ -177,6 +194,13 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
             diagnostics.Add(DescribeActor($"prepared-{i + 1}", staff));
         }
 
+        if (!TrySpawnStarterSupplies(out string starterSupplyFailure))
+        {
+            DestroyPreparedStaff(preparedStaff);
+            message = starterSupplyFailure;
+            return false;
+        }
+
         manager.SelectOwner(ownerData, snapshot.owner.displayName);
         CharacterActor owner = manager.CurrentOwnerActor;
         if (owner == null || owner.Progression == null)
@@ -206,6 +230,64 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
         StartPartyCommitDiagnostics.LastReport = string.Join(" || ", diagnostics);
         message = "준비한 사장과 직원으로 새 런을 시작했습니다.";
         return true;
+    }
+
+    private bool TrySpawnStarterSupplies(out string failureReason)
+    {
+        Dictionary<IWarehouseFacility, WarehouseInventorySnapshot> warehouseSnapshots =
+            ClearLegacySeededWarehouseStock();
+        DungeonPhysicalItemSaveData beforeSpawn = itemStackRuntime.Capture();
+        foreach ((StockCategory category, int amount) in StarterSupplies)
+        {
+            if (itemStackRuntime.SpawnStockAtDropoff(
+                    category,
+                    amount,
+                    "시작 보급품",
+                    out int spawned)
+                && spawned == amount)
+            {
+                continue;
+            }
+
+            itemStackRuntime.Restore(beforeSpawn);
+            RestoreWarehouseStock(warehouseSnapshots);
+            failureReason = $"시작 보급품을 하차장에 놓지 못했습니다. 항목: {category}";
+            return false;
+        }
+
+        failureReason = string.Empty;
+        return true;
+    }
+
+    private Dictionary<IWarehouseFacility, WarehouseInventorySnapshot> ClearLegacySeededWarehouseStock()
+    {
+        Dictionary<IWarehouseFacility, WarehouseInventorySnapshot> snapshots =
+            new Dictionary<IWarehouseFacility, WarehouseInventorySnapshot>();
+        foreach (IWarehouseFacility warehouse in warehouseWorldQuery.Warehouses)
+        {
+            WarehouseInventory inventory = warehouse?.Inventory;
+            if (inventory == null || inventory.TotalStock <= 0)
+            {
+                continue;
+            }
+
+            WarehouseInventorySnapshot original = inventory.CreateSnapshot();
+            snapshots[warehouse] = original;
+            WarehouseInventorySnapshot empty = inventory.CreateSnapshot();
+            empty.stocks.Clear();
+            inventory.ApplySnapshot(empty);
+        }
+
+        return snapshots;
+    }
+
+    private static void RestoreWarehouseStock(
+        IReadOnlyDictionary<IWarehouseFacility, WarehouseInventorySnapshot> snapshots)
+    {
+        foreach (KeyValuePair<IWarehouseFacility, WarehouseInventorySnapshot> pair in snapshots)
+        {
+            pair.Key?.Inventory?.ApplySnapshot(pair.Value);
+        }
     }
 
     private void EnsureStarterDungeonShell()

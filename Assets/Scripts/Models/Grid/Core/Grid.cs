@@ -661,10 +661,20 @@ public class Grid
 
     public GridPathSearchResult SearchPath(Vector2Int start)
     {
-        return SearchPath(start, null);
+        return SearchPath(start, null, null);
     }
 
-    private GridPathSearchResult SearchPath(Vector2Int start, Func<Vector2Int, bool> stopCondition)
+    public GridPathSearchResult SearchPathWithTraversalFilter(
+        Vector2Int start,
+        Func<Vector2Int, bool> traversalFilter)
+    {
+        return SearchPath(start, null, traversalFilter);
+    }
+
+    private GridPathSearchResult SearchPath(
+        Vector2Int start,
+        Func<Vector2Int, bool> stopCondition,
+        Func<Vector2Int, bool> traversalFilter)
     {
         Dictionary<Vector2Int, GridMoveStep> parentStep = new Dictionary<Vector2Int, GridMoveStep>();
         List<Vector2Int> searchOrder = new List<Vector2Int>();
@@ -728,9 +738,11 @@ public class Grid
                     GridCell nextCell = GetGridCell(nextPos);
                     bool isAllowedTerminal = stopCondition != null
                         && stopCondition(nextPos)
-                        && !IsMovementBlockedByWall(nextPos);
+                        && !IsMovementBlockedByWall(nextPos)
+                        && (traversalFilter == null || traversalFilter(nextPos));
                     if (nextCell != null
                         && searchMarks[nextPos.y, nextPos.x] != searchMark
+                        && (traversalFilter == null || traversalFilter(nextPos))
                         && (IsWalkable(nextPos) || isAllowedTerminal))
                     {
                         queue.Enqueue(nextPos);
@@ -754,12 +766,12 @@ public class Grid
 
     public Queue<IGridOccupant> GetOccupantPath(Vector2Int start, Func<Vector2Int, bool> terminateEndCondition)
     {
-        return SearchPath(start, terminateEndCondition).GetOccupantPath(terminateEndCondition);
+        return SearchPath(start, terminateEndCondition, null).GetOccupantPath(terminateEndCondition);
     }
 
     public Queue<GridMoveStep> GetMovePath(Vector2Int start, Func<Vector2Int, bool> terminateEndCondition)
     {
-        return SearchPath(start, terminateEndCondition).GetMovePath(terminateEndCondition);
+        return SearchPath(start, terminateEndCondition, null).GetMovePath(terminateEndCondition);
     }
 
     public List<IGridOccupant> GetAllVisitableOccupants(Vector2Int start)

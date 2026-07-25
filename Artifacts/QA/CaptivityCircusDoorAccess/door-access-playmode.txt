@@ -1,0 +1,26 @@
+POINTER_TARGET=PASS; OwnerOption_뱀파이어 사장
+PLAYABLE_RUN=PASS; 사장 선택이 끝난 실제 게임 상태
+DOMAIN_SCOPE=PASS; 게임플레이 컨테이너 준비
+DOMAIN_SERVICES=PASS; 포로·공연·야생 생포·문 권한 서비스 해석
+DOMAIN_ASSETS=PASS; 설비 자산 10/10 · 능력 모듈 연결
+CAMERA=PASS; 메인 카메라 조회
+BUILDING_INFO=PASS; 건물 상세 패널 조회
+VISIBLE_DOOR=PASS; 내벽 문
+EXACT_DOOR_CLICK=PASS; summary=내벽 문; expected=내벽 문
+POINTER_TARGET=PASS; CleanPriorityButton
+DOOR_PANEL_OPEN=PASS; info=True; captiveToggle=True
+POINTER_TARGET=PASS; Toggle_포로
+CAPTIVE_TOGGLE=PASS; before=True; after=False
+UI_BLOCKS_WORLD_CLICK=PASS; detail=내벽 문; expected=내벽 문
+LOCK_INDICATOR=PASS; 제한된 문에 자물쇠 표시 컴포넌트 존재
+POINTER_TARGET=PASS; Button_직원_전용
+STAFF_PRESET=PASS; groups=Owner, Staff
+POINTER_TARGET=PASS; Button_모두_허용
+ALLOW_ALL_PRESET=PASS; groups=All
+capture=Artifacts/QA/CaptivityCircusDoorAccess/door-access-1600x900.png; requested=1600x900; actual=1600x900
+PANEL_INSIDE_1600x900=PASS; screen=1600x900; min=(701.81, 299.75); max=(1232.75, 328.08)
+capture=Artifacts/QA/CaptivityCircusDoorAccess/door-access-900x1600.png; requested=900x1600; actual=900x1600
+PANEL_INSIDE_900x1600=PASS; screen=900x1600; min=(351.81, 649.75); max=(882.75, 678.08)
+consoleErrors=0; 
+consoleWarnings=0; 
+RESULT=PASS; failures=

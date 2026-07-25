@@ -6,6 +6,10 @@ using UnityEngine;
 public interface IWorldItemHaulPlanningService
 {
     bool HasAvailablePlan(CharacterActor actor);
+    bool TryPreviewBestPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason);
     bool TryReserveBestPlan(
         CharacterActor actor,
         out WorldItemHaulPlan plan,
@@ -60,6 +64,14 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     public bool HasAvailablePlan(CharacterActor actor)
     {
         return TryBuildBestPlan(actor, reserve: false, out _, out _);
+    }
+
+    public bool TryPreviewBestPlan(
+        CharacterActor actor,
+        out WorldItemHaulPlan plan,
+        out string failureReason)
+    {
+        return TryBuildBestPlan(actor, reserve: false, out plan, out failureReason);
     }
 
     public bool TryReserveBestPlan(
@@ -136,10 +148,13 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             reachable,
             actor,
             inventory,
-            actorId);
+            actorId,
+            out string priorityFailureReason);
         if (seed == null)
         {
-            failureReason = "no haulable stack";
+            failureReason = string.IsNullOrWhiteSpace(priorityFailureReason)
+                ? "no haulable stack"
+                : priorityFailureReason;
             return false;
         }
 
@@ -208,26 +223,45 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         GridPathSearchResult reachable,
         CharacterActor actor,
         CharacterCarryInventory inventory,
-        string actorId)
+        string actorId,
+        out string priorityFailureReason)
     {
+        priorityFailureReason = string.Empty;
         HaulCandidate best = null;
         foreach (WorldItemStackRecord stack in GetHaulableStacks())
         {
-            if (!CanUseStack(stack, actorId)
-                || !TryBuildCandidate(
+            if (!CanUseStack(stack, actorId))
+            {
+                continue;
+            }
+
+            bool isPriority = repository.PrioritizedHaulStackIds.Contains(stack.stackId);
+            if (!TryBuildCandidate(
                     grid,
                     reachable,
                     actor,
                     inventory,
                     stack,
                     plannedWeight: 0f,
-                    out HaulCandidate candidate)
-                || candidate.Score <= (best?.Score ?? float.NegativeInfinity))
+                    out HaulCandidate candidate,
+                    out string candidateFailureReason))
             {
+                if (isPriority && string.IsNullOrWhiteSpace(priorityFailureReason))
+                {
+                    priorityFailureReason =
+                        $"priority stack {stack.stackId}: {candidateFailureReason}";
+                }
+
                 continue;
             }
 
-            best = candidate;
+            if (best == null
+                || (candidate.IsPriority && !best.IsPriority)
+                || candidate.IsPriority == best.IsPriority
+                    && candidate.Score > best.Score)
+            {
+                best = candidate;
+            }
         }
 
         return best;
@@ -266,7 +300,8 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                     inventory,
                     stack,
                     plannedWeight: 0f,
-                    out HaulCandidate candidate)
+                    out HaulCandidate candidate,
+                    out _)
                 || !HasSameDestination(seed, candidate))
             {
                 continue;
@@ -299,7 +334,8 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                     inventory,
                     candidate.Stack,
                     plannedWeight,
-                    out HaulCandidate refreshed)
+                    out HaulCandidate refreshed,
+                    out _)
                 || refreshed.Quantity <= 0)
             {
                 continue;
@@ -331,15 +367,23 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         CharacterCarryInventory inventory,
         WorldItemStackRecord stack,
         float plannedWeight,
-        out HaulCandidate candidate)
+        out HaulCandidate candidate,
+        out string failureReason)
     {
         candidate = null;
+        failureReason = string.Empty;
         if (grid == null
             || reachable == null
             || actor == null
-            || inventory == null
-            || !CanHaul(stack))
+            || inventory == null)
         {
+            failureReason = "invalid planning context";
+            return false;
+        }
+
+        if (!CanHaul(stack))
+        {
+            failureReason = "stack is not haulable";
             return false;
         }
 
@@ -348,13 +392,24 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             stack.itemId,
             stack.quantity,
             plannedWeight);
-        if (acceptable <= 0
-            || !TryResolvePickupStandCell(
+        if (acceptable <= 0)
+        {
+            failureReason = "carry capacity exhausted";
+            return false;
+        }
+
+        if (!TryResolvePickupStandCell(
                 grid,
                 stack.position,
-                out Vector2Int pickupStand)
-            || !reachable.ContainsPosition(pickupStand))
+                out Vector2Int pickupStand))
         {
+            failureReason = $"no pickup stand near {stack.position}";
+            return false;
+        }
+
+        if (!reachable.ContainsPosition(pickupStand))
+        {
+            failureReason = $"pickup stand {pickupStand} is unreachable";
             return false;
         }
 
@@ -368,9 +423,16 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             if (!TryResolveFacilityDeliveryCell(
                     grid,
                     stack.destinationPosition,
-                    out deliveryCell)
-                || !reachable.ContainsPosition(deliveryCell))
+                    out deliveryCell))
             {
+                failureReason =
+                    $"no delivery stand near {stack.destinationPosition}";
+                return false;
+            }
+
+            if (!reachable.ContainsPosition(deliveryCell))
+            {
+                failureReason = $"delivery stand {deliveryCell} is unreachable";
                 return false;
             }
 
@@ -390,6 +452,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         }
         else
         {
+            failureReason = "no reachable destination";
             return false;
         }
 
@@ -409,6 +472,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             DropPosition = dropCell,
             DestinationKind = destinationKind,
             DestinationId = destinationId,
+            IsPriority = priorityBonus > 0f,
             Score = priorityBonus
                 + definition.UnitPrice * acceptable * 0.02f
                 + Mathf.Min(acceptable, definition.MaxStack) * 0.01f
@@ -715,6 +779,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         public Vector2Int DropPosition;
         public WorldItemHaulDestinationKind DestinationKind;
         public string DestinationId = string.Empty;
+        public bool IsPriority;
         public float Score;
         public float TotalWeight;
         public int DetourCost;

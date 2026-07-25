@@ -210,6 +210,86 @@ public static class BuildingAbilityAccessors
         return !string.IsNullOrWhiteSpace(building.GetFacilityCode());
     }
 
+    public static BuildingCaptiveHousingAbility GetCaptiveHousingAbility(
+        this BuildingSO building)
+    {
+        BuildingCaptiveHousingAbility ability =
+            building?.GetAbility<BuildingCaptiveHousingAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
+    public static BuildingCircusStageAbility GetCircusStageAbility(
+        this BuildingSO building)
+    {
+        BuildingCircusStageAbility ability =
+            building?.GetAbility<BuildingCircusStageAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
+    public static BuildingAudienceSeatingAbility GetAudienceSeatingAbility(
+        this BuildingSO building)
+    {
+        BuildingAudienceSeatingAbility ability =
+            building?.GetAbility<BuildingAudienceSeatingAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
+    public static BuildingBeastPenAbility GetBeastPenAbility(
+        this BuildingSO building)
+    {
+        BuildingBeastPenAbility ability =
+            building?.GetAbility<BuildingBeastPenAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
+    public static BuildingCircusTicketBoothAbility GetCircusTicketBoothAbility(
+        this BuildingSO building)
+    {
+        BuildingCircusTicketBoothAbility ability =
+            building?.GetAbility<BuildingCircusTicketBoothAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
+    public static BuildingCircusGamblingAbility GetCircusGamblingAbility(
+        this BuildingSO building)
+    {
+        BuildingCircusGamblingAbility ability =
+            building?.GetAbility<BuildingCircusGamblingAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
+    public static BuildingCircusAnnouncerAbility GetCircusAnnouncerAbility(
+        this BuildingSO building)
+    {
+        BuildingCircusAnnouncerAbility ability =
+            building?.GetAbility<BuildingCircusAnnouncerAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
+    public static BuildingCircusHazardAbility GetCircusHazardAbility(
+        this BuildingSO building)
+    {
+        BuildingCircusHazardAbility ability =
+            building?.GetAbility<BuildingCircusHazardAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
+    public static BuildingCircusTreatmentZoneAbility GetCircusTreatmentZoneAbility(
+        this BuildingSO building)
+    {
+        BuildingCircusTreatmentZoneAbility ability =
+            building?.GetAbility<BuildingCircusTreatmentZoneAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
+    public static BuildingPublicPunishmentAbility GetPublicPunishmentAbility(
+        this BuildingSO building)
+    {
+        BuildingPublicPunishmentAbility ability =
+            building?.GetAbility<BuildingPublicPunishmentAbility>();
+        return ability != null && ability.IsValid ? ability : null;
+    }
+
     public static IEnumerable<TCapability> GetAbilityCapabilities<TCapability>(this BuildingSO building)
     {
         return building?.Abilities?.OfType<TCapability>() ?? Enumerable.Empty<TCapability>();
@@ -270,9 +350,9 @@ public static class BuildingAbilityAccessors
         }
 
         Dictionary<StockCategory, int> result = new Dictionary<StockCategory, int>();
-        int amount = Mathf.CeilToInt(building.GetConstructionCost() * 0.05f);
-        if (amount > 0)
+        if (building != null)
         {
+            int amount = Mathf.Max(1, Mathf.CeilToInt(building.GetConstructionCost() * 0.05f));
             result[StockCategory.General] = amount;
         }
 

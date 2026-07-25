@@ -78,10 +78,14 @@ public static class DungeonPresentationRegistration
             .As<IWarehouseFeatureCommandService>();
         builder.Register<WarehouseFeatureSurfacePresenter>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<GameplayFlowDiagnosticsQuery>(Lifetime.Singleton)
+            .As<IGameplayFlowDiagnosticsQuery>();
         builder.Register<OperationsFeatureQueryService>(Lifetime.Singleton)
             .As<IOperationsFeatureQueryService>();
         builder.Register<OperationsFeatureCommandService>(Lifetime.Singleton)
             .As<IOperationsFeatureCommandService>();
+        builder.Register<CaptivityFeatureSectionPresenter>(Lifetime.Singleton)
+            .As<ICaptivityFeatureSectionPresenter>();
         builder.Register<OperationsFeatureSurfacePresenter>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenter>();
         builder.Register<DefenseFeatureQueryService>(Lifetime.Singleton)
@@ -175,6 +179,10 @@ public static class DungeonPresentationRegistration
             .As<IUITabContentTextProvider>();
         builder.Register<UiPopupService>(Lifetime.Singleton)
             .As<IUiPopupService>();
+        builder.Register<DoorAccessPanelPresenter>(Lifetime.Singleton)
+            .As<IDoorAccessPanelPresenter>();
+        builder.Register<CircusBuildingPanelPresenter>(Lifetime.Singleton)
+            .As<ICircusBuildingPanelPresenter>();
 
         builder.RegisterComponentOnNewGameObject<ItemPileInfoPanel>(
                 Lifetime.Singleton,

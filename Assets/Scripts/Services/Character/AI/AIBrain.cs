@@ -28,10 +28,15 @@ public class AIBrain : CharacterAbility
     [SerializeField, Min(0f)] private float defaultActionPersistenceSeconds = 0.75f;
     [SerializeField, Range(1, 8)] private int debugCandidateLimit = 3;
     private GridPathSearchResult pathSearchCache;
+    private bool urgentPathSearchRequested;
     private readonly Dictionary<AIActionSet, float> actionFailureCooldownUntil = new Dictionary<AIActionSet, float>();
     private readonly List<AIAction> destinationFailedThisDecision = new List<AIAction>();
     private readonly List<AIActionDebugCandidate> lastCandidateScores = new List<AIActionDebugCandidate>();
     private IReadOnlyList<AIActionDebugCandidate> lastCandidateScoresView;
+    private AIActionSet preferredNextActionSet;
+    private float preferredNextActionUntil = float.NegativeInfinity;
+    private WorkTypeId preferredWorkTypeId;
+    private float preferredWorkTypeUntil = float.NegativeInfinity;
     private float noActionLogCooldownUntil;
     private AIAction queuedAction;
     private ICharacterAiActionAssetCatalog actionAssetCatalog;
@@ -382,6 +387,11 @@ public class AIBrain : CharacterAbility
             return false;
         }
 
+        if (TryUsePreferredAction())
+        {
+            return true;
+        }
+
         if (TryUseQueuedAction())
         {
             return true;
@@ -440,6 +450,11 @@ public class AIBrain : CharacterAbility
         }
 
         SetSelectedAction(action, "\uC120\uD0DD");
+        if (action.actionset == preferredNextActionSet)
+        {
+            preferredNextActionSet = null;
+            preferredNextActionUntil = float.NegativeInfinity;
+        }
         isBestActionEnd = false;
         isExecuted = false;
         lastActionFailure = AIActionFailure.None;
@@ -600,6 +615,19 @@ public class AIBrain : CharacterAbility
         }
 
         float selectionScore = action.score;
+        if (preferredNextActionSet != null)
+        {
+            if (Now > preferredNextActionUntil)
+            {
+                preferredNextActionSet = null;
+                preferredNextActionUntil = float.NegativeInfinity;
+            }
+            else if (action.actionset == preferredNextActionSet)
+            {
+                selectionScore += 1f;
+            }
+        }
+
         if (actor != null
             && actor.Blackboard != null
             && actor.Blackboard.TryGetCommitmentBonus(action, out float commitmentBonus))
@@ -634,12 +662,22 @@ public class AIBrain : CharacterAbility
             pathSearchCache.start != start ||
             pathSearchCache.gridVersion != grid.version)
         {
-            if (!pathSearchBroker.TryGetSearch(grid, start, out pathSearchCache))
+            GridPathSearchPriority priority = urgentPathSearchRequested
+                ? GridPathSearchPriority.Urgent
+                : GridPathSearchPriority.Normal;
+            if (!pathSearchBroker.TryGetSearch(
+                    grid,
+                    start,
+                    out pathSearchCache,
+                    priority,
+                    GridTraversalContext.ForCharacter(actor)))
             {
                 IsPathSearchDeferred = true;
                 return null;
             }
         }
+
+        urgentPathSearchRequested = false;
         return pathSearchCache;
     }
 
@@ -683,6 +721,85 @@ public class AIBrain : CharacterAbility
 
         MarkDebugDirty();
         RequireAiSchedulingService().RequestImmediateDecision(actor);
+    }
+
+    public void RequestImmediateReplanForAction<TActionSet>(bool clearFailures = false)
+        where TActionSet : AIActionSet
+    {
+        PreferActionOnNextDecision<TActionSet>();
+        RequestImmediateReplan(clearFailures);
+    }
+
+    public bool PreferActionOnNextDecision<TActionSet>(float persistenceSeconds = 90f)
+        where TActionSet : AIActionSet
+    {
+        return SetPreferredAction(
+            availableActions?
+            .Select(action => action?.actionset)
+            .OfType<TActionSet>()
+            .FirstOrDefault(),
+            persistenceSeconds);
+    }
+
+    public bool PreferWorkActionOnNextDecision(
+        WorkTypeId workTypeId,
+        float persistenceSeconds = 90f)
+    {
+        AIWork workAction = availableActions?
+            .Select(action => action?.actionset)
+            .OfType<AIWork>()
+            .FirstOrDefault(action => action.WorkTypeId == workTypeId)
+            ?? availableActions?
+                .Select(action => action?.actionset)
+                .OfType<AIWork>()
+                .FirstOrDefault(action => !action.WorkTypeId.IsValid);
+        bool preferred = SetPreferredAction(workAction, persistenceSeconds);
+        if (preferred)
+        {
+            preferredWorkTypeId = workTypeId;
+            preferredWorkTypeUntil = Now + Mathf.Max(2f, persistenceSeconds);
+        }
+
+        return preferred;
+    }
+
+    public bool TryGetPreferredWorkType(out WorkTypeId workTypeId)
+    {
+        workTypeId = preferredWorkTypeId;
+        if (!workTypeId.IsValid)
+        {
+            return false;
+        }
+
+        if (Now <= preferredWorkTypeUntil)
+        {
+            return true;
+        }
+
+        ClearPreferredWorkType();
+        workTypeId = default;
+        return false;
+    }
+
+    public void ConsumePreferredWorkType(WorkTypeId workTypeId)
+    {
+        if (preferredWorkTypeId == workTypeId)
+        {
+            ClearPreferredWorkType();
+        }
+    }
+
+    private bool SetPreferredAction(
+        AIActionSet actionSet,
+        float persistenceSeconds)
+    {
+        ClearPreferredWorkType();
+        preferredNextActionSet = actionSet;
+        preferredNextActionUntil = preferredNextActionSet != null
+            ? Now + Mathf.Max(2f, persistenceSeconds)
+            : float.NegativeInfinity;
+        InvalidateQueuedActionForNextDecision();
+        return preferredNextActionSet != null;
     }
 
     public void InvalidateQueuedActionForNextDecision()
@@ -740,6 +857,24 @@ public class AIBrain : CharacterAbility
         isExecuted = false;
         isBestActionEnd = false;
         IsPathSearchDeferred = false;
+        MarkDebugDirty();
+    }
+
+    public void BeginExternallyDrivenAction(string actionLabel, string phase, string detail = null)
+    {
+        bestAction?.ReleaseReservation(actor);
+        queuedAction?.ReleaseReservation(actor);
+        bestAction = null;
+        queuedAction = null;
+        destinationFailedThisDecision.Clear();
+        currentActionDebugLabel = string.IsNullOrWhiteSpace(actionLabel) ? "특수 행동" : actionLabel;
+        currentActionPhase = phase ?? string.Empty;
+        currentActionPhaseDetail = detail ?? string.Empty;
+        currentDestinationDebugLabel = string.Empty;
+        isExecuted = true;
+        isBestActionEnd = false;
+        IsPathSearchDeferred = false;
+        ClearPathSearchCache();
         MarkDebugDirty();
     }
 
@@ -951,6 +1086,7 @@ public class AIBrain : CharacterAbility
         currentDestinationDebugLabel = string.Empty;
         destinationFailedThisDecision.Clear();
         ClearPathSearchCache();
+        urgentPathSearchRequested = true;
         isExecuted = false;
         isBestActionEnd = true;
         IsPathSearchDeferred = false;
@@ -1028,6 +1164,60 @@ public class AIBrain : CharacterAbility
         isBestActionEnd = false;
         isExecuted = false;
         return true;
+    }
+
+    private bool TryUsePreferredAction()
+    {
+        if (preferredNextActionSet == null)
+        {
+            return false;
+        }
+
+        if (Now > preferredNextActionUntil)
+        {
+            ClearPreferredAction();
+            return false;
+        }
+
+        AIAction action = availableActions?
+            .FirstOrDefault(candidate => candidate?.actionset == preferredNextActionSet);
+        if (action == null)
+        {
+            ClearPreferredAction();
+            return false;
+        }
+
+        if (!CanUseAction(action, out AIActionFailure failure))
+        {
+            if (failure.Kind != AIActionFailureKind.PathSearchDeferred)
+            {
+                ClearPreferredAction();
+            }
+
+            return false;
+        }
+
+        SetSelectedAction(action, "예약된 다음 행동");
+        ClearPreferredAction(preserveWorkType: action.actionset is AIWork);
+        isBestActionEnd = false;
+        isExecuted = false;
+        return true;
+    }
+
+    private void ClearPreferredAction(bool preserveWorkType = false)
+    {
+        preferredNextActionSet = null;
+        preferredNextActionUntil = float.NegativeInfinity;
+        if (!preserveWorkType)
+        {
+            ClearPreferredWorkType();
+        }
+    }
+
+    private void ClearPreferredWorkType()
+    {
+        preferredWorkTypeId = default;
+        preferredWorkTypeUntil = float.NegativeInfinity;
     }
 
     private bool TryFindInterruptAction(
@@ -1658,7 +1848,13 @@ public class AIAction
         {
             Func<Vector2Int, bool> condition =
                 (pos) => grid.GetGridCell(pos)?.ContainsOccupant(resolvedDestination) == true;
-            resolvedPath = grid.GetMovePath(actor.GetNowXY(), condition);
+            resolvedPath = actor.PathSearchBroker?.GetMovePath(
+                    grid,
+                    actor.GetNowXY(),
+                    condition,
+                    GridPathSearchPriority.Urgent,
+                    GridTraversalContext.ForCharacter(actor))
+                ?? new Queue<GridMoveStep>();
         }
 
         return ResolvePathPlan(actor, resolvedDestination, resolvedPath, out failure)
@@ -1696,7 +1892,13 @@ public class AIAction
 
         Func<Vector2Int, bool> condition =
             (pos) => grid.GetGridCell(pos)?.ContainsOccupant(currentDestination) == true;
-        Queue<GridMoveStep> rebuiltPath = grid.GetMovePath(actor.GetNowXY(), condition);
+        Queue<GridMoveStep> rebuiltPath = actor.PathSearchBroker?.GetMovePath(
+                grid,
+                actor.GetNowXY(),
+                condition,
+                GridPathSearchPriority.Urgent,
+                GridTraversalContext.ForCharacter(actor))
+            ?? new Queue<GridMoveStep>();
         return ResolvePathPlan(actor, currentDestination, rebuiltPath, out failure);
     }
 

@@ -1,33 +1,29 @@
-PASS OWNER_MANAGER: owner manager resolved
+PASS PREPARATION_SCOPE: dedicated preparation scene and service resolved
 PASS FRESH_RUN: verification starts before a party is committed
 PASS OWNER_OPTION: owner candidate visible
-PASS THREE_MEMBER_TABS: three members expose identity, aptitude, and skill tabs
+PASS ROSTER_AND_DETAIL_TABS: selected and reserve roster exposes one RimWorld-style detail surface
 PASS SINGLE_ACTION_ROW: preparation actions are not duplicated
-PASS PARTIAL_REROLL: identity partial reroll visible
-PASS PARTIAL_CHARGE: 부분 리롤 2/3
-PASS FULL_REROLL: full reroll visible
-PASS FULL_RECHARGE: 부분 리롤 3/3
+PASS ROSTER_DRAG_TARGETS: selected and reserve cards accept pointer input
+PASS ROSTER_DRAG_SWAP: out=예비 1; in=선발 1; slot=1
+PASS PARTIAL_REROLL: identity dice reroll visible
+PASS PARTIAL_CHARGE: 기본 정보 리롤 2
+PASS FULL_REROLL: full dice reroll visible
+PASS FULL_RECHARGE: 기본 정보 리롤 3
 PASS SKILL_TAB_0: skill tab visible
-PASS SKILL_TAB_1: skill tab visible
+PASS SKILL_TAB_3: skill tab visible
 PASS SKILL_TAB_2: skill tab visible
 PASS NO_TECHNICAL_GENERATION_TEXT: generation internals are hidden from the player
 PASS DESKTOP_RESOLUTION: actual=1600x900
 PASS DESKTOP_CAPTURE: size=1600x900; pixels=1440000
-PASS CANDIDATE_0: candidate ready
-PASS CONFIRM_ARMED_0: 일반 · 미르1의 청소  [다시 눌러 확정]
-미르1이 적을 청소합니다.
-PASS CANDIDATE_1: candidate ready
-PASS CONFIRM_ARMED_1: 고급 · 미르의 청소  [다시 눌러 확정]
-미르가 적을 치료합니다.
-PASS CANDIDATE_2: candidate ready
-PASS CONFIRM_ARMED_2: 희귀 · 미르3의 희생  [다시 눌러 확정]
-미르3이 적에게 공격을 가해 자신의 체력을 8점 줄입니다.
+PASS NO_START_SKILL_CHOICES: first actives are generated automatically instead of selected
+PASS GENERATED_START_SKILLS: generated active and passive cards are visible for the selected staff
 PASS PARTY_READY: all three selections unlock the start command
 PASS MOBILE_RESOLUTION: actual=900x1600
 PASS MOBILE_BOUNDS: all party cards remain inside the portrait viewport
 PASS MOBILE_CAPTURE: size=900x1600; pixels=1440000
 PASS PARTY_COMMITTED: owner=True, staff=2
 PASS SAME_SPECIES: Vampire
-PASS READY_SKILLS: owner and staff each retain one confirmed active and first passive
+PASS OWNER_FIXED_SKILLS: owner fixed skills=4
+PASS STAFF_READY_SKILLS: Dion4: active=1, passive=1, Leon3: active=1, passive=1
 PASS PREPARATION_CLOSED: preparation UI closes after commit
 errors=0; warnings=0; failures=0

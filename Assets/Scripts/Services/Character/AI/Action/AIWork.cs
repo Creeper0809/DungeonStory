@@ -31,7 +31,7 @@ public class AIWork : AIActionSet
         GridPathSearchResult searchResult = actor.Brain != null
             ? actor.Brain.GetPathSearch(actor)
             : null;
-        float utilityScore = TryGetConfiguredWorkTypeId(out WorkTypeId workTypeId)
+        float utilityScore = TryResolveWorkTypeId(actor, out WorkTypeId workTypeId)
             ? work.GetWorkUtilityScore(workTypeId, searchResult)
             : work.GetAnyWorkUtilityScore(searchResult);
         if (utilityScore <= 0f)
@@ -53,7 +53,7 @@ public class AIWork : AIActionSet
         GridPathSearchResult searchResult = actor.Brain != null
             ? actor.Brain.GetPathSearch(actor)
             : null;
-        return TryGetConfiguredWorkTypeId(out WorkTypeId workTypeId)
+        return TryResolveWorkTypeId(actor, out WorkTypeId workTypeId)
             ? work.CanStartWorkAction(workTypeId, searchResult)
             : work.CanStartAnyWorkAction(searchResult);
     }
@@ -81,9 +81,10 @@ public class AIWork : AIActionSet
             BuildableObject selectedDestination = actor.Brain != null
                 ? actor.Brain.bestAction?.destination
                 : null;
-            if (TryGetConfiguredWorkTypeId(out WorkTypeId workTypeId))
+            if (TryResolveWorkTypeId(actor, out WorkTypeId workTypeId))
             {
                 work.StartWorking(workTypeId, selectedDestination);
+                actor.Brain?.ConsumePreferredWorkType(workTypeId);
             }
             else
             {
@@ -155,7 +156,7 @@ public class AIWork : AIActionSet
         }
 
         WorkTargetCandidate candidate;
-        bool found = TryGetConfiguredWorkTypeId(out WorkTypeId workTypeId)
+        bool found = TryResolveWorkTypeId(actor, out WorkTypeId workTypeId)
             ? work.TryGetBestWorkCandidate(workTypeId, searchResult, out candidate)
             : work.TryGetBestAnyWorkCandidate(searchResult, out candidate);
         return found
@@ -183,5 +184,19 @@ public class AIWork : AIActionSet
 
         workTypeId = definition.WorkTypeId;
         return true;
+    }
+
+    private bool TryResolveWorkTypeId(
+        CharacterActor actor,
+        out WorkTypeId workTypeId)
+    {
+        if (TryGetConfiguredWorkTypeId(out workTypeId))
+        {
+            return true;
+        }
+
+        return actor != null
+            && actor.Brain != null
+            && actor.Brain.TryGetPreferredWorkType(out workTypeId);
     }
 }

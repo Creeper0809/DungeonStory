@@ -22,6 +22,14 @@ public sealed class AbilityHaul : MonoBehaviour
         CacheReferences();
     }
 
+    private void OnDisable()
+    {
+        if (Application.isPlaying)
+        {
+            StopHauling("disabled");
+        }
+    }
+
     public static AbilityHaul Ensure(CharacterActor actor)
     {
         if (actor == null)

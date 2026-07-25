@@ -29,6 +29,8 @@ public static class PhysicalItemDebugScenarios
         Run("stack_delete_fallback", VerifyStackDeleteFallback, lines, errors);
         Run("warehouse_aggregate_view", VerifyWarehouseAggregateView, lines, errors);
         Run("warehouse_stored_stack_mirror", VerifyWarehouseStoredStackMirror, lines, errors);
+        Run("restore_releases_transient_reservations", VerifyRestoreReleasesTransientReservations, lines, errors);
+        Run("cancelled_destination_releases_materials", VerifyCancelledDestinationReleasesMaterials, lines, errors);
         Run("save_v10_contract", VerifySaveV10Contract, lines, errors);
 
         File.WriteAllLines(ReportPath, lines);
@@ -616,6 +618,127 @@ public static class PhysicalItemDebugScenarios
                 }
             }
         };
+    }
+
+    private static string VerifyRestoreReleasesTransientReservations()
+    {
+        WorldItemStackRuntime runtime = CreateRuntime();
+        try
+        {
+            DungeonPhysicalItemSaveData snapshot = CreatePileSnapshot();
+            snapshot.stacks.Add(new WorldItemStackSaveData
+            {
+                stackId = "stack:loadout",
+                itemId = "item:rich",
+                quantity = 1,
+                state = WorldItemStackState.Stored,
+                gridX = 4,
+                gridY = 0,
+                reservedByPersistentId = "worker:missing",
+                destinationId = WorldItemStackRuntime.CombatLoadoutDestinationPrefix + "worker:missing",
+                sourceStorageDestinationId = "warehouse:source",
+                hasDestinationPosition = true,
+                destinationGridX = 8,
+                destinationGridY = 0
+            });
+
+            runtime.Restore(snapshot);
+            WorldItemStackSnapshot facilityBuffer = runtime.GetAllStacks()
+                .Single(stack => stack.StackId == "stack:buffer");
+            WorldItemStackSnapshot loadout = runtime.GetAllStacks()
+                .Single(stack => stack.StackId == "stack:loadout");
+            Require(!facilityBuffer.IsReserved,
+                $"facility reservation survived restore: {facilityBuffer.ReservedByPersistentId}");
+            Require(string.Equals(
+                    facilityBuffer.DestinationId,
+                    "shop:1",
+                    StringComparison.Ordinal),
+                $"facility destination changed: {facilityBuffer.DestinationId}");
+            Require(!loadout.IsReserved,
+                $"loadout reservation survived restore: {loadout.ReservedByPersistentId}");
+            Require(string.Equals(
+                    loadout.DestinationId,
+                    "warehouse:source",
+                    StringComparison.Ordinal)
+                && string.IsNullOrWhiteSpace(loadout.SourceStorageDestinationId)
+                && !loadout.HasDestinationPosition,
+                $"loadout source was not restored: destination={loadout.DestinationId};"
+                    + $" source={loadout.SourceStorageDestinationId};"
+                    + $" hasPosition={loadout.HasDestinationPosition}");
+            return "transient reservations cleared; loadout returned to source storage";
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
+    }
+
+    private static string VerifyCancelledDestinationReleasesMaterials()
+    {
+        WorldItemStackRuntime runtime = CreateRuntime();
+        try
+        {
+            const string destinationId = "construction:test";
+            DungeonPhysicalItemSaveData snapshot = new DungeonPhysicalItemSaveData
+            {
+                version = DungeonPhysicalItemSaveData.CurrentVersion,
+                nextStackSequence = 20,
+                haulingSettings = new ItemHaulingSettingsSnapshot
+                {
+                    maxCarryMultiplier = 1.5f
+                },
+                stacks = new List<WorldItemStackSaveData>
+                {
+                    new WorldItemStackSaveData
+                    {
+                        stackId = "stack:reserved-source",
+                        itemId = DungeonItemCatalogSO.StockItemId(StockCategory.General),
+                        quantity = 3,
+                        state = WorldItemStackState.Loose,
+                        destinationId = destinationId,
+                        gridX = 2,
+                        gridY = 0
+                    },
+                    new WorldItemStackSaveData
+                    {
+                        stackId = "stack:delivered-buffer",
+                        itemId = DungeonItemCatalogSO.StockItemId(StockCategory.General),
+                        quantity = 2,
+                        state = WorldItemStackState.FacilityBuffer,
+                        destinationId = destinationId,
+                        gridX = 7,
+                        gridY = 0
+                    }
+                }
+            };
+
+            runtime.Restore(snapshot);
+            Vector2Int releasePosition = new Vector2Int(7, 0);
+            int released = runtime.ReleaseStacksByDestination(
+                destinationId,
+                releasePosition);
+            WorldItemStackSnapshot[] stacks = runtime.GetAllStacks().ToArray();
+            Require(released == 5, $"released={released}");
+            Require(stacks.Sum(stack => stack.Quantity) == 5,
+                $"quantity after release={stacks.Sum(stack => stack.Quantity)}");
+            Require(stacks.All(stack =>
+                    stack.State == WorldItemStackState.Loose
+                    && string.IsNullOrWhiteSpace(stack.DestinationId)),
+                "released materials were not loose and unassigned");
+            Require(stacks.Any(stack =>
+                    stack.Position == new Vector2Int(2, 0)
+                    && stack.Quantity == 3),
+                "source reservation did not return to its original cell");
+            Require(stacks.Any(stack =>
+                    stack.Position == releasePosition
+                    && stack.Quantity == 2),
+                "delivered buffer did not return at the construction cell");
+            return "released=5; conserved=5; source=3; site=2";
+        }
+        finally
+        {
+            runtime.Dispose();
+        }
     }
 
     private static WorldItemStackRuntime CreateRuntime()

@@ -167,6 +167,11 @@ public sealed class DungeonItemCatalogSO : ScriptableObject
             return true;
         }
 
+        if (CaptivityItemDefinitions.TryGetDefinition(normalized, out definition))
+        {
+            return true;
+        }
+
         if (TryGetStockCategoryFromItemId(normalized, out StockCategory category))
         {
             definition = DungeonItemDefinition.FromStockCategory(category);
@@ -301,6 +306,11 @@ public sealed class ResourceDungeonItemCatalogProvider : IDungeonItemCatalogProv
         if (DarkSurvivalItemDefinitions.TryGetDefinition(itemId, out DungeonItemDefinition darkSurvivalDefinition))
         {
             return darkSurvivalDefinition;
+        }
+
+        if (CaptivityItemDefinitions.TryGetDefinition(itemId, out DungeonItemDefinition captivityDefinition))
+        {
+            return captivityDefinition;
         }
 
         return DungeonItemCatalogSO.TryGetStockCategoryFromItemId(itemId, out StockCategory category)

@@ -1,28 +1,29 @@
 [PASS] SCOPE_READY gameplay LifetimeScope resolved
 [PASS] EQUIPMENT_RUNTIME IExpeditionEquipmentRuntime resolved
+[PASS] ITEM_RUNTIME IWorldItemStackRuntime resolved
 [PASS] WAREHOUSE_QUERY facility warehouse inventory query resolved
 [PASS] EXPEDITION_RUNTIME OffenseExpeditionRuntime resolved
-[INFO] FAST_PARTY_COMMIT committed=True; message=이안와 직원 2명으로 던전을 시작합니다.; staff=2; actors=이안3:-374442:staff:75363953:02:active=True,레나:-374386:staff:75363953:01:active=True; diagnostics=created-1:name=레나;instance=-374386;go=-374358;components=1;id=staff:75363953:01;active=False || created-2:name=이안3;instance=-374442;go=-374414;components=1;id=staff:75363953:02;active=False || scan-before-enable:name=이안3;instance=-374442;go=-374414;components=1;id=staff:75363953:02;active=False;retained=True || scan-before-enable:name=레나;instance=-374386;go=-374358;components=1;id=staff:75363953:01;active=False;retained=True || scan-after-enable:name=이안3;instance=-374442;go=-374414;components=1;id=staff:75363953:02;active=True;retained=True || scan-after-enable:name=레나;instance=-374386;go=-374358;components=1;id=staff:75363953:01;active=True;retained=True || retained-final:name=레나;instance=-374386;go=-374358;components=1;id=staff:75363953:01;active=True || retained-final:name=이안3;instance=-374442;go=-374414;components=1;id=staff:75363953:02;active=True
-[PASS] FAST_PARTY_AVAILABLE members=2; 이안3:id=staff:75363953:02;scene=SampleScene;activeSelf=True;activeHierarchy=True;type=NPC;role=Regular;life=Active;health=120/120;hasWork=True;canJoin=True;reason= || 레나:id=staff:75363953:01;scene=SampleScene;activeSelf=True;activeHierarchy=True;type=NPC;role=Regular;life=Active;health=120/120;hasWork=True;canJoin=True;reason= || 이안:id=owner;scene=SampleScene;activeSelf=True;activeHierarchy=True;type=NPC;role=Owner;life=Active;health=132/132;hasWork=True;canJoin=False;reason=사장은 원정에 보낼 수 없습니다
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Arin:-8352278:staff:338953984:01:active=True,Cain:-8352388:staff:338953984:02:active=True; diagnostics=prepared-1:name=Arin;go=-8352250;id=staff:338953984:01;active=False || prepared-2:name=Cain;go=-8352360;id=staff:338953984:02;active=False || scan:name=Arin;go=-8352250;id=staff:338953984:01;active=False;retained=True || scan:name=Cain;go=-8352360;id=staff:338953984:02;active=False;retained=True || scan:name=Arin;go=-8352250;id=staff:338953984:01;active=True;retained=True || scan:name=Cain;go=-8352360;id=staff:338953984:02;active=True;retained=True || retained:name=Arin;go=-8352250;id=staff:338953984:01;active=True || retained:name=Cain;go=-8352360;id=staff:338953984:02;active=True
+[PASS] FAST_PARTY_AVAILABLE members=2; Leon:id=owner;scene=GameplayScene;activeSelf=True;activeHierarchy=True;type=NPC;role=Owner;life=Active;health=92/92;hasWork=True;canJoin=False;reason=사장은 원정에 보낼 수 없습니다 || Low Mood Customer:id=;scene=GameplayScene;activeSelf=True;activeHierarchy=True;type=Customer;role=Regular;life=None;health=100/100;hasWork=False;canJoin=False;reason=현재 던전에서 활동 중인 캐릭터가 아닙니다 || Orc Regular:id=;scene=GameplayScene;activeSelf=True;activeHierarchy=True;type=Customer;role=Regular;life=None;health=100/100;hasWork=False;canJoin=False;reason=현재 던전에서 활동 중인 캐릭터가 아닙니다 || Arin:id=staff:338953984:01;scene=GameplayScene;activeSelf=True;activeHierarchy=True;type=NPC;role=Regular;life=Active;health=120/120;hasWork=True;canJoin=True;reason= || Reward Visitor A:id=;scene=GameplayScene;activeSelf=True;activeHierarchy=True;type=Customer;role=Regular;life=None;health=100/100;hasWork=False;canJoin=False;reason=현재 던전에서 활동 중인 캐릭터가 아닙니다 || Slime Regular:id=;scene=GameplayScene;activeSelf=True;activeHierarchy=True;type=Customer;role=Regular;life=None;health=100/100;hasWork=False;canJoin=False;reason=현재 던전에서 활동 중인 캐릭터가 아닙니다 || Snapshot Customer:id=;scene=GameplayScene;activeSelf=True;activeHierarchy=True;type=Customer;role=Regular;life=None;health=100/100;hasWork=False;canJoin=False;reason=현재 던전에서 활동 중인 캐릭터가 아닙니다 || Cain:id=staff:338953984:02;scene=GameplayScene;activeSelf=True;activeHierarchy=True;type=NPC;role=Regular;life=Active;health=120/120;hasWork=True;canJoin=True;reason=
 [PASS] EXPEDITION_MEMBER one non-owner active staff member is available
 [PASS] WAREHOUSE_READY weapon craft materials can be stored
 [PASS] CRAFT_BENCH_READY S08 crafting bench initialized
 [PASS] CRAFT_ABILITY_READY S08 has BuildingEquipmentCraftingAbility
-[PASS] CRAFT_MATERIAL_VISIBLE weaponStock=35; queriedInventories=10; tempWarehouseSeen=True
+[PASS] CRAFT_MATERIAL_VISIBLE weaponStock=20; queriedInventories=10; tempWarehouseSeen=True
 [PASS] BUILDING_INFO_UI UIBuildingInfo scene component resolved
 [PASS] CRAFT_BUTTON_VISIBLE Iron Edge craft button is visible in building info
 [PASS] CRAFT_BUTTON_QUEUES_ORDER queue=0->1; status=Iron Edge 제작 예약
-[PASS] CRAFT_ORDER_WAITS_FOR_MATERIALS ready=False; destination=facility-input:6556f527aa4b4e828495b34a1b34b5ef
-[PASS] CRAFT_COST_WITHDRAWN weaponStock=35->33; status=Iron Edge 제작 예약
-[PASS] CRAFT_MATERIAL_DELIVERY_STACK deliveryStacks=1; destination=facility-input:6556f527aa4b4e828495b34a1b34b5ef
-[PASS] CRAFT_MATERIALS_READY deliveredStacks=1; destination=facility-input:6556f527aa4b4e828495b34a1b34b5ef
-[PASS] CRAFT_OUTPUT_STACK_CREATED stack=stack:00000003; qty=1; pos=(-36, -40)
-[PASS] CRAFT_WORK_COMPLETES Iron Edge inventory=0->1; cycles=4
-[PASS] EXPEDITION_MEMBER_BUTTON member button for 이안3 visible
+[PASS] CRAFT_ORDER_WAITS_FOR_MATERIALS ready=False; destination=facility-input:8d717e4e57724ebeafe6e93020ef9bc2
+[PASS] CRAFT_COST_RESERVED_UNTIL_PICKUP weaponStock=20->20; status=Iron Edge 제작 예약
+[PASS] CRAFT_MATERIAL_DELIVERY_STACK deliveryStacks=1; destination=facility-input:8d717e4e57724ebeafe6e93020ef9bc2
+[PASS] CRAFT_MATERIALS_READY deliveredStacks=1; destination=facility-input:8d717e4e57724ebeafe6e93020ef9bc2
+[PASS] CRAFT_OUTPUT_STACK_CREATED stack=stack:00000009; qty=1; pos=(-36, -40)
+[PASS] CRAFT_WORK_COMPLETES Iron Edge inventory=0->1; cycles=5
+[PASS] EXPEDITION_MEMBER_BUTTON member button for Cain visible
 [PASS] EQUIP_BUTTON_VISIBLE Iron Edge equip button is visible after selecting one member
 [PASS] EQUIP_BUTTON_CHANGES_STATE equipped=Iron Edge
-[PASS] EQUIPMENT_DETAIL_VISIBLE 선택 인원: 1/3  장비 이안3 - 무기 Iron Edge, 방어구 없음 / 공격 +3 / 출정 가능 재고: Iron Edge 0/1, Training Maul 0/0, Quick Needle 0/0, Guard Plate 0/0, Travel Cloak 0/0, Steady Mail 0/0
-[PASS] SCREEN_CAPTURE_NONBLANK 1920x1080; pixels=2073600
+[PASS] EQUIPMENT_DETAIL_VISIBLE 선택 인원: 1/3  장비 Cain - 무기 Iron Edge, 방어구 없음 / 공격 +3 / 출정 가능 재고: Iron Edge 0/1, Training Maul 0/0, Quick Needle 0/0, Guard Plate 0/0, Travel Cloak 0/0, Steady Mail 0/0, 화살 묶음 0/0, 볼트 묶음 0/0, 단검 0/0, 장검 0/0, 창 0/0, 철퇴 0/0, 단궁 0/0, 석궁 0/0, 장궁 0...
+[PASS] SCREEN_CAPTURE_NONBLANK 3840x2160; pixels=8294400
 capturedErrors=0; 
 capturedWarnings=0; 
 RESULT=PASS; failures=0; 

@@ -24,6 +24,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         List<string> errors = new List<string>();
 
         Run("multi_stack_haul_plan", VerifyMultiStackHaulPlan, lines, errors);
+        Run("priority_haul_seed_beats_value", VerifyPriorityHaulSeedBeatsValue, lines, errors);
         Run("partial_heavy_stack_reservation", VerifyPartialHeavyStackReservation, lines, errors);
         Run("construction_safety_forced_warning", VerifyConstructionSafetyForcedWarning, lines, errors);
 
@@ -165,6 +166,66 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 "remaining stack was not released for another hauler");
 
             return $"reserved={reserved}; remaining={remaining}; load={scenario.Carry.GetCurrentWeight(scenario.Items.CatalogProvider):0.##}";
+        }
+        finally
+        {
+            scenario.Dispose();
+        }
+    }
+
+    private static string VerifyPriorityHaulSeedBeatsValue()
+    {
+        ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
+        try
+        {
+            string stockId = DungeonItemCatalogSO.StockItemId(StockCategory.General);
+            Vector2Int regularPosition = new Vector2Int(2, 1);
+            Vector2Int priorityPosition = new Vector2Int(4, 1);
+            Require(scenario.Items.SpawnItemAt(
+                    stockId,
+                    20,
+                    regularPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out _),
+                "regular stack spawn failed");
+            Require(scenario.Items.SpawnItemAt(
+                    stockId,
+                    1,
+                    priorityPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out _),
+                "priority stack spawn failed");
+
+            WorldItemStackSnapshot priority = scenario.Items
+                .GetStacksAt(priorityPosition)
+                .Single();
+            Require(scenario.Items.PrioritizeHaul(priority.StackId),
+                "priority haul flag failed");
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan plan,
+                    out string failureReason),
+                "priority haul plan failed: " + failureReason);
+            Require(plan.PickupLegs[0].Reservation.StackId == priority.StackId,
+                $"priority stack was not the seed: {plan.PickupLegs[0].Reservation.StackId}");
+
+            string actorId = scenario.Actor.Identity.PersistentId;
+            foreach (WorldItemReservedStackQuantity reservation in plan.ReservedStackQuantities)
+            {
+                scenario.Items.ReleaseReservation(reservation.StackId, actorId);
+            }
+
+            Require(scenario.Items.TryReserveBestHaulPlan(
+                    scenario.Actor,
+                    out WorldItemHaulPlan retriedPlan,
+                    out failureReason),
+                "priority haul retry failed: " + failureReason);
+            Require(retriedPlan.PickupLegs[0].Reservation.StackId == priority.StackId,
+                "priority was lost after a cancelled reservation");
+
+            return $"prioritySeed={priority.StackId}; pickups={plan.PickupLegs.Count}; retryPreserved=True";
         }
         finally
         {

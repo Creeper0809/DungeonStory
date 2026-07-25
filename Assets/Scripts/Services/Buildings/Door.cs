@@ -77,10 +77,14 @@ public class Door : BuildableObject
     public SpriteRenderer VisualRenderer { get; protected set; }
     public virtual bool IsDungeonEntrance => true;
     protected virtual bool ChangesCharacterLayerDuringTraversal => true;
+    public DoorAccessStateModule AccessStateModule { get; private set; }
+    public DoorAccessPolicyState AccessPolicy => AccessStateModule?.State;
 
     private readonly HashSet<CharacterActor> traversalActors = new HashSet<CharacterActor>();
     private readonly HashSet<WildlifeActor> traversalWildlife = new HashSet<WildlifeActor>();
     private IResourcesAssetLoader resourcesAssetLoader;
+    private IDoorAccessStateChangeSink accessStateChangeSink;
+    private DoorAccessLockIndicator accessLockIndicator;
 
     protected IResourcesAssetLoader ResourcesAssetLoader => resourcesAssetLoader;
 
@@ -88,6 +92,13 @@ public class Door : BuildableObject
     public void ConstructDoorVisualResources(IResourcesAssetLoader resourcesAssetLoader)
     {
         this.resourcesAssetLoader = resourcesAssetLoader;
+    }
+
+    [VContainer.Inject]
+    public void ConstructDoorAccess(IDoorAccessStateChangeSink accessStateChangeSink)
+    {
+        this.accessStateChangeSink = accessStateChangeSink
+            ?? throw new System.ArgumentNullException(nameof(accessStateChangeSink));
     }
 
     private void OnEnable()
@@ -114,6 +125,14 @@ public class Door : BuildableObject
     public override void Initialization(BuildingSO buildingSO, Vector2Int buildPos)
     {
         base.Initialization(buildingSO, buildPos);
+        AccessStateModule = new DoorAccessStateModule(
+            () =>
+            {
+                accessStateChangeSink?.NotifyDoorPolicyChanged();
+                RefreshAccessIndicator();
+            });
+        RegisterStateModule(AccessStateModule);
+        RefreshAccessIndicator();
         if (IsDungeonEntrance)
         {
             ConfigureDungeonVisual(buildingSO);
@@ -125,6 +144,13 @@ public class Door : BuildableObject
         {
             doorCollider.isTrigger = true;
         }
+    }
+
+    private void RefreshAccessIndicator()
+    {
+        accessLockIndicator ??= GetComponent<DoorAccessLockIndicator>();
+        accessLockIndicator ??= gameObject.AddComponent<DoorAccessLockIndicator>();
+        accessLockIndicator.Refresh(AccessPolicy?.IsRestricted == true);
     }
 
     private void ConfigureTraversalCollider()

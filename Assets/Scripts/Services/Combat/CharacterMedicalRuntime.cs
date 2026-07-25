@@ -418,7 +418,9 @@ public sealed class CharacterMedicalRuntime :
 
     public void NotifyCharacterDowned(CharacterActor actor)
     {
-        if (actor == null || actor.IsDead)
+        if (actor == null
+            || actor.IsDead
+            || actor.characterType == CharacterType.Intruder)
         {
             return;
         }
@@ -453,6 +455,7 @@ public sealed class CharacterMedicalRuntime :
             ? CharacterMedicalOrderState.AwaitingRescue
             : CharacterMedicalOrderState.AwaitingStabilization;
         order.status = order.stabilized ? "구조 대기" : "현장 안정화 필요";
+        RequestRescueReplans(actor);
     }
 
     public void NotifyCharacterRecovered(CharacterActor actor)
@@ -752,6 +755,26 @@ public sealed class CharacterMedicalRuntime :
         actor.GetComponent<AbilityHaul>()?.StopHauling("쓰러짐");
         actor.GetComponent<AbilityHunt>()?.StopHunting("쓰러짐");
         actor.Brain?.RequestImmediateReplan(clearFailures: true);
+    }
+
+    private void RequestRescueReplans(CharacterActor patient)
+    {
+        foreach (CharacterActor candidate in worldRegistry.Characters)
+        {
+            if (candidate == null
+                || candidate == patient
+                || candidate.IsDead
+                || candidate.CurrentLifecycleState != CharacterLifecycleState.Active
+                || candidate.characterType is CharacterType.Customer or CharacterType.Intruder
+                || !candidate.TryGetAbility(out AbilityWork work)
+                || work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Rescue)
+                    == WorkPriorityLevel.Off)
+            {
+                continue;
+            }
+
+            candidate.Brain?.RequestImmediateReplan(clearFailures: true);
+        }
     }
 
     private float CalculateTreatmentWork(CharacterActor actor)

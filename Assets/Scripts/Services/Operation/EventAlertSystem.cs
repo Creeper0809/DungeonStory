@@ -15,6 +15,7 @@ public class EventAlertRuntime : MonoBehaviour
 
     private readonly List<EventAlertRecord> eventLog = new List<EventAlertRecord>();
     private ReadOnlyCollection<EventAlertRecord> eventLogView;
+    private readonly HashSet<int> dismissedRecordIds = new HashSet<int>();
     private readonly EventAlertSelectionState selectionState = new EventAlertSelectionState();
     private int nextId = 1;
     private IEventAlertViewPresenterFactory viewPresenterFactory;
@@ -43,7 +44,10 @@ public class EventAlertRuntime : MonoBehaviour
             presenter.EnsureRuntimeUI();
             foreach (EventAlertRecord record in eventLog)
             {
-                presenter.CreateButton(record);
+                if (!IsDismissed(record))
+                {
+                    presenter.CreateButton(record);
+                }
             }
         }
     }
@@ -65,7 +69,14 @@ public class EventAlertRuntime : MonoBehaviour
         else
         {
             record.Increment();
-            UpdateButton(record);
+            if (dismissedRecordIds.Remove(record.Id))
+            {
+                CreateButton(record);
+            }
+            else
+            {
+                UpdateButton(record);
+            }
         }
 
         gameEventBus.Publish(new EventAlertLoggedEvent(record));
@@ -90,6 +101,29 @@ public class EventAlertRuntime : MonoBehaviour
         viewPresenter?.CloseDetail();
     }
 
+    public bool Dismiss(EventAlertRecord record)
+    {
+        if (record == null || !eventLog.Contains(record))
+        {
+            return false;
+        }
+
+        dismissedRecordIds.Add(record.Id);
+        if (selectionState.SelectedRecord == record)
+        {
+            selectionState.Clear();
+            CloseDetail();
+        }
+
+        viewPresenter?.RemoveButton(record);
+        return true;
+    }
+
+    public bool IsDismissed(EventAlertRecord record)
+    {
+        return record != null && dismissedRecordIds.Contains(record.Id);
+    }
+
     public bool ExecuteChoice(int index)
     {
         if (!selectionState.ExecuteChoice(index))
@@ -107,6 +141,7 @@ public class EventAlertRuntime : MonoBehaviour
         viewPresenter = null;
         selectionState.Clear();
         eventLog.Clear();
+        dismissedRecordIds.Clear();
         nextId = 1;
 
         foreach (EventAlertRecordSnapshot snapshot in records ?? System.Array.Empty<EventAlertRecordSnapshot>())
@@ -126,7 +161,14 @@ public class EventAlertRuntime : MonoBehaviour
                 snapshot.Choices.Select(choice => new EventAlertChoice(choice.Label, choice.Description)));
             eventLog.Add(record);
             nextId = System.Math.Max(nextId, record.Id + 1);
-            CreateButton(record);
+            if (snapshot.IsDismissed)
+            {
+                dismissedRecordIds.Add(record.Id);
+            }
+            else
+            {
+                CreateButton(record);
+            }
         }
     }
 
@@ -192,6 +234,7 @@ public class EventAlertRuntime : MonoBehaviour
             detailPanel,
             detailText,
             Open,
+            Dismiss,
             ExecuteChoice,
             CloseDetail));
         presenter = viewPresenter;

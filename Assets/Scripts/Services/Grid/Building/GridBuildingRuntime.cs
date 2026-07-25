@@ -39,6 +39,7 @@ public class GridBuildingPlacementService
     private readonly IGridBuildingFactory buildingFactory;
     private readonly BuildingPlacementValidator placementValidator;
     private readonly IWorkOrderRuntime workOrderRuntime;
+    private readonly Action<BuildableObject> onConstructionSiteCreated;
 
     public GridBuildingPlacementService(Grid grid, BuildingSO hallwayBuilding)
         : this(grid, hallwayBuilding, null)
@@ -62,7 +63,8 @@ public class GridBuildingPlacementService
         Func<int, BuildingSO> findBuildingData,
         IGridBuildingFactory buildingFactory,
         BuildingPlacementValidator placementValidator,
-        IWorkOrderRuntime workOrderRuntime = null)
+        IWorkOrderRuntime workOrderRuntime = null,
+        Action<BuildableObject> onConstructionSiteCreated = null)
     {
         this.grid = grid;
         this.hallwayBuilding = hallwayBuilding;
@@ -71,6 +73,7 @@ public class GridBuildingPlacementService
             ?? throw new ArgumentNullException(nameof(buildingFactory));
         this.placementValidator = placementValidator ?? new BuildingPlacementValidator();
         this.workOrderRuntime = workOrderRuntime;
+        this.onConstructionSiteCreated = onConstructionSiteCreated;
     }
 
     public void SetGrid(Grid grid)
@@ -496,6 +499,7 @@ public class GridBuildingPlacementService
         GameObject siteObject = new GameObject($"ConstructionSite_{buildingData.objectName}_{position.x}_{position.y}");
         DungeonRuntimeHierarchy.Parent(siteObject, DungeonRuntimeHierarchy.Construction);
         site = siteObject.AddComponent<ConstructionSite>();
+        onConstructionSiteCreated?.Invoke(site);
         site.transform.position = grid.GetWorldPos(position);
         site.SetGrid(grid);
         site.Initialization(buildingData, position);

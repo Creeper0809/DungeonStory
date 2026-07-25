@@ -1,6 +1,9 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public static class EventAlertDebugScenarios
 {
@@ -24,6 +27,7 @@ public static class EventAlertDebugScenarios
         RunScenario("운영일 정산 이벤트 로그", VerifySettlementKeepsEventLog, errors);
 
         RunScenario("logged event keeps an immutable count snapshot", VerifyLoggedEventSnapshotDoesNotDrift, errors);
+        RunScenario("right click dismisses alert without deleting history", VerifyRightClickDismissesAlert, errors);
 
         if (errors.Count > 0)
         {
@@ -155,6 +159,58 @@ public static class EventAlertDebugScenarios
             && record.Count == 2;
     }
 
+    private static bool VerifyRightClickDismissesAlert()
+    {
+        EventAlertRuntime runtime = CreateRuntime(out GameObject runtimeRoot);
+        EventAlertRequest request = new EventAlertRequest(
+            "우클릭 테스트",
+            "알림만 닫고 기록은 유지한다.",
+            EventAlertImportance.Low,
+            "QA");
+        runtime.OnTriggerEvent(new EventAlertRequestedEvent(request));
+
+        EventAlertRecord record = runtime.EventLog[0];
+        runtime.Open(record);
+        bool dismissed = runtime.Dismiss(record);
+        bool historyPreserved = dismissed
+            && runtime.IsDismissed(record)
+            && runtime.EventLog.Count == 1
+            && runtime.SelectedRecord == null
+            && !runtime.IsDetailVisible;
+
+        runtime.OnTriggerEvent(new EventAlertRequestedEvent(request));
+        bool repeatedAlertReturns = !runtime.IsDismissed(record)
+            && record.Count == 2;
+
+        int rightClickCount = 0;
+        int leftClickCount = 0;
+        GameObject uiRoot = new GameObject("EventAlertRightClick_Test");
+        GameObject eventSystemObject = new GameObject(
+            "EventAlertRightClickEventSystem_Test",
+            typeof(EventSystem));
+        Button button = EventAlertUiFactory.CreateAlertButton(
+            uiRoot.transform,
+            record,
+            () => leftClickCount++,
+            () => rightClickCount++,
+            new TestTmpKoreanFontService());
+        PointerEventData pointer = new PointerEventData(eventSystemObject.GetComponent<EventSystem>())
+        {
+            button = PointerEventData.InputButton.Right
+        };
+        ExecuteEvents.Execute(
+            button.gameObject,
+            pointer,
+            ExecuteEvents.pointerClickHandler);
+
+        bool pointerHandled = rightClickCount == 1 && leftClickCount == 0;
+        Object.DestroyImmediate(eventSystemObject);
+        Object.DestroyImmediate(uiRoot);
+        Object.DestroyImmediate(runtimeRoot);
+        CleanupRuntimeUi();
+        return historyPreserved && repeatedAlertReturns && pointerHandled;
+    }
+
     private static EventAlertRuntime CreateRuntime(out GameObject root)
     {
         root = new GameObject("EventAlertRuntime_Test");
@@ -181,8 +237,16 @@ public static class EventAlertDebugScenarios
         public void DestroyRuntimeUI() { }
         public void CreateButton(EventAlertRecord record) { }
         public void UpdateButton(EventAlertRecord record) { }
+        public void RemoveButton(EventAlertRecord record) { }
         public void OpenDetail(EventAlertRecord record) => IsDetailVisible = record != null;
         public void CloseDetail() => IsDetailVisible = false;
+    }
+
+    private sealed class TestTmpKoreanFontService : ITmpKoreanFontService
+    {
+        public TMP_FontAsset Resolve() => null;
+        public void Apply(TMP_Text text) { }
+        public void ApplyToChildren(Transform root, bool includeInactive = true) { }
     }
 
     private static void CleanupRuntimeUi()

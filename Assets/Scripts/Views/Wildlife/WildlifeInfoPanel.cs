@@ -12,6 +12,8 @@ public sealed class WildlifeInfoPanel : UIPopUp
     private ITmpKoreanFontService fontService;
     private IDungeonItemCatalogProvider itemCatalogProvider;
     private IWildlifeHuntCommandService huntCommandService;
+    private IWildlifeCaptureRuntime captureRuntime;
+    private ICharacterAiWorldRegistry worldRegistry;
     private GameObject uiRoot;
     private TMP_Text titleText;
     private TMP_Text bodyText;
@@ -19,6 +21,7 @@ public sealed class WildlifeInfoPanel : UIPopUp
     private WildlifeActor current;
     private IGameEventBus gameEventBus;
     private IDisposable infoFeedSubscription;
+    private string actionMessage = string.Empty;
 
     public WildlifeActor CurrentWildlife => current;
     public bool IsShowingWildlife => current != null
@@ -30,7 +33,9 @@ public sealed class WildlifeInfoPanel : UIPopUp
         IUiPopupService popupService,
         ITmpKoreanFontService fontService,
         IDungeonItemCatalogProvider itemCatalogProvider,
-        IWildlifeHuntCommandService huntCommandService)
+        IWildlifeHuntCommandService huntCommandService,
+        IWildlifeCaptureRuntime captureRuntime,
+        ICharacterAiWorldRegistry worldRegistry)
     {
         this.popupService = popupService ?? throw new ArgumentNullException(nameof(popupService));
         this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
@@ -38,6 +43,10 @@ public sealed class WildlifeInfoPanel : UIPopUp
             ?? throw new ArgumentNullException(nameof(itemCatalogProvider));
         this.huntCommandService = huntCommandService
             ?? throw new ArgumentNullException(nameof(huntCommandService));
+        this.captureRuntime = captureRuntime
+            ?? throw new ArgumentNullException(nameof(captureRuntime));
+        this.worldRegistry = worldRegistry
+            ?? throw new ArgumentNullException(nameof(worldRegistry));
     }
 
     [Inject]
@@ -102,6 +111,7 @@ public sealed class WildlifeInfoPanel : UIPopUp
         EnsureView();
         popupService.CloseAll();
         current = wildlife;
+        actionMessage = string.Empty;
         uiRoot.SetActive(true);
         popupService.Open(this);
         Render();
@@ -205,17 +215,18 @@ public sealed class WildlifeInfoPanel : UIPopUp
             huntCommandService.DesignateHunt(current.WildlifeId, true, true);
             Render();
         });
+        CreateBottomButton(parent, 3, "생포·방생", ToggleCapture);
     }
 
     private void CreateBottomButton(Transform parent, int index, string label, Action action)
     {
         Button button = CreateButton("Action_" + index, parent, label, action);
         RectTransform rect = button.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(index / 3f, 0f);
-        rect.anchorMax = new Vector2((index + 1) / 3f, 0f);
+        rect.anchorMin = new Vector2(index / 4f, 0f);
+        rect.anchorMax = new Vector2((index + 1) / 4f, 0f);
         rect.pivot = new Vector2(0.5f, 0f);
         rect.offsetMin = new Vector2(index == 0 ? 18f : 8f, 22f);
-        rect.offsetMax = new Vector2(index == 2 ? -18f : -8f, 66f);
+        rect.offsetMax = new Vector2(index == 3 ? -18f : -8f, 66f);
     }
 
     private void Render()
@@ -252,7 +263,84 @@ public sealed class WildlifeInfoPanel : UIPopUp
             + $"영역 중심 ({current.TerritoryCenter.x},{current.TerritoryCenter.y}) · 현재 위치 ({current.GridPosition.x},{current.GridPosition.y})\n"
             + $"예상 산출물 {yields}\n"
             + $"예약자 {FormatEmpty(current.ReservedByPersistentId)}\n"
-            + $"사냥 지정 {(current.HuntDesignated ? (current.PriorityHunt ? "우선" : "지정됨") : "없음")}";
+            + $"사냥 지정 {(current.HuntDesignated ? (current.PriorityHunt ? "우선" : "지정됨") : "없음")}\n"
+            + $"수용 상태 {FormatCaptureState(current.WildlifeId)}"
+            + (string.IsNullOrWhiteSpace(actionMessage)
+                ? string.Empty
+                : $"\n{actionMessage}");
+    }
+
+    private void ToggleCapture()
+    {
+        if (current == null)
+        {
+            return;
+        }
+
+        if (captureRuntime.IsCaptured(current.WildlifeId))
+        {
+            actionMessage = captureRuntime.TryRelease(
+                current.WildlifeId,
+                out string releaseReason)
+                ? "포획 동물을 방생했습니다."
+                : releaseReason;
+            Render();
+            return;
+        }
+
+        BuildableObject pen = worldRegistry.Buildings
+            .Where(building =>
+                building != null
+                && building.BuildingData.GetBeastPenAbility() != null)
+            .OrderBy(building => Manhattan(
+                building.centerPos,
+                current.GridPosition))
+            .FirstOrDefault();
+        if (pen == null)
+        {
+            actionMessage = "먼저 닫힌 방 안에 야수 우리를 설치하고 문 권한을 제한해야 합니다.";
+            Render();
+            return;
+        }
+
+        actionMessage = captureRuntime.TryCapture(
+            current,
+            pen,
+            out string captureReason)
+            ? "가장 가까운 야수 우리로 생포·운반을 명령했습니다."
+            : captureReason;
+        Render();
+    }
+
+    private string FormatCaptureState(string wildlifeId)
+    {
+        if (!captureRuntime.TryGetCaptured(
+                wildlifeId,
+                out CapturedWildlifeState captured))
+        {
+            return "야생";
+        }
+
+        string state = captured.transportState switch
+        {
+            CapturedWildlifeTransportState.AwaitingTransport => "운반 대기",
+            CapturedWildlifeTransportState.Transporting => "우리로 운반 중",
+            CapturedWildlifeTransportState.Penned => "우리 수용",
+            CapturedWildlifeTransportState.MovingToShow => "공연장 이동",
+            CapturedWildlifeTransportState.Performing => "공연 중",
+            CapturedWildlifeTransportState.ReturningToPen => "우리로 복귀",
+            CapturedWildlifeTransportState.Released => "방생",
+            CapturedWildlifeTransportState.Escaped => "탈출",
+            _ => captured.transportState.ToString()
+        };
+        return string.IsNullOrWhiteSpace(captured.lastCareStatus)
+            ? state
+            : $"{state} · {captured.lastCareStatus}";
+    }
+
+    private static int Manhattan(Vector2Int a, Vector2Int b)
+    {
+        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
 
     private Button CreateButton(string name, Transform parent, string label, Action action)

@@ -691,6 +691,12 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         characterStats?.ApplyDamage(amount, reason);
     }
 
+    public void ApplyBodyDamage(float amount, string reason = "")
+    {
+        EnsureRuntimeState();
+        characterStats?.ApplyNonLethalDamage(amount, reason);
+    }
+
     public void Heal(float amount)
     {
         EnsureRuntimeState();

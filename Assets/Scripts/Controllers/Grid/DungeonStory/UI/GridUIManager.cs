@@ -25,10 +25,10 @@ public class GridUIManager : MonoBehaviour
     [Header("Placement Grid")]
     [SerializeField] private Color buildableCellColor = new Color(1f, 1f, 1f, 0.82f);
     [SerializeField] private Color blockedCellColor = new Color(0.85f, 0.15f, 0.15f, 0.10f);
+    [SerializeField] private TileBase gridOverlayTile;
 
     private Tilemap gridOverlayTilemap;
     private TilemapRenderer gridOverlayRenderer;
-    private TileBase gridOverlayTile;
     private bool subscribed;
     private bool initialized;
 

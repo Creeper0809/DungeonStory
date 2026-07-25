@@ -257,6 +257,8 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
     {
         if (grid == null || wallTilemap == null) return;
 
+        RemoveUnexpectedWallTiles();
+
         int gridHeight = grid.height;
         int gridWidth = grid.width;
 
@@ -334,6 +336,26 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
 
         SynchronizeHallwayVisuals(grid);
         SynchronizeCeilingOverlay(grid);
+    }
+
+    private void RemoveUnexpectedWallTiles()
+    {
+        if (wallTilemap == null)
+        {
+            return;
+        }
+
+        foreach (Vector3Int tilePosition in wallTilemap.cellBounds.allPositionsWithin)
+        {
+            TileBase tile = wallTilemap.GetTile(tilePosition);
+            if (tile == null || tile == wall || tile == floor)
+            {
+                continue;
+            }
+
+            ResetWallTileTransform(tilePosition);
+            wallTilemap.SetTile(tilePosition, null);
+        }
     }
 
     private void SynchronizeHallwayVisuals(Grid grid)

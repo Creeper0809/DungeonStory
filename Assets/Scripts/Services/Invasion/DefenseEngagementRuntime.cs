@@ -28,6 +28,10 @@ public sealed class DefenseEngagementRuntime :
     private readonly IDefenseEngagementStore engagementStore;
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly IGameEventBus gameEventBus;
+    private readonly Dictionary<string, bool> guardPauseStateBeforeDefense =
+        new Dictionary<string, bool>(StringComparer.Ordinal);
+    private readonly Dictionary<string, CharacterActor> defenseControlledGuards =
+        new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
     private readonly IGameClock gameClock;
     private readonly DefenseInterceptPlanner interceptPlanner = new DefenseInterceptPlanner();
     private IDisposable downedSubscription, deathSubscription, breachSubscription, resolvedSubscription;
@@ -128,6 +132,7 @@ public sealed class DefenseEngagementRuntime :
             CompleteEngagement(engagement, releaseIntruder: false);
         }
 
+        ReleaseOrphanedDefenseGuards(releaseAll: true);
         engagementStore.ClearAll();
     }
 
@@ -192,6 +197,8 @@ public sealed class DefenseEngagementRuntime :
         {
             CompleteEngagement(engagement, releaseIntruder: false);
         }
+
+        ReleaseOrphanedDefenseGuards(releaseAll: false);
     }
 
     private void OnCharacterDeath(CharacterDeathEvent eventType)
@@ -221,7 +228,7 @@ public sealed class DefenseEngagementRuntime :
             }
             else if (engagement.ReserveGuard == dead)
             {
-                ReleaseGuard(engagement.ReserveGuard, engagement.ReserveMovement, false);
+                ReleaseGuard(engagement.ReserveGuard, engagement.ReserveMovement, true);
                 engagement.ReserveGuard = null;
                 engagement.ReserveMovement = null;
                 engagement.ReserveArrived = false;
@@ -264,7 +271,7 @@ public sealed class DefenseEngagementRuntime :
             }
             else if (engagement.ReserveGuard == actor)
             {
-                ReleaseGuard(engagement.ReserveGuard, engagement.ReserveMovement, false);
+                ReleaseGuard(engagement.ReserveGuard, engagement.ReserveMovement, true);
                 engagement.ReserveGuard = null;
                 engagement.ReserveMovement = null;
                 engagement.ReserveArrived = false;
@@ -1703,7 +1710,7 @@ public sealed class DefenseEngagementRuntime :
         }
 
         SetActorCombatPresentation(engagement.LeadGuard, false);
-        ReleaseGuard(engagement.LeadGuard, engagement.LeadMovement, false);
+        ReleaseGuard(engagement.LeadGuard, engagement.LeadMovement, true);
         if (engagement.ReserveGuard != null
             && !engagement.ReserveGuard.IsDead
             && engagement.ReserveArrived)
@@ -1859,6 +1866,17 @@ public sealed class DefenseEngagementRuntime :
         guard.GetAbility<AbilityWork>()?.ReleaseAssignedWorkTarget();
         guard.GetAbility<AbilityMove>()?.CancelActiveMovement();
         guard.Brain?.RequestImmediateReplan(clearFailures: false);
+        if (!guard.IsOwner)
+        {
+            string guardId = GetPersistentId(guard);
+            if (!guardPauseStateBeforeDefense.ContainsKey(guardId))
+            {
+                guardPauseStateBeforeDefense[guardId] = guard.IsAiPaused();
+            }
+
+            defenseControlledGuards[guardId] = guard;
+        }
+
         guard.SetAiPaused(true);
         SetActorDefenseStatus(guard, activity, combatActive: false);
         guard.AddActivity(CharacterActivityEvent.Create(
@@ -1884,7 +1902,42 @@ public sealed class DefenseEngagementRuntime :
         guard.GetAbility<AbilityMove>()?.CancelActiveMovement();
         if (resumeAi && !guard.IsDead && !guard.IsOwner)
         {
-            guard.SetAiPaused(false);
+            string guardId = GetPersistentId(guard);
+            bool previousPause = guardPauseStateBeforeDefense.TryGetValue(
+                guardId,
+                out bool storedPause)
+                && storedPause;
+            guardPauseStateBeforeDefense.Remove(guardId);
+            defenseControlledGuards.Remove(guardId);
+            guard.SetAiPaused(previousPause);
+            guard.Brain?.RequestImmediateReplan(clearFailures: false);
+        }
+    }
+
+    private void ReleaseOrphanedDefenseGuards(bool releaseAll)
+    {
+        foreach (KeyValuePair<string, CharacterActor> pair in defenseControlledGuards
+                     .ToArray())
+        {
+            CharacterActor guard = pair.Value;
+            if (!releaseAll && guard != null && IsGuardAssigned(guard))
+            {
+                continue;
+            }
+
+            bool previousPause = guardPauseStateBeforeDefense.TryGetValue(
+                pair.Key,
+                out bool storedPause)
+                && storedPause;
+            guardPauseStateBeforeDefense.Remove(pair.Key);
+            defenseControlledGuards.Remove(pair.Key);
+            if (guard == null || guard.IsDead || guard.IsOwner)
+            {
+                continue;
+            }
+
+            guard.GetAbility<AbilityMove>()?.CancelActiveMovement();
+            guard.SetAiPaused(previousPause);
             guard.Brain?.RequestImmediateReplan(clearFailures: false);
         }
     }

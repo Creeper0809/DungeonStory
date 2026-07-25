@@ -30,11 +30,11 @@ MonoBehaviour:
   researchWorkRequired: 60
   unlocks:
     items:
-    - rid: 7302563146589274844
+    - rid: 7302563192359358096
   references:
     version: 2
     RefIds:
-    - rid: 7302563146589274844
+    - rid: 7302563192359358096
       type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
       data:
         recipeId: recipe_arcane_ritual_2

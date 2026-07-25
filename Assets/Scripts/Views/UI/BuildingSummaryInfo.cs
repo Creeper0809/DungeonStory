@@ -14,6 +14,7 @@ public class BuildingSummaryInfo : UIPopUp
     private IUiPopupService popupService;
     private IBuildingSummaryFormatter summaryFormatter;
     private ITmpKoreanFontService tmpKoreanFontService;
+    private DungeonSceneRuntimeReferences sceneReferences;
     private Button contextActionButton;
     private TMP_Text contextActionLabel;
     private BuildableObject currentBuilding;
@@ -24,7 +25,8 @@ public class BuildingSummaryInfo : UIPopUp
     public void Construct(
         IUiPopupService popupService,
         IBuildingSummaryFormatter summaryFormatter,
-        ITmpKoreanFontService tmpKoreanFontService)
+        ITmpKoreanFontService tmpKoreanFontService,
+        DungeonSceneRuntimeReferences sceneReferences)
     {
         this.popupService = popupService
             ?? throw new ArgumentNullException(nameof(popupService));
@@ -32,6 +34,8 @@ public class BuildingSummaryInfo : UIPopUp
             ?? throw new ArgumentNullException(nameof(summaryFormatter));
         this.tmpKoreanFontService = tmpKoreanFontService
             ?? throw new ArgumentNullException(nameof(tmpKoreanFontService));
+        this.sceneReferences = sceneReferences
+            ?? throw new ArgumentNullException(nameof(sceneReferences));
     }
 
     [Inject]
@@ -145,36 +149,57 @@ public class BuildingSummaryInfo : UIPopUp
 
     private void ConfigureContextAction(BuildableObject building)
     {
-        bool show = building is WorldFilthWorkTarget;
+        bool isFilth = building is WorldFilthWorkTarget;
         if (contextActionButton != null)
         {
-            contextActionButton.gameObject.SetActive(show);
+            contextActionButton.gameObject.SetActive(building != null);
         }
 
         if (stock != null)
         {
             Vector2 offsetMin = stock.rectTransform.offsetMin;
-            offsetMin.y = show ? 66f : 14f;
+            offsetMin.y = building != null ? 66f : 14f;
             stock.rectTransform.offsetMin = offsetMin;
         }
 
-        if (show && building is WorldFilthWorkTarget filth && contextActionLabel != null)
-        {
-            contextActionLabel.text = filth.IsPriorityCleaning ? "우선 해제" : "청소 우선";
-        }
-    }
-
-    private void OnContextAction()
-    {
-        if (currentBuilding is not WorldFilthWorkTarget filth || filth == null)
+        if (contextActionLabel == null)
         {
             return;
         }
 
-        filth.SetPriorityCleaning(!filth.IsPriorityCleaning);
-        BuildingSummaryPresentation presentation = ResolveSummaryFormatter().Format(filth);
-        RequireStockText().text = presentation.StockText;
-        ConfigureContextAction(filth);
+        if (isFilth && building is WorldFilthWorkTarget filth)
+        {
+            contextActionLabel.text = filth.IsPriorityCleaning ? "우선 해제" : "청소 우선";
+            return;
+        }
+
+        contextActionLabel.text = "상세";
+    }
+
+    private void OnContextAction()
+    {
+        if (currentBuilding is WorldFilthWorkTarget filth && filth != null)
+        {
+            filth.SetPriorityCleaning(!filth.IsPriorityCleaning);
+            BuildingSummaryPresentation presentation = ResolveSummaryFormatter().Format(filth);
+            RequireStockText().text = presentation.StockText;
+            ConfigureContextAction(filth);
+            return;
+        }
+
+        if (currentBuilding == null)
+        {
+            return;
+        }
+
+        UIBuildingInfo buildingInfo = sceneReferences?.BuildingInfo;
+        if (buildingInfo == null)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(BuildingSummaryInfo)} requires a scene {nameof(UIBuildingInfo)} reference.");
+        }
+
+        buildingInfo.DisplayBuildingInfo(currentBuilding);
     }
 
     private TMP_Text CreateText(string name, Transform parent, float fontSize, FontStyles style)

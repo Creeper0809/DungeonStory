@@ -47,6 +47,7 @@ public sealed class DungeonEventAlertRecordSaveData
     public EventAlertImportance importance;
     public string category = string.Empty;
     public int count = 1;
+    public bool dismissed;
     public List<DungeonEventAlertChoiceSaveData> choices = new List<DungeonEventAlertChoiceSaveData>();
 }
 
@@ -78,16 +79,16 @@ public sealed class EventAlertSaveService : IEventAlertSaveService
 
         result.records = runtime.EventLog
             .TakeLast(MaxSavedRecords)
-            .Select(record => record.CreateSnapshot())
-            .Select(snapshot => new DungeonEventAlertRecordSaveData
+            .Select(record => new DungeonEventAlertRecordSaveData
             {
-                id = snapshot.Id,
-                title = snapshot.Title,
-                detail = snapshot.Detail,
-                importance = snapshot.Importance,
-                category = snapshot.Category,
-                count = snapshot.Count,
-                choices = snapshot.Choices.Select(choice => new DungeonEventAlertChoiceSaveData
+                id = record.Id,
+                title = record.Title,
+                detail = record.Detail,
+                importance = record.Importance,
+                category = record.Category,
+                count = record.Count,
+                dismissed = runtime.IsDismissed(record),
+                choices = record.Choices.Select(choice => new DungeonEventAlertChoiceSaveData
                 {
                     label = choice.Label,
                     description = choice.Description
@@ -123,7 +124,8 @@ public sealed class EventAlertSaveService : IEventAlertSaveService
                 (record.choices ?? new List<DungeonEventAlertChoiceSaveData>())
                     .Where(choice => choice != null)
                     .Select(choice => new EventAlertChoice(choice.label, choice.description))
-                    .ToList()))
+                    .ToList(),
+                record.dismissed))
             .ToList());
     }
 }

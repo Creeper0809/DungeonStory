@@ -49,6 +49,8 @@ public interface ICombatEquipmentRuntime
     bool TryDetachForMaintenance(
         string instanceId,
         out CombatEquipmentInstance detached);
+    IReadOnlyList<CombatEquipmentInstance> ConfiscateAllFromCharacter(
+        string characterId);
     bool TryRestoreDurability(string instanceId, float durabilityRatio);
     float GetCarriedWeight(string characterId);
     DungeonCombatEquipmentSaveData Capture();
@@ -629,6 +631,33 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         instance.worldState = CombatEquipmentWorldState.Loose;
         detached = instance.Clone();
         return true;
+    }
+
+    public IReadOnlyList<CombatEquipmentInstance> ConfiscateAllFromCharacter(
+        string characterId)
+    {
+        string normalized = characterId?.Trim() ?? string.Empty;
+        if (normalized.Length == 0)
+        {
+            return Array.Empty<CombatEquipmentInstance>();
+        }
+
+        List<CombatEquipmentInstance> confiscated = instances.Values
+            .Where(instance => instance != null
+                && string.Equals(
+                    instance.ownerCharacterId,
+                    normalized,
+                    StringComparison.Ordinal))
+            .ToList();
+        foreach (CombatEquipmentInstance instance in confiscated)
+        {
+            RemoveFromAllLoadouts(instance.instanceId);
+            instance.ownerCharacterId = string.Empty;
+            instance.sourceStackId = string.Empty;
+            instance.worldState = CombatEquipmentWorldState.Loose;
+        }
+
+        return confiscated.Select(instance => instance.Clone()).ToArray();
     }
 
     public bool TryRestoreDurability(string instanceId, float durabilityRatio)

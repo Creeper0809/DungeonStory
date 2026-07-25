@@ -16,6 +16,7 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
     public BuildingSO TargetBuilding => BuildingData;
     public Vector2Int GridPosition => centerPos;
     public ConstructionSafetyResult LastSafetyResult => lastSafetyResult;
+    public CharacterActor ActiveWorker => worker;
 
     public void ConfigureWorkOrderRuntime(IWorkOrderRuntime runtime)
     {

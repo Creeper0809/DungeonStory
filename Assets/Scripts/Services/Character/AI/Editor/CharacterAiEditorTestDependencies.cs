@@ -242,6 +242,7 @@ internal static class CharacterAiEditorTestDependencies
         {
             LocalLlmRequestQueue queue =
                 sceneQuery.First<LocalLlmRequestQueue>(includeInactive: true);
+            CharacterAiEditorTestDependencies.Inject(queue);
             runtime = queue;
             return queue != null;
         }
@@ -841,6 +842,12 @@ internal static class CharacterAiEditorTestDependencies
     private sealed class NoopWorkforceReplanService : IWorkforceReplanService
     {
         public void RequestIdleWorkersToReplan(bool clearFailures = true) { }
-        public void RequestOneWorkerToReplanFor(WorkTypeId workTypeId, bool clearFailures = true) { }
+        public void RequestOneWorkerToReplanFor(
+            WorkTypeId workTypeId,
+            bool clearFailures = true,
+            bool forceInterrupt = false) { }
+        public void RequestOneHaulerToReplan(
+            bool clearFailures = true,
+            bool forceInterrupt = false) { }
     }
 }

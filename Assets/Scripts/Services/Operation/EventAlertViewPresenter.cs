@@ -11,6 +11,7 @@ public readonly struct EventAlertViewPresenterContext
         GameObject detailPanel,
         TMP_Text detailText,
         Action<EventAlertRecord> openRecord,
+        Func<EventAlertRecord, bool> dismissRecord,
         Func<int, bool> executeChoice,
         Action closeDetail)
     {
@@ -18,6 +19,7 @@ public readonly struct EventAlertViewPresenterContext
         DetailPanel = detailPanel;
         DetailText = detailText;
         OpenRecord = openRecord;
+        DismissRecord = dismissRecord;
         ExecuteChoice = executeChoice;
         CloseDetail = closeDetail;
     }
@@ -26,6 +28,7 @@ public readonly struct EventAlertViewPresenterContext
     public GameObject DetailPanel { get; }
     public TMP_Text DetailText { get; }
     public Action<EventAlertRecord> OpenRecord { get; }
+    public Func<EventAlertRecord, bool> DismissRecord { get; }
     public Func<int, bool> ExecuteChoice { get; }
     public Action CloseDetail { get; }
 }
@@ -37,6 +40,7 @@ public interface IEventAlertViewPresenter
     void DestroyRuntimeUI();
     void CreateButton(EventAlertRecord record);
     void UpdateButton(EventAlertRecord record);
+    void RemoveButton(EventAlertRecord record);
     void OpenDetail(EventAlertRecord record);
     void CloseDetail();
 }
@@ -76,6 +80,7 @@ public sealed class EventAlertViewPresenter : IEventAlertViewPresenter
     private readonly Dictionary<int, Button> buttonsById = new Dictionary<int, Button>();
     private readonly EventAlertChoicePresenter choicePresenter;
     private readonly Action<EventAlertRecord> openRecord;
+    private readonly Func<EventAlertRecord, bool> dismissRecord;
     private readonly Func<int, bool> executeChoice;
     private readonly Action closeDetail;
     private readonly IEventAlertCanvasProvider canvasProvider;
@@ -101,6 +106,8 @@ public sealed class EventAlertViewPresenter : IEventAlertViewPresenter
         detailText = context.DetailText;
         openRecord = context.OpenRecord
             ?? throw new ArgumentNullException(nameof(context.OpenRecord));
+        dismissRecord = context.DismissRecord
+            ?? throw new ArgumentNullException(nameof(context.DismissRecord));
         executeChoice = context.ExecuteChoice
             ?? throw new ArgumentNullException(nameof(context.ExecuteChoice));
         closeDetail = context.CloseDetail
@@ -225,7 +232,8 @@ public sealed class EventAlertViewPresenter : IEventAlertViewPresenter
         Button button = buttonFactory.CreateAlertButton(
             buttonRoot,
             record,
-            () => HandleAlertButtonClick(record));
+            () => HandleAlertButtonClick(record),
+            () => dismissRecord(record));
         if (button == null)
         {
             return;
@@ -239,10 +247,24 @@ public sealed class EventAlertViewPresenter : IEventAlertViewPresenter
     {
         if (!buttonsById.TryGetValue(record.Id, out Button button) || button == null)
         {
+            CreateButton(record);
             return;
         }
 
         buttonFactory.UpdateAlertButton(button, record);
+    }
+
+    public void RemoveButton(EventAlertRecord record)
+    {
+        if (record == null
+            || !buttonsById.Remove(record.Id, out Button button)
+            || button == null)
+        {
+            return;
+        }
+
+        buttonFactory.Release(button);
+        LayoutButtons();
     }
 
     public void OpenDetail(EventAlertRecord record)

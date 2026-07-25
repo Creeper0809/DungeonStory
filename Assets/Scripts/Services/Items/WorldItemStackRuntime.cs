@@ -186,7 +186,9 @@ public sealed class WorldItemStackRuntime :
                     ? entry.state
                     : WorldItemStackState.Loose,
                 position = new Vector2Int(entry.gridX, entry.gridY),
-                reservedByPersistentId = entry.reservedByPersistentId?.Trim() ?? string.Empty,
+                // Haul plans are runtime-only. Persisting their owner without
+                // restoring the plan would leave an unreachable reserved stack.
+                reservedByPersistentId = string.Empty,
                 destinationId = entry.destinationId?.Trim() ?? string.Empty,
                 sourceStorageDestinationId = entry.sourceStorageDestinationId?.Trim() ?? string.Empty,
                 hasDestinationPosition = entry.hasDestinationPosition,
@@ -198,6 +200,11 @@ public sealed class WorldItemStackRuntime :
                 ,sourceDeathReason = entry.sourceDeathReason?.Trim() ?? string.Empty
                 ,emergencyButcheryAllowed = entry.emergencyButcheryAllowed
             };
+            if (!string.IsNullOrWhiteSpace(entry.reservedByPersistentId)
+                && IsCombatLoadoutDestination(record.destinationId))
+            {
+                RestoreDirectPickupStack(record);
+            }
             AddRecord(record);
         }
 
@@ -859,6 +866,70 @@ public sealed class WorldItemStackRuntime :
         }
 
         return removed;
+    }
+
+    public int ReleaseStacksByDestination(
+        string destinationId,
+        Vector2Int releasePosition)
+    {
+        string normalizedDestination = destinationId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalizedDestination))
+        {
+            return 0;
+        }
+
+        WorldItemStackRecord[] targets = stacks
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.destinationId ?? string.Empty,
+                    normalizedDestination,
+                    StringComparison.Ordinal))
+            .ToArray();
+        int released = 0;
+        foreach (WorldItemStackRecord target in targets)
+        {
+            int quantity = Mathf.Max(0, target.quantity);
+            if (quantity <= 0)
+            {
+                continue;
+            }
+
+            released += quantity;
+            Vector2Int oldPosition = target.position;
+            string itemId = target.itemId;
+            if (target.state == WorldItemStackState.Stored
+                && IsOutboundStoredStack(target))
+            {
+                string sourceStorageDestinationId =
+                    target.sourceStorageDestinationId ?? string.Empty;
+                RemoveRecord(target);
+                Spawn(
+                    itemId,
+                    quantity,
+                    oldPosition,
+                    WorldItemStackState.Stored,
+                    sourceStorageDestinationId);
+            }
+            else
+            {
+                Vector2Int loosePosition =
+                    target.state == WorldItemStackState.FacilityBuffer
+                        ? releasePosition
+                        : oldPosition;
+                RemoveRecord(target);
+                Spawn(
+                    itemId,
+                    quantity,
+                    loosePosition,
+                    WorldItemStackState.Loose,
+                    string.Empty);
+                RefreshMarkerAt(loosePosition);
+            }
+
+            RefreshMarkerAt(oldPosition);
+        }
+
+        return released;
     }
 
     private int CountLooseStockAvailable(string itemId)

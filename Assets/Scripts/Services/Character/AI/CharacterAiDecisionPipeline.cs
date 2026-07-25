@@ -159,6 +159,10 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             status,
             "Run Deprivation Breakdown",
             status);
+        actor.Brain?.BeginExternallyDrivenAction(
+            "결핍 붕괴",
+            status,
+            "붕괴 행동이 끝날 때까지 유지");
         return Result(true, CharacterAiBranch.DeprivationBreakdown, "Run Deprivation Breakdown", status, blackboard);
     }
 
@@ -613,7 +617,8 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             adjusted = CharacterMoodImpulseUtility.ApplyFinalAutonomyBias(
                 actor,
                 candidate.Branch,
-                adjusted);
+                adjusted,
+                candidate.ActionCandidate.Action);
             blackboard.RecordJobGiverUtility(
                 jobGiver.Branch,
                 adjusted,

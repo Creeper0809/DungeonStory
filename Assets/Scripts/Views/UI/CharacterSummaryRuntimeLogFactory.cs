@@ -46,6 +46,7 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
                 || generated.Find("Content/GrowthContent/GrowthList") == null
                 || generated.Find("Content/StatusContent/Thirst") == null
                 || generated.Find("Content/HealthContent/HealthContentViewport/HealthSummaryText") == null
+                || generated.Find("Content/HealthContent/CaptivityCommand") == null
                 || generated.Find("Content/CombatContent/CombatContentViewport/CombatSummaryText") == null
                 || generated.Find("Content/CombatContent/CombatCommands/LoadoutButton") == null
                 || generated.Find("Content/StatusContent/CarrySummaryText") == null
@@ -174,6 +175,18 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
 
         RectTransform healthContent = CreateRect("HealthContent", content);
         SetStretch(healthContent, Vector2.zero, Vector2.zero);
+        Button captivityCommand = CreateButton(
+            "CaptivityCommand",
+            healthContent,
+            "포획 명령");
+        RectTransform captivityCommandRect =
+            captivityCommand.GetComponent<RectTransform>();
+        captivityCommandRect.anchorMin = new Vector2(0f, 1f);
+        captivityCommandRect.anchorMax = new Vector2(1f, 1f);
+        captivityCommandRect.pivot = new Vector2(0.5f, 1f);
+        captivityCommandRect.anchoredPosition = Vector2.zero;
+        captivityCommandRect.sizeDelta = new Vector2(0f, 44f);
+        captivityCommand.onClick.AddListener(owner.ExecuteCaptivityAction);
         TMP_Text healthSummaryText = CreateScrollableText(
             "HealthContentViewport",
             "HealthSummaryText",
@@ -181,6 +194,12 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             "결핍 건강 정보가 없습니다.",
             minHeight: 360f,
             fillParent: true);
+        RectTransform healthViewport =
+            healthSummaryText.transform.parent as RectTransform;
+        if (healthViewport != null)
+        {
+            healthViewport.offsetMax = new Vector2(0f, -50f);
+        }
         healthContent.gameObject.SetActive(false);
 
         RectTransform combatContent = CreateRect("CombatContent", content);
@@ -366,7 +385,8 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             thirst,
             healthSummaryText,
             healthContent.gameObject,
-            healthTabButton);
+            healthTabButton,
+            captivityCommand);
         owner.BindGeneratedCombat(
             combatSummaryText,
             combatContent.gameObject,
@@ -428,7 +448,8 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             FindSlider(generated, "Thirst"),
             generated.Find("Content/HealthContent/HealthContentViewport/HealthSummaryText")?.GetComponent<TMP_Text>(),
             generated.Find("Content/HealthContent")?.gameObject,
-            generated.Find("TabBar/HealthTab")?.GetComponent<Button>());
+            generated.Find("TabBar/HealthTab")?.GetComponent<Button>(),
+            generated.Find("Content/HealthContent/CaptivityCommand")?.GetComponent<Button>());
         owner.BindGeneratedCombat(
             generated.Find("Content/CombatContent/CombatContentViewport/CombatSummaryText")?.GetComponent<TMP_Text>(),
             generated.Find("Content/CombatContent")?.gameObject,

@@ -233,6 +233,7 @@ public sealed partial class P0FeatureSurfacePanel : MonoBehaviour, IFeatureSurfa
 
         Image image = card.AddComponent<Image>();
         image.color = DungeonUiTheme.Surface;
+        image.raycastTarget = false;
 
         HorizontalLayoutGroup horizontal = card.AddComponent<HorizontalLayoutGroup>();
         horizontal.spacing = 10f;
@@ -262,6 +263,7 @@ public sealed partial class P0FeatureSurfacePanel : MonoBehaviour, IFeatureSurfa
         titleText.fontSizeMin = 14f;
         titleText.fontSizeMax = 20f;
         titleText.overflowMode = TextOverflowModes.Truncate;
+        titleText.raycastTarget = false;
 
         TMP_Text detailText = AddText(textColumn.transform, detail, 16f, FontStyles.Normal);
         detailText.color = DungeonUiTheme.TextSecondary;
@@ -269,6 +271,7 @@ public sealed partial class P0FeatureSurfacePanel : MonoBehaviour, IFeatureSurfa
         detailText.fontSizeMin = 11f;
         detailText.fontSizeMax = 16f;
         detailText.textWrappingMode = TextWrappingModes.Normal;
+        detailText.raycastTarget = false;
 
         CreateActionButton(card.transform, actionName, buttonText, onClick, 132f, height - 18f);
     }

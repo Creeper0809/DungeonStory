@@ -898,6 +898,12 @@ public class InvasionIntruderRuntime : MonoBehaviour
             sentiment: -0.9f,
             bubbleEligible: true));
         gameEventBus.Publish(new InvasionResolvedEvent(true, 1f));
+        if (intruderActor != null && !intruderActor.IsDead)
+        {
+            FinishAsDownedCaptureCandidate();
+            return;
+        }
+
         Finish();
     }
 
@@ -1212,6 +1218,21 @@ public class InvasionIntruderRuntime : MonoBehaviour
 
         OnFinished?.Invoke(this);
         Destroy(gameObject);
+    }
+
+    private void FinishAsDownedCaptureCandidate()
+    {
+        if (routine != null)
+        {
+            StopCoroutine(routine);
+            routine = null;
+        }
+
+        defenseEngagementRuntime?.NotifyIntruderFinished(this);
+        State = InvasionIntruderState.Finished;
+        intruderActor.SetLifecycleState(CharacterLifecycleState.Downed);
+        OnFinished?.Invoke(this);
+        Destroy(this);
     }
 
     private void RequireRuntimeComponents()

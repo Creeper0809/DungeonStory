@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
 public enum WorkOrderStatus
 {
@@ -92,28 +95,75 @@ internal sealed class WorkOrderRecord
     public readonly Dictionary<StockCategory, int> deliveredMaterials = new Dictionary<StockCategory, int>();
 }
 
-public sealed class WorkOrderRuntime : IWorkOrderRuntime
+public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
 {
     public const string ConstructionDestinationPrefix = "construction:";
 
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IBuildingDefinitionLookup buildingDefinitionLookup;
+    private readonly IObjectResolver objectResolver;
+    private readonly IWorkforceReplanService workforceReplanService;
+    private readonly IGameClock gameClock;
     private readonly Dictionary<string, WorkOrderRecord> ordersById =
         new Dictionary<string, WorkOrderRecord>(StringComparer.Ordinal);
     private readonly Dictionary<ConstructionSite, string> orderIdBySite =
         new Dictionary<ConstructionSite, string>();
     private int nextOrderSequence = 1;
+    private float nextReadyConstructionReplanAt;
     public int WorkOrderCandidateVersion { get; private set; }
 
     public WorkOrderRuntime(
         IGridSystemProvider gridSystemProvider,
         IWorldItemStackRuntime itemStackRuntime,
-        IBuildingDefinitionLookup buildingDefinitionLookup)
+        IBuildingDefinitionLookup buildingDefinitionLookup,
+        IWorkforceReplanService workforceReplanService,
+        IGameClock gameClock,
+        IObjectResolver objectResolver = null)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.buildingDefinitionLookup = buildingDefinitionLookup ?? throw new ArgumentNullException(nameof(buildingDefinitionLookup));
+        this.objectResolver = objectResolver;
+        this.workforceReplanService = workforceReplanService
+            ?? throw new ArgumentNullException(nameof(workforceReplanService));
+        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+    }
+
+    public void Tick()
+    {
+        if (gameClock.IsPaused || gameClock.Time < nextReadyConstructionReplanAt)
+        {
+            return;
+        }
+
+        nextReadyConstructionReplanAt = gameClock.Time + 1f;
+        string orphanedConstructionOrderId = ordersById.Values
+            .Where(order => order.workTypeId == BuiltInWorkTypeIds.Construct
+                && order.status != WorkOrderStatus.Completed
+                && order.status != WorkOrderStatus.Cancelled
+                && !HasLiveConstructionSite(order.workOrderId))
+            .Select(order => order.workOrderId)
+            .FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(orphanedConstructionOrderId))
+        {
+            CancelOrder(
+                orphanedConstructionOrderId,
+                refundDeliveredMaterials: true);
+            return;
+        }
+
+        if (!ordersById.Values.Any(order =>
+                order.workTypeId == BuiltInWorkTypeIds.Construct
+                && order.status == WorkOrderStatus.Ready
+                && !HasAssignedConstructionWorker(order.workOrderId)))
+        {
+            return;
+        }
+
+        workforceReplanService.RequestOneWorkerToReplanFor(
+            BuiltInWorkTypeIds.Construct,
+            forceInterrupt: true);
     }
 
     public DungeonWorkOrderSaveData Capture()
@@ -332,6 +382,9 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime
         else
         {
             BumpWorkOrderCandidates();
+            workforceReplanService?.RequestOneWorkerToReplanFor(
+                BuiltInWorkTypeIds.Construct,
+                forceInterrupt: true);
         }
 
         return ready;
@@ -346,15 +399,24 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime
         }
 
         order.status = WorkOrderStatus.Cancelled;
-        itemStackRuntime.RemoveStacksByStateAndDestination(
-            WorldItemStackState.Loose,
-            order.materialDestinationId);
-        itemStackRuntime.RemoveStacksByStateAndDestination(
-            WorldItemStackState.FacilityBuffer,
-            order.materialDestinationId);
-        itemStackRuntime.RemoveStacksByStateAndDestination(
-            WorldItemStackState.Stored,
-            order.materialDestinationId);
+        if (refundDeliveredMaterials)
+        {
+            itemStackRuntime.ReleaseStacksByDestination(
+                order.materialDestinationId,
+                order.position);
+        }
+        else
+        {
+            itemStackRuntime.RemoveStacksByStateAndDestination(
+                WorldItemStackState.Loose,
+                order.materialDestinationId);
+            itemStackRuntime.RemoveStacksByStateAndDestination(
+                WorldItemStackState.FacilityBuffer,
+                order.materialDestinationId);
+            itemStackRuntime.RemoveStacksByStateAndDestination(
+                WorldItemStackState.Stored,
+                order.materialDestinationId);
+        }
         ordersById.Remove(orderId);
         foreach (KeyValuePair<ConstructionSite, string> pair in orderIdBySite.ToArray())
         {
@@ -366,6 +428,29 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime
 
         BumpWorkOrderCandidates();
         return true;
+    }
+
+    private bool HasAssignedConstructionWorker(string orderId)
+    {
+        foreach (KeyValuePair<ConstructionSite, string> pair in orderIdBySite)
+        {
+            if (string.Equals(pair.Value, orderId, StringComparison.Ordinal)
+                && pair.Key != null
+                && pair.Key.ActiveWorker != null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasLiveConstructionSite(string orderId)
+    {
+        return orderIdBySite.Any(pair =>
+            string.Equals(pair.Value, orderId, StringComparison.Ordinal)
+            && pair.Key != null
+            && !pair.Key.IsGridDestroyed);
     }
 
     public bool DebugCompleteOrder(string orderId, out string message)
@@ -535,6 +620,7 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime
             return;
         }
 
+        bool requestedAny = false;
         foreach (KeyValuePair<StockCategory, int> pair in order.requiredMaterials)
         {
             int delivered = order.deliveredMaterials.TryGetValue(pair.Key, out int currentDelivered)
@@ -552,8 +638,27 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime
                 remaining,
                 order.position,
                 order.materialDestinationId,
-                out _,
+                out int requested,
                 out _);
+            requestedAny |= requested > 0;
+        }
+
+        if (requestedAny)
+        {
+            foreach (WorldItemStackSnapshot stack in itemStackRuntime.GetAllStacks())
+            {
+                if (stack != null
+                    && string.Equals(
+                        stack.DestinationId,
+                        order.materialDestinationId,
+                        StringComparison.Ordinal))
+                {
+                    itemStackRuntime.PrioritizeHaul(stack.StackId);
+                }
+            }
+
+            workforceReplanService?.RequestOneHaulerToReplan(
+                forceInterrupt: true);
         }
     }
 
@@ -588,6 +693,7 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime
         GameObject siteObject = new GameObject($"ConstructionSite_{building.objectName}_{order.position.x}_{order.position.y}");
         DungeonRuntimeHierarchy.Parent(siteObject, DungeonRuntimeHierarchy.Construction);
         ConstructionSite site = siteObject.AddComponent<ConstructionSite>();
+        objectResolver?.Inject(site);
         site.transform.position = grid.GetWorldPos(order.position);
         site.SetGrid(grid);
         site.Initialization(building, order.position);
@@ -735,6 +841,14 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime
             reservedWorkerPersistentId = source.reservedWorkerPersistentId ?? string.Empty,
             status = source.status
         };
+        if (order.status == WorkOrderStatus.Ready
+            || order.status == WorkOrderStatus.InProgress)
+        {
+            // Runtime AI actions and scene reservations are rebuilt after load.
+            // Keep durable progress, but require a fresh worker reservation.
+            order.status = WorkOrderStatus.Ready;
+            order.reservedWorkerPersistentId = string.Empty;
+        }
 
         foreach (WorkOrderMaterialSaveData material in source.materials ?? new List<WorkOrderMaterialSaveData>())
         {

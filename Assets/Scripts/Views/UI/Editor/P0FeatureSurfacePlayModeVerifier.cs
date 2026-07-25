@@ -665,6 +665,20 @@ public static class P0FeatureSurfacePlayModeVerifier
             manager.ToggleSelectButton(5);
             Canvas.ForceUpdateCanvases();
             yield return null;
+            GameObject flowSection = FindSceneObject("Section_작업·물류") as GameObject;
+            bool flowSectionVisible = flowSection != null && flowSection.activeInHierarchy;
+            bool flowStateVisible = Resources.FindObjectsOfTypeAll<Transform>()
+                .Any(candidate => candidate != null
+                    && candidate.gameObject.scene.IsValid()
+                    && candidate.gameObject.activeInHierarchy
+                    && candidate.name.StartsWith("P0State_Flow_", StringComparison.Ordinal));
+            string flowText = flowSectionVisible
+                ? string.Join(
+                    " / ",
+                    flowSection.GetComponentsInChildren<TMP_Text>(includeInactive: false)
+                        .Select(text => text.text?.Replace("\r", " ").Replace("\n", " ").Trim())
+                        .Where(text => !string.IsNullOrWhiteSpace(text)))
+                : string.Empty;
             Button fundingButton = FindActiveButton("P0Action_OperationEmergencyFunding");
             bool fundingClickable = fundingButton != null && fundingButton.interactable;
             yield return ClickWithInput(fundingButton);
@@ -709,7 +723,7 @@ public static class P0FeatureSurfacePlayModeVerifier
             OperatingDayReport report = settlement != null ? settlement.LatestReport : null;
 
             lines.Add(
-                $"OPERATION visible={IsTabActive(5)}; fundingClicked={fundingClicked}; fundingUsed={beforeFundingUsed}->{afterFundingUsed}; money={beforeMoney}->{afterMoney}; debt={beforeDebt}->{afterDebt}; report={(report != null)}; recruitClicked={recruitClicked}; recruited={beforeRecruited}->{afterRecruited}; strategyCards={strategyCardsPresent}; commerceMetaClicked={metaClicked}; commerceLevel={beforeStrategyLevel}->{afterStrategyLevel}; metaCurrency={beforeCurrency}->{afterCurrency}; metaLevels={beforeLevels}->{afterLevels}; stateChanged={beforeFundingUsed != afterFundingUsed || beforeMoney != afterMoney || beforeDebt != afterDebt || beforeRecruited != afterRecruited || beforeLevels != afterLevels}");
+                $"OPERATION visible={IsTabActive(5)}; flowSection={flowSectionVisible}; flowState={flowStateVisible}; flowText={flowText}; fundingClicked={fundingClicked}; fundingUsed={beforeFundingUsed}->{afterFundingUsed}; money={beforeMoney}->{afterMoney}; debt={beforeDebt}->{afterDebt}; report={(report != null)}; recruitClicked={recruitClicked}; recruited={beforeRecruited}->{afterRecruited}; strategyCards={strategyCardsPresent}; commerceMetaClicked={metaClicked}; commerceLevel={beforeStrategyLevel}->{afterStrategyLevel}; metaCurrency={beforeCurrency}->{afterCurrency}; metaLevels={beforeLevels}->{afterLevels}; stateChanged={flowSectionVisible && flowStateVisible && (beforeFundingUsed != afterFundingUsed || beforeMoney != afterMoney || beforeDebt != afterDebt || beforeRecruited != afterRecruited || beforeLevels != afterLevels)}");
         }
 
         private IEnumerator DismissStartupAndSelectOwner(List<string> lines)

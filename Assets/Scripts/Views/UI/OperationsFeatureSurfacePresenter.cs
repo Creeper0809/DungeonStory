@@ -15,6 +15,9 @@ public sealed class OperationsFeatureSurfaceModel
     public string SurvivalSummary { get; set; } = string.Empty;
     public IReadOnlyList<OperationsStatusRow> SurvivalRows { get; set; }
         = Array.Empty<OperationsStatusRow>();
+    public string FlowSummary { get; set; } = string.Empty;
+    public IReadOnlyList<OperationsStatusRow> FlowRows { get; set; }
+        = Array.Empty<OperationsStatusRow>();
     public string ExteriorSummary { get; set; } = string.Empty;
     public IReadOnlyList<OperationsStatusRow> ExteriorRows { get; set; }
         = Array.Empty<OperationsStatusRow>();
@@ -131,6 +134,7 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
     private readonly IExteriorZoneQuery exteriorZones;
     private readonly ICombatEquipmentMaintenanceRuntime maintenanceRuntime;
     private readonly IStaffWorkforceQueryService workforceQuery;
+    private readonly IGameplayFlowDiagnosticsQuery flowDiagnostics;
 
     public OperationsFeatureQueryService(
         IOperationTabSummaryService operationSummary,
@@ -143,7 +147,8 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
         IWildlifeEcosystemRuntime wildlifeEcosystem,
         IExteriorZoneQuery exteriorZones,
         ICombatEquipmentMaintenanceRuntime maintenanceRuntime,
-        IStaffWorkforceQueryService workforceQuery)
+        IStaffWorkforceQueryService workforceQuery,
+        IGameplayFlowDiagnosticsQuery flowDiagnostics)
     {
         this.operationSummary = operationSummary
             ?? throw new ArgumentNullException(nameof(operationSummary));
@@ -167,6 +172,8 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
             ?? throw new ArgumentNullException(nameof(maintenanceRuntime));
         this.workforceQuery = workforceQuery
             ?? throw new ArgumentNullException(nameof(workforceQuery));
+        this.flowDiagnostics = flowDiagnostics
+            ?? throw new ArgumentNullException(nameof(flowDiagnostics));
     }
 
     public OperationsFeatureSurfaceModel Capture(string selectedMaintenancePolicyId)
@@ -175,6 +182,7 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
         settlementProvider.TryGetRuntime(out OperatingDaySettlementRuntime settlement);
         EquipmentMaintenancePolicyData selectedMaintenance =
             ResolveMaintenancePolicy(selectedMaintenancePolicyId);
+        GameplayFlowDiagnosticsSnapshot flow = flowDiagnostics.Capture();
         return new OperationsFeatureSurfaceModel
         {
             DaySummary = summary.HasGameData
@@ -187,6 +195,15 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
             RecruitmentSummary = recruitmentSummary,
             SurvivalSummary = CreateSurvivalSummary(out IReadOnlyList<OperationsStatusRow> survivalRows),
             SurvivalRows = survivalRows,
+            FlowSummary = flow.Summary,
+            FlowRows = flow.Items
+                .Select((item, index) => new OperationsStatusRow
+                {
+                    Index = index,
+                    Title = item.Title,
+                    Detail = item.Detail
+                })
+                .ToArray(),
             ExteriorSummary = CreateExteriorSummary(out IReadOnlyList<OperationsStatusRow> exteriorRows),
             ExteriorRows = exteriorRows,
             RunVariableSummary = CreateRunVariableSummary(out IReadOnlyList<OperationsStatusRow> variableRows),
@@ -734,16 +751,20 @@ public sealed class OperationsFeatureSurfacePresenter : IFeatureSurfaceTabPresen
 
     private readonly IOperationsFeatureQueryService query;
     private readonly IOperationsFeatureCommandService commands;
+    private readonly ICaptivityFeatureSectionPresenter captivitySection;
     private string selectedMaintenancePolicyId =
         EquipmentMaintenancePolicyRuntime.StandardPolicyId;
     private string pendingMaintenanceDeleteId = string.Empty;
 
     public OperationsFeatureSurfacePresenter(
         IOperationsFeatureQueryService query,
-        IOperationsFeatureCommandService commands)
+        IOperationsFeatureCommandService commands,
+        ICaptivityFeatureSectionPresenter captivitySection)
     {
         this.query = query ?? throw new ArgumentNullException(nameof(query));
         this.commands = commands ?? throw new ArgumentNullException(nameof(commands));
+        this.captivitySection = captivitySection
+            ?? throw new ArgumentNullException(nameof(captivitySection));
     }
 
     public TabId Id => TabId.Operations;
@@ -773,7 +794,9 @@ public sealed class OperationsFeatureSurfacePresenter : IFeatureSurfaceTabPresen
             CompactCardHeight);
 
         AddRecruitment(view, model);
+        captivitySection.Present(view);
         AddMaintenance(view, model);
+        AddStatusSection(view, "작업·물류", model.FlowSummary, "P0State_Flow_", model.FlowRows);
         AddStatusSection(view, "생존", model.SurvivalSummary, "P0State_Survival_", model.SurvivalRows);
         AddStatusSection(view, "외부 활동", model.ExteriorSummary, "P0State_Exterior_", model.ExteriorRows);
         AddMeta(view, model);

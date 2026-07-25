@@ -30,9 +30,12 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
     private Queue<GridMoveStep> activePath = new Queue<GridMoveStep>();
     private Vector3 moveStartWorld;
     private Vector3 moveTargetWorld;
+    private Vector2Int moveSourceGridPosition;
     private Vector3 visualRootRestLocalPosition;
     private float moveProgress;
     private bool isMoving;
+    private bool managedCaptiveMovement;
+    private Vector2Int managedCaptiveTarget;
     private float nextPathRebuildAt;
     private int lastHorizontalDirection;
     private Vector2Int lastMoveTarget;
@@ -55,6 +58,7 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
     private IGameClock gameClock;
     private IRandomStreamProvider randomStreamProvider;
     private IRandomStream randomStream;
+    private IDoorAccessQuery doorAccessQuery;
 
     private float Now => gameClock != null ? gameClock.Time : 0f;
 
@@ -93,6 +97,7 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
     public bool IsMoving => isMoving;
     public int LastHorizontalDirection => lastHorizontalDirection;
     public Vector2Int LastMoveTarget => lastMoveTarget;
+    public bool IsManagedCaptiveMovement => managedCaptiveMovement;
     public float CombatMobility => Mathf.Lerp(0.45f, 1f, limbHealth / Mathf.Max(1f, GetLimbMaxHealth()));
 
 #if UNITY_EDITOR
@@ -108,7 +113,8 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
         IGridPathSearchBroker pathSearchBroker,
         ICharacterAiWorldRegistry worldRegistry,
         IGameClock gameClock = null,
-        IRandomStreamProvider randomStreamProvider = null)
+        IRandomStreamProvider randomStreamProvider = null,
+        IDoorAccessQuery doorAccessQuery = null)
     {
         this.pathSearchBroker = pathSearchBroker
             ?? throw new System.ArgumentNullException(nameof(pathSearchBroker));
@@ -116,6 +122,7 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
             ?? throw new System.ArgumentNullException(nameof(worldRegistry));
         this.gameClock = gameClock;
         this.randomStreamProvider = randomStreamProvider;
+        this.doorAccessQuery = doorAccessQuery;
     }
 
     public void Initialize(
@@ -174,6 +181,25 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
             return;
         }
 
+        if (State == WildlifeState.Captured)
+        {
+            if (managedCaptiveMovement && isMoving)
+            {
+                TickMovement(deltaTime);
+            }
+
+            if (managedCaptiveMovement
+                && !isMoving
+                && gridPosition == managedCaptiveTarget)
+            {
+                managedCaptiveMovement = false;
+            }
+
+            UpdateMarker();
+            UpdateHealthBar();
+            return;
+        }
+
         if (isMoving)
         {
             TickMovement(deltaTime);
@@ -205,7 +231,9 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
         Queue<GridMoveStep> path = pathSearchBroker?.GetMovePath(
             grid,
             gridPosition,
-            pos => pos == targetPosition);
+            pos => pos == targetPosition,
+            GridPathSearchPriority.Normal,
+            GridTraversalContext.ForWildlife(this));
         if (path == null || path.Count == 0)
         {
             nextPathRebuildAt = now + NextRange(0.5f, 1.5f);
@@ -215,6 +243,43 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
         activePath = path;
         lastMoveTarget = targetPosition;
         nextPathRebuildAt = now + NextRange(0.5f, 1.5f);
+        StartNextMoveStep();
+        return true;
+    }
+
+    public bool TrySetManagedCaptivePath(Vector2Int targetPosition, float now)
+    {
+        if (grid == null
+            || !IsAlive
+            || State != WildlifeState.Captured
+            || isMoving)
+        {
+            return false;
+        }
+
+        if (targetPosition == gridPosition)
+        {
+            managedCaptiveTarget = targetPosition;
+            managedCaptiveMovement = false;
+            return true;
+        }
+
+        Queue<GridMoveStep> path = pathSearchBroker?.GetMovePath(
+            grid,
+            gridPosition,
+            pos => pos == targetPosition,
+            GridPathSearchPriority.Urgent,
+            GridTraversalContext.ForWildlife(this));
+        if (path == null || path.Count == 0)
+        {
+            return false;
+        }
+
+        activePath = path;
+        lastMoveTarget = targetPosition;
+        managedCaptiveTarget = targetPosition;
+        managedCaptiveMovement = true;
+        nextPathRebuildAt = now + 0.5f;
         StartNextMoveStep();
         return true;
     }
@@ -416,6 +481,78 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
         nextPathRebuildAt = Now + NextRange(0.6f, 1.8f);
         RestoreVisualRootPose();
         RegisterAt(position);
+    }
+
+    public void BeginManagedCarry(Transform carrier)
+    {
+        if (carrier == null || grid == null)
+        {
+            return;
+        }
+
+        activePath.Clear();
+        isMoving = false;
+        managedCaptiveMovement = false;
+        RestoreVisualRootPose();
+        grid.RemoveOccupant(
+            this,
+            GridLayer.Wildlife,
+            new[] { gridPosition },
+            disconnectPositions: false);
+        SetCaptured(true);
+        transform.SetParent(carrier, worldPositionStays: false);
+        transform.localPosition = new Vector3(0.28f, 0.18f, 0f);
+    }
+
+    public void EndManagedCarry(Vector2Int position, Transform parent)
+    {
+        transform.SetParent(parent, worldPositionStays: true);
+        WarpTo(position);
+        SetCaptured(true);
+    }
+
+    public void SetCaptured(bool captured)
+    {
+        activePath.Clear();
+        isMoving = false;
+        managedCaptiveMovement = false;
+        RestoreVisualRootPose();
+        if (captured)
+        {
+            State = WildlifeState.Captured;
+            HuntDesignated = false;
+            PriorityHunt = false;
+            ReservedByPersistentId = string.Empty;
+            SetIntent(WildlifeIntent.Rest, "우리 안에서 대기");
+        }
+        else if (IsAlive)
+        {
+            State = WildlifeState.Idle;
+            SetIntent(WildlifeIntent.ReturnToTerritory, "방생되어 영역으로 복귀");
+        }
+        UpdateMarker();
+    }
+
+    public void AdvanceCaptiveNeeds(
+        float deltaTime,
+        float hungerPerSecond,
+        float thirstPerSecond)
+    {
+        if (!IsAlive || State != WildlifeState.Captured || deltaTime <= 0f)
+        {
+            return;
+        }
+
+        hunger = Mathf.Clamp01(
+            hunger + Mathf.Max(0f, hungerPerSecond) * deltaTime);
+        thirst = Mathf.Clamp01(
+            thirst + Mathf.Max(0f, thirstPerSecond) * deltaTime);
+    }
+
+    public void SatisfyCaptiveNeeds(float food, float water)
+    {
+        hunger = Mathf.Clamp01(hunger - Mathf.Max(0f, food));
+        thirst = Mathf.Clamp01(thirst - Mathf.Max(0f, water));
     }
 
     public void SetIntent(WildlifeIntent newIntent, string reason)
@@ -996,6 +1133,7 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
             }
         }
 
+        moveSourceGridPosition = gridPosition;
         moveStartWorld = transform.position;
         moveTargetWorld = new Vector3(target.x, target.y, transform.position.z);
         grid.RemoveOccupant(this, GridLayer.Wildlife, new[] { gridPosition }, disconnectPositions: false);
@@ -1025,11 +1163,50 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
             return false;
         }
 
-        return CanEnterDungeon || cell.AreaType != GridCellAreaType.DungeonInterior;
+        if (doorAccessQuery != null
+            && !doorAccessQuery.CanTraverse(
+                grid,
+                target,
+                GridTraversalContext.ForWildlife(this),
+                out _))
+        {
+            return false;
+        }
+
+        return managedCaptiveMovement
+            || CanEnterDungeon
+            || cell.AreaType != GridCellAreaType.DungeonInterior;
     }
 
     private void TickMovement(float deltaTime)
     {
+        if (doorAccessQuery != null
+            && !doorAccessQuery.CanTraverse(
+                grid,
+                gridPosition,
+                GridTraversalContext.ForWildlife(this),
+                out _))
+        {
+            grid.RemoveOccupant(
+                this,
+                GridLayer.Wildlife,
+                new[] { gridPosition },
+                disconnectPositions: false);
+            gridPosition = moveSourceGridPosition;
+            grid.RegisterOccupant(
+                this,
+                GridLayer.Wildlife,
+                new[] { gridPosition },
+                connectPositions: false);
+            transform.position = moveStartWorld;
+            isMoving = false;
+            activePath.Clear();
+            RestoreVisualRootPose();
+            RefreshSortingForGridPosition();
+            nextPathRebuildAt = Now + NextRange(0.8f, 1.8f);
+            return;
+        }
+
         float speed = species != null ? species.MoveSpeed : 1f;
         float duration = Mathf.Max(0.12f, 0.45f / Mathf.Max(0.1f, speed));
         moveProgress += deltaTime / duration;

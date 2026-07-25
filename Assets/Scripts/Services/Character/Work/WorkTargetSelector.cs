@@ -8,6 +8,7 @@ public sealed class WorkTargetSelector
 
     private readonly AbilityWork work;
     private readonly IWorkPolicyRegistry workPolicyRegistry;
+    private readonly ICaptiveLaborQuery captiveLaborQuery;
     private CharacterActor cachedContextActor;
     private CharacterAiDecisionContext cachedDecisionContext;
     private int cachedDecisionContextFrame = -1;
@@ -15,10 +16,12 @@ public sealed class WorkTargetSelector
 
     public WorkTargetSelector(
         AbilityWork work,
-        IWorkPolicyRegistry workPolicyRegistry = null)
+        IWorkPolicyRegistry workPolicyRegistry = null,
+        ICaptiveLaborQuery captiveLaborQuery = null)
     {
         this.work = work;
         this.workPolicyRegistry = workPolicyRegistry;
+        this.captiveLaborQuery = captiveLaborQuery;
     }
 
     public bool TryAssignAnyWork(GridPathSearchResult searchResult = null)
@@ -385,6 +388,19 @@ public sealed class WorkTargetSelector
 
             if (forcedWorkType == FacilityWorkType.None && work.ShouldThrottleRoutineWork(workTypeId))
             {
+                continue;
+            }
+
+            if (captiveLaborQuery != null
+                && !captiveLaborQuery.IsWorkAllowed(
+                    work.WorkerActor,
+                    workTypeId,
+                    out string captiveWorkReason))
+            {
+                lastWorkTypeFailure = AIActionFailure.Create(
+                    AIActionFailureKind.Unsupported,
+                    captiveWorkReason,
+                    building);
                 continue;
             }
 

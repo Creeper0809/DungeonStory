@@ -55,7 +55,7 @@ public static class DungeonWorldSimulationRegistration
         builder.RegisterEntryPoint<CharacterDeprivationRuntime>(
                 Lifetime.Singleton)
             .As<ICharacterDeprivationRuntime>();
-        builder.Register<WorkOrderRuntime>(Lifetime.Singleton)
+        builder.RegisterEntryPoint<WorkOrderRuntime>(Lifetime.Singleton)
             .As<IWorkOrderRuntime>();
         builder.Register<ResourceWildlifeSpeciesCatalogProvider>(
                 Lifetime.Singleton)
@@ -78,8 +78,58 @@ public static class DungeonWorldSimulationRegistration
             .As<IWildlifeHuntCommandService>();
         builder.RegisterEntryPoint<SurvivalFoodRuntime>(Lifetime.Singleton)
             .As<ISurvivalFoodRuntime>();
+        builder.Register<CaptivityPersuasionHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityIsolationHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityCoercionHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityInterrogationHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityIndoctrinationHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityBrandingHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityBloodExtractionHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityMemoryExtractionHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityForcedModificationHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityCorruptionRitualHandler>(Lifetime.Singleton)
+            .As<ICaptivityInteractionHandler>();
+        builder.Register<CaptivityInteractionRegistry>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CaptivityRuntime>(Lifetime.Singleton)
+            .As<ICaptivityRuntime>()
+            .As<ICaptiveLaborQuery>()
+            .As<ICaptivityCommandService>()
+            .As<ICaptivityEscortRuntime>()
+            .As<ICaptivityEscapeRuntime>();
+        builder.RegisterEntryPoint<CaptivityRetaliationRuntime>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<WildlifeCaptureRuntime>(Lifetime.Singleton)
+            .As<IWildlifeCaptureRuntime>()
+            .As<IWildlifeCaptureTransportRuntime>();
+        builder.Register<NonlethalActCircusProgram>(Lifetime.Singleton)
+            .As<ICircusProgramHandler>();
+        builder.Register<DangerousStuntCircusProgram>(Lifetime.Singleton)
+            .As<ICircusProgramHandler>();
+        builder.Register<CaptiveDuelCircusProgram>(Lifetime.Singleton)
+            .As<ICircusProgramHandler>();
+        builder.Register<BeastShowCircusProgram>(Lifetime.Singleton)
+            .As<ICircusProgramHandler>();
+        builder.Register<BeastArenaCircusProgram>(Lifetime.Singleton)
+            .As<ICircusProgramHandler>();
+        builder.Register<PublicPunishmentCircusProgram>(Lifetime.Singleton)
+            .As<ICircusProgramHandler>();
+        builder.Register<ExecutionPlayCircusProgram>(Lifetime.Singleton)
+            .As<ICircusProgramHandler>();
+        builder.Register<PublicCorruptionRitualCircusProgram>(Lifetime.Singleton)
+            .As<ICircusProgramHandler>();
+        builder.Register<CircusProgramRegistry>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CircusRuntime>(Lifetime.Singleton)
+            .As<ICircusRuntime>();
         builder.RegisterEntryPoint<ItemStackViewToggleRuntime>(
-            Lifetime.Singleton);
+                Lifetime.Singleton);
         builder.RegisterEntryPoint<WildlifeEcosystemViewToggleRuntime>(
             Lifetime.Singleton);
     }

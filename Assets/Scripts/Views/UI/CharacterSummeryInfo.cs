@@ -56,6 +56,7 @@ public class CharacterSummeryInfo : UIPopUp
     private Button combatFireModeButton;
     private Button combatHoldFireButton;
     private Button combatRepairButton;
+    private Button captivityActionButton;
     private float nextVitalsRefreshAt;
     private int pendingCandidateConfirmation = -1;
     private int pendingCandidateUnlockLevel = -1;
@@ -72,6 +73,9 @@ public class CharacterSummeryInfo : UIPopUp
     private ICombatEquipmentMaintenanceRuntime equipmentMaintenanceRuntime;
     private ISurvivalFoodRuntime survivalFoodRuntime;
     private ICharacterAiDiagnosticsQuery aiDiagnostics;
+    private ICaptivityRuntime captivityRuntime;
+    private ICaptivityCommandService captivityCommands;
+    private ICharacterAiWorldRegistry characterWorld;
     private IUiClock uiClock;
     private IGameEventBus gameEventBus;
     private IDisposable growthTabRequestedSubscription;
@@ -92,6 +96,9 @@ public class CharacterSummeryInfo : UIPopUp
         ISurvivalFoodRuntime survivalFoodRuntime,
         IExpeditionEquipmentRuntime equipmentRuntime,
         ICharacterAiDiagnosticsQuery aiDiagnostics,
+        ICaptivityRuntime captivityRuntime,
+        ICaptivityCommandService captivityCommands,
+        ICharacterAiWorldRegistry characterWorld,
         IUiClock uiClock,
         IGameEventBus gameEventBus)
     {
@@ -121,6 +128,12 @@ public class CharacterSummeryInfo : UIPopUp
             ?? throw new ArgumentNullException(nameof(equipmentRuntime));
         this.aiDiagnostics = aiDiagnostics
             ?? throw new ArgumentNullException(nameof(aiDiagnostics));
+        this.captivityRuntime = captivityRuntime
+            ?? throw new ArgumentNullException(nameof(captivityRuntime));
+        this.captivityCommands = captivityCommands
+            ?? throw new ArgumentNullException(nameof(captivityCommands));
+        this.characterWorld = characterWorld
+            ?? throw new ArgumentNullException(nameof(characterWorld));
         this.uiClock = uiClock
             ?? throw new ArgumentNullException(nameof(uiClock));
         this.gameEventBus = gameEventBus
@@ -287,12 +300,82 @@ public class CharacterSummeryInfo : UIPopUp
         Slider generatedThirst,
         TMP_Text generatedHealthSummaryText,
         GameObject generatedHealthTabContent,
-        Button generatedHealthTabButton)
+        Button generatedHealthTabButton,
+        Button generatedCaptivityActionButton)
     {
         thirst = generatedThirst;
         healthSummaryText = generatedHealthSummaryText;
         healthTabContent = generatedHealthTabContent;
         healthTabButton = generatedHealthTabButton;
+        captivityActionButton = generatedCaptivityActionButton;
+        RefreshHealthDetails();
+    }
+
+    public void ExecuteCaptivityAction()
+    {
+        if (actor == null || captivityRuntime == null || captivityCommands == null)
+        {
+            return;
+        }
+
+        string captiveId = actor.Identity?.PersistentId ?? string.Empty;
+        if (!captivityRuntime.TryGetCaptive(captiveId, out CaptiveState captive)
+            || !captive.IsActive)
+        {
+            ShowCaptivityNotice(
+                "이 대상은 포획할 수 있는 쓰러진 침입자가 아닙니다.",
+                false);
+            return;
+        }
+
+        if (captive.status == CaptivityStatus.AwaitingCapture)
+        {
+            CharacterActor carrier = characterWorld.AllCharacters
+                .Where(candidate => IsAvailableCaptureCarrier(candidate, captiveId))
+                .OrderBy(candidate => Manhattan(
+                    candidate.GetNowXY(),
+                    actor.GetNowXY()))
+                .FirstOrDefault();
+            string captureFailure = string.Empty;
+            bool started = carrier != null
+                && captivityCommands.TryOrderCapture(
+                    actor,
+                    carrier,
+                    out captureFailure);
+            string message = carrier == null
+                ? "포로를 운반할 수 있는 직원이 없습니다."
+                : started
+                    ? $"{carrier.Identity?.DisplayName ?? carrier.name}에게 포획과 호송을 명령했습니다."
+                    : captureFailure;
+            ShowCaptivityNotice(message, started);
+        }
+        else if (captive.status == CaptivityStatus.Confined)
+        {
+            bool started = captivityCommands.TrySetLaborPermissions(
+                captiveId,
+                CaptiveLaborPermission.Clean | CaptiveLaborPermission.Haul,
+                out string reason);
+            ShowCaptivityNotice(
+                started ? "청소·운반 노역을 허용했습니다." : reason,
+                started);
+        }
+        else if (captive.status == CaptivityStatus.Labor)
+        {
+            bool stopped = captivityCommands.TrySetLaborPermissions(
+                captiveId,
+                CaptiveLaborPermission.None,
+                out string reason);
+            ShowCaptivityNotice(
+                stopped ? "노역을 중지하고 감방으로 돌려보냈습니다." : reason,
+                stopped);
+        }
+        else
+        {
+            ShowCaptivityNotice(
+                "세부 처우는 운영 탭의 포로·노역 항목에서 관리할 수 있습니다.",
+                true);
+        }
+
         RefreshHealthDetails();
     }
 
@@ -1159,59 +1242,156 @@ public class CharacterSummeryInfo : UIPopUp
             return;
         }
 
-        if (actor == null
-            || !deprivationRuntime.TryGetSnapshot(actor, out CharacterDeprivationSnapshot snapshot))
+        if (actor == null)
         {
             healthSummaryText.text = "결핍 건강 정보가 없습니다.";
+            RefreshCaptivityActionButton();
             return;
         }
 
         StringBuilder builder = new StringBuilder(512);
-        builder.AppendLine("결핍 부담");
-        foreach (DeprivationKind kind in Enum.GetValues(typeof(DeprivationKind)))
+        if (deprivationRuntime.TryGetSnapshot(
+                actor,
+                out CharacterDeprivationSnapshot snapshot))
         {
-            float burden = snapshot.Burdens != null && snapshot.Burdens.TryGetValue(kind, out float value)
-                ? value
-                : 0f;
-            builder.AppendLine($"{FormatDeprivation(kind),-8} {burden,5:0.#}  {FormatBurdenState(burden)}");
-        }
-
-        builder.AppendLine();
-        builder.AppendLine($"감염 부담  {snapshot.InfectionBurden:0.#} / 100");
-        float highest = snapshot.HighestBurden;
-        float mood01 = characterStats != null ? Mathf.Clamp01(characterStats.Mood / 100f) : 0.5f;
-        float chance = highest >= 70f
-            ? CharacterDeprivationRuntime.GetBreakdownChance(actor, highest, mood01) * 100f
-            : 0f;
-        builder.AppendLine($"붕괴 확률  {chance:0.#}% / 5초");
-
-        if (snapshot.Breakdown != null && snapshot.Breakdown.active)
-        {
-            builder.AppendLine($"현재 붕괴  {FormatBreakdown(snapshot.Breakdown.kind)}");
-            builder.AppendLine($"원인  {FormatDeprivation(snapshot.Breakdown.cause)}");
-            if (!string.IsNullOrWhiteSpace(snapshot.Breakdown.targetId))
+            builder.AppendLine("결핍 부담");
+            foreach (DeprivationKind kind in Enum.GetValues(typeof(DeprivationKind)))
             {
-                builder.AppendLine($"목표  {snapshot.Breakdown.targetId}");
+                float burden = snapshot.Burdens != null
+                    && snapshot.Burdens.TryGetValue(kind, out float value)
+                        ? value
+                        : 0f;
+                builder.AppendLine(
+                    $"{FormatDeprivation(kind),-8} {burden,5:0.#}  {FormatBurdenState(burden)}");
             }
 
-            builder.AppendLine($"제압 저항  {snapshot.Breakdown.suppressionResistance:0.#}");
-        }
+            builder.AppendLine();
+            builder.AppendLine($"감염 부담  {snapshot.InfectionBurden:0.#} / 100");
+            float highest = snapshot.HighestBurden;
+            float mood01 = characterStats != null
+                ? Mathf.Clamp01(characterStats.Mood / 100f)
+                : 0.5f;
+            float chance = highest >= 70f
+                ? CharacterDeprivationRuntime.GetBreakdownChance(
+                    actor,
+                    highest,
+                    mood01) * 100f
+                : 0f;
+            builder.AppendLine($"붕괴 확률  {chance:0.#}% / 5초");
 
-        builder.AppendLine();
-        builder.AppendLine("최근 금기 행동");
-        if (snapshot.TabooMemories == null || snapshot.TabooMemories.Count == 0)
-        {
-            builder.AppendLine("기록 없음");
+            if (snapshot.Breakdown != null && snapshot.Breakdown.active)
+            {
+                builder.AppendLine(
+                    $"현재 붕괴  {FormatBreakdown(snapshot.Breakdown.kind)}");
+                builder.AppendLine(
+                    $"원인  {FormatDeprivation(snapshot.Breakdown.cause)}");
+                if (!string.IsNullOrWhiteSpace(snapshot.Breakdown.targetId))
+                {
+                    builder.AppendLine($"목표  {snapshot.Breakdown.targetId}");
+                }
+
+                builder.AppendLine(
+                    $"제압 저항  {snapshot.Breakdown.suppressionResistance:0.#}");
+            }
+
+            builder.AppendLine();
+            builder.AppendLine("최근 금기 행동");
+            if (snapshot.TabooMemories == null
+                || snapshot.TabooMemories.Count == 0)
+            {
+                builder.AppendLine("기록 없음");
+            }
+            else
+            {
+                foreach (string memory in snapshot.TabooMemories.TakeLast(5))
+                {
+                    builder.AppendLine($"- {memory}");
+                }
+            }
         }
         else
         {
-            foreach (string memory in snapshot.TabooMemories.TakeLast(5))
-            {
-                builder.AppendLine($"- {memory}");
-            }
+            builder.AppendLine("결핍 건강 정보가 없습니다.");
         }
 
+        AppendCaptivityDetails(builder);
         healthSummaryText.text = builder.ToString().TrimEnd();
+        RefreshCaptivityActionButton();
+    }
+
+    private void AppendCaptivityDetails(StringBuilder builder)
+    {
+        string captiveId = actor?.Identity?.PersistentId ?? string.Empty;
+        if (captivityRuntime == null
+            || !captivityRuntime.TryGetCaptive(
+                captiveId,
+                out CaptiveState captive)
+            || !captive.IsActive)
+        {
+            return;
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("포로 상태");
+        builder.AppendLine(
+            $"{FormatCaptivityStatus(captive.status)} · 건강 {captive.health:0}"
+            + $" · 순응 {captive.compliance:0} · 탈출 위험 {captive.escapeRisk:0}");
+        builder.AppendLine(
+            $"의지 {captive.will:0} · 공포 {captive.fear:0}"
+            + $" · 신뢰 {captive.trust:0} · 원한 {captive.grudge:0}"
+            + $" · 타락 {captive.corruption:0}");
+        if (captive.falseCompliance)
+        {
+            builder.AppendLine("복종 진위 불명: 원한이 높아 배신 가능성이 있습니다.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(captive.lastResult))
+        {
+            builder.AppendLine($"최근 상태  {captive.lastResult}");
+        }
+    }
+
+    private void RefreshCaptivityActionButton()
+    {
+        if (captivityActionButton == null)
+        {
+            return;
+        }
+
+        string captiveId = actor?.Identity?.PersistentId ?? string.Empty;
+        CaptiveState captive = null;
+        bool hasCaptive = captivityRuntime != null
+            && captivityRuntime.TryGetCaptive(
+                captiveId,
+                out captive)
+            && captive.IsActive;
+        captivityActionButton.gameObject.SetActive(hasCaptive);
+        if (!hasCaptive)
+        {
+            return;
+        }
+
+        string label = captive.status switch
+        {
+            CaptivityStatus.AwaitingCapture => "포획·호송 명령",
+            CaptivityStatus.Confined => "기본 노역 허용",
+            CaptivityStatus.Labor => "노역 중지",
+            CaptivityStatus.Stabilizing
+                or CaptivityStatus.AwaitingEscort
+                or CaptivityStatus.Escorting => "포획 진행 중",
+            _ => "운영 탭에서 관리"
+        };
+        TMP_Text text = captivityActionButton.transform
+            .Find("Label")?.GetComponent<TMP_Text>();
+        if (text != null)
+        {
+            text.text = label;
+        }
+
+        captivityActionButton.interactable =
+            captive.status is CaptivityStatus.AwaitingCapture
+                or CaptivityStatus.Confined
+                or CaptivityStatus.Labor;
     }
 
     private static string FormatDeprivation(DeprivationKind kind)
@@ -1705,9 +1885,59 @@ public class CharacterSummeryInfo : UIPopUp
             CharacterLifecycleState.PreparingExpedition => "출정 준비",
             CharacterLifecycleState.DepartingExpedition => "출정 중",
             CharacterLifecycleState.ReturningExpedition => "귀환 중",
+            CharacterLifecycleState.Downed => "쓰러짐",
             CharacterLifecycleState.Despawned => "퇴장",
             _ => "대기"
         };
+    }
+
+    private static string FormatCaptivityStatus(CaptivityStatus status)
+    {
+        return status switch
+        {
+            CaptivityStatus.AwaitingCapture => "포획 대기",
+            CaptivityStatus.Stabilizing => "현장 안정화",
+            CaptivityStatus.AwaitingEscort => "호송 대기",
+            CaptivityStatus.Escorting => "호송 중",
+            CaptivityStatus.Confined => "수용 중",
+            CaptivityStatus.Labor => "노역 중",
+            CaptivityStatus.Interaction => "관리 작업 중",
+            CaptivityStatus.Performer => "공연 참가",
+            CaptivityStatus.EscapeAttempt => "탈출 시도",
+            CaptivityStatus.Ransom => "몸값 협상",
+            _ => status.ToString()
+        };
+    }
+
+    private static bool IsAvailableCaptureCarrier(
+        CharacterActor candidate,
+        string captiveId)
+    {
+        return candidate != null
+            && !candidate.IsDead
+            && candidate.CurrentLifecycleState == CharacterLifecycleState.Active
+            && candidate.characterType == CharacterType.NPC
+            && !string.Equals(
+                candidate.Identity?.PersistentId,
+                captiveId,
+                StringComparison.Ordinal)
+            && candidate.TryGetAbility(out AbilityMove _);
+    }
+
+    private void ShowCaptivityNotice(string message, bool success)
+    {
+        gameEventBus.ShowNotice(
+            string.IsNullOrWhiteSpace(message)
+                ? "포로 명령을 처리하지 못했습니다."
+                : message,
+            success
+                ? NoticeFeedEvent.Grade.NONE
+                : NoticeFeedEvent.Grade.WARNING);
+    }
+
+    private static int Manhattan(Vector2Int left, Vector2Int right)
+    {
+        return Mathf.Abs(left.x - right.x) + Mathf.Abs(left.y - right.y);
     }
 
     private static string FormatWeight(float weight)

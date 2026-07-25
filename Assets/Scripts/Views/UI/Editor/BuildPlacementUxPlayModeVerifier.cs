@@ -43,6 +43,9 @@ public static class BuildPlacementUxPlayModeVerifier
 
 public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
 {
+    private const string PartialConstructionSaveSlot =
+        "qa-build-placement-partial";
+
     private readonly List<string> report = new List<string>();
     private readonly List<string> failures = new List<string>();
     private readonly List<string> capturedErrors = new List<string>();
@@ -71,6 +74,8 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
         DungeonStoryGridGhostPresenter ghostPresenter = UnityEngine.Object.FindFirstObjectByType<DungeonStoryGridGhostPresenter>();
         IWorkOrderRuntime workOrderRuntime = ResolveFromGameplayScope<IWorkOrderRuntime>();
         IWorldItemStackRuntime itemRuntime = ResolveFromGameplayScope<IWorldItemStackRuntime>();
+        IDungeonGameSaveSlotService saveSlotService =
+            ResolveFromGameplayScope<IDungeonGameSaveSlotService>();
 
         Check(tabManager != null, "TAB_MANAGER", "bottom tab manager resolved");
         Check(constructTab != null, "CONSTRUCT_TAB", "build catalog resolved");
@@ -79,13 +84,15 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
         Check(ghostPresenter != null, "GHOST_PRESENTER", "placement ghost presenter resolved");
         Check(workOrderRuntime != null, "WORK_ORDER_RUNTIME", "scoped work order runtime resolved");
         Check(itemRuntime != null, "ITEM_STACK_RUNTIME", "scoped world item runtime resolved");
+        Check(saveSlotService != null, "SAVE_SLOT_SERVICE", "scoped save slot service resolved");
         if (tabManager == null
             || constructTab == null
             || gridUi == null
             || controller == null
             || ghostPresenter == null
             || workOrderRuntime == null
-            || itemRuntime == null)
+            || itemRuntime == null
+            || saveSlotService == null)
         {
             Finish();
             yield break;
@@ -143,7 +150,8 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
             gridUi,
             selectedBuilding,
             workOrderRuntime,
-            itemRuntime);
+            itemRuntime,
+            saveSlotService);
 
         Button buildingTabButton = FindVisibleButtonByLabel("\uAC74\uBB3C");
         Check(buildingTabButton != null, "OTHER_TAB_BUTTON", "visible building-management tab resolved");
@@ -207,7 +215,8 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
         GridUIManager gridUi,
         BuildingSO selectedBuilding,
         IWorkOrderRuntime workOrderRuntime,
-        IWorldItemStackRuntime itemRuntime)
+        IWorldItemStackRuntime itemRuntime,
+        IDungeonGameSaveSlotService saveSlotService)
     {
         if (controller == null || gridUi == null || selectedBuilding == null)
         {
@@ -287,64 +296,373 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
         if (order.Status == WorkOrderStatus.WaitingForMaterials)
         {
             Check(!itemRuntime.GetAllStacks().Any(stack =>
-                    stack.State == WorldItemStackState.Loose
+                    stack.Position == order.Position
                     && string.Equals(
                         stack.DestinationId,
                         order.MaterialDestinationId,
                         StringComparison.Ordinal)),
                 "CONSTRUCTION_DOES_NOT_DROP_WAREHOUSE_STOCK",
-                $"destination={order.MaterialDestinationId}");
-            report.Add("[INFO] Construction remains waiting for a real worker delivery.");
-            yield break;
+                $"destination={order.MaterialDestinationId}; target={order.Position}");
         }
 
-        CharacterActor worker = FindWorkActor();
-        Check(worker != null, "CONSTRUCTION_WORKER_RESOLVED", worker != null ? worker.name : "<null>");
-        float partialWork = Mathf.Max(0.05f, order.RequiredWork * 0.45f);
-        bool partialApplied = workOrderRuntime.ApplyWork(
-            worker,
-            site,
-            BuiltInWorkTypeIds.Construct,
-            partialWork,
-            out bool partialCompleted,
-            out _,
-            out string partialMessage);
-        workOrderRuntime.TryGetOrderFor(site, BuiltInWorkTypeIds.Construct, out WorkOrderProgressState partialOrder);
-        Check(partialApplied && !partialCompleted && partialOrder != null && partialOrder.ProgressRatio > 0.1f,
-            "CONSTRUCTION_PARTIAL_PROGRESS",
-            partialOrder != null
-                ? $"progress={partialOrder.ProgressRatio:P0}; message={partialMessage}"
-                : partialMessage);
+        SetNaturalFlowTestSpeed();
+        saveSlotService.Delete(PartialConstructionSaveSlot);
+        float deadline = Time.realtimeSinceStartup + 45f;
+        bool observedPhysicalDelivery = false;
+        bool observedDeliveredMaterial = false;
+        bool observedAiProgress = false;
+        bool progressCaptured = false;
+        bool partialSaveCreated = false;
+        bool partialSaveRestored = false;
+        float savedProgress = 0f;
+        int savedDelivered = 0;
+        float maxProgress = order.ProgressRatio;
+        int maxDelivered = GetDeliveredMaterialCount(order);
+        string materialDestinationId = order.MaterialDestinationId;
+        string lastState = DescribeOrder(order);
+        BuildableObject finalBuilding = null;
+        while (Time.realtimeSinceStartup < deadline)
+        {
+            StabilizeConstructionProbeWorkers();
+            WorldItemStackSnapshot[] currentStacks = itemRuntime.GetAllStacks()
+                .Where(stack => stack != null)
+                .ToArray();
+            observedPhysicalDelivery |= currentStacks.Any(stack =>
+                string.Equals(
+                    stack.DestinationId,
+                    materialDestinationId,
+                    StringComparison.Ordinal)
+                && (stack.State == WorldItemStackState.Stored
+                    || stack.State == WorldItemStackState.Loose
+                    || stack.State == WorldItemStackState.Carried
+                    || stack.State == WorldItemStackState.FacilityBuffer));
 
-        yield return ClickWorldPoint(screenPoint);
-        yield return null;
-        yield return new WaitForEndOfFrame();
-        CaptureScreen(BuildPlacementUxPlayModeVerifier.ConstructionProgressCapturePath);
-        Check(File.Exists(BuildPlacementUxPlayModeVerifier.ConstructionProgressCapturePath),
+            if (workOrderRuntime.TryGetOrderFor(
+                    site,
+                    BuiltInWorkTypeIds.Construct,
+                    out WorkOrderProgressState currentOrder))
+            {
+                int delivered = GetDeliveredMaterialCount(currentOrder);
+                maxDelivered = Mathf.Max(maxDelivered, delivered);
+                maxProgress = Mathf.Max(maxProgress, currentOrder.ProgressRatio);
+                observedDeliveredMaterial |= delivered > 0
+                    || currentOrder.Status == WorkOrderStatus.Ready
+                    || currentOrder.Status == WorkOrderStatus.InProgress;
+                observedAiProgress |= currentOrder.CompletedWork > 0.001f;
+                lastState = DescribeOrder(currentOrder);
+
+                if (observedAiProgress && !progressCaptured)
+                {
+                    yield return ClickWorldPoint(screenPoint);
+                    yield return null;
+                    yield return new WaitForEndOfFrame();
+                    CaptureScreen(BuildPlacementUxPlayModeVerifier.ConstructionProgressCapturePath);
+                    progressCaptured = File.Exists(
+                        BuildPlacementUxPlayModeVerifier.ConstructionProgressCapturePath);
+                    continue;
+                }
+
+                if (!partialSaveCreated
+                    && currentOrder.CompletedWork > 0.001f
+                    && currentOrder.ProgressRatio < 0.999f)
+                {
+                    savedProgress = currentOrder.ProgressRatio;
+                    savedDelivered = delivered;
+                    Time.timeScale = 0f;
+                    string savePath = saveSlotService.Save(
+                        PartialConstructionSaveSlot,
+                        prettyPrint: true);
+                    partialSaveCreated = !string.IsNullOrWhiteSpace(savePath)
+                        && File.Exists(savePath);
+                    Check(
+                        partialSaveCreated,
+                        "CONSTRUCTION_PARTIAL_SAVE_CREATED",
+                        partialSaveCreated
+                            ? $"{savePath}; progress={savedProgress:P0}; delivered={savedDelivered}"
+                            : "partial construction save was not written");
+
+                    if (partialSaveCreated)
+                    {
+                        bool loaded = saveSlotService.TryLoad(
+                            PartialConstructionSaveSlot,
+                            out DungeonGameRestoreReport restoreReport);
+                        yield return null;
+                        yield return null;
+
+                        grid = controller.GridSystem?.grid;
+                        ConstructionSite restoredSite = grid != null
+                            ? FindConstructionSiteAt(
+                                grid,
+                                selectedBuilding,
+                                buildPos)
+                            : null;
+                        WorkOrderProgressState restoredOrder = null;
+                        bool restoredOrderFound = restoredSite != null
+                            && workOrderRuntime.TryGetOrderFor(
+                                restoredSite,
+                                BuiltInWorkTypeIds.Construct,
+                                out restoredOrder);
+                        float restoredProgress = restoredOrderFound
+                            ? restoredOrder.ProgressRatio
+                            : 0f;
+                        int restoredDelivered = restoredOrderFound
+                            ? GetDeliveredMaterialCount(restoredOrder)
+                            : 0;
+                        partialSaveRestored = loaded
+                            && restoreReport != null
+                            && restoreReport.Success
+                            && restoreReport.Warnings.Count == 0
+                            && restoredOrderFound
+                            && Mathf.Abs(restoredProgress - savedProgress) <= 0.02f
+                            && restoredDelivered == savedDelivered;
+                        Check(
+                            partialSaveRestored,
+                            "CONSTRUCTION_PARTIAL_SAVE_RESTORED",
+                            restoreReport == null
+                                ? "restore report missing"
+                                : $"loaded={loaded}; warnings={restoreReport.Warnings.Count};"
+                                    + $" errors={restoreReport.Errors.Count};"
+                                    + $" progress={savedProgress:P0}->{restoredProgress:P0};"
+                                    + $" delivered={savedDelivered}->{restoredDelivered};"
+                                    + $" site={restoredSite?.name ?? "<missing>"}");
+
+                        if (restoredSite != null)
+                        {
+                            site = restoredSite;
+                        }
+
+                        SetNaturalFlowTestSpeed();
+                        continue;
+                    }
+
+                    SetNaturalFlowTestSpeed();
+                }
+            }
+
+            finalBuilding = FindFinalBuildingAt(grid, selectedBuilding, buildPos);
+            if (finalBuilding != null)
+            {
+                break;
+            }
+
+            yield return null;
+        }
+
+        AppendNaturalConstructionDiagnostics(
+            workOrderRuntime,
+            itemRuntime,
+            materialDestinationId,
+            site);
+        Check(observedPhysicalDelivery,
+            "CONSTRUCTION_PHYSICAL_DELIVERY_OBSERVED",
+            $"destination={materialDestinationId}; delivered={maxDelivered}");
+        Check(observedDeliveredMaterial,
+            "CONSTRUCTION_MATERIAL_DELIVERED_BY_AI",
+            $"delivered={maxDelivered}; {lastState}");
+        Check(observedAiProgress,
+            "CONSTRUCTION_WORK_PROGRESS_BY_AI",
+            $"maxProgress={maxProgress:P0}; {lastState}");
+        Check(progressCaptured,
             "CONSTRUCTION_PROGRESS_CAPTURED",
-            BuildPlacementUxPlayModeVerifier.ConstructionProgressCapturePath);
-
-        bool finalApplied = workOrderRuntime.ApplyWork(
-            worker,
-            site,
-            BuiltInWorkTypeIds.Construct,
-            Mathf.Max(1f, order.RequiredWork * 2f),
-            out bool finalCompleted,
-            out bool finalEffects,
-            out string finalMessage);
-        yield return null;
-        yield return new WaitForEndOfFrame();
-
-        BuildableObject finalBuilding = FindFinalBuildingAt(grid, selectedBuilding, buildPos);
-        Check(finalApplied && finalCompleted && finalEffects,
-            "CONSTRUCTION_COMPLETION_WORK_APPLIED",
-            $"applied={finalApplied}; completed={finalCompleted}; effects={finalEffects}; message={finalMessage}");
+            progressCaptured
+                ? BuildPlacementUxPlayModeVerifier.ConstructionProgressCapturePath
+                : "AI work never entered a capturable partial-progress state");
+        Check(partialSaveCreated,
+            "CONSTRUCTION_PARTIAL_SAVE_OBSERVED",
+            $"created={partialSaveCreated}; progress={savedProgress:P0}; delivered={savedDelivered}");
+        Check(partialSaveRestored && finalBuilding != null,
+            "CONSTRUCTION_RESTORED_AI_RESUMED",
+            $"restored={partialSaveRestored}; completed={finalBuilding != null}; {lastState}");
+        Check(finalBuilding != null,
+            "CONSTRUCTION_COMPLETED_BY_AI",
+            finalBuilding != null
+                ? $"{finalBuilding.name}@{finalBuilding.centerPos}; maxProgress={maxProgress:P0}"
+                : $"timeout; {lastState}");
         Check(finalBuilding != null,
             "CONSTRUCTION_REPLACED_WITH_FINAL_BUILDING",
             finalBuilding != null ? $"{finalBuilding.name}@{finalBuilding.centerPos}" : $"missing@{buildPos}");
         Check(FindConstructionSiteAt(grid, selectedBuilding, buildPos) == null,
             "CONSTRUCTION_SITE_REMOVED_AFTER_COMPLETION",
             "construction layer cleared");
+        saveSlotService.Delete(PartialConstructionSaveSlot);
+    }
+
+    private static void StabilizeConstructionProbeWorkers()
+    {
+        foreach (CharacterActor actor in UnityEngine.Object.FindObjectsByType<CharacterActor>(
+                     FindObjectsInactive.Exclude,
+                     FindObjectsSortMode.None))
+        {
+            if (actor == null
+                || actor.IsDead
+                || !CharacterWorkRoleUtility.TryGetWork(actor, out _))
+            {
+                continue;
+            }
+
+            actor.stats[CharacterCondition.HUNGER] = 100f;
+            actor.stats[CharacterCondition.THIRST] = 100f;
+            actor.stats[CharacterCondition.SLEEP] = 100f;
+            actor.stats[CharacterCondition.FUN] = 100f;
+            actor.stats[CharacterCondition.EXCRETION] = 100f;
+            actor.stats[CharacterCondition.HYGIENE] = 100f;
+            actor.stats[CharacterCondition.MOOD] = 80f;
+        }
+    }
+
+    private static int GetDeliveredMaterialCount(WorkOrderProgressState order)
+    {
+        return order?.DeliveredMaterials?.Values.Sum() ?? 0;
+    }
+
+    private static string DescribeOrder(WorkOrderProgressState order)
+    {
+        return order == null
+            ? "order=<null>"
+            : $"status={order.Status}; progress={order.ProgressRatio:P0};"
+                + $" delivered={GetDeliveredMaterialCount(order)};"
+                + $" worker={order.ReservedWorkerPersistentId ?? string.Empty}";
+    }
+
+    private void SetNaturalFlowTestSpeed()
+    {
+        GameManager gameManager = UnityEngine.Object.FindFirstObjectByType<GameManager>();
+        if (gameManager == null)
+        {
+            report.Add("[INFO] GameManager missing; natural construction flow remains at current speed.");
+            return;
+        }
+
+        if (gameManager.isPause)
+        {
+            gameManager.TogglePause();
+        }
+
+        int changes = 0;
+        while (Time.timeScale < 4.9f && changes++ < 5)
+        {
+            gameManager.ChangeGameSpeed();
+        }
+
+        report.Add($"[INFO] Natural construction flow speed={Time.timeScale:0.##}x");
+    }
+
+    private void AppendNaturalConstructionDiagnostics(
+        IWorkOrderRuntime workOrderRuntime,
+        IWorldItemStackRuntime itemRuntime,
+        string materialDestinationId,
+        ConstructionSite site)
+    {
+        report.Add(
+            $"[FLOW SITE] site={site?.name};"
+            + $" reservation={site?.WorkerReservation?.name};"
+            + $" worker={site?.ActiveWorker?.name};"
+            + $" status={site?.GetConstructionWorkStatus().FailureKind}:"
+            + $"{site?.GetConstructionWorkStatus().Reason}");
+
+        foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks()
+                     .Where(stack => stack != null)
+                     .OrderBy(stack => stack.StackId, StringComparer.Ordinal))
+        {
+            report.Add(
+                $"[FLOW STACK] id={stack.StackId}; item={stack.ItemId}; state={stack.State};"
+                + $" pos={stack.Position}; qty={stack.Quantity}; dest={stack.DestinationId};"
+                + $" reserved={stack.ReservedByPersistentId}; source={stack.SourceStorageDestinationId};"
+                + $" matchesConstruction={string.Equals(stack.DestinationId, materialDestinationId, StringComparison.Ordinal)}");
+        }
+
+        foreach (CharacterActor actor in UnityEngine.Object.FindObjectsByType<CharacterActor>(
+                     FindObjectsInactive.Exclude,
+                     FindObjectsSortMode.None)
+                     .Where(actor => actor != null && !actor.IsDead))
+        {
+            AbilityWork work = actor.GetComponent<AbilityWork>();
+            string haulPriority = work != null
+                ? work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul).ToString()
+                : "none";
+            string constructPriority = work != null
+                ? work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Construct).ToString()
+                : "none";
+            FacilityAssignmentStatus constructionStatus =
+                site != null
+                    ? site.GetWorkerAssignmentStatus(actor)
+                    : FacilityAssignmentStatus.Rejected(
+                        FacilityAssignmentFailureKind.Unknown,
+                        "site missing");
+            report.Add(
+                $"[FLOW ACTOR] name={actor.name}; id={actor.Identity?.PersistentId};"
+                + $" pos={actor.GetNowXY()}; ai={actor.CanRunAi}; offDuty={work?.IsOffDuty};"
+                + $" haul={haulPriority}; construct={constructPriority};"
+                + $" haulCandidate={itemRuntime.HasAvailableHaulJob(actor)};"
+                + $" constructAllowed={constructionStatus.IsAllowed};"
+                + $" constructReason={constructionStatus.Reason};"
+                + $" deferred={actor.Brain?.IsPathSearchDeferred};"
+                + $" action={actor.Brain?.CurrentActionDebugLabel};"
+                + $" phase={actor.Brain?.CurrentActionPhase};"
+                + $" detail={actor.Brain?.CurrentActionPhaseDetail}");
+            if (actor.Brain != null)
+            {
+                report.Add(
+                    $"[FLOW AI] name={actor.name}; "
+                    + actor.Brain.GetDebugSummary(8).Replace("\n", " | "));
+            }
+        }
+
+        DungeonWorkOrderSaveData orderSnapshot = workOrderRuntime.Capture();
+        foreach (WorkOrderSaveData order in orderSnapshot?.orders
+                     ?? new List<WorkOrderSaveData>())
+        {
+            string materialSummary = string.Join(
+                ",",
+                (order.materials ?? new List<WorkOrderMaterialSaveData>())
+                .Select(material =>
+                    $"{material.category}:{material.delivered}/{material.required}"));
+            report.Add(
+                $"[FLOW ORDER] id={order.workOrderId}; status={order.status};"
+                + $" work={order.completedWork:0.##}/{order.requiredWork:0.##};"
+                + $" worker={order.reservedWorkerPersistentId};"
+                + $" materials={materialSummary}");
+        }
+
+        IGameplayFlowDiagnosticsQuery diagnostics =
+            ResolveFromGameplayScope<IGameplayFlowDiagnosticsQuery>();
+        IWorldItemHaulPlanningService haulPlanning =
+            ResolveFromGameplayScope<IWorldItemHaulPlanningService>();
+        if (haulPlanning != null)
+        {
+            foreach (CharacterActor actor in UnityEngine.Object
+                         .FindObjectsByType<CharacterActor>(
+                             FindObjectsInactive.Exclude,
+                             FindObjectsSortMode.None)
+                         .Where(actor => actor != null
+                             && !actor.IsDead
+                             && actor.CanRunAi))
+            {
+                bool hasPreview = haulPlanning.TryPreviewBestPlan(
+                    actor,
+                    out WorldItemHaulPlan preview,
+                    out string previewFailureReason);
+                WorldItemReservedStackQuantity primary =
+                    hasPreview && preview.ReservedStackQuantities.Count > 0
+                        ? preview.ReservedStackQuantities[0]
+                        : default;
+                report.Add(
+                    $"[FLOW HAUL PREVIEW] name={actor.name}; valid={hasPreview};"
+                    + $" stack={primary.StackId}; dest={primary.DestinationId};"
+                    + $" pickup={primary.Position};"
+                    + $" failure={previewFailureReason}");
+            }
+        }
+
+        GameplayFlowDiagnosticsSnapshot flow = diagnostics?.Capture();
+        if (flow != null)
+        {
+            report.Add(
+                $"[FLOW DIAGNOSTIC] {flow.Summary} :: "
+                + string.Join(
+                    " || ",
+                    flow.Items.Select(item => $"{item.Title}={item.Detail}")));
+        }
     }
 
     private IEnumerator ClickWorldPoint(Vector2 screenPoint)

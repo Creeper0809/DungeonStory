@@ -31,41 +31,41 @@ MonoBehaviour:
   researchWorkRequired: 20
   unlocks:
     items:
-    - rid: 7302563146589274827
-    - rid: 7302563146589274828
-    - rid: 7302563146589274829
-    - rid: 7302563146589274830
-    - rid: 7302563146589274831
-    - rid: 7302563146589274832
-    - rid: 7302563146589274833
+    - rid: 7302563192359358079
+    - rid: 7302563192359358080
+    - rid: 7302563192359358081
+    - rid: 7302563192359358082
+    - rid: 7302563192359358083
+    - rid: 7302563192359358084
+    - rid: 7302563192359358085
   references:
     version: 2
     RefIds:
-    - rid: 7302563146589274827
+    - rid: 7302563192359358079
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1021
-    - rid: 7302563146589274828
+    - rid: 7302563192359358080
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1022
-    - rid: 7302563146589274829
+    - rid: 7302563192359358081
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1024
-    - rid: 7302563146589274830
+    - rid: 7302563192359358082
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1025
-    - rid: 7302563146589274831
+    - rid: 7302563192359358083
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1060
-    - rid: 7302563146589274832
+    - rid: 7302563192359358084
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1063
-    - rid: 7302563146589274833
+    - rid: 7302563192359358085
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1054

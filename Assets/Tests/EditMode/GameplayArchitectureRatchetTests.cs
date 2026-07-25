@@ -105,6 +105,69 @@ namespace DungeonStory.Tests.Architecture
         }
 
         [Test]
+        public void GameplaySceneRootHierarchyUsesAuthoringBuckets()
+        {
+            string scenePath = Path.Combine(Application.dataPath, "Scenes", "GameplayScene.unity");
+            string sceneText = File.ReadAllText(scenePath);
+            string[] requiredRoots =
+            {
+                "__Scene",
+                "__Systems",
+                "__Runtime",
+                "__Debug"
+            };
+
+            foreach (string rootName in requiredRoots)
+            {
+                Assert.That(
+                    sceneText,
+                    Does.Contain($"m_Name: {rootName}"),
+                    $"GameplayScene must keep the '{rootName}' hierarchy bucket.");
+            }
+
+            Match roots = Regex.Match(
+                sceneText,
+                @"m_Roots:\s*(?<items>(?:\r?\n\s+- \{fileID: \d+\})+)",
+                RegexOptions.Singleline);
+
+            Assert.That(roots.Success, Is.True, "GameplayScene root section was not found.");
+            Assert.That(
+                Regex.Matches(roots.Groups["items"].Value, @"\{fileID: \d+\}").Count,
+                Is.EqualTo(requiredRoots.Length),
+                "GameplayScene should expose only the four top-level hierarchy buckets.");
+        }
+
+        [Test]
+        public void GameplaySceneKeepsAuthoredGroundAndTransientGridVisualsClean()
+        {
+            string scenePath = Path.Combine(Application.dataPath, "Scenes", "GameplayScene.unity");
+            string sceneText = File.ReadAllText(scenePath);
+            string groundTilemap = ReadYamlObject(sceneText, 210129473);
+            string wallTilemap = ReadYamlObject(sceneText, 1827891644);
+
+            Assert.That(
+                groundTilemap,
+                Does.Contain("guid: 82c0f0d68d9fce94daa05c4775992629"),
+                "Ground surface cells must keep the authored summer edge tile.");
+            Assert.That(
+                groundTilemap,
+                Does.Contain("guid: 23754a2050bae274aa906ca797f12ab7"),
+                "Ground fill cells must keep the authored summer soil tile.");
+            Assert.That(
+                groundTilemap,
+                Does.Contain("m_Data: {r: 1, g: 1, b: 1, a: 1}"),
+                "Ground tiles must not retain placement/debug tint overrides.");
+            Assert.That(
+                wallTilemap,
+                Does.Contain("m_Tiles: {}"),
+                "Runtime wall visuals must not be serialized into GameplayScene.");
+            Assert.That(
+                sceneText,
+                Does.Contain("gridOverlayTile: {fileID: 11400000, guid: 86447a79140ba3e42833190c4cbe8279, type: 2}"),
+                "The placement grid must reference its authored outline tile explicitly.");
+        }
+
+        [Test]
         public void ProductGodObjectsStayBelowRatchetLimit()
         {
             SourceFile[] offenders = ProductSources()
@@ -3153,6 +3216,16 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(shopping.Text, Does.Not.Match(@"\b(?:UnityEngine\.)?Random\."));
             Assert.That(shopping.Text, Does.Not.Match(@"\bTime\."));
             Assert.That(stats.Text, Does.Not.Match(@"\bTime\."));
+        }
+
+        private static string ReadYamlObject(string sceneText, long fileId)
+        {
+            Match match = Regex.Match(
+                sceneText,
+                $@"--- !u!\d+ &{fileId}\r?\n.*?(?=\r?\n--- !u!|\z)",
+                RegexOptions.Singleline);
+            Assert.That(match.Success, Is.True, $"Scene object {fileId} was not found.");
+            return match.Value;
         }
 
         private static int Count(IEnumerable<SourceFile> sources, Regex pattern)

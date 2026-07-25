@@ -143,7 +143,7 @@ public sealed class CharacterBodyHealthRuntime :
             if (bleeding > 0f)
             {
                 state.bloodLoss = Mathf.Clamp(state.bloodLoss + bleeding * delta, 0f, 100f);
-                actor.ApplyDamage(bleeding * 0.12f * delta, "출혈");
+                actor.ApplyBodyDamage(bleeding * 0.12f * delta, "출혈");
                 if (state.bloodLoss >= 100f && !actor.IsDead)
                 {
                     actor.Die("과다 출혈");
@@ -193,7 +193,7 @@ public sealed class CharacterBodyHealthRuntime :
         part.currentHealth = Mathf.Max(0f, part.currentHealth - result.AppliedDamage);
         part.bleedingPerSecond += result.Bleeding * 0.01f;
         state.lastDamageReason = reason ?? string.Empty;
-        target.ApplyDamage(result.AppliedDamage, reason);
+        target.ApplyBodyDamage(result.AppliedDamage, reason);
 
         if (!target.IsDead
             && (result.BodyPart == CombatBodyPart.Head || result.BodyPart == CombatBodyPart.Torso)

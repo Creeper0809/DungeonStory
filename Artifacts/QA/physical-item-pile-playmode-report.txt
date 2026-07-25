@@ -4,37 +4,37 @@
 [PASS] CAMERA_READY main camera resolved
 [PASS] ITEM_PANEL_READY ItemPileInfoPanel resolved
 [PASS] CHARACTER_PANEL_READY CharacterSummeryInfo resolved
-[INFO] FAST_PARTY_COMMIT committed=True; message=Dion이 직원 2명과 함께 런을 시작합니다.; staff=2; actors=Miru:-1386486:staff:208204312:01:active=True,Ruka:-1386604:staff:208204312:02:active=True; diagnostics=created-1:name=Miru;instance=-1386486;go=-1386458;components=1;id=staff:208204312:01;active=False || created-2:name=Ruka;instance=-1386604;go=-1386576;components=1;id=staff:208204312:02;active=False || scan-before-enable:name=Miru;instance=-1386486;go=-1386458;components=1;id=staff:208204312:01;active=False;retained=True || scan-before-enable:name=Ruka;instance=-1386604;go=-1386576;components=1;id=staff:208204312:02;active=False;retained=True || scan-after-enable:name=Miru;instance=-1386486;go=-1386458;components=1;id=staff:208204312:01;active=True;retained=True || scan-after-enable:name=Ruka;instance=-1386604;go=-1386576;components=1;id=staff:208204312:02;active=True;retained=True || retained-final:name=Miru;instance=-1386486;go=-1386458;components=1;id=staff:208204312:01;active=True || retained-final:name=Ruka;instance=-1386604;go=-1386576;components=1;id=staff:208204312:02;active=True
-[PASS] RUN_READY owner=Dion
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Miru:-8387454:staff:338958781:01:active=True,Cain:-8387564:staff:338958781:02:active=True; diagnostics=prepared-1:name=Miru;go=-8387426;id=staff:338958781:01;active=False || prepared-2:name=Cain;go=-8387536;id=staff:338958781:02;active=False || scan:name=Miru;go=-8387426;id=staff:338958781:01;active=False;retained=True || scan:name=Cain;go=-8387536;id=staff:338958781:02;active=False;retained=True || scan:name=Miru;go=-8387426;id=staff:338958781:01;active=True;retained=True || scan:name=Cain;go=-8387536;id=staff:338958781:02;active=True;retained=True || retained:name=Miru;go=-8387426;id=staff:338958781:01;active=True || retained:name=Cain;go=-8387536;id=staff:338958781:02;active=True
+[PASS] RUN_READY owner=Arin
 SPAWN_ITEM; item=stock-item:0; requested=12; spawned=12; position=(30, 1)
 SPAWN_ITEM; item=stock-item:2; requested=4; spawned=4; position=(30, 1)
 SPAWN_ITEM; item=stock-item:3; requested=2; spawned=2; position=(30, 1)
 [PASS] PILE_CREATED position=(30, 1); stacks=3; qty=18; kinds=3
 [PASS] PILE_MARKER_CREATED marker=ItemPile_30_1
-[PASS] STORED_ITEM_SPAWNED position=(31, 1); spawned=7
-[PASS] STORED_ITEM_HIDDEN_BY_DEFAULT position=(31, 1); marker=<none>
+[PASS] STORED_ITEM_SPAWNED position=(29, 1); spawned=7
+[PASS] STORED_ITEM_HIDDEN_BY_DEFAULT position=(29, 1); marker=<none>
 [PASS] UI_POINTER_TARGET item view toggle
 [PASS] STORED_ITEM_VISIBLE_WITH_TOGGLE toggle=True; stacks=1
-[PASS] STORED_ITEM_MARKER_CREATED marker=ItemPile_31_1
+[PASS] STORED_ITEM_MARKER_CREATED marker=ItemPile_29_1
 [PASS] UI_POINTER_TARGET item view toggle off
 [PASS] STORED_ITEM_HIDES_AGAIN toggle=False
 [PASS] PILE_HOVER_TOOLTIP 식량 x12 외 2종 · 16.3kg
-[PASS] PILE_CLICK_OPENS_LIST itemPanel=True; rows=3; text=0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 x2 || 9kg · 바닥 · 예약 없음 · 목적지 - || 무기 x4 || 6.6kg · 바닥 · 예약 없음 · 목적지 - || 식량 x12 || 식량 x12 외 2종 · 16.3kg || 3종 || 18 || Dion 사장으로 시작 || 런 시작 변수 || Dion
-[PASS] PILE_LIST_ROWS rows=3; text=0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 x2 || 9kg · 바닥 · 예약 없음 · 목적지 - || 무기 x4 || 6.6kg · 바닥 · 예약 없음 · 목적지 - || 식량 x12 || 식량 x12 외 2종 · 16.3kg || 3종 || 18 || Dion 사장으로 시작 || 런 시작 변수 || Dion
-[PASS] PILE_LIST_TEXT 0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 x2 || 9kg · 바닥 · 예약 없음 · 목적지 - || 무기 x4 || 6.6kg · 바닥 · 예약 없음 · 목적지 - || 식량 x12 || 식량 x12 외 2종 · 16.3kg || 3종 || 18 || Dion 사장으로 시작 || 런 시작 변수 || Dion
-[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-pile-list.png; bytes=150326
+[PASS] PILE_CLICK_OPENS_LIST itemPanel=True; rows=3; text=0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 x2 || 9kg · 바닥 · 예약 없음 · 목적지 - || 무기 x4 || 6.6kg · 바닥 · 예약 없음 · 목적지 - || 식량 x12 || 식량 x12 외 2종 · 16.3kg || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다
+[PASS] PILE_LIST_ROWS rows=3; text=0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 x2 || 9kg · 바닥 · 예약 없음 · 목적지 - || 무기 x4 || 6.6kg · 바닥 · 예약 없음 · 목적지 - || 식량 x12 || 식량 x12 외 2종 · 16.3kg || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다
+[PASS] PILE_LIST_TEXT 0.7kg · 바닥 · 예약 없음 · 목적지 - || 마나 x2 || 9kg · 바닥 · 예약 없음 · 목적지 - || 무기 x4 || 6.6kg · 바닥 · 예약 없음 · 목적지 - || 식량 x12 || 식량 x12 외 2종 · 16.3kg || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다
+[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-pile-list.png; bytes=547552
 [PASS] UI_POINTER_TARGET first stack row
-[PASS] PILE_DETAIL_BACK_BUTTON clicked=StackRow_stack:00000001; itemPanel=True; rows=0; text=버리기 || 금지 || 예약 해제 || 운반 우선 || 식량 식량 재고  수량 12 단위 무게 0.55kg 총 무게 6.6kg 단가 4 총 가치 48 상태 바닥 위치 (30, 1) 예약자 - 목적지 - 운반 가능 || 뒤로 || 3종 || 18 || Dion 사장으로 시작 || 런 시작 변수 || Dion || Ruka
-[PASS] PILE_DETAIL_TEXT 버리기 || 금지 || 예약 해제 || 운반 우선 || 식량 식량 재고  수량 12 단위 무게 0.55kg 총 무게 6.6kg 단가 4 총 가치 48 상태 바닥 위치 (30, 1) 예약자 - 목적지 - 운반 가능 || 뒤로 || 3종 || 18 || Dion 사장으로 시작 || 런 시작 변수 || Dion || Ruka
-[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-pile-detail.png; bytes=158609
+[PASS] PILE_DETAIL_BACK_BUTTON clicked=StackRow_stack:00000006; itemPanel=True; rows=0; text=버리기 || 금지 || 예약 해제 || 운반 우선 || 식량 식량 재고  수량 12 단위 무게 0.55kg 총 무게 6.6kg 단가 4 총 가치 48 상태 바닥 위치 (30, 1) 예약자 - 목적지 - 운반 가능 || 뒤로 || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다 || :/
+[PASS] PILE_DETAIL_TEXT 버리기 || 금지 || 예약 해제 || 운반 우선 || 식량 식량 재고  수량 12 단위 무게 0.55kg 총 무게 6.6kg 단가 4 총 가치 48 상태 바닥 위치 (30, 1) 예약자 - 목적지 - 운반 가능 || 뒤로 || 3종 || 18 || Arin 사장으로 시작 || 연료가 부족합니다 || 식량이 부족합니다 || :/
+[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-pile-detail.png; bytes=580157
 [PASS] UI_POINTER_TARGET detail back
 [PASS] PILE_BACK_RETURNS_TO_LIST rows=3
-[PASS] CHARACTER_FOR_PRIORITY Miru
-[PASS] CHARACTER_COLLIDER Miru
+[PASS] CHARACTER_FOR_PRIORITY Arin
+[PASS] CHARACTER_COLLIDER Arin
 [PASS] CHARACTER_BEATS_ITEM characterPanel=True; itemPanel=False
-[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-character-priority.png; bytes=178798
+[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-character-priority.png; bytes=667330
 [PASS] ALT_CLICK_FORCES_ITEM itemPanel=True; rows=3
-[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-alt-select.png; bytes=162852
+[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-alt-select.png; bytes=599536
 capturedErrors=0; <none>
 capturedWarnings=0; <none>
 RESULT=PASS; failures=0; <none>

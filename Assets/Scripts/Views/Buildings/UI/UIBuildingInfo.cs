@@ -24,10 +24,14 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private ICombatEquipmentCatalog combatEquipmentCatalog;
     private IWorkOrderRuntime workOrderRuntime;
     private IGameEventBus gameEventBus;
+    private IDoorAccessPanelPresenter doorAccessPanelPresenter;
+    private ICircusBuildingPanelPresenter circusBuildingPanelPresenter;
     private IDisposable infoFeedSubscription;
     private bool initialized;
     private readonly List<GameObject> craftActionObjects = new List<GameObject>();
     private string craftStatusMessage = string.Empty;
+    private GameObject contextActionsPanel;
+    private RectTransform contextActionsContent;
 
     public GameObject buildingImageObject;
 
@@ -47,7 +51,9 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         ICombatEquipmentMaintenanceRuntime equipmentMaintenanceRuntime,
         ICombatEquipmentRuntime combatEquipmentRuntime,
         ICombatEquipmentCatalog combatEquipmentCatalog,
-        IWorkOrderRuntime workOrderRuntime)
+        IWorkOrderRuntime workOrderRuntime,
+        IDoorAccessPanelPresenter doorAccessPanelPresenter,
+        ICircusBuildingPanelPresenter circusBuildingPanelPresenter)
     {
         this.buildingDefinitionLookup = buildingDefinitionLookup
             ?? throw new ArgumentNullException(nameof(buildingDefinitionLookup));
@@ -63,6 +69,10 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             ?? throw new ArgumentNullException(nameof(combatEquipmentCatalog));
         this.workOrderRuntime = workOrderRuntime
             ?? throw new ArgumentNullException(nameof(workOrderRuntime));
+        this.doorAccessPanelPresenter = doorAccessPanelPresenter
+            ?? throw new ArgumentNullException(nameof(doorAccessPanelPresenter));
+        this.circusBuildingPanelPresenter = circusBuildingPanelPresenter
+            ?? throw new ArgumentNullException(nameof(circusBuildingPanelPresenter));
     }
 
     [Inject]
@@ -267,23 +277,43 @@ public class UIBuildingInfo : SerializedMonoBehaviour
 
         RenderCraftActions(buildingData, building);
         RenderMaintenanceActions(buildingData, building);
+        if (building is Door door)
+        {
+            IReadOnlyList<GameObject> doorObjects = doorAccessPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                door,
+                nameText != null ? nameText.font : null,
+                () => DisplayBuildingInfo(door));
+            craftActionObjects.AddRange(doorObjects);
+        }
+        if (buildingData.GetCircusStageAbility() != null)
+        {
+            IReadOnlyList<GameObject> circusObjects =
+                circusBuildingPanelPresenter.Render(
+                    RequireContextActionsRoot(),
+                    building,
+                    nameText != null ? nameText.font : null,
+                    () => DisplayBuildingInfo(building));
+            craftActionObjects.AddRange(circusObjects);
+        }
     }
 
     private void RenderConstructionActions(ConstructionSite site)
     {
         craftStatusMessage = string.Empty;
-        if (site == null || simpleInfoPanel == null)
+        if (site == null)
         {
             return;
         }
 
+        Transform actionsRoot = RequireContextActionsRoot();
         if (workOrderRuntime.TryGetOrderFor(site, BuiltInWorkTypeIds.Construct, out WorkOrderProgressState order))
         {
-            craftActionObjects.Add(CreateConstructionProgressBar(simpleInfoPanel.transform, order));
+            craftActionObjects.Add(CreateConstructionProgressBar(actionsRoot, order));
         }
 
         GameObject cancelButton = CreateCraftButton(
-            simpleInfoPanel.transform,
+            actionsRoot,
             "공사 취소",
             () =>
             {
@@ -299,7 +329,6 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         BuildingEquipmentCraftingAbility crafting = buildingData
             ?.GetAbility<BuildingEquipmentCraftingAbility>();
         if (crafting == null
-            || simpleInfoPanel == null
             || !building.TryGetExpeditionEquipmentRuntime(out IExpeditionEquipmentRuntime runtime))
         {
             craftStatusMessage = string.Empty;
@@ -309,6 +338,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         HashSet<string> craftableIds = new HashSet<string>(
             crafting.CraftableEquipmentIds.Where(id => !string.IsNullOrWhiteSpace(id)),
             StringComparer.Ordinal);
+        Transform actionsRoot = RequireContextActionsRoot();
         foreach (ExpeditionEquipmentDefinition definition in runtime.Definitions
             .Where(definition => definition != null && craftableIds.Contains(definition.id))
             .OrderBy(definition => definition.slot)
@@ -316,7 +346,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         {
             ExpeditionEquipmentDefinition captured = definition;
             GameObject buttonObject = CreateCraftButton(
-                simpleInfoPanel.transform,
+                actionsRoot,
                 $"제작 {definition.displayName}",
                 () =>
                 {
@@ -331,7 +361,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
 
         if (!string.IsNullOrWhiteSpace(craftStatusMessage))
         {
-            GameObject statusObject = CreateCraftStatus(simpleInfoPanel.transform, craftStatusMessage);
+            GameObject statusObject = CreateCraftStatus(actionsRoot, craftStatusMessage);
             craftActionObjects.Add(statusObject);
         }
     }
@@ -341,8 +371,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         BuildableObject building)
     {
         if (buildingData?.GetAbility<BuildingEquipmentMaintenanceAbility>() == null
-            || building == null
-            || simpleInfoPanel == null)
+            || building == null)
         {
             return;
         }
@@ -354,8 +383,9 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                     && order.FacilityPosition == building.centerPos)
                 .OrderBy(order => order.orderId, StringComparer.Ordinal)
                 .ToArray();
+        Transform actionsRoot = RequireContextActionsRoot();
         GameObject header = CreateCraftStatus(
-            simpleInfoPanel.transform,
+            actionsRoot,
             orders.Count == 0
                 ? "장비 수리 대기열이 비어 있습니다."
                 : $"장비 수리 대기열 {orders.Count}건");
@@ -380,7 +410,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             }
 
             GameObject progress = CreateMaintenanceProgressBar(
-                simpleInfoPanel.transform,
+                actionsRoot,
                 equipmentName,
                 order);
             progress.name = $"BuildingMaintenance_{i}";
@@ -567,6 +597,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
 
             if (Application.isPlaying)
             {
+                item.SetActive(false);
                 Destroy(item);
             }
             else
@@ -576,6 +607,149 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         }
 
         craftActionObjects.Clear();
+        if (contextActionsPanel != null)
+        {
+            contextActionsPanel.SetActive(false);
+        }
+    }
+
+    private Transform RequireContextActionsRoot()
+    {
+        EnsureContextActionsPanel();
+        contextActionsPanel.SetActive(true);
+        contextActionsPanel.transform.SetAsLastSibling();
+        return contextActionsContent;
+    }
+
+    private void EnsureContextActionsPanel()
+    {
+        if (contextActionsPanel != null && contextActionsContent != null)
+        {
+            return;
+        }
+
+        Transform existing = transform.Find("BuildingContextActions");
+        if (existing != null)
+        {
+            contextActionsPanel = existing.gameObject;
+            contextActionsContent = existing
+                .Find("Viewport/Content") as RectTransform;
+            if (contextActionsContent != null)
+            {
+                return;
+            }
+
+            Destroy(existing.gameObject);
+        }
+
+        contextActionsPanel = new GameObject(
+            "BuildingContextActions",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(ScrollRect));
+        contextActionsPanel.transform.SetParent(transform, false);
+        RectTransform panelRect = contextActionsPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0.38f, 0.08f);
+        panelRect.anchorMax = new Vector2(0.98f, 0.72f);
+        panelRect.offsetMin = Vector2.zero;
+        panelRect.offsetMax = Vector2.zero;
+        contextActionsPanel.GetComponent<Image>().color = DungeonUiTheme.Surface;
+
+        GameObject viewportObject = new GameObject(
+            "Viewport",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(RectMask2D));
+        viewportObject.transform.SetParent(contextActionsPanel.transform, false);
+        RectTransform viewport = viewportObject.GetComponent<RectTransform>();
+        viewport.anchorMin = Vector2.zero;
+        viewport.anchorMax = Vector2.one;
+        viewport.offsetMin = new Vector2(8f, 8f);
+        viewport.offsetMax = new Vector2(-24f, -8f);
+        Image viewportImage = viewportObject.GetComponent<Image>();
+        viewportImage.color = new Color(0f, 0f, 0f, 0.01f);
+
+        GameObject contentObject = new GameObject(
+            "Content",
+            typeof(RectTransform),
+            typeof(VerticalLayoutGroup),
+            typeof(ContentSizeFitter));
+        contentObject.transform.SetParent(viewportObject.transform, false);
+        contextActionsContent = contentObject.GetComponent<RectTransform>();
+        contextActionsContent.anchorMin = new Vector2(0f, 1f);
+        contextActionsContent.anchorMax = new Vector2(1f, 1f);
+        contextActionsContent.pivot = new Vector2(0.5f, 1f);
+        contextActionsContent.anchoredPosition = Vector2.zero;
+        contextActionsContent.sizeDelta = Vector2.zero;
+        VerticalLayoutGroup layout = contentObject.GetComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(8, 8, 8, 8);
+        layout.spacing = 6f;
+        layout.childAlignment = TextAnchor.UpperLeft;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        ContentSizeFitter fitter = contentObject.GetComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        Scrollbar scrollbar = CreateContextScrollbar(contextActionsPanel.transform);
+        ScrollRect scroll = contextActionsPanel.GetComponent<ScrollRect>();
+        scroll.content = contextActionsContent;
+        scroll.viewport = viewport;
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 36f;
+        scroll.verticalScrollbar = scrollbar;
+        scroll.verticalScrollbarVisibility =
+            ScrollRect.ScrollbarVisibility.AutoHideAndExpandViewport;
+        scroll.verticalScrollbarSpacing = 4f;
+        contextActionsPanel.SetActive(false);
+    }
+
+    private static Scrollbar CreateContextScrollbar(Transform parent)
+    {
+        GameObject root = new GameObject(
+            "Scrollbar",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(Scrollbar));
+        root.transform.SetParent(parent, false);
+        RectTransform rootRect = root.GetComponent<RectTransform>();
+        rootRect.anchorMin = new Vector2(1f, 0f);
+        rootRect.anchorMax = Vector2.one;
+        rootRect.pivot = Vector2.one;
+        rootRect.offsetMin = new Vector2(-16f, 8f);
+        rootRect.offsetMax = new Vector2(-4f, -8f);
+        root.GetComponent<Image>().color = DungeonUiTheme.SurfaceMuted;
+
+        GameObject slidingArea = new GameObject("Sliding Area", typeof(RectTransform));
+        slidingArea.transform.SetParent(root.transform, false);
+        RectTransform slidingRect = slidingArea.GetComponent<RectTransform>();
+        slidingRect.anchorMin = Vector2.zero;
+        slidingRect.anchorMax = Vector2.one;
+        slidingRect.offsetMin = new Vector2(2f, 2f);
+        slidingRect.offsetMax = new Vector2(-2f, -2f);
+
+        GameObject handleObject = new GameObject(
+            "Handle",
+            typeof(RectTransform),
+            typeof(Image));
+        handleObject.transform.SetParent(slidingArea.transform, false);
+        RectTransform handle = handleObject.GetComponent<RectTransform>();
+        handle.anchorMin = Vector2.zero;
+        handle.anchorMax = Vector2.one;
+        handle.offsetMin = Vector2.zero;
+        handle.offsetMax = Vector2.zero;
+        Image handleImage = handleObject.GetComponent<Image>();
+        handleImage.color = DungeonUiTheme.Accent;
+
+        Scrollbar scrollbar = root.GetComponent<Scrollbar>();
+        scrollbar.handleRect = handle;
+        scrollbar.targetGraphic = handleImage;
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+        return scrollbar;
     }
 
     private static string FormatCraftMessage(string message)

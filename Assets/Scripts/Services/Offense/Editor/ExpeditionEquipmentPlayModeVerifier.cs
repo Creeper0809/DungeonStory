@@ -228,8 +228,8 @@ public sealed class ExpeditionEquipmentPlayModeVerificationRunner : MonoBehaviou
                 : "missing order");
 
         int weaponStockAfter = GetQueriedWeaponStock(inventoryQuery, materialInventory);
-        Check(weaponStockAfter < weaponStockBefore,
-            "CRAFT_COST_WITHDRAWN",
+        Check(weaponStockAfter == weaponStockBefore,
+            "CRAFT_COST_RESERVED_UNTIL_PICKUP",
             $"weaponStock={weaponStockBefore}->{weaponStockAfter}; status={craftStatus}");
         int deliveryStacks = itemRuntime != null && queuedOrder != null
             ? itemRuntime.GetAllStacks().Count(stack => stack != null

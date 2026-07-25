@@ -120,7 +120,8 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
             FindBuildingDataById,
             buildingFactory,
             new BuildingPlacementValidator(new GridPlacementValidator(), CreateBuildingConditionContext),
-            workOrderRuntime);
+            workOrderRuntime,
+            ConfigurePlacedBuilding);
         if (!HasAnyPlacedStructures(gridSystem.grid))
         {
             placementService.PlaceInitialBuildings(NormalizeInitialPlacementForCurrentGrid(

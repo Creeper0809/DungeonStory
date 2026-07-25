@@ -611,6 +611,8 @@ MonoBehaviour:
   socialMemory: {fileID: 0}
   aiMemory: {fileID: 0}
   behaviorTree: {fileID: 0}
+  runtimeBridge: {fileID: 0}
+  presentationBridge: {fileID: 0}
 --- !u!114 &4240505355425386822
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -674,12 +676,12 @@ MonoBehaviour:
       Data: 
     - Name: jobGiverUtilityScores
       Entry: 7
-      Data: 4|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, Assembly-CSharp],[System.Single,
+      Data: 4|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
         mscorlib]], mscorlib
     - Name: comparer
       Entry: 7
       Data: 5|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
-        Assembly-CSharp]], mscorlib
+        DungeonStory.AI]], mscorlib
     - Name: 
       Entry: 12
       Data: 0
@@ -700,12 +702,12 @@ MonoBehaviour:
       Data: 
     - Name: routineGroupPriorityScores
       Entry: 7
-      Data: 6|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, Assembly-CSharp],[System.Single,
+      Data: 6|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
         mscorlib]], mscorlib
     - Name: comparer
       Entry: 7
       Data: 7|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
-        Assembly-CSharp]], mscorlib
+        DungeonStory.AI]], mscorlib
     - Name: 
       Entry: 12
       Data: 0

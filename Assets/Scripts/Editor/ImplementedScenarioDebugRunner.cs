@@ -86,9 +86,11 @@ public static class ImplementedScenarioDebugRunner
         Run("P1 Owner character", OwnerDebugScenarios.RunAll, results);
         Run("P1 Work priority", WorkPriorityDebugScenarios.RunAll, results);
         Run("P1 Work amount", WorkAmountDebugScenarios.RunAll, results);
+        Run("P1 Captivity, circus, and door access", CaptivityCircusDebugScenarios.RunAll, results);
         Run("P1 Priority command", PriorityCommandDebugScenarios.RunAll, results);
         Run("P1 Staff duty", StaffDutyDebugScenarios.RunAll, results);
         Run("P1 Operating day", OperatingDaySettlementDebugScenarios.RunAll, results);
+        Run("P1 Gameplay flow diagnostics", GameplayFlowDiagnosticsDebugScenarios.RunAll, results);
         Run("P1 Character feedback", CharacterFeedbackDebugScenarios.RunAll, results);
         Run("P1 Event alerts", EventAlertDebugScenarios.RunAll, results);
         Run("P1 Invasion threat", InvasionThreatDebugScenarios.RunAll, results);
@@ -124,6 +126,7 @@ public static class ImplementedScenarioDebugRunner
         P1FacilityShopAssetBuilder.EnsureP1FacilityShopAssets();
         P1FacilitySynthesisAssetBuilder.EnsureP1SynthesisAssets();
         P1FacilityEvolutionAssetBuilder.EnsureP1EvolutionAssets();
+        CaptivityFacilityAssetBuilder.BuildAll();
     }
 
     private static void Run(

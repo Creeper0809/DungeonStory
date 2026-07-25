@@ -36,6 +36,11 @@ public static class DungeonAiRegistration
 
         builder.Register<RoomLayoutCache>(Lifetime.Singleton)
             .As<IRoomLayoutCache>();
+        builder.Register<DoorAccessService>(Lifetime.Singleton)
+            .As<IDoorAccessQuery>()
+            .As<IDoorAccessCommandService>()
+            .As<IDoorAccessSubjectRegistry>()
+            .As<IDoorAccessStateChangeSink>();
         builder.Register<ResourceRoomEnvironmentSettingsProvider>(Lifetime.Singleton)
             .As<IRoomEnvironmentSettingsProvider>();
         builder.Register<RoomEnvironmentEvaluator>(Lifetime.Singleton)
