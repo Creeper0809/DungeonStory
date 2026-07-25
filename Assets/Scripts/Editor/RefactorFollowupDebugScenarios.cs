@@ -142,15 +142,33 @@ public static class RefactorFollowupDebugScenarios
     private static bool VerifyCachedRuntimeProviders()
     {
         DungeonSceneComponentQuery query = new DungeonSceneComponentQuery();
+        CharacterSceneRuntimeReferences characterReferences =
+            new CharacterSceneRuntimeReferences(
+                query.First<LocalLlmRequestQueue>(includeInactive: true),
+                query.First<SocialReputationRuntime>(includeInactive: true),
+                query.First<StaffDiscontentRuntime>(includeInactive: true),
+                query.First<RegularCustomerRuntime>(includeInactive: true),
+                query.First<CharacterSpawner>(includeInactive: true),
+                query.First<CharacterAiScheduler>(includeInactive: true),
+                query.First<OwnerRunManager>(includeInactive: true),
+                query.First<AiDirectorRuntime>(includeInactive: true));
+        ProgressionSceneRuntimeReferences progressionReferences =
+            new ProgressionSceneRuntimeReferences(
+                query.First<DailyFacilityShopRuntime>(includeInactive: true),
+                query.First<BlueprintResearchRuntime>(includeInactive: true),
+                query.First<MetaProgressionRuntime>(includeInactive: true));
 
-        bool localLlmFound = new LocalLlmRuntimeProvider(query)
+        bool localLlmFound = new LocalLlmRuntimeProvider(characterReferences)
             .TryGetRuntime(out ILocalLlmRuntime localLlmRuntime);
-        bool socialFound = new SocialReputationRuntimeProvider(query)
+        bool socialFound = new SocialReputationRuntimeProvider(characterReferences)
             .TryGetRuntime(out SocialReputationRuntime socialRuntime);
-        bool optionalMissingIsFalse = !new BlueprintResearchRuntimeProvider(query)
+        bool optionalMissingIsFalse = !new BlueprintResearchRuntimeProvider(
+                progressionReferences)
             .TryGetRuntime(out BlueprintResearchRuntime _);
+        FacilityFeatureSceneRuntimeReferences facilityReferences =
+            new FacilityFeatureSceneRuntimeReferences(null, null, null);
         bool requiredMissingIsClear = ThrowsInvalidOperation(
-            () => _ = new FacilityEvolutionRuntimeProvider(query).Runtime);
+            () => _ = new FacilityEvolutionRuntimeProvider(facilityReferences).Runtime);
 
         return localLlmFound
             && localLlmRuntime != null
@@ -173,4 +191,3 @@ public static class RefactorFollowupDebugScenarios
         }
     }
 }
-

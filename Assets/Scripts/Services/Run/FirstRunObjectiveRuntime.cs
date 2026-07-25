@@ -1,0 +1,489 @@
+using System;
+using DungeonStory.Foundation;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using VContainer.Unity;
+
+public enum FirstRunObjectiveId
+{
+    None,
+    ChooseOwner,
+    MakeUsableRoom,
+    AcquireBlueprint,
+    CompleteResearch,
+    CompleteSettlement,
+    DefendInvasion,
+    AdvanceOffense,
+    RevealTruth
+}
+
+public readonly struct FirstRunObjectiveSnapshot
+{
+    public FirstRunObjectiveSnapshot(
+        bool hasOwner,
+        bool hasUsableRoom,
+        int researchTaskCount,
+        int completedResearchCount,
+        float activeResearchRatio,
+        int settlementCount,
+        int defendedInvasionCount,
+        int currentDay,
+        DungeonRunPhase phase,
+        DungeonRunOutcome outcome,
+        int completedRunCount,
+        int completedOffenseTargetCount = 0,
+        int totalOffenseTargetCount = 0,
+        bool truthRevealed = false)
+    {
+        HasOwner = hasOwner;
+        HasUsableRoom = hasUsableRoom;
+        ResearchTaskCount = Mathf.Max(0, researchTaskCount);
+        CompletedResearchCount = Mathf.Max(0, completedResearchCount);
+        ActiveResearchRatio = Mathf.Clamp01(activeResearchRatio);
+        SettlementCount = Mathf.Max(0, settlementCount);
+        DefendedInvasionCount = Mathf.Max(0, defendedInvasionCount);
+        CurrentDay = Mathf.Max(1, currentDay);
+        Phase = phase;
+        Outcome = outcome;
+        CompletedRunCount = Mathf.Max(0, completedRunCount);
+        CompletedOffenseTargetCount = Mathf.Max(0, completedOffenseTargetCount);
+        TotalOffenseTargetCount = Mathf.Max(0, totalOffenseTargetCount);
+        TruthRevealed = truthRevealed;
+    }
+
+    public bool HasOwner { get; }
+    public bool HasUsableRoom { get; }
+    public int ResearchTaskCount { get; }
+    public int CompletedResearchCount { get; }
+    public float ActiveResearchRatio { get; }
+    public int SettlementCount { get; }
+    public int DefendedInvasionCount { get; }
+    public int CurrentDay { get; }
+    public DungeonRunPhase Phase { get; }
+    public DungeonRunOutcome Outcome { get; }
+    public int CompletedRunCount { get; }
+    public int CompletedOffenseTargetCount { get; }
+    public int TotalOffenseTargetCount { get; }
+    public bool TruthRevealed { get; }
+}
+
+public readonly struct FirstRunObjectivePresentation
+{
+    public FirstRunObjectivePresentation(
+        FirstRunObjectiveId id,
+        int step,
+        string title,
+        string detail)
+    {
+        Id = id;
+        Step = Mathf.Clamp(step, 0, FirstRunObjectiveResolver.TotalSteps);
+        Title = title ?? string.Empty;
+        Detail = detail ?? string.Empty;
+    }
+
+    public FirstRunObjectiveId Id { get; }
+    public int Step { get; }
+    public string Title { get; }
+    public string Detail { get; }
+    public bool IsVisible => Id != FirstRunObjectiveId.None;
+}
+
+public static class FirstRunObjectiveResolver
+{
+    public const int TotalSteps = 8;
+
+    public static FirstRunObjectivePresentation Resolve(FirstRunObjectiveSnapshot state)
+    {
+        if (state.CompletedRunCount > 0 || state.Outcome != DungeonRunOutcome.None)
+        {
+            return Hidden();
+        }
+
+        if (!state.HasOwner)
+        {
+            return Show(
+                FirstRunObjectiveId.ChooseOwner,
+                1,
+                "던전의 주인을 선택하세요",
+                "이번 런을 이끌 종족과 능력을 정합니다.");
+        }
+
+        if (!state.HasUsableRoom)
+        {
+            return Show(
+                FirstRunObjectiveId.MakeUsableRoom,
+                2,
+                "운영 가능한 방을 만드세요",
+                "벽과 내벽 문으로 닫힌 공간을 완성하세요.");
+        }
+
+        if (state.ResearchTaskCount == 0 && state.CompletedResearchCount == 0)
+        {
+            return Show(
+                FirstRunObjectiveId.AcquireBlueprint,
+                3,
+                "첫 설계도를 확보하세요",
+                "상점 탭에서 오늘의 설계도를 구입하세요.");
+        }
+
+        if (state.CompletedResearchCount == 0)
+        {
+            int progress = Mathf.RoundToInt(state.ActiveResearchRatio * 100f);
+            return Show(
+                FirstRunObjectiveId.CompleteResearch,
+                4,
+                "설계도 연구를 끝내세요",
+                $"연구 {progress}% · 연구 시설에 작업 인력을 배치하세요.");
+        }
+
+        if (state.SettlementCount == 0)
+        {
+            return Show(
+                FirstRunObjectiveId.CompleteSettlement,
+                5,
+                "첫 영업일을 마치세요",
+                $"현재 Day {state.CurrentDay} · 시설을 운영해 첫 정산을 맞이하세요.");
+        }
+
+        if (state.DefendedInvasionCount == 0)
+        {
+            return Show(
+                FirstRunObjectiveId.DefendInvasion,
+                6,
+                "첫 침입을 막아내세요",
+                "방어 시설과 주인의 체력을 점검하세요.");
+        }
+
+        int finalTargetIndex = Mathf.Max(1, state.TotalOffenseTargetCount - 1);
+        if (state.CompletedOffenseTargetCount < finalTargetIndex)
+        {
+            return Show(
+                FirstRunObjectiveId.AdvanceOffense,
+                7,
+                "오펜스 경로를 개척하세요",
+                $"진실 추적 {state.CompletedOffenseTargetCount}/{state.TotalOffenseTargetCount} · 오펜스 탭에서 앞선 목표부터 원정을 완료하세요.");
+        }
+
+        return Show(
+            FirstRunObjectiveId.RevealTruth,
+            8,
+            "던전의 진실을 밝히세요",
+            "오펜스의 마지막 심장부 원정을 완료하면 이번 런에서 승리합니다.");
+    }
+
+    private static FirstRunObjectivePresentation Show(
+        FirstRunObjectiveId id,
+        int step,
+        string title,
+        string detail)
+    {
+        return new FirstRunObjectivePresentation(id, step, title, detail);
+    }
+
+    private static FirstRunObjectivePresentation Hidden()
+    {
+        return new FirstRunObjectivePresentation(FirstRunObjectiveId.None, 0, string.Empty, string.Empty);
+    }
+}
+
+public interface IFirstRunObjectiveRuntime
+{
+    FirstRunObjectiveId CurrentObjective { get; }
+    bool IsVisible { get; }
+    RectTransform PanelRect { get; }
+    void RefreshNow();
+}
+
+public sealed class FirstRunObjectiveRuntime :
+    IFirstRunObjectiveRuntime,
+    IStartable,
+    ITickable,
+    IDisposable
+{
+    private const float RefreshInterval = 0.25f;
+
+    private readonly IOwnerRunManagerProvider ownerProvider;
+    private readonly IGridSystemProvider gridProvider;
+    private readonly IRoomLayoutCache roomLayoutCache;
+    private readonly IBlueprintResearchRuntimeProvider researchProvider;
+    private readonly IOperatingDaySettlementRuntimeProvider settlementProvider;
+    private readonly IMetaProgressionRuntimeProvider metaProvider;
+    private readonly IOffenseWorldMapRuntimeProvider offenseWorldMapProvider;
+    private readonly IDungeonRunFlowRuntime runFlow;
+    private readonly IDungeonUiCanvasProvider canvasProvider;
+    private readonly ITmpKoreanFontService fontService;
+    private readonly IUiClock uiClock;
+
+    private GameObject root;
+    private TMP_Text progressLabel;
+    private TMP_Text titleLabel;
+    private TMP_Text detailLabel;
+    private float nextRefreshAt;
+
+    public FirstRunObjectiveRuntime(
+        IOwnerRunManagerProvider ownerProvider,
+        IGridSystemProvider gridProvider,
+        IRoomLayoutCache roomLayoutCache,
+        IBlueprintResearchRuntimeProvider researchProvider,
+        IOperatingDaySettlementRuntimeProvider settlementProvider,
+        IMetaProgressionRuntimeProvider metaProvider,
+        IOffenseWorldMapRuntimeProvider offenseWorldMapProvider,
+        IDungeonRunFlowRuntime runFlow,
+        IDungeonUiCanvasProvider canvasProvider,
+        ITmpKoreanFontService fontService,
+        IUiClock uiClock)
+    {
+        this.ownerProvider = ownerProvider ?? throw new ArgumentNullException(nameof(ownerProvider));
+        this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
+        this.roomLayoutCache = roomLayoutCache ?? throw new ArgumentNullException(nameof(roomLayoutCache));
+        this.researchProvider = researchProvider ?? throw new ArgumentNullException(nameof(researchProvider));
+        this.settlementProvider = settlementProvider ?? throw new ArgumentNullException(nameof(settlementProvider));
+        this.metaProvider = metaProvider ?? throw new ArgumentNullException(nameof(metaProvider));
+        this.offenseWorldMapProvider = offenseWorldMapProvider
+            ?? throw new ArgumentNullException(nameof(offenseWorldMapProvider));
+        this.runFlow = runFlow ?? throw new ArgumentNullException(nameof(runFlow));
+        this.canvasProvider = canvasProvider ?? throw new ArgumentNullException(nameof(canvasProvider));
+        this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+    }
+
+    public FirstRunObjectiveId CurrentObjective { get; private set; }
+    public bool IsVisible => root != null && root.activeInHierarchy;
+    public RectTransform PanelRect => root != null ? root.GetComponent<RectTransform>() : null;
+
+    public void Start()
+    {
+        EnsureView();
+        RefreshNow();
+    }
+
+    public void Tick()
+    {
+        if (uiClock.Time < nextRefreshAt)
+        {
+            return;
+        }
+
+        nextRefreshAt = uiClock.Time + RefreshInterval;
+        RefreshNow();
+    }
+
+    public void Dispose()
+    {
+        if (root != null)
+        {
+            UnityEngine.Object.Destroy(root);
+            root = null;
+        }
+    }
+
+    public void RefreshNow()
+    {
+        EnsureView();
+        FirstRunObjectivePresentation presentation = FirstRunObjectiveResolver.Resolve(CaptureSnapshot());
+        CurrentObjective = presentation.Id;
+
+        if (root == null)
+        {
+            return;
+        }
+
+        root.SetActive(presentation.IsVisible);
+        if (!presentation.IsVisible)
+        {
+            return;
+        }
+
+        progressLabel.text = $"첫 런 목표  {presentation.Step}/{FirstRunObjectiveResolver.TotalSteps}";
+        titleLabel.text = presentation.Title;
+        detailLabel.text = presentation.Detail;
+    }
+
+    private FirstRunObjectiveSnapshot CaptureSnapshot()
+    {
+        bool hasOwner = ownerProvider.TryGetManager(out OwnerRunManager ownerManager)
+            && ownerManager != null
+            && ownerManager.CurrentOwnerActor != null;
+
+        bool hasUsableRoom = false;
+        if (gridProvider.TryGetGrid(out Grid grid))
+        {
+            foreach (RoomInstance room in roomLayoutCache.GetLayout(grid).Rooms)
+            {
+                if (room != null && room.IsUsable && !room.IsSelfContained)
+                {
+                    hasUsableRoom = true;
+                    break;
+                }
+            }
+        }
+
+        int taskCount = 0;
+        int completedResearchCount = 0;
+        float activeResearchRatio = 0f;
+        if (researchProvider.TryGetRuntime(out BlueprintResearchRuntime research) && research != null)
+        {
+            taskCount = research.State.Tasks.Count;
+            completedResearchCount = research.State.CompletedBlueprintIds.Count;
+            if (research.State.TryGetActiveTask(out BlueprintResearchTask activeTask))
+            {
+                activeResearchRatio = activeTask.ProgressRatio;
+            }
+        }
+
+        int settlementCount = 0;
+        if (settlementProvider.TryGetRuntime(out OperatingDaySettlementRuntime settlement) && settlement != null)
+        {
+            settlementCount = settlement.ReportHistory.Count;
+        }
+
+        int defendedInvasionCount = 0;
+        int completedRunCount = 0;
+        if (metaProvider.TryGetRuntime(out MetaProgressionRuntime meta) && meta != null)
+        {
+            settlementCount = Mathf.Max(settlementCount, meta.RunProgress.SettlementCount);
+            defendedInvasionCount = meta.RunProgress.DefendedInvasionCount;
+            completedRunCount = meta.State.CompletedRunCount;
+        }
+
+        int completedOffenseTargetCount = 0;
+        int totalOffenseTargetCount = 0;
+        bool truthRevealed = false;
+        if (offenseWorldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap)
+            && worldMap != null)
+        {
+            completedOffenseTargetCount = worldMap.State.CompletedTargetCount;
+            totalOffenseTargetCount = worldMap.CampaignTargetCount;
+            truthRevealed = worldMap.State.TruthRevealed;
+        }
+
+        return new FirstRunObjectiveSnapshot(
+            hasOwner,
+            hasUsableRoom,
+            taskCount,
+            completedResearchCount,
+            activeResearchRatio,
+            settlementCount,
+            defendedInvasionCount,
+            runFlow.CurrentDay,
+            runFlow.Phase,
+            runFlow.Outcome,
+            completedRunCount,
+            completedOffenseTargetCount,
+            totalOffenseTargetCount,
+            truthRevealed);
+    }
+
+    private void EnsureView()
+    {
+        if (root != null)
+        {
+            return;
+        }
+
+        Canvas canvas = canvasProvider.GetOrCreateCanvas();
+        if (canvas == null)
+        {
+            return;
+        }
+
+        root = new GameObject(
+            "FirstRunObjectivePanel",
+            typeof(RectTransform),
+            typeof(CanvasGroup),
+            typeof(Image));
+        root.transform.SetParent(canvas.transform, false);
+
+        RectTransform rect = root.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(0f, 1f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = new Vector2(24f, -164f);
+        rect.sizeDelta = new Vector2(390f, 94f);
+
+        Image panelImage = root.GetComponent<Image>();
+        panelImage.color = new Color(
+            DungeonUiTheme.Panel.r,
+            DungeonUiTheme.Panel.g,
+            DungeonUiTheme.Panel.b,
+            0.96f);
+        panelImage.raycastTarget = false;
+
+        CanvasGroup canvasGroup = root.GetComponent<CanvasGroup>();
+        canvasGroup.interactable = false;
+        canvasGroup.blocksRaycasts = false;
+
+        CreateAccentBar(root.transform);
+        progressLabel = CreateLabel(
+            root.transform,
+            "Progress",
+            new Vector2(18f, -29f),
+            new Vector2(-14f, -8f),
+            15f,
+            DungeonUiTheme.TextSecondary,
+            FontStyles.Bold);
+        titleLabel = CreateLabel(
+            root.transform,
+            "Title",
+            new Vector2(18f, -60f),
+            new Vector2(-14f, -30f),
+            21f,
+            DungeonUiTheme.TextPrimary,
+            FontStyles.Bold);
+        detailLabel = CreateLabel(
+            root.transform,
+            "Detail",
+            new Vector2(18f, -88f),
+            new Vector2(-14f, -62f),
+            15f,
+            DungeonUiTheme.TextSecondary,
+            FontStyles.Normal);
+    }
+
+    private static void CreateAccentBar(Transform parent)
+    {
+        GameObject barObject = new GameObject("Accent", typeof(RectTransform), typeof(Image));
+        barObject.transform.SetParent(parent, false);
+        RectTransform barRect = barObject.GetComponent<RectTransform>();
+        barRect.anchorMin = new Vector2(0f, 0f);
+        barRect.anchorMax = new Vector2(0f, 1f);
+        barRect.pivot = new Vector2(0f, 0.5f);
+        barRect.anchoredPosition = Vector2.zero;
+        barRect.sizeDelta = new Vector2(5f, 0f);
+        Image barImage = barObject.GetComponent<Image>();
+        barImage.color = DungeonUiTheme.Accent;
+        barImage.raycastTarget = false;
+    }
+
+    private TMP_Text CreateLabel(
+        Transform parent,
+        string name,
+        Vector2 offsetMin,
+        Vector2 offsetMax,
+        float fontSize,
+        Color color,
+        FontStyles fontStyle)
+    {
+        GameObject labelObject = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+        labelObject.transform.SetParent(parent, false);
+        RectTransform rect = labelObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 1f);
+        rect.anchorMax = new Vector2(1f, 1f);
+        rect.pivot = new Vector2(0.5f, 1f);
+        rect.offsetMin = offsetMin;
+        rect.offsetMax = offsetMax;
+
+        TMP_Text label = labelObject.GetComponent<TMP_Text>();
+        label.fontSize = fontSize;
+        label.color = color;
+        label.fontStyle = fontStyle;
+        label.alignment = TextAlignmentOptions.MidlineLeft;
+        label.textWrappingMode = TextWrappingModes.NoWrap;
+        label.overflowMode = TextOverflowModes.Truncate;
+        label.raycastTarget = false;
+        label.characterSpacing = 0f;
+        fontService.Apply(label);
+        return label;
+    }
+}

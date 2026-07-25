@@ -1,0 +1,79 @@
+using VContainer;
+
+public static class DungeonWorkRegistration
+{
+    public static void RegisterDungeonWork(this IContainerBuilder builder)
+    {
+        RegisterWorkStatPolicies(builder);
+
+        builder.Register<RepairWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>()
+            .As<IWorkUrgencyProvider>();
+        builder.Register<ResearchWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>();
+        builder.Register<CraftWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>();
+        builder.Register<ButcherWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>()
+            .As<IWorkUrgencyProvider>();
+        builder.Register<SurvivalWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>()
+            .As<IWorkUrgencyProvider>();
+        builder.Register<CleanWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>();
+        builder.Register<WorkExecutionHandlerRegistry>(Lifetime.Singleton)
+            .As<IWorkExecutionHandlerRegistry>()
+            .As<IWorkPolicyRegistry>();
+        builder.Register<WorkStatPolicyRegistry>(Lifetime.Singleton)
+            .As<IWorkStatPolicyRegistry>();
+        builder.Register<WorkAmountCalculator>(Lifetime.Singleton)
+            .As<IWorkAmountCalculator>();
+
+        builder.Register<SurvivalBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<ButcherBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>()
+            .As<IBuildingWorkCompletionFallbackHandler>();
+        builder.Register<EquipmentCraftingBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<ProductionBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<CleaningBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<SecurityBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<ReceptionBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<PatrolPostBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<OutdoorRestBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<ExteriorMaintenanceBuildingAbilityHandler>(Lifetime.Singleton)
+            .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<BuildingAbilityRuntimeDispatcher>(Lifetime.Singleton)
+            .As<IBuildingAbilityRuntimeDispatcher>();
+    }
+
+    private static void RegisterWorkStatPolicies(IContainerBuilder builder)
+    {
+        builder.Register<ConstructionRepairStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
+        builder.Register<CookingButcherStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
+        builder.Register<ResearchStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
+        builder.Register<CleaningStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
+        builder.Register<HaulStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
+        builder.Register<TreatmentStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
+        builder.Register<GuardHuntStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
+    }
+}

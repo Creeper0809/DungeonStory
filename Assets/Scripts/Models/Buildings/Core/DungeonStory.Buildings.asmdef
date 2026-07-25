@@ -1,0 +1,14 @@
+{
+  "name": "DungeonStory.Buildings",
+  "rootNamespace": "DungeonStory.Buildings",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

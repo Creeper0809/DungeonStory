@@ -25,8 +25,8 @@ MonoBehaviour:
         AI Root","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(-900,20)"},"ID":3,"Name":"Critical","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.DungeonStory.HasCriticalState","NodeData":{"Offset":"(-1000,120)"},"ID":4,"Name":"Has
         Critical?","Instant":true},{"Type":"BehaviorDesigner.Runtime.Tasks.DungeonStory.RunCriticalState","NodeData":{"Offset":"(-800,120)"},"ID":5,"Name":"Run
         Critical","Instant":true}]},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(-730,20)"},"ID":6,"Name":"Deprivation
-        Breakdown","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.DungeonStory.HasDeprivationBreakdown","NodeData":{"Offset":"(-830,120)"},"ID":7,"Name":"Has
-        Deprivation Breakdown?","Instant":true},{"Type":"BehaviorDesigner.Runtime.Tasks.DungeonStory.RunDeprivationBreakdown","NodeData":{"Offset":"(-630,120)"},"ID":8,"Name":"Run
+        Breakdown","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.DungeonStory.HasDeprivationBreakdown","NodeData":{"Offset":"(-830,180)"},"ID":7,"Name":"Has
+        Deprivation Breakdown?","Instant":true},{"Type":"BehaviorDesigner.Runtime.Tasks.DungeonStory.RunDeprivationBreakdown","NodeData":{"Offset":"(-630,180)"},"ID":8,"Name":"Run
         Deprivation Breakdown","Instant":true}]},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(-560,20)"},"ID":9,"Name":"Locked
         Action","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.DungeonStory.HasLockedAction","NodeData":{"Offset":"(-660,100)"},"ID":10,"Name":"Has
         Locked Action?","Instant":true},{"Type":"BehaviorDesigner.Runtime.Tasks.DungeonStory.RunLockedAction","NodeData":{"Offset":"(-460,100)"},"ID":11,"Name":"Run

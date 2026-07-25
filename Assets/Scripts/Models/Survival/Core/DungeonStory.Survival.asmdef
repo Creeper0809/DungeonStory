@@ -1,0 +1,16 @@
+{
+  "name": "DungeonStory.Survival",
+  "rootNamespace": "DungeonStory.Survival",
+  "references": [
+    "DungeonStory.World"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

@@ -1,0 +1,88 @@
+using VContainer;
+using VContainer.Unity;
+
+public static class DungeonSaveRegistration
+{
+    public static void RegisterDungeonSaveInfrastructure(
+        this IContainerBuilder builder)
+    {
+        RegisterSections(builder);
+        builder.Register<DungeonSaveSectionRegistry>(Lifetime.Singleton)
+            .As<IDungeonSaveSectionRegistry>();
+        builder.Register<DungeonGameSaveService>(Lifetime.Singleton)
+            .As<IDungeonGameSaveService>();
+        builder.Register<DungeonSaveSlotCatalog>(Lifetime.Singleton)
+            .As<IDungeonSaveSlotCatalog>();
+        builder.Register<DungeonSceneNavigator>(Lifetime.Singleton)
+            .As<IDungeonSceneNavigator>();
+        builder.Register<DungeonGameSaveSlotService>(Lifetime.Singleton)
+            .As<IDungeonGameSaveSlotService>();
+        builder.RegisterEntryPoint<DungeonAutosaveService>(Lifetime.Singleton)
+            .As<IDungeonSaveCommandService>();
+        builder.RegisterEntryPoint<DungeonSaveUiController>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<DungeonGameplayLaunchController>(
+            Lifetime.Singleton);
+    }
+
+    private static void RegisterSections(IContainerBuilder builder)
+    {
+        builder.Register<RandomStreamSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<PhysicalItemsSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<WorkOrdersSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<WildlifeSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<SurvivalResourcesSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<DarkSurvivalSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterBodyHealthSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CombatEquipmentSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterMedicalSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<DefenseTacticalSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<EquipmentMaintenanceSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterCombatCommandSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<ExteriorActivitySaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<ExpeditionEquipmentSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<OffenseSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<InvasionSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<OperatingDaySettlementSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<EventAlertSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<RunFlowSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<DungeonDebugSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<BlueprintResearchSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<FacilityShopSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<RegularCustomerSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<StaffDiscontentSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CodexSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<RunVariableSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<MetaProgressionSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<ModularFacilityWorldSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterWorldSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+    }
+}

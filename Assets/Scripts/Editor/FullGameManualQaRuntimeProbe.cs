@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using BehaviorDesigner.Runtime;
 using DG.Tweening;
+using DungeonStory.Foundation;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -208,7 +209,10 @@ public static class FullGameManualQaRuntimeProbe
             FacilityShopPurchaseResult purchaseResult = default;
             FacilityBlueprintSO blueprint = null;
 
-            RunEventAlertProbe(alerts, lines);
+            RunEventAlertProbe(
+                alerts,
+                ResolveFromLifetimeScope<IGameEventBus>(),
+                lines);
             RunShopProbe(shop, gameData, lines, out purchaseResult);
             if (!purchaseResult.TryGetBlueprint(out blueprint))
             {
@@ -780,7 +784,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunOwnerModelRunEndProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         Grid grid,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
@@ -869,7 +873,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunCombatReportContributionProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         Grid grid,
         IReadOnlyList<BuildableObject> buildings,
         List<UnityEngine.Object> tempObjects,
@@ -928,8 +932,10 @@ public static class FullGameManualQaRuntimeProbe
                 new InvasionThreatFactors(8f, 7f, 6f, 2f),
                 0f,
                 0f);
-            InvasionStartedEvent.Trigger(snapshot);
-            InvasionSpawnedEvent.Trigger(intruder, snapshot);
+            ResolveFromLifetimeScope<IGameEventBus>()
+                ?.Publish(new InvasionStartedEvent(snapshot));
+            ResolveFromLifetimeScope<IGameEventBus>()
+                ?.Publish(new InvasionSpawnedEvent(intruder, snapshot));
 
             DefenseTriggerTiming[] timings =
             {
@@ -952,11 +958,14 @@ public static class FullGameManualQaRuntimeProbe
             if (damagedFacility != null)
             {
                 damagedFacility.SetDamaged(true);
-                InvasionFacilityDamagedEvent.Trigger(intruder, damagedFacility);
+                ResolveFromLifetimeScope<IGameEventBus>()
+                    ?.Publish(new InvasionFacilityDamagedEvent(intruder, damagedFacility));
             }
 
-            InvasionFinalCombatStartedEvent.Trigger(intruder, owner);
-            InvasionResolvedEvent.Trigger(true, 0.25f);
+            ResolveFromLifetimeScope<IGameEventBus>()
+                ?.Publish(new InvasionFinalCombatStartedEvent(intruder, owner));
+            ResolveFromLifetimeScope<IGameEventBus>()
+                ?.Publish(new InvasionResolvedEvent(true, 0.25f));
             report = combatReport != null ? combatReport.CurrentReport : null;
             detail = report != null ? report.ToDetailText() : string.Empty;
         }
@@ -987,7 +996,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunRebellionCommandCompletionProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         Grid grid,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
@@ -1479,18 +1488,18 @@ public static class FullGameManualQaRuntimeProbe
         bool workCandidateFound = false;
         bool workStarted = false;
         BuildableObject workTarget = null;
-        FacilityWorkType workType = FacilityWorkType.None;
+        WorkTypeId workType = default;
         string workMessage = string.Empty;
 
         if (work != null && grid != null && fatigueStaff != null)
         {
             GridPathSearchResult search = grid.SearchPath(fatigueStaff.GetNowXY());
-            workCandidateFound = work.TryGetBestWorkCandidate(FacilityWorkType.None, search, out WorkTargetCandidate candidate)
+            workCandidateFound = work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                 && candidate.IsValid;
             if (workCandidateFound)
             {
                 workTarget = candidate.Building;
-                workType = candidate.WorkType;
+                workType = candidate.WorkTypeId;
                 if (workTarget != null && workTarget.buildPoses != null && workTarget.buildPoses.Count > 0)
                 {
                     fatigueStaff.transform.position = grid.GetWorldPos(workTarget.buildPoses[0]);
@@ -1561,12 +1570,15 @@ public static class FullGameManualQaRuntimeProbe
             : $"{condition}\n{stackTrace}");
     }
 
-    private static void RunEventAlertProbe(EventAlertRuntime alerts, List<string> lines)
+    private static void RunEventAlertProbe(
+        EventAlertRuntime alerts,
+        IGameEventBus gameEventBus,
+        List<string> lines)
     {
         int before = alerts != null ? alerts.EventLog.Count : -1;
         bool callbackFired = false;
 
-        EventAlertService.Raise(
+        gameEventBus.RaiseAlert(
             "QA Feature Alert",
             "Feature-family probe choice execution.",
             EventAlertImportance.Medium,
@@ -1586,7 +1598,7 @@ public static class FullGameManualQaRuntimeProbe
             choiceExecuted = alerts.ExecuteChoice(0);
         }
 
-        EventAlertService.Raise(
+        gameEventBus.RaiseAlert(
             "QA Visible Alert",
             "Feature-family probe leaves this detail open for visual capture.",
             EventAlertImportance.Low,
@@ -1650,7 +1662,7 @@ public static class FullGameManualQaRuntimeProbe
             queued = research.EnqueueBlueprint(blueprint);
         }
 
-        BuildableObject researchFacility = buildings.FirstOrDefault((building) => building.SupportsWork(FacilityWorkType.Research));
+        BuildableObject researchFacility = buildings.FirstOrDefault((building) => building.SupportsWork(BuiltInWorkTypeIds.Research));
         BlueprintResearchWorkResult work = default;
         bool worked = false;
         if (researchFacility != null && research.HasActiveResearch)
@@ -1732,7 +1744,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunEvolutionDetailedProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         IReadOnlyList<BuildableObject> buildings,
         List<string> lines)
     {
@@ -2265,14 +2277,19 @@ public static class FullGameManualQaRuntimeProbe
         }
 
         BuildableObject facility = buildings.FirstOrDefault((building) => building.Facility != null);
-        OperatingDayStartedEvent.Trigger(7);
+        IGameEventBus gameEventBus = ResolveFromLifetimeScope<IGameEventBus>();
+        gameEventBus?.Publish(new OperatingDayStartedEvent(7));
         if (facility != null)
         {
-            FacilityRevenueEvent.Trigger(null, facility, 123);
-            FacilityStockConsumedEvent.Trigger(null, facility, StockCategory.Food, 2);
+            gameEventBus?.Publish(new FacilityRevenueEvent(null, facility, 123));
+            gameEventBus?.Publish(new FacilityStockConsumedEvent(
+                null,
+                facility,
+                StockCategory.Food,
+                2));
         }
 
-        OperatingDayEndedEvent.Trigger(7);
+        gameEventBus?.Publish(new OperatingDayEndedEvent(7));
         OperatingDayReport report = settlement.LatestReport;
         lines.Add($"OPERATING-DAY runtime=True; report={report != null}; day={(report != null ? report.day : -1)}; revenue={(report != null ? report.totalRevenue : -1)}; facilities={(report != null ? report.facilityRevenues.Count : -1)}; events={(report != null ? report.eventLog.Count : -1)}");
     }
@@ -2402,7 +2419,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunAiSceneProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         IReadOnlyList<CharacterActor> actors,
         List<string> lines)
     {
@@ -2496,7 +2513,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunInvasionDefenseSceneProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         IReadOnlyList<BuildableObject> buildings,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
@@ -2546,8 +2563,10 @@ public static class FullGameManualQaRuntimeProbe
                 0f,
                 0f);
 
-        InvasionStartedEvent.Trigger(snapshot);
-        InvasionSpawnedEvent.Trigger(intruder, snapshot);
+        ResolveFromLifetimeScope<IGameEventBus>()
+            ?.Publish(new InvasionStartedEvent(snapshot));
+        ResolveFromLifetimeScope<IGameEventBus>()
+            ?.Publish(new InvasionSpawnedEvent(intruder, snapshot));
 
         DefenseFacility defense = FindTriggerableDefense(buildings, out DefenseTriggerTiming timing);
         DefenseActivationReport defenseReport = defense != null && defenseStatus != null
@@ -2556,11 +2575,14 @@ public static class FullGameManualQaRuntimeProbe
         BuildableObject damagedFacility = buildings.FirstOrDefault((building) => building != null && building.Facility != null);
         if (damagedFacility != null)
         {
-            InvasionFacilityDamagedEvent.Trigger(intruder, damagedFacility);
+            ResolveFromLifetimeScope<IGameEventBus>()
+                ?.Publish(new InvasionFacilityDamagedEvent(intruder, damagedFacility));
         }
 
-        InvasionFinalCombatStartedEvent.Trigger(intruder, owner);
-        InvasionResolvedEvent.Trigger(true, 1f);
+        ResolveFromLifetimeScope<IGameEventBus>()
+            ?.Publish(new InvasionFinalCombatStartedEvent(intruder, owner));
+        ResolveFromLifetimeScope<IGameEventBus>()
+            ?.Publish(new InvasionResolvedEvent(true, 1f));
 
         InvasionCombatReportSnapshot report = combatReport != null ? combatReport.CurrentReport : null;
         int alertAfter = alerts != null ? alerts.EventLog.Count : -1;
@@ -2569,7 +2591,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunRecruitmentSceneProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         IReadOnlyList<BuildableObject> buildings,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
@@ -2605,7 +2627,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunStaffDiscontentSceneProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -2644,7 +2666,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunOffenseCompletionSceneProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -2719,7 +2741,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunEvolutionSupplementProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         IReadOnlyList<BuildableObject> buildings,
         List<string> lines)
     {
@@ -2755,7 +2777,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunInjectedCustomerAiProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -2830,7 +2852,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunInjectedStaffDutyPriorityProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -2858,7 +2880,7 @@ public static class FullGameManualQaRuntimeProbe
         string priorityMessage = string.Empty;
         string exception = string.Empty;
         BuildableObject target = null;
-        FacilityWorkType targetWorkType = FacilityWorkType.None;
+        WorkTypeId targetWorkType = default;
 
         try
         {
@@ -2880,11 +2902,11 @@ public static class FullGameManualQaRuntimeProbe
                 returnedToWorkAfterRecover = work.CurrentDutyState == AbilityWork.DutyState.OnDuty;
 
                 GridPathSearchResult search = grid != null ? grid.SearchPath(staff.GetNowXY()) : null;
-                if (work.TryGetBestWorkCandidate(FacilityWorkType.None, search, out WorkTargetCandidate candidate)
+                if (work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                     && candidate.IsValid)
                 {
                     target = candidate.Building;
-                    targetWorkType = candidate.WorkType;
+                    targetWorkType = candidate.WorkTypeId;
                     prioritySet = work.TrySetPriorityWorkTarget(target, targetWorkType, search, out priorityMessage);
                 }
                 else
@@ -2902,7 +2924,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunInjectedOwnerPriorityProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -2922,7 +2944,7 @@ public static class FullGameManualQaRuntimeProbe
         string priorityMessage = string.Empty;
         string exception = string.Empty;
         BuildableObject target = null;
-        FacilityWorkType targetWorkType = FacilityWorkType.None;
+        WorkTypeId targetWorkType = default;
 
         try
         {
@@ -2932,11 +2954,11 @@ public static class FullGameManualQaRuntimeProbe
             if (hasWork)
             {
                 GridPathSearchResult search = grid != null ? grid.SearchPath(owner.GetNowXY()) : null;
-                if (work.TryGetBestWorkCandidate(FacilityWorkType.None, search, out WorkTargetCandidate candidate)
+                if (work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                     && candidate.IsValid)
                 {
                     target = candidate.Building;
-                    targetWorkType = candidate.WorkType;
+                    targetWorkType = candidate.WorkTypeId;
                     prioritySet = work.TrySetPriorityWorkTarget(target, targetWorkType, search, out priorityMessage);
                 }
                 else
@@ -2954,7 +2976,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunInjectedLocalLlmProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -2964,6 +2986,7 @@ public static class FullGameManualQaRuntimeProbe
             GameObject queueObject = new GameObject("QA Local LLM Queue");
             tempObjects.Add(queueObject);
             queue = queueObject.AddComponent<LocalLlmRequestQueue>();
+            queue.Construct(new UnityUiClock());
         }
 
         queue.ClearForDebug();
@@ -3087,7 +3110,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunGridPlacementAndDefenseProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         Grid grid,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
@@ -3168,7 +3191,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunInvasionFinalCombatProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         Grid grid,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
@@ -3211,7 +3234,15 @@ public static class FullGameManualQaRuntimeProbe
             {
                 intruder.transform.position = grid.GetWorldPos(start);
                 owner.transform.position = grid.GetWorldPos(ownerPos);
-                Queue<GridMoveStep> path = InvasionIntruderPlanner.GetNextPath(grid, start, ownerPos, 1f, out directPath);
+                Queue<GridMoveStep> path = InvasionIntruderPlanner.GetNextPath(
+                    grid,
+                    start,
+                    ownerPos,
+                    1f,
+                    intruder.PathSearchBroker,
+                    new DungeonStory.Foundation.RandomStreamProvider(301)
+                        .Get("qa-invasion-path"),
+                    out directPath);
                 pathCount = path.Count;
                 while (path.Count > 0)
                 {
@@ -3225,7 +3256,13 @@ public static class FullGameManualQaRuntimeProbe
             InvasionIntruderRuntime runtime = intruder.gameObject.AddComponent<InvasionIntruderRuntime>();
             if (context != null && defenseStatus != null)
             {
-                runtime.Initialize(context, defenseStatus);
+                runtime.Initialize(
+                    context,
+                    defenseStatus,
+                    new DungeonStory.Foundation.UnityGameClock(),
+                    new DungeonStory.Foundation.RandomStreamProvider(307),
+                    ResolveFromLifetimeScope<IGameEventBus>()
+                        ?? CharacterAiEditorTestDependencies.GameEvents);
                 runtimeInitialized = true;
                 runtime.Begin(
                     intruderData != null ? intruderData : intruder.Identity.Data,
@@ -3262,7 +3299,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static IEnumerator RunTimedInvasionCoroutine(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         Grid grid,
         List<string> lines)
     {
@@ -3374,7 +3411,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static IEnumerator RunLocalLlmEndpointCoroutine(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<string> lines)
     {
         LocalLlmRequestQueue queue = sceneQuery.First<LocalLlmRequestQueue>(includeInactive: true);
@@ -3415,7 +3452,7 @@ public static class FullGameManualQaRuntimeProbe
     }
 
     private static void RunVisibleBubbleProbe(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         Grid grid,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
@@ -3579,7 +3616,7 @@ public static class FullGameManualQaRuntimeProbe
             ?? scopes.FirstOrDefault((scope) => scope != null && scope.Container != null);
     }
 
-    private static Grid ResolveGrid(IDungeonSceneComponentQuery sceneQuery)
+    private static Grid ResolveGrid(DungeonSceneComponentQuery sceneQuery)
     {
         GridSystemManager gridManager = sceneQuery.First<GridSystemManager>(includeInactive: true);
         return gridManager != null ? gridManager.grid : null;

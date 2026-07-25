@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using BehaviorDesigner.Runtime;
 using DG.Tweening;
+using DungeonStory.Foundation;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -189,7 +190,7 @@ public static class CharacterAiFeatureQaRuntimeProbe
     }
 
     private static void RunCustomerAi(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -264,7 +265,7 @@ public static class CharacterAiFeatureQaRuntimeProbe
     }
 
     private static void RunStaffDutyPriority(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -292,7 +293,7 @@ public static class CharacterAiFeatureQaRuntimeProbe
         string priorityMessage = string.Empty;
         string exception = string.Empty;
         BuildableObject target = null;
-        FacilityWorkType targetWorkType = FacilityWorkType.None;
+        WorkTypeId targetWorkType = default;
 
         try
         {
@@ -314,11 +315,11 @@ public static class CharacterAiFeatureQaRuntimeProbe
                 returnedToWorkAfterRecover = work.CurrentDutyState == AbilityWork.DutyState.OnDuty;
 
                 GridPathSearchResult search = grid != null ? grid.SearchPath(staff.GetNowXY()) : null;
-                if (work.TryGetBestWorkCandidate(FacilityWorkType.None, search, out WorkTargetCandidate candidate)
+                if (work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                     && candidate.IsValid)
                 {
                     target = candidate.Building;
-                    targetWorkType = candidate.WorkType;
+                    targetWorkType = candidate.WorkTypeId;
                     prioritySet = work.TrySetPriorityWorkTarget(target, targetWorkType, search, out priorityMessage);
                 }
                 else
@@ -336,7 +337,7 @@ public static class CharacterAiFeatureQaRuntimeProbe
     }
 
     private static void RunOwnerPriority(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -356,7 +357,7 @@ public static class CharacterAiFeatureQaRuntimeProbe
         string priorityMessage = string.Empty;
         string exception = string.Empty;
         BuildableObject target = null;
-        FacilityWorkType targetWorkType = FacilityWorkType.None;
+        WorkTypeId targetWorkType = default;
 
         try
         {
@@ -366,11 +367,11 @@ public static class CharacterAiFeatureQaRuntimeProbe
             if (hasWork)
             {
                 GridPathSearchResult search = grid != null ? grid.SearchPath(owner.GetNowXY()) : null;
-                if (work.TryGetBestWorkCandidate(FacilityWorkType.None, search, out WorkTargetCandidate candidate)
+                if (work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                     && candidate.IsValid)
                 {
                     target = candidate.Building;
-                    targetWorkType = candidate.WorkType;
+                    targetWorkType = candidate.WorkTypeId;
                     prioritySet = work.TrySetPriorityWorkTarget(target, targetWorkType, search, out priorityMessage);
                 }
                 else
@@ -388,7 +389,7 @@ public static class CharacterAiFeatureQaRuntimeProbe
     }
 
     private static void RunLocalLlmFlow(
-        IDungeonSceneComponentQuery sceneQuery,
+        DungeonSceneComponentQuery sceneQuery,
         List<UnityEngine.Object> tempObjects,
         List<string> lines)
     {
@@ -398,6 +399,7 @@ public static class CharacterAiFeatureQaRuntimeProbe
             GameObject queueObject = new GameObject("QA Local LLM Queue");
             tempObjects.Add(queueObject);
             queue = queueObject.AddComponent<LocalLlmRequestQueue>();
+            queue.Construct(new UnityUiClock());
         }
 
         queue.ClearForDebug();
@@ -606,7 +608,7 @@ public static class CharacterAiFeatureQaRuntimeProbe
             ?? scopes.FirstOrDefault((scope) => scope != null && scope.Container != null);
     }
 
-    private static Grid ResolveGrid(IDungeonSceneComponentQuery sceneQuery)
+    private static Grid ResolveGrid(DungeonSceneComponentQuery sceneQuery)
     {
         GridSystemManager gridManager = sceneQuery.First<GridSystemManager>(includeInactive: true);
         return gridManager != null ? gridManager.grid : null;
@@ -729,18 +731,18 @@ public static class CharacterAiFeatureQaRuntimeProbe
         bool workCandidateFound = false;
         bool workStarted = false;
         BuildableObject workTarget = null;
-        FacilityWorkType workType = FacilityWorkType.None;
+        WorkTypeId workType = default;
         string workMessage = string.Empty;
 
         if (work != null && grid != null)
         {
             GridPathSearchResult search = grid.SearchPath(fatigueStaff.GetNowXY());
-            workCandidateFound = work.TryGetBestWorkCandidate(FacilityWorkType.None, search, out WorkTargetCandidate candidate)
+            workCandidateFound = work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                 && candidate.IsValid;
             if (workCandidateFound)
             {
                 workTarget = candidate.Building;
-                workType = candidate.WorkType;
+                workType = candidate.WorkTypeId;
                 if (workTarget != null && workTarget.buildPoses != null && workTarget.buildPoses.Count > 0)
                 {
                     fatigueStaff.transform.position = grid.GetWorldPos(workTarget.buildPoses[0]);

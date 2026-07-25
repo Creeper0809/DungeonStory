@@ -30,26 +30,26 @@ MonoBehaviour:
   researchWorkRequired: 22
   unlocks:
     items:
-    - rid: 7302563115814097198
-    - rid: 7302563115814097199
-    - rid: 7302563115814097200
-    - rid: 7302563115814097201
+    - rid: 7302563146589274823
+    - rid: 7302563146589274824
+    - rid: 7302563146589274825
+    - rid: 7302563146589274826
   references:
     version: 2
     RefIds:
-    - rid: 7302563115814097198
+    - rid: 7302563146589274823
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1046
-    - rid: 7302563115814097199
+    - rid: 7302563146589274824
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1047
-    - rid: 7302563115814097200
+    - rid: 7302563146589274825
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1049
-    - rid: 7302563115814097201
+    - rid: 7302563146589274826
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1055

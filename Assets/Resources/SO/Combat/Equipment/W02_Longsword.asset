@@ -20,7 +20,7 @@ MonoBehaviour:
   occupiedHands: 1
   maxDurability: 100
   verbs:
-  - rid: 7302563143330302066
+  - rid: 7302563146589275001
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 1
@@ -35,7 +35,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563143330302066
+    - rid: 7302563146589275001
       type: {class: MeleeStrikeVerb, ns: , asm: Assembly-CSharp}
       data:
         attackTime: 1.05

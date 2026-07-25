@@ -1,0 +1,14 @@
+{
+  "name": "DungeonStory.Combat",
+  "rootNamespace": "DungeonStory.Combat",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

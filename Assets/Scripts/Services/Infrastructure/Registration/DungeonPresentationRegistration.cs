@@ -1,0 +1,190 @@
+using System;
+using UnityEngine;
+using VContainer;
+using VContainer.Unity;
+
+public static class DungeonPresentationRegistration
+{
+    public static void RegisterDungeonPresentation(
+        this IContainerBuilder builder,
+        Transform runtimeRoot,
+        DungeonSceneRuntimeReferences sceneRuntimeReferences,
+        IPlayerStaffCommandSource playerStaffCommands,
+        RunResultPanel initialRunResultPanel)
+    {
+        if (builder == null)
+        {
+            throw new ArgumentNullException(nameof(builder));
+        }
+
+        if (runtimeRoot == null)
+        {
+            throw new ArgumentNullException(nameof(runtimeRoot));
+        }
+
+        builder.RegisterInstance(playerStaffCommands
+                ?? throw new ArgumentNullException(nameof(playerStaffCommands)))
+            .As<IPlayerStaffCommandSource>();
+        builder.Register<OffensePanelFactory>(Lifetime.Singleton)
+            .As<IOffensePanelFactory>();
+        builder.Register<OffenseBattlePanelFactory>(Lifetime.Singleton)
+            .As<IOffenseBattlePanelFactory>();
+        builder.RegisterEntryPoint<OffenseBattleUiController>(Lifetime.Singleton);
+        builder.Register<OffensePanelButtonFactory>(Lifetime.Singleton)
+            .As<IOffensePanelButtonFactory>();
+        builder.Register<OffensePanelService>(Lifetime.Singleton)
+            .As<IOffensePanelService>();
+        builder.Register<OffenseRewardContextBuilder>(Lifetime.Singleton)
+            .As<IOffenseRewardContextBuilder>();
+        builder.Register<MetaRunResultBuilder>(Lifetime.Singleton)
+            .As<IMetaRunResultBuilder>();
+        builder.RegisterInstance(
+                new RunResultPanelRegistry(initialRunResultPanel))
+            .As<IRunResultPanelRegistry>();
+        builder.Register<RunResultPanelFactory>(Lifetime.Singleton)
+            .As<IRunResultPanelFactory>();
+        builder.Register<RunResultPanelService>(Lifetime.Singleton)
+            .As<IRunResultPanelService>();
+        builder.Register<CodexPanelFactory>(Lifetime.Singleton)
+            .As<ICodexPanelFactory>();
+        builder.Register<FacilitySynthesisPanelFactory>(Lifetime.Singleton)
+            .As<IFacilitySynthesisPanelFactory>();
+        builder.Register<FacilityEvolutionPanelFactory>(Lifetime.Singleton)
+            .As<IFacilityEvolutionPanelFactory>();
+        builder.Register<StaffWorkPriorityPanelUiFactory>(Lifetime.Singleton)
+            .As<IStaffWorkPriorityPanelUiFactory>();
+        builder.Register<StaffWorkPriorityPanelModelBuilder>(Lifetime.Singleton)
+            .As<IStaffWorkPriorityPanelModelBuilder>();
+        builder.Register<StaffWorkPriorityPanelFactory>(Lifetime.Singleton)
+            .As<IStaffWorkPriorityPanelFactory>();
+        builder.Register<P0FeatureSurfacePanelFactory>(Lifetime.Singleton)
+            .As<IP0FeatureSurfacePanelFactory>();
+
+        builder.Register<BuildingFeatureQueryService>(Lifetime.Singleton)
+            .As<IBuildingFeatureQueryService>();
+        builder.Register<BuildingFeatureCommandService>(Lifetime.Singleton)
+            .As<IBuildingFeatureCommandService>();
+        builder.Register<BuildingFeatureSurfacePresenter>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<ShopFeatureCommandService>(Lifetime.Singleton)
+            .As<IShopFeatureCommandService>();
+        builder.Register<ShopFeatureQueryService>(Lifetime.Singleton)
+            .As<IShopFeatureQueryService>();
+        builder.Register<ShopFeatureSurfacePresenter>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<WarehouseFeatureQueryService>(Lifetime.Singleton)
+            .As<IWarehouseFeatureQueryService>();
+        builder.Register<WarehouseFeatureCommandService>(Lifetime.Singleton)
+            .As<IWarehouseFeatureCommandService>();
+        builder.Register<WarehouseFeatureSurfacePresenter>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<OperationsFeatureQueryService>(Lifetime.Singleton)
+            .As<IOperationsFeatureQueryService>();
+        builder.Register<OperationsFeatureCommandService>(Lifetime.Singleton)
+            .As<IOperationsFeatureCommandService>();
+        builder.Register<OperationsFeatureSurfacePresenter>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<DefenseFeatureQueryService>(Lifetime.Singleton)
+            .As<IDefenseFeatureQueryService>();
+        builder.Register<DefenseFeatureCommandService>(Lifetime.Singleton)
+            .As<IDefenseFeatureCommandService>();
+        builder.Register<DefenseFeatureSurfacePresenter>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<ExpeditionFeatureQueryService>(Lifetime.Singleton)
+            .As<IExpeditionFeatureQueryService>();
+        builder.Register<ExpeditionFeatureCommandService>(Lifetime.Singleton)
+            .As<IExpeditionFeatureCommandService>();
+        builder.Register<ExpeditionFeatureSurfacePresenter>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<ResearchFeatureQueryService>(Lifetime.Singleton)
+            .As<IResearchFeatureQueryService>();
+        builder.Register<ResearchFeatureCommandService>(Lifetime.Singleton)
+            .As<IResearchFeatureCommandService>();
+        builder.Register<ResearchFeatureSurfacePresenter>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<CodexFeatureQueryService>(Lifetime.Singleton)
+            .As<ICodexFeatureQueryService>();
+        builder.Register<CodexFeatureCommandService>(Lifetime.Singleton)
+            .As<ICodexFeatureCommandService>();
+        builder.Register<CodexFeatureSurfacePresenter>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<FeatureSurfaceTabPresenterRegistry>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenterRegistry>();
+
+        builder.Register<UITabGeneratedPanelFactory>(Lifetime.Singleton)
+            .As<IUITabGeneratedPanelFactory>();
+        builder.Register<UITabTopButtonFactory>(Lifetime.Singleton)
+            .As<IUITabTopButtonFactory>();
+        builder.Register<EventAlertButtonFactory>(Lifetime.Singleton)
+            .As<IEventAlertButtonFactory>();
+        builder.Register<EventAlertViewUiFactory>(Lifetime.Singleton)
+            .As<IEventAlertViewUiFactory>();
+        builder.Register<EventAlertViewPresenterFactory>(Lifetime.Singleton)
+            .As<IEventAlertViewPresenterFactory>();
+        builder.Register<EventAlertCanvasProvider>(Lifetime.Singleton)
+            .As<IEventAlertCanvasProvider>()
+            .As<IDungeonUiCanvasProvider>();
+        builder.RegisterEntryPoint<FirstRunObjectiveRuntime>(Lifetime.Singleton)
+            .As<IFirstRunObjectiveRuntime>();
+        builder.RegisterEntryPoint<DungeonPlayerAutomationBridge>(Lifetime.Singleton);
+        builder.Register<NoticeFeedItemFactory>(Lifetime.Singleton)
+            .As<INoticeFeedItemFactory>();
+        builder.Register<NoticeFeedPresenter>(Lifetime.Singleton)
+            .As<INoticeFeedPresenter>();
+        builder.Register<CharacterSummaryRuntimeLogFactory>(Lifetime.Singleton)
+            .As<ICharacterSummaryRuntimeLogFactory>();
+        _ = sceneRuntimeReferences
+            ?? throw new ArgumentNullException(nameof(sceneRuntimeReferences));
+
+        builder.Register<StaffWorkforceRuntimeQueryService>(Lifetime.Singleton)
+            .As<IStaffWorkforceQueryService>();
+        builder.Register<WorkGridResolver>(Lifetime.Singleton)
+            .As<IWorkGridResolver>();
+        builder.Register<BuildingManagementSummaryService>(Lifetime.Singleton)
+            .As<IBuildingManagementSummaryService>();
+        builder.Register<InvasionDefenseSummaryService>(Lifetime.Singleton)
+            .As<IInvasionDefenseSummaryService>();
+        builder.Register<OffenseTabSummaryService>(Lifetime.Singleton)
+            .As<IOffenseTabSummaryService>();
+        builder.Register<OperationTabSummaryService>(Lifetime.Singleton)
+            .As<IOperationTabSummaryService>();
+        builder.Register<ResearchCraftingSummaryService>(Lifetime.Singleton)
+            .As<IResearchCraftingSummaryService>();
+        builder.Register<CodexRecordSummaryService>(Lifetime.Singleton)
+            .As<ICodexRecordSummaryService>();
+
+        builder.Register<BuildingTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
+        builder.Register<StaffTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
+        builder.Register<ShopTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
+        builder.Register<WarehouseTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
+        builder.Register<OperationsTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
+        builder.Register<DefenseTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
+        builder.Register<ExpeditionTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
+        builder.Register<ResearchTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
+        builder.Register<CodexTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
+        builder.Register<UITabContentTextProvider>(Lifetime.Singleton)
+            .As<IUITabContentTextProvider>();
+        builder.Register<UiPopupService>(Lifetime.Singleton)
+            .As<IUiPopupService>();
+
+        builder.RegisterComponentOnNewGameObject<ItemPileInfoPanel>(
+                Lifetime.Singleton,
+                nameof(ItemPileInfoPanel))
+            .UnderTransform(runtimeRoot);
+        builder.RegisterComponentOnNewGameObject<WildlifeInfoPanel>(
+                Lifetime.Singleton,
+                nameof(WildlifeInfoPanel))
+            .UnderTransform(runtimeRoot);
+        builder.Register<GameManagerFloatingIconFeedbackService>(Lifetime.Singleton)
+            .As<IFloatingIconFeedbackService>();
+    }
+}

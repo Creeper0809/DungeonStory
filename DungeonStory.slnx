@@ -3,5 +3,22 @@
   <Project Path="DamageNumbersPro.csproj" />
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Assembly-CSharp-firstpass.csproj" />
+  <Project Path="DungeonStory.Combat.csproj" />
+  <Project Path="DungeonStory.World.csproj" />
+  <Project Path="DungeonStory.Rooms.csproj" />
   <Project Path="Assembly-CSharp-Editor-firstpass.csproj" />
+  <Project Path="DungeonStory.Wildlife.csproj" />
+  <Project Path="DungeonStory.Items.csproj" />
+  <Project Path="DungeonStory.Foundation.csproj" />
+  <Project Path="DungeonStory.Architecture.Tests.csproj" />
+  <Project Path="DungeonStory.Infrastructure.csproj" />
+  <Project Path="DungeonStory.Invasion.csproj" />
+  <Project Path="DungeonStory.Characters.csproj" />
+  <Project Path="DungeonStory.Offense.csproj" />
+  <Project Path="DungeonStory.Buildings.csproj" />
+  <Project Path="DungeonStory.Survival.csproj" />
+  <Project Path="DungeonStory.Presentation.csproj" />
+  <Project Path="DungeonStory.AI.csproj" />
+  <Project Path="DungeonStory.Work.csproj" />
+  <Project Path="DungeonStory.Foundation.Tests.csproj" />
 </Solution>

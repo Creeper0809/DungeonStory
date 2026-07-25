@@ -31,11 +31,11 @@ MonoBehaviour:
   researchWorkRequired: 45
   unlocks:
     items:
-    - rid: 7302563115814097220
+    - rid: 7302563146589274845
   references:
     version: 2
     RefIds:
-    - rid: 7302563115814097220
+    - rid: 7302563146589274845
       type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
       data:
         recipeId: recipe_commerce_secure_display_2

@@ -20,7 +20,7 @@ MonoBehaviour:
   occupiedHands: 2
   maxDurability: 100
   verbs:
-  - rid: 7302563143330302069
+  - rid: 7302563146589275004
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.35
@@ -41,7 +41,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563143330302069
+    - rid: 7302563146589275004
       type: {class: ProjectileVerb, ns: , asm: Assembly-CSharp}
       data:
         attackTime: 0.9

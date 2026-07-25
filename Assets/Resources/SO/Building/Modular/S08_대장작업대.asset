@@ -47,7 +47,7 @@ MonoBehaviour:
     - rid: 7302562991791408095
     - rid: 7302563133342875891
     - rid: 7302563135951208602
-    - rid: 7302563143330302074
+    - rid: 7302563146589275009
   width: 2
   height: 1
   layer: 1
@@ -107,7 +107,7 @@ MonoBehaviour:
         abilityId: BuildingEquipmentMaintenanceAbility
         workSpeedMultiplier: 1
         simultaneousRepairSlots: 1
-    - rid: 7302563143330302074
+    - rid: 7302563146589275009
       type: {class: BuildingEquipmentCraftingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEquipmentCraftingAbility

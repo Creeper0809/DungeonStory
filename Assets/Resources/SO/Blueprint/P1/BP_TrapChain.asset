@@ -30,11 +30,11 @@ MonoBehaviour:
   researchWorkRequired: 50
   unlocks:
     items:
-    - rid: 7302563115814097214
+    - rid: 7302563146589274839
   references:
     version: 2
     RefIds:
-    - rid: 7302563115814097214
+    - rid: 7302563146589274839
       type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
       data:
         recipeId: recipe_fortress_banner_2
