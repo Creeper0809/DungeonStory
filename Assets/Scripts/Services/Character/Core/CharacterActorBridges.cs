@@ -22,6 +22,9 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
     public IGridPathSearchBroker PathSearchBroker => pathSearchBroker;
     public ICharacterAiWorldRegistry WorldRegistry => worldRegistry;
     public ICharacterAiWorldSignalQuery WorldSignalQuery => worldSignalQuery;
+    public bool ShouldCollectDetailedAiDiagnostics =>
+        aiSchedulingService == null
+        || aiSchedulingService.ShouldCollectDetailedDiagnostics(actor);
 
     public void Configure(
         CharacterActor actor,
@@ -143,16 +146,20 @@ public sealed class CharacterActorPresentationBridge : MonoBehaviour
     private CharacterActor actor;
     private IWorldInfoClickSelector worldInfoClickSelector;
     private ICharacterFeedbackBubbleFactory feedbackBubbleFactory;
+    private ICharacterPresentationScheduler presentationScheduler;
 
     public IMainCameraProvider MainCameraProvider { get; private set; }
     public ITmpKoreanFontService TmpKoreanFontService { get; private set; }
+    public IDynamicFrameWorkBudget FrameWorkBudget { get; private set; }
 
     public void Configure(
         CharacterActor actor,
         IWorldInfoClickSelector worldInfoClickSelector,
         ICharacterFeedbackBubbleFactory feedbackBubbleFactory,
         IMainCameraProvider mainCameraProvider,
-        ITmpKoreanFontService tmpKoreanFontService = null)
+        IDynamicFrameWorkBudget frameWorkBudget,
+        ITmpKoreanFontService tmpKoreanFontService = null,
+        ICharacterPresentationScheduler presentationScheduler = null)
     {
         this.actor = actor ?? throw new ArgumentNullException(nameof(actor));
         this.worldInfoClickSelector = worldInfoClickSelector
@@ -161,7 +168,10 @@ public sealed class CharacterActorPresentationBridge : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(feedbackBubbleFactory));
         MainCameraProvider = mainCameraProvider
             ?? throw new ArgumentNullException(nameof(mainCameraProvider));
+        FrameWorkBudget = frameWorkBudget
+            ?? throw new ArgumentNullException(nameof(frameWorkBudget));
         TmpKoreanFontService = tmpKoreanFontService;
+        this.presentationScheduler = presentationScheduler;
         EnsurePresentation();
     }
 
@@ -179,7 +189,25 @@ public sealed class CharacterActorPresentationBridge : MonoBehaviour
             return;
         }
 
-        WorldCharacterNameplate.Ensure(actor, TmpKoreanFontService);
-        feedbackBubbleFactory?.GetOrAdd(actor);
+        WorldCharacterNameplate nameplate =
+            WorldCharacterNameplate.Ensure(actor, TmpKoreanFontService);
+        CharacterFeedbackBubble feedbackBubble =
+            feedbackBubbleFactory?.GetOrAdd(actor);
+        presentationScheduler?.Register(actor, nameplate, feedbackBubble);
+    }
+
+    public void OnActorEnabled()
+    {
+        EnsurePresentation();
+    }
+
+    public void OnActorDisabled()
+    {
+        presentationScheduler?.Unregister(actor);
+    }
+
+    public void OnActorDestroyed()
+    {
+        presentationScheduler?.Unregister(actor);
     }
 }

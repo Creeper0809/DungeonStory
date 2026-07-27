@@ -14,12 +14,14 @@ public sealed class ExteriorActivitySaveSection : IDungeonSaveSection
     }
 
     public string SectionId => Id;
-    public int SectionVersion => 1;
+    public int SectionVersion => DungeonExteriorActivitySaveData.CurrentVersion;
     public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.LateRuntimeState;
     public IReadOnlyList<string> DependsOn => new[]
     {
         PhysicalItemsSaveSection.Id,
-        WorkOrdersSaveSection.Id
+        WorkOrdersSaveSection.Id,
+        CharacterWorldSaveSection.Id,
+        WildlifeSaveSection.Id
     };
 
     public string Capture()

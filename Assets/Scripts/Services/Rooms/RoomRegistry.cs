@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Profiling;
 
 public interface IRoomLayoutCache
 {
@@ -11,6 +12,9 @@ public interface IRoomLayoutCache
 
 public sealed class RoomLayoutCache : IRoomLayoutCache
 {
+    private static readonly ProfilerMarker RebuildProfilerMarker =
+        new ProfilerMarker("RoomLayoutCache.Rebuild");
+
     private sealed class CachedLayout
     {
         public int GridVersion = -1;
@@ -33,10 +37,13 @@ public sealed class RoomLayoutCache : IRoomLayoutCache
             cacheByGrid[grid] = cache;
         }
 
-        if (cache.Layout == null || cache.GridVersion != grid.version)
+        if (cache.Layout == null || cache.GridVersion != grid.StructuralVersion)
         {
-            cache.GridVersion = grid.version;
-            cache.Layout = RoomDetector.Build(grid);
+            cache.GridVersion = grid.StructuralVersion;
+            using (RebuildProfilerMarker.Auto())
+            {
+                cache.Layout = RoomDetector.Build(grid);
+            }
         }
 
         return cache.Layout;

@@ -70,7 +70,7 @@ public sealed class GridTraversalLink
     }
 }
 
-public sealed class GridMoveStep
+public readonly struct GridMoveStep
 {
     public Vector2Int From { get; }
     public Vector2Int To { get; }
@@ -78,6 +78,7 @@ public sealed class GridMoveStep
     public IGridOccupant MovementOccupant { get; }
     public GridMoveType MoveType { get; }
 
+    public bool IsValid { get; }
     public bool IsSpecialMove => MoveType != GridMoveType.Walk;
 
     public GridMoveStep(
@@ -92,6 +93,7 @@ public sealed class GridMoveStep
         DestinationOccupant = destinationOccupant;
         MovementOccupant = movementOccupant;
         MoveType = moveType;
+        IsValid = true;
     }
 
     public GridMoveStep WithDestination(IGridOccupant destination)

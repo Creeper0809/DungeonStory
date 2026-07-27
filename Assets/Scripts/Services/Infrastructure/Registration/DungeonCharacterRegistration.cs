@@ -44,6 +44,8 @@ public static class DungeonCharacterRegistration
             .As<ICharacterSpawnerProvider>();
         builder.Register<CharacterSpawnObjectFactory>(Lifetime.Singleton)
             .As<ICharacterSpawnObjectFactory>();
+        builder.RegisterEntryPoint<CharacterStatMaintenanceRuntime>(
+            Lifetime.Singleton);
         builder.Register<StaffDiscontentRuntimeProvider>(Lifetime.Singleton)
             .As<IStaffDiscontentRuntimeProvider>();
         builder.Register<StaffDiscontentRuntimeService>(Lifetime.Singleton)

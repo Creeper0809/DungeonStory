@@ -69,6 +69,7 @@ public interface ICodexFeatureQueryService
 public interface ICodexFeatureCommandService
 {
     CodexFeatureCommandResult OpenEvent(int recordId);
+    CodexFeatureCommandResult QueueMemoryResidueAnalysis();
 }
 
 public sealed class CodexFeatureQueryService : ICodexFeatureQueryService
@@ -236,11 +237,16 @@ public sealed class CodexFeatureQueryService : ICodexFeatureQueryService
 public sealed class CodexFeatureCommandService : ICodexFeatureCommandService
 {
     private readonly IEventAlertRuntimeProvider eventAlertProvider;
+    private readonly IKnowledgeResidueProcessingRuntime knowledgeProcessing;
 
-    public CodexFeatureCommandService(IEventAlertRuntimeProvider eventAlertProvider)
+    public CodexFeatureCommandService(
+        IEventAlertRuntimeProvider eventAlertProvider,
+        IKnowledgeResidueProcessingRuntime knowledgeProcessing)
     {
         this.eventAlertProvider = eventAlertProvider
             ?? throw new ArgumentNullException(nameof(eventAlertProvider));
+        this.knowledgeProcessing = knowledgeProcessing
+            ?? throw new ArgumentNullException(nameof(knowledgeProcessing));
     }
 
     public CodexFeatureCommandResult OpenEvent(int recordId)
@@ -259,6 +265,13 @@ public sealed class CodexFeatureCommandService : ICodexFeatureCommandService
         return new CodexFeatureCommandResult(
             true,
             $"이벤트 선택: {record.Title}");
+    }
+
+    public CodexFeatureCommandResult QueueMemoryResidueAnalysis()
+    {
+        bool succeeded = knowledgeProcessing.TryQueueCodexAnalysis(
+            out string message);
+        return new CodexFeatureCommandResult(succeeded, message);
     }
 }
 
@@ -329,6 +342,19 @@ public sealed class CodexFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
         }
 
         view.AddSection("도감 분류", model.Summary);
+        view.AddDataCard(
+            "P2Action_CodexMemoryResidue",
+            "기억 잔재 분석",
+            "기억 잔재 1개를 연구 시설로 운반하고 작업량을 채워 새로운 단서를 정리합니다.",
+            "분석 준비",
+            () =>
+            {
+                CodexFeatureCommandResult result =
+                    commandService.QueueMemoryResidueAnalysis();
+                view.ShowFeedback(result.Message);
+                view.RequestRefresh();
+            },
+            82f);
         AddCategoryButton(view, CodexEntryCategory.Monster, "몬스터", 0);
         AddCategoryButton(view, CodexEntryCategory.Invasion, "침공", 1);
         AddCategoryButton(view, CodexEntryCategory.Facility, "시설", 2);

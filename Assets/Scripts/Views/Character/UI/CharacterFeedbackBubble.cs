@@ -33,6 +33,7 @@ public class CharacterFeedbackBubble : MonoBehaviour
     private CharacterVisual characterVisual;
     private float visibleUntil;
     private float nextLogFeedbackTime;
+    private int nextPassiveRefreshFrame;
     private ICharacterAiSchedulingService aiSchedulingService;
     private ICharacterFeedbackBubbleViewFactory bubbleViewFactory;
     private IGameClock gameClock;
@@ -87,6 +88,9 @@ public class CharacterFeedbackBubble : MonoBehaviour
         {
             characterStats.OnStatChange += OnStatChanged;
         }
+
+        nextPassiveRefreshFrame = (gameClock != null ? gameClock.FrameCount : 0)
+            + Mathf.Abs(actor != null ? actor.GetInstanceID() : GetInstanceID()) % 8;
     }
 
     private void OnDisable()
@@ -107,8 +111,14 @@ public class CharacterFeedbackBubble : MonoBehaviour
         }
     }
 
-    private void LateUpdate()
+    internal void TickFromScheduler(bool isVisible)
     {
+        if (!isVisible)
+        {
+            ReleaseView();
+            return;
+        }
+
         if (aiSchedulingService == null || bubbleViewFactory == null)
         {
             HideView();
@@ -121,14 +131,28 @@ public class CharacterFeedbackBubble : MonoBehaviour
             return;
         }
 
-        if (CurrentState != CharacterFeedbackState.None && gameClock.Time <= visibleUntil)
+        bool temporaryStateVisible =
+            CurrentState != CharacterFeedbackState.None
+            && gameClock.Time <= visibleUntil;
+        if (temporaryStateVisible)
         {
             EnsureView();
             text.transform.localPosition = GetLocalOffset();
             return;
         }
 
+        if (gameClock.FrameCount < nextPassiveRefreshFrame)
+        {
+            return;
+        }
+
+        nextPassiveRefreshFrame = gameClock.FrameCount + 8;
         ApplyState(EvaluatePersistentState());
+    }
+
+    internal void HideFromScheduler()
+    {
+        ReleaseView();
     }
 
     public void Show(CharacterFeedbackState state)
@@ -266,7 +290,9 @@ public class CharacterFeedbackBubble : MonoBehaviour
 
     private void OnStatChanged(System.Collections.Generic.IReadOnlyDictionary<CharacterCondition, float> stats)
     {
-        if (CurrentState == CharacterFeedbackState.None || gameClock.Time > visibleUntil)
+        if ((CurrentState == CharacterFeedbackState.None || gameClock.Time > visibleUntil)
+            && aiSchedulingService != null
+            && aiSchedulingService.ShouldShowCharacterFeedback(actor))
         {
             ApplyState(EvaluatePersistentState());
         }
@@ -286,7 +312,7 @@ public class CharacterFeedbackBubble : MonoBehaviour
         }
 
         string symbol = GetSymbol(state);
-        text.text = symbol;
+        text.SetText(symbol);
         text.gameObject.SetActive(!string.IsNullOrWhiteSpace(symbol));
         text.color = GetColor(state);
     }

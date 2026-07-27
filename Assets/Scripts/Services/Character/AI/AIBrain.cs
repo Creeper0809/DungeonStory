@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Sirenix.OdinInspector;
 using System;
 using System.Linq;
@@ -20,7 +21,25 @@ public class AIBrain : CharacterAbility
     private const string ExitDungeonActionPath = "SO/AI/Action/ExitDungeon";
     public AIAction[] availableActions;
     [ReadOnly]public AIAction bestAction;
-    public bool isBestActionEnd = true;
+    [SerializeField, FormerlySerializedAs("isBestActionEnd")]
+    private bool decisionPending = true;
+    public bool isBestActionEnd
+    {
+        get => decisionPending;
+        set
+        {
+            if (decisionPending == value)
+            {
+                return;
+            }
+
+            decisionPending = value;
+            if (value && actor != null && aiSchedulingService != null)
+            {
+                aiSchedulingService.RequestImmediateDecision(actor);
+            }
+        }
+    }
     public bool isExecuted = false;
     [SerializeField] private float actionFailureCooldown = 1f;
     [SerializeField, Range(0f, 0.5f)] private float actionSwitchScoreMargin = 0.12f;
@@ -30,6 +49,12 @@ public class AIBrain : CharacterAbility
     private GridPathSearchResult pathSearchCache;
     private bool urgentPathSearchRequested;
     private readonly Dictionary<AIActionSet, float> actionFailureCooldownUntil = new Dictionary<AIActionSet, float>();
+    private readonly Dictionary<AIAction, ActionEvaluation> actionEvaluationCache =
+        new Dictionary<AIAction, ActionEvaluation>();
+    private readonly Dictionary<(BuildableObject Building, FacilityRole Role), float>
+        facilityScoreCache =
+            new Dictionary<(BuildableObject Building, FacilityRole Role), float>();
+    private ActionScoringContinuation actionScoringContinuation;
     private readonly List<AIAction> destinationFailedThisDecision = new List<AIAction>();
     private readonly List<AIActionDebugCandidate> lastCandidateScores = new List<AIActionDebugCandidate>();
     private IReadOnlyList<AIActionDebugCandidate> lastCandidateScoresView;
@@ -46,6 +71,7 @@ public class AIBrain : CharacterAbility
     private ICharacterAiJobGiverCatalog jobGiverCatalog;
     private ICharacterAiDecisionPipeline decisionPipeline;
     private IGridPathSearchBroker pathSearchBroker;
+    private ICharacterAiPerformanceRecorder performanceRecorder;
     private IGameClock gameClock;
     private IRandomStream actionRandom;
     private FacilityScoringContext facilityScoringContext;
@@ -57,7 +83,9 @@ public class AIBrain : CharacterAbility
     private string currentDestinationDebugLabel = string.Empty;
     private float nextActionSwitchAllowedAt;
     private bool manualCommandActive;
+    private int directDecisionTickCount;
     public bool IsPathSearchDeferred { get; private set; }
+    public bool IsActionScoringPending => actionScoringContinuation != null;
     public bool IsManualCommandActive => manualCommandActive;
     public AIActionFailure LastActionFailure => lastActionFailure;
     public IReadOnlyList<AIActionDebugCandidate> LastCandidateScores =>
@@ -66,8 +94,80 @@ public class AIBrain : CharacterAbility
     public string CurrentActionPhase => currentActionPhase;
     public string CurrentActionPhaseDetail => currentActionPhaseDetail;
     public string CurrentDestinationDebugLabel => currentDestinationDebugLabel;
+    internal ICharacterAiPerformanceRecorder PerformanceRecorder => performanceRecorder;
     public int DebugVersion { get; private set; }
     private float Now => gameClock != null ? gameClock.Time : 0f;
+
+    private readonly struct ActionEvaluation
+    {
+        public ActionEvaluation(
+            bool canConsider,
+            AIActionFailure failure,
+            BuildableObject destination)
+        {
+            CanConsider = canConsider;
+            Failure = failure;
+            Destination = destination;
+        }
+
+        public bool CanConsider { get; }
+        public AIActionFailure Failure { get; }
+        public BuildableObject Destination { get; }
+    }
+
+    private sealed class ActionScoringContinuation
+    {
+        public Predicate<AIActionSet> Predicate;
+        public bool HasDecisionContext;
+        public int NextActionIndex;
+        public AIAction BestCandidate;
+        public float BestScore = float.MinValue;
+        public AIActionFailure BestFailure = AIActionFailure.Create(
+            AIActionFailureKind.NoAction,
+            "일치하는 AI 행동이 없습니다.");
+
+        public bool Matches(
+            Predicate<AIActionSet> predicate,
+            bool hasDecisionContext)
+        {
+            if (HasDecisionContext != hasDecisionContext
+                || Predicate == null
+                || predicate == null)
+            {
+                return false;
+            }
+
+            return ReferenceEquals(Predicate, predicate)
+                || (ReferenceEquals(Predicate.Target, predicate.Target)
+                    && Predicate.Method == predicate.Method);
+        }
+    }
+
+    public CharacterAiDecisionTickResult RunDecisionTreeDirect()
+    {
+        if (actor == null || decisionPipeline == null)
+        {
+            return new CharacterAiDecisionTickResult(
+                false,
+                CharacterAiBranch.None,
+                "Direct BT",
+                "AI decision pipeline is unavailable.");
+        }
+
+        if (actionScoringContinuation == null)
+        {
+            directDecisionTickCount++;
+            actor.Blackboard?.BeginDecisionTrace(directDecisionTickCount);
+            actor.Blackboard?.ClearJobGiverCandidateCache();
+            actionEvaluationCache.Clear();
+            facilityScoreCache.Clear();
+        }
+
+        return decisionPipeline.RunRootDecision(actor);
+    }
+
+    public bool HasResumableDecisionPipeline =>
+        actor != null && decisionPipeline != null;
 
     [Inject]
     public void ConstructAIBrain(
@@ -81,7 +181,8 @@ public class AIBrain : CharacterAbility
         IRoomFacilityPolicy roomFacilityPolicy,
         IGridPathSearchBroker pathSearchBroker,
         IGameClock gameClock,
-        IRandomStreamProvider randomStreamProvider)
+        IRandomStreamProvider randomStreamProvider,
+        ICharacterAiPerformanceRecorder performanceRecorder = null)
     {
         this.actionAssetCatalog = actionAssetCatalog
             ?? throw new ArgumentNullException(nameof(actionAssetCatalog));
@@ -99,6 +200,7 @@ public class AIBrain : CharacterAbility
             ?? throw new ArgumentNullException(nameof(pathSearchBroker));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
+        this.performanceRecorder = performanceRecorder;
         actionRandom = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("character-ai");
@@ -342,6 +444,25 @@ public class AIBrain : CharacterAbility
         return RuntimeDependency.Require(facilityCandidateCache, this);
     }
 
+    internal bool TryGetCachedFacilityScore(
+        BuildableObject building,
+        FacilityRole role,
+        out float score)
+    {
+        return facilityScoreCache.TryGetValue((building, role), out score);
+    }
+
+    internal void CacheFacilityScore(
+        BuildableObject building,
+        FacilityRole role,
+        float score)
+    {
+        if (building != null)
+        {
+            facilityScoreCache[(building, role)] = Mathf.Clamp01(score);
+        }
+    }
+
     public ICharacterAiFacilityLookup RequireFacilityLookup()
     {
         return RuntimeDependency.Require(facilityLookup, this);
@@ -378,14 +499,8 @@ public class AIBrain : CharacterAbility
             return false;
         }
 
-        GetPathSearch(actor);
-        if (IsPathSearchDeferred)
-        {
-            bestAction = null;
-            isBestActionEnd = true;
-            isExecuted = false;
-            return false;
-        }
+        actionEvaluationCache.Clear();
+        facilityScoreCache.Clear();
 
         if (TryUsePreferredAction())
         {
@@ -434,15 +549,18 @@ public class AIBrain : CharacterAbility
             return false;
         }
 
-        GetPathSearch(actor);
-        if (IsPathSearchDeferred)
+        if (!TryGetActionEvaluation(action, out ActionEvaluation evaluation))
         {
-            failure = AIActionFailure.Create(AIActionFailureKind.PathSearchDeferred);
+            failure = evaluation.Failure;
+            RememberCandidateFailure(action, failure);
             actor?.Blackboard?.ReportActionFailure(action.actionset, failure);
             return false;
         }
 
-        if (!CanUseAction(action, out failure))
+        if (!action.SetResolvedDestinationWithFailure(
+                actor,
+                candidate.Destination ?? evaluation.Destination,
+                out failure))
         {
             RememberCandidateFailure(action, failure);
             actor?.Blackboard?.ReportActionFailure(action.actionset, failure);
@@ -468,6 +586,84 @@ public class AIBrain : CharacterAbility
         Predicate<AIActionSet> predicate,
         out CharacterAiActionCandidate candidate)
     {
+        bool collectPerformance =
+            performanceRecorder?.DetailedCollectionEnabled == true;
+        long started = collectPerformance
+            ? System.Diagnostics.Stopwatch.GetTimestamp()
+            : 0L;
+        long allocatedAtStart = collectPerformance
+            ? GC.GetAllocatedBytesForCurrentThread()
+            : 0L;
+        try
+        {
+            CharacterAiDecisionContext context = default;
+            return TryFindBestScoredActionCore(
+                predicate,
+                false,
+                in context,
+                out candidate);
+        }
+        finally
+        {
+            if (started != 0L)
+            {
+                performanceRecorder.Record(
+                    AiPerformanceCategory.ActionScoring,
+                    (System.Diagnostics.Stopwatch.GetTimestamp() - started)
+                    * 1000.0
+                    / System.Diagnostics.Stopwatch.Frequency,
+                    Math.Max(
+                        0L,
+                        GC.GetAllocatedBytesForCurrentThread()
+                            - allocatedAtStart));
+            }
+        }
+    }
+
+    public bool TryFindBestScoredAction(
+        Predicate<AIActionSet> predicate,
+        in CharacterAiDecisionContext context,
+        out CharacterAiActionCandidate candidate)
+    {
+        bool collectPerformance =
+            performanceRecorder?.DetailedCollectionEnabled == true;
+        long started = collectPerformance
+            ? System.Diagnostics.Stopwatch.GetTimestamp()
+            : 0L;
+        long allocatedAtStart = collectPerformance
+            ? GC.GetAllocatedBytesForCurrentThread()
+            : 0L;
+        try
+        {
+            return TryFindBestScoredActionCore(
+                predicate,
+                true,
+                in context,
+                out candidate);
+        }
+        finally
+        {
+            if (started != 0L)
+            {
+                performanceRecorder.Record(
+                    AiPerformanceCategory.ActionScoring,
+                    (System.Diagnostics.Stopwatch.GetTimestamp() - started)
+                    * 1000.0
+                    / System.Diagnostics.Stopwatch.Frequency,
+                    Math.Max(
+                        0L,
+                        GC.GetAllocatedBytesForCurrentThread()
+                            - allocatedAtStart));
+            }
+        }
+    }
+
+    private bool TryFindBestScoredActionCore(
+        Predicate<AIActionSet> predicate,
+        bool hasDecisionContext,
+        in CharacterAiDecisionContext context,
+        out CharacterAiActionCandidate candidate)
+    {
         candidate = default;
         if (predicate == null)
         {
@@ -475,7 +671,9 @@ public class AIBrain : CharacterAbility
                 null,
                 0f,
                 AIActionFailure.Create(AIActionFailureKind.NoAction, "Action predicate is missing."),
-                "Action predicate is missing.");
+                actor != null && actor.ShouldCollectDetailedAiDiagnostics
+                    ? "Action predicate is missing."
+                    : string.Empty);
             return false;
         }
 
@@ -485,50 +683,137 @@ public class AIBrain : CharacterAbility
             || availableActions.Length == 0)
         {
             AIActionFailure failure = AIActionFailure.Create(AIActionFailureKind.NoAction, "No available AI actions.");
-            candidate = new CharacterAiActionCandidate(null, 0f, failure, failure.ToString());
+            candidate = new CharacterAiActionCandidate(
+                null,
+                0f,
+                failure,
+                actor != null && actor.ShouldCollectDetailedAiDiagnostics
+                    ? failure.ToString()
+                    : string.Empty);
             return false;
         }
 
-        GetPathSearch(actor);
-        if (IsPathSearchDeferred)
+        if (actionScoringContinuation != null
+            && !actionScoringContinuation.Matches(
+                predicate,
+                hasDecisionContext))
         {
-            AIActionFailure failure = AIActionFailure.Create(AIActionFailureKind.PathSearchDeferred);
-            candidate = new CharacterAiActionCandidate(null, 0f, failure, failure.ToString());
-            return false;
+            actionEvaluationCache.Clear();
+            facilityScoreCache.Clear();
+            actionScoringContinuation = null;
         }
 
-        AIAction bestCandidate = null;
-        float bestScore = float.MinValue;
-        AIActionFailure bestFailure = AIActionFailure.Create(AIActionFailureKind.NoAction, "No matching AI action.");
-        foreach (AIAction action in availableActions)
+        if (actionScoringContinuation == null)
         {
+            actionScoringContinuation = new ActionScoringContinuation
+            {
+                Predicate = predicate,
+                HasDecisionContext = hasDecisionContext
+            };
+        }
+
+        ActionScoringContinuation continuation = actionScoringContinuation;
+        double sliceMilliseconds = aiSchedulingService != null
+            ? aiSchedulingService.GetDecisionWorkSliceMilliseconds(actor)
+            : 0.25;
+        long sliceStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+        int processedThisSlice = 0;
+        while (continuation.NextActionIndex < availableActions.Length)
+        {
+            AIAction action =
+                availableActions[continuation.NextActionIndex];
+            processedThisSlice++;
             if (action == null || action.actionset == null || !predicate(action.actionset))
             {
-                continue;
-            }
-
-            if (!CanConsiderAction(action, out AIActionFailure failure))
-            {
-                action.score = 0f;
-                if (GetFailureDebugPriority(failure.Kind) > GetFailureDebugPriority(bestFailure.Kind))
+                continuation.NextActionIndex++;
+                if (ShouldYieldActionScoringSlice(
+                    sliceStarted,
+                    sliceMilliseconds,
+                    processedThisSlice))
                 {
-                    bestFailure = failure;
+                    break;
                 }
 
                 continue;
             }
 
-            float selectionScore = GetSelectionScore(action);
-            if (bestCandidate == null || selectionScore > bestScore)
+            if (!TryGetActionEvaluation(
+                    action,
+                    hasDecisionContext,
+                    in context,
+                    out ActionEvaluation evaluation))
             {
-                bestCandidate = action;
-                bestScore = selectionScore;
+                action.score = 0f;
+                AIActionFailure failure = evaluation.Failure;
+                if (GetFailureDebugPriority(failure.Kind)
+                    > GetFailureDebugPriority(continuation.BestFailure.Kind))
+                {
+                    continuation.BestFailure = failure;
+                }
+
+                if (failure.Kind == AIActionFailureKind.PathSearchDeferred)
+                {
+                    break;
+                }
+
+                continuation.NextActionIndex++;
+                if (ShouldYieldActionScoringSlice(
+                    sliceStarted,
+                    sliceMilliseconds,
+                    processedThisSlice))
+                {
+                    break;
+                }
+
+                continue;
+            }
+
+            continuation.NextActionIndex++;
+            float selectionScore = GetSelectionScore(action);
+            if (continuation.BestCandidate == null
+                || selectionScore > continuation.BestScore)
+            {
+                continuation.BestCandidate = action;
+                continuation.BestScore = selectionScore;
+            }
+
+            if (ShouldYieldActionScoringSlice(
+                sliceStarted,
+                sliceMilliseconds,
+                processedThisSlice))
+            {
+                break;
             }
         }
 
+        if (continuation.NextActionIndex < availableActions.Length)
+        {
+            AIActionFailure pending = AIActionFailure.Create(
+                AIActionFailureKind.PathSearchDeferred,
+                "행동 후보 평가 예산 대기");
+            candidate = new CharacterAiActionCandidate(
+                null,
+                0f,
+                pending,
+                actor.ShouldCollectDetailedAiDiagnostics
+                    ? $"{continuation.NextActionIndex}/{availableActions.Length}개 평가"
+                    : string.Empty);
+            return false;
+        }
+
+        AIAction bestCandidate = continuation.BestCandidate;
+        float bestScore = continuation.BestScore;
+        AIActionFailure bestFailure = continuation.BestFailure;
+        actionScoringContinuation = null;
         if (bestCandidate == null)
         {
-            candidate = new CharacterAiActionCandidate(null, 0f, bestFailure, bestFailure.ToString());
+            candidate = new CharacterAiActionCandidate(
+                null,
+                0f,
+                bestFailure,
+                actor != null && actor.ShouldCollectDetailedAiDiagnostics
+                    ? bestFailure.ToString()
+                    : string.Empty);
             return false;
         }
 
@@ -537,8 +822,30 @@ public class AIBrain : CharacterAbility
             bestCandidate,
             score,
             AIActionFailure.None,
-            $"{GetActionLabel(bestCandidate.actionset)} score={score:0.###}");
+            actor != null && actor.ShouldCollectDetailedAiDiagnostics
+                ? $"{GetActionLabel(bestCandidate.actionset)} score={score:0.###}"
+                : string.Empty,
+            actionEvaluationCache.TryGetValue(bestCandidate, out ActionEvaluation bestEvaluation)
+                ? bestEvaluation.Destination
+                : null);
         return score > 0f;
+    }
+
+    private static bool ShouldYieldActionScoringSlice(
+        long started,
+        double sliceMilliseconds,
+        int processedCount)
+    {
+        if (processedCount <= 0)
+        {
+            return false;
+        }
+
+        double elapsed =
+            (System.Diagnostics.Stopwatch.GetTimestamp() - started)
+            * 1000.0
+            / System.Diagnostics.Stopwatch.Frequency;
+        return elapsed >= Math.Max(0.05, sliceMilliseconds);
     }
 
     private bool DecideActionByScoreThenDestination()
@@ -660,7 +967,7 @@ public class AIBrain : CharacterAbility
         if (pathSearchCache == null ||
             pathSearchCache.sourceGrid != grid ||
             pathSearchCache.start != start ||
-            pathSearchCache.gridVersion != grid.version)
+            pathSearchCache.traversalVersion != grid.TraversalVersion)
         {
             GridPathSearchPriority priority = urgentPathSearchRequested
                 ? GridPathSearchPriority.Urgent
@@ -710,6 +1017,7 @@ public class AIBrain : CharacterAbility
         isExecuted = false;
         isBestActionEnd = actor == null || actor.CanRunAi;
         IsPathSearchDeferred = false;
+        actionScoringContinuation = null;
 
         if (clearFailures)
         {
@@ -857,6 +1165,7 @@ public class AIBrain : CharacterAbility
         isExecuted = false;
         isBestActionEnd = false;
         IsPathSearchDeferred = false;
+        actionScoringContinuation = null;
         MarkDebugDirty();
     }
 
@@ -874,6 +1183,7 @@ public class AIBrain : CharacterAbility
         isExecuted = true;
         isBestActionEnd = false;
         IsPathSearchDeferred = false;
+        actionScoringContinuation = null;
         ClearPathSearchCache();
         MarkDebugDirty();
     }
@@ -1065,6 +1375,62 @@ public class AIBrain : CharacterAbility
         return true;
     }
 
+    private bool TryGetActionEvaluation(
+        AIAction action,
+        out ActionEvaluation evaluation)
+    {
+        CharacterAiDecisionContext context = default;
+        return TryGetActionEvaluation(
+            action,
+            false,
+            in context,
+            out evaluation);
+    }
+
+    private bool TryGetActionEvaluation(
+        AIAction action,
+        bool hasDecisionContext,
+        in CharacterAiDecisionContext context,
+        out ActionEvaluation evaluation)
+    {
+        if (action != null
+            && actionEvaluationCache.TryGetValue(action, out ActionEvaluation cached))
+        {
+            evaluation = cached;
+            return cached.CanConsider;
+        }
+
+        AIActionFailure failure;
+        BuildableObject destination;
+        bool canConsider;
+        if (hasDecisionContext)
+        {
+            canConsider = CanConsiderAction(
+                action,
+                in context,
+                out failure,
+                out destination);
+        }
+        else
+        {
+            canConsider = CanConsiderAction(
+                action,
+                out failure,
+                out destination);
+        }
+        evaluation = new ActionEvaluation(
+            canConsider,
+            failure,
+            destination);
+        if (action != null
+            && failure.Kind != AIActionFailureKind.PathSearchDeferred)
+        {
+            actionEvaluationCache[action] = evaluation;
+        }
+
+        return canConsider;
+    }
+
     public bool StopCurrentActionForReplan(string reason)
     {
         AIAction actionToStop = bestAction;
@@ -1090,6 +1456,7 @@ public class AIBrain : CharacterAbility
         isExecuted = false;
         isBestActionEnd = true;
         IsPathSearchDeferred = false;
+        actionScoringContinuation = null;
         currentActionDebugLabel = "Replanning";
         actor?.AiMemory?.RecordDecision(
             CharacterAiBranch.InterruptCheck,
@@ -1291,6 +1658,45 @@ public class AIBrain : CharacterAbility
 
     private bool CanConsiderAction(AIAction action, out AIActionFailure failure)
     {
+        return CanConsiderAction(action, out failure, out _);
+    }
+
+    private bool CanConsiderAction(
+        AIAction action,
+        out AIActionFailure failure,
+        out BuildableObject destination)
+    {
+        CharacterAiDecisionContext context = default;
+        return CanConsiderAction(
+            action,
+            false,
+            in context,
+            out failure,
+            out destination);
+    }
+
+    private bool CanConsiderAction(
+        AIAction action,
+        in CharacterAiDecisionContext context,
+        out AIActionFailure failure,
+        out BuildableObject destination)
+    {
+        return CanConsiderAction(
+            action,
+            true,
+            in context,
+            out failure,
+            out destination);
+    }
+
+    private bool CanConsiderAction(
+        AIAction action,
+        bool hasDecisionContext,
+        in CharacterAiDecisionContext context,
+        out AIActionFailure failure,
+        out BuildableObject destination)
+    {
+        destination = null;
         failure = AIActionFailure.None;
         if (action == null || action.actionset == null)
         {
@@ -1304,16 +1710,46 @@ public class AIBrain : CharacterAbility
             return false;
         }
 
-        GridPathSearchResult searchResult = actor != null && actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
-        if (actor != null && actor.Brain != null && actor.Brain.IsPathSearchDeferred)
+        long prepareStarted = performanceRecorder?.DetailedCollectionEnabled == true
+            ? System.Diagnostics.Stopwatch.GetTimestamp()
+            : 0L;
+        long prepareAllocatedAtStart = prepareStarted != 0L
+            ? GC.GetAllocatedBytesForCurrentThread()
+            : 0L;
+        bool prepared = hasDecisionContext
+            ? action.actionset.TryPrepareCandidate(
+                actor,
+                in context,
+                null,
+                out destination,
+                out failure)
+            : action.actionset.TryPrepareCandidate(
+                actor,
+                null,
+                out destination,
+                out failure);
+        if (prepareStarted != 0L)
         {
-            failure = AIActionFailure.Create(AIActionFailureKind.PathSearchDeferred);
-            return false;
+            double elapsedMilliseconds =
+                (System.Diagnostics.Stopwatch.GetTimestamp() - prepareStarted)
+                * 1000.0
+                / System.Diagnostics.Stopwatch.Frequency;
+            performanceRecorder.Record(
+                AiPerformanceCategory.ActionPrepare,
+                elapsedMilliseconds,
+                Math.Max(
+                    0L,
+                    GC.GetAllocatedBytesForCurrentThread()
+                        - prepareAllocatedAtStart));
+            CharacterAiSlowOperationTrace.Record(
+                "prepare",
+                actor,
+                action.actionset,
+                null,
+                elapsedMilliseconds);
         }
 
-        if (!action.actionset.CanStartWithFailure(actor, searchResult, out failure))
+        if (!prepared)
         {
             if (!failure.HasFailure)
             {
@@ -1324,7 +1760,33 @@ public class AIBrain : CharacterAbility
             return false;
         }
 
+        long scoreStarted = performanceRecorder?.DetailedCollectionEnabled == true
+            ? System.Diagnostics.Stopwatch.GetTimestamp()
+            : 0L;
+        long scoreAllocatedAtStart = scoreStarted != 0L
+            ? GC.GetAllocatedBytesForCurrentThread()
+            : 0L;
         float actionScore = action.CalculateScore(actor);
+        if (scoreStarted != 0L)
+        {
+            double elapsedMilliseconds =
+                (System.Diagnostics.Stopwatch.GetTimestamp() - scoreStarted)
+                * 1000.0
+                / System.Diagnostics.Stopwatch.Frequency;
+            performanceRecorder.Record(
+                AiPerformanceCategory.ActionConsiderationScore,
+                elapsedMilliseconds,
+                Math.Max(
+                    0L,
+                    GC.GetAllocatedBytesForCurrentThread()
+                        - scoreAllocatedAtStart));
+            CharacterAiSlowOperationTrace.Record(
+                "considerations",
+                actor,
+                action.actionset,
+                null,
+                elapsedMilliseconds);
+        }
         if (actionScore <= 0f)
         {
             failure = AIActionFailure.Create(AIActionFailureKind.NoScore);
@@ -1671,7 +2133,7 @@ public sealed class AIActionPlan
         IEnumerable<GridMoveStep> pathSteps)
     {
         GridMoveStep[] path = pathSteps?.ToArray() ?? Array.Empty<GridMoveStep>();
-        if (path.Any((step) => step == null))
+        if (path.Any((step) => !step.IsValid))
         {
             throw new ArgumentException("An AI action path cannot contain null steps.", nameof(pathSteps));
         }
@@ -1777,8 +2239,8 @@ public class AIAction
 
         if (actionset.considerations == null || actionset.considerations.Length == 0)
         {
-            float baseScore = CharacterAiPersonalityUtility.GetActionScoreMultiplier(actor, actionset);
-            this.score = actionset.AdjustScore(actor, baseScore);
+            float baseScore = EvaluatePersonalityScore(actor, actionset);
+            this.score = EvaluateAdjustedScore(actor, actionset, baseScore);
             return this.score;
         }
 
@@ -1792,7 +2254,23 @@ public class AIAction
                 return this.score;
             }
 
+            long considerationStarted = CharacterAiSlowOperationTrace.Enabled
+                ? System.Diagnostics.Stopwatch.GetTimestamp()
+                : 0L;
             float considerationScore = Mathf.Clamp01(consideration.ScoreConsideration(actor));
+            if (considerationStarted != 0L)
+            {
+                double elapsedMilliseconds =
+                    (System.Diagnostics.Stopwatch.GetTimestamp() - considerationStarted)
+                    * 1000.0
+                    / System.Diagnostics.Stopwatch.Frequency;
+                CharacterAiSlowOperationTrace.Record(
+                    "consideration",
+                    actor,
+                    actionset,
+                    consideration,
+                    elapsedMilliseconds);
+            }
             if (considerationScore <= 0f)
             {
                 this.score = 0;
@@ -1803,12 +2281,94 @@ public class AIAction
         }
 
         float actionScore = totalScore / considerationCount;
-        actionScore *= CharacterAiPersonalityUtility.GetActionScoreMultiplier(actor, actionset);
-        this.score = actionset.AdjustScore(actor, actionScore);
+        actionScore *= EvaluatePersonalityScore(actor, actionset);
+        this.score = EvaluateAdjustedScore(actor, actionset, actionScore);
         return this.score;
     }
 
+    private static float EvaluatePersonalityScore(
+        CharacterActor actor,
+        AIActionSet actionSet)
+    {
+        if (!CharacterAiSlowOperationTrace.Enabled)
+        {
+            return CharacterAiPersonalityUtility.GetActionScoreMultiplier(
+                actor,
+                actionSet);
+        }
+
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        float value = CharacterAiPersonalityUtility.GetActionScoreMultiplier(
+            actor,
+            actionSet);
+        double elapsedMilliseconds =
+            (System.Diagnostics.Stopwatch.GetTimestamp() - started)
+            * 1000.0
+            / System.Diagnostics.Stopwatch.Frequency;
+        CharacterAiSlowOperationTrace.Record(
+            "personality",
+            actor,
+            actionSet,
+            null,
+            elapsedMilliseconds);
+        return value;
+    }
+
+    private static float EvaluateAdjustedScore(
+        CharacterActor actor,
+        AIActionSet actionSet,
+        float baseScore)
+    {
+        if (!CharacterAiSlowOperationTrace.Enabled)
+        {
+            return actionSet.AdjustScore(actor, baseScore);
+        }
+
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        float value = actionSet.AdjustScore(actor, baseScore);
+        double elapsedMilliseconds =
+            (System.Diagnostics.Stopwatch.GetTimestamp() - started)
+            * 1000.0
+            / System.Diagnostics.Stopwatch.Frequency;
+        CharacterAiSlowOperationTrace.Record(
+            "adjust-score",
+            actor,
+            actionSet,
+            null,
+            elapsedMilliseconds);
+        return value;
+    }
+
     public bool SetDestinationWithFailure(CharacterActor actor, out AIActionFailure failure)
+    {
+        failure = AIActionFailure.None;
+        if (actor == null || actor.Brain == null || actionset == null)
+        {
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.NoGrid,
+                "AI \uB610\uB294 \uADF8\uB9AC\uB4DC \uC5C6\uC74C");
+            return false;
+        }
+
+        if (!actionset.TryResolveDestinationWithFailure(
+                actor,
+                null,
+                out BuildableObject resolvedDestination,
+                out failure))
+        {
+            return false;
+        }
+
+        return SetResolvedDestinationWithFailure(
+            actor,
+            resolvedDestination,
+            out failure);
+    }
+
+    public bool SetResolvedDestinationWithFailure(
+        CharacterActor actor,
+        BuildableObject resolvedDestination,
+        out AIActionFailure failure)
     {
         ReleaseReservation(actor);
         plan = AIActionPlan.None;
@@ -1823,42 +2383,82 @@ public class AIAction
             return false;
         }
 
-        GridPathSearchResult searchResult = actor.Brain != null ? actor.Brain.GetPathSearch(actor) : null;
-        if (!actionset.TryResolveDestinationWithFailure(
-                actor,
-                searchResult,
-                out BuildableObject resolvedDestination,
-                out failure))
-        {
-            return false;
-        }
-
         if (resolvedDestination == null)
         {
             plan = AIActionPlan.WithoutDestination;
             return !actionset.RequiresDestination;
         }
 
-        Queue<GridMoveStep> resolvedPath;
-        if (searchResult != null)
+        if (resolvedDestination.isDestroy)
         {
-            resolvedPath = searchResult.GetMovePathTo(resolvedDestination);
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.Destroyed,
+                "\uBAA9\uD45C \uD30C\uAD34\uB428",
+                resolvedDestination);
+            return false;
         }
-        else
+
+        if (IsCharacterAtDestination(actor, resolvedDestination))
         {
-            Func<Vector2Int, bool> condition =
-                (pos) => grid.GetGridCell(pos)?.ContainsOccupant(resolvedDestination) == true;
-            resolvedPath = actor.PathSearchBroker?.GetMovePath(
-                    grid,
-                    actor.GetNowXY(),
-                    condition,
-                    GridPathSearchPriority.Urgent,
-                    GridTraversalContext.ForCharacter(actor))
-                ?? new Queue<GridMoveStep>();
+            plan = AIActionPlan.AtDestination(resolvedDestination);
+            return TryReserveResolvedDestination(actor, resolvedDestination, out failure);
+        }
+
+        Vector2Int pathDestination = ResolveNearestDestinationCell(
+            actor.GetNowXY(),
+            resolvedDestination);
+        Queue<GridMoveStep> resolvedPath = actor.PathSearchBroker?.GetMovePathTo(
+            grid,
+            actor.GetNowXY(),
+            pathDestination,
+            GridPathSearchPriority.Normal,
+            GridTraversalContext.ForCharacter(actor));
+        if (resolvedPath == null)
+        {
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.PathSearchDeferred,
+                "경로 탐색 예산 대기",
+                resolvedDestination);
+            return false;
         }
 
         return ResolvePathPlan(actor, resolvedDestination, resolvedPath, out failure)
             && TryReserveResolvedDestination(actor, resolvedDestination, out failure);
+    }
+
+    private static Vector2Int ResolveNearestDestinationCell(
+        Vector2Int start,
+        BuildableObject destination)
+    {
+        IReadOnlyList<Vector2Int> positions = destination?.buildPoses;
+        if (positions == null || positions.Count == 0)
+        {
+            return destination != null ? destination.centerPos : start;
+        }
+
+        Vector2Int best = positions[0];
+        int bestEstimate = EstimateDestinationCost(start, best);
+        for (int index = 1; index < positions.Count; index++)
+        {
+            Vector2Int candidate = positions[index];
+            int estimate = EstimateDestinationCost(start, candidate);
+            if (estimate < bestEstimate)
+            {
+                best = candidate;
+                bestEstimate = estimate;
+            }
+        }
+
+        return best;
+    }
+
+    private static int EstimateDestinationCost(Vector2Int start, Vector2Int destination)
+    {
+        int horizontal = Mathf.Abs(start.x - destination.x)
+            * DefaultGridTraversalCostPolicy.DryWalkCost;
+        int floorChanges = Mathf.Abs(start.y - destination.y);
+        return horizontal
+            + floorChanges * DefaultGridTraversalCostPolicy.StairFallbackCost;
     }
 
     public bool TryRebuildPathFromCurrentPosition(CharacterActor actor, out AIActionFailure failure)
@@ -1890,15 +2490,24 @@ public class AIAction
             return false;
         }
 
-        Func<Vector2Int, bool> condition =
-            (pos) => grid.GetGridCell(pos)?.ContainsOccupant(currentDestination) == true;
-        Queue<GridMoveStep> rebuiltPath = actor.PathSearchBroker?.GetMovePath(
+        Vector2Int pathDestination = ResolveNearestDestinationCell(
+            actor.GetNowXY(),
+            currentDestination);
+        Queue<GridMoveStep> rebuiltPath = actor.PathSearchBroker?.GetMovePathTo(
                 grid,
                 actor.GetNowXY(),
-                condition,
+                pathDestination,
                 GridPathSearchPriority.Urgent,
-                GridTraversalContext.ForCharacter(actor))
-            ?? new Queue<GridMoveStep>();
+                GridTraversalContext.ForCharacter(actor));
+        if (rebuiltPath == null)
+        {
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.PathSearchDeferred,
+                "경로 탐색 예산 대기",
+                currentDestination);
+            return false;
+        }
+
         return ResolvePathPlan(actor, currentDestination, rebuiltPath, out failure);
     }
 

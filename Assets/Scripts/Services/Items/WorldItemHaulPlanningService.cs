@@ -133,19 +133,9 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         }
 
         string actorId = characterIdRegistry.GetOrAssignPersistentId(actor);
-        GridPathSearchResult reachable = actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
-        if (reachable == null
-            && !pathSearchBroker.TryGetSearch(grid, actor.GetNowXY(), out reachable))
-        {
-            failureReason = "no reachable cells";
-            return false;
-        }
-
         HaulCandidate seed = FindSeedCandidate(
             grid,
-            reachable,
+            null,
             actor,
             inventory,
             actorId,
@@ -160,7 +150,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
 
         List<HaulCandidate> selected = SelectOpportunisticCandidates(
             grid,
-            reachable,
+            null,
             actor,
             inventory,
             actorId,
@@ -373,7 +363,6 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         candidate = null;
         failureReason = string.Empty;
         if (grid == null
-            || reachable == null
             || actor == null
             || inventory == null)
         {
@@ -407,12 +396,6 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             return false;
         }
 
-        if (!reachable.ContainsPosition(pickupStand))
-        {
-            failureReason = $"pickup stand {pickupStand} is unreachable";
-            return false;
-        }
-
         IWarehouseFacility warehouse = null;
         Vector2Int deliveryCell;
         Vector2Int dropCell;
@@ -427,12 +410,6 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             {
                 failureReason =
                     $"no delivery stand near {stack.destinationPosition}";
-                return false;
-            }
-
-            if (!reachable.ContainsPosition(deliveryCell))
-            {
-                failureReason = $"delivery stand {deliveryCell} is unreachable";
                 return false;
             }
 
@@ -537,8 +514,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
                     grid,
                     building,
                     out Vector2Int candidateDelivery)
-                || reachable == null
-                || !reachable.ContainsPosition(candidateDelivery))
+                )
             {
                 continue;
             }

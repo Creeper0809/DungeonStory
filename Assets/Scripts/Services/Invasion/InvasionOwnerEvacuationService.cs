@@ -187,7 +187,7 @@ public sealed class InvasionOwnerEvacuationService :
                 break;
             }
 
-            Queue<GridMoveStep> path = grid.GetMovePath(owner.GetNowXY(), cell => cell == TargetCell);
+            Queue<GridMoveStep> path = grid.GetMovePathTo(owner.GetNowXY(), TargetCell);
             if (path == null || path.Count == 0)
             {
                 break;

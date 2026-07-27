@@ -122,17 +122,10 @@ public sealed class OffenseSpecificBlueprintRewardSpec : OffenseBlueprintRewardS
 }
 
 [Serializable]
-public sealed class OffenseHumanFactionWeakeningRewardSpec : OffenseRewardGrantSpec
+public sealed class OffenseRegionalPressureRewardSpec : OffenseRewardGrantSpec
 {
-    public override string RewardTypeId => OffenseRewardTypeIds.HumanFactionWeakening;
-    public override OffenseRewardCategory Category => OffenseRewardCategory.FactionWeakening;
-}
-
-[Serializable]
-public sealed class OffenseRivalFactionWeakeningRewardSpec : OffenseRewardGrantSpec
-{
-    public override string RewardTypeId => OffenseRewardTypeIds.RivalFactionWeakening;
-    public override OffenseRewardCategory Category => OffenseRewardCategory.FactionWeakening;
+    public override string RewardTypeId => OffenseRewardTypeIds.RegionalPressure;
+    public override OffenseRewardCategory Category => OffenseRewardCategory.StrategicPressure;
 }
 
 [Serializable]
@@ -193,6 +186,11 @@ public class OffenseTargetDefinition
     public string title;
     [TextArea] public string description;
     public OffenseTargetKind kind;
+    public string regionId;
+    public string regionDisplayName;
+    public string factionId;
+    public StrategicPressureAxis strategicPressureAxis;
+    [Min(0f)] public float strategicPressureAmount = 15f;
     [Min(1)] public int campaignOrder = 1;
     public string prerequisiteTargetId;
     public bool revealsTruth;
@@ -248,7 +246,12 @@ public class OffenseTargetDefinition
             completed,
             revealsTruth,
             status,
-            truthText);
+            truthText,
+            regionId,
+            regionDisplayName,
+            factionId,
+            strategicPressureAxis,
+            strategicPressureAmount);
     }
 
     internal OffenseTargetDefinition CreateRuntimeCopy()
@@ -259,6 +262,11 @@ public class OffenseTargetDefinition
             title = title,
             description = description,
             kind = kind,
+            regionId = regionId,
+            regionDisplayName = regionDisplayName,
+            factionId = factionId,
+            strategicPressureAxis = strategicPressureAxis,
+            strategicPressureAmount = strategicPressureAmount,
             campaignOrder = campaignOrder,
             prerequisiteTargetId = prerequisiteTargetId,
             revealsTruth = revealsTruth,
@@ -295,7 +303,12 @@ public sealed class OffenseTargetSnapshot
         bool isCompleted = false,
         bool revealsTruth = false,
         string statusMessage = "",
-        string truthText = "")
+        string truthText = "",
+        string regionId = "",
+        string regionDisplayName = "",
+        string factionId = "",
+        StrategicPressureAxis strategicPressureAxis = StrategicPressureAxis.None,
+        float strategicPressureAmount = 0f)
     {
         this.id = id ?? string.Empty;
         this.title = title ?? string.Empty;
@@ -314,6 +327,11 @@ public sealed class OffenseTargetSnapshot
         this.revealsTruth = revealsTruth;
         this.statusMessage = statusMessage ?? string.Empty;
         this.truthText = truthText ?? string.Empty;
+        this.regionId = regionId ?? string.Empty;
+        this.regionDisplayName = regionDisplayName ?? string.Empty;
+        this.factionId = factionId ?? string.Empty;
+        this.strategicPressureAxis = strategicPressureAxis;
+        this.strategicPressureAmount = Mathf.Max(0f, strategicPressureAmount);
     }
 
     public string id { get; }
@@ -333,6 +351,11 @@ public sealed class OffenseTargetSnapshot
     public bool revealsTruth { get; }
     public string statusMessage { get; }
     public string truthText { get; }
+    public string regionId { get; }
+    public string regionDisplayName { get; }
+    public string factionId { get; }
+    public StrategicPressureAxis strategicPressureAxis { get; }
+    public float strategicPressureAmount { get; }
 
     public OffenseTargetSnapshot Copy()
     {

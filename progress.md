@@ -469,3 +469,58 @@
 - Visual artifact: `Artifacts/QA/combat-v13-defense-final.png`; Game View inspection shows separate adjacent fighters, damage numbers, combat labels, and wounded-only health bars.
 - Unity MCP `Camera_Capture` failed twice with `Failed to render scene preview`; direct `ScreenCapture` succeeded.
 - Final Unity Console audit: `Error 0 / Warning 0`.
+
+## 2026-07-26 V16 isolated feature integration
+
+- Audited the V15 codebase against the approved V16 plan. Confirmed duplicate scene runtimes, two equipment authorities, abstract offense reward counters, daily food withdrawal in addition to real meals, text-only exterior incidents, unused circus milestone data, generic extract stock, and disconnected AI performance settings.
+- Removed `Priority Command Controller` and `RegularCustomerRuntime_Test` from `GameplayScene`.
+- Added `SingleRequired<T>` scene composition validation and applied it to owner commands and regular customers so missing or duplicate required runtimes fail immediately.
+- Began equipment consolidation: common combat equipment now owns craft work orders, physical material requests, unique output instances, queue persistence, and offense loadout access. Removed legacy equipment registration and save-section registration, plus legacy combat-stat double application.
+- Unity MCP compilation checkpoint passed with `isCompilationSuccessful=true`; Console currently reports `Error 0 / Warning 0`.
+- Remaining legacy source and verifier references are intentionally retained only until their callers are migrated; deleting the types before that checkpoint would hide actionable compile errors.
+
+## 2026-07-26 V16 traversal-cache performance closure
+
+- Split Grid full-content versioning from structural/traversal versioning and moved path, movement, room, lighting, and facility caches to the structural signal.
+- Kept current moving wildlife discoverable by checking the actor's live Grid coordinate rather than cached visitable-occupant coordinates.
+- Fixed wildlife arrival dwell timing by retaining a scaled `IGameClock` fallback when no test clock is injected.
+- Recompiled successfully and passed `GridFoundationDebugScenarios`, `WildlifeDebugScenarios`, and `CharacterAiNaturalnessDebugScenarios`.
+- Re-ran the 100-NPC EditMode stress scenario: valid, 2,182 decisions, 51 broker searches, 1 cache hit, 50 deferrals, max 8 searches/frame, Scheduler p95 0.73ms, elapsed 50.6s.
+- Previous comparison was 1,440 broker searches, 540 cache hits, 16,461 deferrals, and roughly 353 seconds.
+
+## 2026-07-26 V16 integration and performance verification
+
+- Removed remaining per-decision LINQ and diagnostic allocations from AI memory, need lookup,
+  survival nameplates, utility breakdowns, and action predicate selection.
+- Cached `CharacterNeedCatalog.All` so sorting and array creation occur only after registration
+  changes instead of during every AI decision.
+- Added allocation-free deprivation display queries for world nameplates.
+- Added a stabilized PlayMode profile boundary that discards the warmup/forced-GC transition
+  frames; this removed stale 17-second initialization samples from normal runtime statistics.
+- Marked scheduler-only GC as unsupported on the current Mono runtime because
+  `GC.GetAllocatedBytesForCurrentThread()` returns zero even after a known allocation.
+- Final 100-character profile passed with all 100 BTs ticked, frame average/p95
+  `2.77/3.42ms`, scheduler average/p95/max `0.370/0.497/0.632ms`, and no budget overflow.
+- Editor-wide GC averaged `182KB/frame`; against the prior one-character Editor baseline of
+  roughly `120KB/frame`, the 100-character stress-world increment is roughly `62KB/frame`.
+- Broad V16/domain regressions passed. Pointer-driven UI verification passed `21/21` rows at
+  desktop and portrait resolutions, including right-click alert dismissal.
+- Final focused V16 integration and AI/survival regressions passed with Console
+  `Error 0 / Warning 0`.
+
+## 2026-07-26 Weighted navigation and 500-character closure
+
+- Replaced equal-cost fixed-destination BFS use with cost-aware A*, while preserving weighted
+  Dijkstra for reachability and multi-candidate work/facility selection.
+- Added terrain/traversal versioning, cross-frame path caching, bounded urgent search
+  overdraft, pooled workspaces, compact routes, and shallow-water movement costs.
+- Reworked AI scheduling around a due-time heap, deferred BT materialization, immediate dirty
+  wakeups, and presentation LOD.
+- Reused decision contexts, cached facility candidate sources, and removed a repeated
+  Editor fixture scene search exposed by fine-grained profiling.
+- Focused Grid and 100-character regressions passed.
+- The final 500-character, 600-frame staged PlayMode profile passed with 3.39 ms average,
+  4.37 ms p95, 15.40 ms maximum, 0 frames over 16.67 ms, and scheduler p95 1.809 ms.
+- Current route searches remain main-threaded because the measured 11.3 microsecond A* query
+  is too small for profitable per-request Job dispatch. The architecture supports future
+  immutable batch execution if map and request sizes grow.

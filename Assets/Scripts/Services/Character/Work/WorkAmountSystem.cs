@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -97,6 +98,9 @@ internal sealed class WorkOrderRecord
 
 public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("WorkOrderRuntime.Tick");
+
     public const string ConstructionDestinationPrefix = "construction:";
 
     private readonly IGridSystemProvider gridSystemProvider;
@@ -105,6 +109,7 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
     private readonly IObjectResolver objectResolver;
     private readonly IWorkforceReplanService workforceReplanService;
     private readonly IGameClock gameClock;
+    private readonly IUiClock uiClock;
     private readonly Dictionary<string, WorkOrderRecord> ordersById =
         new Dictionary<string, WorkOrderRecord>(StringComparer.Ordinal);
     private readonly Dictionary<ConstructionSite, string> orderIdBySite =
@@ -119,7 +124,8 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
         IBuildingDefinitionLookup buildingDefinitionLookup,
         IWorkforceReplanService workforceReplanService,
         IGameClock gameClock,
-        IObjectResolver objectResolver = null)
+        IObjectResolver objectResolver = null,
+        IUiClock uiClock = null)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
@@ -128,16 +134,26 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
         this.workforceReplanService = workforceReplanService
             ?? throw new ArgumentNullException(nameof(workforceReplanService));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.uiClock = uiClock;
     }
 
     public void Tick()
     {
-        if (gameClock.IsPaused || gameClock.Time < nextReadyConstructionReplanAt)
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
+        float cadenceTime = uiClock?.Time ?? gameClock.Time;
+        if (gameClock.IsPaused || cadenceTime < nextReadyConstructionReplanAt)
         {
             return;
         }
 
-        nextReadyConstructionReplanAt = gameClock.Time + 1f;
+        nextReadyConstructionReplanAt = cadenceTime + 1f;
         string orphanedConstructionOrderId = ordersById.Values
             .Where(order => order.workTypeId == BuiltInWorkTypeIds.Construct
                 && order.status != WorkOrderStatus.Completed

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -143,6 +144,9 @@ public sealed class EquipmentMaintenancePolicyRuntime :
     ICombatEquipmentMaintenanceRuntime,
     ITickable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("EquipmentMaintenancePolicyRuntime.Tick");
+
     public const string StandardPolicyId = "equipment-maintenance:standard";
     public const string PreventivePolicyId = "equipment-maintenance:preventive";
     public const string ManualPolicyId = "equipment-maintenance:manual";
@@ -155,6 +159,7 @@ public sealed class EquipmentMaintenancePolicyRuntime :
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IDefenseEngagementRuntime defenseRuntime;
     private readonly IGameClock gameClock;
+    private readonly IUiClock uiClock;
     private readonly Dictionary<string, EquipmentMaintenancePolicyData> policies =
         new Dictionary<string, EquipmentMaintenancePolicyData>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> assignments =
@@ -172,7 +177,8 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         ICombatEquipmentPickupRuntime equipmentPickup,
         ICharacterAiWorldRegistry worldRegistry,
         IDefenseEngagementRuntime defenseRuntime,
-        IGameClock gameClock)
+        IGameClock gameClock,
+        IUiClock uiClock = null)
     {
         this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -184,6 +190,7 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         this.defenseRuntime = defenseRuntime
             ?? throw new ArgumentNullException(nameof(defenseRuntime));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.uiClock = uiClock;
         EnsureDefaults();
     }
 
@@ -202,12 +209,21 @@ public sealed class EquipmentMaintenancePolicyRuntime :
 
     public void Tick()
     {
-        if (gameClock.Time < nextScanAt)
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
+        float cadenceTime = uiClock?.Time ?? gameClock.Time;
+        if (gameClock.IsPaused || cadenceTime < nextScanAt)
         {
             return;
         }
 
-        nextScanAt = gameClock.Time + 1f;
+        nextScanAt = cadenceTime + 1f;
         EnsureDefaults();
         RefreshOrders();
         CreateAutomaticOrders();

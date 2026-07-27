@@ -28,13 +28,14 @@ MonoBehaviour:
   rarity: 1
   defaultCost: 280
   researchWorkRequired: 50
+  targetResearchProjectId: research:defense:tactical-command
   unlocks:
     items:
-    - rid: 7302563192359358091
+    - rid: 7302563223825548160
   references:
     version: 2
     RefIds:
-    - rid: 7302563192359358091
+    - rid: 7302563223825548160
       type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
       data:
         recipeId: recipe_fortress_banner_2

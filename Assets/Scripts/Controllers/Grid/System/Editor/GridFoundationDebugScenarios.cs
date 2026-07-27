@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
@@ -29,6 +30,12 @@ public static class GridFoundationDebugScenarios
         List<string> errors = new List<string>();
 
         RunScenario("walk path", VerifyWalkPath, errors);
+        RunScenario("weighted path prefers lower travel cost", VerifyWeightedPathPrefersLowerTravelCost, errors);
+        RunScenario("terrain changes invalidate navigation only", VerifyTerrainChangesInvalidateNavigationOnly, errors);
+        RunScenario("path broker reuses versioned searches", VerifyPathBrokerReusesVersionedSearches, errors);
+        RunScenario("urgent path searches respect hard frame cap", VerifyUrgentPathSearchesRespectHardFrameCap, errors);
+        RunScenario("exact path search resumes across dynamic frame slices", VerifyExactPathSearchResumesAcrossFrames, errors);
+        RunScenario("dynamic occupants preserve traversal version", VerifyDynamicOccupantsPreserveTraversalVersion, errors);
         RunScenario("stale walk path is blocked by a newly placed wall", VerifyStaleWalkPathBlockedByWall, errors);
         RunScenario("nearby walkable search does not scan entire floor", VerifyNearbyWalkableSearchDoesNotScanEntireFloor, errors);
         RunScenario("stair path", VerifyStairPath, errors);
@@ -80,6 +87,220 @@ public static class GridFoundationDebugScenarios
 
         Queue<GridMoveStep> path = grid.GetMovePath(new Vector2Int(0, 0), (pos) => pos == new Vector2Int(2, 0));
         return path.Count == 2 && path.All((step) => step.MoveType == GridMoveType.Walk);
+    }
+
+    private static bool VerifyWeightedPathPrefersLowerTravelCost()
+    {
+        Grid grid = new Grid(7, 2);
+        for (int y = 0; y < grid.height; y++)
+        {
+            for (int x = 0; x < grid.width; x++)
+            {
+                AddHallway(grid, new Vector2Int(x, y));
+            }
+        }
+
+        for (int x = 1; x < 6; x++)
+        {
+            grid.SetTerrainType(
+                new Vector2Int(x, 0),
+                GridCellTerrainType.ShallowWater);
+        }
+
+        AddMovement(
+            grid,
+            new Vector2Int(0, 0),
+            new Vector2Int(0, 1),
+            GridMoveType.Stair);
+        AddMovement(
+            grid,
+            new Vector2Int(6, 0),
+            new Vector2Int(6, 1),
+            GridMoveType.Stair);
+
+        Vector2Int start = new Vector2Int(0, 0);
+        Vector2Int destination = new Vector2Int(6, 0);
+        GridPathSearchResult result = grid.SearchPathTo(
+            start,
+            destination,
+            costPolicy: new FastTestStairCostPolicy());
+        Queue<GridMoveStep> path = result.GetMovePath(
+            position => position == destination);
+
+        return path.Count == 8
+            && path.Count(step => step.MoveType == GridMoveType.Stair) == 2
+            && path.All(step =>
+                step.MoveType != GridMoveType.Walk
+                || grid.GetGridCell(step.To)?.TerrainType != GridCellTerrainType.ShallowWater)
+            && result.GetMoveCostTo(destination) == 800;
+    }
+
+    private static bool VerifyTerrainChangesInvalidateNavigationOnly()
+    {
+        Grid grid = new Grid(3, 1);
+        for (int x = 0; x < grid.width; x++)
+        {
+            AddHallway(grid, new Vector2Int(x, 0));
+        }
+
+        int structuralBefore = grid.StructuralVersion;
+        int navigationBefore = grid.NavigationVersion;
+        bool changed = grid.SetTerrainType(
+            new Vector2Int(1, 0),
+            GridCellTerrainType.ShallowWater);
+
+        return changed
+            && grid.StructuralVersion == structuralBefore
+            && grid.NavigationVersion > navigationBefore
+            && grid.TraversalVersion == grid.NavigationVersion;
+    }
+
+    private static bool VerifyPathBrokerReusesVersionedSearches()
+    {
+        Grid grid = new Grid(4, 1);
+        for (int x = 0; x < grid.width; x++)
+        {
+            AddHallway(grid, new Vector2Int(x, 0));
+        }
+
+        TestGameClock clock = new TestGameClock();
+        GridPathSearchBroker broker = new GridPathSearchBroker(clock);
+        Vector2Int start = Vector2Int.zero;
+
+        broker.BeginFrame(8, true);
+        bool first = broker.TryGetSearch(grid, start, out GridPathSearchResult initial)
+            && initial != null
+            && broker.SearchesThisFrame == 1;
+
+        clock.FrameCountValue++;
+        broker.BeginFrame(8, true);
+        bool reused = broker.TryGetSearch(grid, start, out GridPathSearchResult cached)
+            && ReferenceEquals(initial, cached)
+            && broker.SearchesThisFrame == 0
+            && broker.CacheHitsThisFrame == 1;
+
+        grid.SetTerrainType(new Vector2Int(1, 0), GridCellTerrainType.ShallowWater);
+        clock.FrameCountValue++;
+        broker.BeginFrame(8, true);
+        bool invalidated = broker.TryGetSearch(grid, start, out GridPathSearchResult refreshed)
+            && !ReferenceEquals(cached, refreshed)
+            && broker.SearchesThisFrame == 1
+            && refreshed.GetMoveCostTo(new Vector2Int(1, 0))
+                > DefaultGridTraversalCostPolicy.DryWalkCost;
+
+        return first && reused && invalidated;
+    }
+
+    private static bool VerifyUrgentPathSearchesRespectHardFrameCap()
+    {
+        Grid grid = new Grid(10, 1);
+        for (int x = 0; x < grid.width; x++)
+        {
+            AddHallway(grid, new Vector2Int(x, 0));
+        }
+
+        TestGameClock clock = new TestGameClock();
+        GridPathSearchBroker broker = new GridPathSearchBroker(clock);
+        broker.BeginFrame(2, true);
+
+        int completed = 0;
+        for (int x = 0; x < grid.width; x++)
+        {
+            Queue<GridMoveStep> path = broker.GetMovePathTo(
+                grid,
+                new Vector2Int(x, 0),
+                new Vector2Int(9, 0),
+                GridPathSearchPriority.Urgent);
+            if (path != null)
+            {
+                completed++;
+            }
+        }
+
+        return completed == 6
+            && broker.SearchesThisFrame == 6
+            && broker.BudgetDeferralsThisFrame == 4;
+    }
+
+    private static bool VerifyExactPathSearchResumesAcrossFrames()
+    {
+        const int cellCount = 4096;
+        Grid grid = new Grid(cellCount, 1);
+        for (int x = 0; x < cellCount; x++)
+        {
+            AddHallway(grid, new Vector2Int(x, 0));
+        }
+
+        TestGameClock clock = new TestGameClock();
+        GridPathSearchBroker broker = new GridPathSearchBroker(clock);
+        Vector2Int start = Vector2Int.zero;
+        Vector2Int destination = new Vector2Int(cellCount - 1, 0);
+
+        broker.BeginFrame(
+            searchBudget: 1,
+            enforceBudget: true,
+            searchTimeBudgetMilliseconds: 0.02);
+        Queue<GridMoveStep> path = broker.GetMovePathTo(
+            grid,
+            start,
+            destination);
+        bool splitAcrossFrames = path == null
+            && broker.SearchesThisFrame == 1
+            && broker.BudgetDeferralsThisFrame == 1;
+
+        int frames = 1;
+        while (path == null && frames < cellCount)
+        {
+            clock.FrameCountValue++;
+            broker.BeginFrame(
+                searchBudget: 1,
+                enforceBudget: true,
+                searchTimeBudgetMilliseconds: 0.02);
+            path = broker.GetMovePathTo(grid, start, destination);
+            if (broker.SearchesThisFrame > 1)
+            {
+                return false;
+            }
+
+            frames++;
+        }
+
+        return splitAcrossFrames
+            && frames > 1
+            && path != null
+            && path.Count == cellCount - 1
+            && path.Peek().From == start
+            && path.Last().To == destination;
+    }
+
+    private static bool VerifyDynamicOccupantsPreserveTraversalVersion()
+    {
+        Grid grid = new Grid(4, 1);
+        AddHallway(grid, new Vector2Int(0, 0));
+        AddHallway(grid, new Vector2Int(1, 0));
+        AddHallway(grid, new Vector2Int(2, 0));
+
+        int contentVersionBefore = grid.version;
+        int traversalVersionBefore = grid.TraversalVersion;
+        TestOccupant item = new TestOccupant(91, false, GridMoveType.Walk);
+        bool itemRegistered = grid.RegisterOccupant(
+            item,
+            GridLayer.Item,
+            new List<Vector2Int> { new Vector2Int(1, 0) },
+            false);
+        bool itemRemoved = grid.RemoveOccupant(
+            item,
+            GridLayer.Item,
+            new List<Vector2Int> { new Vector2Int(1, 0) },
+            false);
+        int traversalVersionAfterItem = grid.TraversalVersion;
+
+        AddHallway(grid, new Vector2Int(3, 0));
+        return itemRegistered
+            && itemRemoved
+            && grid.version > contentVersionBefore
+            && traversalVersionAfterItem == traversalVersionBefore
+            && grid.TraversalVersion > traversalVersionAfterItem;
     }
 
     private static bool VerifyStaleWalkPathBlockedByWall()
@@ -598,6 +819,37 @@ public static class GridFoundationDebugScenarios
         public bool IsGridVisitable => false;
         public bool IsGridMovement { get; }
         public GridMoveType GridMoveType { get; }
+    }
+
+    private sealed class FastTestStairCostPolicy : IGridTraversalCostPolicy
+    {
+        public int Version => 1;
+        public int MinimumHorizontalCost => 100;
+
+        public int GetTraversalCost(
+            Grid grid,
+            in GridTraversalStepData step,
+            GridTraversalContext traversalContext)
+        {
+            if (step.MoveType == GridMoveType.Stair)
+            {
+                return 100;
+            }
+
+            GridCell destination = grid.GetGridCell(step.To);
+            return destination?.TerrainType == GridCellTerrainType.ShallowWater
+                ? 300
+                : 100;
+        }
+    }
+
+    private sealed class TestGameClock : IGameClock
+    {
+        public float DeltaTime => 1f / 60f;
+        public float Time => FrameCountValue * DeltaTime;
+        public int FrameCount => FrameCountValue;
+        public bool IsPaused => false;
+        public int FrameCountValue { get; set; }
     }
 
     private sealed class NoopBlueprintResearchWorkService : IBlueprintResearchWorkService

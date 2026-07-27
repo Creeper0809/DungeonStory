@@ -498,26 +498,6 @@ public sealed class BuildingWorkAmountAbility : BuildingAbility, IBuildingWorkAm
 }
 
 [Serializable]
-[BuildingAbilityDisplayName("원정 지원")]
-public sealed class BuildingExpeditionSupportAbility : BuildingAbility
-{
-    [InspectorName("사용 가능한 방 필요")]
-    public bool requiresUsableRoom = true;
-    [Min(0), InspectorName("보급 한도 보너스")]
-    public int supplyCapacityBonus;
-    [Min(0f), InspectorName("시작 조명 보너스")]
-    public float startingLightBonus;
-    [Range(0f, 1f), InspectorName("야영 체력 회복 보너스")]
-    public float campHealRatioBonus;
-    [Min(0f), InspectorName("야영 스트레스 회복 보너스")]
-    public float campStressRecoveryBonus;
-    [Range(0f, 1f), InspectorName("치료약 회복 보너스")]
-    public float medicineHealRatioBonus;
-    [Min(0), InspectorName("정찰 보너스")]
-    public int scoutingBonus;
-}
-
-[Serializable]
 [BuildingAbilityDisplayName("Equipment Maintenance")]
 public sealed class BuildingEquipmentMaintenanceAbility : BuildingAbility
 {

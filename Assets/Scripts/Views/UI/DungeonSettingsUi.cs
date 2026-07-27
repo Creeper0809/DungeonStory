@@ -63,6 +63,7 @@ public sealed class DungeonSettingsUiController :
     private Slider textScaleSlider;
     private Slider maxCarryMultiplierSlider;
     private Toggle edgeScrollToggle;
+    private Toggle pauseOnResearchTreeToggle;
     private Toggle highContrastToggle;
     private Toggle reducedMotionToggle;
     private Toggle developerModeToggle;
@@ -286,6 +287,12 @@ public sealed class DungeonSettingsUiController :
         maxCarryMultiplierSlider = CreateSliderRow(page, "MaxCarryMultiplier", "최대 운반 배율", 406f,
             1f, 2.5f, value => UpdateSetting(data => data.maxCarryMultiplier = QuantizeCarryMultiplier(value)),
             out maxCarryMultiplierValue);
+        pauseOnResearchTreeToggle = CreateToggleRow(
+            page,
+            "PauseOnResearchTree",
+            "연구 화면 자동 일시정지",
+            484f,
+            value => UpdateSetting(data => data.pauseOnResearchTree = value));
     }
 
     private void CreateAudioPage(Transform page)
@@ -435,6 +442,7 @@ public sealed class DungeonSettingsUiController :
         SetSlider(textScaleSlider, textScaleValue, data.textScale, Percent(data.textScale));
         SetSlider(maxCarryMultiplierSlider, maxCarryMultiplierValue, data.maxCarryMultiplier, $"x{data.maxCarryMultiplier:0.00}");
         edgeScrollToggle.SetIsOnWithoutNotify(data.edgeScroll);
+        pauseOnResearchTreeToggle?.SetIsOnWithoutNotify(data.pauseOnResearchTree);
         highContrastToggle.SetIsOnWithoutNotify(data.highContrast);
         reducedMotionToggle.SetIsOnWithoutNotify(data.reducedMotion);
         developerModeToggle?.SetIsOnWithoutNotify(data.developerMode);

@@ -25,6 +25,9 @@ public static class DungeonPresentationRegistration
         builder.RegisterInstance(playerStaffCommands
                 ?? throw new ArgumentNullException(nameof(playerStaffCommands)))
             .As<IPlayerStaffCommandSource>();
+        builder.RegisterEntryPoint<CharacterPresentationScheduler>(
+                Lifetime.Singleton)
+            .As<ICharacterPresentationScheduler>();
         builder.Register<OffensePanelFactory>(Lifetime.Singleton)
             .As<IOffensePanelFactory>();
         builder.Register<OffenseBattlePanelFactory>(Lifetime.Singleton)
@@ -59,6 +62,8 @@ public static class DungeonPresentationRegistration
             .As<IStaffWorkPriorityPanelFactory>();
         builder.Register<P0FeatureSurfacePanelFactory>(Lifetime.Singleton)
             .As<IP0FeatureSurfacePanelFactory>();
+        builder.Register<ResearchTreeWindowFactory>(Lifetime.Singleton)
+            .As<IResearchTreeWindowFactory>();
 
         builder.Register<BuildingFeatureQueryService>(Lifetime.Singleton)
             .As<IBuildingFeatureQueryService>();
@@ -99,12 +104,6 @@ public static class DungeonPresentationRegistration
         builder.Register<ExpeditionFeatureCommandService>(Lifetime.Singleton)
             .As<IExpeditionFeatureCommandService>();
         builder.Register<ExpeditionFeatureSurfacePresenter>(Lifetime.Singleton)
-            .As<IFeatureSurfaceTabPresenter>();
-        builder.Register<ResearchFeatureQueryService>(Lifetime.Singleton)
-            .As<IResearchFeatureQueryService>();
-        builder.Register<ResearchFeatureCommandService>(Lifetime.Singleton)
-            .As<IResearchFeatureCommandService>();
-        builder.Register<ResearchFeatureSurfacePresenter>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenter>();
         builder.Register<CodexFeatureQueryService>(Lifetime.Singleton)
             .As<ICodexFeatureQueryService>();

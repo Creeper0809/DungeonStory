@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 public readonly struct AiDirectorContextSceneSnapshot
 {
@@ -8,8 +7,10 @@ public readonly struct AiDirectorContextSceneSnapshot
         IReadOnlyList<CharacterActor> actors,
         IReadOnlyList<BuildableObject> facilities)
     {
-        Actors = EventPayloadSnapshot.Copy(actors);
-        Facilities = EventPayloadSnapshot.Copy(facilities);
+        // Registry views are scene-scoped and consumed synchronously here.
+        // Copying every entry made each director tick scale with dungeon size.
+        Actors = actors ?? Array.Empty<CharacterActor>();
+        Facilities = facilities ?? Array.Empty<BuildableObject>();
     }
 
     public IReadOnlyList<CharacterActor> Actors { get; }
@@ -39,7 +40,7 @@ public sealed class AiDirectorContextSceneQuery : IAiDirectorContextSceneQuery
     public AiDirectorContextSceneSnapshot Capture()
     {
         return new AiDirectorContextSceneSnapshot(
-            characterWorld.Characters.ToArray(),
-            buildingWorld.Buildings.ToArray());
+            characterWorld.Characters,
+            buildingWorld.Buildings);
     }
 }

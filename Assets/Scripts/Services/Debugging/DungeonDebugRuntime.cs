@@ -267,7 +267,8 @@ public sealed class DungeonDebugCommandRegistry : IDungeonDebugCommandRegistry
         DungeonDebugWorkCommandProvider workProvider,
         DungeonDebugSurvivalWildlifeCommandProvider survivalProvider,
         DungeonDebugDefenseCommandProvider defenseProvider,
-        DungeonDebugOverlayCommandProvider overlayProvider)
+        DungeonDebugOverlayCommandProvider overlayProvider,
+        DungeonDebugPerformanceCommandProvider performanceProvider)
     {
         this.modeService = modeService ?? throw new ArgumentNullException(nameof(modeService));
         IDungeonDebugCommandProvider[] providers =
@@ -279,7 +280,8 @@ public sealed class DungeonDebugCommandRegistry : IDungeonDebugCommandRegistry
             workProvider,
             survivalProvider,
             defenseProvider,
-            overlayProvider
+            overlayProvider,
+            performanceProvider
         };
 
         commands = providers

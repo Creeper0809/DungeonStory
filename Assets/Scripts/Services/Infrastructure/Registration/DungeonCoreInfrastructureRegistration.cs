@@ -61,6 +61,7 @@ public static class DungeonCoreInfrastructureRegistration
         builder.Register<DungeonDebugSurvivalWildlifeCommandProvider>(Lifetime.Singleton);
         builder.Register<DungeonDebugDefenseCommandProvider>(Lifetime.Singleton);
         builder.Register<DungeonDebugOverlayCommandProvider>(Lifetime.Singleton);
+        builder.Register<DungeonDebugPerformanceCommandProvider>(Lifetime.Singleton);
         builder.Register<DungeonDebugCommandRegistry>(Lifetime.Singleton)
             .As<IDungeonDebugCommandRegistry>();
         builder.Register<DungeonDebugTargetResolver>(Lifetime.Singleton);

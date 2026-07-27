@@ -1,0 +1,59 @@
+RESOLUTION_1600x900=PASS; actual=1600x900
+SCOPE=PASS; gameplay lifetime scope resolved
+CATALOG_COUNT=PASS; projects=24
+RUNTIME=PASS; research runtime resolved
+POINTER_TopTabButton_Research_연구=PASS; TopTabButton_Research_연구
+POINTER_DISPATCH=PASS; target=TopTabButton_Research_연구; point=(1356.21, 26.67)
+WINDOW_OPEN=PASS; research tree opened by pointer
+DEFAULT_NO_PAUSE=PASS; timeScale=1; paused=False
+ALL_NODES_VISIBLE=PASS; nodes=24
+SURFACE_STRUCTURE=PASS; graph and inspector are present
+DESKTOP_CAPTURE=PASS; size=1600x900; visible=1440000
+QUEUE_CANDIDATE_1=PASS; research:arcane:records
+POINTER_Node_research:arcane:records=PASS; Node_research:arcane:records
+POINTER_DISPATCH=PASS; target=Node_research:arcane:records; point=(201.02, 148.76)
+POINTER_ProjectAction=PASS; ProjectAction
+POINTER_DISPATCH=PASS; target=ProjectAction; point=(1433.33, 406.20)
+QUEUE_POINTER_1=PASS; project=research:arcane:records; queue=1
+QUEUE_CANDIDATE_2=PASS; research:authority:quarters
+POINTER_Node_research:authority:quarters=PASS; Node_research:authority:quarters
+POINTER_DISPATCH=PASS; target=Node_research:authority:quarters; point=(201.02, 638.89)
+POINTER_ProjectAction=PASS; ProjectAction
+POINTER_DISPATCH=PASS; target=ProjectAction; point=(1433.33, 406.20)
+QUEUE_POINTER_2=PASS; project=research:authority:quarters; queue=2
+QUEUE_CANDIDATE_3=PASS; research:commerce:logistics
+POINTER_Node_research:commerce:logistics=PASS; Node_research:commerce:logistics
+POINTER_DISPATCH=PASS; target=Node_research:commerce:logistics; point=(201.02, 540.86)
+POINTER_ProjectAction=PASS; ProjectAction
+POINTER_DISPATCH=PASS; target=ProjectAction; point=(1433.33, 406.20)
+QUEUE_POINTER_3=PASS; project=research:commerce:logistics; queue=3
+QUEUE_THREE=PASS; queue=3
+QUEUE_DRAG_REORDER=PASS; before=research:authority:quarters,research:commerce:logistics; afterSecond=research:commerce:logistics
+GRAPH_PAN=PASS; position=(102.48, -18.00)->(252.48, -73.00)
+CURSOR_ZOOM=PASS; zoom=0.754->0.829
+POINTER_Search=PASS; Search
+POINTER_DISPATCH=PASS; target=Search; point=(536.00, 807.50)
+SEARCH_DIMMING=PASS; matchingAlpha=1; dimmed=23
+POINTER_Close=PASS; Close
+POINTER_DISPATCH=PASS; target=Close; point=(1520.00, 807.50)
+CLOSE_POINTER=PASS; close button closed research tree
+POINTER_TopTabButton_Research_연구=PASS; TopTabButton_Research_연구
+POINTER_DISPATCH=PASS; target=TopTabButton_Research_연구; point=(1356.21, 26.67)
+OPTIONAL_PAUSE=PASS; timeScale=0; paused=True
+POINTER_Close=PASS; Close
+POINTER_DISPATCH=PASS; target=Close; point=(1520.00, 807.50)
+PAUSE_STATE_RESTORE=PASS; timeScale=5; paused=False
+POINTER_TopTabButton_Research_연구=PASS; TopTabButton_Research_연구
+POINTER_DISPATCH=PASS; target=TopTabButton_Research_연구; point=(1356.21, 26.67)
+RESOLUTION_900x1600=PASS; actual=900x1600
+PORTRAIT_BOUNDS=PASS; graph=GraphViewport:(0.00, 496.63)->(900.00, 1483.33); inspector=Inspector:(0.00, 53.33)->(900.00, 496.63)
+PORTRAIT_TABS=PASS; detail and queue tabs visible
+PORTRAIT_DETAIL_CAPTURE=PASS; size=900x1600; visible=1440000
+POINTER_QueueTab=PASS; QueueTab
+POINTER_DISPATCH=PASS; target=QueueTab; point=(674.17, 477.47)
+PORTRAIT_QUEUE_CAPTURE=PASS; size=900x1600; visible=1440000
+RESOLUTION_1600x900=PASS; actual=1600x900
+POINTER_Close=PASS; Close
+POINTER_DISPATCH=PASS; target=Close; point=(1520.00, 807.50)
+CONSOLE errors=0; warnings=0
+RESULT=PASS

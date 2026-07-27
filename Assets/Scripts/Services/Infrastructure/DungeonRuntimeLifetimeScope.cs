@@ -36,7 +36,7 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
         WorldSimulationSceneReferences worldSimulationReferences =
             CaptureWorldSimulationReferences(sceneQuery);
         OwnerCommandController ownerCommandController =
-            sceneQuery.First<OwnerCommandController>(includeInactive: true);
+            sceneQuery.SingleRequired<OwnerCommandController>(includeInactive: true);
         IPlayerCombatCommandSource playerCombatCommands =
             ownerCommandController as IPlayerCombatCommandSource
             ?? new UnavailablePlayerCombatCommandSource();
@@ -169,7 +169,7 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
             sceneQuery.First<LocalLlmRequestQueue>(includeInactive: true),
             sceneQuery.First<SocialReputationRuntime>(includeInactive: true),
             sceneQuery.First<StaffDiscontentRuntime>(includeInactive: true),
-            sceneQuery.First<RegularCustomerRuntime>(includeInactive: true),
+            sceneQuery.SingleRequired<RegularCustomerRuntime>(includeInactive: true),
             sceneQuery.First<CharacterSpawner>(includeInactive: true),
             sceneQuery.First<CharacterAiScheduler>(includeInactive: true),
             sceneQuery.First<OwnerRunManager>(includeInactive: true),

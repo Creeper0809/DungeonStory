@@ -103,6 +103,7 @@ public sealed class CaptivityFeatureSectionPresenter :
             $"{selected.displayName} 처우",
             CreateDetailedSummary(selected));
         AddPolicyControls(view, selected);
+        AddPerformerMilestoneControls(view, selected);
 
         if (selected.status == CaptivityStatus.Labor)
         {
@@ -206,6 +207,69 @@ public sealed class CaptivityFeatureSectionPresenter :
             "구속을 풀고 던전 밖으로 내보냅니다. 원한과 기억은 남습니다.",
             () => commands.TryRelease(selected.captiveId, out string reason)
                 ? Success("포로를 석방했습니다.")
+                : Failure(reason));
+    }
+
+    private void AddPerformerMilestoneControls(
+        IFeatureSurfaceView view,
+        CaptiveState selected)
+    {
+        if (selected == null || selected.performerFame < 50f)
+        {
+            return;
+        }
+
+        string benefits = selected.performerFame >= 100f
+            ? "우선 식량·치료 · 직원 계약 · 최종 계약 선택"
+            : selected.performerFame >= 75f
+                ? "우선 식량·치료 · 직원 계약"
+                : "우선 식량·치료";
+        view.AddSection(
+            "공연자 이정표",
+            $"명성 {selected.performerFame:0} · {benefits}"
+            + (selected.exclusiveFighter ? " · 전속 투사" : string.Empty));
+
+        if (selected.staffContractUnlocked && selected.CanRecruit)
+        {
+            AddCommand(
+                view,
+                "Captivity_PerformerStaffContract",
+                "직원 계약 제안",
+                "공연 명성으로 열린 계약입니다. 신뢰·원한·타락 조건을 확인합니다.",
+                () => commands.TryResolvePerformerMilestone(
+                        selected.captiveId,
+                        CaptivePerformerMilestoneChoice.StaffContract,
+                        out string reason)
+                    ? Success("공연자와 직원 계약을 맺었습니다.")
+                    : Failure(reason));
+        }
+
+        if (!selected.finalContractPending)
+        {
+            return;
+        }
+
+        AddCommand(
+            view,
+            "Captivity_PerformerReleaseNegotiation",
+            "석방 협상",
+            "명성을 대가로 자유를 보장하고 공연자를 석방합니다.",
+            () => commands.TryResolvePerformerMilestone(
+                    selected.captiveId,
+                    CaptivePerformerMilestoneChoice.ReleaseNegotiation,
+                    out string reason)
+                ? Success("석방 협상을 마쳤습니다.")
+                : Failure(reason));
+        AddCommand(
+            view,
+            "Captivity_PerformerExclusiveContract",
+            "전속 투사 계약",
+            "포로 신분은 유지하되 전속 투사로 공연과 전투에 우선 배치합니다.",
+            () => commands.TryResolvePerformerMilestone(
+                    selected.captiveId,
+                    CaptivePerformerMilestoneChoice.ExclusiveFighterContract,
+                    out string reason)
+                ? Success("전속 투사 계약을 맺었습니다.")
                 : Failure(reason));
     }
 

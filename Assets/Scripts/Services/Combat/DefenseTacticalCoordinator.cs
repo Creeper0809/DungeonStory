@@ -82,6 +82,7 @@ public sealed class DefenseTacticalCoordinator :
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly Dictionary<string, CombatPositionReservation> byActor =
         new Dictionary<string, CombatPositionReservation>(StringComparer.Ordinal);
+    private readonly List<string> tickActorIds = new List<string>();
     private IReadOnlyList<CombatPositionReservation> view =
         Array.Empty<CombatPositionReservation>();
     private bool viewDirty = true;
@@ -118,8 +119,20 @@ public sealed class DefenseTacticalCoordinator :
 
     public void Tick()
     {
-        foreach (string actorId in byActor.Keys.ToArray())
+        if (byActor.Count == 0)
         {
+            return;
+        }
+
+        tickActorIds.Clear();
+        foreach (string actorId in byActor.Keys)
+        {
+            tickActorIds.Add(actorId);
+        }
+
+        for (int index = 0; index < tickActorIds.Count; index++)
+        {
+            string actorId = tickActorIds[index];
             CharacterActor actor = FindCharacter(actorId);
             if (actor == null || actor.IsDead
                 || actor.CurrentLifecycleState != CharacterLifecycleState.Active)
@@ -132,6 +145,7 @@ public sealed class DefenseTacticalCoordinator :
     public void Dispose()
     {
         byActor.Clear();
+        tickActorIds.Clear();
         viewDirty = true;
     }
 

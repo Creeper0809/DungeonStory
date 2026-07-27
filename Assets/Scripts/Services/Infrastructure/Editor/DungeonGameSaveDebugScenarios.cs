@@ -54,7 +54,7 @@ public static class DungeonGameSaveDebugScenarios
         IDefenseStatusRuntimeService defenseStatusRuntimeService =
             scope.Container.Resolve<IDefenseStatusRuntimeService>();
         ICharacterIdRegistry characterIdRegistry = scope.Container.Resolve<ICharacterIdRegistry>();
-        IExpeditionEquipmentRuntime equipmentRuntime = scope.Container.Resolve<IExpeditionEquipmentRuntime>();
+        ICombatEquipmentRuntime equipmentRuntime = scope.Container.Resolve<ICombatEquipmentRuntime>();
 
         Require(gameDataProvider.TryGetGameData(out GameData gameData), "GameData runtime is missing.");
         Require(researchProvider.TryGetRuntime(out BlueprintResearchRuntime research), "Research runtime is missing.");
@@ -207,11 +207,6 @@ public static class DungeonGameSaveDebugScenarios
                 string.Empty);
             offenseRewards.RestorePersistentState(
                 411,
-                3,
-                5,
-                2,
-                1,
-                4,
                 new Dictionary<StockCategory, int> { [StockCategory.Food] = 13 },
                 new[] { 9191 },
                 new[] { 8181 });
@@ -281,9 +276,12 @@ public static class DungeonGameSaveDebugScenarios
                     && savedDiscontent.Stage == StaffDiscontentStage.WorkDisruption,
                 "The staff discontent save marker was not created.");
 
-            const string EquipmentWeaponMarker = "weapon:attack-iron";
-            const string EquipmentArmorMarker = "armor:toughness-plate";
-            const string EquipmentCraftMarker = "weapon:dexterity-needle";
+            const string EquipmentWeaponMarker = "weapon:dagger";
+            const string EquipmentArmorMarker = "armor:gambeson";
+            const string EquipmentCraftMarker = "weapon:mace";
+            const string EquipmentWeaponInstanceMarker = "qa-save-weapon-equipped";
+            const string EquipmentSpareWeaponInstanceMarker = "qa-save-weapon-stored";
+            const string EquipmentArmorInstanceMarker = "qa-save-armor-equipped";
             const string EquipmentCraftOrderMarker = "qa-save-craft-order";
             const float ExpeditionStressMarker = 42f;
             string equipmentStaffId = characterIdRegistry.GetOrAssignPersistentId(expeditionMember);
@@ -292,37 +290,71 @@ public static class DungeonGameSaveDebugScenarios
                     && expeditionMember.Progression.Level >= 2
                     && expeditionMember.Progression.GrowthState.allocationRecords.Count > 0,
                 "The save test member did not create a level-growth allocation record.");
-            equipmentRuntime.Restore(new ExpeditionEquipmentSaveData
+            equipmentRuntime.Restore(new DungeonCombatEquipmentSaveData
             {
-                inventory = new List<ExpeditionEquipmentInventoryEntry>
+                instances = new List<CombatEquipmentInstance>
                 {
-                    new ExpeditionEquipmentInventoryEntry
+                    new CombatEquipmentInstance
                     {
-                        equipmentId = EquipmentWeaponMarker,
-                        quantity = 2
+                        instanceId = EquipmentWeaponInstanceMarker,
+                        definitionId = EquipmentWeaponMarker,
+                        quality = CombatEquipmentQuality.Good,
+                        durabilityRatio = 1f,
+                        worldState = CombatEquipmentWorldState.Equipped,
+                        ownerCharacterId = equipmentStaffId
                     },
-                    new ExpeditionEquipmentInventoryEntry
+                    new CombatEquipmentInstance
                     {
-                        equipmentId = EquipmentArmorMarker,
-                        quantity = 1
+                        instanceId = EquipmentSpareWeaponInstanceMarker,
+                        definitionId = EquipmentWeaponMarker,
+                        quality = CombatEquipmentQuality.Normal,
+                        durabilityRatio = 1f,
+                        worldState = CombatEquipmentWorldState.Stored
+                    },
+                    new CombatEquipmentInstance
+                    {
+                        instanceId = EquipmentArmorInstanceMarker,
+                        definitionId = EquipmentArmorMarker,
+                        quality = CombatEquipmentQuality.Normal,
+                        durabilityRatio = 0.8f,
+                        worldState = CombatEquipmentWorldState.Equipped,
+                        ownerCharacterId = equipmentStaffId
                     }
                 },
-                loadouts = new List<ExpeditionEquipmentLoadoutSaveData>
+                loadouts = new List<CharacterCombatLoadoutState>
                 {
-                    new ExpeditionEquipmentLoadoutSaveData
+                    new CharacterCombatLoadoutState
                     {
                         characterId = equipmentStaffId,
-                        weaponId = EquipmentWeaponMarker,
-                        armorId = EquipmentArmorMarker
+                        activeProfileId = CombatLoadoutPresetIds.Peace,
+                        profiles = new List<CharacterCombatLoadoutProfile>
+                        {
+                            new CharacterCombatLoadoutProfile
+                            {
+                                profileId = CombatLoadoutPresetIds.Peace,
+                                displayName = "평시",
+                                weaponInstanceIds = new List<string>
+                                {
+                                    EquipmentWeaponInstanceMarker
+                                },
+                                armorInstanceIds = new List<string>
+                                {
+                                    EquipmentArmorInstanceMarker
+                                },
+                                activeWeaponInstanceId = EquipmentWeaponInstanceMarker
+                            }
+                        }
                     }
                 },
-                craftQueue = new List<ExpeditionEquipmentCraftOrderSaveData>
+                craftOrders = new List<CombatEquipmentCraftOrderSaveData>
                 {
-                    new ExpeditionEquipmentCraftOrderSaveData
+                    new CombatEquipmentCraftOrderSaveData
                     {
                         orderId = EquipmentCraftOrderMarker,
-                        equipmentId = EquipmentCraftMarker,
-                        remainingSeconds = 3.25f
+                        definitionId = EquipmentCraftMarker,
+                        requiredWork = 10f,
+                        completedWork = 6.75f,
+                        materialsReady = true
                     }
                 }
             });
@@ -435,10 +467,10 @@ public static class DungeonGameSaveDebugScenarios
                 DungeonSaveSectionPayload.ReadOrNew<DungeonOffenseSaveData>(
                     parsed,
                     OffenseSaveSection.Id);
-            ExpeditionEquipmentSaveData parsedEquipment =
-                DungeonSaveSectionPayload.ReadOrNew<ExpeditionEquipmentSaveData>(
+            DungeonCombatEquipmentSaveData parsedEquipment =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonCombatEquipmentSaveData>(
                     parsed,
-                    ExpeditionEquipmentSaveSection.Id);
+                    CombatEquipmentSaveSection.Id);
             parsedResearch.unlockedRecipeIds.Remove(migratedRecipeId);
             parsedResearch.unlockedRecipeIds.Add("recipe_battlefield_dining_2");
             DungeonSaveSectionPayload.Write(
@@ -470,16 +502,18 @@ public static class DungeonGameSaveDebugScenarios
                 "Expedition recovery stress or growth allocation records were not captured with the character.");
             Require(parsedEquipment.loadouts.Any(loadout => loadout != null
                         && loadout.characterId == equipmentStaffId
-                        && loadout.weaponId == EquipmentWeaponMarker
-                        && loadout.armorId == EquipmentArmorMarker)
-                    && parsedEquipment.inventory.Any(entry => entry != null
-                        && entry.equipmentId == EquipmentWeaponMarker
-                        && entry.quantity == 2)
-                    && parsedEquipment.craftQueue.Any(order => order != null
+                        && loadout.profiles.Any(profile => profile != null
+                            && profile.weaponInstanceIds.Contains(
+                                EquipmentWeaponInstanceMarker)
+                            && profile.armorInstanceIds.Contains(
+                                EquipmentArmorInstanceMarker)))
+                    && parsedEquipment.instances.Count(entry => entry != null
+                        && entry.definitionId == EquipmentWeaponMarker) == 2
+                    && parsedEquipment.craftOrders.Any(order => order != null
                         && order.orderId == EquipmentCraftOrderMarker
-                        && order.equipmentId == EquipmentCraftMarker
-                        && Mathf.Approximately(order.remainingSeconds, 3.25f)),
-                "Expedition equipment inventory, loadout, or craft queue was not captured.");
+                        && order.definitionId == EquipmentCraftMarker
+                        && Mathf.Approximately(order.RemainingWork, 3.25f)),
+                "Combat equipment instances, loadout, or work queue were not captured.");
 
             gameData.holdingMoney.Value = 1;
             research.State.ClearForRestore();
@@ -615,8 +649,6 @@ public static class DungeonGameSaveDebugScenarios
                 && !offenseWorldMap.State.TruthRevealed,
                 "Offense world map state did not round-trip.");
             Require(offenseRewards.State.MoneyEarned == 411
-                && offenseRewards.State.HumanFactionWeakening == 3
-                && offenseRewards.State.RivalFactionWeakening == 5
                 && offenseRewards.State.StockGrantedByCategory.TryGetValue(StockCategory.Food, out int restoredFood)
                 && restoredFood == 13
                 && offenseRewards.State.RareFacilityBuildingIds.Contains(9191)
@@ -646,23 +678,20 @@ public static class DungeonGameSaveDebugScenarios
                     && restoredEquipmentMember.Progression.Level >= 2
                     && restoredEquipmentMember.Progression.GrowthState.allocationRecords.Count > 0,
                 "Expedition recovery stress or growth allocation records did not round-trip on the restored member.");
-            Require(equipmentRuntime.TryGetEquipped(
-                        equipmentStaffId,
-                        ExpeditionEquipmentSlot.Weapon,
-                        out string restoredWeapon)
-                    && restoredWeapon == EquipmentWeaponMarker
-                    && equipmentRuntime.TryGetEquipped(
-                        equipmentStaffId,
-                        ExpeditionEquipmentSlot.Armor,
-                        out string restoredArmor)
-                    && restoredArmor == EquipmentArmorMarker
+            CharacterCombatLoadoutProfile restoredLoadout =
+                equipmentRuntime.GetActiveProfileSnapshot(equipmentStaffId);
+            Require(restoredLoadout != null
+                    && restoredLoadout.activeWeaponInstanceId
+                        == EquipmentWeaponInstanceMarker
+                    && restoredLoadout.armorInstanceIds.Contains(
+                        EquipmentArmorInstanceMarker)
                     && equipmentRuntime.GetAvailableCount(EquipmentWeaponMarker) == 1
                     && equipmentRuntime.GetAvailableCount(EquipmentArmorMarker) == 0
                     && equipmentRuntime.CraftQueue.Any(order => order != null
                         && order.orderId == EquipmentCraftOrderMarker
-                        && order.equipmentId == EquipmentCraftMarker
-                        && Mathf.Approximately(order.remainingSeconds, 3.25f)),
-                "Expedition equipment inventory, reservation, or craft queue did not round-trip.");
+                        && order.definitionId == EquipmentCraftMarker
+                        && Mathf.Approximately(order.RemainingWork, 3.25f)),
+                "Combat equipment instances, ownership, or work queue did not round-trip.");
             Require(expeditions.ResultHistory.Any(result => result.expeditionId == ExpeditionResultMarker
                 && result.success
                 && result.members.Count == 1

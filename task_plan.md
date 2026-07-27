@@ -2,13 +2,15 @@
 
 ## Goal
 
-Complete the approved level-50 character growth and skill system on top of the finished dungeon-linked expedition loop:
+Complete V16 by removing isolated or duplicate gameplay authorities and proving that the connected
+equipment, offense rewards, arrivals, exterior incidents, nutrition, circus resources, and AI
+performance paths work together:
 
 ```text
-prepare owner + two staff -> choose permanent level-one skills
--> gain levels, stats, actives, passives, and narrative history
--> use management/defense/offense skills in their real domains
--> persist exact world profiles and choices -> reach level 50 ultimate
+physical production and meals -> persistent characters/items/equipment
+-> offense and exterior outcomes -> physical arrivals and regional pressure
+-> captivity/circus/survival follow-up work
+-> V16 save round trip, pointer UI, visual evidence, and performance closure
 ```
 
 ## Phases
@@ -152,6 +154,10 @@ prepare owner + two staff -> choose permanent level-one skills
 | Physical delivery worker reached the source but could not pick up | Construction material delivery PlayMode attempt 1 | Found warehouse storage IDs were based on shared building definition `GridId`; replace them with a unique building instance key before rerunning. |
 | Physical logistics rerun request did not auto-enter PlayMode | Construction material delivery PlayMode attempt 2 | Request file remained pending with Editor idle; enter PlayMode explicitly so the registered runner consumes the same request. |
 | PlayMode could not start after warehouse-key migration edit | Construction material delivery compile attempt 2 | Preserved `IWarehouseFacility` type while matching a `BuildableObject` instead of passing the narrowed base type to the storage-key helper. |
+| Combined regional-pressure patch did not match mojibake reward strings | V16 regional pressure attempt 1 | Split the change into focused structural patches and replace handler bodies using ASCII-only method boundaries. |
+| Assumed `InvasionIntruderRuntime.cs` was a standalone file | V16 invasion pressure audit | Located the runtime in `InvasionIntruderSystem.cs` and switched subsequent reads to the concrete file. |
+| MCP checkpoint command referenced the wrong `CompilationPipeline` namespace | V16 regional pressure compile attempt 1 | Use the MCP command's own pre-execution project compilation with a simple `AssetDatabase.Refresh` command. |
+| Assumed character body-health models were in a standalone file | V16 return-arrival audit | Locate the concrete interface by symbol before reading; the captivity eligibility check itself was confirmed in `CaptivityRuntime.cs`. |
 
 ## Dark Survival V11 Completion
 
@@ -276,3 +282,71 @@ prepare owner + two staff -> choose permanent level-one skills
 - Wildlife PlayMode: runtime snapshot and hunt/carcass/butcher loop passed; limb injury lowers mobility and survives capture/restore.
 - `ScreenCapture`: `Artifacts/QA/combat-v13-defense-final.png`.
 - Unity MCP `Camera_Capture` was attempted twice against the live Main Camera but the connector returned `Failed to render scene preview`; the direct Game View capture rendered correctly.
+
+## V16 Isolated Feature Integration
+
+- [x] Audit duplicate scene runtimes, legacy equipment, abstract rewards, food consumption, exterior incidents, circus milestones, extract resources, and AI performance diagnostics.
+- [x] Remove duplicate GameplayScene command/customer runtimes and enforce exact-one composition lookup.
+- [x] Remove the legacy expedition equipment stack and make common combat equipment authoritative for crafting, storage, loadout, defense, and offense.
+- [x] Replace abstract offense weakening and reward counters with regional pressure and physical return arrivals.
+- [x] Connect exterior incidents, reception, patrol readiness, weather, sanitation, and night danger to physical actors and outcomes.
+- [x] Remove daily abstract food withdrawal and make completed character meals the sole nutrition consumption path.
+- [x] Connect circus fame milestones, injury gating, Biological blood, and Knowledge memory residue to work-unit consumers.
+- [x] Wire allocation-free AI performance recording and remove unused expedition support ability and mojibake on changed surfaces.
+- [x] Finish broad regressions, pointer-driven PlayMode verification, captures, performance checks, and Console `Error 0 / Warning 0`.
+
+### V16 Performance Closure
+
+- [x] Split full Grid content changes from structural/traversal changes so items, wildlife, and filth do not invalidate route and room caches.
+- [x] Preserve current wildlife target reachability without relying on stale cached occupant positions.
+- [x] Repair wildlife arrival dwell to use one game-clock time base and pass Grid/Wildlife/AI focused regressions.
+- [x] Re-run 100-NPC EditMode stress: elapsed `353s -> 50.6s`, broker searches `1440 -> 51`, deferrals `16461 -> 50`, Scheduler p95 `0.73ms`.
+- [x] Run PlayMode profiling and the broad V16/domain regression matrix.
+- [x] Perform current visual capture and final stopped-editor Console audit.
+
+### V16 Verification Notes
+
+- Broad domain matrix passed for V16 integration, save sections, survival, exterior activity,
+  captivity/circus, offense reward/battle, combat, defense, work amount, Grid, AI naturalness,
+  wildlife, and physical items.
+- Pointer-driven UI verification passed `21/21` rows at `1600x900` and `900x1600`, including
+  alert right-click dismissal, with captured `Error 0 / Warning 0`.
+- The stabilized 100-character PlayMode profile recorded frame `2.77ms average / 3.42ms p95`
+  and scheduler `0.370ms average / 0.497ms p95 / 0.632ms max`, with all 100 behavior trees
+  ticked and no decision/path-budget overflow.
+- Unity Editor-wide GC averaged `182KB/frame`; subtracting the measured one-character Editor
+  baseline of about `120KB/frame` leaves about `62KB/frame` attributable to the stress world.
+  The Mono backend does not support `GC.GetAllocatedBytesForCurrentThread`, so the report marks
+  scheduler-only allocation as unsupported instead of falsely reporting zero.
+- `Artifacts/QA/v16-gameplay-world.png` and
+  `Temp/p1-p2-ui-surface-verification.png` provide current world and HUD evidence. Direct
+  `Camera_Capture` still returns `Failed to render scene preview`; direct Game View capture works.
+
+### V16 Decisions
+
+- V16 is new-game only; V15 and older saves are rejected with a Korean explanation.
+- Common combat equipment is the only authoritative equipment runtime.
+- Food is consumed only when a character completes a real meal.
+- Prisoners, special wildlife, and recruits return as physical or persistent world entities rather than counters.
+- Strategic pressure is regional with a 25% same-faction spillover.
+- Blood and memory residue remain physical resources with multiple work-based consumers.
+
+## V17 Weighted Navigation and 500-Character Performance
+
+- [x] Add deterministic terrain/traversal costs and weighted path results.
+- [x] Use exact A* for fixed destinations and weighted Dijkstra for multi-target selection.
+- [x] Add versioned broker caching, bounded search budgets, and reusable search workspaces.
+- [x] Replace per-frame actor polling with due-time scheduling and immediate dirty wakeups.
+- [x] Remove benchmark scene scans and hot-path decision/presentation allocations.
+- [x] Pass focused Grid/100-character regressions and the staged 500-character profile.
+
+### V17 Verification Notes
+
+- 500 actors, 600 sampled frames: 3.39 ms average, 4.37 ms p95, 15.40 ms maximum,
+  and 0 frames over 16.67 ms.
+- Scheduler average/p95/max: 1.228/1.809/2.580 ms.
+- Broker: 527 searches, 8,674 cache hits, bounded at 7 searches and 8 deferrals per frame.
+- Incremental GC after the same-world Editor baseline: 36.0 KB/frame.
+- Per-request Jobs/Burst are intentionally deferred: current weighted A* measures about
+  11.3 microseconds/query, below practical scheduling overhead. Future parallelization must
+  batch immutable offscreen work.

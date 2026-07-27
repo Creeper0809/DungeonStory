@@ -24,6 +24,16 @@ public class AIExitDungeon : AIActionSet
             && shopping.ShouldExitDungeon();
     }
 
+    public override bool CanStart(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        return actor != null
+            && !context.IsWorker
+            && context.HasShoppingAbility
+            && context.ShouldExitDungeon;
+    }
+
     public override void Execute(CharacterActor actor)
     {
         AbilityShopping shopping = null;

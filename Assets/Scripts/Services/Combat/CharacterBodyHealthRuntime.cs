@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -82,6 +83,9 @@ public sealed class CharacterBodyHealthRuntime :
     ICharacterBodyHealthRuntime,
     ITickable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("CharacterBodyHealthRuntime.Tick");
+
     public readonly struct CharacterDownedEvent
     {
         public CharacterDownedEvent(CharacterActor actor)
@@ -105,41 +109,105 @@ public sealed class CharacterBodyHealthRuntime :
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IGameClock gameClock;
     private readonly IGameEventBus gameEventBus;
+    private readonly IDynamicFrameWorkBudget frameWorkBudget;
     private readonly Dictionary<string, CharacterBodyHealthState> states =
         new Dictionary<string, CharacterBodyHealthState>(StringComparer.Ordinal);
+    private readonly Dictionary<string, CharacterActor> trackedActors =
+        new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
+    private readonly Dictionary<string, float> lastTickAt =
+        new Dictionary<string, float>(StringComparer.Ordinal);
+    private readonly List<string> tickStateIds = new List<string>();
+    private int tickStateIndex;
+    private bool tickPassActive;
 
     public CharacterBodyHealthRuntime(
         ICharacterAiWorldRegistry worldRegistry,
         IGameClock gameClock,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IDynamicFrameWorkBudget frameWorkBudget)
     {
         this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.frameWorkBudget = frameWorkBudget
+            ?? throw new ArgumentNullException(nameof(frameWorkBudget));
     }
 
     public void Tick()
     {
-        float delta = gameClock.DeltaTime;
-        if (delta <= 0f)
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
+        if (gameClock.DeltaTime <= 0f)
         {
             return;
         }
 
-        foreach (CharacterActor actor in worldRegistry.Characters)
+        if (!tickPassActive)
         {
-            if (actor == null || actor.IsDead)
+            if (states.Count == 0)
             {
-                continue;
+                frameWorkBudget.SetBacklog(
+                    DynamicFrameWorkDomain.CharacterHealth,
+                    0);
+                return;
             }
 
-            string id = GetId(actor);
+            tickStateIds.Clear();
+            foreach (string id in states.Keys)
+            {
+                tickStateIds.Add(id);
+            }
+
+            tickStateIndex = 0;
+            tickPassActive = true;
+        }
+
+        int backlog = tickStateIds.Count - tickStateIndex;
+        frameWorkBudget.SetBacklog(
+            DynamicFrameWorkDomain.CharacterHealth,
+            backlog);
+        double sliceMilliseconds = frameWorkBudget.GetSliceMilliseconds(
+            DynamicFrameWorkDomain.CharacterHealth,
+            0.04,
+            0.6);
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        int processed = 0;
+        float now = gameClock.Time;
+        while (tickStateIndex < tickStateIds.Count)
+        {
+            string id = tickStateIds[tickStateIndex++];
+            processed++;
             if (!states.TryGetValue(id, out CharacterBodyHealthState state))
             {
                 continue;
             }
 
-            float bleeding = state.parts.Sum(part => Mathf.Max(0f, part.bleedingPerSecond));
+            CharacterActor actor = ResolveActor(id);
+            if (actor == null || actor.IsDead)
+            {
+                lastTickAt[id] = now;
+                continue;
+            }
+
+            float previousTick = lastTickAt.TryGetValue(id, out float recorded)
+                ? recorded
+                : now;
+            float delta = Mathf.Max(0f, now - previousTick);
+            lastTickAt[id] = now;
+            float bleeding = 0f;
+            for (int i = 0; i < state.parts.Count; i++)
+            {
+                bleeding += Mathf.Max(
+                    0f,
+                    state.parts[i].bleedingPerSecond);
+            }
+
             if (bleeding > 0f)
             {
                 state.bloodLoss = Mathf.Clamp(state.bloodLoss + bleeding * delta, 0f, 100f);
@@ -154,14 +222,34 @@ public sealed class CharacterBodyHealthRuntime :
             bool wasDowned = state.downed;
             UpdateDowned(state);
             SyncLifecycle(actor, state, wasDowned);
+
+            if (processed >= 4
+                && ElapsedMilliseconds(started) >= sliceMilliseconds)
+            {
+                break;
+            }
         }
+
+        frameWorkBudget.ReportConsumed(
+            DynamicFrameWorkDomain.CharacterHealth,
+            ElapsedMilliseconds(started));
+        if (tickStateIndex < tickStateIds.Count)
+        {
+            return;
+        }
+
+        tickStateIds.Clear();
+        tickPassActive = false;
+        frameWorkBudget.SetBacklog(
+            DynamicFrameWorkDomain.CharacterHealth,
+            0);
     }
 
     public CharacterBodyHealthSnapshot GetSnapshot(CharacterActor actor)
     {
         return actor == null
             ? EmptySnapshot()
-            : BuildSnapshot(GetOrCreate(GetId(actor)));
+            : BuildSnapshot(GetOrCreate(actor));
     }
 
     public CharacterBodyHealthSnapshot GetSnapshot(string characterId)
@@ -179,7 +267,7 @@ public sealed class CharacterBodyHealthRuntime :
             return;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(GetId(target));
+        CharacterBodyHealthState state = GetOrCreate(target);
         state.suppression = Mathf.Clamp(state.suppression + result.Suppression, 0f, 100f);
         if (!result.Hit || result.AppliedDamage <= 0f)
         {
@@ -217,7 +305,7 @@ public sealed class CharacterBodyHealthRuntime :
             return;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(GetId(target));
+        CharacterBodyHealthState state = GetOrCreate(target);
         state.parts = snapshot.Parts.Select(ClonePart).ToList();
         EnsureParts(state);
         state.bloodLoss = Mathf.Clamp(snapshot.BloodLoss, 0f, 100f);
@@ -235,7 +323,7 @@ public sealed class CharacterBodyHealthRuntime :
             return;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(GetId(target));
+        CharacterBodyHealthState state = GetOrCreate(target);
         state.suppression = Mathf.Clamp(state.suppression + amount, 0f, 100f);
         bool wasDowned = state.downed;
         UpdateDowned(state);
@@ -249,7 +337,7 @@ public sealed class CharacterBodyHealthRuntime :
             return;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(GetId(target));
+        CharacterBodyHealthState state = GetOrCreate(target);
         float remaining = amount;
         foreach (CharacterBodyPartHealthState part in state.parts.OrderBy(part => part.HealthRatio))
         {
@@ -281,7 +369,7 @@ public sealed class CharacterBodyHealthRuntime :
             return 0f;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(GetId(target));
+        CharacterBodyHealthState state = GetOrCreate(target);
         return state.parts.Sum(part => Mathf.Max(0f, part.bleedingPerSecond));
     }
 
@@ -292,7 +380,7 @@ public sealed class CharacterBodyHealthRuntime :
             return 0f;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(GetId(target));
+        CharacterBodyHealthState state = GetOrCreate(target);
         return state.parts.Sum(part => Mathf.Max(0f, part.maxHealth - part.currentHealth));
     }
 
@@ -303,7 +391,7 @@ public sealed class CharacterBodyHealthRuntime :
             return false;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(GetId(target));
+        CharacterBodyHealthState state = GetOrCreate(target);
         bool changed = false;
         foreach (CharacterBodyPartHealthState part in state.parts)
         {
@@ -332,7 +420,7 @@ public sealed class CharacterBodyHealthRuntime :
             return false;
         }
 
-        CharacterBodyHealthState state = GetOrCreate(GetId(target));
+        CharacterBodyHealthState state = GetOrCreate(target);
         float remaining = Mathf.Max(0f, partHealthAmount);
         float restoredTotal = 0f;
         foreach (CharacterBodyPartHealthState part in state.parts.OrderBy(part => part.HealthRatio))
@@ -371,6 +459,10 @@ public sealed class CharacterBodyHealthRuntime :
     public void Restore(DungeonCharacterBodyHealthSaveData saveData)
     {
         states.Clear();
+        trackedActors.Clear();
+        lastTickAt.Clear();
+        tickStateIds.Clear();
+        tickPassActive = false;
         foreach (CharacterBodyHealthState source in saveData?.characters ?? new List<CharacterBodyHealthState>())
         {
             if (source == null
@@ -391,9 +483,27 @@ public sealed class CharacterBodyHealthRuntime :
             string id = GetId(actor);
             if (states.TryGetValue(id, out CharacterBodyHealthState state))
             {
+                trackedActors[id] = actor;
+                lastTickAt[id] = gameClock.Time;
                 SyncLifecycle(actor, state, wasDowned: !state.downed);
             }
         }
+    }
+
+    private CharacterBodyHealthState GetOrCreate(CharacterActor actor)
+    {
+        string id = GetId(actor);
+        if (actor != null)
+        {
+            trackedActors[id] = actor;
+        }
+
+        if (!lastTickAt.ContainsKey(id))
+        {
+            lastTickAt[id] = gameClock.Time;
+        }
+
+        return GetOrCreate(id);
     }
 
     private CharacterBodyHealthState GetOrCreate(string characterId)
@@ -411,6 +521,38 @@ public sealed class CharacterBodyHealthRuntime :
         EnsureParts(state);
         states.Add(characterId, state);
         return state;
+    }
+
+    private CharacterActor ResolveActor(string characterId)
+    {
+        if (trackedActors.TryGetValue(
+                characterId,
+                out CharacterActor tracked)
+            && tracked != null)
+        {
+            return tracked;
+        }
+
+        IReadOnlyList<CharacterActor> actors = worldRegistry.Characters;
+        for (int i = 0; i < actors.Count; i++)
+        {
+            CharacterActor actor = actors[i];
+            if (actor != null && GetId(actor) == characterId)
+            {
+                trackedActors[characterId] = actor;
+                return actor;
+            }
+        }
+
+        trackedActors.Remove(characterId);
+        return null;
+    }
+
+    private static double ElapsedMilliseconds(long started)
+    {
+        return (System.Diagnostics.Stopwatch.GetTimestamp() - started)
+            * 1000.0
+            / System.Diagnostics.Stopwatch.Frequency;
     }
 
     private static void EnsureParts(CharacterBodyHealthState state)

@@ -27,6 +27,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
     private IRandomStreamProvider randomStreamProvider;
+    private IOffenseRegionRuntime offenseRegionRuntime;
     private IDisposable invasionCandidateSubscription;
     private IDisposable invasionResolvedSubscription;
     private bool nextInvasionIsBoss;
@@ -65,7 +66,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
         IDefenseStatusRuntimeService defenseStatusRuntimeService,
         IGameClock gameClock,
         IRandomStreamProvider randomStreamProvider,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IOffenseRegionRuntime offenseRegionRuntime)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -81,6 +83,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(randomStreamProvider));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.offenseRegionRuntime = offenseRegionRuntime
+            ?? throw new ArgumentNullException(nameof(offenseRegionRuntime));
         SubscribeToScopedEvents();
     }
 
@@ -121,6 +125,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
         intruder = runtime.IntruderActor;
         bool isBoss = nextInvasionIsBoss;
         InvasionIntruderSettings effectiveSettings = context.ApplyRunVariables(intruderSettings);
+        ApplyStrategicPressure(effectiveSettings);
         effectiveSettings.rallyDurationSeconds = Mathf.Max(
             MinimumRallyDurationSeconds,
             effectiveSettings.rallyDurationSeconds);
@@ -179,6 +184,30 @@ public class InvasionDirectorRuntime : MonoBehaviour
             EventAlertImportance.High,
             "침입");
         return true;
+    }
+
+    private void ApplyStrategicPressure(InvasionIntruderSettings settings)
+    {
+        if (settings == null || offenseRegionRuntime == null)
+        {
+            return;
+        }
+
+        OffenseStrategicPressureSnapshot pressure =
+            offenseRegionRuntime.GetFactionPressure(OffenseRegionRuntime.HumanFactionId);
+        float warningMultiplier = 1f
+            + pressure.Logistics * 0.004f
+            + pressure.Intelligence * 0.003f;
+        settings.rallyDurationSeconds *= Mathf.Clamp(warningMultiplier, 1f, 1.7f);
+        settings.healthMultiplier *= Mathf.Clamp(1f - pressure.Manpower * 0.002f, 0.8f, 1f);
+        settings.meleeDamageMultiplier *= Mathf.Clamp(
+            1f - pressure.Armament * 0.002f,
+            0.8f,
+            1f);
+        settings.attackSpeedMultiplier *= Mathf.Clamp(
+            1f - pressure.Logistics * 0.0015f,
+            0.85f,
+            1f);
     }
 
     public IReadOnlyList<InvasionIntruderPersistenceState> CapturePersistentState(Grid grid)
@@ -393,7 +422,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
                 break;
             }
 
-            path = grid.GetMovePath(owner.GetNowXY(), position => position == plan.Target);
+            path = grid.GetMovePathTo(owner.GetNowXY(), plan.Target);
             if (path.Count == 0)
             {
                 break;
@@ -1089,7 +1118,7 @@ public class InvasionIntruderRuntime : MonoBehaviour
         while (path.Count > 0 && intruderActor != null && !intruderActor.IsDead)
         {
             GridMoveStep step = path.Dequeue();
-            if (step == null) continue;
+            if (!step.IsValid) continue;
 
             if (!(defenseEngagementRuntime?.CanIntruderAdvanceTo(this, step.To) ?? true))
             {

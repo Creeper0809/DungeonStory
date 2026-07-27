@@ -537,7 +537,6 @@ public class AbilityWork : CharacterAbility
             return false;
         }
 
-        searchResult ??= brain.GetPathSearch(actor);
         if (!CanStartWorkAction(workTypeId, searchResult)
             || !TryGetBestWorkCandidate(workTypeId, searchResult, out WorkTargetCandidate requestedCandidate)
             || !TryGetBestAnyWorkCandidate(searchResult, out WorkTargetCandidate bestCandidate))

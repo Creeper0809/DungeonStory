@@ -148,8 +148,16 @@ public class Door : BuildableObject
 
     private void RefreshAccessIndicator()
     {
-        accessLockIndicator ??= GetComponent<DoorAccessLockIndicator>();
-        accessLockIndicator ??= gameObject.AddComponent<DoorAccessLockIndicator>();
+        if (accessLockIndicator == null)
+        {
+            accessLockIndicator = GetComponent<DoorAccessLockIndicator>();
+        }
+
+        if (accessLockIndicator == null)
+        {
+            accessLockIndicator = gameObject.AddComponent<DoorAccessLockIndicator>();
+        }
+
         accessLockIndicator.Refresh(AccessPolicy?.IsRestricted == true);
     }
 

@@ -28,6 +28,8 @@ public sealed class WildlifeCaptureRuntime :
         new Dictionary<string, CapturedWildlifeState>(StringComparer.Ordinal);
     private readonly Dictionary<string, Transform> carriedParents =
         new Dictionary<string, Transform>(StringComparer.Ordinal);
+    private readonly List<CapturedWildlifeState> tickBuffer =
+        new List<CapturedWildlifeState>();
 
     public WildlifeCaptureRuntime(
         ICharacterAiWorldRegistry world,
@@ -75,8 +77,20 @@ public sealed class WildlifeCaptureRuntime :
             return;
         }
 
-        foreach (CapturedWildlifeState state in captured.Values.ToArray())
+        if (captured.Count == 0)
         {
+            return;
+        }
+
+        tickBuffer.Clear();
+        foreach (CapturedWildlifeState state in captured.Values)
+        {
+            tickBuffer.Add(state);
+        }
+
+        for (int index = 0; index < tickBuffer.Count; index++)
+        {
+            CapturedWildlifeState state = tickBuffer[index];
             WildlifeActor actor = FindActor(state.wildlifeId);
             if (actor == null || !actor.IsAlive)
             {

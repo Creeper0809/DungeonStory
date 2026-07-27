@@ -47,11 +47,6 @@ public sealed class OffenseRewardGrantResult
 public interface IOffenseRewardStateView
 {
     int MoneyEarned { get; }
-    int HumanFactionWeakening { get; }
-    int RivalFactionWeakening { get; }
-    int RecruitCandidateCount { get; }
-    int PrisonerCount { get; }
-    int SpecialMonsterCount { get; }
     IReadOnlyDictionary<StockCategory, int> StockGrantedByCategory { get; }
     IReadOnlyCollection<int> RareFacilityBuildingIds { get; }
     IReadOnlyCollection<int> AcquiredBlueprintIds { get; }
@@ -70,11 +65,6 @@ public sealed class OffenseRewardState : IOffenseRewardStateView
     }
 
     public int MoneyEarned { get; private set; }
-    public int HumanFactionWeakening { get; private set; }
-    public int RivalFactionWeakening { get; private set; }
-    public int RecruitCandidateCount { get; private set; }
-    public int PrisonerCount { get; private set; }
-    public int SpecialMonsterCount { get; private set; }
     public IReadOnlyDictionary<StockCategory, int> StockGrantedByCategory => stockGrantedView;
     public IReadOnlyCollection<int> RareFacilityBuildingIds => rareFacilityBuildingIds.ToArray();
     public IReadOnlyCollection<int> AcquiredBlueprintIds => acquiredBlueprintIds.ToArray();
@@ -82,11 +72,6 @@ public sealed class OffenseRewardState : IOffenseRewardStateView
     internal void Reset()
     {
         MoneyEarned = 0;
-        HumanFactionWeakening = 0;
-        RivalFactionWeakening = 0;
-        RecruitCandidateCount = 0;
-        PrisonerCount = 0;
-        SpecialMonsterCount = 0;
         stockGrantedByCategory.Clear();
         rareFacilityBuildingIds.Clear();
         acquiredBlueprintIds.Clear();
@@ -94,22 +79,12 @@ public sealed class OffenseRewardState : IOffenseRewardStateView
 
     internal void Restore(
         int moneyEarned,
-        int humanFactionWeakening,
-        int rivalFactionWeakening,
-        int recruitCandidateCount,
-        int prisonerCount,
-        int specialMonsterCount,
         IReadOnlyDictionary<StockCategory, int> restoredStock,
         IEnumerable<int> restoredRareFacilityIds,
         IEnumerable<int> restoredBlueprintIds)
     {
         Reset();
         MoneyEarned = Mathf.Max(0, moneyEarned);
-        HumanFactionWeakening = Mathf.Max(0, humanFactionWeakening);
-        RivalFactionWeakening = Mathf.Max(0, rivalFactionWeakening);
-        RecruitCandidateCount = Mathf.Max(0, recruitCandidateCount);
-        PrisonerCount = Mathf.Max(0, prisonerCount);
-        SpecialMonsterCount = Mathf.Max(0, specialMonsterCount);
         if (restoredStock != null)
         {
             foreach (KeyValuePair<StockCategory, int> pair in restoredStock)
@@ -150,33 +125,6 @@ public sealed class OffenseRewardState : IOffenseRewardStateView
         return blueprint != null && acquiredBlueprintIds.Add(blueprint.id);
     }
 
-    internal void RecordFactionWeakening(bool humanFaction, int amount)
-    {
-        int safeAmount = Mathf.Max(0, amount);
-        if (humanFaction)
-        {
-            HumanFactionWeakening += safeAmount;
-        }
-        else
-        {
-            RivalFactionWeakening += safeAmount;
-        }
-    }
-
-    internal void RecordRecruitCandidates(int amount)
-    {
-        RecruitCandidateCount += Mathf.Max(0, amount);
-    }
-
-    internal void RecordPrisoners(int amount)
-    {
-        PrisonerCount += Mathf.Max(0, amount);
-    }
-
-    internal void RecordSpecialMonsters(int amount)
-    {
-        SpecialMonsterCount += Mathf.Max(0, amount);
-    }
 }
 
 public sealed class OffenseRewardContext
@@ -187,5 +135,8 @@ public sealed class OffenseRewardContext
     public BlueprintResearchState researchState;
     public BlueprintResearchRuntime researchRuntime;
     public OffenseRewardState rewardState;
+    public IOffenseRegionRuntime regionRuntime;
+    public IOffenseReturnArrivalRuntime returnArrivalRuntime;
+    public string expeditionId;
     public OffenseTargetDefinition target;
 }

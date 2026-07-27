@@ -35,6 +35,7 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         new List<CharacterAiMemoryEntry>();
     private IReadOnlyList<CharacterAiMemoryEntry> recentEntriesView;
     private IGameClock gameClock;
+    private float nextPruneAt;
 
     private float Now => gameClock != null ? gameClock.Time : 0f;
 
@@ -57,6 +58,7 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         actor = owner;
         recentEntries ??= new List<CharacterAiMemoryEntry>();
         recentEntriesView ??= ReadOnlyView.List(recentEntries);
+        nextPruneAt = 0f;
         Prune();
     }
 
@@ -175,9 +177,17 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
 
         Prune();
         CharacterAiIntentionType intention = CharacterAiUtilityText.GetIntention(branch);
-        CharacterAiMemoryEntry latest = recentEntries
-            .OrderByDescending(entry => entry.time)
-            .FirstOrDefault();
+        CharacterAiMemoryEntry latest = null;
+        for (int i = recentEntries.Count - 1; i >= 0; i--)
+        {
+            CharacterAiMemoryEntry entry = recentEntries[i];
+            if (entry != null)
+            {
+                latest = entry;
+                break;
+            }
+        }
+
         if (latest == null)
         {
             return 0f;
@@ -201,15 +211,24 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         }
 
         Prune();
-        List<CharacterAiMemoryEntry> matches = recentEntries
-            .Where(entry => entry.facilityId == building.id)
-            .ToList();
-        if (matches.Count == 0)
+        float totalSentiment = 0f;
+        int matchCount = 0;
+        for (int i = 0; i < recentEntries.Count; i++)
+        {
+            CharacterAiMemoryEntry entry = recentEntries[i];
+            if (entry != null && entry.facilityId == building.id)
+            {
+                totalSentiment += entry.sentiment;
+                matchCount++;
+            }
+        }
+
+        if (matchCount == 0)
         {
             return 0.5f;
         }
 
-        float sentiment = matches.Average(entry => entry.sentiment);
+        float sentiment = totalSentiment / matchCount;
         return Mathf.Clamp01(0.5f + sentiment * 0.5f);
     }
 
@@ -221,10 +240,20 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         }
 
         Prune();
-        int repeated = recentEntries
-            .Where(entry => TryGetEntryWorkTypeId(entry, out WorkTypeId entryWorkTypeId)
+        float now = Now;
+        int repeated = 0;
+        for (int i = 0; i < recentEntries.Count; i++)
+        {
+            CharacterAiMemoryEntry entry = recentEntries[i];
+            if (entry != null
+                && now - entry.time <= RecentWindowSeconds * 2f
+                && TryGetEntryWorkTypeId(entry, out WorkTypeId entryWorkTypeId)
                 && entryWorkTypeId == workTypeId)
-            .Count(entry => Now - entry.time <= RecentWindowSeconds * 2f);
+            {
+                repeated++;
+            }
+        }
+
         if (repeated <= 2)
         {
             return 0f;
@@ -373,10 +402,17 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         }
 
         recentEntries ??= new List<CharacterAiMemoryEntry>();
+        bool wasEmpty = recentEntries.Count == 0;
         recentEntries.Add(entry);
+        if (wasEmpty)
+        {
+            nextPruneAt = entry.time + RecentWindowSeconds * 6f;
+        }
+
         while (recentEntries.Count > MaxEntries)
         {
             recentEntries.RemoveAt(0);
+            nextPruneAt = 0f;
         }
     }
 
@@ -384,11 +420,34 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
     {
         if (recentEntries == null || recentEntries.Count == 0)
         {
+            nextPruneAt = float.PositiveInfinity;
             return;
         }
 
-        float oldest = Now - RecentWindowSeconds * 6f;
-        recentEntries.RemoveAll(entry => entry == null || entry.time < oldest);
+        float now = Now;
+        if (now < nextPruneAt)
+        {
+            return;
+        }
+
+        float retentionSeconds = RecentWindowSeconds * 6f;
+        float oldest = now - retentionSeconds;
+        float nextExpiry = float.PositiveInfinity;
+        for (int i = recentEntries.Count - 1; i >= 0; i--)
+        {
+            CharacterAiMemoryEntry entry = recentEntries[i];
+            if (entry == null || entry.time < oldest)
+            {
+                recentEntries.RemoveAt(i);
+                continue;
+            }
+
+            nextExpiry = Mathf.Min(
+                nextExpiry,
+                entry.time + retentionSeconds);
+        }
+
+        nextPruneAt = nextExpiry;
     }
 
     private static bool TryGetBuildingGridPosition(BuildableObject building, out Vector2Int position)

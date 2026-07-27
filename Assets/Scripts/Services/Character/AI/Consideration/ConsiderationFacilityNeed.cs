@@ -25,10 +25,7 @@ public class ConsiderationFacilityNeed : Consideration
             return 0f;
         }
 
-        GridPathSearchResult searchResult = actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
-        if (!FacilityCandidateScorer.HasCandidate(actor, searchResult, role))
+        if (!FacilityCandidateScorer.HasCandidate(actor, null, role))
         {
             return 0f;
         }

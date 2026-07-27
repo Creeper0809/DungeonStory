@@ -93,7 +93,7 @@ public static class ExteriorActivityDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonExteriorActivitySaveData>(
                 save,
                 ExteriorActivitySaveSection.Id);
-        return DungeonGameSaveData.CurrentVersion == 15
+        return DungeonGameSaveData.CurrentVersion == 16
             && save.version == DungeonGameSaveData.CurrentVersion
             && exterior.version == DungeonExteriorActivitySaveData.CurrentVersion;
     }
@@ -183,9 +183,11 @@ public static class ExteriorActivityDebugScenarios
         return started
             && exterior.zones.Count >= 7
             && exterior.incidents.Count >= 1
+            && exterior.incidentStates.Count >= 1
             && save.version == DungeonGameSaveData.CurrentVersion
             && savedExterior.zones.Count >= 7
-            && savedExterior.incidents.Count >= 1;
+            && savedExterior.incidents.Count >= 1
+            && savedExterior.incidentStates.Count >= 1;
     }
 
     private static bool VerifyPlayModeReceptionWorkCandidate()

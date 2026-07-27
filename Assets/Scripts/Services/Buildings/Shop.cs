@@ -15,8 +15,19 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
     private const float WaitingCheckoutOperateUrgencyPerCustomer = 40f;
     private static readonly IFloatingNumberFeedbackService FallbackFloatingNumberFeedbackService =
         new ShopNoopFloatingNumberFeedbackService();
+    private static readonly WaitForSeconds PurchaseCompleteDelay =
+        new WaitForSeconds(0.5f);
+    private static readonly WaitForSeconds CheckoutPollDelay =
+        new WaitForSeconds(CheckoutWaitPollSeconds);
+    private static readonly WaitForSeconds SelfServiceCheckoutDelay =
+        new WaitForSeconds(SelfServiceCheckoutSeconds);
+    private static readonly WaitForSeconds StaffedCheckoutDelay =
+        new WaitForSeconds(StaffedCheckoutSeconds);
+    private static readonly Stack<ShoppingSelectionBuffer> ShoppingSelectionPool =
+        new Stack<ShoppingSelectionBuffer>();
 
     private List<RemainStock> stocks = new List<RemainStock>();
+    private readonly List<Stock> purchasableStockBuffer = new List<Stock>();
     private CharacterActor worker;
     private int waitingCheckoutCount;
     private bool checkoutServiceAlertRaised;
@@ -136,12 +147,20 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             ? actor.Brain.bestAction
             : null;
         int howmany = shopable.GetShoppingCount();
-        Dictionary<int, int> selectedCounts = new Dictionary<int, int>();
-        List<RemainStock> cart = new List<RemainStock>();
+        if (IsInternalStaffUse(actor)
+            && Facility != null
+            && Facility.SupportsRole(FacilityRole.Meal))
+        {
+            howmany = 1;
+        }
+        ShoppingSelectionBuffer selection = AcquireShoppingSelectionBuffer();
+        Dictionary<int, int> selectedCounts = selection.SelectedCounts;
+        List<RemainStock> cart = selection.Cart;
         bool createsRevenue = CreatesRevenueFor(actor);
         for (int i = 0; i < howmany; i++)
         {
-            Stock buyItem = shopable.DetermineBuyingItem(GetStock(selectedCounts));
+            Stock buyItem = shopable.DetermineBuyingItem(
+                GetPurchasableStock(selectedCounts));
             actor?.Brain?.SetActionPhase("\uC0C1\uD488 \uB458\uB7EC\uBCF4\uAE30", this, $"{i + 1}/{howmany}");
             yield return moveable.Move2PosBySpeed(
                 GetFacilityAnchorWorldPosition(FacilityAnchorPurposeIds.Use, actor.transform.position),
@@ -160,6 +179,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
 
         if (cart.Count == 0)
         {
+            ReleaseShoppingSelectionBuffer(selection);
             shopable.SetVisitOutcome(this, ShoppingVisitOutcome.Failed);
             actor?.AddActivity(CharacterActivityEvent.Facility(
                 CharacterActivityKinds.Shopping,
@@ -175,15 +195,18 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         Vector2 endPos = GetFacilityAnchorWorldPosition(FacilityAnchorPurposeIds.Checkout, actor.transform.position);
         actor?.Brain?.SetActionPhase("\uACC4\uC0B0\uB300 \uC774\uB3D9", this);
         yield return moveable.Move2PosBySpeed(endPos, 1f, currentAction);
-        CheckoutWaitSession checkoutWait = new CheckoutWaitSession();
-        yield return WaitForServingWorkerWithPatience(actor, checkoutWait);
-        if (checkoutWait.Abandoned)
+        CheckoutWaitSession checkoutWaitSession = new CheckoutWaitSession();
+        yield return WaitForServingWorkerWithPatience(actor, checkoutWaitSession);
+        if (checkoutWaitSession.Abandoned
+            || shopable.LastVisitOutcome == ShoppingVisitOutcome.Abandoned)
         {
+            ReleaseShoppingSelectionBuffer(selection);
             EndUse(actor);
             yield break;
         }
         if (!CanServeCustomer(actor, out string serviceFailureReason))
         {
+            ReleaseShoppingSelectionBuffer(selection);
             shopable.SetVisitOutcome(this, ShoppingVisitOutcome.Failed);
             actor?.AddActivity(CharacterActivityEvent.Facility(
                 CharacterActivityKinds.Shopping,
@@ -199,6 +222,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         yield return RunCheckoutService(actor);
         if (TryResolveCheckoutCrime(actor, cart))
         {
+            ReleaseShoppingSelectionBuffer(selection);
             shopable.SetVisitOutcome(this, ShoppingVisitOutcome.Completed);
             EndUse(actor);
             yield break;
@@ -236,6 +260,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
 
         if (purchaseCount == 0)
         {
+            ReleaseShoppingSelectionBuffer(selection);
             shopable.SetVisitOutcome(this, ShoppingVisitOutcome.Failed);
             actor?.AddActivity(CharacterActivityEvent.Facility(
                 CharacterActivityKinds.Shopping,
@@ -289,7 +314,8 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             this,
             RoomExperienceActivity.Shopping));
         shopable.SetVisitOutcome(this, ShoppingVisitOutcome.Completed);
-        yield return new WaitForSeconds(0.5f);
+        ReleaseShoppingSelectionBuffer(selection);
+        yield return PurchaseCompleteDelay;
         EndUse(actor);
     }
 
@@ -481,10 +507,11 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
                 actionId: "checkout:self-service"));
         }
 
-        WaitForSeconds wait = new WaitForSeconds(selfService ? SelfServiceCheckoutSeconds : StaffedCheckoutSeconds);
         try
         {
-            yield return wait;
+            yield return selfService
+                ? SelfServiceCheckoutDelay
+                : StaffedCheckoutDelay;
         }
         finally
         {
@@ -496,8 +523,13 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         }
     }
 
-    private IEnumerator WaitForServingWorkerWithPatience(CharacterActor actor, CheckoutWaitSession session)
+    private IEnumerator WaitForServingWorkerWithPatience(
+        CharacterActor actor,
+        CheckoutWaitSession session)
     {
+        AbilityShopping shopping = actor != null
+            ? actor.GetAbility<AbilityShopping>()
+            : null;
         if (!ShouldWaitForServingWorker(actor))
         {
             yield break;
@@ -523,7 +555,6 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             reasonCode: "no-serving-worker",
             bubbleEligible: true));
 
-        WaitForSeconds wait = new WaitForSeconds(CheckoutWaitPollSeconds);
         try
         {
             while (ShouldWaitForServingWorker(actor))
@@ -546,7 +577,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
                     "계산 대기",
                     this,
                     CustomerCheckoutPatienceRules.GetQueueDetail(patience, elapsedSeconds, stage));
-                yield return wait;
+                yield return CheckoutPollDelay;
                 elapsedSeconds += CheckoutWaitPollSeconds;
             }
         }
@@ -560,7 +591,8 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             MarkFacilityDynamicStateDirty();
         }
 
-        if (!session.Abandoned && HasServingWorker)
+        if (shopping?.LastVisitOutcome != ShoppingVisitOutcome.Abandoned
+            && HasServingWorker)
         {
             actor?.Brain?.SetActionPhase("계산 중", this, $"{Mathf.CeilToInt(elapsedSeconds)}초 기다림");
             actor?.AddActivity(CharacterActivityEvent.Facility(
@@ -671,6 +703,19 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         public bool Abandoned { get; set; }
     }
 
+    private sealed class ShoppingSelectionBuffer
+    {
+        public readonly Dictionary<int, int> SelectedCounts =
+            new Dictionary<int, int>();
+        public readonly List<RemainStock> Cart = new List<RemainStock>();
+
+        public void Clear()
+        {
+            SelectedCounts.Clear();
+            Cart.Clear();
+        }
+    }
+
     private bool ShouldWaitForServingWorker(CharacterActor actor)
     {
         return actor != null
@@ -682,27 +727,56 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
 
     public List<Stock> GetStock()
     {
-        return GetStock(null);
+        FillPurchasableStock(null);
+        return new List<Stock>(purchasableStockBuffer);
     }
 
     public IReadOnlyList<Stock> GetPurchasableStock()
     {
-        return GetStock();
+        return GetPurchasableStock(null);
     }
 
-    private List<Stock> GetStock(IReadOnlyDictionary<int, int> selectedCounts)
+    private IReadOnlyList<Stock> GetPurchasableStock(
+        IReadOnlyDictionary<int, int> selectedCounts)
+    {
+        FillPurchasableStock(selectedCounts);
+        return purchasableStockBuffer;
+    }
+
+    private void FillPurchasableStock(
+        IReadOnlyDictionary<int, int> selectedCounts)
     {
         EnsureStockInitialized();
-        List<Stock> result = new List<Stock>();
+        purchasableStockBuffer.Clear();
         PruneInvalidWorker();
         foreach (RemainStock stock in stocks)
         {
             if (stock == null
                 || !IsSaleItemAllowed(stock.id)
                 || GetRemainingStockAfterSelection(stock, selectedCounts) <= 0) continue;
-            result.Add(CreatePricedStock(stock));
+            purchasableStockBuffer.Add(CreatePricedStock(stock));
         }
-        return result;
+    }
+
+    private static ShoppingSelectionBuffer AcquireShoppingSelectionBuffer()
+    {
+        ShoppingSelectionBuffer buffer = ShoppingSelectionPool.Count > 0
+            ? ShoppingSelectionPool.Pop()
+            : new ShoppingSelectionBuffer();
+        buffer.Clear();
+        return buffer;
+    }
+
+    private static void ReleaseShoppingSelectionBuffer(
+        ShoppingSelectionBuffer buffer)
+    {
+        if (buffer == null)
+        {
+            return;
+        }
+
+        buffer.Clear();
+        ShoppingSelectionPool.Push(buffer);
     }
 
     private Stock CreatePricedStock(RemainStock stock)

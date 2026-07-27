@@ -107,6 +107,17 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
     private float nextRefreshAt;
     private readonly Dictionary<int, TextScaleBaseline> textScaleBaselines =
         new Dictionary<int, TextScaleBaseline>();
+    private readonly List<Transform> transformBuffer = new List<Transform>();
+    private readonly List<Button> buttonBuffer = new List<Button>();
+    private readonly List<Image> imageBuffer = new List<Image>();
+    private readonly List<TMP_Text> textBuffer = new List<TMP_Text>();
+    private readonly HashSet<int> liveTextIds = new HashSet<int>();
+    private readonly List<int> staleTextIds = new List<int>();
+    private int observedHierarchyCount = -1;
+    private int observedScreenWidth = -1;
+    private int observedScreenHeight = -1;
+    private float observedUiScale = -1f;
+    private float observedTextScale = -1f;
 
     public static DungeonUiThemeRuntime Ensure(
         Canvas canvas,
@@ -146,8 +157,9 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
 
         if (targetCanvas == null) return;
 
+        CaptureRefreshSignature();
         ConfigureCanvasScaler();
-        fontService?.ApplyToChildren(targetCanvas.transform);
+        ApplyFonts();
         StyleTopHud();
         StyleBottomNavigation();
         StyleLegacyPanels();
@@ -164,7 +176,10 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         if (uiClock.Time < nextRefreshAt) return;
 
         nextRefreshAt = uiClock.Time + RefreshInterval;
-        ApplyNow();
+        if (HasRefreshSignatureChanged())
+        {
+            ApplyNow();
+        }
     }
 
     private void ConfigureCanvasScaler()
@@ -246,10 +261,12 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
     {
         if (!(controls is RectTransform rect)) return;
 
-        Button[] buttons = controls.GetComponentsInChildren<Button>(true);
+        buttonBuffer.Clear();
+        controls.GetComponentsInChildren(true, buttonBuffer);
+        List<Button> buttons = buttonBuffer;
         const float widthForThreeButtons = 292f;
         float desiredPanelWidth = widthForThreeButtons
-            * Mathf.Max(3, buttons.Length)
+            * Mathf.Max(3, buttons.Count)
             / 3f;
         float canvasWidth = GetCanvasSize().x;
         float panelWidth = Mathf.Min(
@@ -269,19 +286,19 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
             existingLayout.enabled = false;
         }
 
-        for (int index = 0; index < buttons.Length; index++)
+        for (int index = 0; index < buttons.Count; index++)
         {
             Button button = buttons[index];
             RectTransform buttonRect = button.GetComponent<RectTransform>();
             if (buttonRect != null)
             {
-                float left = index / (float)Mathf.Max(1, buttons.Length);
-                float right = (index + 1f) / Mathf.Max(1, buttons.Length);
+                float left = index / (float)Mathf.Max(1, buttons.Count);
+                float right = (index + 1f) / Mathf.Max(1, buttons.Count);
                 buttonRect.anchorMin = new Vector2(left, 0f);
                 buttonRect.anchorMax = new Vector2(right, 1f);
                 buttonRect.pivot = new Vector2(0.5f, 0.5f);
                 buttonRect.offsetMin = new Vector2(index > 0 ? 3f : 0f, 0f);
-                buttonRect.offsetMax = new Vector2(index < buttons.Length - 1 ? -3f : 0f, 0f);
+                buttonRect.offsetMax = new Vector2(index < buttons.Count - 1 ? -3f : 0f, 0f);
             }
 
             RoomInspectionToggleVisualState selectionState =
@@ -330,8 +347,10 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
             layout.spacing = 3f;
         }
 
-        Button[] buttons = navigation.GetComponentsInChildren<Button>(true);
-        for (int index = 0; index < buttons.Length; index++)
+        buttonBuffer.Clear();
+        navigation.GetComponentsInChildren(true, buttonBuffer);
+        List<Button> buttons = buttonBuffer;
+        for (int index = 0; index < buttons.Count; index++)
         {
             Button button = buttons[index];
             LayoutElement layoutElement = button.GetComponent<LayoutElement>();
@@ -378,7 +397,9 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         Transform constructTab = root.Find("ConstructTab");
         if (constructTab != null)
         {
-            foreach (Image image in constructTab.GetComponentsInChildren<Image>(true))
+            imageBuffer.Clear();
+            constructTab.GetComponentsInChildren(true, imageBuffer);
+            foreach (Image image in imageBuffer)
             {
                 if (image.GetComponent<Button>() == null && image.sprite != null && image.gameObject.name == "Image")
                 {
@@ -391,14 +412,16 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
                 }
             }
 
-            foreach (Button button in constructTab.GetComponentsInChildren<Button>(true))
+            buttonBuffer.Clear();
+            constructTab.GetComponentsInChildren(true, buttonBuffer);
+            foreach (Button button in buttonBuffer)
             {
                 DungeonUiTheme.StyleButton(button);
             }
         }
     }
 
-    private static void StyleBuildingPanel(Transform panel)
+    private void StyleBuildingPanel(Transform panel)
     {
         Image panelImage = panel.GetComponent<Image>();
         if (panelImage != null)
@@ -409,7 +432,9 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         UIBuildingInfo buildingInfo = panel.GetComponent<UIBuildingInfo>();
         GameObject previewObject = buildingInfo != null ? buildingInfo.buildingImageObject : null;
 
-        foreach (Image image in panel.GetComponentsInChildren<Image>(true))
+        imageBuffer.Clear();
+        panel.GetComponentsInChildren(true, imageBuffer);
+        foreach (Image image in imageBuffer)
         {
             if (image.GetComponent<Button>() != null) continue;
             if (previewObject != null && image.gameObject == previewObject)
@@ -430,14 +455,18 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
             }
         }
 
-        foreach (Button button in panel.GetComponentsInChildren<Button>(true))
+        buttonBuffer.Clear();
+        panel.GetComponentsInChildren(true, buttonBuffer);
+        foreach (Button button in buttonBuffer)
         {
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
             bool destructive = label != null && label.text.Contains("부시");
             DungeonUiTheme.StyleButton(button, destructive: destructive);
         }
 
-        foreach (TMP_Text label in panel.GetComponentsInChildren<TMP_Text>(true))
+        textBuffer.Clear();
+        panel.GetComponentsInChildren(true, textBuffer);
+        foreach (TMP_Text label in textBuffer)
         {
             label.color = DungeonUiTheme.TextPrimary;
             label.characterSpacing = 0f;
@@ -458,9 +487,10 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
     private void ApplyTextScale()
     {
         float scale = Mathf.Clamp(DungeonUserSettingsRuntime.Current.textScale, 0.9f, 1.25f);
-        TMP_Text[] texts = targetCanvas.GetComponentsInChildren<TMP_Text>(true);
-        HashSet<int> liveIds = new HashSet<int>();
-        foreach (TMP_Text text in texts)
+        textBuffer.Clear();
+        targetCanvas.GetComponentsInChildren(true, textBuffer);
+        liveTextIds.Clear();
+        foreach (TMP_Text text in textBuffer)
         {
             if (text == null)
             {
@@ -468,7 +498,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
             }
 
             int id = text.GetInstanceID();
-            liveIds.Add(id);
+            liveTextIds.Add(id);
             if (!textScaleBaselines.TryGetValue(id, out TextScaleBaseline baseline))
             {
                 baseline = new TextScaleBaseline(text.fontSize, text.fontSizeMin, text.fontSizeMax);
@@ -480,10 +510,63 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
             text.fontSizeMax = baseline.FontSizeMax * scale;
         }
 
-        foreach (int staleId in textScaleBaselines.Keys.Where(id => !liveIds.Contains(id)).ToArray())
+        staleTextIds.Clear();
+        foreach (int id in textScaleBaselines.Keys)
         {
-            textScaleBaselines.Remove(staleId);
+            if (!liveTextIds.Contains(id))
+            {
+                staleTextIds.Add(id);
+            }
         }
+
+        for (int index = 0; index < staleTextIds.Count; index++)
+        {
+            textScaleBaselines.Remove(staleTextIds[index]);
+        }
+    }
+
+    private void ApplyFonts()
+    {
+        if (fontService == null)
+        {
+            return;
+        }
+
+        textBuffer.Clear();
+        targetCanvas.GetComponentsInChildren(true, textBuffer);
+        foreach (TMP_Text text in textBuffer)
+        {
+            fontService.Apply(text);
+        }
+    }
+
+    private bool HasRefreshSignatureChanged()
+    {
+        if (targetCanvas == null)
+        {
+            return false;
+        }
+
+        transformBuffer.Clear();
+        targetCanvas.GetComponentsInChildren(true, transformBuffer);
+        DungeonUserSettingsData settings = DungeonUserSettingsRuntime.Current;
+        return transformBuffer.Count != observedHierarchyCount
+            || Screen.width != observedScreenWidth
+            || Screen.height != observedScreenHeight
+            || !Mathf.Approximately(settings.uiScale, observedUiScale)
+            || !Mathf.Approximately(settings.textScale, observedTextScale);
+    }
+
+    private void CaptureRefreshSignature()
+    {
+        transformBuffer.Clear();
+        targetCanvas.GetComponentsInChildren(true, transformBuffer);
+        DungeonUserSettingsData settings = DungeonUserSettingsRuntime.Current;
+        observedHierarchyCount = transformBuffer.Count;
+        observedScreenWidth = Screen.width;
+        observedScreenHeight = Screen.height;
+        observedUiScale = settings.uiScale;
+        observedTextScale = settings.textScale;
     }
 
     private readonly struct TextScaleBaseline

@@ -274,7 +274,7 @@ public enum OffenseRewardCategory
     Stock,
     RareFacility,
     Blueprint,
-    FactionWeakening,
+    StrategicPressure,
     RecruitCandidate,
     Prisoner
 }
@@ -285,10 +285,8 @@ public static class OffenseRewardTypeIds
     public const string Stock = "offense.reward.stock";
     public const string RareFacility = "offense.reward.rare-facility";
     public const string Blueprint = "offense.reward.blueprint";
-    public const string HumanFactionWeakening =
-        "offense.reward.faction.human";
-    public const string RivalFactionWeakening =
-        "offense.reward.faction.rival";
+    public const string RegionalPressure =
+        "offense.reward.regional-pressure";
     public const string RecruitCandidate =
         "offense.reward.candidate.recruit";
     public const string Prisoner = "offense.reward.candidate.prisoner";

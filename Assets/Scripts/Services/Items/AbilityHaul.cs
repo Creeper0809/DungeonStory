@@ -1,9 +1,13 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class AbilityHaul : MonoBehaviour
 {
+    private const int MaximumPathResolveFrames = 240;
+    private const int MaximumMovementAttempts = 5;
+
     private CharacterActor actor;
     private AbilityMove move;
     private Coroutine haulingRoutine;
@@ -67,7 +71,11 @@ public sealed class AbilityHaul : MonoBehaviour
             return;
         }
 
-        StopHauling("restart");
+        if (IsHauling)
+        {
+            return;
+        }
+
         if (!itemRuntime.TryReserveBestHaulPlan(
                 actor,
                 out WorldItemHaulPlan reservedPlan,
@@ -114,7 +122,7 @@ public sealed class AbilityHaul : MonoBehaviour
             yield break;
         }
 
-        AIAction expectedAction = actor.Brain != null ? actor.Brain.bestAction : null;
+        AIAction expectedAction = GetExpectedHaulAction();
         int pickedStackCount = 0;
         foreach (WorldItemHaulPlanLeg pickup in plan.PickupLegs)
         {
@@ -127,10 +135,13 @@ public sealed class AbilityHaul : MonoBehaviour
                 "물건 가지러 이동",
                 null,
                 $"{pickup.ItemPosition} · {pickedStackCount + 1}/{plan.PickupLegs.Count}");
-            Queue<GridMoveStep> pickupPath = GetMovePath(grid, pickup.PickupStandPosition);
-            yield return move.MoveByPath(pickupPath, expectedAction);
-            if (IsActionCancelled(expectedAction)
-                || (move.LastGridMoveWasBlocked && !IsActorAt(pickup.PickupStandPosition)))
+            bool pickupReached = false;
+            yield return MoveTo(
+                grid,
+                pickup.PickupStandPosition,
+                expectedAction,
+                reached => pickupReached = reached);
+            if (!pickupReached)
             {
                 unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
                 break;
@@ -188,11 +199,19 @@ public sealed class AbilityHaul : MonoBehaviour
                     : "창고로 이동",
                 null,
                 delivery.DeliveryPosition.ToString());
-            Queue<GridMoveStep> deliveryPath = GetMovePath(grid, delivery.DeliveryPosition);
-            yield return move.MoveByPath(deliveryPath, expectedAction);
-            if (move.LastGridMoveWasBlocked && !IsActorAt(delivery.DeliveryPosition))
+            bool deliveryReached = false;
+            yield return MoveTo(
+                grid,
+                delivery.DeliveryPosition,
+                expectedAction,
+                reached => deliveryReached = reached);
+            if (!deliveryReached)
             {
                 unloadReason = WorldItemHaulPlanUnloadReason.JobChanged;
+                actor.Brain?.SetActionPhase(
+                    "운반 중단",
+                    null,
+                    "목적지까지 이동할 수 없음");
                 break;
             }
 
@@ -233,18 +252,125 @@ public sealed class AbilityHaul : MonoBehaviour
         FinishHauling();
     }
 
-    private Queue<GridMoveStep> GetMovePath(Grid grid, Vector2Int target)
+    private IEnumerator MoveTo(
+        Grid grid,
+        Vector2Int target,
+        AIAction expectedAction,
+        Action<bool> onResolved)
     {
         if (grid == null || actor == null)
         {
-            return null;
+            onResolved?.Invoke(false);
+            yield break;
         }
 
-        Vector2Int start = actor.GetNowXY();
-        return actor.PathSearchBroker?.GetMovePath(
-            grid,
-            start,
-            pos => pos == target);
+        if (IsActorAt(target))
+        {
+            onResolved?.Invoke(true);
+            yield break;
+        }
+
+        IGridPathSearchBroker broker = actor.PathSearchBroker;
+        if (broker == null)
+        {
+            onResolved?.Invoke(false);
+            yield break;
+        }
+
+        GridTraversalContext traversalContext =
+            GridTraversalContext.ForCharacter(actor, DoorAccessOverrideKind.None);
+        for (int movementAttempt = 0;
+             movementAttempt < MaximumMovementAttempts;
+             movementAttempt++)
+        {
+            if (IsActorAt(target))
+            {
+                onResolved?.Invoke(true);
+                yield break;
+            }
+
+            Queue<GridMoveStep> path = null;
+            for (int frame = 0; frame < MaximumPathResolveFrames; frame++)
+            {
+                if (IsActionCancelled(expectedAction))
+                {
+                    onResolved?.Invoke(false);
+                    yield break;
+                }
+
+                GridPathRequestStatus status = broker.RequestMovePathTo(
+                    grid,
+                    actor.GetNowXY(),
+                    target,
+                    out path,
+                    GridPathSearchPriority.Urgent,
+                    traversalContext);
+                if (status == GridPathRequestStatus.Reachable)
+                {
+                    break;
+                }
+
+                if (status == GridPathRequestStatus.Unreachable)
+                {
+                    actor.Brain?.SetActionPhase(
+                        "운반 경로 없음",
+                        null,
+                        target.ToString());
+                    onResolved?.Invoke(false);
+                    yield break;
+                }
+
+                if (frame == 0)
+                {
+                    actor.Brain?.SetActionPhase(
+                        "운반 경로 계산 중",
+                        null,
+                        target.ToString());
+                }
+
+                yield return null;
+            }
+
+            if (path == null)
+            {
+                actor.Brain?.SetActionPhase(
+                    "운반 경로 지연",
+                    null,
+                    target.ToString());
+                onResolved?.Invoke(false);
+                yield break;
+            }
+
+            yield return move.MoveByPath(path, expectedAction);
+            if (IsActorAt(target)
+                && !IsActionCancelled(expectedAction))
+            {
+                onResolved?.Invoke(true);
+                yield break;
+            }
+
+            if (IsActionCancelled(expectedAction))
+            {
+                onResolved?.Invoke(false);
+                yield break;
+            }
+
+            actor.Brain?.SetActionPhase(
+                "운반 경로 다시 계산",
+                null,
+                $"{movementAttempt + 1}/{MaximumMovementAttempts}");
+            yield return new WaitForSeconds(0.15f);
+        }
+
+        onResolved?.Invoke(false);
+    }
+
+    private AIAction GetExpectedHaulAction()
+    {
+        AIAction current = actor != null && actor.Brain != null
+            ? actor.Brain.bestAction
+            : null;
+        return current?.actionset is AIHaul ? current : null;
     }
 
     private bool TryGetGrid(out Grid grid)

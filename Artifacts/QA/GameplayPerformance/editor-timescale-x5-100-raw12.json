@@ -1,0 +1,957 @@
+{
+    "profileId": "editor-timescale-x5-100-raw12",
+    "utcTimestamp": "2026-07-27T02:16:22.1878788Z",
+    "applicationVersion": "0.1.0",
+    "unityVersion": "6000.3.8f1",
+    "operatingSystem": "Windows 11  (10.0.22631)",
+    "processor": "Intel(R) Core(TM) i9-14900HX",
+    "processorCount": 32,
+    "systemMemoryMb": 32559,
+    "graphicsDevice": "NVIDIA GeForce RTX 4080 Laptop GPU",
+    "graphicsMemoryMb": 11997,
+    "screenWidth": 3840,
+    "screenHeight": 2160,
+    "aiSchedulerDisabled": false,
+    "characterPresentationDisabled": false,
+    "characterStatsUpdatesDisabled": false,
+    "requestedActorCount": 100,
+    "requestedFacilityCount": 900,
+    "requestedGridWidth": 1024,
+    "requestedGridHeight": 1024,
+    "requestedActiveFloors": 3,
+    "requestedSimulationSpeed": 5.0,
+    "actualActorCount": 100,
+    "actualStressActorCount": 92,
+    "actualBuildingCount": 1231,
+    "actualDenseFacilityCount": 900,
+    "actualDenseDoorCount": 185,
+    "activeRendererCount": 1469,
+    "visibleRendererCount": 122,
+    "activeCanvasCount": 5,
+    "activeNameplateCount": 100,
+    "dynamicWorkSmoothedFrameMilliseconds": 5.0865985927773169,
+    "dynamicWorkAvailableMilliseconds": 7.6190374406391438,
+    "dynamicWorkConsumedMilliseconds": 2.0549,
+    "dynamicWorkBacklog": 779,
+    "gridWidth": 1024,
+    "gridHeight": 1024,
+    "schedulerRegisteredCharacters": 100,
+    "presentationRegisteredCharacters": 100,
+    "presentationVisibleCharacters": 32,
+    "schedulerLastMilliseconds": 1.0084,
+    "schedulerLastDecisions": 1,
+    "schedulerLastLegacyFallbacks": 0,
+    "schedulerLastPathSearches": 0,
+    "schedulerCurrentBudgetMilliseconds": 1.646574370509886,
+    "schedulerEstimatedDecisionMilliseconds": 0.8939637954586706,
+    "schedulerEstimatedPathMilliseconds": 0.07661745658202798,
+    "schedulerSmoothedFrameMilliseconds": 5.0865985927773169,
+    "schedulerProcessedDecisions": 324,
+    "schedulerStarvedDecisions": 60,
+    "schedulerSkippedDecisions": 68,
+    "schedulerLegacyFallbacks": 36,
+    "schedulerOldestDeferralSeconds": 1.8250675201416016,
+    "schedulerMaximumDeferralSeconds": 12.805585861206055,
+    "schedulerBudgetExhausted": true,
+    "facilityCandidateIndexPending": false,
+    "facilityCandidateIndexVersion": 11,
+    "sampleCount": 1156,
+    "sampleDurationSeconds": 8.004297256469727,
+    "setupMilliseconds": 11919.245,
+    "totalProfileMilliseconds": 23019.486100000002,
+    "averageFps": 144.22640991210938,
+    "onePercentLowFps": 22.009464263916017,
+    "framesOver16_67Ms": 21,
+    "framesOver33_33Ms": 19,
+    "monoUsedBytesAtStart": 1239330816,
+    "monoUsedBytesAtEnd": 1158901760,
+    "totalAllocatedBytesAtStart": 5174566718,
+    "totalAllocatedBytesAtEnd": 5657572858,
+    "warningCount": 0,
+    "errorCount": 0,
+    "valid": true,
+    "meets60FpsP95": true,
+    "meets60FpsP99": false,
+    "meets60FpsEverySample": false,
+    "vSyncDisabled": true,
+    "targetFrameRate": -1,
+    "measurementIncludesRendering": true,
+    "measurementIncludesUi": true,
+    "measurementIncludesPhysics": true,
+    "measurementUsesNormalNewRun": true,
+    "measurementUsesRealCharacterPrefab": true,
+    "measurementUsesRealBuildingObjects": true,
+    "failureReason": "",
+    "logMessages": [],
+    "frame": {
+        "average": 6.9335432052612309,
+        "p50": 5.611997127532959,
+        "p95": 9.576197624206543,
+        "p99": 45.435001373291019,
+        "maximum": 110.81319427490235
+    },
+    "mainThread": {
+        "average": 6.90594482421875,
+        "p50": 5.583399772644043,
+        "p95": 9.51159954071045,
+        "p99": 45.41619873046875,
+        "maximum": 111.0645980834961
+    },
+    "renderThread": {
+        "average": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "maximum": 0.0
+    },
+    "gcCollect": {
+        "average": 7.283600330352783,
+        "p50": 3.08489990234375,
+        "p95": 12.922300338745118,
+        "p99": 12.922300338745118,
+        "maximum": 12.922300338745118
+    },
+    "aiBudget": {
+        "average": 0.13819636404514314,
+        "p50": 0.00930000003427267,
+        "p95": 1.294600009918213,
+        "p99": 1.698199987411499,
+        "maximum": 4.051599979400635
+    },
+    "characterStats": {
+        "average": 0.04068466275930405,
+        "p50": 0.030300000682473184,
+        "p95": 0.08900000154972077,
+        "p99": 0.1421000063419342,
+        "maximum": 0.3043000102043152
+    },
+    "aiDirector": {
+        "average": 0.00041611786582507193,
+        "p50": 0.0003000000142492354,
+        "p95": 0.0005000000237487257,
+        "p99": 0.000699999975040555,
+        "maximum": 0.06509999930858612
+    },
+    "abilityMove": {
+        "average": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "maximum": 0.0
+    },
+    "abilityWork": {
+        "average": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "maximum": 0.0
+    },
+    "gc": {
+        "averageBytes": 230747.66262975778,
+        "p95Bytes": 384477,
+        "maximumBytes": 17547959
+    },
+    "aiPerformance": {
+        "valid": true,
+        "actorCount": 100,
+        "sampleFrames": 512,
+        "scheduler": {
+            "name": "Scheduler",
+            "sampleCount": 512,
+            "average": 0.13296249999999999,
+            "p95": 1.1923,
+            "max": 2.8581,
+            "gcBytes": 0
+        },
+        "behaviorTree": {
+            "name": "BT",
+            "sampleCount": 312,
+            "average": 0.8033275641025636,
+            "p95": 2.0699,
+            "max": 10.9667,
+            "gcBytes": 0
+        },
+        "pathBroker": {
+            "name": "Grid.SearchPath",
+            "sampleCount": 276,
+            "average": 0.0678945652173913,
+            "p95": 0.1993,
+            "max": 0.3534,
+            "gcBytes": 0
+        },
+        "garbageCollection": {
+            "name": "GC",
+            "sampleCount": 0,
+            "average": 0.0,
+            "p95": 0.0,
+            "max": 0.0,
+            "gcBytes": 0
+        },
+        "metrics": [
+            {
+                "name": "Scheduler",
+                "sampleCount": 512,
+                "average": 0.13296249999999999,
+                "p95": 1.1923,
+                "max": 2.8581,
+                "gcBytes": 0
+            },
+            {
+                "name": "BT",
+                "sampleCount": 312,
+                "average": 0.8033275641025636,
+                "p95": 2.0699,
+                "max": 10.9667,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext",
+                "sampleCount": 512,
+                "average": 0.020593945312500137,
+                "p95": 0.2097,
+                "max": 0.7615,
+                "gcBytes": 0
+            },
+            {
+                "name": "DomainSelection",
+                "sampleCount": 159,
+                "average": 0.012384276729559749,
+                "p95": 0.0137,
+                "max": 0.2446,
+                "gcBytes": 0
+            },
+            {
+                "name": "ActionScoring",
+                "sampleCount": 512,
+                "average": 0.0900830078124999,
+                "p95": 0.296,
+                "max": 2.6972,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal",
+                "sampleCount": 512,
+                "average": 0.01513125,
+                "p95": 0.0197,
+                "max": 0.5343,
+                "gcBytes": 0
+            },
+            {
+                "name": "FacilityScoring",
+                "sampleCount": 512,
+                "average": 0.03350429687500002,
+                "p95": 0.1874,
+                "max": 0.7806,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorkTargetSelector",
+                "sampleCount": 31,
+                "average": 0.3477161290322581,
+                "p95": 1.3502,
+                "max": 2.6599,
+                "gcBytes": 0
+            },
+            {
+                "name": "Haul",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Wildlife",
+                "sampleCount": 512,
+                "average": 0.009148437500000008,
+                "p95": 0.0112,
+                "max": 0.055,
+                "gcBytes": 0
+            },
+            {
+                "name": "Grid.SearchPath",
+                "sampleCount": 276,
+                "average": 0.0678945652173913,
+                "p95": 0.1993,
+                "max": 0.3534,
+                "gcBytes": 0
+            },
+            {
+                "name": "UI Feedback",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.SpatialIndex",
+                "sampleCount": 512,
+                "average": 0.0036814453124999985,
+                "p95": 0.0054,
+                "max": 0.52,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.Proximity",
+                "sampleCount": 282,
+                "average": 0.010710638297872348,
+                "p95": 0.0103,
+                "max": 0.524,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.Environment",
+                "sampleCount": 282,
+                "average": 0.02585531914893617,
+                "p95": 0.2303,
+                "max": 0.7758,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.Prepare",
+                "sampleCount": 512,
+                "average": 0.07871738281250003,
+                "p95": 0.284,
+                "max": 2.6742,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.Considerations",
+                "sampleCount": 349,
+                "average": 0.02012034383954152,
+                "p95": 0.01,
+                "max": 1.1009,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.CanStart",
+                "sampleCount": 512,
+                "average": 0.0024046874999999899,
+                "p95": 0.0003,
+                "max": 0.4763,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.ResolveDestination",
+                "sampleCount": 512,
+                "average": 0.0921943359375,
+                "p95": 0.2833,
+                "max": 2.6651,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.CandidateSource",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.CandidateLoop",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.Needs",
+                "sampleCount": 301,
+                "average": 0.010140531561461794,
+                "p95": 0.0118,
+                "max": 0.0299,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.Abilities",
+                "sampleCount": 301,
+                "average": 0.12476943521594679,
+                "p95": 0.2277,
+                "max": 4.9103,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.WorldSignal",
+                "sampleCount": 301,
+                "average": 0.03911627906976743,
+                "p95": 0.249,
+                "max": 0.7867,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.Availability",
+                "sampleCount": 347,
+                "average": 0.09102824207492796,
+                "p95": 0.1952,
+                "max": 4.0829,
+                "gcBytes": 0
+            }
+        ],
+        "brokerSearches": 189,
+        "brokerCacheHits": 0,
+        "brokerBudgetDeferrals": 0,
+        "summary": "AI 100명 · 평균 0.13ms · p95 1.19ms · 경로 캐시 0.0%"
+    },
+    "slowFrames": [
+        {
+            "measuredFrameMilliseconds": 108.02980041503906,
+            "profilerFrameMilliseconds": 10.480199813842774,
+            "profilerFrameIndex": 58758,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 6.696700096130371
+                },
+                {
+                    "name": "TimeUpdate.WaitForLastPresentationAndUpdateTime",
+                    "milliseconds": 3.0157999992370607
+                },
+                {
+                    "name": "GarbageCollector.CollectIncremental",
+                    "milliseconds": 3.007699966430664
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.2826999425888062
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 1.229200005531311
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 1.2015999555587769
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 1.1849000453948975
+                },
+                {
+                    "name": "FixedUpdate.Physics2DFixedUpdate",
+                    "milliseconds": 1.0750000476837159
+                },
+                {
+                    "name": "Physics2D.Simulate",
+                    "milliseconds": 1.0674999952316285
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.8618000149726868
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.7850000262260437
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 0.7822999954223633
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.7818999886512756
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 0.7419000267982483
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 0.7242000102996826
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.6510000228881836
+                },
+                {
+                    "name": "Update.ScriptRunDelayedDynamicFrameRate",
+                    "milliseconds": 0.6256999969482422
+                },
+                {
+                    "name": "CoroutinesDelayedCalls",
+                    "milliseconds": 0.6254000067710877
+                },
+                {
+                    "name": "Physics2D.WriteTransforms",
+                    "milliseconds": 0.5407000184059143
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.5005999803543091
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.5002999901771545
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.47279998660087588
+                },
+                {
+                    "name": "Inl_ScriptableRenderContext.Submit",
+                    "milliseconds": 0.3068999946117401
+                },
+                {
+                    "name": "UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.2865000069141388
+                }
+            ]
+        },
+        {
+            "measuredFrameMilliseconds": 37.64649963378906,
+            "profilerFrameMilliseconds": 111.08329772949219,
+            "profilerFrameIndex": 58759,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 107.07689666748047
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 101.76899719238281
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 101.76840209960938
+                },
+                {
+                    "name": "GC.Collect",
+                    "milliseconds": 12.921299934387207
+                },
+                {
+                    "name": "TimeUpdate.WaitForLastPresentationAndUpdateTime",
+                    "milliseconds": 3.029400110244751
+                },
+                {
+                    "name": "GarbageCollector.CollectIncremental",
+                    "milliseconds": 3.0213000774383547
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.4742000102996827
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 1.3348000049591065
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 1.3128999471664429
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 1.2980999946594239
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 1.0017000436782838
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 1.0009000301361085
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.8948000073432922
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.763700008392334
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 0.7605000138282776
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.7454000115394592
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 0.7405999898910523
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.5716000199317932
+                },
+                {
+                    "name": "Update.ScriptRunDelayedDynamicFrameRate",
+                    "milliseconds": 0.44209998846054079
+                },
+                {
+                    "name": "CoroutinesDelayedCalls",
+                    "milliseconds": 0.4413999915122986
+                },
+                {
+                    "name": "Inl_ScriptableRenderContext.Submit",
+                    "milliseconds": 0.32100000977516177
+                },
+                {
+                    "name": "UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.30000001192092898
+                },
+                {
+                    "name": "ExecuteRenderGraph",
+                    "milliseconds": 0.24210000038146974
+                }
+            ]
+        },
+        {
+            "measuredFrameMilliseconds": 72.2467041015625,
+            "profilerFrameMilliseconds": 7.648200035095215,
+            "profilerFrameIndex": 58794,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 2.7548999786376955
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 1.4225000143051148
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 1.4082000255584717
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 1.3841999769210816
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.0987000465393067
+                },
+                {
+                    "name": "FixedUpdate.Physics2DFixedUpdate",
+                    "milliseconds": 0.9319000244140625
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 0.9246000051498413
+                },
+                {
+                    "name": "Physics2D.Simulate",
+                    "milliseconds": 0.9236999750137329
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 0.9056000113487244
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 0.8944000005722046
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 0.703499972820282
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.7031999826431274
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.6710000038146973
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.6172000169754028
+                },
+                {
+                    "name": "Physics2D.WriteTransforms",
+                    "milliseconds": 0.5407999753952026
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.4587000012397766
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.4584999978542328
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.3206999897956848
+                },
+                {
+                    "name": "Physics2D.CompileContactCallbacks",
+                    "milliseconds": 0.2092999964952469
+                },
+                {
+                    "name": "Inl_ScriptableRenderContext.Submit",
+                    "milliseconds": 0.2011999934911728
+                }
+            ]
+        },
+        {
+            "measuredFrameMilliseconds": 45.285701751708987,
+            "profilerFrameMilliseconds": 5.552599906921387,
+            "profilerFrameIndex": 59296,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 2.441699981689453
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.0119999647140504
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 0.973800003528595
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 0.9550999999046326
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 0.9430000185966492
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 0.7955999970436096
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.7954000234603882
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 0.784600019454956
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 0.7674000263214111
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.6805999875068665
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.5838000178337097
+                },
+                {
+                    "name": "Update.ScriptRunDelayedDynamicFrameRate",
+                    "milliseconds": 0.5702000260353088
+                },
+                {
+                    "name": "CoroutinesDelayedCalls",
+                    "milliseconds": 0.5698999762535095
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.4487000107765198
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.44850000739097597
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.39500001072883608
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.28780001401901247
+                },
+                {
+                    "name": "Inl_ScriptableRenderContext.Submit",
+                    "milliseconds": 0.2037999927997589
+                }
+            ]
+        },
+        {
+            "measuredFrameMilliseconds": 52.93950271606445,
+            "profilerFrameMilliseconds": 5.891900062561035,
+            "profilerFrameIndex": 59313,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 2.197700023651123
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.3592000007629395
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 1.218999981880188
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 1.1964000463485718
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 1.1820999383926392
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.8539000153541565
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 0.8267999887466431
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 0.8050000071525574
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.7512000203132629
+                },
+                {
+                    "name": "Update.ScriptRunDelayedDynamicFrameRate",
+                    "milliseconds": 0.5891000032424927
+                },
+                {
+                    "name": "CoroutinesDelayedCalls",
+                    "milliseconds": 0.5888000130653381
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.45590001344680788
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.45570001006126406
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.43309998512268069
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.4327999949455261
+                },
+                {
+                    "name": "VContainerUpdate",
+                    "milliseconds": 0.30570000410079958
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.303600013256073
+                },
+                {
+                    "name": "Inl_ScriptableRenderContext.Submit",
+                    "milliseconds": 0.24330000579357148
+                },
+                {
+                    "name": "UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.21969999372959138
+                },
+                {
+                    "name": "ExecuteRenderGraph",
+                    "milliseconds": 0.20550000667572022
+                }
+            ]
+        },
+        {
+            "measuredFrameMilliseconds": 45.435001373291019,
+            "profilerFrameMilliseconds": 7.722599983215332,
+            "profilerFrameIndex": 59373,
+            "samples": [
+                {
+                    "name": "UpdateScene",
+                    "milliseconds": 3.865999937057495
+                },
+                {
+                    "name": "FixedUpdate.Physics2DFixedUpdate",
+                    "milliseconds": 1.7141000032424927
+                },
+                {
+                    "name": "Physics2D.Simulate",
+                    "milliseconds": 1.7072999477386475
+                },
+                {
+                    "name": "RenderPlayModeViewCameras",
+                    "milliseconds": 1.2448999881744385
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!UnityEngine.Rendering::RenderPipelineManager.DoRenderLoop_Internal() [Invoke]",
+                    "milliseconds": 1.1031999588012696
+                },
+                {
+                    "name": "Inl_UniversalRenderTotal",
+                    "milliseconds": 1.083400011062622
+                },
+                {
+                    "name": "Inl_RenderCameraStack",
+                    "milliseconds": 1.0703999996185303
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.9757000207901001
+                },
+                {
+                    "name": "Profiler.FlushCounters",
+                    "milliseconds": 0.9204999804496765
+                },
+                {
+                    "name": "Profiler.FlushMemoryCounters",
+                    "milliseconds": 0.8996999859809876
+                },
+                {
+                    "name": "Physics2D.WriteTransforms",
+                    "milliseconds": 0.7269999980926514
+                },
+                {
+                    "name": "Inl_UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.7087000012397766
+                },
+                {
+                    "name": "Update.ScriptRunDelayedDynamicFrameRate",
+                    "milliseconds": 0.6808000206947327
+                },
+                {
+                    "name": "CoroutinesDelayedCalls",
+                    "milliseconds": 0.6804999709129334
+                },
+                {
+                    "name": "Physics2D.CompileContactCallbacks",
+                    "milliseconds": 0.5658000111579895
+                },
+                {
+                    "name": "Physics2D.SendContactCallbacks",
+                    "milliseconds": 0.5529999732971191
+                },
+                {
+                    "name": "EditorLoop",
+                    "milliseconds": 0.42890000343322756
+                },
+                {
+                    "name": "CullScriptable",
+                    "milliseconds": 0.4090000092983246
+                },
+                {
+                    "name": "VContainerLateUpdate",
+                    "milliseconds": 0.3930000066757202
+                },
+                {
+                    "name": "UnityEngine.CoreModule.dll!::UpdateFunction.Invoke() [Invoke]",
+                    "milliseconds": 0.3928000032901764
+                },
+                {
+                    "name": "Physics2D.Step",
+                    "milliseconds": 0.3084999918937683
+                },
+                {
+                    "name": "Inl_ScriptableRenderContext.Submit",
+                    "milliseconds": 0.2874000072479248
+                },
+                {
+                    "name": "Assembly-CSharp.dll!::AbilityMove.ExitDungeon() [Coroutine: MoveNext] [Invoke]",
+                    "milliseconds": 0.27070000767707827
+                },
+                {
+                    "name": "UniversalRenderPipeline.RenderSingleCameraInternal: Main Camera",
+                    "milliseconds": 0.24199999868869782
+                }
+            ]
+        }
+    ]
+}

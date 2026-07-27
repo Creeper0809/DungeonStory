@@ -3,27 +3,27 @@ using System;
 public readonly struct ResearchCraftingSummary
 {
     public ResearchCraftingSummary(
-        int researchTaskCount,
-        int completedBlueprintCount,
-        bool hasActiveTask,
-        string activeBlueprintName,
+        int researchQueueCount,
+        int completedProjectCount,
+        bool hasActiveProject,
+        string activeProjectName,
         float activeProgressRatio,
         int selectedSynthesisMaterials,
         int visibleSynthesisRecipes)
     {
-        ResearchTaskCount = researchTaskCount;
-        CompletedBlueprintCount = completedBlueprintCount;
-        HasActiveTask = hasActiveTask;
-        ActiveBlueprintName = activeBlueprintName ?? string.Empty;
+        ResearchQueueCount = researchQueueCount;
+        CompletedProjectCount = completedProjectCount;
+        HasActiveProject = hasActiveProject;
+        ActiveProjectName = activeProjectName ?? string.Empty;
         ActiveProgressRatio = activeProgressRatio;
         SelectedSynthesisMaterials = selectedSynthesisMaterials;
         VisibleSynthesisRecipes = visibleSynthesisRecipes;
     }
 
-    public int ResearchTaskCount { get; }
-    public int CompletedBlueprintCount { get; }
-    public bool HasActiveTask { get; }
-    public string ActiveBlueprintName { get; }
+    public int ResearchQueueCount { get; }
+    public int CompletedProjectCount { get; }
+    public bool HasActiveProject { get; }
+    public string ActiveProjectName { get; }
     public float ActiveProgressRatio { get; }
     public int SelectedSynthesisMaterials { get; }
     public int VisibleSynthesisRecipes { get; }
@@ -54,15 +54,24 @@ public sealed class ResearchCraftingSummaryService : IResearchCraftingSummarySer
         researchProvider.TryGetRuntime(out BlueprintResearchRuntime research);
         synthesisProvider.TryGetRuntime(out FacilitySynthesisRuntime synthesis);
 
-        BlueprintResearchTask activeTask = null;
-        bool hasActiveTask = research != null && research.State.TryGetActiveTask(out activeTask);
+        ResearchProjectSO activeProject = null;
+        if (research != null)
+        {
+            ResearchProjectId activeProjectId = research.State.Projects.ActiveProjectId;
+            if (activeProjectId.IsValid)
+            {
+                research.ProjectCatalog.TryGet(activeProjectId, out activeProject);
+            }
+        }
 
         return new ResearchCraftingSummary(
-            research != null ? research.State.Tasks.Count : 0,
-            research != null ? research.State.CompletedBlueprintIds.Count : 0,
-            hasActiveTask,
-            activeTask != null && activeTask.Blueprint != null ? activeTask.Blueprint.DisplayName : string.Empty,
-            activeTask != null ? activeTask.ProgressRatio : 0f,
+            research != null ? research.State.Projects.Queue.Count : 0,
+            research != null ? research.State.Projects.CompletedProjectIds.Count : 0,
+            activeProject != null,
+            activeProject != null ? activeProject.DisplayName : string.Empty,
+            activeProject != null
+                ? research.State.Projects.GetProgress(activeProject.ProjectId).GetRatio(activeProject)
+                : 0f,
             synthesis != null ? synthesis.SelectedMaterials.Count : 0,
             synthesis != null ? synthesis.VisibleRecipes.Count : 0);
     }

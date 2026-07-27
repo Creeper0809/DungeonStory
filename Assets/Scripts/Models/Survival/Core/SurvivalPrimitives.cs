@@ -7,7 +7,7 @@ using UnityEngine.Scripting.APIUpdating;
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonSurvivalSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public int lastProcessedDay;
@@ -31,6 +31,76 @@ public sealed class DungeonSurvivalSaveData
         new List<SurvivalFoodSpoilageSaveData>();
     public List<SurvivalHealthSaveData> health =
         new List<SurvivalHealthSaveData>();
+    public List<CharacterMealLedgerSaveData> mealLedger =
+        new List<CharacterMealLedgerSaveData>();
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CharacterMealLedgerSaveData
+{
+    public string mealId = string.Empty;
+    public string characterId = string.Empty;
+    public string facilityId = string.Empty;
+    public int day;
+    public int amount = 1;
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public readonly struct CharacterMealConsumedEvent
+{
+    public CharacterMealConsumedEvent(
+        string mealId,
+        string characterId,
+        string facilityId,
+        int day,
+        int amount)
+    {
+        MealId = mealId ?? string.Empty;
+        CharacterId = characterId ?? string.Empty;
+        FacilityId = facilityId ?? string.Empty;
+        Day = Mathf.Max(1, day);
+        Amount = Mathf.Max(1, amount);
+    }
+
+    public string MealId { get; }
+    public string CharacterId { get; }
+    public string FacilityId { get; }
+    public int Day { get; }
+    public int Amount { get; }
+}
+
+public readonly struct SurvivalEnvironmentSnapshot
+{
+    public SurvivalEnvironmentSnapshot(
+        SurvivalWeatherType weather,
+        float outdoorTemperature,
+        float exteriorNightDanger,
+        float sanitationRisk,
+        float diseaseRisk)
+    {
+        Weather = weather;
+        OutdoorTemperature = outdoorTemperature;
+        ExteriorNightDanger = Mathf.Clamp(exteriorNightDanger, 0f, 100f);
+        SanitationRisk = Mathf.Clamp(sanitationRisk, 0f, 100f);
+        DiseaseRisk = Mathf.Clamp(diseaseRisk, 0f, 100f);
+    }
+
+    public SurvivalWeatherType Weather { get; }
+    public float OutdoorTemperature { get; }
+    public float ExteriorNightDanger { get; }
+    public float SanitationRisk { get; }
+    public float DiseaseRisk { get; }
+
+    public float WeatherPressure01 => Weather switch
+    {
+        SurvivalWeatherType.Storm => 0.9f,
+        SurvivalWeatherType.HeatWave => 0.8f,
+        SurvivalWeatherType.ColdSnap => 0.8f,
+        SurvivalWeatherType.Rain => 0.55f,
+        SurvivalWeatherType.Fog => 0.45f,
+        _ => 0.1f
+    };
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -399,6 +469,24 @@ public readonly struct CharacterDeprivationSnapshot
             return highest;
         }
     }
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public readonly struct CharacterDeprivationDisplayState
+{
+    public CharacterDeprivationDisplayState(
+        float highestBurden,
+        CharacterBreakdownKind breakdownKind,
+        bool breakdownActive)
+    {
+        HighestBurden = Mathf.Clamp(highestBurden, 0f, 100f);
+        BreakdownKind = breakdownKind;
+        BreakdownActive = breakdownActive;
+    }
+
+    public float HighestBurden { get; }
+    public CharacterBreakdownKind BreakdownKind { get; }
+    public bool BreakdownActive { get; }
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

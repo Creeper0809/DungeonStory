@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -38,6 +39,53 @@ public sealed class DungeonSceneComponentQuery
             if (seen.Add(instanceId))
             {
                 results.Add(component);
+            }
+        }
+
+        return results;
+    }
+
+    public T SingleRequired<T>(bool includeInactive = false) where T : Component
+    {
+        IReadOnlyList<T> results = AllInPriorityScene<T>(includeInactive);
+        if (results.Count != 1)
+        {
+            string sceneName = priorityScene.IsValid()
+                ? priorityScene.name
+                : SceneManager.GetActiveScene().name;
+            throw new InvalidOperationException(
+                $"Scene '{sceneName}' requires exactly one {typeof(T).Name}, but found {results.Count}.");
+        }
+
+        return results[0];
+    }
+
+    private IReadOnlyList<T> AllInPriorityScene<T>(bool includeInactive) where T : Component
+    {
+        Scene scene = FindPriorityScene();
+        if (!scene.IsValid())
+        {
+            return All<T>(includeInactive);
+        }
+
+        List<T> results = new List<T>();
+        GameObject[] roots = scene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            GameObject root = roots[i];
+            if (root == null || (!includeInactive && !root.activeInHierarchy))
+            {
+                continue;
+            }
+
+            T[] components = root.GetComponentsInChildren<T>(includeInactive);
+            for (int componentIndex = 0; componentIndex < components.Length; componentIndex++)
+            {
+                T component = components[componentIndex];
+                if (component != null && component.gameObject.scene.handle == scene.handle)
+                {
+                    results.Add(component);
+                }
             }
         }
 

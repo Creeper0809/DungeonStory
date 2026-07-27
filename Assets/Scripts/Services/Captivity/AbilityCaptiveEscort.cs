@@ -197,10 +197,10 @@ public sealed class AbilityCaptiveEscort : MonoBehaviour
             return true;
         }
 
-        path = actor.PathSearchBroker?.GetMovePath(
+        path = actor.PathSearchBroker?.GetMovePathTo(
             grid,
             actor.GetNowXY(),
-            cell => cell == destination,
+            destination,
             GridPathSearchPriority.Urgent,
             GridTraversalContext.ForCharacter(actor, overrideKind));
         return path != null && path.Count > 0;

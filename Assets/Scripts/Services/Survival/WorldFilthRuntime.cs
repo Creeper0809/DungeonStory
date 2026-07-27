@@ -147,7 +147,7 @@ public sealed class WorldFilthRuntime :
     private readonly IWorldInfoClickSelector worldInfoClickSelector;
     private readonly IFacilityCandidateCache facilityCandidateCache;
     private readonly IRoomFacilityPolicy roomFacilityPolicy;
-    private readonly IExpeditionEquipmentRuntime expeditionEquipmentRuntime;
+    private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IGameClock gameClock;
     private readonly List<WorldFilthSaveData> filth = new List<WorldFilthSaveData>();
@@ -168,7 +168,7 @@ public sealed class WorldFilthRuntime :
         IWorldInfoClickSelector worldInfoClickSelector,
         IFacilityCandidateCache facilityCandidateCache,
         IRoomFacilityPolicy roomFacilityPolicy,
-        IExpeditionEquipmentRuntime expeditionEquipmentRuntime,
+        ICombatEquipmentRuntime combatEquipmentRuntime,
         ICharacterAiWorldRegistry worldRegistry,
         IGameClock gameClock)
     {
@@ -182,8 +182,8 @@ public sealed class WorldFilthRuntime :
             ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
         this.roomFacilityPolicy = roomFacilityPolicy
             ?? throw new ArgumentNullException(nameof(roomFacilityPolicy));
-        this.expeditionEquipmentRuntime = expeditionEquipmentRuntime
-            ?? throw new ArgumentNullException(nameof(expeditionEquipmentRuntime));
+        this.combatEquipmentRuntime = combatEquipmentRuntime
+            ?? throw new ArgumentNullException(nameof(combatEquipmentRuntime));
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
         this.gameClock = gameClock
@@ -422,7 +422,7 @@ public sealed class WorldFilthRuntime :
             worldInfoClickSelector,
             facilityCandidateCache,
             roomFacilityPolicy,
-            expeditionEquipmentRuntime,
+            combatEquipmentRuntime,
             worldRegistry,
             gameClock: gameClock);
         target.InitializeRuntime(this, grid, position);

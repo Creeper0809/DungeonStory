@@ -159,7 +159,7 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
             return string.Empty;
         }
 
-        if (!building.TryGetExpeditionEquipmentRuntime(out IExpeditionEquipmentRuntime runtime))
+        if (!building.TryGetCombatEquipmentRuntime(out ICombatEquipmentRuntime runtime))
         {
             return "제작  장비 런타임 없음";
         }
@@ -170,19 +170,19 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
             StringComparer.Ordinal);
         string queue = string.Join(", ", runtime.CraftQueue
             .Where(order => order != null
-                && craftableIds.Contains(order.equipmentId))
+                && craftableIds.Contains(order.definitionId))
             .Select(order =>
             {
-                string name = runtime.TryGetDefinition(order.equipmentId, out ExpeditionEquipmentDefinition definition)
-                    ? definition.displayName
-                    : order.equipmentId;
+                string name = runtime.TryGetDefinition(order.definitionId, out CombatEquipmentDefinitionSO definition)
+                    ? definition.DisplayName
+                    : order.definitionId;
                 string materialState = order.materialsReady ? string.Empty : " / 재료 이동 중";
-                return $"{name} 작업량 {order.remainingSeconds:0.#}{materialState}";
+                return $"{name} 작업량 {order.RemainingWork:0.#}{materialState}";
             }));
         string craftable = string.Join(", ", runtime.Definitions
             .Where(definition => definition != null
-                && craftableIds.Contains(definition.id))
-            .Select(definition => definition.displayName));
+                && craftableIds.Contains(definition.EquipmentId))
+            .Select(definition => definition.DisplayName));
         return string.IsNullOrWhiteSpace(queue)
             ? $"제작 가능  {craftable}  ·  대기 없음"
             : $"제작 대기  {queue}";

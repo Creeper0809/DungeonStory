@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -12,6 +13,9 @@ public sealed class CharacterDeprivationRuntime :
     ITickable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("CharacterDeprivationRuntime.Tick");
+
     private const float TickInterval = 1f;
     private const float BreakdownCheckInterval = 5f;
     private const float CertainBreakdownDelay = 30f;
@@ -20,6 +24,9 @@ public sealed class CharacterDeprivationRuntime :
     private const float BreakdownThreshold = 70f;
     private const float MaximumBurden = 100f;
     private const float DefaultSuppressionResistance = 35f;
+    private const int EmergencyPathRetryFrames = 180;
+    private const int AccidentSearchRadius = 32;
+    private const int BurdenKindCount = 6;
 
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IWorldItemStackRuntime itemStackRuntime;
@@ -30,6 +37,8 @@ public sealed class CharacterDeprivationRuntime :
     private readonly ISurvivalFoodRuntime survivalFoodRuntime;
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
+    private readonly IUiClock uiClock;
+    private readonly IDynamicFrameWorkBudget frameWorkBudget;
     private readonly IRandomStream breakdownRandom;
     private readonly Dictionary<string, CharacterDeprivationState> states =
         new Dictionary<string, CharacterDeprivationState>(StringComparer.Ordinal);
@@ -41,9 +50,20 @@ public sealed class CharacterDeprivationRuntime :
         new Dictionary<string, int>(StringComparer.Ordinal);
     private readonly Dictionary<CharacterBreakdownKind, Func<CharacterActor, IEnumerator>> actionRoutines =
         new Dictionary<CharacterBreakdownKind, Func<CharacterActor, IEnumerator>>();
+    private readonly List<CharacterActor> tickActors = new List<CharacterActor>();
+    private readonly HashSet<string> liveTickIds =
+        new HashSet<string>(StringComparer.Ordinal);
+    private readonly List<string> staleStateIds = new List<string>();
     private IDisposable infectionSubscription;
+    private IDisposable mentalInstabilitySubscription;
     private IDisposable deathSubscription;
     private float nextTickAt;
+    private float lastSimulationTickAt;
+    private float tickPassStartedAt;
+    private int tickActorIndex;
+    private float tickElapsed;
+    private float tickNow;
+    private bool tickPassActive;
 
     public CharacterDeprivationRuntime(
         IGridSystemProvider gridSystemProvider,
@@ -55,7 +75,9 @@ public sealed class CharacterDeprivationRuntime :
         ISurvivalFoodRuntime survivalFoodRuntime,
         IGameEventBus gameEventBus,
         IGameClock gameClock,
-        IRandomStreamProvider randomStreamProvider)
+        IDynamicFrameWorkBudget frameWorkBudget,
+        IRandomStreamProvider randomStreamProvider,
+        IUiClock uiClock = null)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
@@ -66,6 +88,9 @@ public sealed class CharacterDeprivationRuntime :
         this.survivalFoodRuntime = survivalFoodRuntime ?? throw new ArgumentNullException(nameof(survivalFoodRuntime));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.uiClock = uiClock;
+        this.frameWorkBudget = frameWorkBudget
+            ?? throw new ArgumentNullException(nameof(frameWorkBudget));
         breakdownRandom = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("character-deprivation");
@@ -74,54 +99,154 @@ public sealed class CharacterDeprivationRuntime :
     public void Initialize()
     {
         CreateActionRoutines();
-        nextTickAt = gameClock.Time + TickInterval;
+        nextTickAt = CadenceTime + TickInterval;
+        lastSimulationTickAt = gameClock.Time;
         infectionSubscription = gameEventBus.Subscribe<CharacterInfectionBurdenRequestedEvent>(
             gameEvent => AddInfectionBurden(gameEvent.Actor, gameEvent.Amount));
+        mentalInstabilitySubscription =
+            gameEventBus.Subscribe<CharacterMentalInstabilityBurdenRequestedEvent>(
+                gameEvent => AddMentalInstabilityBurden(
+                    gameEvent.Actor,
+                    gameEvent.Amount));
         deathSubscription = gameEventBus.Subscribe<CharacterDeathEvent>(OnCharacterDeath);
     }
 
     public void Dispose()
     {
         infectionSubscription?.Dispose();
+        mentalInstabilitySubscription?.Dispose();
         deathSubscription?.Dispose();
         infectionSubscription = null;
+        mentalInstabilitySubscription = null;
         deathSubscription = null;
         actionRoutines.Clear();
+        tickActors.Clear();
+        liveTickIds.Clear();
+        staleStateIds.Clear();
     }
 
     public void Tick()
     {
-        if (!Application.isPlaying || gameClock.Time < nextTickAt)
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
+        if (!Application.isPlaying || gameClock.IsPaused)
         {
             return;
         }
 
         float now = gameClock.Time;
-        float elapsed = Mathf.Max(TickInterval, now - (nextTickAt - TickInterval));
-        nextTickAt = now + TickInterval;
-        IReadOnlyList<CharacterActor> actors = worldRegistry.Characters;
-        HashSet<string> liveIds = new HashSet<string>(StringComparer.Ordinal);
-        for (int i = 0; i < actors.Count; i++)
+        float cadenceNow = CadenceTime;
+        if (!tickPassActive)
         {
-            CharacterActor actor = actors[i];
-            if (!IsEligibleHumanoid(actor))
+            if (cadenceNow < nextTickAt)
             {
-                continue;
+                frameWorkBudget.SetBacklog(
+                    DynamicFrameWorkDomain.CharacterDeprivation,
+                    0);
+                return;
             }
 
-            string id = GetPersistentId(actor);
-            liveIds.Add(id);
-            CharacterDeprivationState state = EnsureState(actor);
-            TickActor(actor, state, elapsed, now);
+            tickElapsed = Mathf.Max(0f, now - lastSimulationTickAt);
+            lastSimulationTickAt = now;
+            if (tickElapsed <= 0f)
+            {
+                nextTickAt = cadenceNow + TickInterval;
+                return;
+            }
+
+            tickNow = now;
+            tickPassStartedAt = cadenceNow;
+            nextTickAt = cadenceNow + TickInterval;
+            tickActors.Clear();
+            IReadOnlyList<CharacterActor> actors = worldRegistry.Characters;
+            for (int i = 0; i < actors.Count; i++)
+            {
+                tickActors.Add(actors[i]);
+            }
+
+            liveTickIds.Clear();
+            tickActorIndex = 0;
+            tickPassActive = true;
         }
 
-        foreach (string stale in states.Keys.Where(id => !liveIds.Contains(id)
-                     && !states[id].breakdown.active).ToArray())
+        int backlog = tickActors.Count - tickActorIndex;
+        frameWorkBudget.SetBacklog(
+            DynamicFrameWorkDomain.CharacterDeprivation,
+            backlog);
+        double sliceMilliseconds = frameWorkBudget.GetSliceMilliseconds(
+            DynamicFrameWorkDomain.CharacterDeprivation,
+            0.05,
+            0.75,
+            backlog > 0 && cadenceNow - tickPassStartedAt >= TickInterval);
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        int processed = 0;
+        while (tickActorIndex < tickActors.Count)
         {
+            CharacterActor actor = tickActors[tickActorIndex++];
+            processed++;
+            if (IsEligibleHumanoid(actor))
+            {
+                string id = GetPersistentId(actor);
+                liveTickIds.Add(id);
+                CharacterDeprivationState state = EnsureState(actor);
+                TickActor(actor, state, tickElapsed, tickNow);
+            }
+
+            if (processed >= 1
+                && ElapsedMilliseconds(started) >= sliceMilliseconds)
+            {
+                break;
+            }
+        }
+
+        frameWorkBudget.ReportConsumed(
+            DynamicFrameWorkDomain.CharacterDeprivation,
+            ElapsedMilliseconds(started));
+        if (tickActorIndex < tickActors.Count)
+        {
+            return;
+        }
+
+        staleStateIds.Clear();
+        foreach (KeyValuePair<string, CharacterDeprivationState> pair in states)
+        {
+            if (!liveTickIds.Contains(pair.Key)
+                && pair.Value?.breakdown?.active != true)
+            {
+                staleStateIds.Add(pair.Key);
+            }
+        }
+
+        for (int i = 0; i < staleStateIds.Count; i++)
+        {
+            string stale = staleStateIds[i];
             states.Remove(stale);
             alertLevels.Remove(stale);
         }
+
+        tickActors.Clear();
+        liveTickIds.Clear();
+        staleStateIds.Clear();
+        tickPassActive = false;
+        frameWorkBudget.SetBacklog(
+            DynamicFrameWorkDomain.CharacterDeprivation,
+            0);
     }
+
+    private static double ElapsedMilliseconds(long started)
+    {
+        return (System.Diagnostics.Stopwatch.GetTimestamp() - started)
+            * 1000.0
+            / System.Diagnostics.Stopwatch.Frequency;
+    }
+
+    private float CadenceTime => uiClock?.Time ?? gameClock.Time;
 
     public bool HasActiveBreakdown(CharacterActor actor)
     {
@@ -136,6 +261,38 @@ public sealed class CharacterDeprivationRuntime :
             && state.breakdown != null
             && state.breakdown.active
             && state.breakdown.kind == kind;
+    }
+
+    public bool TryGetDisplayState(
+        CharacterActor actor,
+        out CharacterDeprivationDisplayState displayState)
+    {
+        if (!TryGetState(actor, out CharacterDeprivationState state))
+        {
+            displayState = default;
+            return false;
+        }
+
+        float highestBurden = 0f;
+        List<DeprivationBurdenSaveData> burdens = state.burdens;
+        if (burdens != null)
+        {
+            for (int i = 0; i < burdens.Count; i++)
+            {
+                DeprivationBurdenSaveData burden = burdens[i];
+                if (burden != null)
+                {
+                    highestBurden = Mathf.Max(highestBurden, burden.burden);
+                }
+            }
+        }
+
+        CharacterBreakdownState breakdown = state.breakdown;
+        displayState = new CharacterDeprivationDisplayState(
+            highestBurden,
+            breakdown != null ? breakdown.kind : CharacterBreakdownKind.None,
+            breakdown != null && breakdown.active);
+        return true;
     }
 
     public bool TryGetSnapshot(CharacterActor actor, out CharacterDeprivationSnapshot snapshot)
@@ -517,10 +674,17 @@ public sealed class CharacterDeprivationRuntime :
             return;
         }
 
-        DeprivationBurdenSaveData highest = state.burdens
-            .Where(entry => entry != null)
-            .OrderByDescending(entry => entry.burden)
-            .FirstOrDefault();
+        DeprivationBurdenSaveData highest = null;
+        List<DeprivationBurdenSaveData> burdens = state.burdens;
+        for (int i = 0; i < burdens.Count; i++)
+        {
+            DeprivationBurdenSaveData candidate = burdens[i];
+            if (candidate != null
+                && (highest == null || candidate.burden > highest.burden))
+            {
+                highest = candidate;
+            }
+        }
         if (highest == null || highest.burden < BreakdownThreshold)
         {
             return;
@@ -586,17 +750,16 @@ public sealed class CharacterDeprivationRuntime :
 
     private static void ApplyDamageConsequences(CharacterActor actor, CharacterDeprivationState state, float now)
     {
-        foreach (DeprivationKind kind in new[] { DeprivationKind.Hunger, DeprivationKind.Thirst })
-        {
-            DeprivationBurdenSaveData burden = GetBurden(state, kind);
-            if (burden.burden < BreakdownThreshold || now < burden.nextDamageAt)
-            {
-                continue;
-            }
-
-            burden.nextDamageAt = now + DamageInterval;
-            actor.ApplyDamage(actor.MaxHealth * 0.01f, kind == DeprivationKind.Thirst ? "심한 탈수" : "심한 굶주림");
-        }
+        ApplyDeprivationDamage(
+            actor,
+            GetBurden(state, DeprivationKind.Hunger),
+            now,
+            "심한 굶주림");
+        ApplyDeprivationDamage(
+            actor,
+            GetBurden(state, DeprivationKind.Thirst),
+            now,
+            "심한 탈수");
 
         float infectionSource = Mathf.Max(
             GetBurden(state, DeprivationKind.Bladder).burden,
@@ -610,9 +773,34 @@ public sealed class CharacterDeprivationRuntime :
         }
     }
 
+    private static void ApplyDeprivationDamage(
+        CharacterActor actor,
+        DeprivationBurdenSaveData burden,
+        float now,
+        string source)
+    {
+        if (burden.burden < BreakdownThreshold || now < burden.nextDamageAt)
+        {
+            return;
+        }
+
+        burden.nextDamageAt = now + DamageInterval;
+        actor.ApplyDamage(actor.MaxHealth * 0.01f, source);
+    }
+
     private void UpdateAlert(CharacterActor actor, CharacterDeprivationState state)
     {
-        float highest = state.burdens.Where(entry => entry != null).Select(entry => entry.burden).DefaultIfEmpty(0f).Max();
+        float highest = 0f;
+        List<DeprivationBurdenSaveData> burdens = state.burdens;
+        for (int i = 0; i < burdens.Count; i++)
+        {
+            DeprivationBurdenSaveData burden = burdens[i];
+            if (burden != null && burden.burden > highest)
+            {
+                highest = burden.burden;
+            }
+        }
+
         int level = highest >= BreakdownThreshold ? 2 : highest >= WarningThreshold ? 1 : 0;
         alertLevels.TryGetValue(state.persistentId, out int previous);
         if (level <= previous)
@@ -1010,7 +1198,73 @@ public sealed class CharacterDeprivationRuntime :
             yield break;
         }
 
-        Queue<GridMoveStep> path = grid.GetMovePath(start, position => Manhattan(position, target) <= distance);
+        IGridPathSearchBroker broker = actor.PathSearchBroker;
+        if (broker == null)
+        {
+            yield break;
+        }
+
+        Vector2Int preferredAdjacent = start.x <= target.x
+            ? target + Vector2Int.left
+            : target + Vector2Int.right;
+        Vector2Int alternateAdjacent = start.x <= target.x
+            ? target + Vector2Int.right
+            : target + Vector2Int.left;
+        int destinationCount = distance <= 0 ? 1 : 3;
+
+        Queue<GridMoveStep> path = null;
+        GridTraversalContext traversalContext =
+            GridTraversalContext.ForCharacter(actor);
+        for (int destinationIndex = 0;
+             destinationIndex < destinationCount && path == null;
+             destinationIndex++)
+        {
+            Vector2Int destination;
+            if (distance <= 0 || destinationIndex == 2)
+            {
+                destination = target;
+            }
+            else
+            {
+                destination = destinationIndex == 0
+                    ? preferredAdjacent
+                    : alternateAdjacent;
+            }
+
+            if (!grid.IsValidGridPos(destination)
+                || !grid.IsWalkable(destination))
+            {
+                continue;
+            }
+
+            for (int attempt = 0;
+                 attempt < EmergencyPathRetryFrames;
+                 attempt++)
+            {
+                if (actor == null || actor.IsDead)
+                {
+                    yield break;
+                }
+
+                path = broker.GetMovePathTo(
+                    grid,
+                    actor.GetNowXY(),
+                    destination,
+                    GridPathSearchPriority.Urgent,
+                    traversalContext);
+                if (path != null)
+                {
+                    break;
+                }
+
+                yield return null;
+            }
+
+            if (path != null && path.Count == 0)
+            {
+                path = null;
+            }
+        }
         if (path == null || path.Count == 0)
         {
             if (TryGetState(actor, out CharacterDeprivationState state))
@@ -1032,14 +1286,35 @@ public sealed class CharacterDeprivationRuntime :
             return false;
         }
 
-        GridPathSearchResult reachable = actor.Brain?.GetPathSearch(actor);
-        GridCell best = grid.GetCells()
-            .Where(cell => cell != null
-                && grid.IsWalkable(cell.Position)
-                && (reachable == null || reachable.ContainsPosition(cell.Position)))
-            .OrderBy(cell => GetAccidentLocationPriority(grid, cell))
-            .ThenBy(cell => Manhattan(actor.GetNowXY(), cell.Position))
-            .FirstOrDefault();
+        Vector2Int origin = actor.GetNowXY();
+        GridCell best = null;
+        int bestPriority = int.MaxValue;
+        int bestDistance = int.MaxValue;
+        int minX = Mathf.Max(0, origin.x - AccidentSearchRadius);
+        int maxX = Mathf.Min(grid.width - 1, origin.x + AccidentSearchRadius);
+        for (int x = minX; x <= maxX; x++)
+        {
+            Vector2Int candidate = new Vector2Int(x, origin.y);
+            GridCell cell = grid.GetGridCell(candidate);
+            if (cell == null || !grid.IsWalkable(candidate))
+            {
+                continue;
+            }
+
+            int priority = GetAccidentLocationPriority(grid, cell);
+            int candidateDistance = Mathf.Abs(x - origin.x);
+            if (best != null
+                && (priority > bestPriority
+                    || (priority == bestPriority
+                        && candidateDistance >= bestDistance)))
+            {
+                continue;
+            }
+
+            best = cell;
+            bestPriority = priority;
+            bestDistance = candidateDistance;
+        }
         if (best == null)
         {
             return false;
@@ -1249,6 +1524,25 @@ public sealed class CharacterDeprivationRuntime :
         AddInfection(actor, amount);
     }
 
+    private void AddMentalInstabilityBurden(
+        CharacterActor actor,
+        float amount)
+    {
+        if (actor == null || amount <= 0f)
+        {
+            return;
+        }
+
+        CharacterDeprivationState state = EnsureState(actor);
+        DeprivationBurdenSaveData burden = GetBurden(
+            state,
+            DeprivationKind.MentalInstability);
+        burden.burden = Mathf.Clamp(
+            burden.burden + amount,
+            0f,
+            MaximumBurden);
+    }
+
     private void AddInfection(CharacterActor actor, float amount)
     {
         CharacterDeprivationState state = EnsureState(actor);
@@ -1287,8 +1581,7 @@ public sealed class CharacterDeprivationRuntime :
                 continue;
             }
 
-            GridPathSearchResult search = guard.Brain != null ? guard.Brain.GetPathSearch(guard) : null;
-            work.TrySetPrioritySuppressTarget(breakdownActor, search, out _);
+            work.TrySetPrioritySuppressTarget(breakdownActor, null, out _);
         }
     }
 
@@ -1304,10 +1597,7 @@ public sealed class CharacterDeprivationRuntime :
         state.burdens ??= new List<DeprivationBurdenSaveData>();
         state.breakdown ??= new CharacterBreakdownState();
         state.tabooMemories ??= new List<string>();
-        foreach (DeprivationKind kind in Enum.GetValues(typeof(DeprivationKind)))
-        {
-            GetBurden(state, kind);
-        }
+        NormalizeBurdens(state.burdens);
         return state;
     }
 
@@ -1320,13 +1610,64 @@ public sealed class CharacterDeprivationRuntime :
     private static DeprivationBurdenSaveData GetBurden(CharacterDeprivationState state, DeprivationKind kind)
     {
         state.burdens ??= new List<DeprivationBurdenSaveData>();
-        DeprivationBurdenSaveData burden = state.burdens.FirstOrDefault(entry => entry != null && entry.kind == kind);
-        if (burden == null)
+        int index = (int)kind;
+        if (index < 0 || index >= BurdenKindCount)
         {
-            burden = new DeprivationBurdenSaveData { kind = kind };
-            state.burdens.Add(burden);
+            throw new ArgumentOutOfRangeException(
+                nameof(kind),
+                kind,
+                "Unsupported deprivation kind.");
         }
-        return burden;
+
+        if (state.burdens.Count != BurdenKindCount
+            || state.burdens[index] == null
+            || state.burdens[index].kind != kind)
+        {
+            NormalizeBurdens(state.burdens);
+        }
+
+        return state.burdens[index];
+    }
+
+    private static void NormalizeBurdens(List<DeprivationBurdenSaveData> burdens)
+    {
+        bool isNormalized = burdens.Count == BurdenKindCount;
+        if (isNormalized)
+        {
+            for (int i = 0; i < BurdenKindCount; i++)
+            {
+                DeprivationBurdenSaveData burden = burdens[i];
+                if (burden == null || (int)burden.kind != i)
+                {
+                    isNormalized = false;
+                    break;
+                }
+            }
+        }
+
+        if (isNormalized)
+        {
+            return;
+        }
+
+        var normalized = new DeprivationBurdenSaveData[BurdenKindCount];
+        for (int i = 0; i < burdens.Count; i++)
+        {
+            DeprivationBurdenSaveData burden = burdens[i];
+            int kindIndex = burden != null ? (int)burden.kind : -1;
+            if (kindIndex >= 0 && kindIndex < BurdenKindCount)
+            {
+                normalized[kindIndex] = burden;
+            }
+        }
+
+        burdens.Clear();
+        for (int i = 0; i < BurdenKindCount; i++)
+        {
+            burdens.Add(
+                normalized[i]
+                ?? new DeprivationBurdenSaveData { kind = (DeprivationKind)i });
+        }
     }
 
     private static CharacterBreakdownKind ResolveBreakdownKind(DeprivationKind kind)

@@ -28,28 +28,29 @@ MonoBehaviour:
   rarity: 0
   defaultCost: 130
   researchWorkRequired: 24
+  targetResearchProjectId: research:arcane:advanced
   unlocks:
     items:
-    - rid: 7302563192359358092
-    - rid: 7302563192359358093
-    - rid: 7302563192359358094
-    - rid: 7302563192359358095
+    - rid: 7302563223825548161
+    - rid: 7302563223825548162
+    - rid: 7302563223825548163
+    - rid: 7302563223825548164
   references:
     version: 2
     RefIds:
-    - rid: 7302563192359358092
+    - rid: 7302563223825548161
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1034
-    - rid: 7302563192359358093
+    - rid: 7302563223825548162
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1035
-    - rid: 7302563192359358094
+    - rid: 7302563223825548163
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1056
-    - rid: 7302563192359358095
+    - rid: 7302563223825548164
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1029

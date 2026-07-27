@@ -8,7 +8,9 @@ public interface ICharacterAiSchedulingService
     void RequestImmediateDecision(CharacterActor actor);
     bool TryConsumePathSearchBudget();
     bool ShouldShowCharacterFeedback(CharacterActor actor);
+    bool ShouldCollectDetailedDiagnostics(CharacterActor actor);
     int GetMovementFrameStride(CharacterActor actor);
+    double GetDecisionWorkSliceMilliseconds(CharacterActor actor);
     void ResetPathSearchBudgetForDebug();
 }
 
@@ -74,9 +76,19 @@ public sealed class CharacterAiSchedulingService :
         return ResolveScheduler().ShouldShowCharacterFeedbackFor(actor);
     }
 
+    public bool ShouldCollectDetailedDiagnostics(CharacterActor actor)
+    {
+        return ResolveScheduler().ShouldCollectDetailedDiagnosticsFor(actor);
+    }
+
     public int GetMovementFrameStride(CharacterActor actor)
     {
         return ResolveScheduler().GetMovementFrameStrideFor(actor);
+    }
+
+    public double GetDecisionWorkSliceMilliseconds(CharacterActor actor)
+    {
+        return ResolveScheduler().GetDecisionWorkSliceMillisecondsFor(actor);
     }
 
     public void ResetPathSearchBudgetForDebug()

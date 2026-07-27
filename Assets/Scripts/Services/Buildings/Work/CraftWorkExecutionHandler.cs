@@ -32,7 +32,7 @@ public sealed class CraftWorkExecutionHandler :
             0.1f,
             context.Target.BuildingData
                 ?.GetAbility<BuildingEquipmentCraftingAbility>()
-                ?.workSecondsPerCycle ?? 1f);
+                ?.workUnitsPerCycle ?? 1f);
         yield return context.ExecuteWorkAmount(requiredWork, "제작");
         if (!context.CanContinue)
         {

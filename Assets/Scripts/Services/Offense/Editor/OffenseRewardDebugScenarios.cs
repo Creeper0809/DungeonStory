@@ -22,7 +22,7 @@ public static class OffenseRewardDebugScenarios
     {
         List<string> errors = new List<string>();
 
-        RunScenario("보상 서비스 돈/재고/상태 지급", VerifyMoneyStockAndStateRewards, errors);
+        RunScenario("보상 서비스 돈/재고/실물 귀환 지급", VerifyMoneyStockAndStateRewards, errors);
         RunScenario("희귀 시설과 설계도 지급", VerifyRareFacilityAndBlueprintRewards, errors);
         RunScenario("지정 전략 설계도만 지급", VerifySpecificStrategyBlueprintReward, errors);
         RunScenario("원정 완료 시 보상 지급 연결", VerifyExpeditionCompletionGrantsRewards, errors);
@@ -71,24 +71,21 @@ public static class OffenseRewardDebugScenarios
             {
                 Reward(new OffenseMoneyRewardSpec(), "약탈금", 80),
                 Reward(new OffenseStockRewardSpec(StockCategory.Food), "무기처럼 보이는 이름", 40),
-                Reward(new OffenseHumanFactionWeakeningRewardSpec(), "경쟁 세력 약화", 2),
                 Reward(new OffenseRecruitCandidateRewardSpec(), "직원 후보", 1),
-                Reward(new OffensePrisonerRewardSpec(), "특수 몬스터", 1),
-                Reward(new OffenseSpecialMonsterRewardSpec(), "포로", 1)
+                Reward(new OffensePrisonerRewardSpec(), "포로", 1),
+                Reward(new OffenseSpecialMonsterRewardSpec(), "특수 동물", 1)
             },
             context.CreateRewardContext());
         int warehouseFoodDelta = context.Warehouse.Inventory.GetStock(StockCategory.Food) - warehouseFoodBefore;
         int physicalFoodDelta = GetPhysicalStock(StockCategory.Food) - physicalFoodBefore;
 
-        bool valid = results.Count == 6
+        bool valid = results.Count == 5
             && results.All((result) => result.success)
             && context.GameData.holdingMoney.Value == 180
             && warehouseFoodDelta + physicalFoodDelta == 40
             && context.RewardState.MoneyEarned == 80
-            && context.RewardState.HumanFactionWeakening == 2
-            && context.RewardState.RecruitCandidateCount == 2
-            && context.RewardState.PrisonerCount == 1
-            && context.RewardState.SpecialMonsterCount == 1;
+            && context.ReturnArrivals.PrisonerCount == 1
+            && context.ReturnArrivals.WildlifeCount == 1;
         if (!valid)
         {
             throw new InvalidOperationException(
@@ -96,9 +93,9 @@ public static class OffenseRewardDebugScenarios
                 $"success={results.Count(result => result.success)}, " +
                 $"money={context.GameData.holdingMoney.Value}, " +
                 $"warehouseFoodDelta={warehouseFoodDelta}, physicalFoodDelta={physicalFoodDelta}, " +
-                $"moneyState={context.RewardState.MoneyEarned}, human={context.RewardState.HumanFactionWeakening}, " +
-                $"recruit={context.RewardState.RecruitCandidateCount}, prisoner={context.RewardState.PrisonerCount}, " +
-                $"special={context.RewardState.SpecialMonsterCount}");
+                $"moneyState={context.RewardState.MoneyEarned}, " +
+                $"prisoners={context.ReturnArrivals.PrisonerCount}, " +
+                $"wildlife={context.ReturnArrivals.WildlifeCount}");
         }
 
         return valid;
@@ -119,7 +116,7 @@ public static class OffenseRewardDebugScenarios
             && results.All((result) => result.success)
             && context.RewardState.RareFacilityBuildingIds.Count == 1
             && context.RewardState.AcquiredBlueprintIds.Count == 1
-            && context.ResearchState.Tasks.Count == 1;
+            && context.ResearchState.Tasks.Count == 0;
     }
 
     private static bool VerifyOpenRewardHandlerExtension()
@@ -162,14 +159,7 @@ public static class OffenseRewardDebugScenarios
             && context.RewardState.AcquiredBlueprintIds.Contains(OffenseStrategyBlueprintIds.CommerceLogistics)
             && context.RewardState.AcquiredBlueprintIds.Contains(OffenseStrategyBlueprintIds.FortressDefense)
             && context.RewardState.AcquiredBlueprintIds.Contains(OffenseStrategyBlueprintIds.ArcaneResearch)
-            && context.ResearchState.Tasks.Count == 3
-            && context.ResearchState.Tasks.Select(task => task.Blueprint.id).OrderBy(id => id)
-                .SequenceEqual(new[]
-                {
-                    OffenseStrategyBlueprintIds.CommerceLogistics,
-                    OffenseStrategyBlueprintIds.FortressDefense,
-                    OffenseStrategyBlueprintIds.ArcaneResearch
-                }.OrderBy(id => id));
+            && context.ResearchState.Tasks.Count == 0;
     }
 
     private static bool VerifyDefenseBlueprintUnlockCapability()
@@ -219,13 +209,15 @@ public static class OffenseRewardDebugScenarios
         bool completed = result != null && !scenario.Battle.HasActiveBattle;
         int warehouseFoodDelta = scenario.Context.Warehouse.Inventory.GetStock(StockCategory.Food) - warehouseFoodBefore;
         int physicalFoodDelta = GetPhysicalStock(StockCategory.Food) - physicalFoodBefore;
+        OffenseStrategicPressureSnapshot pressure =
+            scenario.Reward.Regions.GetFactionPressure(OffenseRegionRuntime.HumanFactionId);
 
         bool valid = started
             && journeyCompleted
             && completed
             && result != null
             && result.success
-            && result.grantedRewards.Count == 2
+            && result.grantedRewards.Count == 3
             && result.grantedRewards.All((reward) => reward.success)
             && rewardEvents.Count == 1
             && object.ReferenceEquals(rewardEvents.LastEvent.expeditionResult, result)
@@ -233,6 +225,7 @@ public static class OffenseRewardDebugScenarios
             && scenario.Context.GameData.holdingMoney.Value == 80
             && warehouseFoodDelta + physicalFoodDelta == 40
             && scenario.Reward.Runtime.State.MoneyEarned == 80
+            && Mathf.Approximately(pressure.Logistics, 15f)
             && worker.CurrentHealth < worker.MaxHealth
             && !worker.LogComponent.ActivityEntries.Any(activity =>
                 activity.ActionId == "offense:victory-recovery");
@@ -244,6 +237,7 @@ public static class OffenseRewardDebugScenarios
                 $"result={(result == null ? "null" : result.success.ToString())}, grants={result?.grantedRewards.Count ?? -1}, " +
                 $"eventCount={rewardEvents.Count}, money={scenario.Context.GameData.holdingMoney.Value}, " +
                 $"foodWarehouseDelta={warehouseFoodDelta}, foodPhysicalDelta={physicalFoodDelta}, " +
+                $"logisticsPressure={pressure.Logistics:0.##}, " +
                 $"health={worker.CurrentHealth:0.##}/{worker.MaxHealth:0.##}");
         }
 
@@ -426,6 +420,7 @@ public static class OffenseRewardDebugScenarios
             ShopUnlockState = new FacilityShopUnlockState();
             ResearchState = new BlueprintResearchState();
             RewardState = new OffenseRewardState();
+            ReturnArrivals = new TestReturnArrivalRuntime();
         }
 
         public GameData GameData { get; }
@@ -433,6 +428,7 @@ public static class OffenseRewardDebugScenarios
         public FacilityShopUnlockState ShopUnlockState { get; }
         public BlueprintResearchState ResearchState { get; }
         public OffenseRewardState RewardState { get; }
+        public TestReturnArrivalRuntime ReturnArrivals { get; }
 
         public OffenseRewardContext CreateRewardContext(OffenseTargetDefinition target = null)
         {
@@ -443,6 +439,8 @@ public static class OffenseRewardDebugScenarios
                 shopUnlockState = ShopUnlockState,
                 researchState = ResearchState,
                 rewardState = RewardState,
+                returnArrivalRuntime = ReturnArrivals,
+                expeditionId = "reward-debug-expedition",
                 target = target
             };
         }
@@ -465,6 +463,48 @@ public static class OffenseRewardDebugScenarios
 
         public WarehouseInventory Inventory { get; }
         public bool HasWarehouseInventory => true;
+    }
+
+    private sealed class TestReturnArrivalRuntime : IOffenseReturnArrivalRuntime
+    {
+        public int PrisonerCount { get; private set; }
+        public int WildlifeCount { get; private set; }
+        public IReadOnlyList<OffenseReturnArrivalState> Arrivals =>
+            Array.Empty<OffenseReturnArrivalState>();
+
+        public void BeginExpeditionReturn(string expeditionId) { }
+        public void RegisterReturningMember(string expeditionId) { }
+        public void CompleteReturningMember(string expeditionId) { }
+        public void SealExpeditionReturn(string expeditionId) { }
+
+        public int QueueArrival(
+            string expeditionId,
+            string targetId,
+            OffenseReturnArrivalKind kind,
+            int amount)
+        {
+            int safeAmount = Mathf.Max(0, amount);
+            if (kind == OffenseReturnArrivalKind.Prisoner)
+            {
+                PrisonerCount += safeAmount;
+            }
+            else
+            {
+                WildlifeCount += safeAmount;
+            }
+            return safeAmount;
+        }
+
+        public DungeonOffenseReturnArrivalSaveData Capture()
+        {
+            return new DungeonOffenseReturnArrivalSaveData();
+        }
+
+        public void Restore(
+            DungeonOffenseReturnArrivalSaveData saveData,
+            DungeonGameRestoreReport report = null)
+        {
+        }
     }
 
     private sealed class EditorOffenseRewardCatalog : IOffenseRewardCatalog
@@ -718,18 +758,21 @@ public static class OffenseRewardDebugScenarios
         private readonly GameObject obj;
 
         public OffenseRewardRuntime Runtime { get; }
+        public OffenseRegionRuntime Regions { get; }
 
         public RewardFixture(ScenarioContext context)
         {
             obj = new GameObject("Offense Reward Runtime Fixture");
             Runtime = obj.AddComponent<OffenseRewardRuntime>();
+            Regions = new OffenseRegionRuntime();
             EmptyRewardContextDependencies dependencies = new EmptyRewardContextDependencies();
             Runtime.Construct(
                 new OffenseRewardContextBuilder(
                     dependencies,
                     dependencies,
                     dependencies,
-                    dependencies),
+                    dependencies,
+                    Regions),
                 CreateGrantService());
             Runtime.SetDebugContext(
                 context.GameData,

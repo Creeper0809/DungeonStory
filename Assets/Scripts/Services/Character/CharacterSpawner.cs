@@ -57,8 +57,12 @@ public class CharacterSpawner : BuildableObject,IInteractable
     private IRunCharacterCatalog characterCatalog;
     private ICharacterPopulationService characterPopulationService;
     private IOwnerRunManagerProvider ownerRunManagerProvider;
+    private IBuildingWorldQuery buildingWorldQuery;
     private IRandomStream respawnRandomStream;
     private bool catalogCustomersMerged;
+    private bool runtimeStateInitialized;
+    private int cachedEntranceBuildingVersion = -1;
+    private Door cachedEntranceDoor;
 
     [Inject]
     public void Construct(
@@ -69,6 +73,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
         IRunCharacterCatalog characterCatalog,
         ICharacterPopulationService characterPopulationService,
         IOwnerRunManagerProvider ownerRunManagerProvider,
+        IBuildingWorldQuery buildingWorldQuery,
         IRandomStreamProvider randomStreamProvider)
     {
         this.regularCustomerRuntimeProvider = regularCustomerRuntimeProvider
@@ -85,10 +90,13 @@ public class CharacterSpawner : BuildableObject,IInteractable
             ?? throw new ArgumentNullException(nameof(characterPopulationService));
         this.ownerRunManagerProvider = ownerRunManagerProvider
             ?? throw new ArgumentNullException(nameof(ownerRunManagerProvider));
+        this.buildingWorldQuery = buildingWorldQuery
+            ?? throw new ArgumentNullException(nameof(buildingWorldQuery));
         respawnRandomStream = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("character-spawner");
         catalogCustomersMerged = false;
+        runtimeStateInitialized = false;
     }
 
     private void Awake()
@@ -111,6 +119,12 @@ public class CharacterSpawner : BuildableObject,IInteractable
 
     private void EnsureRuntimeState()
     {
+        if (runtimeStateInitialized)
+        {
+            EnsureCharacterPool();
+            return;
+        }
+
         if (characters == null)
         {
             characters = new CharacterSO[0];
@@ -133,7 +147,12 @@ public class CharacterSpawner : BuildableObject,IInteractable
         charactersById = characters.GroupBy((x) => x.id).ToDictionary((x) => x.Key, (x) => x.First());
         respawnDict ??= new Dictionary<string, CharacterRespawnData>();
         spawnDelay ??= new WaitForSeconds(0.3f);
+        runtimeStateInitialized = true;
+        EnsureCharacterPool();
+    }
 
+    private void EnsureCharacterPool()
+    {
         if (characterPool == null && characterPrefab != null)
         {
             characterPool = new ObjectPool<GameObject>(CreatePooledItem, OnTakeFromPool, OnReturnedToPool, OnDestroyPoolObject, true, 5, 15);
@@ -150,11 +169,11 @@ public class CharacterSpawner : BuildableObject,IInteractable
             {
                 if (TrySpawnCharacter(item.id))
                 {
-                    yield return spawnDelay;
                     break;
                 }
             }
-            yield return null;
+
+            yield return spawnDelay;
         }
     }
     void Update()
@@ -304,10 +323,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
             return transform.position;
         }
 
-        if (DungeonEntranceGridResolver.TryResolve(
-                grid,
-                entryGridPosition,
-                out Door entrance))
+        if (TryResolveEntranceDoor(grid, out Door entrance))
         {
             return grid.GetWorldPos(entrance.centerPos);
         }
@@ -324,10 +340,17 @@ public class CharacterSpawner : BuildableObject,IInteractable
 
     public bool TryGetEntryGridPosition(out Vector2Int resolvedEntryGridPosition)
     {
-        if (!TryGetGrid(out Grid grid))
+        IGridSystemProvider provider = ResolveGridSystemProvider();
+        if (!provider.TryGetGrid(out Grid grid))
         {
             resolvedEntryGridPosition = entryGridPosition;
             return false;
+        }
+
+        if (provider.TryGetManager(out GridSystemManager manager)
+            && manager.TryGetEntranceGridPosition(out resolvedEntryGridPosition))
+        {
+            return true;
         }
 
         if (grid.IsValidGridPos(entryGridPosition) && grid.IsWalkable(entryGridPosition))
@@ -336,22 +359,68 @@ public class CharacterSpawner : BuildableObject,IInteractable
             return true;
         }
 
-        GridCell entranceCell = grid.GetCells()
-            .Where(cell => cell != null
+        foreach (GridCell cell in grid.GetCells())
+        {
+            if (cell != null
                 && cell.AreaType == GridCellAreaType.Entrance
                 && grid.IsWalkable(cell.Position))
-            .OrderBy(cell => cell.Position.y)
-            .ThenBy(cell => cell.Position.x)
-            .FirstOrDefault();
-        if (entranceCell != null)
-        {
-            resolvedEntryGridPosition = entranceCell.Position;
-            return true;
+            {
+                resolvedEntryGridPosition = cell.Position;
+                return true;
+            }
         }
 
         Vector3 desiredWorldPosition = entryDoorPoint != null ? entryDoorPoint.position : transform.position;
         Vector2Int desiredGridPosition = grid.GetXY(desiredWorldPosition);
         return grid.TryFindNearestWalkablePosition(desiredGridPosition, out resolvedEntryGridPosition);
+    }
+
+    private bool TryResolveEntranceDoor(Grid grid, out Door entrance)
+    {
+        entrance = null;
+        if (grid == null || buildingWorldQuery == null)
+        {
+            return DungeonEntranceGridResolver.TryResolve(
+                grid,
+                entryGridPosition,
+                out entrance);
+        }
+
+        int buildingVersion = buildingWorldQuery.BuildingVersion;
+        if (cachedEntranceBuildingVersion == buildingVersion)
+        {
+            entrance = cachedEntranceDoor;
+            return entrance != null && !entrance.isDestroy;
+        }
+
+        cachedEntranceBuildingVersion = buildingVersion;
+        cachedEntranceDoor = null;
+        int bestDistance = int.MaxValue;
+        IReadOnlyList<BuildableObject> buildings = buildingWorldQuery.Buildings;
+        for (int index = 0; index < buildings.Count; index++)
+        {
+            if (buildings[index] is not Door candidate
+                || !candidate.IsDungeonEntrance
+                || candidate.isDestroy
+                || candidate.BuildingData == null
+                || candidate.BuildingData.IsInteriorDoor)
+            {
+                continue;
+            }
+
+            int distance = Mathf.Abs(candidate.centerPos.x - entryGridPosition.x)
+                + Mathf.Abs(candidate.centerPos.y - entryGridPosition.y);
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
+            bestDistance = distance;
+            cachedEntranceDoor = candidate;
+        }
+
+        entrance = cachedEntranceDoor;
+        return entrance != null;
     }
 
     private RegularCustomerState GetRegularCustomerState()

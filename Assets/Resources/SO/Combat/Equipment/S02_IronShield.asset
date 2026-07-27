@@ -19,6 +19,8 @@ MonoBehaviour:
   weight: 6
   occupiedHands: 1
   maxDurability: 160
+  requiredCraftWork: 6
+  craftMaterials: []
   frontalBlockChance: 0.38
   slashDefense: 18
   pierceDefense: 15

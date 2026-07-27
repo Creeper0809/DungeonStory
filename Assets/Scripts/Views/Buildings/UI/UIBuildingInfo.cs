@@ -329,7 +329,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         BuildingEquipmentCraftingAbility crafting = buildingData
             ?.GetAbility<BuildingEquipmentCraftingAbility>();
         if (crafting == null
-            || !building.TryGetExpeditionEquipmentRuntime(out IExpeditionEquipmentRuntime runtime))
+            || !building.TryGetCombatEquipmentRuntime(out ICombatEquipmentRuntime runtime))
         {
             craftStatusMessage = string.Empty;
             return;
@@ -339,23 +339,23 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             crafting.CraftableEquipmentIds.Where(id => !string.IsNullOrWhiteSpace(id)),
             StringComparer.Ordinal);
         Transform actionsRoot = RequireContextActionsRoot();
-        foreach (ExpeditionEquipmentDefinition definition in runtime.Definitions
-            .Where(definition => definition != null && craftableIds.Contains(definition.id))
-            .OrderBy(definition => definition.slot)
-            .ThenBy(definition => definition.displayName, StringComparer.Ordinal))
+        foreach (CombatEquipmentDefinitionSO definition in runtime.Definitions
+            .Where(definition => definition != null && craftableIds.Contains(definition.EquipmentId))
+            .OrderBy(definition => definition.Kind)
+            .ThenBy(definition => definition.DisplayName, StringComparer.Ordinal))
         {
-            ExpeditionEquipmentDefinition captured = definition;
+            CombatEquipmentDefinitionSO captured = definition;
             GameObject buttonObject = CreateCraftButton(
                 actionsRoot,
-                $"제작 {definition.displayName}",
+                $"제작 {definition.DisplayName}",
                 () =>
                 {
-                    craftStatusMessage = runtime.TryQueueCraft(captured.id, building, out string message)
-                        ? $"{captured.displayName} 제작 예약"
+                    craftStatusMessage = runtime.TryQueueCraft(captured.EquipmentId, building, out string message)
+                        ? $"{captured.DisplayName} 제작 예약"
                         : FormatCraftMessage(message);
                     DisplayBuildingInfo(building);
                 });
-            buttonObject.name = $"BuildingCraft_{SanitizeObjectName(definition.id)}";
+            buttonObject.name = $"BuildingCraft_{SanitizeObjectName(definition.EquipmentId)}";
             craftActionObjects.Add(buttonObject);
         }
 

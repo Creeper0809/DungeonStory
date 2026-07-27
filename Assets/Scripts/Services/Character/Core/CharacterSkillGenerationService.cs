@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -202,6 +203,11 @@ public sealed class CharacterSkillGenerationService :
     ICharacterSkillGenerationService,
     ITickable
 {
+    private const int MaximumConcurrentRequests = 2;
+    private const int MaximumSubmissionsPerTick = 1;
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("CharacterSkillGenerationService.Tick");
+
     private sealed class PendingRequest
     {
         public CharacterProgression progression;
@@ -211,12 +217,14 @@ public sealed class CharacterSkillGenerationService :
         public bool inFlight;
         public bool cancelled;
         public string correction = string.Empty;
+        public string preparedPrompt = string.Empty;
     }
 
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
     private readonly ILocalLlmRuntimeProvider llmRuntimeProvider;
     private readonly IUiClock uiClock;
     private readonly Dictionary<string, PendingRequest> pending = new Dictionary<string, PendingRequest>();
+    private readonly List<PendingRequest> tickBuffer = new List<PendingRequest>();
 
     public int PendingRequestCount => pending.Count;
     public string LastDiagnostic { get; private set; } = string.Empty;
@@ -316,6 +324,13 @@ public sealed class CharacterSkillGenerationService :
         }
         else
         {
+            if (!ReferenceEquals(request.progression, progression)
+                || !ReferenceEquals(request.draft, draft))
+            {
+                request.preparedPrompt = string.Empty;
+                request.correction = string.Empty;
+            }
+
             request.progression = progression;
             request.draft = draft;
         }
@@ -347,14 +362,35 @@ public sealed class CharacterSkillGenerationService :
 
     public void Tick()
     {
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
         if (pending.Count == 0)
         {
             return;
         }
 
         float now = uiClock.Time;
-        foreach (PendingRequest request in pending.Values.ToArray())
+        int inFlightCount = 0;
+        tickBuffer.Clear();
+        foreach (PendingRequest request in pending.Values)
         {
+            tickBuffer.Add(request);
+            if (request?.inFlight == true)
+            {
+                inFlightCount++;
+            }
+        }
+
+        int submissionCount = 0;
+        for (int index = 0; index < tickBuffer.Count; index++)
+        {
+            PendingRequest request = tickBuffer[index];
             if (request == null
                 || request.cancelled
                 || request.progression == null
@@ -365,9 +401,17 @@ public sealed class CharacterSkillGenerationService :
                 continue;
             }
 
-            if (!request.inFlight && now >= request.nextAttemptAt)
+            if (!request.inFlight
+                && now >= request.nextAttemptAt
+                && inFlightCount < MaximumConcurrentRequests
+                && submissionCount < MaximumSubmissionsPerTick)
             {
+                submissionCount++;
                 TrySubmit(request, now);
+                if (request.inFlight)
+                {
+                    inFlightCount++;
+                }
             }
         }
     }
@@ -510,11 +554,16 @@ public sealed class CharacterSkillGenerationService :
         }
 
         request.inFlight = true;
-        string prompt = CharacterSkillPromptBuilder.Build(
-            request.progression,
-            request.draft,
-            settingsProvider.Settings,
-            request.correction);
+        if (string.IsNullOrEmpty(request.preparedPrompt))
+        {
+            request.preparedPrompt = CharacterSkillPromptBuilder.Build(
+                request.progression,
+                request.draft,
+                settingsProvider.Settings,
+                request.correction);
+        }
+
+        string prompt = request.preparedPrompt;
         LastDiagnostic = $"submitted={request.draft.requestKey}; attempt={request.attempts + 1}; prompt={prompt.Length}";
         bool accepted = runtime is ICorrelatedCharacterSkillLlmRuntime correlatedRuntime
             ? correlatedRuntime.GenerateCharacterSkillAsync(
@@ -571,6 +620,7 @@ public sealed class CharacterSkillGenerationService :
         if (result.IsSuccess)
         {
             request.correction = validationError;
+            request.preparedPrompt = string.Empty;
             LastDiagnostic = $"rejected={request.draft.requestKey}; reason={validationError}; response={result.Content.Length}";
         }
         else

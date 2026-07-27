@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -11,10 +12,14 @@ public sealed class CaptivityRuntime :
     ICaptivityCommandService,
     ICaptivityEscortRuntime,
     ICaptivityEscapeRuntime,
+    ICharacterCarePriorityQuery,
     IStartable,
     ITickable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("CaptivityRuntime.Tick");
+
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly ICharacterBodyHealthRuntime bodyHealth;
     private readonly ICombatEquipmentRuntime combatEquipment;
@@ -98,6 +103,26 @@ public sealed class CaptivityRuntime :
     public IReadOnlyList<CaptivePolicyData> Policies =>
         policies.Select(policy => policy.Clone()).ToArray();
 
+    public int GetCarePriority(string persistentCharacterId)
+    {
+        CaptiveState captive = captives.FirstOrDefault(candidate =>
+            string.Equals(
+                candidate?.captiveId,
+                persistentCharacterId,
+                StringComparison.Ordinal));
+        return captive?.carePriorityUnlocked == true ? 100 : 0;
+    }
+
+    public bool IsCareSubject(string persistentCharacterId)
+    {
+        return captives.Any(candidate =>
+            candidate?.IsActive == true
+            && string.Equals(
+                candidate.captiveId,
+                persistentCharacterId,
+                StringComparison.Ordinal));
+    }
+
     public void Start()
     {
         downedSubscription =
@@ -133,17 +158,30 @@ public sealed class CaptivityRuntime :
 
     public void Tick()
     {
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
         if (gameClock.IsPaused || gameClock.DeltaTime <= 0f)
         {
             return;
         }
 
-        foreach (CaptiveState state in captives.Where(candidate =>
-                     candidate != null
-                     && candidate.IsActive
-                     && candidate.status is CaptivityStatus.Confined
-                         or CaptivityStatus.Labor).ToArray())
+        for (int index = 0; index < captives.Count; index++)
         {
+            CaptiveState state = captives[index];
+            if (state == null
+                || !state.IsActive
+                || (state.status != CaptivityStatus.Confined
+                    && state.status != CaptivityStatus.Labor))
+            {
+                continue;
+            }
+
             CharacterActor actor = FindActor(state.captiveId);
             if (actor == null || actor.IsDead)
             {
@@ -151,6 +189,7 @@ public sealed class CaptivityRuntime :
             }
 
             state.health = EstimateHealth(actor);
+            TickCarePriority(state, actor);
             RecalculateCaptiveState(state);
             if (gameClock.Time + 0.001f < state.nextSecurityCheckAt)
             {
@@ -182,6 +221,51 @@ public sealed class CaptivityRuntime :
                     out _);
             }
         }
+    }
+
+    private void TickCarePriority(CaptiveState state, CharacterActor actor)
+    {
+        if (state?.carePriorityUnlocked != true
+            || actor == null
+            || gameClock.Time + 0.001f < state.nextCareSupplyAt)
+        {
+            return;
+        }
+
+        string destinationId = $"captive-care:{state.captiveId}";
+        Dictionary<StockCategory, int> foodCost = new Dictionary<StockCategory, int>
+        {
+            [StockCategory.Food] = 1
+        };
+        if (itemRuntime.TryConsumeFacilityBuffer(destinationId, foodCost, out _))
+        {
+            actor.ChangesStat(CharacterCondition.HUNGER, 35f);
+            state.health = Mathf.Clamp(state.health + 5f, 0f, 100f);
+            state.nextCareSupplyAt = gameClock.Time + 120f;
+            state.lastResult = "명성 특혜 식량을 배급받았습니다.";
+            return;
+        }
+
+        bool deliveryOutstanding = itemRuntime.GetAllStacks().Any(stack =>
+            stack != null
+            && stack.Quantity > 0
+            && stack.StockCategory == StockCategory.Food
+            && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal));
+        if (deliveryOutstanding)
+        {
+            state.nextCareSupplyAt = gameClock.Time + 5f;
+            return;
+        }
+
+        bool deliveryRequested = itemRuntime.TryRequestFacilityDelivery(
+            StockCategory.Food,
+            1,
+            state.housingPosition,
+            destinationId,
+            out int requested,
+            out _)
+            && requested > 0;
+        state.nextCareSupplyAt = gameClock.Time + (deliveryRequested ? 15f : 5f);
     }
 
     public bool TryGetCaptive(string captiveId, out CaptiveState captive)
@@ -1006,11 +1090,143 @@ public bool IsWorkAllowed(
             state.performerInjuries++;
         }
 
+        int previousPrivilegeTier = state.privilegeTier;
         state.privilegeTier = state.performerFame >= 75f
             ? 2
             : state.performerFame >= 50f
                 ? 1
                 : 0;
+        ApplyPerformerMilestones(state, previousPrivilegeTier);
+    }
+
+    public bool TryResolvePerformerMilestone(
+        string captiveId,
+        CaptivePerformerMilestoneChoice choice,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CaptiveState state = FindState(captiveId);
+        if (state == null || !state.IsActive)
+        {
+            failureReason = "공연자를 찾을 수 없습니다.";
+            return false;
+        }
+
+        switch (choice)
+        {
+            case CaptivePerformerMilestoneChoice.StaffContract:
+                if (!state.staffContractUnlocked)
+                {
+                    failureReason = "직원 계약 조건이 아직 열리지 않았습니다.";
+                    return false;
+                }
+
+                if (!state.CanRecruit)
+                {
+                    failureReason = "신뢰·원한·타락 조건을 충족해야 직원 계약을 맺을 수 있습니다.";
+                    return false;
+                }
+
+                if (!TryRecruit(captiveId, out failureReason))
+                {
+                    return false;
+                }
+                break;
+
+            case CaptivePerformerMilestoneChoice.ReleaseNegotiation:
+                if (!state.finalContractPending)
+                {
+                    failureReason = "명성 100의 최종 계약 선택이 열리지 않았습니다.";
+                    return false;
+                }
+
+                state.resolvedMilestoneChoice = choice;
+                state.finalContractPending = false;
+                return TryRelease(captiveId, out failureReason);
+
+            case CaptivePerformerMilestoneChoice.ExclusiveFighterContract:
+                if (!state.finalContractPending)
+                {
+                    failureReason = "명성 100의 최종 계약 선택이 열리지 않았습니다.";
+                    return false;
+                }
+
+                state.exclusiveFighter = true;
+                state.finalContractPending = false;
+                state.resolvedMilestoneChoice = choice;
+                state.status = CaptivityStatus.Performer;
+                state.lastResult = "전속 투사 계약을 맺었습니다.";
+                break;
+
+            default:
+                failureReason = "선택할 계약이 없습니다.";
+                return false;
+        }
+
+        return true;
+    }
+
+    private void ApplyPerformerMilestones(
+        CaptiveState state,
+        int previousPrivilegeTier)
+    {
+        if (state == null)
+        {
+            return;
+        }
+
+        if (state.performerFame >= 50f && !state.carePriorityUnlocked)
+        {
+            state.carePriorityUnlocked = true;
+            state.lastResult = "공연 명성으로 우선 식량·치료 특혜를 얻었습니다.";
+            itemRuntime.TryRequestFacilityDelivery(
+                StockCategory.Food,
+                1,
+                state.housingPosition,
+                $"captive-care:{state.captiveId}",
+                out _,
+                out _);
+            PublishPerformerMilestone(state, 50, state.lastResult);
+        }
+
+        if (state.performerFame >= 75f && !state.staffContractUnlocked)
+        {
+            state.staffContractUnlocked = true;
+            state.lastResult = "조건을 충족하면 직원 계약을 제안할 수 있습니다.";
+            PublishPerformerMilestone(state, 75, state.lastResult);
+        }
+
+        if (state.performerFame >= 100f
+            && state.resolvedMilestoneChoice == CaptivePerformerMilestoneChoice.None
+            && !state.finalContractPending)
+        {
+            state.finalContractPending = true;
+            state.lastResult = "석방 협상과 전속 투사 계약 중 하나를 선택할 수 있습니다.";
+            PublishPerformerMilestone(state, 100, state.lastResult);
+        }
+
+        if (state.privilegeTier > previousPrivilegeTier)
+        {
+            state.health = Mathf.Clamp(state.health + 5f, 0f, 100f);
+        }
+    }
+
+    private void PublishPerformerMilestone(
+        CaptiveState state,
+        int threshold,
+        string message)
+    {
+        gameEventBus.Publish(new CaptivePerformerMilestoneEvent(
+            state.captiveId,
+            threshold,
+            message));
+        gameEventBus.RaiseAlert(
+            $"공연자 명성 {threshold}",
+            message,
+            threshold >= 100
+                ? EventAlertImportance.High
+                : EventAlertImportance.Medium,
+            "포로·노역");
     }
 
     public bool TryGetEscortState(

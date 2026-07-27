@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 [Flags]
@@ -166,6 +165,10 @@ public static class CharacterNeedCatalog
         new Dictionary<string, CharacterNeedDefinition>(StringComparer.Ordinal);
     private static readonly Dictionary<CharacterCondition, CharacterNeedDefinition> ByCondition =
         new Dictionary<CharacterCondition, CharacterNeedDefinition>();
+    private static readonly List<CharacterNeedDefinition> Ordered =
+        new List<CharacterNeedDefinition>();
+    private static IReadOnlyList<CharacterNeedDefinition> orderedView;
+    private static bool orderedDirty = true;
     private static bool initialized;
 
     public static IReadOnlyList<CharacterNeedDefinition> All
@@ -173,10 +176,16 @@ public static class CharacterNeedCatalog
         get
         {
             EnsureInitialized();
-            return ById.Values
-                .OrderBy((definition) => definition.SortOrder)
-                .ThenBy((definition) => definition.Id, StringComparer.Ordinal)
-                .ToArray();
+            if (orderedDirty)
+            {
+                Ordered.Clear();
+                Ordered.AddRange(ById.Values);
+                Ordered.Sort(CompareDefinitions);
+                orderedView ??= ReadOnlyView.List(Ordered);
+                orderedDirty = false;
+            }
+
+            return orderedView;
         }
     }
 
@@ -204,6 +213,7 @@ public static class CharacterNeedCatalog
 
         ById[definition.Id] = definition;
         ByCondition[definition.Condition] = definition;
+        orderedDirty = true;
     }
 
     public static bool TryGet(CharacterCondition condition, out CharacterNeedDefinition definition)
@@ -241,12 +251,23 @@ public static class CharacterNeedCatalog
         CharacterNeedTag requiredTag,
         bool applySurvivalWeight = true)
     {
-        return All
-            .Where((definition) => definition.HasTag(requiredTag))
-            .Select((definition) => definition.GetUrgency(actor)
-                * (applySurvivalWeight ? definition.SurvivalWeight : 1f))
-            .DefaultIfEmpty(0f)
-            .Max();
+        float urgency = 0f;
+        IReadOnlyList<CharacterNeedDefinition> definitions = All;
+        for (int i = 0; i < definitions.Count; i++)
+        {
+            CharacterNeedDefinition definition = definitions[i];
+            if (!definition.HasTag(requiredTag))
+            {
+                continue;
+            }
+
+            urgency = Mathf.Max(
+                urgency,
+                definition.GetUrgency(actor)
+                    * (applySurvivalWeight ? definition.SurvivalWeight : 1f));
+        }
+
+        return Mathf.Clamp01(urgency);
     }
 
     public static bool TryGetStrongestUrgency(
@@ -278,6 +299,16 @@ public static class CharacterNeedCatalog
 
         urgency = Mathf.Clamp01(urgency);
         return strongest != null;
+    }
+
+    private static int CompareDefinitions(
+        CharacterNeedDefinition left,
+        CharacterNeedDefinition right)
+    {
+        int sortOrder = left.SortOrder.CompareTo(right.SortOrder);
+        return sortOrder != 0
+            ? sortOrder
+            : string.Compare(left.Id, right.Id, StringComparison.Ordinal);
     }
 
     public static float GetWeightedUrgency(CharacterActor actor, CharacterCondition condition)

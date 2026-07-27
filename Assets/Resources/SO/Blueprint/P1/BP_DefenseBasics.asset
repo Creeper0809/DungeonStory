@@ -28,28 +28,29 @@ MonoBehaviour:
   rarity: 0
   defaultCost: 140
   researchWorkRequired: 22
+  targetResearchProjectId: research:defense:fortification
   unlocks:
     items:
-    - rid: 7302563192359358075
-    - rid: 7302563192359358076
-    - rid: 7302563192359358077
-    - rid: 7302563192359358078
+    - rid: 7302563223825548144
+    - rid: 7302563223825548145
+    - rid: 7302563223825548146
+    - rid: 7302563223825548147
   references:
     version: 2
     RefIds:
-    - rid: 7302563192359358075
+    - rid: 7302563223825548144
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1046
-    - rid: 7302563192359358076
+    - rid: 7302563223825548145
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1047
-    - rid: 7302563192359358077
+    - rid: 7302563223825548146
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1049
-    - rid: 7302563192359358078
+    - rid: 7302563223825548147
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1055

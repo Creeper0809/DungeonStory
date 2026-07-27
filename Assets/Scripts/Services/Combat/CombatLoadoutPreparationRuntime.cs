@@ -18,6 +18,10 @@ public interface ICombatEquipmentPickupRuntime
         CharacterActor actor,
         string equipmentDefinitionId,
         out string message);
+    bool TryUnequipToWorld(
+        CharacterActor actor,
+        CombatEquipmentLoadoutSlot slot,
+        out string message);
 }
 
 public sealed class CombatLoadoutPreparationRuntime :
@@ -60,6 +64,9 @@ public sealed class CombatLoadoutPreparationRuntime :
     private readonly IGameClock gameClock;
     private readonly Dictionary<string, ActorPreparationState> states =
         new Dictionary<string, ActorPreparationState>(StringComparer.Ordinal);
+    private readonly List<ActorPreparationState> tickStates =
+        new List<ActorPreparationState>();
+    private readonly List<string> completedActorIds = new List<string>();
     private IDisposable threatWarningSubscription;
     private IDisposable invasionResolvedSubscription;
 
@@ -121,16 +128,29 @@ public sealed class CombatLoadoutPreparationRuntime :
             return;
         }
 
-        foreach (ActorPreparationState state in states.Values.ToArray())
+        tickStates.Clear();
+        foreach (ActorPreparationState state in states.Values)
         {
-            TickActor(state);
+            tickStates.Add(state);
         }
 
-        foreach (string completedId in states
-            .Where(pair => pair.Value == null || pair.Value.Finished)
-            .Select(pair => pair.Key)
-            .ToArray())
+        for (int index = 0; index < tickStates.Count; index++)
         {
+            TickActor(tickStates[index]);
+        }
+
+        completedActorIds.Clear();
+        foreach (KeyValuePair<string, ActorPreparationState> pair in states)
+        {
+            if (pair.Value == null || pair.Value.Finished)
+            {
+                completedActorIds.Add(pair.Key);
+            }
+        }
+
+        for (int index = 0; index < completedActorIds.Count; index++)
+        {
+            string completedId = completedActorIds[index];
             if (states.TryGetValue(completedId, out ActorPreparationState state))
             {
                 FinishActor(state);
@@ -280,6 +300,86 @@ public sealed class CombatLoadoutPreparationRuntime :
             "대체 장비 수령",
             combatActive: false);
         message = $"{definition.DisplayName} 수령을 시작합니다.";
+        return true;
+    }
+
+    public bool TryUnequipToWorld(
+        CharacterActor actor,
+        CombatEquipmentLoadoutSlot slot,
+        out string message)
+    {
+        message = string.Empty;
+        if (actor == null || actor.IsDead)
+        {
+            message = "장비를 해제할 캐릭터가 없습니다.";
+            return false;
+        }
+
+        string actorId = GetId(actor);
+        CharacterCombatLoadoutProfile profile =
+            equipmentRuntime.GetActiveProfileSnapshot(actorId);
+        List<string> instanceIds = slot == CombatEquipmentLoadoutSlot.Weapon
+            ? profile?.weaponInstanceIds?.ToList() ?? new List<string>()
+            : (profile?.armorInstanceIds ?? new List<string>())
+                .Concat(string.IsNullOrWhiteSpace(profile?.shieldInstanceId)
+                    ? Array.Empty<string>()
+                    : new[] { profile.shieldInstanceId })
+                .ToList();
+        if (instanceIds.Count == 0)
+        {
+            message = "해제할 장비가 없습니다.";
+            return false;
+        }
+
+        List<(string InstanceId, string StackId)> spawned =
+            new List<(string InstanceId, string StackId)>();
+        Vector2Int dropPosition = actor.GetNowXY();
+        foreach (string instanceId in instanceIds)
+        {
+            if (!equipmentRuntime.TryGetInstance(instanceId, out CombatEquipmentInstance instance)
+                || !equipmentCatalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
+                || !itemRuntime.SpawnUniqueItemAt(
+                    definition.ItemId,
+                    dropPosition,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out string stackId))
+            {
+                foreach ((string _, string spawnedStackId) in spawned)
+                {
+                    itemRuntime.DeleteStack(spawnedStackId);
+                }
+
+                message = "장비를 내려놓을 공간을 만들지 못했습니다.";
+                return false;
+            }
+
+            spawned.Add((instanceId, stackId));
+        }
+
+        if (!equipmentRuntime.TryUnassignSlot(actorId, slot, out message))
+        {
+            foreach ((string _, string stackId) in spawned)
+            {
+                itemRuntime.DeleteStack(stackId);
+            }
+
+            return false;
+        }
+
+        foreach ((string instanceId, string stackId) in spawned)
+        {
+            if (!equipmentRuntime.TryLinkToWorldStack(
+                instanceId,
+                stackId,
+                CombatEquipmentWorldState.Loose))
+            {
+                message = "장비와 물리 스택 연결에 실패했습니다.";
+                return false;
+            }
+        }
+
+        message = $"장비 {spawned.Count}개를 바닥에 내려놓았습니다.";
         return true;
     }
 
@@ -502,17 +602,16 @@ public sealed class CombatLoadoutPreparationRuntime :
         AbilityMove movement = state.Actor != null
             ? state.Actor.GetComponent<AbilityMove>()
             : null;
-        if (grid == null
-            || movement == null
-            || !pathSearchBroker.TryGetSearch(
-                grid,
-                state.Actor.GetNowXY(),
-                out GridPathSearchResult search))
+        if (grid == null || movement == null)
         {
             return false;
         }
 
-        Queue<GridMoveStep> path = search.GetMovePath(position => position == state.PickupStand);
+        Queue<GridMoveStep> path = pathSearchBroker.GetMovePathTo(
+            grid,
+            state.Actor.GetNowXY(),
+            state.PickupStand,
+            traversalContext: GridTraversalContext.ForCharacter(state.Actor));
         if (path == null || path.Count == 0)
         {
             return false;
@@ -623,6 +722,8 @@ public sealed class CombatLoadoutPreparationRuntime :
         }
 
         states.Clear();
+        tickStates.Clear();
+        completedActorIds.Clear();
     }
 
     private static bool IsEligibleGuard(CharacterActor actor)

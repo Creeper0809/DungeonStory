@@ -43,6 +43,7 @@ public sealed class BlueprintResearchWorkService : IBlueprintResearchWorkService
 {
     private readonly IBlueprintResearchRuntimeProvider runtimeProvider;
     private readonly IMetaProgressionRuntimeReader metaProgressionReader;
+    private readonly IKnowledgeResidueProcessingRuntime knowledgeProcessing;
 
     public BlueprintResearchWorkService(IBlueprintResearchRuntimeProvider runtimeProvider)
         : this(runtimeProvider, null)
@@ -52,19 +53,26 @@ public sealed class BlueprintResearchWorkService : IBlueprintResearchWorkService
     [Inject]
     public BlueprintResearchWorkService(
         IBlueprintResearchRuntimeProvider runtimeProvider,
-        IMetaProgressionRuntimeReader metaProgressionReader)
+        IMetaProgressionRuntimeReader metaProgressionReader,
+        IKnowledgeResidueProcessingRuntime knowledgeProcessing = null)
     {
         this.runtimeProvider = runtimeProvider
             ?? throw new ArgumentNullException(nameof(runtimeProvider));
         this.metaProgressionReader = metaProgressionReader;
+        this.knowledgeProcessing = knowledgeProcessing;
     }
 
     public bool HasResearchWorkFor(BuildableObject facility)
     {
-        return runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime)
-            && runtime.HasActiveResearch
-            && facility != null
-            && facility.SupportsWork(BuiltInWorkTypeIds.Research);
+        if (facility == null
+            || !facility.SupportsWork(BuiltInWorkTypeIds.Research)
+            || !runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime))
+        {
+            return false;
+        }
+
+        return runtime.HasActiveResearch
+            || knowledgeProcessing?.HasProcessingWorkFor(facility) == true;
     }
 
     public BlueprintResearchWorkResult ApplyResearchWork(
@@ -85,6 +93,15 @@ public sealed class BlueprintResearchWorkService : IBlueprintResearchWorkService
         }
 
         float multiplier = metaProgressionReader?.GetArcaneResearchWorkMultiplier() ?? 1f;
+        if (!runtime.HasActiveResearch
+            && knowledgeProcessing != null)
+        {
+            return knowledgeProcessing.ApplyWork(
+                researcher,
+                researchFacility,
+                seconds * Math.Max(0.05f, multiplier));
+        }
+
         return runtime.ApplyResearchWork(researcher, researchFacility, seconds * Math.Max(0.05f, multiplier));
     }
 }

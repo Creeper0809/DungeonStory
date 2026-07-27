@@ -25,10 +25,7 @@ public class AIWait : AIActionSet
 
         if (work.IsOffDuty)
         {
-            GridPathSearchResult searchResult = actor != null && actor.Brain != null
-                ? actor.Brain.GetPathSearch(actor)
-                : null;
-            if (HasOffDutyVisitCandidate(actor, searchResult))
+            if (HasOffDutyVisitCandidate(actor, null))
             {
                 return Mathf.Clamp01(Mathf.Min(baseScore, offDutyVisitAvailableScore));
             }
@@ -38,10 +35,7 @@ public class AIWait : AIActionSet
 
         if (!work.IsOffDuty)
         {
-            GridPathSearchResult searchResult = actor.Brain != null
-                ? actor.Brain.GetPathSearch(actor)
-                : null;
-            if (work.GetAnyWorkUtilityScore(searchResult) > 0f)
+            if (work.GetAnyWorkUtilityScore(null) > 0f)
             {
                 return Mathf.Clamp01(Mathf.Min(baseScore, onDutyWorkAvailableScore));
             }

@@ -378,6 +378,8 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
                 scope.Container.Resolve<IRunVariableRuntimeProvider>();
             IMetaProgressionRuntimeProvider metaProvider =
                 scope.Container.Resolve<IMetaProgressionRuntimeProvider>();
+            IWorldItemStackRuntime itemRuntime =
+                scope.Container.Resolve<IWorldItemStackRuntime>();
             Check(gameDataProvider.TryGetGameData(out GameData gameData), "GAME_DATA", "runtime data resolved");
             Check(flow != null, "RUN_FLOW", "run flow resolved");
             if (gameData == null || flow == null)
@@ -424,7 +426,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
             BlueprintResearchRuntime research = null;
             researchProvider.TryGetRuntime(out research);
-            int researchTasksBefore = research != null ? research.State.Tasks.Count : -1;
+            int researchQueueBefore = research != null ? research.State.Projects.Queue.Count : -1;
             int purchasedOffers = 0;
             Button shopTab = FindTopTabButton(TabId.Shop);
             yield return Click(shopTab, "shop tab");
@@ -475,20 +477,33 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
                 purchasedBlueprintCost = moneyBeforePurchase - gameData.holdingMoney.Value;
             }
 
-            int researchTasksAfter = research != null ? research.State.Tasks.Count : -1;
-            Check(purchasedOffers > 0 && researchTasksAfter > researchTasksBefore,
+            FacilityBlueprintSO purchasedBlueprint =
+                (selectedBlueprintOffer as FacilityBlueprintOffer)?.Blueprint;
+            int researchQueueAfter = research != null ? research.State.Projects.Queue.Count : -1;
+            bool physicalBlueprintExists = purchasedBlueprint != null
+                && itemRuntime.GetAllStacks().Any(stack => stack != null
+                    && stack.Quantity > 0
+                    && string.Equals(
+                        stack.ItemId,
+                        purchasedBlueprint.PhysicalItemId,
+                        StringComparison.Ordinal));
+            Check(purchasedOffers > 0
+                    && physicalBlueprintExists
+                    && researchQueueAfter == researchQueueBefore,
                 "PUBLIC_RESEARCH_PURCHASE",
                 $"pointerClicks={purchasedOffers}; blueprint={selectedBlueprintOffer?.DataId ?? -1}; "
-                + $"cost={purchasedBlueprintCost}; tasks={researchTasksBefore}->{researchTasksAfter}; money={gameData.holdingMoney.Value}");
+                + $"cost={purchasedBlueprintCost}; physical={physicalBlueprintExists}; "
+                + $"queue={researchQueueBefore}->{researchQueueAfter}; money={gameData.holdingMoney.Value}");
             if (strategy.IsTargeted)
             {
                 bool targetAcquired = dailyShop != null
                     && dailyShop.UnlockState.AcquiredBlueprintIds.Contains(strategy.BlueprintId);
-                bool targetQueued = research != null && research.State.Tasks.Any((task) =>
-                    task?.Blueprint != null && task.Blueprint.id == strategy.BlueprintId);
-                Check(targetAcquired && targetQueued,
+                bool targetPhysical = purchasedBlueprint != null
+                    && purchasedBlueprint.id == strategy.BlueprintId
+                    && physicalBlueprintExists;
+                Check(targetAcquired && targetPhysical,
                     "STRATEGY_RESEARCH_PATH",
-                    $"blueprint={strategy.BlueprintId}; acquired={targetAcquired}; queued={targetQueued}; "
+                    $"blueprint={strategy.BlueprintId}; acquired={targetAcquired}; physical={targetPhysical}; "
                     + $"offerCost={selectedBlueprintOffer?.Cost ?? -1}; paid={purchasedBlueprintCost}");
             }
             yield return Click(shopTab, "shop tab close");
@@ -498,7 +513,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             Check(acceleratorCount == 0, "NO_PUBLIC_ACCELERATORS", $"buttons={acceleratorCount}");
 
             float researchProgressBefore = GetTotalResearchProgress(research);
-            int completedResearchBefore = research != null ? research.State.CompletedBlueprintIds.Count : 0;
+            int completedResearchBefore = research != null
+                ? research.State.Projects.CompletedProjectIds.Count
+                : 0;
             int facilityUsesBefore = GetCompletedFacilityUses();
             int facilityWorkBefore = GetCompletedFacilityWork();
             CharacterActor owner = FindFirstObjectByType<OwnerRunManager>()?.CurrentOwnerActor;
@@ -600,7 +617,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
                 ? settlement.ReportHistory.Count
                 : 0;
             float researchProgressAfter = GetTotalResearchProgress(research);
-            int completedResearchAfter = research != null ? research.State.CompletedBlueprintIds.Count : 0;
+            int completedResearchAfter = research != null
+                ? research.State.Projects.CompletedProjectIds.Count
+                : 0;
             int facilityUsesAfter = GetCompletedFacilityUses();
             int facilityWorkAfter = GetCompletedFacilityWork();
 
@@ -632,7 +651,8 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             if (strategy.IsTargeted)
             {
                 bool targetCompleted = research != null
-                    && research.State.CompletedBlueprintIds.Contains(strategy.BlueprintId);
+                    && TryGetStrategyProject(research, strategy, out ResearchProjectSO strategyProject)
+                    && research.State.Projects.IsCompleted(strategyProject.ProjectId);
                 float targetProgress = GetResearchProgress(research, strategy.BlueprintId);
                 Check(targetCompleted || targetProgress > 0.01f,
                     "STRATEGY_RESEARCH_RESULT",
@@ -1069,7 +1089,8 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         }
 
         return research != null
-            && research.State.CompletedBlueprintIds.Contains(strategy.BlueprintId);
+            && TryGetStrategyProject(research, strategy, out ResearchProjectSO project)
+            && research.State.Projects.IsCompleted(project.ProjectId);
     }
 
     private IEnumerator ReduceGameSpeedToOne(GameData gameData)
@@ -2063,7 +2084,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             ? rallyPlan.IntruderSteps.ToList()
             : new List<GridMoveStep>();
         HashSet<Vector2Int> walkRouteCells = route
-            .Where(step => step != null && step.MoveType == GridMoveType.Walk)
+            .Where(step => step.IsValid && step.MoveType == GridMoveType.Walk)
             .SelectMany(step => new[] { step.From, step.To })
             .ToHashSet();
         Check(route.Count > 0 && walkRouteCells.Count >= 2,
@@ -2247,7 +2268,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
     {
         HashSet<Vector2Int> considered = new HashSet<Vector2Int>();
         IEnumerable<GridMoveStep> placementRoute = route
-            .Where(step => step != null && step.MoveType == GridMoveType.Walk)
+            .Where(step => step.IsValid && step.MoveType == GridMoveType.Walk)
             .Skip(Mathf.Min(2, Mathf.Max(0, route.Count - 1)));
         foreach (GridMoveStep step in placementRoute)
         {
@@ -2333,6 +2354,48 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         if (strategy == null || !strategy.IsTargeted)
         {
             yield break;
+        }
+
+        DungeonRuntimeLifetimeScope scope = FindScope();
+        IBlueprintResearchRuntimeProvider researchProvider =
+            scope?.Container?.Resolve<IBlueprintResearchRuntimeProvider>();
+        IResearchBlueprintArchiveQuery archiveQuery =
+            scope?.Container?.Resolve<IResearchBlueprintArchiveQuery>();
+        IResearchQueueCommandService queueCommands =
+            scope?.Container?.Resolve<IResearchQueueCommandService>();
+        BlueprintResearchRuntime research = null;
+        ResearchProjectSO project = null;
+        bool hasResearch = researchProvider != null
+            && researchProvider.TryGetRuntime(out research);
+        bool hasProject = hasResearch
+            && TryGetStrategyProject(research, strategy, out project);
+        Check(hasProject,
+            "STRATEGY_RESEARCH_PROJECT",
+            hasProject ? project.ProjectId.Value : $"blueprint={strategy.BlueprintId}");
+        if (hasProject)
+        {
+            float archiveDeadline = Time.realtimeSinceStartup + 30f;
+            while (project.Blueprint != null
+                && project.BlueprintRule != ResearchBlueprintRule.None
+                && !archiveQuery.GetStatus(project.Blueprint).IsArchived
+                && Time.realtimeSinceStartup < archiveDeadline)
+            {
+                yield return new WaitForSecondsRealtime(0.25f);
+            }
+
+            ResearchBlueprintArchiveStatus archiveStatus = project.Blueprint != null
+                ? archiveQuery.GetStatus(project.Blueprint)
+                : default;
+            ResearchNodeState nodeState = research.GetNodeState(project, out string blocker);
+            ResearchQueueCommandResult queueResult =
+                research.State.Projects.ContainsInQueue(project.ProjectId)
+                    ? new ResearchQueueCommandResult(true, "이미 연구 큐에 등록됨")
+                    : queueCommands.Enqueue(project.ProjectId);
+            Check(queueResult.Succeeded
+                    && research.State.Projects.ContainsInQueue(project.ProjectId),
+                "STRATEGY_RESEARCH_QUEUE",
+                $"project={project.ProjectId.Value}; state={nodeState}; archived={archiveStatus.IsArchived}; "
+                + $"location={archiveStatus.Location}; blocker={blocker}; result={queueResult.Message}");
         }
 
         CharacterActor owner = FindFirstObjectByType<OwnerRunManager>()?.CurrentOwnerActor;
@@ -3107,7 +3170,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         report.Add(
             $"DAY {day}; phase={flow.Phase}; money={gameData.holdingMoney.Value}; " +
             $"reports={reports}; uses={GetCompletedFacilityUses()}; work={GetCompletedFacilityWork()}; " +
-            $"research={GetTotalResearchProgress(research):0.##}; completed={research?.State.CompletedBlueprintIds.Count ?? 0}; " +
+            $"research={GetTotalResearchProgress(research):0.##}; completed={research?.State.Projects.CompletedProjectIds.Count ?? 0}; " +
             $"intruders={intruders}; ownerHp={(owner != null ? owner.CurrentHealth : -1f):0.#}; " +
             $"threat={(threat != null ? threat.CurrentThreat : -1f):0.##}; " +
             $"stage={(threat != null ? threat.CurrentStage : InvasionThreatStage.Peaceful)}; " +
@@ -3123,14 +3186,32 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
     private static float GetTotalResearchProgress(BlueprintResearchRuntime research)
     {
-        return research == null ? 0f : research.State.Tasks.Sum(task => task?.Progress ?? 0f);
+        return research == null
+            ? 0f
+            : research.State.Projects.ProgressById.Values.Sum(progress => progress?.Progress ?? 0f);
     }
 
     private static float GetResearchProgress(BlueprintResearchRuntime research, int blueprintId)
     {
-        return research?.State.Tasks
-            .Where((task) => task?.Blueprint != null && task.Blueprint.id == blueprintId)
-            .Sum((task) => task.Progress) ?? 0f;
+        if (research == null
+            || !research.ProjectCatalog.TryGetForBlueprint(blueprintId, out ResearchProjectSO project))
+        {
+            return 0f;
+        }
+
+        return research.State.Projects.GetProgress(project.ProjectId).Progress;
+    }
+
+    private static bool TryGetStrategyProject(
+        BlueprintResearchRuntime research,
+        NaturalRunStrategySpec strategy,
+        out ResearchProjectSO project)
+    {
+        project = null;
+        return research != null
+            && strategy != null
+            && strategy.IsTargeted
+            && research.ProjectCatalog.TryGetForBlueprint(strategy.BlueprintId, out project);
     }
 
     private static int GetCompletedFacilityUses()

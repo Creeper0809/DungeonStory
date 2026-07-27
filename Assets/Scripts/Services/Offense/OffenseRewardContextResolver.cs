@@ -22,7 +22,8 @@ public interface IOffenseRewardContextBuilder
     OffenseRewardContext Create(
         OffenseTargetDefinition target,
         OffenseRewardState state,
-        OffenseRewardDebugContext debugContext);
+        OffenseRewardDebugContext debugContext,
+        string expeditionId = "");
 }
 
 public sealed class OffenseRewardContextBuilder : IOffenseRewardContextBuilder
@@ -31,12 +32,16 @@ public sealed class OffenseRewardContextBuilder : IOffenseRewardContextBuilder
     private readonly IDailyFacilityShopRuntimeProvider shopProvider;
     private readonly IGameDataProvider gameDataProvider;
     private readonly IWarehouseWorldQuery warehouseWorld;
+    private readonly IOffenseRegionRuntime regionRuntime;
+    private readonly IOffenseReturnArrivalRuntime returnArrivalRuntime;
 
     public OffenseRewardContextBuilder(
         IBlueprintResearchRuntimeProvider researchProvider,
         IDailyFacilityShopRuntimeProvider shopProvider,
         IGameDataProvider gameDataProvider,
-        IWarehouseWorldQuery warehouseWorld)
+        IWarehouseWorldQuery warehouseWorld,
+        IOffenseRegionRuntime regionRuntime = null,
+        IOffenseReturnArrivalRuntime returnArrivalRuntime = null)
     {
         this.researchProvider = researchProvider
             ?? throw new ArgumentNullException(nameof(researchProvider));
@@ -46,12 +51,15 @@ public sealed class OffenseRewardContextBuilder : IOffenseRewardContextBuilder
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.warehouseWorld = warehouseWorld
             ?? throw new ArgumentNullException(nameof(warehouseWorld));
+        this.regionRuntime = regionRuntime ?? new OffenseRegionRuntime();
+        this.returnArrivalRuntime = returnArrivalRuntime;
     }
 
     public OffenseRewardContext Create(
         OffenseTargetDefinition target,
         OffenseRewardState state,
-        OffenseRewardDebugContext debugContext)
+        OffenseRewardDebugContext debugContext,
+        string expeditionId = "")
     {
         researchProvider.TryGetRuntime(out BlueprintResearchRuntime researchRuntime);
         shopProvider.TryGetRuntime(out DailyFacilityShopRuntime shopRuntime);
@@ -75,6 +83,9 @@ public sealed class OffenseRewardContextBuilder : IOffenseRewardContextBuilder
             researchState = debugContext?.researchState ?? researchRuntime?.State,
             researchRuntime = debugContext?.researchState == null ? researchRuntime : null,
             rewardState = state,
+            regionRuntime = regionRuntime,
+            returnArrivalRuntime = returnArrivalRuntime,
+            expeditionId = expeditionId?.Trim() ?? string.Empty,
             target = target
         };
     }

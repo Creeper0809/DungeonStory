@@ -28,11 +28,6 @@ public sealed class DungeonOffenseSaveData
 public sealed class DungeonOffenseRewardSaveData
 {
     public int moneyEarned;
-    public int humanFactionWeakening;
-    public int rivalFactionWeakening;
-    public int recruitCandidateCount;
-    public int prisonerCount;
-    public int specialMonsterCount;
     public List<DungeonOffenseStockRewardSaveData> stockGranted =
         new List<DungeonOffenseStockRewardSaveData>();
     public List<int> rareFacilityBuildingIds = new List<int>();
@@ -166,11 +161,6 @@ public sealed class OffenseSaveService : IOffenseSaveService
             result.rewards = new DungeonOffenseRewardSaveData
             {
                 moneyEarned = state.MoneyEarned,
-                humanFactionWeakening = state.HumanFactionWeakening,
-                rivalFactionWeakening = state.RivalFactionWeakening,
-                recruitCandidateCount = state.RecruitCandidateCount,
-                prisonerCount = state.PrisonerCount,
-                specialMonsterCount = state.SpecialMonsterCount,
                 stockGranted = state.StockGrantedByCategory
                     .OrderBy(pair => pair.Key)
                     .Select(pair => new DungeonOffenseStockRewardSaveData
@@ -253,11 +243,6 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 .ToDictionary(group => group.Key, group => group.Sum(entry => entry.amount));
             rewardRuntime.RestorePersistentState(
                 rewards.moneyEarned,
-                rewards.humanFactionWeakening,
-                rewards.rivalFactionWeakening,
-                rewards.recruitCandidateCount,
-                rewards.prisonerCount,
-                rewards.specialMonsterCount,
                 stock,
                 rewards.rareFacilityBuildingIds ?? new List<int>(),
                 rewards.acquiredBlueprintIds ?? new List<int>());

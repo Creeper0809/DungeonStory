@@ -49,16 +49,42 @@ public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
             ? UnityEngine.Object.Instantiate(ownerPrefab)
             : new GameObject("OwnerCharacter");
 
+        ownerObject.SetActive(false);
         ownerObject.name = ownerData.characterName;
         ownerObject.transform.position = ResolveOwnerSpawnPosition(ownerSpawnPoint, ownerSpawnGridPosition);
         DungeonRuntimeHierarchy.Parent(ownerObject, DungeonRuntimeHierarchy.Characters);
 
-        CharacterActor owner = EnsureOwnerComponents(ownerObject);
-        InjectOwnerRuntime(ownerObject);
-        owner.SetLifecycleState(CharacterLifecycleState.Active);
-        owner.Initialize(ownerData);
-        owner.Brain?.UseOwnerWorkActions();
-        return owner;
+        try
+        {
+            CharacterActor owner = EnsureOwnerComponents(ownerObject);
+            InjectOwnerRuntime(ownerObject);
+            owner.EnsureRuntimeState();
+            owner.AbilityCache?.RefreshAbilityCache();
+            if (owner.Brain == null || !owner.Brain.HasResumableDecisionPipeline)
+            {
+                throw new InvalidOperationException(
+                    "Owner AI must be fully injected before the character becomes active.");
+            }
+
+            owner.Initialize(ownerData);
+            owner.Brain.UseOwnerWorkActions();
+            owner.SetLifecycleState(CharacterLifecycleState.Active);
+            ownerObject.SetActive(true);
+            return owner;
+        }
+        catch
+        {
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(ownerObject);
+            }
+            else
+            {
+                UnityEngine.Object.DestroyImmediate(ownerObject);
+            }
+
+            throw;
+        }
     }
 
     private CharacterActor EnsureOwnerComponents(GameObject ownerObject)
@@ -94,8 +120,6 @@ public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
             ownerObject.AddComponent<AbilityWork>();
         }
 
-        actor.EnsureRuntimeState();
-        actor.AbilityCache?.RefreshAbilityCache();
         return actor;
     }
 

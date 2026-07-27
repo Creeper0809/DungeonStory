@@ -302,8 +302,19 @@ public static class DungeonRuntimeCompositionDebugScenarios
                 "Runtime Unity object lifetime policy violations:\n" + string.Join("\n", violations));
         }
 
-        string backdropSource = File.ReadAllText(
-            Path.Combine(scriptsRoot, "UI", "DungeonSceneBackdropFitter.cs"));
+        string backdropPath = Path.Combine(
+            scriptsRoot,
+            "Views",
+            "UI",
+            "DungeonSceneBackdropFitter.cs");
+        if (!File.Exists(backdropPath))
+        {
+            throw new FileNotFoundException(
+                "Dungeon scene backdrop source is missing.",
+                backdropPath);
+        }
+
+        string backdropSource = File.ReadAllText(backdropPath);
         return !backdropSource.Contains("BackGround", StringComparison.Ordinal)
             && !backdropSource.Contains("FindTilemap(\"Ground\"", StringComparison.Ordinal);
     }

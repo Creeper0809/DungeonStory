@@ -12,20 +12,16 @@ public class ConsiderationIsVisitable : Consideration
             return 0f;
         }
 
-        GridPathSearchResult searchResult = actor.Brain != null ? actor.Brain.GetPathSearch(actor) : null;
         if (role != FacilityRole.None)
         {
-            return FacilityCandidateScorer.HasCandidate(actor, searchResult, role) ? 1f : 0f;
+            return FacilityCandidateScorer.HasCandidate(actor, null, role) ? 1f : 0f;
         }
 
-        foreach (BuildableObject building in actor.GetReachableBuilding())
-        {
-            if (building != null && building.CanVisit(actor, out _))
-            {
-                return 1f;
-            }
-        }
-
-        return 0f;
+        FacilityRole visitorRoles = shopping.GetInterestRoles()
+            | FacilityRole.Meal
+            | FacilityRole.Rest;
+        return FacilityCandidateScorer.HasCandidate(actor, null, visitorRoles)
+            ? 1f
+            : 0f;
     }
 }

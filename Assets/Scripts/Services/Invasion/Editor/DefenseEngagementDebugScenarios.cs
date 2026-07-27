@@ -26,7 +26,7 @@ public static class DefenseEngagementDebugScenarios
         Run("침입자 전투 설정 저장", VerifyIntruderSettingsPersistence, errors);
         Run("집결 상태 JSON 저장 계약", VerifyRallySaveContract, errors);
         Run("원거리 경비 2인 저장 계약", VerifySecondRangedGuardSaveContract, errors);
-        Run("V15 저장 계약", () => DungeonGameSaveData.CurrentVersion == 15, errors);
+        Run("V16 저장 계약", () => DungeonGameSaveData.CurrentVersion == 16, errors);
 
         foreach (string error in errors)
         {

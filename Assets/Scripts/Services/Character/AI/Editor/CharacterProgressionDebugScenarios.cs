@@ -287,6 +287,9 @@ public static class CharacterProgressionDebugScenarios
             }
         });
 
+        Require(
+            worker.Progression.OwnerFixedSkills.Count == 0,
+            "A regular employee received owner-only fixed skills.");
         Require(Mathf.Approximately(CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(worker), 1f),
             "Work-speed module leaked as an always-on bonus before work started.");
         CharacterSkillRuntimeEffects.BeginWork(
@@ -294,8 +297,18 @@ public static class CharacterProgressionDebugScenarios
             null,
             BuiltInWorkTypeIds.Operate,
             "qa-management-work-started");
-        Require(Mathf.Approximately(CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(worker), 1.1f),
-            "Work-speed module did not snapshot at work start.");
+        float workSpeedModuleTotal = CharacterSkillRuntimeEffects.GetManagementModuleTotal(
+            worker,
+            "work_speed",
+            CharacterSkillTrigger.WorkCompleted);
+        float workSpeedSnapshot =
+            CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(worker);
+        Require(
+            Mathf.Approximately(workSpeedSnapshot, 1.1f),
+            $"Work-speed module did not snapshot at work start. "
+            + $"snapshot={workSpeedSnapshot:0.###}; "
+            + $"moduleTotal={workSpeedModuleTotal:0.###}; "
+            + $"passives={growth.passiveSkills.Count}");
         CharacterSkillRuntimeEffects.EndWork(worker);
         Require(Mathf.Approximately(CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(worker), 1f),
             "Work-speed snapshot was not cleared after work ended.");

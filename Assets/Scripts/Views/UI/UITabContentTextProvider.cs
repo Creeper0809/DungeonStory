@@ -319,16 +319,16 @@ public sealed class ResearchTabContentPresenter : IUITabContentPresenter
     {
         ResearchCraftingSummary summary = summaryService.Capture();
         StringBuilder builder = new StringBuilder();
-        builder.AppendLine($"연구 작업 수: {summary.ResearchTaskCount}");
-        builder.AppendLine($"완료 설계도: {summary.CompletedBlueprintCount}");
-        builder.AppendLine(summary.HasActiveTask
-            ? $"진행 중 연구: {summary.ActiveBlueprintName} {summary.ActiveProgressRatio:P0}"
+        builder.AppendLine($"연구 대기열: {summary.ResearchQueueCount}");
+        builder.AppendLine($"완료 연구: {summary.CompletedProjectCount}");
+        builder.AppendLine(summary.HasActiveProject
+            ? $"진행 중 연구: {summary.ActiveProjectName} {summary.ActiveProgressRatio:P0}"
             : "진행 중 연구: 없음");
         builder.AppendLine($"선택 합성 재료: {summary.SelectedSynthesisMaterials}");
         builder.AppendLine($"보이는 합성식: {summary.VisibleSynthesisRecipes}");
         builder.AppendLine();
         builder.AppendLine("연구/제작 탭에 들어갈 핵심");
-        builder.AppendLine("- 설계도 연구 큐와 진행률");
+        builder.AppendLine("- 연구 프로젝트 큐와 진행률");
         builder.AppendLine("- 연구 완료 보상/해금 시설");
         builder.AppendLine("- 시설 합성 재료 선택");
         builder.AppendLine("- 결과 시설 미리보기와 합성 확정");

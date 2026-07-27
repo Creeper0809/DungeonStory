@@ -60,7 +60,16 @@ public sealed class FacilityRoomOperationalProfile
 
 public sealed class RoomFacilityPolicyService : IRoomFacilityPolicy
 {
+    private sealed class CachedOperationalProfile
+    {
+        public Grid Grid;
+        public int StructuralVersion = -1;
+        public FacilityRoomOperationalProfile Profile;
+    }
+
     private readonly IRoomLayoutCache roomLayoutCache;
+    private readonly Dictionary<BuildableObject, CachedOperationalProfile> profileCache =
+        new Dictionary<BuildableObject, CachedOperationalProfile>();
 
     public RoomFacilityPolicyService(IRoomLayoutCache roomLayoutCache)
     {
@@ -113,7 +122,17 @@ public sealed class RoomFacilityPolicyService : IRoomFacilityPolicy
 
     public float GetRoomUtilityScore(BuildableObject building, FacilityRole role)
     {
-        if (building == null || !roomLayoutCache.TryGetRoom(building, out RoomInstance room))
+        if (building == null || building.BuildingData == null)
+        {
+            return 0.5f;
+        }
+
+        if (!building.BuildingData.RequiresRoomRole())
+        {
+            return 0.5f;
+        }
+
+        if (!roomLayoutCache.TryGetRoom(building, out RoomInstance room))
         {
             return 0.5f;
         }
@@ -136,7 +155,21 @@ public sealed class RoomFacilityPolicyService : IRoomFacilityPolicy
             return baseCapacity;
         }
 
-        FacilityRoomOperationalProfile profile = GetOperationalProfile(building);
+        if (building.BuildingData == null
+            || !building.BuildingData.RequiresRoomRole())
+        {
+            return baseCapacity;
+        }
+
+        if (!roomLayoutCache.TryGetRoom(building, out RoomInstance room)
+            || room == null
+            || room.IsSelfContained
+            || !room.IsUsable)
+        {
+            return baseCapacity;
+        }
+
+        FacilityRoomOperationalProfile profile = GetOperationalProfile(building, room);
         if (!profile.IsUsableRoom)
         {
             return baseCapacity;
@@ -164,6 +197,24 @@ public sealed class RoomFacilityPolicyService : IRoomFacilityPolicy
         }
 
         roomLayoutCache.TryGetRoom(building, out RoomInstance room);
+        return GetOperationalProfile(building, room);
+    }
+
+    private FacilityRoomOperationalProfile GetOperationalProfile(
+        BuildableObject building,
+        RoomInstance room)
+    {
+        Grid grid = building != null ? building.Grid : null;
+        int structuralVersion = grid != null ? grid.StructuralVersion : -1;
+        if (building != null
+            && profileCache.TryGetValue(building, out CachedOperationalProfile cached)
+            && cached.Grid == grid
+            && cached.StructuralVersion == structuralVersion
+            && cached.Profile != null)
+        {
+            return cached.Profile;
+        }
+
         List<BuildableObject> parts = CollectRoomParts(building, room);
         int seats = 0;
         int tables = 0;
@@ -209,7 +260,25 @@ public sealed class RoomFacilityPolicyService : IRoomFacilityPolicy
         }
 
         StockCategory category = ResolveRetailCategory(stockCategorySignals);
-        return new FacilityRoomOperationalProfile(room, parts, seats, tables, service, category, storage);
+        FacilityRoomOperationalProfile profile = new FacilityRoomOperationalProfile(
+            room,
+            parts,
+            seats,
+            tables,
+            service,
+            category,
+            storage);
+        if (building != null)
+        {
+            profileCache[building] = new CachedOperationalProfile
+            {
+                Grid = grid,
+                StructuralVersion = structuralVersion,
+                Profile = profile
+            };
+        }
+
+        return profile;
     }
 
     private static List<BuildableObject> CollectRoomParts(BuildableObject building, RoomInstance room)

@@ -210,7 +210,7 @@ public static class WildlifeDebugScenarios
     private static string VerifySaveV10WildlifeContract()
     {
         DungeonGameSaveData save = new DungeonGameSaveData();
-        Require(DungeonGameSaveData.CurrentVersion == 15, $"save version is {DungeonGameSaveData.CurrentVersion}");
+        Require(DungeonGameSaveData.CurrentVersion == 16, $"save version is {DungeonGameSaveData.CurrentVersion}");
         Require(save.version == DungeonGameSaveData.CurrentVersion, $"new save version is {save.version}");
         DungeonWildlifeSaveData wildlife = new DungeonWildlifeSaveData();
         DungeonSurvivalSaveData survival = new DungeonSurvivalSaveData();

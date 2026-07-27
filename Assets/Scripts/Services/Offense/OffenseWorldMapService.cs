@@ -37,7 +37,8 @@ public static class OffenseWorldMapService
                 1,
                 10f,
                 Reward(new OffenseStockRewardSpec(StockCategory.Food), "식재료", 40),
-                Reward(new OffenseMoneyRewardSpec(), "약탈금", 80)),
+                Reward(new OffenseMoneyRewardSpec(), "약탈금", 80),
+                Reward(new OffenseRegionalPressureRewardSpec(), "물류망 타격", 1)),
             CreateTarget(
                 "merchant_road",
                 "상단 교역로",
@@ -53,7 +54,8 @@ public static class OffenseWorldMapService
                 Reward(
                     new OffenseSpecificBlueprintRewardSpec(OffenseStrategyBlueprintIds.CommerceLogistics),
                     "상권 통합 설계도",
-                    1)),
+                    1),
+                Reward(new OffenseRegionalPressureRewardSpec(), "정보망 교란", 1)),
             CreateTarget(
                 "old_armory",
                 "낡은 무기고",
@@ -68,7 +70,8 @@ public static class OffenseWorldMapService
                 Reward(
                     new OffenseSpecificBlueprintRewardSpec(OffenseStrategyBlueprintIds.FortressDefense),
                     "전술 지휘 설계도",
-                    1)),
+                    1),
+                Reward(new OffenseRegionalPressureRewardSpec(), "무장고 파괴", 1)),
             CreateTarget(
                 "mana_ruins",
                 "마력 유적",
@@ -83,7 +86,8 @@ public static class OffenseWorldMapService
                 Reward(
                     new OffenseSpecificBlueprintRewardSpec(OffenseStrategyBlueprintIds.ArcaneResearch),
                     "비전 공명 설계도",
-                    1)),
+                    1),
+                Reward(new OffenseRegionalPressureRewardSpec(), "봉인 정보 회수", 1)),
             CreateTarget(
                 "rival_dungeon",
                 "경쟁 던전 전초기지",
@@ -95,7 +99,7 @@ public static class OffenseWorldMapService
                 3,
                 60f,
                 Reward(new OffenseRareFacilityRewardSpec(), "희귀 시설", 1),
-                Reward(new OffenseHumanFactionWeakeningRewardSpec(), "인간 세력 약화", 1),
+                Reward(new OffenseRegionalPressureRewardSpec(), "지역 전략 압력", 1),
                 Reward(new OffenseRecruitCandidateRewardSpec(), "직원 후보", 1),
                 Reward(new OffenseSpecialMonsterRewardSpec(), "특수 몬스터", 1)),
             CreateTarget(
@@ -108,19 +112,21 @@ public static class OffenseWorldMapService
                 240f,
                 3,
                 85f,
-                Reward(new OffenseMoneyRewardSpec(), "회수 자금", 500),
-                Reward(new OffenseRivalFactionWeakeningRewardSpec(), "적대 세력 붕괴", 2))
+                Reward(new OffenseMoneyRewardSpec(), "회수 자금", 500))
         };
 
         for (int i = 0; i < targets.Length; i++)
         {
             targets[i].campaignOrder = i + 1;
             targets[i].prerequisiteTargetId = i > 0 ? targets[i - 1].id : string.Empty;
+            ConfigureStrategicMetadata(targets[i]);
         }
 
         OffenseTargetDefinition truthTarget = targets[targets.Length - 1];
         truthTarget.revealsTruth = true;
         truthTarget.truthText = TruthRevealText;
+        truthTarget.strategicPressureAxis = StrategicPressureAxis.None;
+        truthTarget.strategicPressureAmount = 0f;
         return targets;
     }
 
@@ -282,6 +288,81 @@ public static class OffenseWorldMapService
             requiredPower = requiredPower,
             rewards = rewards ?? Array.Empty<OffenseRewardPreview>()
         };
+    }
+
+    private static void ConfigureStrategicMetadata(OffenseTargetDefinition target)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        switch (target.id)
+        {
+            case "food_farm":
+                SetStrategicMetadata(
+                    target,
+                    OffenseRegionRuntime.BorderTradeRegionId,
+                    "변경 교역권",
+                    OffenseRegionRuntime.HumanFactionId,
+                    StrategicPressureAxis.Logistics);
+                break;
+            case "merchant_road":
+                SetStrategicMetadata(
+                    target,
+                    OffenseRegionRuntime.BorderTradeRegionId,
+                    "변경 교역권",
+                    OffenseRegionRuntime.HumanFactionId,
+                    StrategicPressureAxis.Intelligence);
+                break;
+            case "old_armory":
+                SetStrategicMetadata(
+                    target,
+                    OffenseRegionRuntime.RivalOutpostRegionId,
+                    "경쟁 던전 전초권",
+                    OffenseRegionRuntime.RivalFactionId,
+                    StrategicPressureAxis.Armament);
+                break;
+            case "mana_ruins":
+                SetStrategicMetadata(
+                    target,
+                    OffenseRegionRuntime.SealedZoneRegionId,
+                    "봉인 지대",
+                    OffenseRegionRuntime.SealFactionId,
+                    StrategicPressureAxis.Intelligence);
+                break;
+            case "rival_dungeon":
+                SetStrategicMetadata(
+                    target,
+                    OffenseRegionRuntime.RivalOutpostRegionId,
+                    "경쟁 던전 전초권",
+                    OffenseRegionRuntime.RivalFactionId,
+                    StrategicPressureAxis.Manpower,
+                    20f);
+                break;
+            default:
+                target.regionId = OffenseRegionRuntime.SealedZoneRegionId;
+                target.regionDisplayName = "봉인 지대";
+                target.factionId = OffenseRegionRuntime.SealFactionId;
+                target.strategicPressureAxis = StrategicPressureAxis.None;
+                target.strategicPressureAmount = 0f;
+                break;
+        }
+    }
+
+    private static void SetStrategicMetadata(
+        OffenseTargetDefinition target,
+        string regionId,
+        string regionName,
+        string factionId,
+        StrategicPressureAxis axis,
+        float amount = 15f)
+    {
+        target.regionId = regionId;
+        target.regionDisplayName = regionName;
+        target.factionId = factionId;
+        target.strategicPressureAxis = axis;
+        target.strategicPressureAmount = Mathf.Max(0f, amount);
     }
 
     private static OffenseRewardPreview Reward(

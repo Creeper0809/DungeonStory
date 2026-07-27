@@ -25,6 +25,7 @@ using VContainer;
 [RequireComponent(typeof(BehaviorTree))]
 public class CharacterActor : SerializedMonoBehaviour, IInfoable
 {
+    private const int VisualRecoveryFrameStride = 8;
     public GameObject noExit;
 
     private AIBrain brain;
@@ -67,10 +68,14 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
     [SerializeField]
     [ReadOnly]
     private BehaviorTree behaviorTree;
+    private CharacterCarryInventory carryInventory;
     private ICharacterSocialMemoryFactory socialMemoryFactory;
     [SerializeField, ReadOnly] private CharacterActorRuntimeBridge runtimeBridge;
     [SerializeField, ReadOnly] private CharacterActorPresentationBridge presentationBridge;
     private bool persistentRestorePrepared;
+    private bool runtimeStateInitialized;
+    private bool runtimeStateInitializing;
+    private int nextVisualRecoveryFrame;
 
     public CharacterDecisionState State { get; private set; }
     public CharacterDecisionState state
@@ -132,9 +137,13 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
     public SpriteRenderer VisualRenderer => visual != null ? visual.VisualRenderer : null;
     internal IMainCameraProvider MainCameraProvider => presentationBridge?.MainCameraProvider;
     internal ITmpKoreanFontService TmpKoreanFontService => presentationBridge?.TmpKoreanFontService;
+    internal IDynamicFrameWorkBudget FrameWorkBudget =>
+        presentationBridge?.FrameWorkBudget;
     public IGridPathSearchBroker PathSearchBroker => runtimeBridge?.PathSearchBroker;
     internal ICharacterAiWorldRegistry WorldRegistry => runtimeBridge?.WorldRegistry;
     internal ICharacterAiWorldSignalQuery WorldSignalQuery => runtimeBridge?.WorldSignalQuery;
+    internal bool ShouldCollectDetailedAiDiagnostics =>
+        runtimeBridge == null || runtimeBridge.ShouldCollectDetailedAiDiagnostics;
     internal IWorldItemStackRuntime WorldItemStackRuntime => runtimeBridge?.WorldItemStackRuntime;
     internal ICharacterMedicalRuntime MedicalRuntime => runtimeBridge?.MedicalRuntime;
     internal ICharacterDeprivationRuntime DeprivationRuntime => runtimeBridge?.DeprivationRuntime;
@@ -152,12 +161,14 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         IGridPathSearchBroker pathSearchBroker,
         ICharacterAiWorldRegistry worldRegistry,
         ICharacterAiWorldSignalQuery worldSignalQuery,
+        IDynamicFrameWorkBudget frameWorkBudget,
         IWorldItemStackRuntime worldItemStackRuntime = null,
         IWildlifeRuntime wildlifeRuntime = null,
         ICharacterMedicalRuntime medicalRuntime = null,
         ICharacterDeprivationRuntime deprivationRuntime = null,
         IGameClock gameClock = null,
-        ITmpKoreanFontService tmpKoreanFontService = null)
+        ITmpKoreanFontService tmpKoreanFontService = null,
+        ICharacterPresentationScheduler presentationScheduler = null)
     {
         this.socialMemoryFactory = socialMemoryFactory
             ?? throw new ArgumentNullException(nameof(socialMemoryFactory));
@@ -179,7 +190,9 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
             worldInfoClickSelector,
             feedbackBubbleFactory,
             mainCameraProvider,
-            tmpKoreanFontService);
+            frameWorkBudget,
+            tmpKoreanFontService,
+            presentationScheduler);
         if (worldItemStackRuntime != null)
         {
             CharacterCarryInventory.Ensure(this)?.Configure(
@@ -312,27 +325,37 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         }
 
         persistentRestorePrepared = false;
-        StartCoroutine(characterStats != null ? characterStats.ChangeStatByTick() : EmptyRoutine());
+        characterStats?.BeginNeedDecaySchedule();
     }
 
-    private void Update()
+    internal void TickPresentationMaintenance()
     {
+        IGameClock clock = GameClock;
+        if (clock == null || clock.FrameCount < nextVisualRecoveryFrame)
+        {
+            return;
+        }
+
+        nextVisualRecoveryFrame = clock.FrameCount + VisualRecoveryFrameStride;
         visual?.RecoverExpiredTraversalVisibility();
     }
 
     private void OnEnable()
     {
         runtimeBridge?.OnActorEnabled();
+        presentationBridge?.OnActorEnabled();
     }
 
     private void OnDisable()
     {
         visual?.RestoreTraversalVisibility();
+        presentationBridge?.OnActorDisabled();
         runtimeBridge?.OnActorDisabled();
     }
 
     private void OnDestroy()
     {
+        presentationBridge?.OnActorDestroyed();
         runtimeBridge?.OnActorDestroyed();
     }
 
@@ -402,16 +425,14 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
             return new List<BuildableObject>();
         }
 
-        GridPathSearchResult searchResult = brain != null
-            ? brain.GetPathSearch(this)
-            : null;
-        if (searchResult != null)
+        if (brain != null)
         {
-            return searchResult.GetAllVisitableBuilding();
+            IFacilityCandidateCache cache = brain.RequireFacilityCandidateCache();
+            FacilityRole roles = cache.GetAvailableRoles(grid);
+            return cache.GetCandidates(grid, roles).ToList();
         }
 
-        Vector2Int pos = lifecycle != null ? lifecycle.GetNowXY() : Vector2Int.zero;
-        return grid.GetAllVisitableBuilding(pos).ToList();
+        return new List<BuildableObject>();
     }
 
     private bool TryGetGrid(out Grid grid)
@@ -427,60 +448,75 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
 
     public void EnsureRuntimeState()
     {
-        EnsureRuntimeBridges();
-        if (brain == null)
+        if (runtimeStateInitialized || runtimeStateInitializing)
         {
-            brain = GetComponent<AIBrain>();
-        }
-
-        identity = GetComponent<CharacterIdentity>();
-        progression = GetComponent<CharacterProgression>();
-        if (progression == null && Application.isPlaying)
-        {
-            progression = gameObject.AddComponent<CharacterProgression>();
-        }
-        CharacterCarryInventory.Ensure(this);
-        AbilityHaul.Ensure(this);
-        AbilityHunt.Ensure(this, runtimeBridge?.WildlifeRuntime);
-        abilityCache = GetComponent<CharacterAbilityCache>();
-        characterStats = GetComponent<CharacterStats>();
-        visual = GetComponent<CharacterVisual>();
-        lifecycle = GetComponent<CharacterLifecycle>();
-        characterLog = GetComponent<CharacterLog>();
-        blackboard = GetComponent<CharacterBlackboard>();
-        personaRuntime = GetComponent<CustomerPersonaRuntime>();
-        dialogueRuntime = GetComponent<CharacterDialogueRuntime>();
-        aiMemory = GetComponent<CharacterAiMemoryRuntime>();
-        if (aiMemory == null && Application.isPlaying)
-        {
-            aiMemory = gameObject.AddComponent<CharacterAiMemoryRuntime>();
-        }
-        EnsureSocialMemory();
-
-        behaviorTree = GetComponent<BehaviorTree>();
-        if (behaviorTree != null)
-        {
-            behaviorTree.StartWhenEnabled = false;
-        }
-
-        if (!HasRuntimeComponents)
-        {
-            Debug.LogError($"{name}: CharacterActor component split is incomplete. Fix the prefab components.", this);
             return;
         }
 
-        identity.Bind(this);
-        progression.Bind(this);
-        characterStats.Bind(this);
-        lifecycle.Bind(this);
-        blackboard.Bind(this);
-        personaRuntime.Bind(this);
-        socialMemory.Bind(this);
-        aiMemory.Bind(this);
+        runtimeStateInitializing = true;
+        try
+        {
+            EnsureRuntimeBridges();
+            if (brain == null)
+            {
+                brain = GetComponent<AIBrain>();
+            }
 
-        visual.Bind();
-        characterLog.Bind();
-        presentationBridge?.EnsurePresentation();
+            identity = GetComponent<CharacterIdentity>();
+            progression = GetComponent<CharacterProgression>();
+            if (progression == null && Application.isPlaying)
+            {
+                progression = gameObject.AddComponent<CharacterProgression>();
+            }
+
+            carryInventory = CharacterCarryInventory.Ensure(this);
+            AbilityHaul.Ensure(this);
+            AbilityHunt.Ensure(this, runtimeBridge?.WildlifeRuntime);
+            abilityCache = GetComponent<CharacterAbilityCache>();
+            characterStats = GetComponent<CharacterStats>();
+            visual = GetComponent<CharacterVisual>();
+            lifecycle = GetComponent<CharacterLifecycle>();
+            characterLog = GetComponent<CharacterLog>();
+            blackboard = GetComponent<CharacterBlackboard>();
+            personaRuntime = GetComponent<CustomerPersonaRuntime>();
+            dialogueRuntime = GetComponent<CharacterDialogueRuntime>();
+            aiMemory = GetComponent<CharacterAiMemoryRuntime>();
+            if (aiMemory == null && Application.isPlaying)
+            {
+                aiMemory = gameObject.AddComponent<CharacterAiMemoryRuntime>();
+            }
+            EnsureSocialMemory();
+
+            behaviorTree = GetComponent<BehaviorTree>();
+            if (behaviorTree != null)
+            {
+                behaviorTree.StartWhenEnabled = false;
+            }
+
+            if (!HasRuntimeComponents)
+            {
+                Debug.LogError($"{name}: CharacterActor component split is incomplete. Fix the prefab components.", this);
+                return;
+            }
+
+            identity.Bind(this);
+            progression.Bind(this);
+            characterStats.Bind(this);
+            lifecycle.Bind(this);
+            blackboard.Bind(this);
+            personaRuntime.Bind(this);
+            socialMemory.Bind(this);
+            aiMemory.Bind(this);
+
+            visual.Bind();
+            characterLog.Bind();
+            presentationBridge?.EnsurePresentation();
+            runtimeStateInitialized = true;
+        }
+        finally
+        {
+            runtimeStateInitializing = false;
+        }
     }
 
     public T GetAbility<T>() where T : CharacterAbility
@@ -539,8 +575,7 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
             : identity != null && identity.Data != null
                 ? identity.Data.moveSpeed
                 : 1f;
-        CharacterCarryInventory carry = GetComponent<CharacterCarryInventory>();
-        return baseSpeed * (carry != null ? carry.GetMoveSpeedMultiplier() : 1f);
+        return baseSpeed * (carryInventory != null ? carryInventory.GetMoveSpeedMultiplier() : 1f);
     }
 
     public float GetConsumptionMultiplier()

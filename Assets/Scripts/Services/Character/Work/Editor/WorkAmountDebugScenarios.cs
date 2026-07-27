@@ -71,7 +71,7 @@ public static class WorkAmountDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonWorkOrderSaveData>(
                 save,
                 WorkOrdersSaveSection.Id);
-        return DungeonGameSaveData.CurrentVersion == 15
+        return DungeonGameSaveData.CurrentVersion == 16
             && save.version == DungeonGameSaveData.CurrentVersion
             && workOrders.version == DungeonWorkOrderSaveData.CurrentVersion;
     }
@@ -473,6 +473,36 @@ public static class WorkAmountDebugScenarios
             }
 
             return requested > 0;
+        }
+
+        public bool TryRequestItemDelivery(
+            string itemId,
+            int amount,
+            Vector2Int destinationPosition,
+            string destinationId,
+            out int requested,
+            out string failureReason)
+        {
+            requested = Mathf.Max(0, amount);
+            failureReason = string.Empty;
+            if (requested <= 0)
+            {
+                return false;
+            }
+
+            stacks.Add(new WorldItemStackSnapshot
+            {
+                StackId = $"fake-request:{stacks.Count + 1}",
+                ItemId = itemId ?? string.Empty,
+                StockCategory = StockCategory.Blueprint,
+                Quantity = requested,
+                State = WorldItemStackState.Loose,
+                Position = Vector2Int.zero,
+                DestinationId = destinationId ?? string.Empty,
+                HasDestinationPosition = true,
+                DestinationPosition = destinationPosition
+            });
+            return true;
         }
 
         public bool TryGetPileAt(Vector2Int position, out WorldItemPileSnapshot pile)

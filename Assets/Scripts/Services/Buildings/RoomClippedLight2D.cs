@@ -64,14 +64,14 @@ public sealed class RoomClippedLight2D : MonoBehaviour
         RoomInstance room = ResolveRoom(grid);
         int roomId = room != null ? room.Id : -1;
         if (!force
-            && lastGridVersion == grid.version
+            && lastGridVersion == grid.StructuralVersion
             && lastRoomId == roomId
             && lastLightPosition == transform.position)
         {
             return;
         }
 
-        lastGridVersion = grid.version;
+        lastGridVersion = grid.StructuralVersion;
         lastRoomId = roomId;
         lastLightPosition = transform.position;
 

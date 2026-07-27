@@ -123,12 +123,12 @@ public static class CombatEquipmentAssetBuilder
                 .Distinct(StringComparer.Ordinal)
                 .OrderBy(id => id, StringComparer.Ordinal)
                 .ToArray();
-            float workSeconds = crafting.workSecondsPerCycle;
+            float workUnits = crafting.workUnitsPerCycle;
             building.AbilityModules.Remove<BuildingEquipmentCraftingAbility>();
             building.AbilityModules.Add(new BuildingEquipmentCraftingAbility
             {
                 craftableEquipmentIds = mergedIds,
-                workSecondsPerCycle = workSeconds
+                workUnitsPerCycle = workUnits
             });
             EditorUtility.SetDirty(building);
         }

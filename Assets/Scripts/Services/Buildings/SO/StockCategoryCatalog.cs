@@ -157,6 +157,9 @@ public static class StockCategoryCatalog
         RegisterBuiltIn("stock:ammunition", StockCategory.Ammunition, "탄약", "탄약", 32, 0.18f, 12, 4, 2);
         RegisterBuiltIn("stock:fuel", StockCategory.Fuel, "연료", "연료", 35, 0.16f, 12, 5, 1);
         RegisterBuiltIn("stock:mana", StockCategory.Mana, "마나", "마나", 40, 0.10f, 10, 9, 2);
+        RegisterBuiltIn("stock:biological", StockCategory.Biological, "생체 추출물", "생체", 45, 0.03f, 0, 14, 3);
+        RegisterBuiltIn("stock:knowledge", StockCategory.Knowledge, "기억 잔재", "기억", 50, 0.02f, 0, 18, 3);
+        RegisterBuiltIn("stock:blueprint", StockCategory.Blueprint, "연구 설계도", "설계도", 55, 0f, 0, 80, 10);
     }
 
     private static void RegisterBuiltIn(

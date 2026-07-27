@@ -47,7 +47,7 @@ MonoBehaviour:
     - rid: 7302562991791408095
     - rid: 7302563133342875891
     - rid: 7302563135951208602
-    - rid: 7302563174523077608
+    - rid: 7302563218931319412
   width: 2
   height: 1
   layer: 1
@@ -107,7 +107,7 @@ MonoBehaviour:
         abilityId: BuildingEquipmentMaintenanceAbility
         workSpeedMultiplier: 1
         simultaneousRepairSlots: 1
-    - rid: 7302563174523077608
+    - rid: 7302563218931319412
       type: {class: BuildingEquipmentCraftingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEquipmentCraftingAbility
@@ -139,4 +139,4 @@ MonoBehaviour:
         - weapon:spear
         - weapon:strength-maul
         - weapon:throwing-axe
-        workSecondsPerCycle: 1
+        workUnitsPerCycle: 1

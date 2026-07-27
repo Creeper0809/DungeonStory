@@ -1,0 +1,367 @@
+{
+    "profileId": "adaptive-trace-1000",
+    "utcTimestamp": "2026-07-26T19:03:05.8054039Z",
+    "applicationVersion": "0.1.0",
+    "unityVersion": "6000.3.8f1",
+    "operatingSystem": "Windows 11  (10.0.22631)",
+    "processor": "Intel(R) Core(TM) i9-14900HX",
+    "processorCount": 32,
+    "systemMemoryMb": 32559,
+    "graphicsDevice": "NVIDIA GeForce RTX 4080 Laptop GPU",
+    "graphicsMemoryMb": 11997,
+    "screenWidth": 1920,
+    "screenHeight": 1080,
+    "aiSchedulerDisabled": false,
+    "characterPresentationDisabled": true,
+    "characterStatsUpdatesDisabled": true,
+    "requestedActorCount": 1000,
+    "requestedFacilityCount": 8192,
+    "requestedGridWidth": 1024,
+    "requestedGridHeight": 1024,
+    "requestedActiveFloors": 32,
+    "actualActorCount": 1000,
+    "actualStressActorCount": 992,
+    "actualBuildingCount": 10350,
+    "actualDenseFacilityCount": 8192,
+    "actualDenseDoorCount": 2012,
+    "activeRendererCount": 11529,
+    "visibleRendererCount": 0,
+    "activeCanvasCount": 5,
+    "activeNameplateCount": 1000,
+    "gridWidth": 1024,
+    "gridHeight": 1024,
+    "schedulerRegisteredCharacters": 1000,
+    "schedulerLastMilliseconds": 3.2577,
+    "schedulerLastDecisions": 15,
+    "schedulerLastPathSearches": 0,
+    "schedulerCurrentBudgetMilliseconds": 3.1251886102443957,
+    "schedulerEstimatedDecisionMilliseconds": 0.21506502942900186,
+    "schedulerEstimatedPathMilliseconds": 0.010723283139678184,
+    "schedulerSmoothedFrameMilliseconds": 9.95958498575244,
+    "schedulerProcessedDecisions": 926,
+    "schedulerStarvedDecisions": 917,
+    "schedulerSkippedDecisions": 1,
+    "schedulerOldestDeferralSeconds": 3.3120908737182619,
+    "schedulerMaximumDeferralSeconds": 5.116970539093018,
+    "schedulerBudgetExhausted": true,
+    "facilityCandidateIndexPending": false,
+    "facilityCandidateIndexVersion": 77,
+    "sampleCount": 154,
+    "sampleDurationSeconds": 2.0071544647216799,
+    "setupMilliseconds": 16533.0068,
+    "totalProfileMilliseconds": 22253.6351,
+    "averageFps": 61.30454635620117,
+    "onePercentLowFps": 4.182889461517334,
+    "framesOver16_67Ms": 16,
+    "framesOver33_33Ms": 14,
+    "monoUsedBytesAtStart": 199876608,
+    "monoUsedBytesAtEnd": 219058176,
+    "totalAllocatedBytesAtStart": 228450943,
+    "totalAllocatedBytesAtEnd": 228905783,
+    "warningCount": 0,
+    "errorCount": 4588,
+    "valid": false,
+    "meets60FpsP95": false,
+    "meets60FpsP99": false,
+    "meets60FpsEverySample": false,
+    "vSyncDisabled": true,
+    "targetFrameRate": -1,
+    "measurementIncludesRendering": true,
+    "measurementIncludesUi": true,
+    "measurementIncludesPhysics": true,
+    "measurementUsesNormalNewRun": true,
+    "measurementUsesRealCharacterPrefab": true,
+    "measurementUsesRealBuildingObjects": true,
+    "failureReason": "samples=154; errors=4588; actors=1000/1000; facilities=8192/8192; grid=1024x1024",
+    "logMessages": [
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies.",
+        "Exception: FileNotFoundException: Could not load file or assembly 'UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null' or one of its dependencies."
+    ],
+    "frame": {
+        "average": 16.31200408935547,
+        "p50": 8.180697441101075,
+        "p95": 48.22589874267578,
+        "p99": 239.06919860839845,
+        "maximum": 326.5956115722656
+    },
+    "mainThread": {
+        "average": 13.143904685974121,
+        "p50": 8.090700149536133,
+        "p95": 46.94419860839844,
+        "p99": 99.79419708251953,
+        "maximum": 239.07080078125
+    },
+    "renderThread": {
+        "average": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "maximum": 0.0
+    },
+    "gc": {
+        "averageBytes": 0.0,
+        "p95Bytes": 0,
+        "maximumBytes": 0
+    },
+    "aiPerformance": {
+        "valid": false,
+        "actorCount": 1000,
+        "sampleFrames": 154,
+        "scheduler": {
+            "name": "Scheduler",
+            "sampleCount": 154,
+            "average": 3.523303246753247,
+            "p95": 3.761,
+            "max": 229.4003,
+            "gcBytes": 0
+        },
+        "behaviorTree": {
+            "name": "BT",
+            "sampleCount": 0,
+            "average": 0.0,
+            "p95": 0.0,
+            "max": 0.0,
+            "gcBytes": 0
+        },
+        "pathBroker": {
+            "name": "Grid.SearchPath",
+            "sampleCount": 0,
+            "average": 0.0,
+            "p95": 0.0,
+            "max": 0.0,
+            "gcBytes": 0
+        },
+        "garbageCollection": {
+            "name": "GC",
+            "sampleCount": 0,
+            "average": 0.0,
+            "p95": 0.0,
+            "max": 0.0,
+            "gcBytes": 0
+        },
+        "metrics": [
+            {
+                "name": "Scheduler",
+                "sampleCount": 154,
+                "average": 3.523303246753247,
+                "p95": 3.761,
+                "max": 229.4003,
+                "gcBytes": 0
+            },
+            {
+                "name": "BT",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "DomainSelection",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "ActionScoring",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "FacilityScoring",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorkTargetSelector",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Haul",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Wildlife",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Grid.SearchPath",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "UI Feedback",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.SpatialIndex",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.Proximity",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.Environment",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.Prepare",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.Considerations",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.CanStart",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.ResolveDestination",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.CandidateSource",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.CandidateLoop",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.Needs",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.Abilities",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.WorldSignal",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.Availability",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            }
+        ],
+        "brokerSearches": 0,
+        "brokerCacheHits": 0,
+        "brokerBudgetDeferrals": 0,
+        "summary": "AI 1000명 · 평균 3.52ms · p95 3.76ms · 경로 캐시 0.0%"
+    }
+}

@@ -1,0 +1,353 @@
+{
+    "profileId": "editor-timescale-x1-100",
+    "utcTimestamp": "2026-07-26T23:36:45.1683943Z",
+    "applicationVersion": "0.1.0",
+    "unityVersion": "6000.3.8f1",
+    "operatingSystem": "Windows 11  (10.0.22631)",
+    "processor": "Intel(R) Core(TM) i9-14900HX",
+    "processorCount": 32,
+    "systemMemoryMb": 32559,
+    "graphicsDevice": "NVIDIA GeForce RTX 4080 Laptop GPU",
+    "graphicsMemoryMb": 11997,
+    "screenWidth": 3840,
+    "screenHeight": 2160,
+    "aiSchedulerDisabled": false,
+    "characterPresentationDisabled": false,
+    "characterStatsUpdatesDisabled": false,
+    "requestedActorCount": 100,
+    "requestedFacilityCount": 900,
+    "requestedGridWidth": 1024,
+    "requestedGridHeight": 1024,
+    "requestedActiveFloors": 3,
+    "requestedSimulationSpeed": 1.0,
+    "actualActorCount": 101,
+    "actualStressActorCount": 92,
+    "actualBuildingCount": 1231,
+    "actualDenseFacilityCount": 900,
+    "actualDenseDoorCount": 185,
+    "activeRendererCount": 1480,
+    "visibleRendererCount": 157,
+    "activeCanvasCount": 5,
+    "activeNameplateCount": 101,
+    "dynamicWorkSmoothedFrameMilliseconds": 6.681492518251255,
+    "dynamicWorkAvailableMilliseconds": 6.741845781628478,
+    "dynamicWorkConsumedMilliseconds": 0.5515,
+    "dynamicWorkBacklog": 534,
+    "gridWidth": 1024,
+    "gridHeight": 1024,
+    "schedulerRegisteredCharacters": 101,
+    "presentationRegisteredCharacters": 101,
+    "presentationVisibleCharacters": 50,
+    "schedulerLastMilliseconds": 0.007,
+    "schedulerLastDecisions": 0,
+    "schedulerLastPathSearches": 0,
+    "schedulerCurrentBudgetMilliseconds": 1.4556301583135599,
+    "schedulerEstimatedDecisionMilliseconds": 0.015881656508023799,
+    "schedulerEstimatedPathMilliseconds": 0.06392445959421962,
+    "schedulerSmoothedFrameMilliseconds": 6.681492518251255,
+    "schedulerProcessedDecisions": 11926,
+    "schedulerStarvedDecisions": 34,
+    "schedulerSkippedDecisions": 164,
+    "schedulerOldestDeferralSeconds": 0.39986610412597659,
+    "schedulerMaximumDeferralSeconds": 2.0749120712280275,
+    "schedulerBudgetExhausted": true,
+    "facilityCandidateIndexPending": false,
+    "facilityCandidateIndexVersion": 11,
+    "sampleCount": 1341,
+    "sampleDurationSeconds": 10.00594711303711,
+    "setupMilliseconds": 12431.266000000001,
+    "totalProfileMilliseconds": 26418.742700000003,
+    "averageFps": 134.00843811035157,
+    "onePercentLowFps": 19.911396026611329,
+    "framesOver16_67Ms": 26,
+    "framesOver33_33Ms": 20,
+    "monoUsedBytesAtStart": 1227079680,
+    "monoUsedBytesAtEnd": 1233756160,
+    "totalAllocatedBytesAtStart": 5253598362,
+    "totalAllocatedBytesAtEnd": 5755850777,
+    "warningCount": 0,
+    "errorCount": 0,
+    "valid": true,
+    "meets60FpsP95": true,
+    "meets60FpsP99": false,
+    "meets60FpsEverySample": false,
+    "vSyncDisabled": true,
+    "targetFrameRate": -1,
+    "measurementIncludesRendering": true,
+    "measurementIncludesUi": true,
+    "measurementIncludesPhysics": true,
+    "measurementUsesNormalNewRun": true,
+    "measurementUsesRealCharacterPrefab": true,
+    "measurementUsesRealBuildingObjects": true,
+    "failureReason": "",
+    "logMessages": [],
+    "frame": {
+        "average": 7.462216854095459,
+        "p50": 6.267899513244629,
+        "p95": 10.64030647277832,
+        "p99": 50.222496032714847,
+        "maximum": 92.18560028076172
+    },
+    "mainThread": {
+        "average": 7.441988945007324,
+        "p50": 6.244800090789795,
+        "p95": 10.44379997253418,
+        "p99": 49.354698181152347,
+        "maximum": 157.0924072265625
+    },
+    "renderThread": {
+        "average": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "p99": 0.0,
+        "maximum": 0.0
+    },
+    "gc": {
+        "averageBytes": 287480.23042505598,
+        "p95Bytes": 330463,
+        "maximumBytes": 17536177
+    },
+    "aiPerformance": {
+        "valid": true,
+        "actorCount": 101,
+        "sampleFrames": 512,
+        "scheduler": {
+            "name": "Scheduler",
+            "sampleCount": 512,
+            "average": 0.4223130859374997,
+            "p95": 0.5585,
+            "max": 51.8874,
+            "gcBytes": 0
+        },
+        "behaviorTree": {
+            "name": "BT",
+            "sampleCount": 512,
+            "average": 0.01365390625000001,
+            "p95": 0.0445,
+            "max": 0.1054,
+            "gcBytes": 0
+        },
+        "pathBroker": {
+            "name": "Grid.SearchPath",
+            "sampleCount": 227,
+            "average": 0.07298193832599125,
+            "p95": 0.214,
+            "max": 0.4709,
+            "gcBytes": 0
+        },
+        "garbageCollection": {
+            "name": "GC",
+            "sampleCount": 0,
+            "average": 0.0,
+            "p95": 0.0,
+            "max": 0.0,
+            "gcBytes": 0
+        },
+        "metrics": [
+            {
+                "name": "Scheduler",
+                "sampleCount": 512,
+                "average": 0.4223130859374997,
+                "p95": 0.5585,
+                "max": 51.8874,
+                "gcBytes": 0
+            },
+            {
+                "name": "BT",
+                "sampleCount": 512,
+                "average": 0.01365390625000001,
+                "p95": 0.0445,
+                "max": 0.1054,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext",
+                "sampleCount": 512,
+                "average": 0.012272851562499994,
+                "p95": 0.116,
+                "max": 0.7429,
+                "gcBytes": 0
+            },
+            {
+                "name": "DomainSelection",
+                "sampleCount": 121,
+                "average": 0.013518181818181818,
+                "p95": 0.0175,
+                "max": 0.0552,
+                "gcBytes": 0
+            },
+            {
+                "name": "ActionScoring",
+                "sampleCount": 512,
+                "average": 0.03928984375000002,
+                "p95": 0.0991,
+                "max": 0.9601,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal",
+                "sampleCount": 512,
+                "average": 0.004436523437499979,
+                "p95": 0.0076,
+                "max": 0.2653,
+                "gcBytes": 0
+            },
+            {
+                "name": "FacilityScoring",
+                "sampleCount": 512,
+                "average": 0.007836914062500015,
+                "p95": 0.014,
+                "max": 0.0601,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorkTargetSelector",
+                "sampleCount": 5,
+                "average": 0.12016,
+                "p95": 0.2227,
+                "max": 0.2227,
+                "gcBytes": 0
+            },
+            {
+                "name": "Haul",
+                "sampleCount": 1,
+                "average": 0.5409,
+                "p95": 0.5409,
+                "max": 0.5409,
+                "gcBytes": 0
+            },
+            {
+                "name": "Wildlife",
+                "sampleCount": 512,
+                "average": 0.009982226562499997,
+                "p95": 0.0122,
+                "max": 0.1032,
+                "gcBytes": 0
+            },
+            {
+                "name": "Grid.SearchPath",
+                "sampleCount": 227,
+                "average": 0.07298193832599125,
+                "p95": 0.214,
+                "max": 0.4709,
+                "gcBytes": 0
+            },
+            {
+                "name": "UI Feedback",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.SpatialIndex",
+                "sampleCount": 512,
+                "average": 0.0022558593749999959,
+                "p95": 0.0059,
+                "max": 0.1067,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.Proximity",
+                "sampleCount": 257,
+                "average": 0.009467315175097281,
+                "p95": 0.0136,
+                "max": 0.1387,
+                "gcBytes": 0
+            },
+            {
+                "name": "WorldSignal.Environment",
+                "sampleCount": 257,
+                "average": 0.016997665369649786,
+                "p95": 0.019,
+                "max": 0.8388,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.Prepare",
+                "sampleCount": 512,
+                "average": 0.001244921875000004,
+                "p95": 0.0025,
+                "max": 0.095,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.Considerations",
+                "sampleCount": 296,
+                "average": 0.510951689189189,
+                "p95": 0.8143,
+                "max": 13.085,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.CanStart",
+                "sampleCount": 512,
+                "average": 0.002761718749999992,
+                "p95": 0.0003,
+                "max": 0.4813,
+                "gcBytes": 0
+            },
+            {
+                "name": "Action.ResolveDestination",
+                "sampleCount": 461,
+                "average": 0.09929023861171367,
+                "p95": 0.4284,
+                "max": 1.7962,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.CandidateSource",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.CandidateLoop",
+                "sampleCount": 0,
+                "average": 0.0,
+                "p95": 0.0,
+                "max": 0.0,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.Needs",
+                "sampleCount": 280,
+                "average": 0.012835357142857154,
+                "p95": 0.017,
+                "max": 0.116,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.Abilities",
+                "sampleCount": 280,
+                "average": 0.12443964285714286,
+                "p95": 0.2872,
+                "max": 0.4647,
+                "gcBytes": 0
+            },
+            {
+                "name": "DecisionContext.WorldSignal",
+                "sampleCount": 280,
+                "average": 0.026424999999999995,
+                "p95": 0.0509,
+                "max": 0.4169,
+                "gcBytes": 0
+            },
+            {
+                "name": "Facility.Availability",
+                "sampleCount": 348,
+                "average": 0.08485804597701155,
+                "p95": 0.2367,
+                "max": 0.4308,
+                "gcBytes": 0
+            }
+        ],
+        "brokerSearches": 201,
+        "brokerCacheHits": 19,
+        "brokerBudgetDeferrals": 2,
+        "summary": "AI 101명 · 평균 0.42ms · p95 0.56ms · 경로 캐시 8.6%"
+    }
+}

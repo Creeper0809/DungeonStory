@@ -22,10 +22,12 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
     private CharacterVisual visual;
     private float visibleUntil;
     private float nextRequestTime;
+    private int nextHiddenRefreshFrame;
     private ILocalLlmRuntimeProvider llmRuntimeProvider;
     private ICharacterAiSchedulingService aiSchedulingService;
     private ICharacterDialogueBubbleFactory bubbleFactory;
     private IGameClock gameClock;
+    private IDynamicFrameWorkBudget frameWorkBudget;
 
     public string LastBubbleLine => lastBubbleLine;
     public string LastGeneratedBubbleLine => lastGeneratedBubbleLine;
@@ -36,7 +38,8 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
         ILocalLlmRuntimeProvider llmRuntimeProvider,
         ICharacterAiSchedulingService aiSchedulingService,
         ICharacterDialogueBubbleFactory bubbleFactory,
-        IGameClock gameClock)
+        IGameClock gameClock,
+        IDynamicFrameWorkBudget frameWorkBudget = null)
     {
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
@@ -46,6 +49,7 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(bubbleFactory));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
+        this.frameWorkBudget = frameWorkBudget;
     }
 
     private void Awake()
@@ -56,6 +60,8 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
     private void OnEnable()
     {
         EnsureRuntimeReferences();
+        nextHiddenRefreshFrame = (gameClock != null ? gameClock.FrameCount : 0)
+            + Mathf.Abs(actor != null ? actor.GetInstanceID() : GetInstanceID()) % 8;
         if (characterLog != null)
         {
             characterLog.OnLogAdded += OnLogAdded;
@@ -77,19 +83,59 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
 
     private void LateUpdate()
     {
-        EnsureRuntimeReferences();
         if (text == null)
         {
             return;
         }
 
-        if (gameClock.Time > visibleUntil || !RequireAiSchedulingService().ShouldShowCharacterFeedback(actor))
+        bool currentlyVisible = text.gameObject.activeSelf;
+        if (!currentlyVisible
+            && gameClock != null
+            && gameClock.FrameCount < nextHiddenRefreshFrame)
+        {
+            return;
+        }
+
+        if (!currentlyVisible
+            && frameWorkBudget != null
+            && !frameWorkBudget.CanStart(
+                DynamicFrameWorkDomain.Presentation))
+        {
+            nextHiddenRefreshFrame = gameClock.FrameCount + 1;
+            return;
+        }
+
+        if (gameClock == null || aiSchedulingService == null)
+        {
+            EnsureRuntimeReferences();
+        }
+
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        nextHiddenRefreshFrame = gameClock.FrameCount + 8;
+        if (gameClock.Time > visibleUntil
+            || !RequireAiSchedulingService().ShouldShowCharacterFeedback(actor))
         {
             text.gameObject.SetActive(false);
+            ReportPresentationWork(started);
             return;
         }
 
         text.transform.localPosition = GetLocalOffset();
+        ReportPresentationWork(started);
+    }
+
+    private void ReportPresentationWork(long started)
+    {
+        if (frameWorkBudget == null)
+        {
+            return;
+        }
+
+        frameWorkBudget.ReportConsumed(
+            DynamicFrameWorkDomain.Presentation,
+            (System.Diagnostics.Stopwatch.GetTimestamp() - started)
+            * 1000.0
+            / System.Diagnostics.Stopwatch.Frequency);
     }
 
     public void ShowLine(string line)
@@ -186,7 +232,6 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
         }
 
         lastError = $"{nameof(LocalLlmRequestQueue)} is missing.";
-        Debug.Log($"{name}: {lastError}", this);
         return false;
     }
 

@@ -658,10 +658,7 @@ public class StaffDiscontentRuntime : MonoBehaviour
                 continue;
             }
 
-            GridPathSearchResult searchResult = candidate.Brain != null
-                ? candidate.Brain.GetPathSearch(candidate)
-                : null;
-            if (!work.TrySetPrioritySuppressTarget(rebel, searchResult, out _))
+            if (!work.TrySetPrioritySuppressTarget(rebel, null, out _))
             {
                 continue;
             }

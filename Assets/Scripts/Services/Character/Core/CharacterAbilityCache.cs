@@ -8,6 +8,8 @@ public class CharacterAbilityCache : SerializedMonoBehaviour
 {
     private CharacterAbility[] characterAbilities;
     private IReadOnlyList<CharacterAbility> characterAbilitiesView;
+    private readonly Dictionary<Type, CharacterAbility> abilityByRequestedType =
+        new Dictionary<Type, CharacterAbility>();
     private bool isAbilityCache;
 
     public IReadOnlyList<CharacterAbility> Abilities
@@ -35,18 +37,24 @@ public class CharacterAbilityCache : SerializedMonoBehaviour
     {
         characterAbilities = GetComponents<CharacterAbility>();
         characterAbilitiesView = ReadOnlyView.List(characterAbilities);
+        abilityByRequestedType.Clear();
+        for (int i = 0; i < characterAbilities.Length; i++)
+        {
+            CharacterAbility ability = characterAbilities[i];
+            if (ability != null)
+            {
+                abilityByRequestedType[ability.GetType()] = ability;
+            }
+        }
+
         isAbilityCache = true;
     }
 
     public T GetAbility<T>() where T : CharacterAbility
     {
-        CacheAbility();
-        foreach (CharacterAbility ability in characterAbilities)
+        if (TryGetAbility(out T result))
         {
-            if (ability is T characterAbility)
-            {
-                return characterAbility;
-            }
+            return result;
         }
 
         Debug.Log($"{gameObject.name}: {typeof(T).Name} 능력이 없습니다");
@@ -56,10 +64,21 @@ public class CharacterAbilityCache : SerializedMonoBehaviour
     public bool TryGetAbility<T>(out T result) where T : CharacterAbility
     {
         CacheAbility();
-        foreach (CharacterAbility ability in characterAbilities)
+        Type requestedType = typeof(T);
+        if (abilityByRequestedType.TryGetValue(
+                requestedType,
+                out CharacterAbility cached))
         {
+            result = cached as T;
+            return result != null;
+        }
+
+        for (int i = 0; i < characterAbilities.Length; i++)
+        {
+            CharacterAbility ability = characterAbilities[i];
             if (ability is T characterAbility)
             {
+                abilityByRequestedType[requestedType] = characterAbility;
                 result = characterAbility;
                 return true;
             }

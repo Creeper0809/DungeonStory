@@ -18,6 +18,7 @@ namespace BehaviorDesigner.Runtime
         private readonly System.Collections.Generic.Dictionary<Task, GameObject> dungeonStoryBoundTaskGameObjects =
             new System.Collections.Generic.Dictionary<Task, GameObject>();
         private Task dungeonStoryRuntimeRoot;
+        private GameObject dungeonStoryRuntimeActor;
         private bool dungeonStoryRuntimeTreeAwake;
 
         public bool UseDungeonStoryManualRuntime => useDungeonStoryManualRuntime;
@@ -25,6 +26,25 @@ namespace BehaviorDesigner.Runtime
         public string DungeonStoryTask => dungeonStoryTask;
         public string DungeonStoryStatus => dungeonStoryStatus;
         public int DungeonStoryTickCount => dungeonStoryTickCount;
+
+        public void DungeonStoryRecordDirectTick(
+            global::CharacterActor actor,
+            global::CharacterAiDecisionTickResult result)
+        {
+            dungeonStoryTickCount++;
+            global::CharacterBlackboard blackboard = actor != null
+                ? actor.Blackboard
+                : null;
+            dungeonStoryBranch = result.Branch.ToString();
+            dungeonStoryTask = result.Task;
+            dungeonStoryStatus = result.Status;
+            if (blackboard != null)
+            {
+                dungeonStoryBranch = blackboard.CurrentBranch.ToString();
+                dungeonStoryTask = blackboard.CurrentTask;
+                dungeonStoryStatus = blackboard.CurrentStatus;
+            }
+        }
 
         public void DungeonStoryEnsureBehaviorSourceOwnership()
         {
@@ -49,6 +69,7 @@ namespace BehaviorDesigner.Runtime
             }
 
             dungeonStoryRuntimeRoot = null;
+            dungeonStoryRuntimeActor = null;
             dungeonStoryRuntimeTreeAwake = false;
             dungeonStoryBoundTaskGameObjects.Clear();
             dungeonStoryBranch = global::CharacterAiBranch.None.ToString();
@@ -375,6 +396,16 @@ namespace BehaviorDesigner.Runtime
             DungeonStoryEnsureBehaviorSourceOwnership();
             BehaviorSource source = GetBehaviorSource();
 
+            if (dungeonStoryRuntimeTreeAwake
+                && dungeonStoryRuntimeRoot != null
+                && dungeonStoryRuntimeActor == actor.gameObject
+                && source != null
+                && source.RootTask == dungeonStoryRuntimeRoot)
+            {
+                rootTask = dungeonStoryRuntimeRoot;
+                return true;
+            }
+
             bool needsRuntimeLoad = source.RootTask == null;
             try
             {
@@ -405,6 +436,7 @@ namespace BehaviorDesigner.Runtime
             bool rebuildAwake = !ReferenceEquals(dungeonStoryRuntimeRoot, rootTask);
             dungeonStoryRuntimeRoot = rootTask;
             BindDungeonStoryTaskTree(rootTask, actor, rebuildAwake || !dungeonStoryRuntimeTreeAwake);
+            dungeonStoryRuntimeActor = actor.gameObject;
             dungeonStoryRuntimeTreeAwake = true;
             return true;
         }

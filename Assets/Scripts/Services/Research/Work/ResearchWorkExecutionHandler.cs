@@ -43,7 +43,7 @@ public sealed class ResearchWorkExecutionHandler :
         }
 
         BlueprintResearchWorkResult researchResult = researchWorkService.ApplyResearchWork(
-            null,
+            context.Actor,
             context.Target,
             1f);
         result.CompletedSuccessfully = researchResult.Success;
@@ -60,17 +60,17 @@ public sealed class ResearchWorkExecutionHandler :
             yield break;
         }
 
-        string blueprintName = researchResult.Blueprint != null
+        string workLabel = researchResult.Blueprint != null
             ? researchResult.Blueprint.DisplayName
-            : "설계도";
+            : researchResult.Message;
         context.Actor?.AddActivity(CharacterActivityEvent.Work(
             FacilityWorkType.Research,
             researchResult.Completed
                 ? CharacterActivityOutcomes.Completed
                 : CharacterActivityOutcomes.Progress,
             researchResult.Completed
-                ? $"연구 완료: {blueprintName}"
-                : $"연구 진행: {blueprintName} {Mathf.RoundToInt(researchResult.ProgressRatio * 100f)}%",
+                ? $"연구 완료: {workLabel}"
+                : $"연구 진행: {workLabel}",
             context.Target,
             reasonCode: researchResult.Completed ? "blueprint-completed" : "research-progress",
             value: researchResult.ProgressRatio));

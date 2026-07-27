@@ -576,15 +576,15 @@ public static class StaffDutyDebugScenarios
             CharacterActor staff = InitializeCharacterObject(staffObject, data);
             AbilityMove move = staff.GetAbility<AbilityMove>();
             bool foundPath = move.TryFindIdleWanderPath(2, 8, out Queue<GridMoveStep> path);
-            GridMoveStep lastStep = path != null && path.Count > 0 ? path.Last() : null;
-            int distance = lastStep != null
+            GridMoveStep lastStep = path != null && path.Count > 0 ? path.Last() : default;
+            int distance = lastStep.IsValid
                 ? Mathf.Abs(lastStep.To.x) + Mathf.Abs(lastStep.To.y)
                 : 0;
             return foundPath
                 && path != null
                 && path.Count > 0
                 && IsAdjacentWalkPath(path)
-                && lastStep != null
+                && lastStep.IsValid
                 && distance >= 2;
         }
         finally
@@ -728,14 +728,14 @@ public static class StaffDutyDebugScenarios
             CharacterActor staff = InitializeCharacterObject(staffObject, data);
             AbilityMove move = staff.GetAbility<AbilityMove>();
             bool foundPath = move.TryFindIdleWanderPath(2, 8, out Queue<GridMoveStep> path);
-            GridMoveStep lastStep = path != null && path.Count > 0 ? path.Last() : null;
+            GridMoveStep lastStep = path != null && path.Count > 0 ? path.Last() : default;
 
             return foundPath
                 && path != null
                 && path.Count > 0
                 && path.Any((step) => step.MoveType == GridMoveType.Stair)
                 && path.All((step) => step.MoveType == GridMoveType.Walk || step.MoveType == GridMoveType.Stair)
-                && lastStep != null
+                && lastStep.IsValid
                 && lastStep.To == new Vector2Int(2, 1);
         }
         finally
@@ -811,12 +811,12 @@ public static class StaffDutyDebugScenarios
 
             bool canStartWait = wait.CanStart(CharacterActor.From(staff));
             bool foundPath = move.TryFindIdleWanderPath(2, 8, out Queue<GridMoveStep> path);
-            GridMoveStep lastStep = path != null && path.Count > 0 ? path.Last() : null;
+            GridMoveStep lastStep = path != null && path.Count > 0 ? path.Last() : default;
             return work.IsOffDuty
                 && canStartWait
                 && foundPath
                 && IsAdjacentWalkPath(path)
-                && lastStep != null
+                && lastStep.IsValid
                 && grid.IsWalkable(lastStep.To);
         }
         finally
@@ -1131,7 +1131,7 @@ public static class StaffDutyDebugScenarios
         Vector2Int expectedFrom = default;
         foreach (GridMoveStep step in path)
         {
-            if (step == null || step.MoveType != GridMoveType.Walk)
+            if (!step.IsValid || step.MoveType != GridMoveType.Walk)
             {
                 return false;
             }

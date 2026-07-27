@@ -21,9 +21,11 @@ public class OffenseExpeditionRuntime : MonoBehaviour
     private IOffensePanelService panelService;
     private IOffenseBattleRuntime battleRuntime;
     private IOffensePreparationService preparationService;
-    private IExpeditionEquipmentRuntime equipmentRuntime;
+    private ICombatEquipmentRuntime equipmentRuntime;
+    private ICombatEquipmentPickupRuntime equipmentPickupRuntime;
     private IExpeditionDepartureService departureService;
     private IExpeditionReturnService returnService;
+    private IOffenseReturnArrivalRuntime returnArrivalRuntime;
     private IGameEventBus gameEventBus;
 
     public IReadOnlyList<OffenseExpeditionRun> ActiveExpeditions =>
@@ -89,10 +91,12 @@ public class OffenseExpeditionRuntime : MonoBehaviour
         IOffensePanelService panelService,
         IOffenseBattleRuntime battleRuntime,
         IOffensePreparationService preparationService,
-        IExpeditionEquipmentRuntime equipmentRuntime,
+        ICombatEquipmentRuntime equipmentRuntime,
         IGameEventBus gameEventBus,
         IExpeditionDepartureService departureService = null,
-        IExpeditionReturnService returnService = null)
+        IExpeditionReturnService returnService = null,
+        IOffenseReturnArrivalRuntime returnArrivalRuntime = null,
+        ICombatEquipmentPickupRuntime equipmentPickupRuntime = null)
     {
         Construct(
             memberQuery,
@@ -108,6 +112,8 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(equipmentRuntime));
         this.departureService = departureService;
         this.returnService = returnService;
+        this.returnArrivalRuntime = returnArrivalRuntime;
+        this.equipmentPickupRuntime = equipmentPickupRuntime;
     }
 
     private void OnDestroy()
@@ -131,20 +137,24 @@ public class OffenseExpeditionRuntime : MonoBehaviour
                 new Dictionary<OffenseSupplyType, int>());
     }
 
-    public IReadOnlyList<ExpeditionEquipmentDefinition> GetEquipmentDefinitions()
+    public IReadOnlyList<CombatEquipmentDefinitionSO> GetEquipmentDefinitions()
     {
-        return equipmentRuntime?.Definitions ?? Array.Empty<ExpeditionEquipmentDefinition>();
+        return equipmentRuntime?.Definitions ?? Array.Empty<CombatEquipmentDefinitionSO>();
     }
 
     public IReadOnlyDictionary<string, int> GetEquipmentInventory()
     {
-        return equipmentRuntime?.Inventory
+        return equipmentRuntime?.Instances
+            .Where(instance => instance != null
+                && instance.worldState != CombatEquipmentWorldState.Lost)
+            .GroupBy(instance => instance.definitionId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal)
             ?? new Dictionary<string, int>(StringComparer.Ordinal);
     }
 
-    public IReadOnlyList<ExpeditionEquipmentCraftOrderSaveData> GetEquipmentCraftQueue()
+    public IReadOnlyList<CombatEquipmentCraftOrderSaveData> GetEquipmentCraftQueue()
     {
-        return equipmentRuntime?.CraftQueue ?? Array.Empty<ExpeditionEquipmentCraftOrderSaveData>();
+        return equipmentRuntime?.CraftQueue ?? Array.Empty<CombatEquipmentCraftOrderSaveData>();
     }
 
     public int GetAvailableEquipmentCount(string equipmentId)
@@ -152,23 +162,26 @@ public class OffenseExpeditionRuntime : MonoBehaviour
         return equipmentRuntime?.GetAvailableCount(equipmentId) ?? 0;
     }
 
-    public ExpeditionEquipmentStatBlock GetEquipmentBonuses(CharacterActor actor)
-    {
-        return equipmentRuntime?.GetCombatBonuses(GetPersistentCharacterId(actor))
-            ?? ExpeditionEquipmentStatBlock.Empty;
-    }
-
     public bool TryGetEquippedEquipment(
         CharacterActor actor,
-        ExpeditionEquipmentSlot slot,
-        out ExpeditionEquipmentDefinition definition)
+        CombatEquipmentLoadoutSlot slot,
+        out CombatEquipmentDefinitionSO definition)
     {
         definition = null;
         string characterId = GetPersistentCharacterId(actor);
-        return !string.IsNullOrWhiteSpace(characterId)
-            && equipmentRuntime != null
-            && equipmentRuntime.TryGetEquipped(characterId, slot, out string equipmentId)
-            && equipmentRuntime.TryGetDefinition(equipmentId, out definition);
+        if (string.IsNullOrWhiteSpace(characterId) || equipmentRuntime == null)
+        {
+            return false;
+        }
+
+        CharacterCombatLoadoutProfile profile =
+            equipmentRuntime.GetActiveProfileSnapshot(characterId);
+        string instanceId = slot == CombatEquipmentLoadoutSlot.Weapon
+            ? profile?.activeWeaponInstanceId
+            : profile?.armorInstanceIds?.FirstOrDefault();
+        return !string.IsNullOrWhiteSpace(instanceId)
+            && equipmentRuntime.TryGetInstance(instanceId, out CombatEquipmentInstance instance)
+            && equipmentRuntime.TryGetDefinition(instance.definitionId, out definition);
     }
 
     public bool TryEquipEquipment(CharacterActor actor, string equipmentId, out string message)
@@ -180,18 +193,27 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             return false;
         }
 
-        bool equipped = equipmentRuntime.TryEquip(characterId, equipmentId, out message);
-        if (equipped)
+        if (equipmentPickupRuntime == null)
+        {
+            message = "장비 수령 시스템을 사용할 수 없습니다.";
+            return false;
+        }
+
+        bool pickupStarted = equipmentPickupRuntime.TryRequestEquipmentPickup(
+            actor,
+            equipmentId,
+            out message);
+        if (pickupStarted)
         {
             StateChanged?.Invoke();
         }
 
-        return equipped;
+        return pickupStarted;
     }
 
     public bool TryUnequipEquipment(
         CharacterActor actor,
-        ExpeditionEquipmentSlot slot,
+        CombatEquipmentLoadoutSlot slot,
         out string message)
     {
         string characterId = GetPersistentCharacterId(actor);
@@ -201,8 +223,17 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             return false;
         }
 
-        equipmentRuntime.Unequip(characterId, slot);
-        message = "equipment-unequipped";
+        if (equipmentPickupRuntime == null)
+        {
+            message = "장비 해제 시스템을 사용할 수 없습니다.";
+            return false;
+        }
+
+        if (!equipmentPickupRuntime.TryUnequipToWorld(actor, slot, out message))
+        {
+            return false;
+        }
+
         StateChanged?.Invoke();
         return true;
     }
@@ -215,7 +246,8 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             return false;
         }
 
-        bool queued = equipmentRuntime.TryQueueCraft(equipmentId, out message);
+        message = "장비 제작은 대장작업대에서 주문해야 합니다.";
+        bool queued = false;
         if (queued)
         {
             StateChanged?.Invoke();
@@ -700,6 +732,7 @@ public class OffenseExpeditionRuntime : MonoBehaviour
     {
         if (expedition == null) return;
 
+        returnArrivalRuntime?.BeginExpeditionReturn(expedition.ExpeditionId);
         activeExpeditions.Remove(expedition);
         preparationService?.ReturnSupplies(expedition.Supplies, expedition.ExpeditionId);
         preparationService?.DepositLoot(expedition.CarriedStock);
@@ -710,13 +743,26 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             if (actor == null) continue;
             bool survived = !actor.IsDead;
             actor.Lifecycle?.RecordExpeditionReturn(member.Stress, survived);
-            bool returnAnimated = survived
-                && returnService != null
-                && returnService.TryBeginReturn(
+            bool returnAnimated = false;
+            if (survived && returnService != null)
+            {
+                returnArrivalRuntime?.RegisterReturningMember(expedition.ExpeditionId);
+                returnAnimated = returnService.TryBeginReturn(
                     actor,
                     true,
-                    () => StateChanged?.Invoke(),
+                    () =>
+                    {
+                        returnArrivalRuntime?.CompleteReturningMember(
+                            expedition.ExpeditionId);
+                        StateChanged?.Invoke();
+                    },
                     out _);
+                if (!returnAnimated)
+                {
+                    returnArrivalRuntime?.CompleteReturningMember(
+                        expedition.ExpeditionId);
+                }
+            }
             if (!returnAnimated)
             {
                 actor.EndExpedition(survived);
@@ -756,6 +802,7 @@ public class OffenseExpeditionRuntime : MonoBehaviour
                     .ToArray() ?? Array.Empty<string>()
                 : Array.Empty<string>());
         FinalizeBattleExpedition(expedition, result);
+        returnArrivalRuntime?.SealExpeditionReturn(expedition.ExpeditionId);
         StateChanged?.Invoke();
         if (!string.IsNullOrWhiteSpace(message))
         {
@@ -1048,9 +1095,9 @@ public class OffenseExpeditionPanel : MonoBehaviour
         }
 
         CharacterActor member = selectedMembers[0];
-        foreach (ExpeditionEquipmentSlot slot in Enum.GetValues(typeof(ExpeditionEquipmentSlot)))
+        foreach (CombatEquipmentLoadoutSlot slot in Enum.GetValues(typeof(CombatEquipmentLoadoutSlot)))
         {
-            ExpeditionEquipmentSlot capturedSlot = slot;
+            CombatEquipmentLoadoutSlot capturedSlot = slot;
             if (!runtime.TryGetEquippedEquipment(member, slot, out _))
             {
                 continue;
@@ -1066,19 +1113,19 @@ public class OffenseExpeditionPanel : MonoBehaviour
                 JourneyButtonStyle.Action);
         }
 
-        foreach (ExpeditionEquipmentDefinition definition in runtime.GetEquipmentDefinitions()
+        foreach (CombatEquipmentDefinitionSO definition in runtime.GetEquipmentDefinitions()
             .Where(definition => definition != null
-                && !string.IsNullOrWhiteSpace(definition.id)
-                && runtime.GetAvailableEquipmentCount(definition.id) > 0)
-            .OrderBy(definition => definition.slot)
-            .ThenBy(definition => definition.displayName, StringComparer.Ordinal))
+                && !string.IsNullOrWhiteSpace(definition.EquipmentId)
+                && runtime.GetAvailableEquipmentCount(definition.EquipmentId) > 0)
+            .OrderBy(definition => definition.Kind)
+            .ThenBy(definition => definition.DisplayName, StringComparer.Ordinal))
         {
-            ExpeditionEquipmentDefinition captured = definition;
+            CombatEquipmentDefinitionSO captured = definition;
             AddButton(
-                $"{GetEquipmentSlotName(definition.slot)} 장착: {definition.displayName} x{runtime.GetAvailableEquipmentCount(definition.id)}",
+                $"{GetEquipmentSlotName(definition.Kind)} 장착: {definition.DisplayName} x{runtime.GetAvailableEquipmentCount(definition.EquipmentId)}",
                 () =>
                 {
-                    runtime.TryEquipEquipment(member, captured.id, out statusMessage);
+                    runtime.TryEquipEquipment(member, captured.EquipmentId, out statusMessage);
                     Render();
                 },
                 JourneyButtonStyle.Supply);
@@ -1099,22 +1146,21 @@ public class OffenseExpeditionPanel : MonoBehaviour
             string readiness = OffenseExpeditionService.CanJoinExpedition(member, out string reason)
                 ? "출정 가능"
                 : $"출정 불가: {reason}";
-            ExpeditionEquipmentDefinition weapon = runtime.TryGetEquippedEquipment(
+            CombatEquipmentDefinitionSO weapon = runtime.TryGetEquippedEquipment(
                 member,
-                ExpeditionEquipmentSlot.Weapon,
-                out ExpeditionEquipmentDefinition equippedWeapon)
+                CombatEquipmentLoadoutSlot.Weapon,
+                out CombatEquipmentDefinitionSO equippedWeapon)
                     ? equippedWeapon
                     : null;
-            ExpeditionEquipmentDefinition armor = runtime.TryGetEquippedEquipment(
+            CombatEquipmentDefinitionSO armor = runtime.TryGetEquippedEquipment(
                 member,
-                ExpeditionEquipmentSlot.Armor,
-                out ExpeditionEquipmentDefinition equippedArmor)
+                CombatEquipmentLoadoutSlot.Armor,
+                out CombatEquipmentDefinitionSO equippedArmor)
                     ? equippedArmor
                     : null;
-            ExpeditionEquipmentStatBlock bonuses = runtime.GetEquipmentBonuses(member);
             lines.Add(
                 $"{GetActorName(member)} - 무기 {GetEquipmentName(weapon)}, 방어구 {GetEquipmentName(armor)}"
-                + $" / {FormatEquipmentStats(bonuses)} / {readiness}");
+                + $" / {readiness}");
         }
 
         if (target != null && selectedMembers.Count < target.requiredMembers)
@@ -1123,19 +1169,19 @@ public class OffenseExpeditionPanel : MonoBehaviour
         }
 
         string inventory = string.Join(", ", runtime.GetEquipmentDefinitions()
-            .Where(definition => definition != null && !string.IsNullOrWhiteSpace(definition.id))
+            .Where(definition => definition != null && !string.IsNullOrWhiteSpace(definition.EquipmentId))
             .Select(definition =>
-                $"{definition.displayName} {runtime.GetAvailableEquipmentCount(definition.id)}/{GetOwnedEquipmentCount(definition.id)}"));
+                $"{definition.DisplayName} {runtime.GetAvailableEquipmentCount(definition.EquipmentId)}/{GetOwnedEquipmentCount(definition.EquipmentId)}"));
         lines.Add(string.IsNullOrWhiteSpace(inventory) ? "재고 없음" : $"재고: {inventory}");
 
         string queue = string.Join(", ", runtime.GetEquipmentCraftQueue()
-            .Where(order => order != null && !string.IsNullOrWhiteSpace(order.equipmentId))
+            .Where(order => order != null && !string.IsNullOrWhiteSpace(order.definitionId))
             .Select(order =>
             {
                 string name = runtime.GetEquipmentDefinitions()
-                    .FirstOrDefault(definition => string.Equals(definition.id, order.equipmentId, StringComparison.Ordinal))
-                    ?.displayName ?? order.equipmentId;
-                return $"{name} {order.remainingSeconds:0.#}s";
+                    .FirstOrDefault(definition => string.Equals(definition.EquipmentId, order.definitionId, StringComparison.Ordinal))
+                    ?.DisplayName ?? order.definitionId;
+                return $"{name} 작업량 {order.RemainingWork:0.#}";
             }));
         if (!string.IsNullOrWhiteSpace(queue))
         {
@@ -1448,19 +1494,28 @@ public class OffenseExpeditionPanel : MonoBehaviour
         return $"Lv.{level} / {name} / {speciesTag} / 체력 {member.CurrentHealth:0}/{member.MaxHealth:0}";
     }
 
-    private static string GetEquipmentSlotName(ExpeditionEquipmentSlot slot)
+    private static string GetEquipmentSlotName(CombatEquipmentKind kind)
     {
-        return slot == ExpeditionEquipmentSlot.Weapon ? "무기" : "방어구";
+        return kind is CombatEquipmentKind.MeleeWeapon
+            or CombatEquipmentKind.RangedWeapon
+            or CombatEquipmentKind.RecoverableThrowingWeapon
+            ? "무기"
+            : "방어구";
     }
 
-    private static string GetEquipmentName(ExpeditionEquipmentDefinition definition)
+    private static string GetEquipmentSlotName(CombatEquipmentLoadoutSlot slot)
     {
-        return definition != null && !string.IsNullOrWhiteSpace(definition.displayName)
-            ? definition.displayName
+        return slot == CombatEquipmentLoadoutSlot.Weapon ? "무기" : "방어구";
+    }
+
+    private static string GetEquipmentName(CombatEquipmentDefinitionSO definition)
+    {
+        return definition != null && !string.IsNullOrWhiteSpace(definition.DisplayName)
+            ? definition.DisplayName
             : "없음";
     }
 
-    private static string FormatEquipmentStats(ExpeditionEquipmentStatBlock stats)
+    private static string FormatEquipmentStats(CombatEquipmentUiStatBlock stats)
     {
         if (stats == null)
         {

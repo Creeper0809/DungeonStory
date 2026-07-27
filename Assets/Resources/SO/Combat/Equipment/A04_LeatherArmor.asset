@@ -19,6 +19,8 @@ MonoBehaviour:
   weight: 4.2
   occupiedHands: 0
   maxDurability: 120
+  requiredCraftWork: 6
+  craftMaterials: []
   layer: 4
   collisionTag: torso-outer
   bodyPartDefense:

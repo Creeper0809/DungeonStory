@@ -30,6 +30,7 @@ public static class CombatSystemDebugScenarios
         Verify("방패와 방어구", VerifyShieldAndArmor, failures);
         Verify("중간 치명도", VerifyTargetLethality, failures);
         Verify("장비 개체와 탄약 저장", VerifyEquipmentRuntime, failures);
+        Verify("사망 이벤트 장비 소실", VerifyEquipmentDeathEventBridge, failures);
         Verify("쓰러짐 회복 히스테리시스", VerifyDownedHysteresis, failures);
         Verify("대장작업대 제작 연결", VerifyForgeRecipeBridge, failures);
         Verify("층간 사선", VerifyLineOfSight, failures);
@@ -365,6 +366,73 @@ public static class CombatSystemDebugScenarios
             && string.Equals(droppedBow.sourceStackId, "stack:dropped-bow", StringComparison.Ordinal);
     }
 
+    private static bool VerifyEquipmentDeathEventBridge()
+    {
+        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog();
+        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(catalog);
+        GameEventBus events = new GameEventBus();
+        CombatEquipmentCharacterDeathConnector connector =
+            new CombatEquipmentCharacterDeathConnector(runtime, events);
+        GameObject actorObject = new GameObject("CombatEquipmentDeath_Test");
+
+        try
+        {
+            CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId("combat:death:test");
+
+            CombatEquipmentInstance first = runtime.CreateInstance(
+                "weapon:dagger",
+                CombatEquipmentQuality.Normal);
+            if (!runtime.TryAssignToCharacter(
+                    actor.Identity.PersistentId,
+                    first.instanceId,
+                    out _))
+            {
+                return false;
+            }
+
+            connector.Start();
+            events.Publish(new CharacterDeathEvent(actor, "전투 검증"));
+            if (!runtime.TryGetInstance(
+                    first.instanceId,
+                    out CombatEquipmentInstance lost)
+                || lost.worldState != CombatEquipmentWorldState.Lost
+                || !string.IsNullOrWhiteSpace(lost.ownerCharacterId))
+            {
+                return false;
+            }
+
+            CombatEquipmentInstance second = runtime.CreateInstance(
+                "weapon:longsword",
+                CombatEquipmentQuality.Normal);
+            if (!runtime.TryAssignToCharacter(
+                    actor.Identity.PersistentId,
+                    second.instanceId,
+                    out _))
+            {
+                return false;
+            }
+
+            connector.Dispose();
+            events.Publish(new CharacterDeathEvent(actor, "구독 해제 검증"));
+            return runtime.TryGetInstance(
+                    second.instanceId,
+                    out CombatEquipmentInstance retained)
+                && retained.worldState == CombatEquipmentWorldState.Equipped
+                && string.Equals(
+                    retained.ownerCharacterId,
+                    actor.Identity.PersistentId,
+                    StringComparison.Ordinal);
+        }
+        finally
+        {
+            connector.Dispose();
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
     private static bool VerifyDownedHysteresis()
     {
         GameObject gameObject = new GameObject("V14 Downed Hysteresis Test");
@@ -375,7 +443,10 @@ public static class CombatSystemDebugScenarios
                 new CharacterBodyHealthRuntime(
                     CharacterAiEditorTestDependencies.WorldRegistry,
                     new UnityGameClock(),
-                    new GameEventBus());
+                    new GameEventBus(),
+                    new DynamicFrameWorkBudget(
+                        new UnityGameClock(),
+                        new UnityUiClock()));
             CharacterBodyHealthSnapshot critical = new CharacterBodyHealthSnapshot(
                 CreateBodyParts(headAndTorsoRatio: 0.2f, legRatio: 1f),
                 bloodLoss: 0f,
@@ -561,7 +632,7 @@ public static class CombatSystemDebugScenarios
 
     private static bool VerifySaveContract()
     {
-        return DungeonGameSaveData.CurrentVersion == 15
+        return DungeonGameSaveData.CurrentVersion == 16
             && CombatItemDefinitions.TryGetDefinition(CombatItemDefinitions.ArrowItemId, out DungeonItemDefinition arrow)
             && CombatItemDefinitions.TryGetDefinition(CombatItemDefinitions.BoltItemId, out DungeonItemDefinition bolt)
             && arrow.StockCategory == StockCategory.Ammunition
@@ -683,7 +754,7 @@ public static class CombatSystemDebugScenarios
                 restored,
                 EquipmentMaintenanceSaveSection.Id);
         return restored != null
-            && restored.version == 15
+            && restored.version == 16
             && medical.orders.Single().carried
             && commands.commands.Single().type == CombatCommandType.Rescue
             && tactics.reservations.Single().kind

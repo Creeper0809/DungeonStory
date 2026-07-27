@@ -11,10 +11,16 @@ internal static class CharacterAiEditorTestDependencies
 {
     private static readonly ICharacterAiSchedulingService Scheduling =
         new ImmediateSchedulingService();
+    private static readonly EditorCharacterAiPerformanceRecorder PerformanceRecorder =
+        new EditorCharacterAiPerformanceRecorder();
     private static readonly IGridPathSearchBroker PathSearchBroker =
-        new GridPathSearchBroker(new UnityGameClock());
+        new GridPathSearchBroker(
+            new UnityGameClock(),
+            performanceRecorder: PerformanceRecorder);
     internal static readonly IGameClock GameClock = new UnityGameClock();
     internal static readonly IUiClock UiClock = new UnityUiClock();
+    private static readonly IDynamicFrameWorkBudget FrameWorkBudget =
+        new DynamicFrameWorkBudget(GameClock, UiClock);
     internal static readonly IGameEventBus GameEvents = new GameEventBus();
     private static readonly IRandomStreamProvider RandomStreams =
         new RandomStreamProvider(rootSeed: 9173);
@@ -27,7 +33,10 @@ internal static class CharacterAiEditorTestDependencies
             new SceneRuntimeRegistry<IRetailFacility>(),
             new FixedGameDataProvider(GetGameData()));
     private static readonly ICharacterAiWorldSignalQuery WorldSignalQuery =
-        new DefaultCharacterAiWorldSignalQuery(WorldRegistry, GameClock);
+        new DefaultCharacterAiWorldSignalQuery(
+            WorldRegistry,
+            GameClock,
+            performanceRecorder: PerformanceRecorder);
     private static readonly IFacilityCandidateCache FacilityCandidates =
         new FacilityCandidateCacheStore(WorldRegistry);
     private static readonly IRoomFacilityPolicy RoomPolicy =
@@ -194,7 +203,8 @@ internal static class CharacterAiEditorTestDependencies
             RoomPolicy,
             PathSearchBroker,
             new UnityGameClock(),
-            RandomStreams);
+            RandomStreams,
+            PerformanceRecorder);
 
         actorObject.GetComponent<CharacterActor>()?.ConstructCharacterActor(
             GridSystem,
@@ -206,6 +216,7 @@ internal static class CharacterAiEditorTestDependencies
             PathSearchBroker,
             WorldRegistry,
             WorldSignalQuery,
+            FrameWorkBudget,
             null,
             null,
             null,
@@ -276,7 +287,24 @@ internal static class CharacterAiEditorTestDependencies
             MainCamera,
             BehaviorTreeConfigurator,
             PathSearchBroker,
-            GameClock);
+            GameClock,
+            FrameWorkBudget,
+            PerformanceRecorder,
+            UiClock,
+            FacilityCandidates);
+    }
+
+    internal static void ResetPerformanceRecorder(
+        bool detailedCollectionEnabled = true)
+    {
+        PerformanceRecorder.SetDetailedCollectionEnabled(
+            detailedCollectionEnabled);
+        PerformanceRecorder.Reset();
+    }
+
+    internal static CharacterAiPerformanceReport CapturePerformanceReport(int actorCount)
+    {
+        return PerformanceRecorder.CaptureReport(actorCount);
     }
 
     public static void Inject(OwnerRunManager manager)
@@ -383,7 +411,9 @@ internal static class CharacterAiEditorTestDependencies
         public void RequestImmediateDecision(CharacterActor actor) { }
         public bool TryConsumePathSearchBudget() => true;
         public bool ShouldShowCharacterFeedback(CharacterActor actor) => false;
+        public bool ShouldCollectDetailedDiagnostics(CharacterActor actor) => true;
         public int GetMovementFrameStride(CharacterActor actor) => 1;
+        public double GetDecisionWorkSliceMilliseconds(CharacterActor actor) => 0.25;
         public void ResetPathSearchBudgetForDebug() { }
     }
 
@@ -407,6 +437,8 @@ internal static class CharacterAiEditorTestDependencies
 
     private sealed class EditorGridSystemProvider : IGridSystemProvider
     {
+        private GridSystemManager cachedManager;
+
         public GridSystemManager Manager
         {
             get
@@ -435,13 +467,42 @@ internal static class CharacterAiEditorTestDependencies
 
         public bool TryGetManager(out GridSystemManager manager)
         {
-            manager = UnityEngine.Object.FindFirstObjectByType<GridSystemManager>(FindObjectsInactive.Include);
-            if (manager == null)
+            GridSystemManager[] managers =
+                UnityEngine.Object.FindObjectsByType<GridSystemManager>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None);
+            GridSystemManager scenarioManager = null;
+            for (int index = 0; index < managers.Length; index++)
             {
+                GridSystemManager candidate = managers[index];
+                if (candidate == null)
+                {
+                    continue;
+                }
+
+                string objectName = candidate.gameObject.name;
+                if (objectName.IndexOf(
+                        "Scenario GridSystemManager",
+                        StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    scenarioManager = candidate;
+                    break;
+                }
+            }
+
+            cachedManager = scenarioManager != null
+                ? scenarioManager
+                : managers.Length > 0
+                    ? managers[0]
+                    : null;
+            if (cachedManager == null)
+            {
+                manager = null;
                 return false;
             }
 
-            manager.EnsureGridInitialized();
+            cachedManager.EnsureGridInitialized();
+            manager = cachedManager;
             return true;
         }
 
@@ -849,5 +910,137 @@ internal static class CharacterAiEditorTestDependencies
         public void RequestOneHaulerToReplan(
             bool clearFailures = true,
             bool forceInterrupt = false) { }
+    }
+}
+
+internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerformanceRecorder
+{
+    private static readonly string[] Names =
+    {
+        "Scheduler",
+        "BT",
+        "DecisionContext",
+        "DomainSelection",
+        "ActionScoring",
+        "WorldSignal",
+        "FacilityScoring",
+        "WorkTargetSelector",
+        "Haul",
+        "Wildlife",
+        "Grid.SearchPath",
+        "UI Feedback",
+        "WorldSignal.SpatialIndex",
+        "WorldSignal.Proximity",
+        "WorldSignal.Environment",
+        "Action.Prepare",
+        "Action.Considerations",
+        "Action.CanStart",
+        "Action.ResolveDestination",
+        "Facility.CandidateSource",
+        "Facility.CandidateLoop",
+        "DecisionContext.Needs",
+        "DecisionContext.Abilities",
+        "DecisionContext.WorldSignal",
+        "Facility.Availability"
+    };
+
+    private readonly List<double>[] samples;
+    private int searches;
+    private int cacheHits;
+    private int deferrals;
+    private bool detailedCollectionEnabled = true;
+
+    public EditorCharacterAiPerformanceRecorder()
+    {
+        samples = new List<double>[Names.Length];
+        for (int i = 0; i < samples.Length; i++)
+        {
+            samples[i] = new List<double>(512);
+        }
+    }
+
+    public bool DetailedCollectionEnabled => detailedCollectionEnabled;
+
+    public void SetDetailedCollectionEnabled(bool enabled)
+    {
+        detailedCollectionEnabled = enabled;
+    }
+
+    public void Record(AiPerformanceCategory category, double elapsedMilliseconds, long gcBytes = 0)
+    {
+        if (!detailedCollectionEnabled
+            && category != AiPerformanceCategory.Scheduler)
+        {
+            return;
+        }
+
+        int index = (int)category;
+        if (index >= 0 && index < samples.Length)
+        {
+            samples[index].Add(Math.Max(0d, elapsedMilliseconds));
+        }
+    }
+
+    public void RecordPathCounters(int pathSearches, int pathCacheHits, int budgetDeferrals)
+    {
+        searches += Math.Max(0, pathSearches);
+        cacheHits += Math.Max(0, pathCacheHits);
+        deferrals += Math.Max(0, budgetDeferrals);
+    }
+
+    public CharacterAiPerformanceReport CaptureReport(int actorCount)
+    {
+        CharacterAiPerformanceReport report = new CharacterAiPerformanceReport
+        {
+            actorCount = Math.Max(0, actorCount),
+            brokerSearches = searches,
+            brokerCacheHits = cacheHits,
+            brokerBudgetDeferrals = deferrals,
+            valid = true
+        };
+
+        for (int i = 0; i < samples.Length; i++)
+        {
+            CharacterAiPerformanceMetric metric = CaptureMetric(Names[i], samples[i]);
+            report.metrics.Add(metric);
+            report.sampleFrames = Math.Max(report.sampleFrames, samples[i].Count);
+        }
+
+        report.scheduler = report.metrics[(int)AiPerformanceCategory.Scheduler];
+        report.behaviorTree = report.metrics[(int)AiPerformanceCategory.BehaviorTree];
+        report.pathBroker = report.metrics[(int)AiPerformanceCategory.PathSearch];
+        return report;
+    }
+
+    public void Reset()
+    {
+        foreach (List<double> sample in samples)
+        {
+            sample.Clear();
+        }
+
+        searches = 0;
+        cacheHits = 0;
+        deferrals = 0;
+    }
+
+    private static CharacterAiPerformanceMetric CaptureMetric(string name, List<double> source)
+    {
+        CharacterAiPerformanceMetric metric = new CharacterAiPerformanceMetric(name);
+        if (source.Count == 0)
+        {
+            return metric;
+        }
+
+        double[] sorted = source.ToArray();
+        Array.Sort(sorted);
+        metric.average = sorted.Average();
+        metric.p95 = sorted[Mathf.Clamp(
+            Mathf.CeilToInt(sorted.Length * 0.95f) - 1,
+            0,
+            sorted.Length - 1)];
+        metric.max = sorted[sorted.Length - 1];
+        metric.sampleCount = source.Count;
+        return metric;
     }
 }

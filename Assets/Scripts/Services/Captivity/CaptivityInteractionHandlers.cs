@@ -313,7 +313,9 @@ public sealed class CaptivityCorruptionRitualHandler : CaptivityInteractionHandl
     public override CaptiveInteractionKind Kind => CaptiveInteractionKind.CorruptionRitual;
     public override float RequiredWork => 42f;
     public override System.Collections.Generic.IReadOnlyDictionary<StockCategory, int>
-        MaterialRequirements => Materials((StockCategory.Mana, 2));
+        MaterialRequirements => Materials(
+            (StockCategory.Mana, 1),
+            (StockCategory.Biological, 1));
 
     public override CaptivityInteractionResult Execute(CaptivityInteractionContext context)
     {

@@ -1,7 +1,11 @@
 using System.Collections;
 using UnityEngine;
 
-public class Stair : BuildableObject, IInteractable, IGridMovementHandler
+public class Stair :
+    BuildableObject,
+    IInteractable,
+    IGridMovementHandler,
+    IGridTraversalCostProvider
 {
     private const float EnterSpeedMultiplier = 0.9f;
     private const float DefaultHiddenTravelDelay = 2f;
@@ -9,17 +13,31 @@ public class Stair : BuildableObject, IInteractable, IGridMovementHandler
 
     public override GridMoveType GridMoveType => GridMoveType.Stair;
 
+    public int GetTraversalCostUnits()
+    {
+        const float assumedDryWalkSeconds = 0.2f;
+        float travelSeconds = GetHiddenTravelDelay() + ReappearDelay;
+        return Mathf.Max(
+            DefaultGridTraversalCostPolicy.DryWalkCost,
+            Mathf.CeilToInt(
+                travelSeconds
+                / assumedDryWalkSeconds
+                * DefaultGridTraversalCostPolicy.DryWalkCost));
+    }
+
     public IEnumerator Traverse(CharacterActor actor, GridMoveStep step)
     {
-        if (actor == null || step == null) yield break;
+        if (actor == null || !step.IsValid) yield break;
 
         AbilityMove moveable = actor.GetAbility<AbilityMove>();
         if (moveable == null || grid == null) yield break;
 
         Vector3 fromAnchor = GetFloorCenterAnchor(step.From);
         Vector3 toAnchor = GetFloorCenterAnchor(step.To);
+        Vector3 logicalDestination = GetMovementWorldPosition(step.To);
         fromAnchor.z = actor.transform.position.z;
         toAnchor.z = actor.transform.position.z;
+        logicalDestination.z = actor.transform.position.z;
 
         if ((actor.transform.position - fromAnchor).sqrMagnitude > 0.01f)
         {
@@ -35,6 +53,7 @@ public class Stair : BuildableObject, IInteractable, IGridMovementHandler
             yield return new WaitForSeconds(hiddenTravelDelay);
             actor.transform.position = toAnchor;
             yield return new WaitForSeconds(ReappearDelay);
+            actor.transform.position = logicalDestination;
         }
         finally
         {

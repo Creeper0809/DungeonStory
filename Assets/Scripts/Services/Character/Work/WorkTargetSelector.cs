@@ -1,17 +1,67 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 public sealed class WorkTargetSelector
 {
     private const float WorkUtilityScoreDivisor = 460f;
+    private const double CandidateScanFallbackSliceMilliseconds = 0.2;
+    private const int CandidateScanMinimumBatch = 1;
+    private const int CompletedCandidateRefreshFrames = 180;
+
+    private readonly struct CandidateCacheEntry
+    {
+        public CandidateCacheEntry(
+            bool found,
+            WorkTargetCandidate candidate,
+            WorkTargetCandidate rejected)
+        {
+            Found = found;
+            Candidate = candidate;
+            Rejected = rejected;
+        }
+
+        public bool Found { get; }
+        public WorkTargetCandidate Candidate { get; }
+        public WorkTargetCandidate Rejected { get; }
+    }
+
+    private sealed class IncrementalCandidateScan
+    {
+        public IReadOnlyList<BuildableObject> Source;
+        public int CandidateIndexVersion;
+        public int GridVersion;
+        public int BuildingVersion;
+        public int WorkOrderVersion;
+        public int StartOffset;
+        public int EvaluatedCount;
+        public int CompletedFrame = -1;
+        public int LastAdvancedFrame = -1;
+        public WorkTargetCandidate Best;
+        public WorkTargetCandidate MostUrgent;
+        public WorkTargetCandidate Rejected;
+        public bool Complete;
+    }
 
     private readonly AbilityWork work;
     private readonly IWorkPolicyRegistry workPolicyRegistry;
     private readonly ICaptiveLaborQuery captiveLaborQuery;
+    private readonly Dictionary<FacilityWorkType, CandidateCacheEntry> candidateCache =
+        new Dictionary<FacilityWorkType, CandidateCacheEntry>();
+    private readonly Dictionary<FacilityWorkType, IncrementalCandidateScan> incrementalScans =
+        new Dictionary<FacilityWorkType, IncrementalCandidateScan>();
     private CharacterActor cachedContextActor;
     private CharacterAiDecisionContext cachedDecisionContext;
     private int cachedDecisionContextFrame = -1;
+    private int candidateCacheFrame = -1;
+    private int candidateCacheGridVersion = -1;
+    private int candidateCacheBuildingVersion = -1;
+    private int candidateCacheFacilityVersion = -1;
+    private int candidateCacheWorkOrderVersion = -1;
+    private BuildableObject lastRecordedBreakdownBuilding;
+    private WorkTypeId lastRecordedBreakdownWorkTypeId;
     public WorkTargetCandidate LastRejectedCandidate { get; private set; }
 
     public WorkTargetSelector(
@@ -135,7 +185,21 @@ public sealed class WorkTargetSelector
         GridPathSearchResult searchResult,
         FacilityWorkType requestedWorkType)
     {
-        foreach (BuildableObject building in GetReachableBuildings(searchResult))
+        if (searchResult == null && work.WorkerActor?.Brain != null)
+        {
+            AdvanceIncrementalCandidateScan(
+                requestedWorkType,
+                out _,
+                out WorkTargetCandidate urgentCandidate,
+                out _,
+                out _);
+            return urgentCandidate.IsValid
+                && urgentCandidate.UrgencyScore >= 60f;
+        }
+
+        foreach (BuildableObject building in GetReachableWorkCandidates(
+                     searchResult,
+                     requestedWorkType))
         {
             if (TryEvaluateWorkTarget(building, searchResult, requestedWorkType, false, out WorkTargetCandidate candidate)
                 && candidate.UrgencyScore >= 60f)
@@ -165,11 +229,80 @@ public sealed class WorkTargetSelector
         GridPathSearchResult searchResult,
         out WorkTargetCandidate best)
     {
+        bool useCache = searchResult == null && work.WorkerActor?.Brain != null;
+        if (useCache)
+        {
+            PrepareCandidateCache();
+            if (candidateCache.TryGetValue(
+                requestedWorkType,
+                out CandidateCacheEntry cached))
+            {
+                best = cached.Candidate;
+                LastRejectedCandidate = cached.Rejected;
+                return cached.Found;
+            }
+        }
+
+        ICharacterAiPerformanceRecorder recorder =
+            work.WorkerActor?.Brain?.PerformanceRecorder;
+        long started = recorder?.DetailedCollectionEnabled == true
+            ? Stopwatch.GetTimestamp()
+            : 0L;
+        try
+        {
+            WorkTargetCandidate rejected = default;
+            bool scanComplete = true;
+            bool found = useCache
+                ? AdvanceIncrementalCandidateScan(
+                    requestedWorkType,
+                    out best,
+                    out _,
+                    out rejected,
+                    out scanComplete)
+                : TryGetBestCandidateWithLegacyTypeCore(
+                    requestedWorkType,
+                    searchResult,
+                    out best);
+            if (useCache)
+            {
+                LastRejectedCandidate = rejected;
+            }
+
+            if (useCache && scanComplete)
+            {
+                candidateCache[requestedWorkType] = new CandidateCacheEntry(
+                    found,
+                    best,
+                    LastRejectedCandidate);
+            }
+
+            return found;
+        }
+        finally
+        {
+            if (started != 0L)
+            {
+                recorder.Record(
+                    AiPerformanceCategory.WorkTargetSelection,
+                    (Stopwatch.GetTimestamp() - started)
+                    * 1000.0
+                    / Stopwatch.Frequency);
+            }
+        }
+    }
+
+    private bool TryGetBestCandidateWithLegacyTypeCore(
+        FacilityWorkType requestedWorkType,
+        GridPathSearchResult searchResult,
+        out WorkTargetCandidate best)
+    {
         best = default;
         WorkTargetCandidate rejected = default;
         float bestScore = float.NegativeInfinity;
         int bestRejectedRelevance = int.MinValue;
-        foreach (BuildableObject building in GetReachableBuildings(searchResult))
+        foreach (BuildableObject building in GetReachableWorkCandidates(
+                     searchResult,
+                     requestedWorkType))
         {
             TryEvaluateWorkTarget(
                 building,
@@ -205,6 +338,167 @@ public sealed class WorkTargetSelector
 
         LastRejectedCandidate = rejected;
         return false;
+    }
+
+    private bool AdvanceIncrementalCandidateScan(
+        FacilityWorkType requestedWorkType,
+        out WorkTargetCandidate best,
+        out WorkTargetCandidate mostUrgent,
+        out WorkTargetCandidate rejected,
+        out bool complete)
+    {
+        best = default;
+        mostUrgent = default;
+        rejected = default;
+        complete = false;
+
+        CharacterActor actor = work.WorkerActor;
+        Grid activeGrid = work.WorkGridResolver.ResolveActiveGrid(work, null);
+        if (actor == null || activeGrid == null)
+        {
+            complete = true;
+            return false;
+        }
+
+        IFacilityCandidateCache facilityCache =
+            work.FacilityCandidateCacheService;
+        IReadOnlyList<BuildableObject> source =
+            facilityCache.GetWorkCandidates(activeGrid, requestedWorkType);
+        int frame = work.GameClock.FrameCount;
+        int candidateIndexVersion = facilityCache.CandidateIndexVersion;
+        int gridVersion = activeGrid.StructuralVersion;
+        int buildingVersion = actor.WorldRegistry?.BuildingVersion ?? -1;
+        int workOrderVersion =
+            work.WorkOrderRuntime?.WorkOrderCandidateVersion ?? -1;
+
+        if (!incrementalScans.TryGetValue(
+                requestedWorkType,
+                out IncrementalCandidateScan scan)
+            || scan.CandidateIndexVersion != candidateIndexVersion
+            || scan.GridVersion != gridVersion
+            || scan.BuildingVersion != buildingVersion
+            || scan.WorkOrderVersion != workOrderVersion
+            || (scan.Complete
+                && frame - scan.CompletedFrame
+                    >= CompletedCandidateRefreshFrames))
+        {
+            scan = new IncrementalCandidateScan
+            {
+                Source = source,
+                CandidateIndexVersion = candidateIndexVersion,
+                GridVersion = gridVersion,
+                BuildingVersion = buildingVersion,
+                WorkOrderVersion = workOrderVersion,
+                StartOffset = facilityCache.HasPendingIndexBuild
+                    ? 0
+                    : ResolveCandidateStartOffset(actor, source.Count)
+            };
+            incrementalScans[requestedWorkType] = scan;
+        }
+        else
+        {
+            scan.Source = source;
+        }
+
+        int sourceCount = scan.Source?.Count ?? 0;
+        if (scan.LastAdvancedFrame != frame)
+        {
+            double sliceMilliseconds =
+                actor.FrameWorkBudget?.GetSliceMilliseconds(
+                    DynamicFrameWorkDomain.Work,
+                    0.02,
+                    CandidateScanFallbackSliceMilliseconds)
+                ?? CandidateScanFallbackSliceMilliseconds;
+            long started = Stopwatch.GetTimestamp();
+            int evaluatedThisSlice = 0;
+            while (scan.EvaluatedCount < sourceCount)
+            {
+                int sourceIndex = (scan.StartOffset + scan.EvaluatedCount)
+                    % sourceCount;
+                BuildableObject building = scan.Source[sourceIndex];
+                scan.EvaluatedCount++;
+                evaluatedThisSlice++;
+
+                TryEvaluateWorkTarget(
+                    building,
+                    null,
+                    requestedWorkType,
+                    false,
+                    out WorkTargetCandidate candidate);
+                if (candidate.IsValid)
+                {
+                    if (!scan.Best.IsValid
+                        || candidate.Score > scan.Best.Score)
+                    {
+                        scan.Best = candidate;
+                    }
+
+                    if (!scan.MostUrgent.IsValid
+                        || candidate.UrgencyScore
+                            > scan.MostUrgent.UrgencyScore
+                        || (Mathf.Approximately(
+                                candidate.UrgencyScore,
+                                scan.MostUrgent.UrgencyScore)
+                            && candidate.Score > scan.MostUrgent.Score))
+                    {
+                        scan.MostUrgent = candidate;
+                    }
+                }
+                else if (GetFailureRelevance(candidate)
+                         > GetFailureRelevance(scan.Rejected))
+                {
+                    scan.Rejected = candidate;
+                }
+
+                if (evaluatedThisSlice >= CandidateScanMinimumBatch
+                    && GetElapsedMilliseconds(started)
+                        >= sliceMilliseconds)
+                {
+                    break;
+                }
+            }
+
+            scan.LastAdvancedFrame = frame;
+        }
+
+        sourceCount = scan.Source?.Count ?? 0;
+        scan.Complete = scan.EvaluatedCount >= sourceCount
+            && !facilityCache.HasPendingIndexBuild;
+        if (scan.Complete)
+        {
+            scan.CompletedFrame = frame;
+        }
+        else
+        {
+            actor.FrameWorkBudget?.SetBacklog(
+                DynamicFrameWorkDomain.Work,
+                sourceCount - scan.EvaluatedCount);
+        }
+
+        best = scan.Best;
+        mostUrgent = scan.MostUrgent;
+        rejected = best.IsValid ? default : scan.Rejected;
+        complete = scan.Complete;
+        if (best.IsValid && complete)
+        {
+            RecordBestWorkBreakdown(best);
+            return true;
+        }
+
+        return best.IsValid;
+    }
+
+    private static int ResolveCandidateStartOffset(
+        CharacterActor actor,
+        int candidateCount)
+    {
+        if (actor == null || candidateCount <= 1)
+        {
+            return 0;
+        }
+
+        uint stableId = unchecked((uint)actor.GetInstanceID());
+        return (int)(stableId % (uint)candidateCount);
     }
 
     public bool TryGetBestAnyCandidate(
@@ -248,38 +542,137 @@ public sealed class WorkTargetSelector
 
     public IEnumerable<BuildableObject> GetReachableBuildings(GridPathSearchResult searchResult)
     {
-        IEnumerable<BuildableObject> buildings;
         if (searchResult != null)
         {
-            buildings = searchResult.GetAllReachableBuilding();
+            IReadOnlyList<BuildableObject> reachable =
+                searchResult.GetAllReachableBuilding();
+            foreach (BuildableObject building in reachable)
+            {
+                if (building != null && !building.isDestroy)
+                {
+                    yield return building;
+                }
+            }
+
+            if (work.ExteriorZoneQuery == null)
+            {
+                yield break;
+            }
+
+            foreach (ExteriorZoneMarker marker in work.ExteriorZoneQuery.Zones)
+            {
+                if (marker != null
+                    && !marker.isDestroy
+                    && searchResult.ContainsPosition(marker.GridPosition)
+                    && !reachable.Contains(marker))
+                {
+                    yield return marker;
+                }
+            }
+
+            yield break;
         }
-        else
+
+        Grid activeGrid = work.WorkGridResolver.ResolveActiveGrid(work, null);
+        if (activeGrid == null)
         {
-            Grid activeGrid = work.WorkGridResolver.ResolveActiveGrid(work, null);
-            if (activeGrid == null)
-            {
-                return Enumerable.Empty<BuildableObject>();
-            }
-
-            CharacterActor actor = work.WorkerActor;
-            Vector2Int startPos = work.WorkGridResolver.GetGridPosition(activeGrid, actor);
-            actor?.PathSearchBroker?.TryGetSearch(activeGrid, startPos, out searchResult);
-            if (searchResult == null)
-            {
-                return Enumerable.Empty<BuildableObject>();
-            }
-
-            buildings = searchResult.GetAllReachableBuilding();
+            yield break;
         }
 
-        return MergeExteriorWorkMarkers(buildings, searchResult);
+        IReadOnlyList<BuildableObject> registered =
+            work.WorkerActor?.WorldRegistry?.Buildings;
+        if (registered != null && registered.Count > 0)
+        {
+            foreach (BuildableObject building in registered)
+            {
+                if (building != null
+                    && !building.isDestroy
+                    && building.Grid == activeGrid)
+                {
+                    yield return building;
+                }
+            }
+
+            yield break;
+        }
+
+        foreach (IGridOccupant occupant in activeGrid.FindAllOccupants(null))
+        {
+            if (occupant is BuildableObject building && !building.isDestroy)
+            {
+                yield return building;
+            }
+        }
+    }
+
+    private IEnumerable<BuildableObject> GetReachableWorkCandidates(
+        GridPathSearchResult searchResult,
+        FacilityWorkType requestedWorkType)
+    {
+        if (searchResult != null)
+        {
+            foreach (BuildableObject building in GetReachableBuildings(searchResult))
+            {
+                yield return building;
+            }
+
+            yield break;
+        }
+
+        Grid activeGrid = work.WorkGridResolver.ResolveActiveGrid(work, null);
+        if (activeGrid == null)
+        {
+            yield break;
+        }
+
+        IReadOnlyList<BuildableObject> indexed =
+            work.FacilityCandidateCacheService.GetWorkCandidates(
+                activeGrid,
+                requestedWorkType);
+        for (int index = 0; index < indexed.Count; index++)
+        {
+            BuildableObject building = indexed[index];
+            if (building != null && !building.isDestroy)
+            {
+                yield return building;
+            }
+        }
     }
 
     public IEnumerable<IWarehouseFacility> FindReachableWarehouses(GridPathSearchResult searchResult = null)
     {
-        return GetReachableBuildings(searchResult)
-            .OfType<IWarehouseFacility>()
-            .Where((warehouse) => warehouse.HasWarehouseInventory);
+        if (searchResult == null)
+        {
+            Grid activeGrid = work.WorkGridResolver.ResolveActiveGrid(work, null);
+            IReadOnlyList<IWarehouseFacility> registered =
+                work.WorkerActor?.WorldRegistry?.Warehouses;
+            if (registered != null && registered.Count > 0)
+            {
+                for (int index = 0; index < registered.Count; index++)
+                {
+                    IWarehouseFacility warehouse = registered[index];
+                    if (warehouse != null
+                        && warehouse.HasWarehouseInventory
+                        && warehouse is BuildableObject building
+                        && building.Grid == activeGrid
+                        && !building.isDestroy)
+                    {
+                        yield return warehouse;
+                    }
+                }
+
+                yield break;
+            }
+        }
+
+        foreach (IWarehouseFacility warehouse in GetReachableBuildings(searchResult)
+                     .OfType<IWarehouseFacility>())
+        {
+            if (warehouse.HasWarehouseInventory)
+            {
+                yield return warehouse;
+            }
+        }
     }
 
     internal bool TryEvaluateWorkTarget(
@@ -558,31 +951,40 @@ public sealed class WorkTargetSelector
             - failurePenalty
             - movementPenalty;
 
-        CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
-            GetWorkIntention(workType),
-            $"{GetBuildingLabel(building)} {definition.DisplayName}");
-        breakdown.Add(CharacterAiUtilityFactorKind.Priority, Mathf.Clamp01(priority.GetBaseScore() / 300f), 0.28f, priority.ToDisplayText());
-        breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Clamp01(urgency / 100f), 0.22f, "긴급도");
-        breakdown.Add(CharacterAiUtilityFactorKind.Personality, preferenceScore, 0.16f, "작업 적성");
-        breakdown.Add(
-            CharacterAiUtilityFactorKind.Momentum,
-            Mathf.Clamp01((speedScore * 25f + softLockBonus) / 41f),
-            0.1f,
-            "작업 속도/하던 일 유지");
-        breakdown.Add(CharacterAiUtilityFactorKind.Distance, Mathf.Clamp01(distanceScore / 25f), 0.08f, "거리");
-        breakdown.Add(CharacterAiUtilityFactorKind.Room, Mathf.InverseLerp(-15f, 28f, roomContextScore), 0.08f, "방 환경");
-        breakdown.Add(CharacterAiUtilityFactorKind.Reservation, Mathf.InverseLerp(-26f, 12f, facilityStateScore), 0.05f, "시설 상태");
-        breakdown.Add(CharacterAiUtilityFactorKind.Queue, Mathf.Clamp01(queueBonus / 8f), 0.05f, "작업 혼잡");
-        breakdown.Add(CharacterAiUtilityFactorKind.PathConfidence, signals.PathConfidence, 0.05f, "경로 신뢰");
-        breakdown.Add(CharacterAiUtilityFactorKind.Schedule, signals.ScheduleScore, 0.04f, "근무 흐름");
-        breakdown.Add(CharacterAiUtilityFactorKind.Weather, Mathf.Clamp01(1f - weatherPenalty / 12f), 0.03f, "외부 부담");
-        breakdown.Add(
-            CharacterAiUtilityFactorKind.Fatigue,
-            Mathf.Clamp01(1f - (fatiguePenalty + targetFatiguePenalty + movementPenalty) / 40f),
-            0.04f,
-            "반복/이동 피로");
-        breakdown.Add(CharacterAiUtilityFactorKind.Memory, Mathf.Clamp01(1f - failurePenalty / 10f), 0.03f, "최근 실패");
-        breakdown.SetFinalScore(Mathf.Clamp01(score / WorkUtilityScoreDivisor));
+        // Candidate scans stay numeric. The selected candidate is formatted once
+        // by RecordBestWorkBreakdown instead of allocating details per facility.
+        bool captureDetails = false;
+        string breakdownSummary = string.Empty;
+        if (captureDetails)
+        {
+            CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
+                GetWorkIntention(workType),
+                $"{GetBuildingLabel(building)} {definition.DisplayName}",
+                true);
+            breakdown.Add(CharacterAiUtilityFactorKind.Priority, Mathf.Clamp01(priority.GetBaseScore() / 300f), 0.28f, priority.ToDisplayText());
+            breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Clamp01(urgency / 100f), 0.22f, "긴급도");
+            breakdown.Add(CharacterAiUtilityFactorKind.Personality, preferenceScore, 0.16f, "작업 적성");
+            breakdown.Add(
+                CharacterAiUtilityFactorKind.Momentum,
+                Mathf.Clamp01((speedScore * 25f + softLockBonus) / 41f),
+                0.1f,
+                "작업 속도/하던 일 유지");
+            breakdown.Add(CharacterAiUtilityFactorKind.Distance, Mathf.Clamp01(distanceScore / 25f), 0.08f, "거리");
+            breakdown.Add(CharacterAiUtilityFactorKind.Room, Mathf.InverseLerp(-15f, 28f, roomContextScore), 0.08f, "방 환경");
+            breakdown.Add(CharacterAiUtilityFactorKind.Reservation, Mathf.InverseLerp(-26f, 12f, facilityStateScore), 0.05f, "시설 상태");
+            breakdown.Add(CharacterAiUtilityFactorKind.Queue, Mathf.Clamp01(queueBonus / 8f), 0.05f, "작업 혼잡");
+            breakdown.Add(CharacterAiUtilityFactorKind.PathConfidence, signals.PathConfidence, 0.05f, "경로 신뢰");
+            breakdown.Add(CharacterAiUtilityFactorKind.Schedule, signals.ScheduleScore, 0.04f, "근무 흐름");
+            breakdown.Add(CharacterAiUtilityFactorKind.Weather, Mathf.Clamp01(1f - weatherPenalty / 12f), 0.03f, "외부 부담");
+            breakdown.Add(
+                CharacterAiUtilityFactorKind.Fatigue,
+                Mathf.Clamp01(1f - (fatiguePenalty + targetFatiguePenalty + movementPenalty) / 40f),
+                0.04f,
+                "반복/이동 피로");
+            breakdown.Add(CharacterAiUtilityFactorKind.Memory, Mathf.Clamp01(1f - failurePenalty / 10f), 0.03f, "최근 실패");
+            breakdown.SetFinalScore(Mathf.Clamp01(score / WorkUtilityScoreDivisor));
+            breakdownSummary = breakdown.ToCompactString();
+        }
 
         return new WorkTargetCandidate(
             building,
@@ -592,7 +994,7 @@ public sealed class WorkTargetSelector
             urgency,
             string.Empty,
             AIActionFailureKind.None,
-            breakdown.ToCompactString());
+            breakdownSummary);
     }
 
     private void RecordBestWorkBreakdown(WorkTargetCandidate candidate)
@@ -602,6 +1004,19 @@ public sealed class WorkTargetSelector
             return;
         }
 
+        if (!work.WorkerActor.ShouldCollectDetailedAiDiagnostics)
+        {
+            return;
+        }
+
+        if (candidate.Building == lastRecordedBreakdownBuilding
+            && candidate.WorkTypeId == lastRecordedBreakdownWorkTypeId)
+        {
+            return;
+        }
+
+        lastRecordedBreakdownBuilding = candidate.Building;
+        lastRecordedBreakdownWorkTypeId = candidate.WorkTypeId;
         CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
             GetWorkIntention(candidate.WorkType),
             $"{GetBuildingLabel(candidate.Building)} {candidate.DisplayName}");
@@ -640,23 +1055,83 @@ public sealed class WorkTargetSelector
         return cachedDecisionContext;
     }
 
-    private static float GetDistanceScore(BuildableObject building, GridPathSearchResult searchResult)
+    private float GetDistanceScore(BuildableObject building, GridPathSearchResult searchResult)
     {
         if (building == null)
         {
             return 0f;
         }
 
-        Queue<GridMoveStep> path = searchResult != null
-            ? searchResult.GetMovePathTo(building)
-            : null;
-
-        if (path == null || path.Count == 0)
+        int travelCost = searchResult?.GetMoveCostTo(building) ?? int.MaxValue;
+        if (travelCost == int.MaxValue)
         {
-            return 25f;
+            Vector2Int start = work.WorkerActor != null
+                ? work.WorkerActor.GetNowXY()
+                : building.centerPos;
+            travelCost = EstimateDestinationCost(start, building);
         }
 
-        return Mathf.Clamp(25f - path.Count, 0f, 25f);
+        float normalizedDistance = travelCost
+            / (float)DefaultGridTraversalCostPolicy.DryWalkCost;
+        return Mathf.Clamp(25f - normalizedDistance, 0f, 25f);
+    }
+
+    private static int EstimateDestinationCost(
+        Vector2Int start,
+        BuildableObject building)
+    {
+        IReadOnlyList<Vector2Int> positions = building?.buildPoses;
+        if (positions == null || positions.Count == 0)
+        {
+            return EstimateDestinationCost(start, building != null
+                ? building.centerPos
+                : start);
+        }
+
+        int best = int.MaxValue;
+        for (int index = 0; index < positions.Count; index++)
+        {
+            best = Mathf.Min(best, EstimateDestinationCost(start, positions[index]));
+        }
+
+        return best;
+    }
+
+    private static int EstimateDestinationCost(
+        Vector2Int start,
+        Vector2Int destination)
+    {
+        int horizontal = Mathf.Abs(start.x - destination.x)
+            * DefaultGridTraversalCostPolicy.DryWalkCost;
+        int floors = Mathf.Abs(start.y - destination.y);
+        return horizontal
+            + floors * DefaultGridTraversalCostPolicy.StairFallbackCost;
+    }
+
+    private void PrepareCandidateCache()
+    {
+        CharacterActor actor = work.WorkerActor;
+        Grid activeGrid = work.WorkGridResolver.ResolveActiveGrid(work, null);
+        int frame = work.GameClock.FrameCount;
+        int gridVersion = activeGrid?.StructuralVersion ?? -1;
+        int buildingVersion = actor?.WorldRegistry?.BuildingVersion ?? -1;
+        int facilityVersion = work.FacilityCandidateCacheService.DynamicStateVersion;
+        int workOrderVersion = work.WorkOrderRuntime?.WorkOrderCandidateVersion ?? -1;
+        if (candidateCacheFrame == frame
+            && candidateCacheGridVersion == gridVersion
+            && candidateCacheBuildingVersion == buildingVersion
+            && candidateCacheFacilityVersion == facilityVersion
+            && candidateCacheWorkOrderVersion == workOrderVersion)
+        {
+            return;
+        }
+
+        candidateCache.Clear();
+        candidateCacheFrame = frame;
+        candidateCacheGridVersion = gridVersion;
+        candidateCacheBuildingVersion = buildingVersion;
+        candidateCacheFacilityVersion = facilityVersion;
+        candidateCacheWorkOrderVersion = workOrderVersion;
     }
 
     private float GetRoomContextScore(BuildableObject building)
@@ -777,38 +1252,6 @@ public sealed class WorkTargetSelector
         return requestedWorkType == FacilityWorkType.None || requestedWorkType == FacilityWorkType.Guard;
     }
 
-    private IEnumerable<BuildableObject> MergeExteriorWorkMarkers(
-        IEnumerable<BuildableObject> buildings,
-        GridPathSearchResult searchResult)
-    {
-        HashSet<BuildableObject> seen = new HashSet<BuildableObject>();
-        foreach (BuildableObject building in buildings ?? Enumerable.Empty<BuildableObject>())
-        {
-            if (building != null && seen.Add(building))
-            {
-                yield return building;
-            }
-        }
-
-        if (work.ExteriorZoneQuery == null || searchResult == null)
-        {
-            yield break;
-        }
-
-        foreach (ExteriorZoneMarker marker in work.ExteriorZoneQuery.Zones)
-        {
-            if (marker == null
-                || marker.isDestroy
-                || !searchResult.ContainsPosition(marker.GridPosition)
-                || !seen.Add(marker))
-            {
-                continue;
-            }
-
-            yield return marker;
-        }
-    }
-
     private static bool IsReachableWorkBuilding(BuildableObject building, GridPathSearchResult searchResult)
     {
         if (building == null || searchResult == null)
@@ -884,5 +1327,12 @@ public sealed class WorkTargetSelector
         }
 
         return urgency;
+    }
+
+    private static double GetElapsedMilliseconds(long started)
+    {
+        return (Stopwatch.GetTimestamp() - started)
+            * 1000.0
+            / Stopwatch.Frequency;
     }
 }

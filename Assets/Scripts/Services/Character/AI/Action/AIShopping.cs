@@ -16,6 +16,15 @@ public class AIShopping : AIActionSet
         return CanUseVisitorAction(actor);
     }
 
+    public override bool CanStart(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        return actor != null
+            && context.HasShoppingAbility
+            && (!context.IsWorker || context.IsOffDuty);
+    }
+
     public override void Execute(CharacterActor actor)
     {
         actor?.GetAbility<AbilityShopping>()?.StartSopping();
@@ -52,12 +61,11 @@ public class AIShopping : AIActionSet
             return null;
         }
 
-        GridPathSearchResult searchResult = actor.Brain != null ? actor.Brain.GetPathSearch(actor) : null;
         return FacilityCandidateScorer.SelectBest(
             actor,
             candidates,
             shopping.GetInterestRoles(),
-            searchResult,
+            null,
             FacilityScoringContext.RequireFromActor(actor));
     }
 
@@ -77,18 +85,23 @@ public class AIShopping : AIActionSet
             return false;
         }
 
-        if (FacilityCandidateScorer.TrySelectBest(
+        if (FacilityCandidateScorer.TrySelectBestIncremental(
             actor,
             searchResult,
             shopping.GetInterestRoles(),
             FacilityScoringContext.RequireFromActor(actor),
-            out destination))
+            out destination,
+            out bool pending))
         {
             failure = AIActionFailure.None;
             return true;
         }
 
-        failure = AIActionFailure.Create(AIActionFailureKind.NoDestination);
+        failure = AIActionFailure.Create(
+            pending
+                ? AIActionFailureKind.PathSearchDeferred
+                : AIActionFailureKind.NoDestination,
+            pending ? "시설 후보를 나누어 확인하는 중" : string.Empty);
         return false;
     }
 

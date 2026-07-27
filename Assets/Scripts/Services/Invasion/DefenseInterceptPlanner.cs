@@ -23,7 +23,7 @@ public sealed class DefenseInterceptPlanner
         Queue<GridMoveStep> route = intruder.CreateNextPath(grid, targetCell, out _);
         if (route == null || route.Count < 2)
         {
-            route = grid.GetMovePath(intruderStart, cell => cell == targetCell);
+            route = grid.GetMovePathTo(intruderStart, targetCell);
         }
 
         GridMoveStep[] routeSteps = route?.ToArray() ?? Array.Empty<GridMoveStep>();
@@ -52,8 +52,8 @@ public sealed class DefenseInterceptPlanner
         {
             GridMoveStep stopStep = routeSteps[index];
             GridMoveStep guardStep = routeSteps[index + 1];
-            if (stopStep == null
-                || guardStep == null
+            if (!stopStep.IsValid
+                || !guardStep.IsValid
                 || stopStep.MoveType != GridMoveType.Walk
                 || guardStep.MoveType != GridMoveType.Walk
                 || !IsDungeonInterior(grid, stopStep.To)
@@ -66,14 +66,14 @@ public sealed class DefenseInterceptPlanner
                 continue;
             }
 
-            Queue<GridMoveStep> guardPath = grid.GetMovePath(guardStart, cell => cell == guardStep.To);
+            Queue<GridMoveStep> guardPath = grid.GetMovePathTo(guardStart, guardStep.To);
             bool guardAlreadyThere = guardStart == guardStep.To;
             if (!guardAlreadyThere && (guardPath == null || guardPath.Count == 0))
             {
                 continue;
             }
 
-            if (guardPath != null && guardPath.Any(step => step != null && step.To == stopStep.To))
+            if (guardPath != null && guardPath.Any(step => step.IsValid && step.To == stopStep.To))
             {
                 continue;
             }
@@ -116,9 +116,9 @@ public sealed class DefenseInterceptPlanner
         }
 
         Vector2Int ownerCell = owner.GetNowXY();
-        Queue<GridMoveStep> route = grid.GetMovePath(
+        Queue<GridMoveStep> route = grid.GetMovePathTo(
             intruder.IntruderActor.GetNowXY(),
-            cell => cell == ownerCell);
+            ownerCell);
         GridMoveStep[] steps = route?.ToArray() ?? Array.Empty<GridMoveStep>();
         if (steps.Length == 0)
         {
@@ -126,7 +126,7 @@ public sealed class DefenseInterceptPlanner
         }
 
         GridMoveStep finalStep = steps[steps.Length - 1];
-        if (finalStep == null
+        if (!finalStep.IsValid
             || finalStep.MoveType != GridMoveType.Walk
             || finalStep.From.y != ownerCell.y
             || Mathf.Abs(finalStep.From.x - ownerCell.x) != 1

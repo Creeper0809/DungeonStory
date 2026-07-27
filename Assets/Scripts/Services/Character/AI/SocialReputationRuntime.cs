@@ -59,6 +59,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
     private IBuildingWorldQuery buildingWorldQuery;
     private ICharacterWorldQuery characterWorldQuery;
     private IGameClock gameClock;
+    private IUiClock uiClock;
     private ILocalLlmRuntimeProvider llmRuntimeProvider;
     private IRandomStream socialRandom;
     private ICharacterSocialMemoryFactory socialMemoryFactory;
@@ -121,7 +122,8 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         IBuildingWorldQuery buildingWorldQuery,
         ICharacterSocialMemoryFactory socialMemoryFactory,
         IGameClock gameClock,
-        IRandomStreamProvider randomStreamProvider)
+        IRandomStreamProvider randomStreamProvider,
+        IUiClock uiClock = null)
     {
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
@@ -133,6 +135,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             ?? throw new ArgumentNullException(nameof(socialMemoryFactory));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
+        this.uiClock = uiClock;
         socialRandom = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("social-reputation");
@@ -165,12 +168,14 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             return;
         }
 
-        if (gameClock.Time < nextActorScanTime)
+        float cadenceTime = uiClock?.Time ?? gameClock.Time;
+        if (gameClock.IsPaused || cadenceTime < nextActorScanTime)
         {
             return;
         }
 
-        nextActorScanTime = gameClock.Time + Mathf.Max(0.25f, actorScanIntervalSeconds);
+        nextActorScanTime = cadenceTime
+            + Mathf.Max(0.25f, actorScanIntervalSeconds);
         RegisterExistingActors();
     }
 
@@ -699,19 +704,10 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             return;
         }
 
-        IEnumerable<BuildableObject> facilities = speaker != null
-            ? speaker.GetReachableBuilding()
-            : Enumerable.Empty<BuildableObject>();
-        List<BuildableObject> candidates = facilities
+        List<BuildableObject> candidates = FindNearbyFacilities(speaker)
             .Where((building) => building != null)
             .Take(8)
             .ToList();
-        if (candidates.Count == 0)
-        {
-            candidates = FindNearbyFacilities(speaker)
-                .Take(8)
-                .ToList();
-        }
 
         foreach (BuildableObject building in candidates)
         {

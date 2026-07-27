@@ -149,7 +149,7 @@ public sealed class RoomInspectionRuntime :
         }
 
         bool roomChanged = !ReferenceEquals(currentRoom, room)
-            || currentGridVersion != grid.version;
+            || currentGridVersion != grid.StructuralVersion;
         if (!roomChanged && uiClock.Time < nextDynamicRefreshAt)
         {
             return;
@@ -219,7 +219,7 @@ public sealed class RoomInspectionRuntime :
     {
         CurrentSnapshot = evaluator.Evaluate(grid, room);
         currentRoom = room;
-        currentGridVersion = grid.version;
+        currentGridVersion = grid.StructuralVersion;
         nextDynamicRefreshAt = uiClock.Time + DynamicRefreshInterval;
         Color roomColor = ResolveRoomColor(CurrentSnapshot);
         overlay.Show(CurrentSnapshot, roomColor);

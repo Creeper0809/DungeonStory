@@ -10,6 +10,13 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
     private CharacterActor worker;
     private string workOrderId = string.Empty;
     private ConstructionSafetyResult lastSafetyResult = ConstructionSafetyResult.Safe();
+    private ConstructionSafetyResult cachedSafetyResult =
+        ConstructionSafetyResult.Safe();
+    private int cachedSafetyGridVersion = -1;
+    private int cachedSafetyBuildingVersion = -1;
+    private Vector2Int cachedSafetyWorkerPosition =
+        new Vector2Int(int.MinValue, int.MinValue);
+    private bool hasCachedSafetyResult;
     private IWorkOrderRuntime workOrderRuntime;
 
     public string WorkOrderId => workOrderId;
@@ -159,7 +166,27 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
         CharacterActor actor,
         bool forced = false)
     {
-        lastSafetyResult = ConstructionSafetyPlanner.Evaluate(this, actor, forced);
+        int gridVersion = Grid != null ? Grid.StructuralVersion : -1;
+        int buildingVersion = WorldRegistry?.BuildingVersion ?? -1;
+        Vector2Int workerPosition = actor != null
+            ? actor.GetNowXY()
+            : new Vector2Int(int.MinValue, int.MinValue);
+        if (!hasCachedSafetyResult
+            || cachedSafetyGridVersion != gridVersion
+            || cachedSafetyBuildingVersion != buildingVersion
+            || cachedSafetyWorkerPosition != workerPosition)
+        {
+            cachedSafetyResult =
+                ConstructionSafetyPlanner.Evaluate(this, actor, forced: false);
+            cachedSafetyGridVersion = gridVersion;
+            cachedSafetyBuildingVersion = buildingVersion;
+            cachedSafetyWorkerPosition = workerPosition;
+            hasCachedSafetyResult = true;
+        }
+
+        lastSafetyResult = forced && !cachedSafetyResult.IsSafe
+            ? cachedSafetyResult.AsForcedWarning()
+            : cachedSafetyResult;
         return lastSafetyResult;
     }
 

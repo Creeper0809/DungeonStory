@@ -19,6 +19,8 @@ MonoBehaviour:
   weight: 0.8
   occupiedHands: 0
   maxDurability: 120
+  requiredCraftWork: 6
+  craftMaterials: []
   layer: 1
   collisionTag: headwear
   bodyPartDefense:

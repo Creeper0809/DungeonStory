@@ -9,12 +9,14 @@ public readonly struct CharacterAiActionCandidate
         AIAction action,
         float score,
         AIActionFailure failure,
-        string debugLabel)
+        string debugLabel,
+        BuildableObject destination = null)
     {
         Action = action;
         Score = Mathf.Clamp01(score);
         Failure = failure;
         DebugLabel = debugLabel ?? string.Empty;
+        Destination = destination;
     }
 
     public AIAction Action { get; }
@@ -22,6 +24,7 @@ public readonly struct CharacterAiActionCandidate
     public float Score { get; }
     public AIActionFailure Failure { get; }
     public string DebugLabel { get; }
+    public BuildableObject Destination { get; }
     public bool HasAction => Action != null && Action.actionset != null && Score > 0f;
 }
 
@@ -59,20 +62,131 @@ public readonly struct CharacterAiJobCandidate
 
 public abstract class CharacterAiJobGiver
 {
+    private readonly Predicate<AIActionSet> actionMatcher;
+
+    protected CharacterAiJobGiver()
+    {
+        actionMatcher = MatchesAction;
+    }
+
     public abstract CharacterAiBranch Branch { get; }
     public abstract string Name { get; }
+    public virtual FacilityRole RequiredFacilityRoles => FacilityRole.None;
 
     public bool TryEvaluate(CharacterActor actor, out CharacterAiJobCandidate candidate)
     {
         CharacterAiDecisionContext context = CharacterAiDecisionContext.Capture(actor, Branch);
-        actor?.Blackboard?.RecordDecisionContext(context);
-        float domainScore = GetDomainScore(actor, out string domainReason);
+        return TryEvaluate(actor, in context, out candidate);
+    }
+
+    public bool TryEvaluate(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out CharacterAiJobCandidate candidate)
+    {
+        bool captureDetails = actor == null || actor.ShouldCollectDetailedAiDiagnostics;
+        float domainScore = EvaluateDomain(
+            actor,
+            in context,
+            captureDetails,
+            out string domainReason);
+        return TryEvaluate(
+            actor,
+            in context,
+            domainScore,
+            domainReason,
+            out candidate);
+    }
+
+    internal float EvaluateDomain(
+        CharacterActor actor,
+        bool captureDetails,
+        out string domainReason)
+    {
+        CharacterAiDecisionContext context =
+            CharacterAiDecisionContext.Capture(actor, Branch);
+        return EvaluateDomain(
+            actor,
+            in context,
+            ResolveAvailableFacilityRoles(actor),
+            captureDetails,
+            out domainReason);
+    }
+
+    internal float EvaluateDomain(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        bool captureDetails,
+        out string domainReason)
+    {
+        return EvaluateDomain(
+            actor,
+            in context,
+            ResolveAvailableFacilityRoles(actor),
+            captureDetails,
+            out domainReason);
+    }
+
+    internal float EvaluateDomain(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        FacilityRole availableFacilityRoles,
+        bool captureDetails,
+        out string domainReason)
+    {
+        FacilityRole requiredRoles = RequiredFacilityRoles;
+        if (requiredRoles != FacilityRole.None
+            && (availableFacilityRoles & requiredRoles) == FacilityRole.None)
+        {
+            domainReason = "required facility role unavailable";
+            return 0f;
+        }
+
+        float domainScore = GetDomainScore(
+            actor,
+            in context,
+            out domainReason);
         domainScore = CharacterMoodImpulseUtility.ApplyJobGiverBias(
             actor,
             Branch,
             domainScore,
-            out string moodReason);
-        domainReason = CharacterMoodImpulseUtility.AppendReason(domainReason, moodReason);
+            out string moodReason,
+            captureDetails);
+        if (captureDetails)
+        {
+            domainReason = CharacterMoodImpulseUtility.AppendReason(
+                domainReason,
+                moodReason);
+        }
+
+        return Mathf.Clamp01(domainScore);
+    }
+
+    internal static FacilityRole ResolveAvailableFacilityRoles(
+        CharacterActor actor)
+    {
+        AIBrain brain = actor != null ? actor.Brain : null;
+        if (brain == null || !brain.TryGetRuntimeGrid(out Grid grid))
+        {
+            return FacilityRole.None;
+        }
+
+        return brain.RequireFacilityCandidateCache().GetAvailableRoles(grid);
+    }
+
+    internal bool TryEvaluate(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        float domainScore,
+        string domainReason,
+        out CharacterAiJobCandidate candidate)
+    {
+        bool captureDetails = actor == null || actor.ShouldCollectDetailedAiDiagnostics;
+        if (captureDetails)
+        {
+            actor?.Blackboard?.RecordDecisionContext(context);
+        }
+
         if (domainScore <= 0f)
         {
             candidate = CreateRejected(domainScore, domainReason);
@@ -88,28 +202,46 @@ public abstract class CharacterAiJobGiver
             return false;
         }
 
-        if (!brain.TryFindBestScoredAction(MatchesAction, out CharacterAiActionCandidate actionCandidate))
+        if (!brain.TryFindBestScoredAction(
+                actionMatcher,
+                in context,
+                out CharacterAiActionCandidate actionCandidate))
         {
             candidate = CreateRejected(
                 domainScore,
-                string.IsNullOrWhiteSpace(actionCandidate.DebugLabel)
-                    ? actionCandidate.Failure.ToString()
-                    : actionCandidate.DebugLabel);
+                !captureDetails
+                    ? "실행 가능한 행동 없음"
+                    : string.IsNullOrWhiteSpace(actionCandidate.DebugLabel)
+                        ? actionCandidate.Failure.ToString()
+                        : actionCandidate.DebugLabel,
+                actionCandidate);
             RecordRejectedBreakdown(actor, context, candidate.Reason);
             return false;
         }
 
-        CharacterAiUtilityBreakdown breakdown = CreateBreakdown(
-            actor,
-            context,
-            domainScore,
-            actionCandidate.Score,
-            actionCandidate.ActionSet);
-        float contextScore = breakdown.CalculateWeighted01();
+        CharacterAiUtilityBreakdown breakdown = captureDetails
+            ? CreateBreakdown(
+                actor,
+                context,
+                domainScore,
+                actionCandidate.Score,
+                actionCandidate.ActionSet)
+            : null;
+        float contextScore = breakdown != null
+            ? breakdown.CalculateWeighted01()
+            : CalculateContextScore(
+                actor,
+                context,
+                domainScore,
+                actionCandidate.Score,
+                actionCandidate.ActionSet);
         float utility = CombineUtility(domainScore, actionCandidate.Score);
         utility = Mathf.Clamp01(utility * Mathf.Lerp(0.88f, 1.12f, contextScore));
-        breakdown.SetFinalScore(utility);
-        actor?.Blackboard?.RecordUtilityBreakdown(breakdown);
+        breakdown?.SetFinalScore(utility);
+        if (captureDetails)
+        {
+            actor?.Blackboard?.RecordUtilityBreakdown(breakdown);
+        }
         candidate = new CharacterAiJobCandidate(
             Branch,
             Name,
@@ -117,7 +249,7 @@ public abstract class CharacterAiJobGiver
             domainScore,
             utility,
             domainReason,
-            breakdown.ToCompactString());
+            breakdown != null ? breakdown.ToCompactString() : string.Empty);
         return candidate.IsValid;
     }
 
@@ -127,6 +259,14 @@ public abstract class CharacterAiJobGiver
     }
 
     protected abstract float GetDomainScore(CharacterActor actor, out string reason);
+
+    protected virtual float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        return GetDomainScore(actor, out reason);
+    }
 
     protected virtual float CombineUtility(float domainScore, float actionScore)
     {
@@ -169,12 +309,15 @@ public abstract class CharacterAiJobGiver
         return Mathf.Clamp01(CharacterAiPersonalityUtility.GetActionScoreMultiplier(actor, actionSet) / 2f);
     }
 
-    private CharacterAiJobCandidate CreateRejected(float domainScore, string reason)
+    private CharacterAiJobCandidate CreateRejected(
+        float domainScore,
+        string reason,
+        CharacterAiActionCandidate actionCandidate = default)
     {
         return new CharacterAiJobCandidate(
             Branch,
             Name,
-            default,
+            actionCandidate,
             domainScore,
             0f,
             reason);
@@ -189,7 +332,8 @@ public abstract class CharacterAiJobGiver
     {
         CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
             CharacterAiUtilityText.GetIntention(Branch),
-            CharacterAiUtilityText.GetBranchLabel(Branch));
+            CharacterAiUtilityText.GetBranchLabel(Branch),
+            actor == null || actor.ShouldCollectDetailedAiDiagnostics);
         float memoryScore = actor != null && actor.AiMemory != null
             ? Mathf.Clamp01(0.5f + actor.AiMemory.GetMomentumScore(Branch))
             : 0.5f;
@@ -211,11 +355,46 @@ public abstract class CharacterAiJobGiver
         return breakdown;
     }
 
+    private float CalculateContextScore(
+        CharacterActor actor,
+        CharacterAiDecisionContext context,
+        float domainScore,
+        float actionScore,
+        AIActionSet actionSet)
+    {
+        float memoryScore = actor != null && actor.AiMemory != null
+            ? Mathf.Clamp01(0.5f + actor.AiMemory.GetMomentumScore(Branch))
+            : 0.5f;
+        float momentumScore = actionSet != null
+            && actor?.Blackboard?.CommittedAction == actionSet
+                ? 1f
+                : 0.5f;
+        const float totalWeight = 1.18f;
+        float weightedScore =
+            domainScore * 0.28f
+            + context.GetPriorityScore(Branch) * 0.18f
+            + context.GetPersonalityScore(Branch) * 0.13f
+            + memoryScore * 0.12f
+            + actionScore * 0.2f
+            + Mathf.Clamp01(1f - context.QueuePressure) * 0.04f
+            + Mathf.Clamp01(1f - context.WeatherPressure) * 0.03f
+            + context.PathConfidence * 0.04f
+            + context.ScheduleScore * 0.04f
+            + Mathf.Clamp01(1f - context.RecentFailurePressure) * 0.03f
+            + momentumScore * 0.09f;
+        return Mathf.Clamp01(weightedScore / totalWeight);
+    }
+
     private void RecordRejectedBreakdown(
         CharacterActor actor,
         CharacterAiDecisionContext context,
         string reason)
     {
+        if (actor != null && !actor.ShouldCollectDetailedAiDiagnostics)
+        {
+            return;
+        }
+
         CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
             CharacterAiUtilityText.GetIntention(Branch),
             CharacterAiUtilityText.GetBranchLabel(Branch));
@@ -235,6 +414,17 @@ public static class CharacterAiRoutinePriority
         CharacterAiBranch routineBranch,
         out string reason)
     {
+        CharacterAiDecisionContext context =
+            CharacterAiDecisionContext.Capture(actor, routineBranch);
+        return GetPriority(actor, routineBranch, in context, out reason);
+    }
+
+    public static float GetPriority(
+        CharacterActor actor,
+        CharacterAiBranch routineBranch,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
         if (actor == null || !actor.CanRunAi)
         {
             reason = "AI cannot run";
@@ -243,9 +433,9 @@ public static class CharacterAiRoutinePriority
 
         float priority = routineBranch switch
         {
-            CharacterAiBranch.SurvivalNeeds => GetSurvivalPriority(actor, out reason),
-            CharacterAiBranch.DutyWork => GetDutyPriority(actor, out reason),
-            CharacterAiBranch.LeisureVisit => GetLeisurePriority(actor, out reason),
+            CharacterAiBranch.SurvivalNeeds => GetSurvivalPriority(actor, in context, out reason),
+            CharacterAiBranch.DutyWork => GetDutyPriority(actor, in context, out reason),
+            CharacterAiBranch.LeisureVisit => GetLeisurePriority(actor, in context, out reason),
             CharacterAiBranch.Idle => GetIdlePriority(actor, out reason),
             _ => ReturnNoPriority(out reason)
         };
@@ -254,40 +444,48 @@ public static class CharacterAiRoutinePriority
             actor,
             routineBranch,
             priority,
-            out string moodReason);
-        reason = CharacterMoodImpulseUtility.AppendReason(reason, moodReason);
-        CharacterAiDecisionContext context = CharacterAiDecisionContext.Capture(actor, routineBranch);
-        CharacterAiUtilityBreakdown breakdown = context.CreateRoutineBreakdown(
-            routineBranch,
-            Mathf.Clamp01(priority / 100f));
-        priority = Mathf.Lerp(priority, breakdown.FinalScore01 * 100f, 0.25f);
-        actor.Blackboard?.RecordUtilityBreakdown(breakdown);
-        reason = CharacterMoodImpulseUtility.AppendReason(reason, breakdown.ToCompactString(3));
+            out string moodReason,
+            actor.ShouldCollectDetailedAiDiagnostics);
+        if (actor.ShouldCollectDetailedAiDiagnostics)
+        {
+            reason = CharacterMoodImpulseUtility.AppendReason(reason, moodReason);
+        }
+        bool captureDetails = actor.ShouldCollectDetailedAiDiagnostics;
+        CharacterAiUtilityBreakdown breakdown = captureDetails
+            ? context.CreateRoutineBreakdown(
+                routineBranch,
+                Mathf.Clamp01(priority / 100f))
+            : null;
+        float contextualPriority = breakdown != null
+            ? breakdown.FinalScore01
+            : context.CalculateRoutineScore01(
+                routineBranch,
+                Mathf.Clamp01(priority / 100f));
+        priority = Mathf.Lerp(priority, contextualPriority * 100f, 0.25f);
+        if (captureDetails)
+        {
+            actor.Blackboard?.RecordUtilityBreakdown(breakdown);
+            reason = CharacterMoodImpulseUtility.AppendReason(reason, breakdown.ToCompactString(3));
+        }
         return priority;
     }
 
-    private static float GetSurvivalPriority(CharacterActor actor, out string reason)
+    private static float GetSurvivalPriority(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
     {
-        IReadOnlyList<CharacterNeedDefinition> survivalNeeds = CharacterNeedCatalog.All
-            .Where(definition => definition.HasTag(CharacterNeedTag.Survival))
-            .ToArray();
-        float registeredNeed = survivalNeeds
-            .Select(definition => definition.GetUrgency(actor))
-            .DefaultIfEmpty(0f)
-            .Max();
-        float restNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Rest);
-        float recoveryNeed = FacilityCandidateScorer.GetExpeditionRecoveryNeed(actor);
-        float exitNeed = ShouldExitDungeon(actor) ? 1f : 0f;
-        float strongestNeed = Mathf.Max(
-            exitNeed,
-            registeredNeed,
-            restNeed,
-            recoveryNeed);
-        string needDetails = string.Join(
-            " ",
-            survivalNeeds.Select(definition =>
-                $"{definition.Id}={definition.GetUrgency(actor):0.###}"));
-        reason = $"need={strongestNeed:0.###} {needDetails} rest={restNeed:0.###} exit={exitNeed:0.###}";
+        bool captureDetails = actor.ShouldCollectDetailedAiDiagnostics;
+        float registeredNeed = context.StrongestNeedUrgency;
+        float restNeed = context.RestUrgency;
+        float recoveryNeed = context.ExpeditionRecoveryUrgency;
+        float exitNeed = context.ShouldExitDungeon ? 1f : 0f;
+        float strongestNeed = Mathf.Max(exitNeed, registeredNeed);
+        strongestNeed = Mathf.Max(strongestNeed, restNeed);
+        strongestNeed = Mathf.Max(strongestNeed, recoveryNeed);
+        reason = captureDetails
+            ? $"need={strongestNeed:0.###} strongest={context.StrongestNeed} rest={restNeed:0.###} exit={exitNeed:0.###}"
+            : "생존 욕구";
         if (strongestNeed <= 0.05f)
         {
             return 0f;
@@ -306,45 +504,53 @@ public static class CharacterAiRoutinePriority
         return strongestNeed * 25f;
     }
 
-    private static float GetDutyPriority(CharacterActor actor, out string reason)
+    private static float GetDutyPriority(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
     {
-        if (!CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work))
+        if (!context.IsWorker)
         {
             reason = "not a worker";
             return 0f;
         }
 
-        if (work.IsOffDuty)
+        if (context.IsOffDuty)
         {
             reason = "off duty";
             return 0f;
         }
 
-        float survivalPressure = GetSurvivalPressure(actor);
+        float survivalPressure = GetSurvivalPressure(in context);
         float wellness = 1f - Mathf.Clamp01((survivalPressure - MildNeed) / (1f - MildNeed));
         float priority = Mathf.Lerp(8f, 82f, wellness);
-        reason = $"onDuty survival={survivalPressure:0.###} wellness={wellness:0.###}";
+        reason = actor.ShouldCollectDetailedAiDiagnostics
+            ? $"onDuty survival={survivalPressure:0.###} wellness={wellness:0.###}"
+            : "당직 업무";
         return priority;
     }
 
-    private static float GetLeisurePriority(CharacterActor actor, out string reason)
+    private static float GetLeisurePriority(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
     {
-        if (!CanUseLeisure(actor))
+        if (!CanUseLeisure(in context))
         {
             reason = "leisure unavailable";
             return 0f;
         }
 
-        float funNeed = CharacterAiJobGiver.Need(actor, CharacterCondition.FUN);
-        float moodNeed = CharacterAiJobGiver.Need(actor, CharacterCondition.MOOD);
-        float shoppingNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Purchase);
-        float urgentSurvival = CharacterNeedCatalog.GetStrongestUrgency(
-            actor,
-            CharacterNeedTag.Survival);
+        float funNeed = context.FunUrgency;
+        float moodNeed = context.MoodUrgency;
+        float shoppingNeed = context.ShoppingUrgency;
+        float urgentSurvival = context.StrongestNeedUrgency;
         float leisureNeed = Mathf.Max(funNeed, moodNeed * 0.75f, shoppingNeed);
         float survivalWindow = Mathf.Clamp01(1f - urgentSurvival * 0.85f);
         float priority = Mathf.Clamp01(leisureNeed * survivalWindow) * 70f;
-        reason = $"leisure={leisureNeed:0.###} fun={funNeed:0.###} mood={moodNeed:0.###} shopping={shoppingNeed:0.###} survivalWindow={survivalWindow:0.###}";
+        reason = actor.ShouldCollectDetailedAiDiagnostics
+            ? $"leisure={leisureNeed:0.###} fun={funNeed:0.###} mood={moodNeed:0.###} shopping={shoppingNeed:0.###} survivalWindow={survivalWindow:0.###}"
+            : "여가 욕구";
         return priority;
     }
 
@@ -360,35 +566,30 @@ public static class CharacterAiRoutinePriority
         return 0f;
     }
 
-    private static float GetSurvivalPressure(CharacterActor actor)
+    private static float GetSurvivalPressure(
+        in CharacterAiDecisionContext context)
     {
         return Mathf.Max(
-            CharacterNeedCatalog.GetStrongestUrgency(actor, CharacterNeedTag.Survival),
-            CharacterAiJobGiver.Need(actor, CharacterCondition.MOOD) * 0.8f,
-            FacilityCandidateScorer.GetExpeditionRecoveryNeed(actor));
+            Mathf.Max(
+                context.StrongestNeedUrgency,
+                context.MoodUrgency * 0.8f),
+            context.ExpeditionRecoveryUrgency);
     }
 
-    private static bool CanUseLeisure(CharacterActor actor)
+    private static bool CanUseLeisure(
+        in CharacterAiDecisionContext context)
     {
-        if (actor == null)
+        if (context.Actor == null)
         {
             return false;
         }
 
-        if (CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work))
+        if (context.IsWorker)
         {
-            return work.IsOffDuty;
+            return context.IsOffDuty;
         }
 
-        return actor.TryGetAbility(out AbilityShopping _);
-    }
-
-    private static bool ShouldExitDungeon(CharacterActor actor)
-    {
-        return actor != null
-            && !CharacterWorkRoleUtility.TryGetWork(actor, out _)
-            && actor.TryGetAbility(out AbilityShopping shopping)
-            && shopping.ShouldExitDungeon();
+        return context.HasShoppingAbility;
     }
 }
 
@@ -399,8 +600,22 @@ public sealed class ExitDungeonJobGiver : CharacterAiJobGiver
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
-        reason = "exit intent";
-        return actor != null && actor.CanRunAi ? 1f : 0f;
+        bool shouldExit = actor != null
+            && actor.CanRunAi
+            && !CharacterWorkRoleUtility.TryGetWork(actor, out _)
+            && actor.TryGetAbility(out AbilityShopping shopping)
+            && shopping.ShouldExitDungeon();
+        reason = shouldExit ? "exit intent" : "no exit intent";
+        return shouldExit ? 1f : 0f;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        reason = context.ShouldExitDungeon ? "exit intent" : "no exit intent";
+        return context.ShouldExitDungeon ? 1f : 0f;
     }
 }
 
@@ -408,11 +623,26 @@ public sealed class GetFoodJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Eat;
     public override string Name => "GetFoodJobGiver";
+    public override FacilityRole RequiredFacilityRoles => FacilityRole.Meal;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
         float hungerNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Meal);
-        reason = $"hungerNeed={hungerNeed:0.###}";
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"hungerNeed={hungerNeed:0.###}"
+            : "허기";
+        return hungerNeed;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        float hungerNeed = context.HungerUrgency;
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"hungerNeed={hungerNeed:0.###}"
+            : "허기";
         return hungerNeed;
     }
 }
@@ -421,13 +651,30 @@ public sealed class RestJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Rest;
     public override string Name => "RestJobGiver";
+    public override FacilityRole RequiredFacilityRoles => FacilityRole.Rest;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
         float restNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Rest);
         float recoveryNeed = FacilityCandidateScorer.GetExpeditionRecoveryNeed(actor);
         float domain = Mathf.Max(restNeed, recoveryNeed * 0.95f);
-        reason = $"restNeed={restNeed:0.###} recovery={recoveryNeed:0.###}";
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"restNeed={restNeed:0.###} recovery={recoveryNeed:0.###}"
+            : "휴식";
+        return domain;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        float restNeed = context.RestUrgency;
+        float recoveryNeed = context.ExpeditionRecoveryUrgency;
+        float domain = Mathf.Max(restNeed, recoveryNeed * 0.95f);
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"restNeed={restNeed:0.###} recovery={recoveryNeed:0.###}"
+            : "휴식";
         return domain;
     }
 }
@@ -436,11 +683,26 @@ public sealed class ToiletJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Toilet;
     public override string Name => "ToiletJobGiver";
+    public override FacilityRole RequiredFacilityRoles => FacilityRole.Toilet;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
         float toiletNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Toilet);
-        reason = $"toiletNeed={toiletNeed:0.###}";
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"toiletNeed={toiletNeed:0.###}"
+            : "배변";
+        return toiletNeed;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        float toiletNeed = context.ExcretionUrgency;
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"toiletNeed={toiletNeed:0.###}"
+            : "배변";
         return toiletNeed;
     }
 }
@@ -449,11 +711,26 @@ public sealed class HygieneJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Hygiene;
     public override string Name => "HygieneJobGiver";
+    public override FacilityRole RequiredFacilityRoles => FacilityRole.Hygiene;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
         float hygieneNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Hygiene);
-        reason = $"hygieneNeed={hygieneNeed:0.###}";
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"hygieneNeed={hygieneNeed:0.###}"
+            : "위생";
+        return hygieneNeed;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        float hygieneNeed = context.GetFacilityNeedScore(FacilityRole.Hygiene);
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"hygieneNeed={hygieneNeed:0.###}"
+            : "위생";
         return hygieneNeed;
     }
 }
@@ -486,7 +763,49 @@ public sealed class WorkJobGiver : CharacterAiJobGiver
             FacilityCandidateScorer.GetExpeditionRecoveryNeed(actor));
         float wellness = 1f - Mathf.Clamp01((survivalPressure - 0.25f) / 0.75f);
         float domain = Mathf.Lerp(0.2f, 1f, wellness);
-        reason = $"onDuty survivalPressure={survivalPressure:0.###} wellness={wellness:0.###}";
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"onDuty survivalPressure={survivalPressure:0.###} wellness={wellness:0.###}"
+            : "당직 업무";
+        return domain;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        if (!context.IsWorker)
+        {
+            reason = "not a worker";
+            return 0f;
+        }
+
+        if (context.IsOffDuty)
+        {
+            reason = "off duty";
+            return 0f;
+        }
+
+        float survivalPressure = Mathf.Max(
+            context.HungerUrgency,
+            context.SleepUrgency);
+        survivalPressure = Mathf.Max(
+            survivalPressure,
+            context.ExcretionUrgency);
+        survivalPressure = Mathf.Max(
+            survivalPressure,
+            context.HygieneUrgency * 0.7f);
+        survivalPressure = Mathf.Max(
+            survivalPressure,
+            context.MoodUrgency * 0.8f);
+        survivalPressure = Mathf.Max(
+            survivalPressure,
+            context.ExpeditionRecoveryUrgency);
+        float wellness = 1f - Mathf.Clamp01((survivalPressure - 0.25f) / 0.75f);
+        float domain = Mathf.Lerp(0.2f, 1f, wellness);
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"onDuty survivalPressure={survivalPressure:0.###} wellness={wellness:0.###}"
+            : "당직 업무";
         return domain;
     }
 }
@@ -495,11 +814,26 @@ public sealed class ShoppingJobGiver : CharacterAiJobGiver
 {
     public override CharacterAiBranch Branch => CharacterAiBranch.Shopping;
     public override string Name => "ShoppingJobGiver";
+    public override FacilityRole RequiredFacilityRoles => FacilityRole.Purchase;
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
         float visitNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Purchase);
-        reason = $"visitNeed={visitNeed:0.###}";
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"visitNeed={visitNeed:0.###}"
+            : "방문 욕구";
+        return visitNeed;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        float visitNeed = context.ShoppingUrgency;
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"visitNeed={visitNeed:0.###}"
+            : "방문 욕구";
         return visitNeed;
     }
 }
@@ -520,7 +854,33 @@ public sealed class LookAroundJobGiver : CharacterAiJobGiver
         float urgentNeed = Mathf.Max(hungerNeed, sleepNeed, excretionNeed, hygieneNeed * 0.7f);
         float curiosityWindow = Mathf.Clamp01(1f - urgentNeed);
         float domain = Mathf.Clamp01((0.15f + funNeed * 0.35f + moodNeed * 0.2f) * curiosityWindow);
-        reason = $"curiosityWindow={curiosityWindow:0.###} funNeed={funNeed:0.###} moodNeed={moodNeed:0.###}";
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"curiosityWindow={curiosityWindow:0.###} funNeed={funNeed:0.###} moodNeed={moodNeed:0.###}"
+            : "둘러보기";
+        return domain;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        float urgentNeed = Mathf.Max(
+            context.HungerUrgency,
+            context.SleepUrgency);
+        urgentNeed = Mathf.Max(urgentNeed, context.ExcretionUrgency);
+        urgentNeed = Mathf.Max(
+            urgentNeed,
+            context.HygieneUrgency * 0.7f);
+        float curiosityWindow = Mathf.Clamp01(1f - urgentNeed);
+        float domain = Mathf.Clamp01(
+            (0.15f
+             + context.FunUrgency * 0.35f
+             + context.MoodUrgency * 0.2f)
+            * curiosityWindow);
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"curiosityWindow={curiosityWindow:0.###} funNeed={context.FunUrgency:0.###} moodNeed={context.MoodUrgency:0.###}"
+            : "둘러보기";
         return domain;
     }
 }
@@ -548,7 +908,36 @@ public sealed class WaitJobGiver : CharacterAiJobGiver
         float domain = work.IsOffDuty
             ? Mathf.Clamp01(0.35f + strongestNeed * 0.35f)
             : Mathf.Clamp01(0.05f + (1f - strongestNeed) * 0.25f);
-        reason = $"waitWindow={domain:0.###} strongestNeed={strongestNeed:0.###}";
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"waitWindow={domain:0.###} strongestNeed={strongestNeed:0.###}"
+            : "대기";
+        return domain;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        if (!context.IsWorker)
+        {
+            reason = "not a worker";
+            return 0f;
+        }
+
+        float strongestNeed = Mathf.Max(
+            context.HungerUrgency,
+            context.SleepUrgency);
+        strongestNeed = Mathf.Max(strongestNeed, context.FunUrgency);
+        strongestNeed = Mathf.Max(strongestNeed, context.MoodUrgency);
+        strongestNeed = Mathf.Max(strongestNeed, context.ExcretionUrgency);
+        strongestNeed = Mathf.Max(strongestNeed, context.HygieneUrgency);
+        float domain = context.IsOffDuty
+            ? Mathf.Clamp01(0.35f + strongestNeed * 0.35f)
+            : Mathf.Clamp01(0.05f + (1f - strongestNeed) * 0.25f);
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"waitWindow={domain:0.###} strongestNeed={strongestNeed:0.###}"
+            : "대기";
         return domain;
     }
 }

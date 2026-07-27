@@ -50,6 +50,7 @@ public class CharacterStats : SerializedMonoBehaviour
     private ICharacterDeprivationRuntime deprivationRuntime;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
+    private float nextNeedDecayAt = float.PositiveInfinity;
     [NonSerialized] private ControlledStatDictionary controlledStats;
 
     public IDictionary<CharacterCondition, float> Stats
@@ -128,41 +129,80 @@ public class CharacterStats : SerializedMonoBehaviour
         }
     }
 
-    private void Update()
+    public void RunScheduledMaintenance(float now)
     {
+        if (now >= nextNeedDecayAt)
+        {
+            ApplyNeedDecayTick();
+            nextNeedDecayAt = now + 5f;
+        }
+
         if (interactionMoodFactors == null
             || interactionMoodFactors.Count == 0
-            || RequireGameClock().Time < nextMoodExpiryCheckAt)
+            || now < nextMoodExpiryCheckAt)
         {
             return;
         }
 
-        nextMoodExpiryCheckAt = RequireGameClock().Time + 0.25f;
+        nextMoodExpiryCheckAt = now + 0.25f;
         RecalculateMood(notify: true, forceNotify: false, adoptExternalOverride: true);
+    }
+
+    public void BeginNeedDecaySchedule()
+    {
+        float now = gameClock != null ? gameClock.Time : 0f;
+        float stagger = Mathf.Abs(GetInstanceID() % 1000) / 1000f * 5f;
+        nextNeedDecayAt = now + 0.1f + stagger;
     }
 
     public IEnumerator ChangeStatByTick()
     {
         while (true)
         {
-            float hungerMultiplier = actor != null && actor.PersonaRuntime != null
-                ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.HUNGER)
-                : 1f;
-            float excretionMultiplier = actor != null && actor.PersonaRuntime != null
-                ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.EXCRETION)
-                : 1f;
-            float thirstMultiplier = actor != null && actor.PersonaRuntime != null
-                ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.THIRST)
-                : 1f;
-            float hygieneMultiplier = actor != null && actor.PersonaRuntime != null
-                ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.HYGIENE)
-                : 1f;
-            ChangesStat(CharacterCondition.HUNGER, -5f * hungerMultiplier);
-            ChangesStat(CharacterCondition.THIRST, -6f * thirstMultiplier);
-            ChangesStat(CharacterCondition.EXCRETION, -3f * excretionMultiplier);
-            ChangesStat(CharacterCondition.HYGIENE, -1.5f * hygieneMultiplier);
+            ApplyNeedDecayTick();
             yield return new WaitForSeconds(5f);
         }
+    }
+
+    private void ApplyNeedDecayTick()
+    {
+        EnsureStats();
+        float hungerMultiplier = actor != null && actor.PersonaRuntime != null
+            ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.HUNGER)
+            : 1f;
+        float excretionMultiplier = actor != null && actor.PersonaRuntime != null
+            ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.EXCRETION)
+            : 1f;
+        float thirstMultiplier = actor != null && actor.PersonaRuntime != null
+            ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.THIRST)
+            : 1f;
+        float hygieneMultiplier = actor != null && actor.PersonaRuntime != null
+            ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.HYGIENE)
+            : 1f;
+        SynchronizeExternalMoodOverride();
+        bool changed = false;
+        changed |= ApplyStatDeltaWithoutPublishing(
+            CharacterCondition.HUNGER,
+            -5f * hungerMultiplier);
+        changed |= ApplyStatDeltaWithoutPublishing(
+            CharacterCondition.THIRST,
+            -6f * thirstMultiplier);
+        changed |= ApplyStatDeltaWithoutPublishing(
+            CharacterCondition.EXCRETION,
+            -3f * excretionMultiplier);
+        changed |= ApplyStatDeltaWithoutPublishing(
+            CharacterCondition.HYGIENE,
+            -1.5f * hygieneMultiplier);
+        if (!changed)
+        {
+            return;
+        }
+
+        RecalculateMood(
+            notify: false,
+            forceNotify: false,
+            adoptExternalOverride: false);
+        PublishStatsChanged(includeMood: true);
     }
 
     public void ChangesStat(CharacterCondition condition, float value)
@@ -185,9 +225,28 @@ public class CharacterStats : SerializedMonoBehaviour
         }
 
         SynchronizeExternalMoodOverride();
+        ApplyStatDeltaWithoutPublishing(condition, value);
+        RecalculateMood(notify: false, forceNotify: false, adoptExternalOverride: false);
+        PublishStatsChanged(includeMood: true);
+    }
+
+    private bool ApplyStatDeltaWithoutPublishing(
+        CharacterCondition condition,
+        float value)
+    {
+        if (DungeonDebugRuntimeRules.ShouldFreezeNeed(condition, value))
+        {
+            return false;
+        }
+
         float previousValue = stats[condition];
-        stats[condition] = Mathf.Clamp(stats[condition] + value, 0, 100);
-        float nextValue = stats[condition];
+        float nextValue = Mathf.Clamp(previousValue + value, 0f, 100f);
+        if (Mathf.Approximately(previousValue, nextValue))
+        {
+            return false;
+        }
+
+        stats[condition] = nextValue;
         if (actor?.Progression != null
             && ((previousValue >= 20f && nextValue < 20f)
                 || (previousValue <= 80f && nextValue > 80f)))
@@ -199,8 +258,8 @@ public class CharacterStats : SerializedMonoBehaviour
                 nextValue < 20f ? "critical" : "satisfied",
                 nextValue);
         }
-        RecalculateMood(notify: false, forceNotify: false, adoptExternalOverride: false);
-        PublishStatsChanged(includeMood: true);
+
+        return true;
     }
 
     public void ApplyMoodFactor(

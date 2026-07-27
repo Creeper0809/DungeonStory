@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 public sealed class ExpeditionFeatureSurfaceModel
 {
@@ -58,6 +59,7 @@ public interface IExpeditionFeatureCommandService
     ExpeditionFeatureCommandResult OpenWorldMap();
     ExpeditionFeatureCommandResult OpenExpedition();
     ExpeditionFeatureCommandResult UpgradeRecon();
+    ExpeditionFeatureCommandResult QueueSelectedRegionRecon();
     ExpeditionFeatureCommandResult SelectTarget(string targetId);
     ExpeditionFeatureCommandResult StartSelectedTarget();
 }
@@ -69,11 +71,19 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
     private readonly IOffenseWorldMapRuntimeProvider worldMapProvider;
     private readonly IOffenseExpeditionRuntimeProvider expeditionProvider;
     private readonly IOffenseRewardRuntimeProvider rewardProvider;
+    private readonly IRegularCustomerRuntimeProvider regularCustomerProvider;
+    private readonly ICaptivityRuntime captivityRuntime;
+    private readonly IOffenseReturnArrivalRuntime returnArrivalRuntime;
+    private readonly IOffenseRegionRuntime regionRuntime;
 
     public ExpeditionFeatureQueryService(
         IOffenseWorldMapRuntimeProvider worldMapProvider,
         IOffenseExpeditionRuntimeProvider expeditionProvider,
-        IOffenseRewardRuntimeProvider rewardProvider)
+        IOffenseRewardRuntimeProvider rewardProvider,
+        IRegularCustomerRuntimeProvider regularCustomerProvider,
+        ICaptivityRuntime captivityRuntime,
+        IOffenseReturnArrivalRuntime returnArrivalRuntime,
+        IOffenseRegionRuntime regionRuntime)
     {
         this.worldMapProvider = worldMapProvider
             ?? throw new ArgumentNullException(nameof(worldMapProvider));
@@ -81,6 +91,14 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
             ?? throw new ArgumentNullException(nameof(expeditionProvider));
         this.rewardProvider = rewardProvider
             ?? throw new ArgumentNullException(nameof(rewardProvider));
+        this.regularCustomerProvider = regularCustomerProvider
+            ?? throw new ArgumentNullException(nameof(regularCustomerProvider));
+        this.captivityRuntime = captivityRuntime
+            ?? throw new ArgumentNullException(nameof(captivityRuntime));
+        this.returnArrivalRuntime = returnArrivalRuntime
+            ?? throw new ArgumentNullException(nameof(returnArrivalRuntime));
+        this.regionRuntime = regionRuntime
+            ?? throw new ArgumentNullException(nameof(regionRuntime));
     }
 
     public ExpeditionFeatureSurfaceModel Capture()
@@ -111,7 +129,10 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
                 : "목표를 순서대로 완료하고 마지막 원정에서 던전의 진실을 밝혀내세요.",
             SelectedTargetId = state.SelectedTargetId,
             AvailableMemberCount = expeditions.GetAvailableMemberActors().Count,
-            Targets = CreateTargetRows(targets, state.SelectedTargetId),
+            Targets = CreateTargetRows(
+                worldMap,
+                targets,
+                state.SelectedTargetId),
             RewardSummary = CreateRewardSummary(),
             Results = expeditions.ResultHistory
                 .Take(MaxVisibleCards)
@@ -127,7 +148,8 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
         };
     }
 
-    private static IReadOnlyList<ExpeditionFeatureTargetRow> CreateTargetRows(
+    private IReadOnlyList<ExpeditionFeatureTargetRow> CreateTargetRows(
+        OffenseWorldMapRuntime worldMap,
         IReadOnlyList<OffenseTargetSnapshot> targets,
         string selectedTargetId)
     {
@@ -143,22 +165,42 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
         }
 
         return displayTargets
-            .Select((target, index) => new ExpeditionFeatureTargetRow
+            .Select((target, index) =>
             {
-                Index = index,
-                TargetId = target.id,
-                Title = $"{target.campaignOrder}. {target.title}"
-                    + (target.revealsTruth ? " [최종]" : string.Empty),
-                Detail = $"{target.statusMessage} / 위험 {target.danger:0.#}"
-                    + $" / 인원 {target.requiredMembers}"
-                    + $" / 적 {OffenseEncounterCatalog.GetEnemySummary(target.campaignOrder)}",
-                RequiredMembers = target.requiredMembers,
-                IsSelected = string.Equals(
-                    selectedTargetId,
-                    target.id,
-                    StringComparison.Ordinal),
-                IsAvailable = target.isAvailable,
-                IsCompleted = target.isCompleted
+                OffenseStrategicPressureSnapshot pressure =
+                    regionRuntime.GetPressureForTarget(
+                        worldMap != null
+                        && worldMap.TryGetTargetDefinition(
+                            target.id,
+                            out OffenseTargetDefinition definition)
+                            ? definition
+                            : null);
+                string regionDetail = string.IsNullOrWhiteSpace(
+                    target.regionDisplayName)
+                    ? string.Empty
+                    : $" / {target.regionDisplayName}"
+                        + $" [물류 {pressure.Logistics:0}"
+                        + $"·무장 {pressure.Armament:0}"
+                        + $"·병력 {pressure.Manpower:0}"
+                        + $"·정보 {pressure.Intelligence:0}]";
+                return new ExpeditionFeatureTargetRow
+                {
+                    Index = index,
+                    TargetId = target.id,
+                    Title = $"{target.campaignOrder}. {target.title}"
+                        + (target.revealsTruth ? " [최종]" : string.Empty),
+                    Detail = $"{target.statusMessage} / 위험 {target.danger:0.#}"
+                        + $" / 인원 {target.requiredMembers}"
+                        + $" / 적 {OffenseEncounterCatalog.GetEnemySummary(target.campaignOrder)}"
+                        + regionDetail,
+                    RequiredMembers = target.requiredMembers,
+                    IsSelected = string.Equals(
+                        selectedTargetId,
+                        target.id,
+                        StringComparison.Ordinal),
+                    IsAvailable = target.isAvailable,
+                    IsCompleted = target.isCompleted
+                };
             })
             .ToArray();
     }
@@ -171,10 +213,25 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
         }
 
         IOffenseRewardStateView state = rewards.State;
+        regularCustomerProvider.TryGetRuntime(out RegularCustomerRuntime regularCustomers);
+        int recruitCandidates = regularCustomers?.State.Records.Count(record =>
+            record != null && record.IsRecruitCandidate && !record.IsRecruited) ?? 0;
+        int prisoners = captivityRuntime.Captives.Count(captive =>
+            captive != null
+            && captive.status is not CaptivityStatus.Released
+            and not CaptivityStatus.Escaped
+            and not CaptivityStatus.Dead
+            and not CaptivityStatus.Recruited);
+        int arrivingAnimals = returnArrivalRuntime.Arrivals
+            .Where(arrival => arrival != null
+                && arrival.kind == OffenseReturnArrivalKind.SpecialWildlife
+                && arrival.stage is not OffenseReturnArrivalStage.Secured
+                and not OffenseReturnArrivalStage.Escaped)
+            .Sum(arrival => Mathf.Max(0, arrival.requestedAmount));
         return $"누적 자금 {state.MoneyEarned}"
-            + $" / 영입 후보 {state.RecruitCandidateCount}"
-            + $" / 포로 {state.PrisonerCount}"
-            + $" / 특별 괴물 {state.SpecialMonsterCount}";
+            + $" / 영입 후보 {recruitCandidates}"
+            + $" / 수용 포로 {prisoners}"
+            + $" / 귀환 동물 {arrivingAnimals}";
     }
 }
 
@@ -182,15 +239,19 @@ public sealed class ExpeditionFeatureCommandService : IExpeditionFeatureCommandS
 {
     private readonly IOffenseWorldMapRuntimeProvider worldMapProvider;
     private readonly IOffenseExpeditionRuntimeProvider expeditionProvider;
+    private readonly IKnowledgeResidueProcessingRuntime knowledgeProcessing;
 
     public ExpeditionFeatureCommandService(
         IOffenseWorldMapRuntimeProvider worldMapProvider,
-        IOffenseExpeditionRuntimeProvider expeditionProvider)
+        IOffenseExpeditionRuntimeProvider expeditionProvider,
+        IKnowledgeResidueProcessingRuntime knowledgeProcessing)
     {
         this.worldMapProvider = worldMapProvider
             ?? throw new ArgumentNullException(nameof(worldMapProvider));
         this.expeditionProvider = expeditionProvider
             ?? throw new ArgumentNullException(nameof(expeditionProvider));
+        this.knowledgeProcessing = knowledgeProcessing
+            ?? throw new ArgumentNullException(nameof(knowledgeProcessing));
     }
 
     public ExpeditionFeatureCommandResult OpenWorldMap()
@@ -225,6 +286,25 @@ public sealed class ExpeditionFeatureCommandService : IExpeditionFeatureCommandS
         }
 
         bool succeeded = worldMap.TryUpgradeRecon(out string message);
+        return new ExpeditionFeatureCommandResult(succeeded, message);
+    }
+
+    public ExpeditionFeatureCommandResult QueueSelectedRegionRecon()
+    {
+        if (!worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap)
+            || string.IsNullOrWhiteSpace(worldMap.State.SelectedTargetId)
+            || !worldMap.TryGetTargetDefinition(
+                worldMap.State.SelectedTargetId,
+                out OffenseTargetDefinition target))
+        {
+            return new ExpeditionFeatureCommandResult(
+                false,
+                "기억으로 정찰할 원정 목표를 먼저 선택하세요.");
+        }
+
+        bool succeeded = knowledgeProcessing.TryQueueRegionReconnaissance(
+            target.regionId,
+            out string message);
         return new ExpeditionFeatureCommandResult(succeeded, message);
     }
 
@@ -354,6 +434,12 @@ public sealed class ExpeditionFeatureSurfacePresenter : IFeatureSurfaceTabPresen
             row.IsSelected && row.IsAvailable && !row.IsCompleted);
         if (selected != null)
         {
+            AddCommandCard(
+                view,
+                "P1Action_OffenseMemoryRecon",
+                "선택 지역 기억 정찰",
+                "기억 잔재 1개를 연구 시설로 운반하고 분석해 지역 정보망을 약화합니다.",
+                commands.QueueSelectedRegionRecon);
             AddCommandCard(
                 view,
                 "P1Action_OffenseStart",

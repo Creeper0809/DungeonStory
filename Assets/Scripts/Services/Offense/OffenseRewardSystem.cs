@@ -15,8 +15,7 @@ public static class OffenseRewardGrantHandlers
             new OffenseStockRewardGrantHandler(),
             new OffenseRareFacilityRewardGrantHandler(),
             new OffenseBlueprintRewardGrantHandler(),
-            new OffenseHumanFactionRewardGrantHandler(),
-            new OffenseRivalFactionRewardGrantHandler(),
+            new OffenseRegionalPressureRewardGrantHandler(),
             new OffenseRecruitCandidateRewardGrantHandler(),
             new OffensePrisonerRewardGrantHandler(),
             new OffenseSpecialMonsterRewardGrantHandler()
@@ -249,6 +248,20 @@ public sealed class OffenseRareFacilityRewardGrantHandler :
 public sealed class OffenseBlueprintRewardGrantHandler :
     OffenseRewardGrantHandler<OffenseBlueprintRewardSpec>
 {
+    private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly IWorldDropZoneQuery dropZoneQuery;
+    private readonly IGameEventBus gameEventBus;
+
+    public OffenseBlueprintRewardGrantHandler(
+        IWorldItemStackRuntime itemStackRuntime = null,
+        IWorldDropZoneQuery dropZoneQuery = null,
+        IGameEventBus gameEventBus = null)
+    {
+        this.itemStackRuntime = itemStackRuntime;
+        this.dropZoneQuery = dropZoneQuery;
+        this.gameEventBus = gameEventBus;
+    }
+
     public override string RewardTypeId => OffenseRewardTypeIds.Blueprint;
 
     protected override OffenseRewardGrantResult GrantTyped(
@@ -267,54 +280,92 @@ public sealed class OffenseBlueprintRewardGrantHandler :
                 break;
             }
 
+            if (itemStackRuntime != null)
+            {
+                if (dropZoneQuery == null
+                    || !dropZoneQuery.TryGetExpeditionLootDropoff(out Vector2Int dropoff)
+                    || !itemStackRuntime.SpawnUniqueItemAt(
+                        blueprint.PhysicalItemId,
+                        dropoff,
+                        WorldItemStackState.Loose,
+                        string.Empty,
+                        out _))
+                {
+                    break;
+                }
+            }
+
             context.shopUnlockState?.MarkBlueprintAcquired(blueprint);
-            bool queued = context.researchRuntime != null
-                ? context.researchRuntime.EnqueueBlueprint(blueprint)
-                : context.researchState != null && context.researchState.EnqueueBlueprint(blueprint);
             context.rewardState?.RecordBlueprint(blueprint);
-            grantedNames.Add(queued ? $"{blueprint.DisplayName} 연구 대기" : $"{blueprint.DisplayName} 획득");
+            grantedNames.Add(
+                itemStackRuntime != null
+                    ? $"{blueprint.DisplayName} 설계도 하차장 도착"
+                    : $"{blueprint.DisplayName} 설계도 획득");
         }
 
-        return grantedNames.Count > 0
-            ? OffenseRewardGrantResultFactory.Success(
+        if (grantedNames.Count > 0)
+        {
+            gameEventBus?.RaiseAlert(
+                "원정 설계도 도착",
+                string.Join(", ", grantedNames),
+                EventAlertImportance.Low,
+                "연구");
+            return OffenseRewardGrantResultFactory.Success(
                 reward,
                 grantedNames.Count,
-                string.Join(", ", grantedNames))
-            : OffenseRewardGrantResultFactory.Fail(reward, "획득 가능한 설계도가 없습니다");
+                string.Join(", ", grantedNames));
+        }
+
+        return OffenseRewardGrantResultFactory.Fail(
+            reward,
+            itemStackRuntime != null
+                ? "설계도를 하차장에 배치할 수 없습니다"
+                : "획득 가능한 설계도가 없습니다");
     }
 }
 
-public sealed class OffenseHumanFactionRewardGrantHandler :
-    OffenseRewardGrantHandler<OffenseHumanFactionWeakeningRewardSpec>
+public sealed class OffenseRegionalPressureRewardGrantHandler :
+    OffenseRewardGrantHandler<OffenseRegionalPressureRewardSpec>
 {
-    public override string RewardTypeId => OffenseRewardTypeIds.HumanFactionWeakening;
+    public override string RewardTypeId => OffenseRewardTypeIds.RegionalPressure;
 
     protected override OffenseRewardGrantResult GrantTyped(
         OffenseRewardPreview reward,
-        OffenseHumanFactionWeakeningRewardSpec spec,
+        OffenseRegionalPressureRewardSpec spec,
         OffenseRewardContext context,
         IOffenseRewardSelector selector)
     {
-        int amount = Mathf.Max(1, reward.amount);
-        context.rewardState?.RecordFactionWeakening(true, amount);
-        return OffenseRewardGrantResultFactory.Success(reward, amount, "인간 세력 약화");
+        int amount = OffenseRegionalPressureGrantUtility.Apply(reward, context);
+        if (amount <= 0)
+        {
+            return OffenseRewardGrantResultFactory.Fail(
+                reward,
+                "이 목표에는 적용할 지역 압력이 없습니다.");
+        }
+        return OffenseRewardGrantResultFactory.Success(
+            reward,
+            amount,
+            "지역 전략 압력");
     }
 }
 
-public sealed class OffenseRivalFactionRewardGrantHandler :
-    OffenseRewardGrantHandler<OffenseRivalFactionWeakeningRewardSpec>
+internal static class OffenseRegionalPressureGrantUtility
 {
-    public override string RewardTypeId => OffenseRewardTypeIds.RivalFactionWeakening;
-
-    protected override OffenseRewardGrantResult GrantTyped(
+    public static int Apply(
         OffenseRewardPreview reward,
-        OffenseRivalFactionWeakeningRewardSpec spec,
-        OffenseRewardContext context,
-        IOffenseRewardSelector selector)
+        OffenseRewardContext context)
     {
-        int amount = Mathf.Max(1, reward.amount);
-        context.rewardState?.RecordFactionWeakening(false, amount);
-        return OffenseRewardGrantResultFactory.Success(reward, amount, "경쟁 세력 약화");
+        if (context?.regionRuntime == null
+            || !context.regionRuntime.TryApplyTargetPressure(
+                context.target,
+                Mathf.Max(1, reward?.amount ?? 1),
+                out _,
+                out float applied))
+        {
+            return 0;
+        }
+
+        return Mathf.RoundToInt(applied);
     }
 }
 
@@ -330,8 +381,10 @@ public sealed class OffenseRecruitCandidateRewardGrantHandler :
         IOffenseRewardSelector selector)
     {
         int amount = Mathf.Max(2, reward.amount);
-        context.rewardState?.RecordRecruitCandidates(amount);
-        return OffenseRewardGrantResultFactory.Success(reward, amount, "영입 후보 등록");
+        return OffenseRewardGrantResultFactory.Success(
+            reward,
+            amount,
+            "영구 모집 후보 프로필 생성");
     }
 }
 
@@ -347,8 +400,19 @@ public sealed class OffensePrisonerRewardGrantHandler :
         IOffenseRewardSelector selector)
     {
         int amount = Mathf.Max(1, reward.amount);
-        context.rewardState?.RecordPrisoners(amount);
-        return OffenseRewardGrantResultFactory.Success(reward, amount, "포로 등록");
+        int queued = context.returnArrivalRuntime?.QueueArrival(
+            context.expeditionId,
+            context.target?.id,
+            OffenseReturnArrivalKind.Prisoner,
+            amount) ?? 0;
+        return queued > 0
+            ? OffenseRewardGrantResultFactory.Success(
+                reward,
+                queued,
+                "생존 포로가 원정대와 함께 귀환 중")
+            : OffenseRewardGrantResultFactory.Fail(
+                reward,
+                "포로 귀환 대기열을 만들지 못했습니다.");
     }
 }
 
@@ -364,8 +428,19 @@ public sealed class OffenseSpecialMonsterRewardGrantHandler :
         IOffenseRewardSelector selector)
     {
         int amount = Mathf.Max(1, reward.amount);
-        context.rewardState?.RecordSpecialMonsters(amount);
-        return OffenseRewardGrantResultFactory.Success(reward, amount, "특수 몬스터 후보 등록");
+        int queued = context.returnArrivalRuntime?.QueueArrival(
+            context.expeditionId,
+            context.target?.id,
+            OffenseReturnArrivalKind.SpecialWildlife,
+            amount) ?? 0;
+        return queued > 0
+            ? OffenseRewardGrantResultFactory.Success(
+                reward,
+                queued,
+                "특수 동물이 운반 상자에 실려 귀환 중")
+            : OffenseRewardGrantResultFactory.Fail(
+                reward,
+                "특수 동물 귀환 대기열을 만들지 못했습니다.");
     }
 }
 
@@ -429,7 +504,9 @@ public class OffenseRewardRuntime : MonoBehaviour
             return Array.Empty<OffenseRewardGrantResult>();
         }
 
-        OffenseRewardContext context = CreateContext(expedition.Target);
+        OffenseRewardContext context = CreateContext(
+            expedition.Target,
+            expedition.ExpeditionId);
         return ResolveGrantService().GrantRewards(expedition.Target.rewards, context);
     }
 
@@ -457,30 +534,26 @@ public class OffenseRewardRuntime : MonoBehaviour
 
     public void RestorePersistentState(
         int moneyEarned,
-        int humanFactionWeakening,
-        int rivalFactionWeakening,
-        int recruitCandidateCount,
-        int prisonerCount,
-        int specialMonsterCount,
         IReadOnlyDictionary<StockCategory, int> restoredStock,
         IEnumerable<int> restoredRareFacilityIds,
         IEnumerable<int> restoredBlueprintIds)
     {
         state.Restore(
             moneyEarned,
-            humanFactionWeakening,
-            rivalFactionWeakening,
-            recruitCandidateCount,
-            prisonerCount,
-            specialMonsterCount,
             restoredStock,
             restoredRareFacilityIds,
             restoredBlueprintIds);
     }
 
-    private OffenseRewardContext CreateContext(OffenseTargetDefinition target)
+    private OffenseRewardContext CreateContext(
+        OffenseTargetDefinition target,
+        string expeditionId)
     {
-        return ResolveContextBuilder().Create(target, state, debugContext);
+        return ResolveContextBuilder().Create(
+            target,
+            state,
+            debugContext,
+            expeditionId);
     }
 
     private IOffenseRewardContextBuilder ResolveContextBuilder()

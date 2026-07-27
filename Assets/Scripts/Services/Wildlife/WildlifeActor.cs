@@ -55,7 +55,7 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
     private int currentSortingOrder = DefaultSortingOrder;
     private IGridPathSearchBroker pathSearchBroker;
     private ICharacterAiWorldRegistry worldRegistry;
-    private IGameClock gameClock;
+    private IGameClock gameClock = new UnityGameClock();
     private IRandomStreamProvider randomStreamProvider;
     private IRandomStream randomStream;
     private IDoorAccessQuery doorAccessQuery;
@@ -120,7 +120,7 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
             ?? throw new System.ArgumentNullException(nameof(pathSearchBroker));
         this.worldRegistry = worldRegistry
             ?? throw new System.ArgumentNullException(nameof(worldRegistry));
-        this.gameClock = gameClock;
+        this.gameClock = gameClock ?? this.gameClock;
         this.randomStreamProvider = randomStreamProvider;
         this.doorAccessQuery = doorAccessQuery;
     }
@@ -228,10 +228,10 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
             return false;
         }
 
-        Queue<GridMoveStep> path = pathSearchBroker?.GetMovePath(
+        Queue<GridMoveStep> path = pathSearchBroker?.GetMovePathTo(
             grid,
             gridPosition,
-            pos => pos == targetPosition,
+            targetPosition,
             GridPathSearchPriority.Normal,
             GridTraversalContext.ForWildlife(this));
         if (path == null || path.Count == 0)
@@ -264,10 +264,10 @@ public sealed class WildlifeActor : MonoBehaviour, IGridOccupant, IInfoable
             return true;
         }
 
-        Queue<GridMoveStep> path = pathSearchBroker?.GetMovePath(
+        Queue<GridMoveStep> path = pathSearchBroker?.GetMovePathTo(
             grid,
             gridPosition,
-            pos => pos == targetPosition,
+            targetPosition,
             GridPathSearchPriority.Urgent,
             GridTraversalContext.ForWildlife(this));
         if (path == null || path.Count == 0)

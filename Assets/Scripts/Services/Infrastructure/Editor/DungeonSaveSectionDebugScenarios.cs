@@ -8,12 +8,12 @@ using VContainer;
 
 public static class DungeonSaveSectionDebugScenarios
 {
-    [MenuItem("DungeonStory/Debug/Save/Run V15 Section Contracts")]
+    [MenuItem("DungeonStory/Debug/Save/Run V16 Section Contracts")]
     public static void RunFromMenu()
     {
         if (!RunAll(true))
         {
-            Debug.LogError("V15 save section contracts failed.");
+            Debug.LogError("V16 save section contracts failed.");
         }
     }
 
@@ -33,7 +33,7 @@ public static class DungeonSaveSectionDebugScenarios
 
         if (failures.Count == 0 && logSuccess)
         {
-            Debug.Log("V15 save section contracts passed.");
+            Debug.Log("V16 save section contracts passed.");
         }
 
         return failures.Count == 0;
@@ -72,7 +72,6 @@ public static class DungeonSaveSectionDebugScenarios
             EquipmentMaintenanceSaveSection.Id,
             CharacterCombatCommandSaveSection.Id,
             ExteriorActivitySaveSection.Id,
-            ExpeditionEquipmentSaveSection.Id,
             OffenseSaveSection.Id,
             InvasionSaveSection.Id,
             OperatingDaySettlementSaveSection.Id,
@@ -124,7 +123,7 @@ public static class DungeonSaveSectionDebugScenarios
             if (!itemRuntime.SpawnStockAtDropoff(
                     StockCategory.General,
                     3,
-                    "V15 왕복 검증",
+                    "V16 왕복 검증",
                     out int spawned)
                 || spawned != 3)
             {

@@ -382,8 +382,8 @@ public static class InvasionIntruderDebugScenarios
             && plan.Target.y == entry.y
             && plan.IntruderSteps.Count == 9
             && plan.OwnerSteps.Count == 1
-            && plan.IntruderSteps.All(step => step != null && step.To.y == entry.y)
-            && plan.OwnerSteps.All(step => step != null && step.To.y == entry.y);
+            && plan.IntruderSteps.All(step => step.IsValid && step.To.y == entry.y)
+            && plan.OwnerSteps.All(step => step.IsValid && step.To.y == entry.y);
     }
 
     private static IGridPathSearchBroker CreatePathSearchBroker()

@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: arcane_advanced
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7033
+  projectId: research:arcane:advanced
+  displayName: "\uBE44\uC804 \uC5F0\uAD6C"
+  description: "\uB9C8\uB825\uACFC \uC758\uC2DD \uC124\uBE44\uC758 \uACE0\uAE09 \uC6D0\uB9AC\uB97C
+    \uD574\uC11D\uD55C\uB2E4."
+  field: 3
+  requiredWork: 94
+  prerequisites:
+  - {fileID: 11400000, guid: 1f0f04477ee507543893f06592b0442c, type: 2}
+  blueprintRule: 1
+  blueprint: {fileID: 11400000, guid: fe9e5fe8bcceb9e7caf7c3733c6bf4d6, type: 2}
+  unlocks:
+    items:
+    - rid: 7302563220868825641
+    - rid: 7302563220868825642
+    - rid: 7302563220868825643
+    - rid: 7302563220868825644
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563220868825641
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1034
+    - rid: 7302563220868825642
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1035
+    - rid: 7302563220868825643
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1056
+    - rid: 7302563220868825644
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1029

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -25,7 +26,9 @@ public enum ExteriorIncidentKind
     MerchantCart = 1,
     Informant = 2,
     Thief = 3,
-    InjuredReturnee = 4
+    InjuredReturnee = 4,
+    PredatorApproach = 5,
+    CargoDamage = 6
 }
 
 public interface IExteriorZoneQuery
@@ -44,7 +47,9 @@ public interface IExteriorPatrolRuntime
 public interface IExteriorIncidentRuntime
 {
     IReadOnlyList<ExteriorIncidentSaveData> ActiveIncidents { get; }
+    IReadOnlyList<ExteriorIncidentRuntimeState> IncidentStates { get; }
     bool TryStartIncident(ExteriorIncidentKind kind, string text = null);
+    bool TryExecutePrimaryAction(string incidentId, out string message);
 }
 
 public interface IExteriorActivityRuntime : IExteriorZoneQuery
@@ -70,11 +75,13 @@ public interface IExpeditionReturnService
 [Serializable]
 public sealed class DungeonExteriorActivitySaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
     public List<ExteriorZoneSaveData> zones = new List<ExteriorZoneSaveData>();
     public List<ExteriorIncidentSaveData> incidents = new List<ExteriorIncidentSaveData>();
+    public List<ExteriorIncidentRuntimeState> incidentStates =
+        new List<ExteriorIncidentRuntimeState>();
     public List<ExteriorExpeditionTransitSaveData> expeditionTransits =
         new List<ExteriorExpeditionTransitSaveData>();
 }
@@ -484,6 +491,9 @@ public sealed class ExteriorActivityRuntime :
     ITickable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("ExteriorActivityRuntime.Tick");
+
     private const float ConditionTickSeconds = 20f;
     private const float IncidentCheckSeconds = 180f;
     private static readonly GridLayer[] MarkerLayers =
@@ -495,23 +505,20 @@ public sealed class ExteriorActivityRuntime :
         GridLayer.Hallway
     };
 
-    private static readonly ExteriorIncidentDefinition[] IncidentDefinitions =
-    {
-        new ExteriorIncidentDefinition(ExteriorIncidentKind.MerchantCart, "상인 마차가 입구 앞에서 거래 기회를 살피고 있다.", 180f),
-        new ExteriorIncidentDefinition(ExteriorIncidentKind.Informant, "정보상이 조용히 응대를 기다리고 있다.", 150f),
-        new ExteriorIncidentDefinition(ExteriorIncidentKind.Thief, "수상한 손길이 하차장 근처를 맴돈다.", 120f),
-        new ExteriorIncidentDefinition(ExteriorIncidentKind.InjuredReturnee, "다친 귀환자가 입구 쪽으로 비틀거리며 다가왔다.", 120f)
-    };
-
     private readonly List<ExteriorZoneMarker> zones = new List<ExteriorZoneMarker>();
     private readonly IReadOnlyList<ExteriorZoneMarker> zonesView;
+    private readonly List<ExteriorIncidentRuntimeState> incidentStates =
+        new List<ExteriorIncidentRuntimeState>();
+    private readonly IReadOnlyList<ExteriorIncidentRuntimeState> incidentStatesView;
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IWorldDropZoneQuery dropZoneQuery;
     private readonly WorldSimulationSceneReferences sceneReferences;
     private readonly IObjectResolver objectResolver;
     private readonly ICharacterBodyHealthRuntime bodyHealthRuntime;
     private readonly ICharacterMedicalRuntime medicalRuntime;
+    private readonly ExteriorIncidentHandlerRegistry incidentHandlers;
     private readonly IGameClock gameClock;
+    private readonly ISurvivalEnvironmentQuery survivalEnvironment;
     private readonly IRandomStream incidentRandom;
     private ExteriorActivityCoroutineHost coroutineHost;
     private float nextConditionTick;
@@ -525,7 +532,9 @@ public sealed class ExteriorActivityRuntime :
         IObjectResolver objectResolver,
         ICharacterBodyHealthRuntime bodyHealthRuntime,
         ICharacterMedicalRuntime medicalRuntime,
+        ExteriorIncidentHandlerRegistry incidentHandlers,
         IGameClock gameClock,
+        ISurvivalEnvironmentQuery survivalEnvironment,
         IRandomStreamProvider randomStreamProvider)
     {
         this.gridSystemProvider = gridSystemProvider
@@ -540,12 +549,17 @@ public sealed class ExteriorActivityRuntime :
             ?? throw new ArgumentNullException(nameof(bodyHealthRuntime));
         this.medicalRuntime = medicalRuntime
             ?? throw new ArgumentNullException(nameof(medicalRuntime));
+        this.incidentHandlers = incidentHandlers
+            ?? throw new ArgumentNullException(nameof(incidentHandlers));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
+        this.survivalEnvironment = survivalEnvironment
+            ?? throw new ArgumentNullException(nameof(survivalEnvironment));
         incidentRandom = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("exterior-incidents");
         zonesView = zones.AsReadOnly();
+        incidentStatesView = incidentStates.AsReadOnly();
     }
 
     public IReadOnlyList<ExteriorZoneMarker> Zones => zonesView;
@@ -553,6 +567,8 @@ public sealed class ExteriorActivityRuntime :
         .Select(zone => zone?.CreateIncidentSaveData())
         .Where(incident => incident != null)
         .ToArray();
+    public IReadOnlyList<ExteriorIncidentRuntimeState> IncidentStates =>
+        incidentStatesView;
     public float AveragePatrolReadiness => zones
         .Where(zone => zone != null
             && (zone.ZoneType == ExteriorZoneType.GuardPost
@@ -571,6 +587,14 @@ public sealed class ExteriorActivityRuntime :
 
     public void Tick()
     {
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
         if (!Application.isPlaying || zones.Count == 0)
         {
             return;
@@ -583,6 +607,8 @@ public sealed class ExteriorActivityRuntime :
             TickExteriorConditions(elapsed);
             nextConditionTick = now + ConditionTickSeconds;
         }
+
+        TickIncidentStates(gameClock.DeltaTime);
 
         foreach (ExteriorZoneMarker zone in zones)
         {
@@ -608,6 +634,7 @@ public sealed class ExteriorActivityRuntime :
         }
 
         zones.Clear();
+        incidentStates.Clear();
         if (coroutineHost != null && coroutineHost.gameObject != null)
         {
             UnityEngine.Object.Destroy(coroutineHost.gameObject);
@@ -650,6 +677,10 @@ public sealed class ExteriorActivityRuntime :
             incidents = zones
                 .Select(zone => zone?.CreateIncidentSaveData())
                 .Where(incident => incident != null)
+                .ToList(),
+            incidentStates = incidentStates
+                .Select(state => state?.Clone())
+                .Where(state => state != null)
                 .ToList(),
             expeditionTransits = new List<ExteriorExpeditionTransitSaveData>()
         };
@@ -694,6 +725,47 @@ public sealed class ExteriorActivityRuntime :
             marker?.ClearIncident();
         }
 
+        incidentStates.Clear();
+        foreach (ExteriorIncidentRuntimeState incident in
+                 saveData.incidentStates
+                 ?? new List<ExteriorIncidentRuntimeState>())
+        {
+            if (incident == null
+                || incident.IsTerminal
+                || !incidentHandlers.TryGet(incident.kind, out IExteriorIncidentHandler handler))
+            {
+                continue;
+            }
+
+            ExteriorZoneMarker marker = zones.FirstOrDefault(zone =>
+                zone != null
+                && string.Equals(zone.ZoneId, incident.zoneId, StringComparison.Ordinal));
+            if (marker == null)
+            {
+                string warning =
+                    $"Exterior incident target vanished: {incident.incidentId}";
+                report?.AddWarning(warning);
+                Debug.LogWarning(warning);
+                continue;
+            }
+
+            ExteriorIncidentRuntimeState restored = incident.Clone();
+            restored.actorIds ??= new List<string>();
+            restored.itemStackIds ??= new List<string>();
+            incidentStates.Add(restored);
+            marker.SetIncident(
+                restored.kind,
+                restored.incidentId,
+                restored.text,
+                restored.remainingSeconds);
+            handler.Restore(restored, marker);
+        }
+
+        if (incidentStates.Count > 0)
+        {
+            return;
+        }
+
         foreach (ExteriorIncidentSaveData incident in saveData.incidents ?? new List<ExteriorIncidentSaveData>())
         {
             ExteriorZoneMarker marker = zones.FirstOrDefault(zone =>
@@ -716,8 +788,7 @@ public sealed class ExteriorActivityRuntime :
 
     public bool TryStartIncident(ExteriorIncidentKind kind, string text = null)
     {
-        ExteriorIncidentDefinition definition = IncidentDefinitions.FirstOrDefault(candidate => candidate.Kind == kind);
-        if (!definition.IsValid)
+        if (!incidentHandlers.TryGet(kind, out IExteriorIncidentHandler handler))
         {
             return false;
         }
@@ -729,12 +800,62 @@ public sealed class ExteriorActivityRuntime :
         }
 
         string incidentId = $"incident:{kind}:{++incidentSequence}";
+        ExteriorIncidentRuntimeState state = new ExteriorIncidentRuntimeState
+        {
+            incidentId = incidentId,
+            kind = kind,
+            zoneId = marker.ZoneId,
+            text = string.IsNullOrWhiteSpace(text) ? handler.DefaultText : text,
+            stage = ExteriorIncidentStage.Preparing,
+            durationSeconds = handler.DurationSeconds,
+            remainingSeconds = handler.DurationSeconds
+        };
+        if (!handler.TryBegin(state, marker, out string failureReason))
+        {
+            Debug.LogWarning(
+                $"Exterior incident '{kind}' could not start: {failureReason}");
+            return false;
+        }
+
+        incidentStates.Add(state);
         marker.SetIncident(
-            kind,
-            incidentId,
-            string.IsNullOrWhiteSpace(text) ? definition.Text : text,
-            definition.DurationSeconds);
+            state.kind,
+            state.incidentId,
+            state.text,
+            state.remainingSeconds);
         return true;
+    }
+
+    public bool TryExecutePrimaryAction(string incidentId, out string message)
+    {
+        ExteriorIncidentRuntimeState state = incidentStates.FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.incidentId,
+                incidentId,
+                StringComparison.Ordinal));
+        if (state == null)
+        {
+            message = "외부 사건을 찾을 수 없습니다.";
+            return false;
+        }
+
+        ExteriorZoneMarker zone = zones.FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.ZoneId,
+                state.zoneId,
+                StringComparison.Ordinal));
+        if (zone == null
+            || !incidentHandlers.TryGet(
+                state.kind,
+                out IExteriorIncidentHandler handler))
+        {
+            message = "외부 사건 대상 또는 처리기를 찾을 수 없습니다.";
+            return false;
+        }
+
+        return handler.TryExecutePrimaryAction(state, zone, out message);
     }
 
     public bool TryBeginDeparture(
@@ -969,6 +1090,55 @@ public sealed class ExteriorActivityRuntime :
         }
     }
 
+    private void TickIncidentStates(float deltaTime)
+    {
+        float elapsed = Mathf.Max(0f, deltaTime);
+        foreach (ExteriorIncidentRuntimeState state in incidentStates.ToArray())
+        {
+            if (state == null || state.IsTerminal)
+            {
+                continue;
+            }
+
+            ExteriorZoneMarker zone = zones.FirstOrDefault(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.ZoneId,
+                    state.zoneId,
+                    StringComparison.Ordinal));
+            if (zone == null
+                || !incidentHandlers.TryGet(
+                    state.kind,
+                    out IExteriorIncidentHandler handler))
+            {
+                state.stage = ExteriorIncidentStage.Failed;
+                continue;
+            }
+
+            state.remainingSeconds = Mathf.Max(
+                0f,
+                state.remainingSeconds - elapsed);
+            handler.Tick(state, zone, elapsed);
+            if (state.IsTerminal)
+            {
+                zone.ClearIncident();
+            }
+        }
+
+        const int maximumIncidentHistory = 32;
+        while (incidentStates.Count > maximumIncidentHistory)
+        {
+            int index = incidentStates.FindIndex(state =>
+                state == null || state.IsTerminal);
+            if (index < 0)
+            {
+                break;
+            }
+
+            incidentStates.RemoveAt(index);
+        }
+    }
+
     private bool TryStartRandomIncident()
     {
         if (zones.Any(zone => zone != null && zone.HasActiveIncident))
@@ -976,22 +1146,109 @@ public sealed class ExteriorActivityRuntime :
             return false;
         }
 
-        if (!incidentRandom.Chance(0.35f))
+        SurvivalEnvironmentSnapshot environment =
+            survivalEnvironment.GetEnvironmentSnapshot();
+        float patrolReadiness = AveragePatrolReadiness;
+        float incidentChance = Mathf.Clamp(
+            0.18f
+            + (environment.ExteriorNightDanger * 0.004f)
+            + (environment.WeatherPressure01 * 0.12f)
+            - (patrolReadiness * 0.0025f),
+            0.08f,
+            0.72f);
+        if (!incidentRandom.Chance(incidentChance))
         {
             return false;
         }
 
-        ExteriorIncidentDefinition definition = IncidentDefinitions[
-            incidentRandom.NextInt(0, IncidentDefinitions.Length)];
-        return TryStartIncident(definition.Kind);
+        IExteriorIncidentHandler[] candidates = incidentHandlers.All.ToArray();
+        if (candidates.Length == 0)
+        {
+            return false;
+        }
+
+        float totalWeight = candidates.Sum(candidate =>
+            GetIncidentSelectionWeight(
+                candidate.Kind,
+                environment,
+                patrolReadiness));
+        if (totalWeight <= 0.001f)
+        {
+            return false;
+        }
+
+        float roll = incidentRandom.NextFloat() * totalWeight;
+        IExteriorIncidentHandler selected = candidates[candidates.Length - 1];
+        foreach (IExteriorIncidentHandler candidate in candidates)
+        {
+            roll -= GetIncidentSelectionWeight(
+                candidate.Kind,
+                environment,
+                patrolReadiness);
+            if (roll <= 0f)
+            {
+                selected = candidate;
+                break;
+            }
+        }
+
+        return TryStartIncident(selected.Kind);
+    }
+
+    public static float GetIncidentSelectionWeight(
+        ExteriorIncidentKind kind,
+        SurvivalEnvironmentSnapshot environment,
+        float patrolReadiness)
+    {
+        float danger = environment.ExteriorNightDanger / 100f;
+        float patrol = Mathf.Clamp01(patrolReadiness / 100f);
+        return kind switch
+        {
+            ExteriorIncidentKind.Thief =>
+                Mathf.Max(0.1f, 0.35f + (danger * 2.8f) - (patrol * 1.35f)),
+            ExteriorIncidentKind.PredatorApproach =>
+                Mathf.Max(0.05f, 0.15f + (danger * 2.5f) - (patrol * 1.1f)),
+            ExteriorIncidentKind.CargoDamage =>
+                Mathf.Max(
+                    0.05f,
+                    0.1f
+                    + (danger * 1.35f)
+                    + (environment.WeatherPressure01 * 1.8f)
+                    - (patrol * 0.55f)),
+            ExteriorIncidentKind.MerchantCart => 0.85f,
+            ExteriorIncidentKind.Informant => 0.7f,
+            ExteriorIncidentKind.InjuredReturnee => 0.55f,
+            _ => 0f
+        };
     }
 
     private ExteriorZoneMarker SelectIncidentZone(ExteriorIncidentKind kind)
     {
-        if (kind == ExteriorIncidentKind.Thief)
+        if (kind is ExteriorIncidentKind.Thief
+            or ExteriorIncidentKind.CargoDamage)
         {
             return zones.FirstOrDefault(zone => zone != null
                     && zone.ZoneType == ExteriorZoneType.DropZone
+                    && !zone.HasActiveIncident)
+                ?? zones.FirstOrDefault(zone => zone != null
+                    && zone.ZoneType == ExteriorZoneType.IncidentPoint
+                    && !zone.HasActiveIncident);
+        }
+
+        if (kind == ExteriorIncidentKind.InjuredReturnee)
+        {
+            return zones.FirstOrDefault(zone => zone != null
+                    && zone.ZoneType == ExteriorZoneType.Entrance
+                    && !zone.HasActiveIncident)
+                ?? zones.FirstOrDefault(zone => zone != null
+                    && zone.ZoneType == ExteriorZoneType.DropZone
+                    && !zone.HasActiveIncident);
+        }
+
+        if (kind == ExteriorIncidentKind.PredatorApproach)
+        {
+            return zones.FirstOrDefault(zone => zone != null
+                    && zone.ZoneType == ExteriorZoneType.Entrance
                     && !zone.HasActiveIncident)
                 ?? zones.FirstOrDefault(zone => zone != null
                     && zone.ZoneType == ExteriorZoneType.IncidentPoint
@@ -1114,7 +1371,7 @@ public sealed class ExteriorActivityRuntime :
         }
 
         Vector2Int start = grid.GetXY(actor.transform.position);
-        Queue<GridMoveStep> path = grid.GetMovePath(start, pos => pos == target);
+        Queue<GridMoveStep> path = grid.GetMovePathTo(start, target);
         if (path != null && path.Count > 0)
         {
             yield return move.MoveByPath(path);
@@ -1140,20 +1397,6 @@ public sealed class ExteriorActivityRuntime :
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
 
-    private readonly struct ExteriorIncidentDefinition
-    {
-        public ExteriorIncidentDefinition(ExteriorIncidentKind kind, string text, float durationSeconds)
-        {
-            Kind = kind;
-            Text = text;
-            DurationSeconds = durationSeconds;
-        }
-
-        public ExteriorIncidentKind Kind { get; }
-        public string Text { get; }
-        public float DurationSeconds { get; }
-        public bool IsValid => Kind != ExteriorIncidentKind.None;
-    }
 }
 
 public sealed class ExteriorActivityCoroutineHost : MonoBehaviour

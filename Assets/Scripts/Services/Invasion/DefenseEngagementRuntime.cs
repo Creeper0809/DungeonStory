@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using static DefenseRangedSupportAccess;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -13,6 +14,9 @@ public sealed class DefenseEngagementRuntime :
     ITickable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("DefenseEngagementRuntime.Tick");
+
     private readonly IStaffWorkforceQueryService workforceQuery;
     private readonly IGridSystemProvider gridProvider;
     private readonly IDefenseResponsePolicyRuntime policyRuntime;
@@ -138,14 +142,24 @@ public sealed class DefenseEngagementRuntime :
 
     public void Tick()
     {
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
         if (!gridProvider.TryGetGrid(out Grid grid))
         {
             return;
         }
 
-        foreach (DefenseEngagement engagement in engagementStore.Engagements.ToArray())
+        IReadOnlyList<DefenseEngagement> engagements =
+            engagementStore.Engagements;
+        for (int index = engagements.Count - 1; index >= 0; index--)
         {
-            TickEngagement(grid, engagement);
+            TickEngagement(grid, engagements[index]);
         }
 
         if (!directorProvider.TryGetRuntime(out InvasionDirectorRuntime director))
@@ -153,8 +167,11 @@ public sealed class DefenseEngagementRuntime :
             return;
         }
 
-        foreach (InvasionIntruderRuntime intruder in director.ActiveIntruders.ToArray())
+        IReadOnlyList<InvasionIntruderRuntime> intruders =
+            director.ActiveIntruders;
+        for (int index = intruders.Count - 1; index >= 0; index--)
         {
+            InvasionIntruderRuntime intruder = intruders[index];
             if (intruder == null
                 || intruder.State == InvasionIntruderState.Finished
                 || intruder.IntruderActor == null
@@ -978,9 +995,9 @@ public sealed class DefenseEngagementRuntime :
             .OrderBy(candidate =>
                 combatExecutor.HasActiveRangedWeapon(candidate) ? 1 : 0)
             .ThenBy(candidate => Manhattan(candidate.GetNowXY(), engagement.ReserveCell))
-            .FirstOrDefault(candidate => grid.GetMovePath(
+            .FirstOrDefault(candidate => grid.GetMovePathTo(
                 candidate.GetNowXY(),
-                cell => cell == engagement.ReserveCell).Count > 0
+                engagement.ReserveCell).Count > 0
                 || candidate.GetNowXY() == engagement.ReserveCell);
         if (reserve != null)
         {
@@ -1005,9 +1022,9 @@ public sealed class DefenseEngagementRuntime :
             return false;
         }
 
-        Queue<GridMoveStep> path = grid.GetMovePath(
+        Queue<GridMoveStep> path = grid.GetMovePathTo(
             reserve.GetNowXY(),
-            cell => cell == engagement.ReserveCell);
+            engagement.ReserveCell);
         if (reserve.GetNowXY() != engagement.ReserveCell && (path == null || path.Count == 0))
         {
             return false;
@@ -1109,15 +1126,9 @@ public sealed class DefenseEngagementRuntime :
         string guardId = GetPersistentId(guard);
         string intruderId = GetPersistentId(engagement.IntruderActor);
         Vector2Int intruderCell = engagement.IntruderActor.GetNowXY();
-        if (!pathSearchBroker.TryGetSearch(
-                grid,
-                guard.GetNowXY(),
-                out GridPathSearchResult search))
-        {
-            return false;
-        }
-
-        float bestScore = float.NegativeInfinity;
+        Vector2Int guardCell = guard.GetNowXY();
+        List<(Vector2Int Cell, float Score)> candidates =
+            new List<(Vector2Int Cell, float Score)>();
         int maxRange = Mathf.Max(2, weapon.MaximumRange);
         for (int y = intruderCell.y - maxRange;
             y <= intruderCell.y + maxRange;
@@ -1135,14 +1146,6 @@ public sealed class DefenseEngagementRuntime :
                     || distance < 2
                     || distance > weapon.MaximumRange
                     || IsCellReservedForOther(guard, cell))
-                {
-                    continue;
-                }
-
-                Queue<GridMoveStep> candidatePath =
-                    search.GetMovePath(position => position == cell);
-                if (guard.GetNowXY() != cell
-                    && (candidatePath == null || candidatePath.Count == 0))
                 {
                     continue;
                 }
@@ -1168,31 +1171,62 @@ public sealed class DefenseEngagementRuntime :
                         * cover.GetDirectionalMultiplier()
                         * 4f
                     : 0f;
-                float travelPenalty = candidatePath.Count * 0.04f;
+                float travelPenalty =
+                    Manhattan(guardCell, cell)
+                    * 0.04f;
                 float crowdPenalty = cell == engagement.GuardCell
                     || cell == engagement.ReserveCell
                         ? 4f
                         : 0f;
                 float score =
                     rangeScore + coverScore - travelPenalty - crowdPenalty;
-                if (score <= bestScore)
-                {
-                    continue;
-                }
-
-                bestScore = score;
-                bestCell = cell;
+                candidates.Add((cell, score));
             }
         }
 
-        if (float.IsNegativeInfinity(bestScore))
+        candidates.Sort((left, right) =>
+            right.Score.CompareTo(left.Score));
+        float bestScore = float.NegativeInfinity;
+        for (int index = 0; index < candidates.Count; index++)
+        {
+            (Vector2Int Cell, float Score) candidate = candidates[index];
+            if (candidate.Cell == guardCell)
+            {
+                bestCell = candidate.Cell;
+                bestScore = candidate.Score;
+                bestPath = new Queue<GridMoveStep>();
+                break;
+            }
+
+            Queue<GridMoveStep> candidatePath =
+                pathSearchBroker.GetMovePathTo(
+                    grid,
+                    guardCell,
+                    candidate.Cell);
+            if (candidatePath == null)
+            {
+                // Exact pathfinding is frame-sliced by the broker.
+                return false;
+            }
+
+            if (candidatePath.Count == 0)
+            {
+                continue;
+            }
+
+            bestCell = candidate.Cell;
+            bestScore = candidate.Score;
+            bestPath = candidatePath;
+            break;
+        }
+
+        if (float.IsNegativeInfinity(bestScore) || bestPath == null)
         {
             return false;
         }
 
         Vector2Int resolvedBestCell = bestCell;
-        bestPath = search.GetMovePath(position => position == resolvedBestCell);
-        return (guard.GetNowXY() == resolvedBestCell || bestPath.Count > 0)
+        return (guardCell == resolvedBestCell || bestPath.Count > 0)
             && tacticalCoordinator.TryReserve(
                 guardId,
                 intruderId,
@@ -1251,7 +1285,7 @@ public sealed class DefenseEngagementRuntime :
                 break;
             }
 
-            path ??= grid.GetMovePath(guard.GetNowXY(), cell => cell == target);
+            path ??= grid.GetMovePathTo(guard.GetNowXY(), target);
             if (path == null || path.Count == 0)
             {
                 break;
@@ -1504,7 +1538,7 @@ public sealed class DefenseEngagementRuntime :
                 break;
             }
 
-            path ??= grid.GetMovePath(guard.GetNowXY(), cell => cell == target);
+            path ??= grid.GetMovePathTo(guard.GetNowXY(), target);
             if (path == null || path.Count == 0)
             {
                 break;

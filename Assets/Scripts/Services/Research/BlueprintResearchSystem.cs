@@ -43,6 +43,7 @@ public class BlueprintResearchTask
 
 public class BlueprintResearchState : IBuildingUnlockStateView
 {
+    private readonly ResearchProjectRuntimeState projects = new ResearchProjectRuntimeState();
     private readonly List<BlueprintResearchTask> tasks = new List<BlueprintResearchTask>();
     private readonly HashSet<int> completedBlueprintIds = new HashSet<int>();
     private readonly HashSet<int> unlockedBuildingIds = new HashSet<int>();
@@ -64,6 +65,7 @@ public class BlueprintResearchState : IBuildingUnlockStateView
     public IReadOnlyCollection<int> CompletedBlueprintIds => completedBlueprintIdsView;
     public IReadOnlyCollection<int> UnlockedBuildingIds => unlockedBuildingIdsView;
     public IReadOnlyCollection<string> UnlockedRecipeIds => unlockedRecipeIdsView;
+    public ResearchProjectRuntimeState Projects => projects;
 
     public bool HasActiveTask => TryGetActiveTask(out _);
 
@@ -140,6 +142,7 @@ public class BlueprintResearchState : IBuildingUnlockStateView
         completedBlueprintIds.Clear();
         unlockedBuildingIds.Clear();
         unlockedRecipeIds.Clear();
+        projects.ClearForRestore();
     }
 
     public bool RestoreTask(FacilityBlueprintSO blueprint, float progress)
@@ -181,6 +184,47 @@ public readonly struct BlueprintResearchWorkResult
     {
         Success = success;
         Blueprint = blueprint;
+        Project = null;
+        AddedProgress = Mathf.Max(0f, addedProgress);
+        TotalProgress = Mathf.Max(0f, totalProgress);
+        RequiredWork = Mathf.Max(1f, requiredWork);
+        Completed = completed;
+        Message = message ?? string.Empty;
+    }
+
+    public static BlueprintResearchWorkResult ForProject(
+        bool success,
+        ResearchProjectSO project,
+        float addedProgress,
+        float totalProgress,
+        float requiredWork,
+        bool completed,
+        string message)
+    {
+        return new BlueprintResearchWorkResult(
+            success,
+            project,
+            addedProgress,
+            totalProgress,
+            requiredWork,
+            completed,
+            message,
+            projectResult: true);
+    }
+
+    private BlueprintResearchWorkResult(
+        bool success,
+        ResearchProjectSO project,
+        float addedProgress,
+        float totalProgress,
+        float requiredWork,
+        bool completed,
+        string message,
+        bool projectResult)
+    {
+        Success = success;
+        Blueprint = project?.Blueprint;
+        Project = project;
         AddedProgress = Mathf.Max(0f, addedProgress);
         TotalProgress = Mathf.Max(0f, totalProgress);
         RequiredWork = Mathf.Max(1f, requiredWork);
@@ -190,6 +234,7 @@ public readonly struct BlueprintResearchWorkResult
 
     public bool Success { get; }
     public FacilityBlueprintSO Blueprint { get; }
+    public ResearchProjectSO Project { get; }
     public float AddedProgress { get; }
     public float TotalProgress { get; }
     public float RequiredWork { get; }
@@ -201,11 +246,22 @@ public readonly struct BlueprintResearchWorkResult
 public struct BlueprintResearchCompletedEvent
 {
     public FacilityBlueprintSO blueprint;
+    public ResearchProjectSO project;
     public BlueprintResearchUnlockResult unlockResult;
 
     public BlueprintResearchCompletedEvent(FacilityBlueprintSO blueprint, BlueprintResearchUnlockResult unlockResult)
     {
         this.blueprint = blueprint;
+        project = null;
+        this.unlockResult = unlockResult;
+    }
+
+    public BlueprintResearchCompletedEvent(
+        ResearchProjectSO project,
+        BlueprintResearchUnlockResult unlockResult)
+    {
+        this.project = project;
+        blueprint = project?.Blueprint;
         this.unlockResult = unlockResult;
     }
 }
@@ -289,6 +345,50 @@ public static class BlueprintResearchService
 
         return new BlueprintResearchUnlockResult(blueprint, appliedUnlocks);
     }
+
+    public static BlueprintResearchUnlockResult ApplyCompletion(
+        ResearchProjectSO project,
+        BlueprintResearchState state,
+        FacilityShopUnlockState shopUnlockState,
+        IFacilityShopCatalog facilityShopCatalog)
+    {
+        if (project == null)
+        {
+            return new BlueprintResearchUnlockResult(null, Array.Empty<BlueprintUnlockRecord>());
+        }
+
+        if (facilityShopCatalog == null)
+        {
+            throw new ArgumentNullException(nameof(facilityShopCatalog));
+        }
+
+        state?.Projects.Complete(project.ProjectId);
+        if (project.Blueprint != null)
+        {
+            state?.MarkCompleted(project.Blueprint);
+        }
+
+        BlueprintUnlockContext context = new BlueprintUnlockContext(
+            state,
+            shopUnlockState,
+            facilityShopCatalog);
+        List<BlueprintUnlockRecord> appliedUnlocks = new List<BlueprintUnlockRecord>();
+        foreach (BlueprintUnlock unlock in project.Unlocks)
+        {
+            if (unlock == null || !unlock.IsConfigured)
+            {
+                continue;
+            }
+
+            BlueprintUnlockRecord applied = unlock.Apply(context);
+            if (applied.IsApplied)
+            {
+                appliedUnlocks.Add(applied);
+            }
+        }
+
+        return new BlueprintResearchUnlockResult(project.Blueprint, appliedUnlocks);
+    }
 }
 
 public class BlueprintResearchRuntime : MonoBehaviour
@@ -301,10 +401,20 @@ public class BlueprintResearchRuntime : MonoBehaviour
     private IFacilityCandidateCache facilityCandidateCache;
     private IWorkforceReplanService workforceReplanService;
     private IGameEventBus gameEventBus;
+    private IWorldItemStackRuntime itemStackRuntime;
+    private IResearchProjectCatalog projectCatalog;
+    private IResearchBlueprintArchiveQuery blueprintArchiveQuery;
+    private IWorldDropZoneQuery worldDropZoneQuery;
+    private float nextArchiveDeliveryRefresh;
+    private readonly HashSet<string> pendingKnowledgeDeliveries =
+        new HashSet<string>(StringComparer.Ordinal);
     private IDisposable shopPurchasedSubscription;
 
     public BlueprintResearchState State => state;
-    public bool HasActiveResearch => state.HasActiveTask;
+    public bool HasActiveResearch =>
+        TryResolveActiveProject(out _, out _)
+        || state.HasActiveTask;
+    public IResearchProjectCatalog ProjectCatalog => projectCatalog;
     public FacilityShopUnlockState ShopUnlockState => ResolveShopUnlockStateService().GetUnlockState();
 
     [Inject]
@@ -313,7 +423,11 @@ public class BlueprintResearchRuntime : MonoBehaviour
         IFacilityShopCatalog facilityShopCatalog,
         IFacilityCandidateCache facilityCandidateCache,
         IWorkforceReplanService workforceReplanService,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IWorldItemStackRuntime itemStackRuntime = null,
+        IResearchProjectCatalog projectCatalog = null,
+        IResearchBlueprintArchiveQuery blueprintArchiveQuery = null,
+        IWorldDropZoneQuery worldDropZoneQuery = null)
     {
         this.shopUnlockStateService = shopUnlockStateService
             ?? throw new ArgumentNullException(nameof(shopUnlockStateService));
@@ -325,11 +439,22 @@ public class BlueprintResearchRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(workforceReplanService));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.itemStackRuntime = itemStackRuntime;
+        this.projectCatalog = projectCatalog;
+        this.blueprintArchiveQuery = blueprintArchiveQuery;
+        this.worldDropZoneQuery = worldDropZoneQuery;
         SubscribeToScopedEvents();
     }
 
     public bool EnqueueBlueprint(FacilityBlueprintSO blueprint)
     {
+        if (blueprint != null
+            && projectCatalog != null
+            && projectCatalog.TryGetForBlueprint(blueprint.id, out ResearchProjectSO project))
+        {
+            return EnqueueProject(project.ProjectId).Succeeded;
+        }
+
         bool queued = state.EnqueueBlueprint(blueprint);
         if (queued)
         {
@@ -351,14 +476,47 @@ public class BlueprintResearchRuntime : MonoBehaviour
             return new BlueprintResearchWorkResult(false, null, 0f, 0f, 1f, false, "연구 가능한 시설이 아닙니다");
         }
 
+        if (TryResolveActiveProject(out ResearchProjectSO project, out _))
+        {
+            ResearchProjectProgressState projectProgress =
+                state.Projects.GetProgress(project.ProjectId);
+            float projectWork = DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.InstantWork)
+                ? project.RequiredWork
+                : BlueprintResearchService.CalculateResearchWork(researcher, researchFacility, seconds);
+            projectWork += TryConsumeKnowledgeResidue(researchFacility);
+            float projectAdded = projectProgress.Add(projectWork, project);
+            bool projectCompleted = projectProgress.Progress >= project.RequiredWork;
+            BlueprintResearchWorkResult projectResult = BlueprintResearchWorkResult.ForProject(
+                true,
+                project,
+                projectAdded,
+                projectProgress.Progress,
+                project.RequiredWork,
+                projectCompleted,
+                projectCompleted ? "연구 완료" : "연구 진행");
+            if (projectCompleted)
+            {
+                CompleteProject(project);
+            }
+            return projectResult;
+        }
+
         if (!state.TryGetActiveTask(out BlueprintResearchTask task))
         {
-            return new BlueprintResearchWorkResult(false, null, 0f, 0f, 1f, false, "연구할 설계도가 없습니다");
+            return new BlueprintResearchWorkResult(
+                false,
+                (FacilityBlueprintSO)null,
+                0f,
+                0f,
+                1f,
+                false,
+                "실행 가능한 연구가 없습니다");
         }
 
         float work = DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.InstantWork)
             ? task.RequiredWork
             : BlueprintResearchService.CalculateResearchWork(researcher, researchFacility, seconds);
+        work += TryConsumeKnowledgeResidue(researchFacility);
         float added = task.AddProgress(work);
         bool completed = task.IsCompleted;
         BlueprintResearchWorkResult result = new BlueprintResearchWorkResult(
@@ -377,6 +535,266 @@ public class BlueprintResearchRuntime : MonoBehaviour
         }
 
         return result;
+    }
+
+    public ResearchQueueCommandResult EnqueueProject(ResearchProjectId projectId)
+    {
+        if (projectCatalog == null || !projectCatalog.TryGet(projectId, out ResearchProjectSO project))
+        {
+            return new ResearchQueueCommandResult(false, "연구 프로젝트를 찾을 수 없습니다.");
+        }
+        if (state.Projects.IsCompleted(projectId))
+        {
+            return new ResearchQueueCommandResult(false, "이미 완료된 연구입니다.");
+        }
+        if (project.BlueprintRule == ResearchBlueprintRule.Required
+            && !HasArchivedBlueprint(project, out string blueprintBlocker))
+        {
+            return new ResearchQueueCommandResult(false, blueprintBlocker);
+        }
+
+        List<ResearchProjectSO> ordered = new List<ResearchProjectSO>();
+        CollectQueueDependencies(project, ordered, new HashSet<string>(StringComparer.Ordinal));
+        ResearchProjectSO blockedDependency = ordered.FirstOrDefault(candidate =>
+            candidate.BlueprintRule == ResearchBlueprintRule.Required
+            && !HasArchivedBlueprint(candidate, out _));
+        if (blockedDependency != null)
+        {
+            HasArchivedBlueprint(blockedDependency, out string dependencyBlocker);
+            return new ResearchQueueCommandResult(
+                false,
+                $"{blockedDependency.DisplayName}: {dependencyBlocker}");
+        }
+
+        List<ResearchProjectId> added = new List<ResearchProjectId>();
+        foreach (ResearchProjectSO candidate in ordered)
+        {
+            if (state.Projects.IsCompleted(candidate.ProjectId)
+                || state.Projects.ContainsInQueue(candidate.ProjectId))
+            {
+                continue;
+            }
+            state.Projects.AddQueueEntry(candidate.ProjectId);
+            added.Add(candidate.ProjectId);
+        }
+
+        if (added.Count == 0)
+        {
+            return new ResearchQueueCommandResult(false, "이미 연구 큐에 등록되어 있습니다.");
+        }
+
+        TryResolveActiveProject(out _, out _);
+        NotifyResearchAvailabilityChanged(prioritizeResearch: true);
+        return new ResearchQueueCommandResult(
+            true,
+            $"{project.DisplayName} 연구 경로를 큐에 등록했습니다.",
+            added);
+    }
+
+    public ResearchQueueCommandResult RemoveProject(ResearchProjectId projectId)
+    {
+        bool removed = state.Projects.RemoveQueueEntry(projectId);
+        if (removed)
+        {
+            TryResolveActiveProject(out _, out _);
+            NotifyResearchAvailabilityChanged();
+        }
+        return new ResearchQueueCommandResult(
+            removed,
+            removed ? "연구 큐에서 제거했습니다. 진행률은 보존됩니다." : "큐에 등록된 연구가 아닙니다.");
+    }
+
+    public ResearchQueueCommandResult MoveProject(int fromIndex, int toIndex)
+    {
+        ResearchQueueEntry[] before = state.Projects.Queue.ToArray();
+        if (!state.Projects.MovePending(fromIndex, toIndex))
+        {
+            return new ResearchQueueCommandResult(false, "활성 연구는 이동할 수 없습니다.");
+        }
+
+        if (!IsQueueOrderValid())
+        {
+            int currentIndex = state.Projects.Queue
+                .Select((entry, index) => (entry, index))
+                .First(pair => pair.entry == before[fromIndex])
+                .index;
+            state.Projects.MovePending(currentIndex, fromIndex);
+            return new ResearchQueueCommandResult(false, "선행 연구보다 앞으로 이동할 수 없습니다.");
+        }
+
+        return new ResearchQueueCommandResult(true, "연구 대기 순서를 변경했습니다.");
+    }
+
+    public ResearchNodeState GetNodeState(
+        ResearchProjectSO project,
+        out string blocker)
+    {
+        blocker = string.Empty;
+        if (project == null)
+        {
+            blocker = "연구 정의가 없습니다.";
+            return ResearchNodeState.Locked;
+        }
+        if (state.Projects.IsCompleted(project.ProjectId))
+        {
+            return ResearchNodeState.Completed;
+        }
+        if (state.Projects.ActiveProjectId.Equals(project.ProjectId))
+        {
+            return ResearchNodeState.Active;
+        }
+        ResearchQueueEntry queued = state.Projects.Queue
+            .FirstOrDefault(entry => entry.ProjectId.Equals(project.ProjectId));
+        if (queued != null)
+        {
+            blocker = queued.SuspendedReason;
+            return queued.IsSuspended ? ResearchNodeState.Suspended : ResearchNodeState.Queued;
+        }
+
+        bool archived = HasArchivedBlueprint(project, out string blueprintBlocker);
+        bool prerequisitesComplete = ArePrerequisitesCompleted(project);
+        if (project.BlueprintRule == ResearchBlueprintRule.Shortcut && archived)
+        {
+            return ResearchNodeState.ShortcutAvailable;
+        }
+        if (!prerequisitesComplete)
+        {
+            string[] missingNames = project.Prerequisites
+                .Where(required => !state.Projects.IsCompleted(required.ProjectId))
+                .Select(required => required.DisplayName)
+                .ToArray();
+            blocker = $"선행 연구 필요: {string.Join(", ", missingNames)}";
+            return ResearchNodeState.Locked;
+        }
+        if (project.BlueprintRule == ResearchBlueprintRule.Required && !archived)
+        {
+            blocker = blueprintBlocker;
+            ResearchBlueprintArchiveStatus status =
+                blueprintArchiveQuery?.GetStatus(project.Blueprint) ?? default;
+            return status.IsInTransit
+                ? ResearchNodeState.BlueprintInTransit
+                : ResearchNodeState.Locked;
+        }
+        return ResearchNodeState.Available;
+    }
+
+    public bool TryGetActiveProject(
+        out ResearchProjectSO project,
+        out string blocker)
+    {
+        return TryResolveActiveProject(out project, out blocker);
+    }
+
+    public void RefreshProjectQueueAfterRestore()
+    {
+        TryResolveActiveProject(out _, out _);
+        NotifyResearchAvailabilityChanged();
+    }
+
+    public int EnsureAcquiredBlueprintItemsMaterialized()
+    {
+        if (itemStackRuntime == null || facilityShopCatalog == null)
+        {
+            return 0;
+        }
+
+        int materialized = 0;
+        HashSet<string> existingItemIds = itemStackRuntime.GetAllStacks()
+            .Where(stack => stack != null && stack.Quantity > 0)
+            .Select(stack => stack.ItemId)
+            .ToHashSet(StringComparer.Ordinal);
+
+        foreach (int blueprintId in ShopUnlockState.AcquiredBlueprintIds)
+        {
+            FacilityBlueprintSO blueprint = facilityShopCatalog.Blueprints
+                .FirstOrDefault(candidate => candidate != null && candidate.id == blueprintId);
+            if (blueprint == null || existingItemIds.Contains(blueprint.PhysicalItemId))
+            {
+                continue;
+            }
+
+            bool spawned = false;
+            if (blueprintArchiveQuery != null
+                && blueprintArchiveQuery.TryGetPreferredArchive(
+                    blueprint,
+                    out BuildableObject archive,
+                    out string destinationId))
+            {
+                spawned = itemStackRuntime.SpawnUniqueItemAt(
+                    blueprint.PhysicalItemId,
+                    archive.centerPos,
+                    WorldItemStackState.FacilityBuffer,
+                    destinationId,
+                    out _);
+            }
+            else if (worldDropZoneQuery != null
+                     && worldDropZoneQuery.TryGetDeliveryDropoff(out Vector2Int dropoff))
+            {
+                spawned = itemStackRuntime.SpawnUniqueItemAt(
+                    blueprint.PhysicalItemId,
+                    dropoff,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out _);
+            }
+
+            if (spawned)
+            {
+                existingItemIds.Add(blueprint.PhysicalItemId);
+                materialized++;
+            }
+        }
+
+        return materialized;
+    }
+
+    private float TryConsumeKnowledgeResidue(BuildableObject researchFacility)
+    {
+        if (itemStackRuntime == null || researchFacility == null)
+        {
+            return 0f;
+        }
+
+        string destinationId =
+            $"research:{researchFacility.BuildingData?.id ?? researchFacility.id}:{researchFacility.centerPos.x}:{researchFacility.centerPos.y}";
+        Dictionary<StockCategory, int> cost = new Dictionary<StockCategory, int>
+        {
+            [StockCategory.Knowledge] = 1
+        };
+        if (itemStackRuntime.TryConsumeFacilityBuffer(
+                destinationId,
+                cost,
+                out _))
+        {
+            pendingKnowledgeDeliveries.Remove(destinationId);
+            return 12f;
+        }
+
+        bool hasOutstandingDelivery = itemStackRuntime.GetAllStacks().Any(stack =>
+            stack != null
+            && stack.Quantity > 0
+            && stack.StockCategory == StockCategory.Knowledge
+            && string.Equals(stack.DestinationId, destinationId, StringComparison.Ordinal));
+        if (hasOutstandingDelivery)
+        {
+            pendingKnowledgeDeliveries.Add(destinationId);
+            return 0f;
+        }
+
+        pendingKnowledgeDeliveries.Remove(destinationId);
+        if (itemStackRuntime.TryRequestFacilityDelivery(
+                StockCategory.Knowledge,
+                1,
+                researchFacility.centerPos,
+                destinationId,
+                out int requested,
+                out _)
+            && requested > 0)
+        {
+            pendingKnowledgeDeliveries.Add(destinationId);
+        }
+
+        return 0f;
     }
 
     public bool TryCancelBlueprint(FacilityBlueprintSO blueprint, out string message)
@@ -401,6 +819,25 @@ public class BlueprintResearchRuntime : MonoBehaviour
 
     public int CompleteAllBlueprintsImmediately()
     {
+        if (projectCatalog != null && projectCatalog.Projects.Count > 0)
+        {
+            int projectCount = 0;
+            foreach (ResearchProjectSO project in projectCatalog.Projects)
+            {
+                if (state.Projects.IsCompleted(project.ProjectId))
+                {
+                    continue;
+                }
+                CompleteProject(project, notifyAvailability: false, emitAlert: false);
+                projectCount++;
+            }
+            if (projectCount > 0)
+            {
+                NotifyResearchAvailabilityChanged();
+            }
+            return projectCount;
+        }
+
         int completedCount = 0;
         foreach (FacilityBlueprintSO blueprint in ResolveFacilityShopCatalog().Blueprints
                      .Where(candidate => candidate != null)
@@ -432,7 +869,247 @@ public class BlueprintResearchRuntime : MonoBehaviour
             return;
         }
 
-        EnqueueBlueprint(blueprint);
+        if (itemStackRuntime == null
+            || worldDropZoneQuery == null
+            || !worldDropZoneQuery.TryGetDeliveryDropoff(out Vector2Int dropoff)
+            || !itemStackRuntime.SpawnUniqueItemAt(
+                blueprint.PhysicalItemId,
+                dropoff,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out _))
+        {
+            gameEventBus.RaiseAlert(
+                "설계도 배송 지연",
+                $"{blueprint.DisplayName} 설계도를 하차장에 놓지 못했습니다.",
+                EventAlertImportance.High,
+                "연구");
+            return;
+        }
+
+        gameEventBus.RaiseAlert(
+            "설계도 도착",
+            $"{blueprint.DisplayName} 설계도가 하차장에 도착했습니다.",
+            EventAlertImportance.Low,
+            "연구");
+    }
+
+    private void Update()
+    {
+        if (Time.unscaledTime < nextArchiveDeliveryRefresh)
+        {
+            return;
+        }
+
+        nextArchiveDeliveryRefresh = Time.unscaledTime + 1f;
+        RequestBlueprintArchiveDeliveries();
+        TryResolveActiveProject(out _, out _);
+    }
+
+    private void RequestBlueprintArchiveDeliveries()
+    {
+        if (projectCatalog == null
+            || blueprintArchiveQuery == null
+            || itemStackRuntime == null)
+        {
+            return;
+        }
+
+        foreach (ResearchProjectSO project in projectCatalog.Projects
+                     .Where(candidate => candidate?.Blueprint != null))
+        {
+            ResearchBlueprintArchiveStatus status =
+                blueprintArchiveQuery.GetStatus(project.Blueprint);
+            if (status.IsArchived
+                || !blueprintArchiveQuery.TryGetPreferredArchive(
+                    project.Blueprint,
+                    out BuildableObject archive,
+                    out string destinationId))
+            {
+                continue;
+            }
+
+            bool alreadyAssigned = itemStackRuntime.GetAllStacks().Any(stack =>
+                stack != null
+                && stack.Quantity > 0
+                && string.Equals(
+                    stack.ItemId,
+                    project.Blueprint.PhysicalItemId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.DestinationId,
+                    destinationId,
+                    StringComparison.Ordinal));
+            if (!alreadyAssigned)
+            {
+                itemStackRuntime.TryRequestItemDelivery(
+                    project.Blueprint.PhysicalItemId,
+                    1,
+                    archive.centerPos,
+                    destinationId,
+                    out _,
+                    out _);
+            }
+        }
+    }
+
+    private bool TryResolveActiveProject(
+        out ResearchProjectSO project,
+        out string blocker)
+    {
+        project = null;
+        blocker = string.Empty;
+        if (projectCatalog == null || projectCatalog.Projects.Count == 0)
+        {
+            return false;
+        }
+
+        ResearchProjectId currentId = state.Projects.ActiveProjectId;
+        if (currentId.IsValid
+            && projectCatalog.TryGet(currentId, out ResearchProjectSO current))
+        {
+            blocker = GetExecutionBlocker(current);
+            ResearchQueueEntry currentEntry = state.Projects.Queue
+                .FirstOrDefault(entry => entry.ProjectId.Equals(currentId));
+            currentEntry?.SetSuspended(blocker);
+            if (string.IsNullOrWhiteSpace(blocker))
+            {
+                project = current;
+                return true;
+            }
+            state.Projects.SetActive(default);
+        }
+
+        foreach (ResearchQueueEntry entry in state.Projects.Queue)
+        {
+            if (!projectCatalog.TryGet(entry.ProjectId, out ResearchProjectSO candidate))
+            {
+                entry.SetSuspended("연구 정의가 사라졌습니다.");
+                continue;
+            }
+
+            string candidateBlocker = GetExecutionBlocker(candidate);
+            entry.SetSuspended(candidateBlocker);
+            if (!string.IsNullOrWhiteSpace(candidateBlocker))
+            {
+                continue;
+            }
+
+            state.Projects.SetActive(candidate.ProjectId);
+            project = candidate;
+            return true;
+        }
+
+        state.Projects.SetActive(default);
+        blocker = state.Projects.Queue.FirstOrDefault()?.SuspendedReason
+            ?? "실행 가능한 연구가 없습니다.";
+        return false;
+    }
+
+    private string GetExecutionBlocker(ResearchProjectSO project)
+    {
+        if (project == null)
+        {
+            return "연구 정의가 없습니다.";
+        }
+        bool archived = HasArchivedBlueprint(project, out string blueprintBlocker);
+        if (project.BlueprintRule == ResearchBlueprintRule.Shortcut && archived)
+        {
+            return string.Empty;
+        }
+        ResearchProjectSO missing = project.Prerequisites
+            .FirstOrDefault(required => !state.Projects.IsCompleted(required.ProjectId));
+        if (missing != null)
+        {
+            return $"선행 연구 대기: {missing.DisplayName}";
+        }
+        if (project.BlueprintRule == ResearchBlueprintRule.Required && !archived)
+        {
+            return blueprintBlocker;
+        }
+        return string.Empty;
+    }
+
+    private bool ArePrerequisitesCompleted(ResearchProjectSO project)
+    {
+        return project != null && project.Prerequisites.All(required =>
+            required != null && state.Projects.IsCompleted(required.ProjectId));
+    }
+
+    private bool HasArchivedBlueprint(
+        ResearchProjectSO project,
+        out string blocker)
+    {
+        if (project == null || project.BlueprintRule == ResearchBlueprintRule.None)
+        {
+            blocker = string.Empty;
+            return true;
+        }
+        if (blueprintArchiveQuery == null)
+        {
+            blocker = "연구 설계도 보관 상태를 확인할 수 없습니다.";
+            return false;
+        }
+        ResearchBlueprintArchiveStatus status =
+            blueprintArchiveQuery.GetStatus(project.Blueprint);
+        blocker = status.Blocker;
+        return status.IsArchived;
+    }
+
+    private void CollectQueueDependencies(
+        ResearchProjectSO project,
+        ICollection<ResearchProjectSO> ordered,
+        ISet<string> visited)
+    {
+        if (project == null || !visited.Add(project.ProjectId.Value))
+        {
+            return;
+        }
+
+        bool shortcutActive = project.BlueprintRule == ResearchBlueprintRule.Shortcut
+            && HasArchivedBlueprint(project, out _);
+        if (!shortcutActive)
+        {
+            foreach (ResearchProjectSO prerequisite in project.Prerequisites
+                         .OrderBy(candidate => candidate.ProjectId.Value, StringComparer.Ordinal))
+            {
+                CollectQueueDependencies(prerequisite, ordered, visited);
+            }
+        }
+        ordered.Add(project);
+    }
+
+    private bool IsQueueOrderValid()
+    {
+        Dictionary<string, int> indexById = state.Projects.Queue
+            .Select((entry, index) => (entry, index))
+            .ToDictionary(pair => pair.entry.ProjectId.Value, pair => pair.index, StringComparer.Ordinal);
+        foreach (ResearchQueueEntry entry in state.Projects.Queue)
+        {
+            if (!projectCatalog.TryGet(entry.ProjectId, out ResearchProjectSO project))
+            {
+                return false;
+            }
+            bool shortcutActive = project.BlueprintRule == ResearchBlueprintRule.Shortcut
+                && HasArchivedBlueprint(project, out _);
+            if (shortcutActive)
+            {
+                continue;
+            }
+            foreach (ResearchProjectSO prerequisite in project.Prerequisites)
+            {
+                if (state.Projects.IsCompleted(prerequisite.ProjectId))
+                {
+                    continue;
+                }
+                if (!indexById.TryGetValue(prerequisite.ProjectId.Value, out int prerequisiteIndex)
+                    || prerequisiteIndex >= indexById[project.ProjectId.Value])
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     private void CompleteTask(FacilityBlueprintSO blueprint)
@@ -441,6 +1118,39 @@ public class BlueprintResearchRuntime : MonoBehaviour
             blueprint,
             notifyAvailability: true,
             emitAlert: raiseAlertOnResearchComplete);
+    }
+
+    private void CompleteProject(
+        ResearchProjectSO project,
+        bool notifyAvailability = true,
+        bool emitAlert = true)
+    {
+        if (project == null)
+        {
+            return;
+        }
+
+        BlueprintResearchUnlockResult unlockResult = BlueprintResearchService.ApplyCompletion(
+            project,
+            state,
+            ShopUnlockState,
+            ResolveFacilityShopCatalog());
+        gameEventBus.Publish(new BlueprintResearchCompletedEvent(project, unlockResult));
+        if (notifyAvailability)
+        {
+            NotifyResearchAvailabilityChanged();
+        }
+
+        if (emitAlert && raiseAlertOnResearchComplete)
+        {
+            List<string> lines = new List<string> { $"{project.DisplayName} 연구 완료" };
+            lines.AddRange(unlockResult.FormatSummaryLines());
+            gameEventBus.RaiseAlert(
+                "연구 완료",
+                string.Join("\n", lines),
+                EventAlertImportance.Medium,
+                "연구");
+        }
     }
 
     private void CompleteTask(

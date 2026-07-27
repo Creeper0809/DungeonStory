@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: survival_support
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7002
+  projectId: research:survival:support
+  displayName: "\uC0DD\uD65C \uC9C0\uC6D0"
+  description: "\uC2DD\uC0AC\uC640 \uD734\uC2DD, \uAE30\uBCF8 \uC0DD\uD65C \uC124\uBE44\uC758
+    \uD6A8\uC728\uC744 \uB192\uC778\uB2E4."
+  field: 0
+  requiredWork: 56
+  prerequisites:
+  - {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+  blueprintRule: 1
+  blueprint: {fileID: 11400000, guid: b791025255c3809d782186d5f1c52415, type: 2}
+  unlocks:
+    items:
+    - rid: 7302563220868825628
+    - rid: 7302563220868825629
+    - rid: 7302563220868825630
+    - rid: 7302563220868825631
+    - rid: 7302563220868825632
+    - rid: 7302563220868825633
+    - rid: 7302563220868825634
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563220868825628
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1021
+    - rid: 7302563220868825629
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1022
+    - rid: 7302563220868825630
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1024
+    - rid: 7302563220868825631
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1025
+    - rid: 7302563220868825632
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1060
+    - rid: 7302563220868825633
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1063
+    - rid: 7302563220868825634
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1054

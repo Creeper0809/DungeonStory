@@ -29,13 +29,14 @@ MonoBehaviour:
   rarity: 1
   defaultCost: 260
   researchWorkRequired: 45
+  targetResearchProjectId: research:commerce:secure-trade
   unlocks:
     items:
-    - rid: 7302563192359358097
+    - rid: 7302563223825548166
   references:
     version: 2
     RefIds:
-    - rid: 7302563192359358097
+    - rid: 7302563223825548166
       type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
       data:
         recipeId: recipe_commerce_secure_display_2

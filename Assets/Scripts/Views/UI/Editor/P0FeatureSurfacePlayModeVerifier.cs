@@ -324,10 +324,7 @@ public static class P0FeatureSurfacePlayModeVerifier
                 yield return CaptureTabAtEndOfFrame("Temp/p0-ui-research.png", lines);
                 yield return null;
 
-                RunStep("RESEARCH-REWARDS-VISUAL", lines, () =>
-                {
-                    ScrollActiveP0Panel(0.55f);
-                });
+                RunStep("RESEARCH-TREE-VISUAL", lines, Canvas.ForceUpdateCanvases);
                 yield return null;
                 yield return CaptureTabAtEndOfFrame("Temp/p0-ui-research-rewards.png", lines);
                 yield return null;
@@ -544,11 +541,12 @@ public static class P0FeatureSurfacePlayModeVerifier
             data.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
 
             GameObject obj = new GameObject(name);
+            obj.SetActive(false);
             obj.AddComponent<SpriteRenderer>();
-            CharacterActor actor = obj.AddComponent<CharacterActor>();
+            AIBrain brain = obj.AddComponent<AIBrain>();
             obj.AddComponent<AbilityMove>();
             obj.AddComponent<AbilityShopping>();
-            AIBrain brain = obj.AddComponent<AIBrain>();
+            CharacterActor actor = obj.AddComponent<CharacterActor>();
             brain.availableActions = AiDebugScenarioActionFactory.CreateCustomerActions();
 
             InjectGameObjectFromLifetimeScope(obj);
@@ -559,7 +557,6 @@ public static class P0FeatureSurfacePlayModeVerifier
             actor.RefreshAbilityCache();
             actor.SetLifecycleState(CharacterLifecycleState.Active);
             actor.stats[CharacterCondition.MOOD] = 100f;
-            obj.SetActive(false);
             return actor;
         }
 
@@ -606,8 +603,15 @@ public static class P0FeatureSurfacePlayModeVerifier
         {
             DailyFacilityShopRuntime shopRuntime = FindActiveSceneComponent<DailyFacilityShopRuntime>();
             BlueprintResearchRuntime research = FindActiveSceneComponent<BlueprintResearchRuntime>();
+            LifetimeScope scope = FindActiveSceneLifetimeScope();
+            IWorldItemStackRuntime itemRuntime =
+                scope?.Container?.Resolve(typeof(IWorldItemStackRuntime)) as IWorldItemStackRuntime;
             int beforeMoney = GetHoldingMoney();
-            int beforeTasks = research != null ? research.State.Tasks.Count : -1;
+            int beforeQueue = research != null ? research.State.Projects.Queue.Count : -1;
+            int beforeBlueprintItems = itemRuntime?.GetAllStacks()
+                .Count(stack => stack != null
+                    && stack.Quantity > 0
+                    && stack.StockCategory == StockCategory.Blueprint) ?? -1;
 
             manager.ToggleSelectButton(3);
             Canvas.ForceUpdateCanvases();
@@ -617,10 +621,14 @@ public static class P0FeatureSurfacePlayModeVerifier
             Canvas.ForceUpdateCanvases();
             int basicClicked = ClickSequential("P0Action_ShopBasic_", 8);
             int afterMoney = GetHoldingMoney();
-            int afterTasks = research != null ? research.State.Tasks.Count : -1;
+            int afterQueue = research != null ? research.State.Projects.Queue.Count : -1;
+            int afterBlueprintItems = itemRuntime?.GetAllStacks()
+                .Count(stack => stack != null
+                    && stack.Quantity > 0
+                    && stack.StockCategory == StockCategory.Blueprint) ?? -1;
 
             lines.Add(
-                $"SHOP visible={IsTabActive(3)}; runtime={shopRuntime != null}; dailyButtons={dailyButtonsBefore}; dailyClicked={dailyClicked}; basicButtons={basicButtonsBefore}; basicClicked={basicClicked}; money={beforeMoney}->{afterMoney}; researchTasks={beforeTasks}->{afterTasks}; stateChanged={afterMoney != beforeMoney || afterTasks != beforeTasks}");
+                $"SHOP visible={IsTabActive(3)}; runtime={shopRuntime != null}; dailyButtons={dailyButtonsBefore}; dailyClicked={dailyClicked}; basicButtons={basicButtonsBefore}; basicClicked={basicClicked}; money={beforeMoney}->{afterMoney}; blueprintItems={beforeBlueprintItems}->{afterBlueprintItems}; researchQueue={beforeQueue}->{afterQueue}; stateChanged={afterMoney != beforeMoney || afterBlueprintItems != beforeBlueprintItems}");
         }
 
         private void VerifyWarehouse(UITabManager manager, List<string> lines)
@@ -860,43 +868,42 @@ public static class P0FeatureSurfacePlayModeVerifier
         private void VerifyResearch(UITabManager manager, List<string> lines)
         {
             BlueprintResearchRuntime research = FindActiveSceneComponent<BlueprintResearchRuntime>();
-            if (research != null && !research.State.HasActiveTask)
-            {
-                FacilityBlueprintSO blueprint = research.ShopUnlockState.AcquiredBlueprintIds.Count > 0
-                    ? null
-                    : FindFirstBlueprint();
-                if (blueprint != null)
-                {
-                    research.ShopUnlockState.MarkBlueprintAcquired(blueprint);
-                }
-            }
-
-            int beforeTasks = research != null ? research.State.Tasks.Count : -1;
-            int beforeCompleted = research != null ? research.State.CompletedBlueprintIds.Count : -1;
+            int beforeQueue = research != null ? research.State.Projects.Queue.Count : -1;
+            int beforeCompleted = research != null
+                ? research.State.Projects.CompletedProjectIds.Count
+                : -1;
             float beforeProgress = GetActiveResearchProgress(research);
 
             manager.ToggleSelectButton(8);
             Canvas.ForceUpdateCanvases();
-            bool cancelClicked = ClickFirst("P0Action_ResearchCancel_");
+            ResearchTreeWindow window = FindVisibleResearchTreeWindow();
+            int nodeCount = window != null
+                ? window.GetComponentsInChildren<Button>(false)
+                    .Count(button => button != null
+                        && button.name.StartsWith("Node_", StringComparison.Ordinal))
+                : 0;
+            ResearchProjectSO availableProject = research?.ProjectCatalog?.Projects
+                .FirstOrDefault(project => project != null
+                    && research.GetNodeState(project, out _) == ResearchNodeState.Available);
+            bool nodeClicked = availableProject != null
+                && ClickFirstExact($"Node_{availableProject.ProjectId.Value}");
+            bool actionClicked = nodeClicked && ClickFirstExact("ProjectAction");
             Canvas.ForceUpdateCanvases();
-            bool startClicked = ClickFirst("P0Action_ResearchStart_");
-            Canvas.ForceUpdateCanvases();
-            bool progressShortcutPresent = FindActiveButton("P0Action_ResearchProgress") != null;
-            GameObject researchState = FindSceneObject("P0State_ResearchWorkSource");
-            bool researchStateVisible = researchState != null && researchState.activeInHierarchy;
-            int afterTasks = research != null ? research.State.Tasks.Count : -1;
-            int afterCompleted = research != null ? research.State.CompletedBlueprintIds.Count : -1;
+            int afterQueue = research != null ? research.State.Projects.Queue.Count : -1;
+            int afterCompleted = research != null
+                ? research.State.Projects.CompletedProjectIds.Count
+                : -1;
             float afterProgress = GetActiveResearchProgress(research);
 
             lines.Add(
-                $"RESEARCH visible={IsTabActive(8)}; runtime={research != null}; naturalStateVisible={researchStateVisible}; progressShortcutPresent={progressShortcutPresent}; cancelClicked={cancelClicked}; startClicked={startClicked}; tasks={beforeTasks}->{afterTasks}; completed={beforeCompleted}->{afterCompleted}; progress={beforeProgress:0.##}->{afterProgress:0.##}; queueChanged={beforeTasks != afterTasks}");
+                $"RESEARCH visible={window != null && window.gameObject.activeInHierarchy}; runtime={research != null}; nodes={nodeCount}; selected={availableProject?.ProjectId.Value ?? "none"}; nodeClicked={nodeClicked}; actionClicked={actionClicked}; queue={beforeQueue}->{afterQueue}; completed={beforeCompleted}->{afterCompleted}; progress={beforeProgress:0.##}->{afterProgress:0.##}; queueChanged={beforeQueue != afterQueue}");
         }
 
         private IEnumerator VerifyNaturalResearchProgress(List<string> lines)
         {
             BlueprintResearchRuntime research = FindActiveSceneComponent<BlueprintResearchRuntime>();
             float progressBefore = GetActiveResearchProgress(research);
-            int completedBefore = research?.State.CompletedBlueprintIds.Count ?? -1;
+            int completedBefore = research?.State.Projects.CompletedProjectIds.Count ?? -1;
             AppendResearchWorkerDiagnostics(lines, "before");
             float originalScale = Time.timeScale;
             bool changed = false;
@@ -910,7 +917,7 @@ public static class P0FeatureSurfacePlayModeVerifier
                 {
                     yield return null;
                     float currentProgress = GetActiveResearchProgress(research);
-                    int currentCompleted = research?.State.CompletedBlueprintIds.Count ?? -1;
+                    int currentCompleted = research?.State.Projects.CompletedProjectIds.Count ?? -1;
                     if (currentProgress > progressBefore + 0.001f || currentCompleted > completedBefore)
                     {
                         changed = true;
@@ -924,31 +931,27 @@ public static class P0FeatureSurfacePlayModeVerifier
             }
 
             float progressAfter = GetActiveResearchProgress(research);
-            int completedAfter = research?.State.CompletedBlueprintIds.Count ?? -1;
+            int completedAfter = research?.State.Projects.CompletedProjectIds.Count ?? -1;
             int assignedResearchers = FindActiveWorkers()
                 .Count((work) => work != null && work.AssignedWorkTypeId == BuiltInWorkTypeIds.Research);
             AppendResearchWorkerDiagnostics(lines, "after");
             lines.Add(
-                $"NATURAL_RESEARCH changed={changed}; progress={progressBefore:0.##}->{progressAfter:0.##}; completed={completedBefore}->{completedAfter}; assignedResearchers={assignedResearchers}; publicProgressShortcut={FindActiveButton("P0Action_ResearchProgress") != null}");
+                $"NATURAL_RESEARCH changed={changed}; progress={progressBefore:0.##}->{progressAfter:0.##}; completed={completedBefore}->{completedAfter}; assignedResearchers={assignedResearchers}; treeOpen={FindActiveSceneComponent<ResearchTreeWindow>() != null}");
         }
 
         private IEnumerator VerifyResearchConstructionUnlockThroughUi(List<string> lines)
         {
             BlueprintResearchRuntime research = FindActiveSceneComponent<BlueprintResearchRuntime>();
             LifetimeScope scope = FindActiveSceneLifetimeScope();
-            IFacilityShopCatalog shopCatalog = scope?.Container?.Resolve(typeof(IFacilityShopCatalog))
-                as IFacilityShopCatalog;
+            IResearchProjectCatalog projectCatalog =
+                scope?.Container?.Resolve(typeof(IResearchProjectCatalog)) as IResearchProjectCatalog;
             IDataCatalog dataCatalog = scope?.Container?.Resolve(typeof(IDataCatalog)) as IDataCatalog;
-            IDungeonGridBuildingControllerProvider controllerProvider = scope?.Container?.Resolve(
-                    typeof(IDungeonGridBuildingControllerProvider))
-                as IDungeonGridBuildingControllerProvider;
             GameManager gameManager = FindActiveSceneComponent<GameManager>();
             GameData gameData = gameManager != null ? gameManager.gameData : null;
 
             if (research == null
-                || shopCatalog == null
+                || projectCatalog == null
                 || dataCatalog == null
-                || controllerProvider?.Controller == null
                 || gameData == null)
             {
                 Debug.LogError("Research construction unlock UI verification setup is incomplete.");
@@ -957,16 +960,18 @@ public static class P0FeatureSurfacePlayModeVerifier
 
             IReadOnlyDictionary<int, BuildingSO> buildings = dataCatalog.GetData<BuildingSO>();
             int currentPhase = FacilityProgression.GetCurrentPhase(gameData);
-            int unlockCountBefore = research.State.UnlockedBuildingIds.Count;
-            FacilityBlueprintSO blueprint = shopCatalog.Blueprints
-                .Where(candidate => candidate != null && !research.State.IsCompleted(candidate))
-                .FirstOrDefault(candidate => candidate.Unlocks
+            ResearchProjectSO project = projectCatalog.Projects
+                .Where(candidate => candidate != null
+                    && !research.State.Projects.IsCompleted(candidate.ProjectId)
+                    && candidate.Unlocks
                     .OfType<IBlueprintBuildingUnlock>()
                     .Any(unlock => buildings.TryGetValue(unlock.BuildingId, out BuildingSO building)
                         && building != null
                         && building.IsModularFacility()
-                        && building.GetUnlockPhase() > currentPhase));
-            IBlueprintBuildingUnlock buildingUnlock = blueprint?.Unlocks
+                        && building.GetUnlockPhase() > currentPhase))
+                .OrderBy(candidate => candidate.ProjectId.Value, StringComparer.Ordinal)
+                .FirstOrDefault();
+            IBlueprintBuildingUnlock buildingUnlock = project?.Unlocks
                 .OfType<IBlueprintBuildingUnlock>()
                 .FirstOrDefault(unlock => buildings.TryGetValue(
                     unlock.BuildingId,
@@ -978,121 +983,48 @@ public static class P0FeatureSurfacePlayModeVerifier
                 && buildings.TryGetValue(buildingUnlock.BuildingId, out BuildingSO resolved)
                     ? resolved
                     : null;
-            Button constructionTabButton = FindActiveTabButton(TabId.Construction);
 
-            if (blueprint == null || targetBuilding == null || constructionTabButton == null)
+            if (project == null || targetBuilding == null)
             {
-                string mappingSummary = string.Join(" || ", shopCatalog.Blueprints
-                    .OrderBy(candidate => candidate != null ? candidate.id : int.MaxValue)
-                    .Select(candidate =>
-                    {
-                        if (candidate == null)
-                        {
-                            return "null";
-                        }
-
-                        string rewards = string.Join(",", candidate.Unlocks
-                            .OfType<IBlueprintBuildingUnlock>()
-                            .Select(unlock => buildings.TryGetValue(
-                                    unlock.BuildingId,
-                                    out BuildingSO building)
-                                ? $"{unlock.BuildingId}:{building.objectName}:mod={building.IsModularFacility()}:p={building.GetUnlockPhase()}"
-                                : $"{unlock.BuildingId}:missing"));
-                        return $"{candidate.id}:{candidate.DisplayName}[{rewards}]";
-                    }));
-                lines.Add(
-                    $"RESEARCH_CONSTRUCTION_UI setupFailed=true; day={gameData.day.Value}; phase={currentPhase}; stateUnlocks={unlockCountBefore}; blueprints={shopCatalog.Blueprints.Count}; buildings={buildings.Count}");
-                lines.Add($"RESEARCH_CONSTRUCTION_MAPPINGS {mappingSummary}");
                 Debug.LogError("No locked modular research reward is available for public UI verification.");
                 yield break;
             }
 
-            yield return ClickWithInput(constructionTabButton);
-            yield return null;
-
-            GridConstructTab constructTab = FindActiveSceneComponent<GridConstructTab>();
-            Button lockedCategoryButton = FindCategoryButton(constructTab, targetBuilding);
-            yield return ClickWithInput(lockedCategoryButton);
-            yield return null;
-
-            constructTab = FindActiveSceneComponent<GridConstructTab>();
             bool lockedBefore = !FacilityProgression.IsUnlocked(targetBuilding, gameData, research.State);
-            UIBuildingSelectButton lockedSelectButton = FindBuildingSelectButton(
-                constructTab,
-                targetBuilding.id);
-            Button lockedUnityButton = lockedSelectButton != null
-                ? lockedSelectButton.GetComponent<Button>()
-                : null;
-            bool buttonDisabledBefore = lockedUnityButton != null && !lockedUnityButton.interactable;
-
-            constructionTabButton = FindActiveTabButton(TabId.Construction);
-            yield return ClickWithInput(constructionTabButton);
-            yield return null;
-
-            foreach (BlueprintResearchTask queued in research.State.Tasks.ToArray())
+            ResearchNodeState state = research.GetNodeState(project, out string blocker);
+            ResearchTreeWindow window = FindVisibleResearchTreeWindow();
+            if (window == null)
             {
-                if (queued?.Blueprint != null && !queued.IsCompleted)
-                {
-                    research.TryCancelBlueprint(queued.Blueprint, out _);
-                }
+                Button researchTabButton = FindActiveTabButton(TabId.Research);
+                yield return ClickWithInput(researchTabButton);
+                yield return null;
+                Canvas.ForceUpdateCanvases();
+                window = FindVisibleResearchTreeWindow();
             }
 
-            research.ShopUnlockState.MarkBlueprintAcquired(blueprint);
-            bool queuedTarget = research.EnqueueBlueprint(blueprint);
-            BuildableObject researchFacility = FindActiveSceneComponents<BuildableObject>()
-                .FirstOrDefault(candidate => candidate != null
-                    && candidate.gameObject.activeInHierarchy
-                    && candidate.SupportsWork(BuiltInWorkTypeIds.Research));
-            CharacterActor researcher = FindActiveWorkers()
-                .Select(worker => worker?.WorkerActor)
-                .FirstOrDefault(actor => actor != null && !actor.IsDead);
-            BlueprintResearchWorkResult completion = researchFacility != null
-                ? research.ApplyResearchWork(researcher, researchFacility, 999f)
-                : default;
+            Button nodeButton = FindButtonInResearchTree(
+                window,
+                $"Node_{project.ProjectId.Value}");
+            bool nodeFound = nodeButton != null;
+            yield return ClickWithInput(nodeButton);
             yield return null;
-            yield return null;
-
-            bool unlockedAfter = research.State.IsBuildingUnlocked(targetBuilding.id)
-                && FacilityProgression.IsUnlocked(targetBuilding, gameData, research.State);
-            constructionTabButton = FindActiveTabButton(TabId.Construction);
-            yield return ClickWithInput(constructionTabButton);
-            yield return null;
-
-            constructTab = FindActiveSceneComponent<GridConstructTab>();
-            Button categoryButton = FindCategoryButton(constructTab, targetBuilding);
-            yield return ClickWithInput(categoryButton);
-            yield return null;
-
-            constructTab = FindActiveSceneComponent<GridConstructTab>();
-            UIBuildingSelectButton selectButton = FindBuildingSelectButton(constructTab, targetBuilding.id);
-            Button unitySelectButton = selectButton != null ? selectButton.GetComponent<Button>() : null;
-            bool buttonVisibleAfter = unitySelectButton != null
-                && unitySelectButton.gameObject.activeInHierarchy
-                && unitySelectButton.interactable;
-            yield return ClickWithInput(unitySelectButton);
-            yield return null;
-
-            DungeonStoryGridBuildingController controller = controllerProvider.Controller;
-            bool pointerSelected = controller.GridSystem.Mode == GridMode.Build
-                && controller.SelectedBuilding != null
-                && controller.SelectedBuilding.id == targetBuilding.id;
+            Canvas.ForceUpdateCanvases();
+            Button actionButton = FindButtonInResearchTree(window, "ProjectAction");
+            bool actionBlocked = actionButton != null && !actionButton.interactable;
             yield return CaptureTabAtEndOfFrame(
                 "Temp/p0-ui-research-construction-unlock.png",
                 lines);
             bool passed = lockedBefore
-                && buttonDisabledBefore
-                && queuedTarget
-                && completion.Completed
-                && unlockedAfter
-                && categoryButton != null
-                && buttonVisibleAfter
-                && pointerSelected;
+                && nodeFound
+                && actionBlocked
+                && state is ResearchNodeState.Locked or ResearchNodeState.BlueprintInTransit
+                && !string.IsNullOrWhiteSpace(blocker);
 
             lines.Add(
-                $"RESEARCH_CONSTRUCTION_UI passed={passed}; blueprint={blueprint.DisplayName}; target={targetBuilding.objectName}#{targetBuilding.id}; day={gameData.day.Value}; phase={currentPhase}; stateUnlocks={unlockCountBefore}; lockedBefore={lockedBefore}; buttonDisabledBefore={buttonDisabledBefore}; queued={queuedTarget}; completed={completion.Completed}; unlockedAfter={unlockedAfter}; categoryPointer={categoryButton != null}; buttonVisibleAfter={buttonVisibleAfter}; selected={controller.SelectedBuilding?.id}; mode={controller.GridSystem.Mode}; pointerSelected={pointerSelected}");
+                $"RESEARCH_CONSTRUCTION_GATE passed={passed}; project={project.DisplayName}; target={targetBuilding.objectName}#{targetBuilding.id}; phase={currentPhase}; locked={lockedBefore}; node={nodeFound}; actionBlocked={actionBlocked}; state={state}; blocker={blocker}");
             if (!passed)
             {
-                Debug.LogError("Research completion did not unlock and select its modular construction reward through public UI.");
+                Debug.LogError("Locked research reward was not represented by the research tree's public gating UI.");
             }
         }
 
@@ -1282,12 +1214,19 @@ public static class P0FeatureSurfacePlayModeVerifier
 
         private static float GetActiveResearchProgress(BlueprintResearchRuntime research)
         {
-            if (research == null || !research.State.TryGetActiveTask(out BlueprintResearchTask task))
+            if (research == null)
             {
                 return -1f;
             }
 
-            return task.Progress;
+            ResearchProjectId activeProjectId = research.State.Projects.ActiveProjectId;
+            if (!activeProjectId.IsValid
+                || !research.ProjectCatalog.TryGet(activeProjectId, out ResearchProjectSO project))
+            {
+                return -1f;
+            }
+
+            return research.State.Projects.GetProgress(activeProjectId).Progress;
         }
 
         private void RunUiBounds(List<string> lines)
@@ -1341,6 +1280,30 @@ public static class P0FeatureSurfacePlayModeVerifier
         private T FindActiveSceneComponent<T>() where T : Component
         {
             return FindActiveSceneComponents<T>().FirstOrDefault();
+        }
+
+        private ResearchTreeWindow FindVisibleResearchTreeWindow()
+        {
+            return FindActiveSceneComponents<ResearchTreeWindow>()
+                .FirstOrDefault(candidate =>
+                    candidate != null
+                    && candidate.gameObject.activeInHierarchy);
+        }
+
+        private static Button FindButtonInResearchTree(
+            ResearchTreeWindow window,
+            string buttonName)
+        {
+            return window != null
+                ? window.GetComponentsInChildren<Button>(includeInactive: false)
+                    .FirstOrDefault(candidate =>
+                        candidate != null
+                        && candidate.gameObject.activeInHierarchy
+                        && string.Equals(
+                            candidate.name,
+                            buttonName,
+                            StringComparison.Ordinal))
+                : null;
         }
 
         private IReadOnlyList<T> FindActiveSceneComponents<T>() where T : Component

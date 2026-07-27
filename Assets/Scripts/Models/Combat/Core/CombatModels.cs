@@ -92,6 +92,12 @@ public enum CombatEquipmentWorldState
     Lost
 }
 
+public enum CombatEquipmentLoadoutSlot
+{
+    Weapon = 0,
+    Armor = 1
+}
+
 public static class CombatRangeRules
 {
     public static CombatRangeBand GetBand(int distance)

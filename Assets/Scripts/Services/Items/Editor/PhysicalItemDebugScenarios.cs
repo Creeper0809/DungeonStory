@@ -60,10 +60,10 @@ public static class PhysicalItemDebugScenarios
 
     private static string VerifyCatalogEquipmentFallback()
     {
-        string itemId = DungeonItemCatalogSO.EquipmentItemId("weapon:attack-iron");
+        string itemId = DungeonItemCatalogSO.EquipmentItemId("weapon:dagger");
         Require(DungeonItemCatalogSO.TryGetEquipmentIdFromItemId(itemId, out string equipmentId),
             "equipment item id did not parse");
-        Require(equipmentId == "weapon:attack-iron", $"parsed equipment id was {equipmentId}");
+        Require(equipmentId == "weapon:dagger", $"parsed equipment id was {equipmentId}");
         DungeonItemDefinition definition = DungeonItemDefinition.FromEquipmentId(equipmentId);
         Require(definition.ItemId == itemId, "equipment definition used the wrong item id");
         Require(definition.MaxStack == 1 && definition.UnitWeight > 0f, "equipment fallback physical data invalid");
@@ -207,7 +207,7 @@ public static class PhysicalItemDebugScenarios
 
     private static string VerifyPhysicalCraftMaterialGate()
     {
-        ExpeditionEquipmentCatalogSO equipmentCatalog = ExpeditionEquipmentCatalogSO.CreateRuntimeDefaults();
+        ResourceCombatEquipmentCatalog equipmentCatalog = new ResourceCombatEquipmentCatalog();
         GameObject warehouseObject = new GameObject("PhysicalCraftWarehouse");
         GameObject facilityObject = new GameObject("PhysicalCraftFacility");
         WorldItemStackRuntime itemRuntime = null;
@@ -223,20 +223,19 @@ public static class PhysicalItemDebugScenarios
 
             itemRuntime = CreateRuntime();
             itemRuntime.Start();
-            ExpeditionEquipmentRuntime equipmentRuntime = new ExpeditionEquipmentRuntime(
-                new TestEquipmentCatalogProvider(equipmentCatalog),
-                new StaticWarehouseInventoryQuery(warehouse.Inventory),
-                itemRuntime);
+            CombatEquipmentRuntime equipmentRuntime =
+                new CombatEquipmentRuntime(equipmentCatalog);
+            equipmentRuntime.BindItemStackRuntime(itemRuntime);
             BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
 
-            Require(equipmentRuntime.TryQueueCraft("weapon:attack-iron", facility, out string queueReason),
+            Require(equipmentRuntime.TryQueueCraft("weapon:dagger", facility, out string queueReason),
                 $"physical craft queue failed: {queueReason}");
             Require(equipmentRuntime.CraftQueue.Count == 1, "craft order missing");
-            ExpeditionEquipmentCraftOrderSaveData order = equipmentRuntime.CraftQueue[0];
+            CombatEquipmentCraftOrderSaveData order = equipmentRuntime.CraftQueue[0];
             Require(!order.materialsReady
                     && order.materialDestinationId.StartsWith(WorldItemStackRuntime.FacilityInputDestinationPrefix, StringComparison.Ordinal),
                 "physical craft order did not wait for materials");
-            Require(!equipmentRuntime.HasPendingCraftWork(new[] { "weapon:attack-iron" }),
+            Require(!equipmentRuntime.HasPendingCraftWork(new[] { "weapon:dagger" }),
                 "craft work became available before materials arrived");
 
             foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks().ToArray())
@@ -244,23 +243,23 @@ public static class PhysicalItemDebugScenarios
                 itemRuntime.SpawnItemAt(
                     stack.ItemId,
                     stack.Quantity,
-                    new Vector2Int(order.materialDestinationX, order.materialDestinationY),
+                    new Vector2Int(order.destinationX, order.destinationY),
                     WorldItemStackState.FacilityBuffer,
                     order.materialDestinationId,
                     out _);
                 itemRuntime.DeleteStack(stack.StackId);
             }
 
-            Require(equipmentRuntime.HasPendingCraftWork(new[] { "weapon:attack-iron" }),
+            Require(equipmentRuntime.HasPendingCraftWork(new[] { "weapon:dagger" }),
                 "craft work did not become available after materials arrived");
             int completed = equipmentRuntime.ApplyCraftWork(
-                new[] { "weapon:attack-iron" },
+                new[] { "weapon:dagger" },
                 999f,
                 out string completedEquipmentId);
             Require(completed == 1
-                    && completedEquipmentId == "weapon:attack-iron"
-                    && equipmentRuntime.GetAvailableCount("weapon:attack-iron") == 1,
-                "physical craft order did not complete into inventory");
+                    && completedEquipmentId == "weapon:dagger"
+                    && equipmentRuntime.CraftQueue.Count == 0,
+                "physical craft order did not complete through the common work queue");
             return $"order={order.orderId}; completed={completedEquipmentId}";
         }
         finally
@@ -269,7 +268,6 @@ public static class PhysicalItemDebugScenarios
             CharacterAiEditorTestDependencies.WorldRegistry.UnregisterWarehouse(warehouse);
             UnityEngine.Object.DestroyImmediate(facilityObject);
             UnityEngine.Object.DestroyImmediate(warehouseObject);
-            UnityEngine.Object.DestroyImmediate(equipmentCatalog);
         }
     }
 
@@ -445,7 +443,7 @@ public static class PhysicalItemDebugScenarios
 
     private static string VerifySaveV10Contract()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 15, $"save version is {DungeonGameSaveData.CurrentVersion}");
+        Require(DungeonGameSaveData.CurrentVersion == 16, $"save version is {DungeonGameSaveData.CurrentVersion}");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonPhysicalItemSaveData physicalItems = CreatePileSnapshot();
         DungeonCharacterWorldSaveData characters = new DungeonCharacterWorldSaveData();
@@ -902,31 +900,6 @@ public static class PhysicalItemDebugScenarios
 
         public WarehouseInventory Inventory => inventory;
         public bool HasWarehouseInventory => true;
-    }
-
-    private sealed class StaticWarehouseInventoryQuery : IFacilityEvolutionWarehouseInventoryQuery
-    {
-        private readonly IReadOnlyList<WarehouseInventory> inventories;
-
-        public StaticWarehouseInventoryQuery(params WarehouseInventory[] inventories)
-        {
-            this.inventories = inventories ?? Array.Empty<WarehouseInventory>();
-        }
-
-        public IReadOnlyList<WarehouseInventory> GetInventories()
-        {
-            return inventories;
-        }
-    }
-
-    private sealed class TestEquipmentCatalogProvider : IExpeditionEquipmentCatalogProvider
-    {
-        public TestEquipmentCatalogProvider(ExpeditionEquipmentCatalogSO catalog)
-        {
-            Catalog = catalog;
-        }
-
-        public ExpeditionEquipmentCatalogSO Catalog { get; }
     }
 
     private sealed class TestIdRegistry : ICharacterIdRegistry

@@ -19,8 +19,10 @@ MonoBehaviour:
   weight: 3.8
   occupiedHands: 2
   maxDurability: 100
+  requiredCraftWork: 6
+  craftMaterials: []
   verbs:
-  - rid: 7302563174523077605
+  - rid: 7302563218931319409
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.25
@@ -44,7 +46,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563174523077605
+    - rid: 7302563218931319409
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1

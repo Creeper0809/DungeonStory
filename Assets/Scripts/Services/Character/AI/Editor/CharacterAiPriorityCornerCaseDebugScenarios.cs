@@ -377,6 +377,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         try
         {
             CharacterActor character = obj.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(obj);
             data.aiPersonality.patience = 0.5f;
             character.data = data;
             character.stats = new Dictionary<CharacterCondition, float>
@@ -568,7 +569,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         Vector2Int expectedFrom = default;
         foreach (GridMoveStep step in path)
         {
-            if (step == null || step.MoveType != GridMoveType.Walk)
+            if (!step.IsValid || step.MoveType != GridMoveType.Walk)
             {
                 return false;
             }

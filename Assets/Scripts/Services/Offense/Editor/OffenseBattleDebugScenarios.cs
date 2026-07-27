@@ -25,8 +25,8 @@ public static class OffenseBattleDebugScenarios
         Run("formation constraints", VerifyFormationConstraints, errors);
         Run("body injury and persistence", VerifyBodyInjuryAndPersistence, errors);
         Run("heavy suppression skips turn", VerifyHeavySuppressionSkipsTurn, errors);
-        Run("expedition equipment reservation", VerifyEquipmentReservation, errors);
-        Run("expedition equipment craft queue persistence", VerifyEquipmentCraftQueuePersistence, errors);
+        Run("combat equipment ownership", VerifyEquipmentReservation, errors);
+        Run("combat equipment craft queue persistence", VerifyEquipmentCraftQueuePersistence, errors);
         Run("building equipment crafting work", VerifyBuildingEquipmentCraftingWork, errors);
 
         foreach (string error in errors) Debug.LogError(error);
@@ -473,89 +473,97 @@ public static class OffenseBattleDebugScenarios
 
     private static bool VerifyEquipmentReservation()
     {
-        ExpeditionEquipmentCatalogSO catalog = ExpeditionEquipmentCatalogSO.CreateRuntimeDefaults();
-        try
-        {
-            ExpeditionEquipmentRuntime runtime = new ExpeditionEquipmentRuntime(new TestEquipmentCatalogProvider(catalog));
-            runtime.AddInventory("weapon:attack-iron", 1);
-            runtime.AddInventory("armor:toughness-plate", 1);
-            Require(runtime.TryEquip("staff:a", "weapon:attack-iron", out _),
-                "Could not equip the available weapon.");
-            Require(!runtime.TryEquip("staff:b", "weapon:attack-iron", out _),
-                "Reserved weapon was equipped by a second character.");
-            Require(runtime.TryEquip("staff:a", "armor:toughness-plate", out _),
-                "Could not equip the available armor.");
+        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog();
+        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(catalog);
+        CombatEquipmentInstance weapon = runtime.CreateInstance(
+            "weapon:dagger",
+            CombatEquipmentQuality.Good);
+        CombatEquipmentInstance armor = runtime.CreateInstance(
+            "armor:gambeson",
+            CombatEquipmentQuality.Normal);
+        Require(runtime.TryAssignToCharacter("staff:a", weapon.instanceId, out _),
+            "Could not equip the available weapon.");
+        Require(!runtime.TryAssignToCharacter("staff:b", weapon.instanceId, out _),
+            "A unique weapon was assigned to two characters.");
+        Require(runtime.TryAssignToCharacter("staff:a", armor.instanceId, out _),
+            "Could not equip the available armor.");
 
-            ExpeditionEquipmentStatBlock bonuses = runtime.GetCombatBonuses("staff:a");
-            Require(bonuses.attack == 3 && bonuses.toughness == 3 && bonuses.maxHealth == 8,
-                "Equipment combat bonuses did not combine weapon and armor stats.");
+        string json = JsonUtility.ToJson(runtime.Capture());
+        CombatEquipmentRuntime restored = new CombatEquipmentRuntime(catalog);
+        restored.Restore(JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(json));
+        CharacterCombatLoadoutProfile restoredProfile =
+            restored.GetActiveProfileSnapshot("staff:a");
+        Require(restoredProfile != null
+                && restoredProfile.weaponInstanceIds.Contains(weapon.instanceId)
+                && restoredProfile.armorInstanceIds.Contains(armor.instanceId),
+            "Equipment instances or loadout did not survive save/restore.");
 
-            string json = JsonUtility.ToJson(runtime.Capture());
-            ExpeditionEquipmentRuntime restored = new ExpeditionEquipmentRuntime(new TestEquipmentCatalogProvider(catalog));
-            restored.Restore(JsonUtility.FromJson<ExpeditionEquipmentSaveData>(json));
-            Require(restored.GetAvailableCount("weapon:attack-iron") == 0
-                    && restored.GetCombatBonuses("staff:a").attack == 3,
-                "Equipment inventory or loadout did not survive save/restore.");
-
-            restored.HandleCharacterDeath("staff:a");
-            Require(restored.GetAvailableCount("weapon:attack-iron") == 0
-                    && restored.Inventory.GetValueOrDefault("weapon:attack-iron") == 0
-                    && restored.GetCombatBonuses("staff:a").attack == 0,
-                "Dead character equipment was not removed from inventory and loadout.");
-            return true;
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(catalog);
-        }
+        Require(restored.TryMarkLost(weapon.instanceId)
+                && !restored.GetActiveProfileSnapshot("staff:a")
+                    .weaponInstanceIds.Contains(weapon.instanceId)
+                && restored.GetAvailableCount("weapon:dagger") == 0,
+            "Lost equipment remained assigned or available.");
+        return true;
     }
 
     private static bool VerifyEquipmentCraftQueuePersistence()
     {
-        ExpeditionEquipmentCatalogSO catalog = ExpeditionEquipmentCatalogSO.CreateRuntimeDefaults();
-        try
+        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog();
+        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(catalog);
+        runtime.Restore(new DungeonCombatEquipmentSaveData
         {
-            ExpeditionEquipmentRuntime runtime = new ExpeditionEquipmentRuntime(new TestEquipmentCatalogProvider(catalog));
-            Require(runtime.TryQueueCraft("weapon:attack-iron", out string queueMessage),
-                $"Could not queue craft order: {queueMessage}");
-            Require(runtime.CraftQueue.Count == 1, "Craft queue did not receive the order.");
-            Require(runtime.ApplyCraftWork(
-                    new[] { "weapon:attack-iron" },
-                    2f,
-                    out string completedEquipmentId) == 0
-                && string.IsNullOrWhiteSpace(completedEquipmentId),
-                "Partial craft work completed too early.");
+            craftOrders = new List<CombatEquipmentCraftOrderSaveData>
+            {
+                new CombatEquipmentCraftOrderSaveData
+                {
+                    orderId = "qa:combat-craft",
+                    definitionId = "weapon:dagger",
+                    requiredWork = 6f,
+                    completedWork = 2f,
+                    materialsReady = true
+                }
+            }
+        });
 
-            string json = JsonUtility.ToJson(runtime.Capture());
-            ExpeditionEquipmentRuntime restored = new ExpeditionEquipmentRuntime(new TestEquipmentCatalogProvider(catalog));
-            restored.Restore(JsonUtility.FromJson<ExpeditionEquipmentSaveData>(json));
-            Require(restored.CraftQueue.Count == 1
-                    && restored.CraftQueue[0].remainingSeconds > 3.9f
-                    && restored.CraftQueue[0].remainingSeconds < 4.1f,
-                "Craft queue remaining time did not survive save/restore.");
-            Require(restored.ApplyCraftWork(
-                    new[] { "weapon:attack-iron" },
-                    4.1f,
-                    out completedEquipmentId) == 1
-                && completedEquipmentId == "weapon:attack-iron"
-                && restored.GetAvailableCount("weapon:attack-iron") == 1,
-                "Restored craft queue did not finish into equipment inventory.");
-            return true;
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(catalog);
-        }
+        string json = JsonUtility.ToJson(runtime.Capture());
+        CombatEquipmentRuntime restored = new CombatEquipmentRuntime(catalog);
+        restored.Restore(JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(json));
+        Require(restored.CraftQueue.Count == 1
+                && Mathf.Approximately(restored.CraftQueue[0].RemainingWork, 4f),
+            "Craft queue remaining work did not survive save/restore.");
+        Require(restored.ApplyCraftWork(
+                new[] { "weapon:dagger" },
+                4.1f,
+                out string completedEquipmentId) == 1
+            && completedEquipmentId == "weapon:dagger"
+            && restored.CraftQueue.Count == 0,
+            "Restored craft queue did not complete through the common work-unit runtime.");
+        return true;
     }
 
     private static bool VerifyBuildingEquipmentCraftingWork()
     {
-        ExpeditionEquipmentCatalogSO catalog = ExpeditionEquipmentCatalogSO.CreateRuntimeDefaults();
         BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
         GameObject gameObject = new GameObject("Crafting Work Fixture");
         try
         {
-            ExpeditionEquipmentRuntime runtime = new ExpeditionEquipmentRuntime(new TestEquipmentCatalogProvider(catalog));
+            ResourceCombatEquipmentCatalog combatCatalog =
+                new ResourceCombatEquipmentCatalog();
+            CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(combatCatalog);
+            runtime.Restore(new DungeonCombatEquipmentSaveData
+            {
+                craftOrders = new List<CombatEquipmentCraftOrderSaveData>
+                {
+                    new CombatEquipmentCraftOrderSaveData
+                    {
+                        orderId = "qa:building-craft",
+                        definitionId = "weapon:dagger",
+                        requiredWork = 6f,
+                        completedWork = 0f,
+                        materialsReady = true
+                    }
+                }
+            });
             data.id = -9811;
             data.objectName = "Test Forge";
             data.width = 1;
@@ -574,19 +582,17 @@ public static class OffenseBattleDebugScenarios
             });
             data.AbilityModules.Add(new BuildingEquipmentCraftingAbility
             {
-                craftableEquipmentIds = new[] { "weapon:strength-maul" },
-                workSecondsPerCycle = 6f
+                craftableEquipmentIds = new[] { "weapon:dagger" },
+                workUnitsPerCycle = 6f
             });
 
             BuildableObject building = gameObject.AddComponent<BuildableObject>();
-            ResourceCombatEquipmentCatalog combatCatalog =
-                new ResourceCombatEquipmentCatalog();
             BuildingAbilityRuntimeDispatcher abilityDispatcher =
                 new BuildingAbilityRuntimeDispatcher(
                     new IBuildingAbilityWorkCompletedHandler[]
                     {
                         new EquipmentCraftingBuildingAbilityHandler(
-                            new CombatEquipmentRuntime(combatCatalog),
+                            runtime,
                             combatCatalog)
                     },
                     Array.Empty<IBuildingWorkCompletionFallbackHandler>());
@@ -600,26 +606,23 @@ public static class OffenseBattleDebugScenarios
             building.SetGrid(new Grid(4, 1));
             building.Initialization(data, new Vector2Int(1, 0));
 
-            Require(runtime.TryQueueCraft("weapon:strength-maul", out string queueMessage),
-                $"Could not queue forge craft: {queueMessage}");
             Require(building.HasPendingEquipmentCraftWork(),
                 "BuildableObject did not detect pending equipment craft work.");
             Require(building.GetWorkUrgency(BuiltInWorkTypeIds.Craft) > 0f,
                 "Craft work did not contribute work urgency.");
-                Require(ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+            Require(ModularFacilityRuntimeEffects.ApplyWorkCompleted(
                     null,
                     building,
                     BuiltInWorkTypeIds.Craft) == 1
-                && runtime.GetAvailableCount("weapon:strength-maul") == 1
+                && runtime.CraftQueue.Count == 0
                 && !building.HasPendingEquipmentCraftWork(),
-                "Craft work completion did not produce equipment inventory.");
+                "Craft work completion did not consume the common work-unit order.");
             return true;
         }
         finally
         {
             UnityEngine.Object.DestroyImmediate(gameObject);
             UnityEngine.Object.DestroyImmediate(data);
-            UnityEngine.Object.DestroyImmediate(catalog);
         }
     }
 
@@ -736,16 +739,6 @@ public static class OffenseBattleDebugScenarios
         {
             return 1f;
         }
-    }
-
-    private sealed class TestEquipmentCatalogProvider : IExpeditionEquipmentCatalogProvider
-    {
-        public TestEquipmentCatalogProvider(ExpeditionEquipmentCatalogSO catalog)
-        {
-            Catalog = catalog;
-        }
-
-        public ExpeditionEquipmentCatalogSO Catalog { get; }
     }
 
     private sealed class NoopBlueprintResearchWorkService : IBlueprintResearchWorkService

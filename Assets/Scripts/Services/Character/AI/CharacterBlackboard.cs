@@ -57,6 +57,8 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
     [NonSerialized] private IGameClock gameClock;
 
     private float Now => gameClock != null ? gameClock.Time : 0f;
+    private bool DetailedDiagnosticsEnabled =>
+        actor == null || actor.ShouldCollectDetailedAiDiagnostics;
 
     public CharacterAiBranch CurrentBranch => currentBranch;
     public string CurrentIntent => currentIntent;
@@ -124,7 +126,10 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         recentDecisionTrace.Clear();
         topUtilityBreakdowns ??= new List<string>();
         topUtilityBreakdowns.Clear();
-        AppendDecisionTrace($"Tick {tick}");
+        if (DetailedDiagnosticsEnabled)
+        {
+            AppendDecisionTrace($"Tick {tick}");
+        }
     }
 
     public void RecordBtStatus(CharacterAiBranch branch, string taskName, string status)
@@ -132,7 +137,10 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         currentBranch = branch;
         currentTask = taskName ?? string.Empty;
         currentStatus = status ?? string.Empty;
-        AppendDecisionTrace($"BT {branch}/{currentTask}: {TrimTrace(currentStatus)}");
+        if (DetailedDiagnosticsEnabled)
+        {
+            AppendDecisionTrace($"BT {branch}/{currentTask}: {TrimTrace(currentStatus)}");
+        }
     }
 
     public void SetIntent(CharacterAiBranch branch, string intent, string taskName = "", string status = "")
@@ -141,14 +149,22 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         currentIntent = intent ?? string.Empty;
         currentTask = taskName ?? string.Empty;
         currentStatus = status ?? string.Empty;
-        AppendDecisionTrace(
-            $"Intent {branch}/{currentTask}: {TrimTrace(currentIntent)}"
-            + (string.IsNullOrWhiteSpace(currentStatus) ? string.Empty : $" [{TrimTrace(currentStatus)}]"));
+        if (DetailedDiagnosticsEnabled)
+        {
+            AppendDecisionTrace(
+                $"Intent {branch}/{currentTask}: {TrimTrace(currentIntent)}"
+                + (string.IsNullOrWhiteSpace(currentStatus) ? string.Empty : $" [{TrimTrace(currentStatus)}]"));
+        }
     }
 
     public void RecordJobGiverUtility(CharacterAiBranch branch, float utility, string detail)
     {
         if (branch == CharacterAiBranch.None)
+        {
+            return;
+        }
+
+        if (!DetailedDiagnosticsEnabled)
         {
             return;
         }
@@ -162,12 +178,22 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
 
     public void RecordSelectedJobGiverUtility(CharacterAiJobCandidate candidate)
     {
+        if (!DetailedDiagnosticsEnabled)
+        {
+            return;
+        }
+
         selectedJobGiverUtilitySummary = candidate.DebugSummary;
         AppendDecisionTrace($"Selected {candidate.Branch}: {TrimTrace(candidate.DebugSummary)}");
     }
 
     public void RecordSelectedUtilitySummary(string summary)
     {
+        if (!DetailedDiagnosticsEnabled)
+        {
+            return;
+        }
+
         selectedJobGiverUtilitySummary = summary ?? string.Empty;
         AppendDecisionTrace($"Selected: {TrimTrace(selectedJobGiverUtilitySummary)}");
     }
@@ -175,6 +201,11 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
     public void RecordRoutineGroupPriority(CharacterAiBranch branch, float priority, string detail)
     {
         if (branch == CharacterAiBranch.None)
+        {
+            return;
+        }
+
+        if (!DetailedDiagnosticsEnabled)
         {
             return;
         }
@@ -188,7 +219,7 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
 
     public void RecordUtilityBreakdown(CharacterAiUtilityBreakdown breakdown)
     {
-        if (breakdown == null)
+        if (breakdown == null || !DetailedDiagnosticsEnabled)
         {
             return;
         }
@@ -208,6 +239,11 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
 
         public void RecordDecisionContext(CharacterAiDecisionContext context)
     {
+        if (!DetailedDiagnosticsEnabled)
+        {
+            return;
+        }
+
         lastDecisionContextSummary =
             $"가장 급한 욕구 {context.GetNeedLabel()} {context.StrongestNeedUrgency * 100f:0}%"
             + $" · 긴급 {context.EmergencyScore * 100f:0}%"
@@ -220,7 +256,10 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
 
     public void RecordBtDecisionTrace(string step, string status)
     {
-        AppendDecisionTrace($"BT-Step {TrimTrace(step)}: {TrimTrace(status)}");
+        if (DetailedDiagnosticsEnabled)
+        {
+            AppendDecisionTrace($"BT-Step {TrimTrace(step)}: {TrimTrace(status)}");
+        }
     }
 
     public void ClearJobGiverCandidateCache()
@@ -375,7 +414,10 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
             ? reason.ToString()
             : $"{reason}: {detail}";
         softLockIntent?.Break(reason, detail);
-        AppendDecisionTrace($"CommitBreak {TrimTrace(lastCommitBreakReason)}");
+        if (DetailedDiagnosticsEnabled)
+        {
+            AppendDecisionTrace($"CommitBreak {TrimTrace(lastCommitBreakReason)}");
+        }
     }
 
     public bool IsFacilityCoolingDown(BuildableObject building, out float remainingSeconds)
@@ -555,8 +597,11 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
                 $"Mood impulse changed to {impulse.type} ({impulse.strength:0.##}).");
         }
 
-        AppendDecisionTrace(
-            $"MoodImpulse {impulse.type} strength={impulse.strength:0.###} {TrimTrace(impulse.reason)}");
+        if (DetailedDiagnosticsEnabled)
+        {
+            AppendDecisionTrace(
+                $"MoodImpulse {impulse.type} strength={impulse.strength:0.###} {TrimTrace(impulse.reason)}");
+        }
     }
 
     public void ClearMoodImpulse(string reason)
@@ -569,7 +614,10 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         activeMoodImpulse.reason = string.Empty;
         activeMoodImpulse.validUntil = 0f;
         activeMoodImpulse.source = string.Empty;
-        AppendDecisionTrace($"MoodImpulse cleared: {TrimTrace(reason)}");
+        if (DetailedDiagnosticsEnabled)
+        {
+            AppendDecisionTrace($"MoodImpulse cleared: {TrimTrace(reason)}");
+        }
     }
 
     public int GetRecentFailureCount(AIActionFailureKind kind)
@@ -645,7 +693,7 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
 
     private void AppendDecisionTrace(string entry)
     {
-        if (string.IsNullOrWhiteSpace(entry))
+        if (!DetailedDiagnosticsEnabled || string.IsNullOrWhiteSpace(entry))
         {
             return;
         }

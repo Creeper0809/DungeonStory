@@ -286,6 +286,37 @@ public sealed class RegularCustomerState
         return records.TryGetValue(customerId, out record);
     }
 
+    public RegularCustomerRecord AddRecruitCandidate(
+        WorldCharacterProfile profile,
+        CharacterSO sourceData,
+        RecruitCapability capabilities = RecruitCapability.All)
+    {
+        if (profile == null || string.IsNullOrWhiteSpace(profile.persistentId))
+        {
+            return null;
+        }
+
+        if (records.TryGetValue(profile.persistentId, out RegularCustomerRecord existing))
+        {
+            existing.MarkRecruitCandidate();
+            return existing;
+        }
+
+        RegularCustomerRecord record = new RegularCustomerRecord(
+            profile.persistentId,
+            profile.displayName,
+            sourceData != null ? sourceData.SpeciesTag : string.Empty,
+            sourceData,
+            1,
+            70f,
+            true,
+            true,
+            false,
+            capabilities);
+        records.Add(record.CustomerId, record);
+        return record;
+    }
+
     public bool IsRecruited(string customerId)
     {
         return records.TryGetValue(customerId, out RegularCustomerRecord record) && record.IsRecruited;
@@ -545,6 +576,7 @@ public class RegularCustomerRuntime : MonoBehaviour
 
     private readonly RegularCustomerState state = new RegularCustomerState();
     private IRecruitedCharacterActivationService characterActivationService;
+    private ICharacterPopulationService characterPopulationService;
     private IGameEventBus gameEventBus;
     private IDisposable offenseRewardSubscription;
     private IDisposable facilityVisitSubscription;
@@ -560,12 +592,14 @@ public class RegularCustomerRuntime : MonoBehaviour
     [Inject]
     public void ConstructRecruitmentRuntime(
         IRecruitedCharacterActivationService characterActivationService,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        ICharacterPopulationService characterPopulationService = null)
     {
         this.characterActivationService = characterActivationService
             ?? throw new ArgumentNullException(nameof(characterActivationService));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.characterPopulationService = characterPopulationService;
         SubscribeToScopedEvents();
     }
 
@@ -657,17 +691,42 @@ public class RegularCustomerRuntime : MonoBehaviour
             return;
         }
 
-        IReadOnlyList<RegularCustomerRecord> promoted =
-            state.PromoteBestVisitorsToRecruitCandidates(rewardCandidates);
+        List<RegularCustomerRecord> promoted = new List<RegularCustomerRecord>();
+        if (characterPopulationService != null)
+        {
+            for (int index = 0; index < rewardCandidates; index++)
+            {
+                if (!characterPopulationService.TryCreateRecruitCandidate(
+                        out WorldCharacterProfile profile,
+                        out CharacterSO sourceData))
+                {
+                    break;
+                }
+
+                RegularCustomerRecord candidate =
+                    state.AddRecruitCandidate(profile, sourceData);
+                if (candidate != null)
+                {
+                    promoted.Add(candidate);
+                }
+            }
+        }
+
+        if (promoted.Count < rewardCandidates)
+        {
+            promoted.AddRange(state.PromoteBestVisitorsToRecruitCandidates(
+                rewardCandidates - promoted.Count));
+        }
+
         foreach (RegularCustomerRecord record in promoted)
         {
             RegularCustomerSnapshot snapshot = record.ToSnapshot();
             CandidateDiscovered?.Invoke(snapshot);
             gameEventBus.RaiseAlert(
-                "?먯젙 ?꾨낫",
-                $"{snapshot.displayName}???먯젙 蹂댁긽?쇰줈 ?곸엯 ?꾨낫媛 ?섏뿀?듬땲??\n媛????븷: {RegularCustomerService.FormatCapabilities(snapshot.recruitCapabilities)}",
+                "원정 영입 후보",
+                $"{snapshot.displayName}이 원정 보상으로 영입 후보가 되었습니다.\n가능 역할: {RegularCustomerService.FormatCapabilities(snapshot.recruitCapabilities)}",
                 EventAlertImportance.Medium,
-                "?곸엯");
+                "영입");
         }
     }
 

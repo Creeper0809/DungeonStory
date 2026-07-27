@@ -1,5 +1,14 @@
 # DungeonStory Current Findings
 
+## 2026-07-26 V16 traversal-cache and wildlife timing findings
+
+- `Grid.version` was serving two incompatible purposes: any content mutation invalidated structural path/room/facility caches. Moving wildlife and changing items therefore discarded otherwise valid routes.
+- `Grid.StructuralVersion`/`TraversalVersion` now changes only for area, building, hallway, movement-blocking, or connection mutations. Full `version` still tracks every content change for consumers that need it.
+- Wildlife hunt reachability previously depended on cached visitable-occupant positions. With dynamic occupancy excluded from traversal invalidation, the hunt query now checks the target actor's current Grid coordinate against the reachable-cell result.
+- Wildlife arrival dwell mixed the caller-provided current time with a null-clock fallback of zero. Giving every actor a Unity game-clock fallback makes route start, route completion, threat interruption, and dwell expiry use one scaled time base.
+- Focused Grid, Wildlife, and AI naturalness regressions pass after the changes.
+- The 100-NPC EditMode stress scenario improved from roughly 353 seconds to 50.6 seconds. Broker path searches fell from 1,440 to 51 and budget deferrals from 16,461 to 50. Scheduler p95 is 0.73ms; the large max values are cold-path/test instrumentation spikes and require PlayMode profiling before final acceptance.
+
 ## 2026-07-21 Physical item and hauling implementation findings
 
 - Current Editor Console baseline is clean through Unity MCP (`Error 0 / Warning 0`), but batchmode compilation cannot run while the interactive Unity Editor owns the project. MCP/Editor Console is the active compile source for this pass.
@@ -360,3 +369,66 @@
 - A delivery request does not alter aggregate warehouse inventory. Pickup atomically withdraws it, and failed carry insertion deposits it back.
 - The pointer-driven build verifier previously spawned `FacilityBuffer` stacks directly. That shortcut was removed so it cannot hide a future request-time drop regression.
 - The work-amount save contract had a stale `save.version == 9` assertion despite the product using V12; the assertion now follows `DungeonGameSaveData.CurrentVersion`.
+
+## 2026-07-26 V16 integration audit
+
+- `GameplayScene` contained both the production owner command controller and a priority-command duplicate, plus production and `_Test` regular-customer runtimes. Exact-one composition validation is required because first-match lookup silently accepts this corruption.
+- `ExpeditionEquipmentRuntime` and `ICombatEquipmentRuntime` both authored inventory, loadouts, crafting, offense modifiers, and save data. Offense applied both bonus paths, so consolidation must remove the legacy stat block rather than adapt both indefinitely.
+- The common combat runtime already owns persistent equipment instance IDs, quality, durability, ammunition, and active loadouts, making it the correct authority. Its missing piece was work-unit crafting and physical material/output integration.
+- Offense weakening, prisoner rewards, special-monster rewards, and recruit rewards are counters only. They must become regional pressure or pending physical/persistent arrivals before the old reward-state fields can be removed.
+- `SurvivalFoodRuntime` both withdraws food at daily settlement and allows real meal completion to consume food. Daily withdrawal must become forecast/reporting only to avoid double consumption.
+- Exterior incidents currently advance through text and timers without persistent actors, inventories, theft stacks, rescue patients, or handler-owned stages.
+- Circus fame and injury history are recorded but do not gate treatment, contracts, release, or performer availability.
+- Blood and memory extraction currently collapse into generic Mana-style stock. They need Biological and Knowledge categories plus physical, work-based consumers.
+- `CharacterAiPerfSettingsSO` and report types exist without a runtime recorder, so the current performance surface cannot provide trustworthy rolling avg/p95/max/GC/path-cache evidence.
+- Offense targets currently carry no region or faction identity. The human/rival reward handlers only increment `OffenseRewardState` counters, and the terminal truth target still grants a meaningless rival weakening reward.
+- `ExteriorActivityRuntime` already owns visible departure/return movement, a physical entry point, body-health checks, and medical-order creation. V16 return rewards should attach to this completed return boundary rather than create a parallel arrival animation service.
+- Exterior incident persistence currently stores only kind, zone, text, and remaining seconds on a zone marker. There is no handler-owned actor, inventory, stage, or outcome state.
+- V15 offense persistence serializes all abstract reward counters inside `DungeonOffenseRewardSaveData`; regional pressure and pending arrivals should be independent domain sections so the offense service no longer owns their restore order.
+- Save restoration is already dependency-sorted by section and phase, so V16 can express the required equipment/items → characters/wildlife → captivity → arrivals → incidents → regions order without central orchestration.
+- `InvasionIntruderRuntimeFactory` is the single constructor boundary for runtime intruder actors and is a suitable point for applying a captured regional pressure snapshot once per spawn.
+- Offense enemy templates are materialized in `OffenseEncounterCatalog.CreateEnemies`; applying regional armament/manpower factors there avoids a second post-construction stat mutation path.
+- Invasion intruder health and attack configuration is finalized in `InvasionIntruderRuntime.Initialize` inside `InvasionIntruderSystem.cs`, so regional modifiers should be supplied with the spawn settings before actor health is scaled.
+- `CharacterPopulationService` already owns deterministic persistent IDs and full generated growth profiles, but exposes no API for adding a reward candidate. Extending that boundary avoids a second profile generator.
+- Recruitment activation can bind an actor back to an existing population profile by matching `CharacterIdentity.PersistentId`; a reward candidate therefore needs a population profile and a matching `RegularCustomerRecord`, not a counter.
+- Wildlife spawning is private to `WildlifeRuntime`. A narrow `TrySpawnArrival` method on `IWildlifeRuntime` can reuse the catalog, grid validation, hierarchy, actor initialization, and registry path without exposing general mutation internals.
+
+## 2026-07-26 AI profile boundary and allocation findings
+
+- `CharacterNeedCatalog.All` rebuilt a sorted array on every access. Survival scoring calls it
+  for each AI candidate, making the catalog a measurable allocation hotspot at population scale.
+- Offscreen/nonselected actors do not need full utility strings or breakdown objects. Retaining
+  compact numeric scoring while collecting details only for selected diagnostics preserves
+  decisions and substantially lowers garbage.
+- `WorldCharacterNameplate` previously captured a complete deprivation snapshot only to display
+  the highest burden and breakdown state. A narrow display-state query avoids grouping,
+  dictionaries, and arrays on every visible nameplate update.
+- The first PlayMode profile implementation sampled immediately after forced GC and reused the
+  last warmup scheduler timing. That made a 2.6-second sample window report impossible 17-second
+  scheduler frames. Discarding two transition frames produces coherent wall, frame, and
+  scheduler timing.
+- Unity 6000.3.8's Mono runtime returns zero from
+  `GC.GetAllocatedBytesForCurrentThread()` even around a known 4KB allocation. Scheduler-only
+  allocation is therefore explicitly reported as unsupported; `GC Allocated In Frame` remains
+  the authoritative Editor-wide counter.
+- The stabilized 100-character result is frame `2.77ms average / 3.42ms p95`, scheduler
+  `0.370ms average / 0.497ms p95 / 0.632ms max`, all 100 trees ticked, and zero decision/path
+  budget overflow.
+
+## 2026-07-26 Weighted navigation and 500-character profile
+
+- Unweighted BFS could not represent shallow-water speed, door policy, traversal penalties,
+  or cost-aware target choice. Fixed destinations now use A*, while multi-target candidate
+  scoring retains a weighted Dijkstra field.
+- The current 60x3 gameplay and 96x3 stress grids are small enough that one Job per route
+  would add more scheduling overhead than search work. The optimized weighted A* benchmark is
+  about 11.3 microseconds per query.
+- The largest apparent 500-character hotspot was an Editor test provider repeatedly calling
+  `FindFirstObjectByType<GridSystemManager>`. Caching the fixture manager reduced the
+  diagnostic average from 13.61 ms to 2.60 ms.
+- The final staged 500-character profile passed: frame average/p95/max
+  `3.39/4.37/15.40ms`, scheduler `1.228/1.809/2.580ms`, and no sampled frame exceeded
+  16.67 ms.
+- Broad multithreading is therefore deferred. Only immutable, batched offscreen scoring or
+  route requests are safe future candidates; Unity objects, door access, reservations, and
+  route commit remain main-thread responsibilities.

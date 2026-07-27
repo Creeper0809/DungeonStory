@@ -282,7 +282,7 @@ public sealed class WorkCommandHandler
             Vector2Int actorPos = work.WorkGridResolver.GetGridPosition(activeGrid, actor);
             if (actorPos != targetPos)
             {
-                Queue<GridMoveStep> path = activeGrid.GetMovePath(actorPos, (pos) => pos == targetPos);
+                Queue<GridMoveStep> path = activeGrid.GetMovePathTo(actorPos, targetPos);
                 if (path == null || path.Count == 0)
                 {
                     actor.AddActivity(CharacterActivityEvent.Create(
@@ -385,8 +385,8 @@ public sealed class WorkCommandHandler
 
         Vector2Int actorPos = actor != null ? work.WorkGridResolver.GetGridPosition(activeGrid, actor) : Vector2Int.zero;
         Queue<GridMoveStep> path = searchResult != null
-            ? searchResult.GetMovePath((pos) => pos == targetPos)
-            : activeGrid.GetMovePath(actorPos, (pos) => pos == targetPos);
+            ? searchResult.GetMovePathTo(targetPos)
+            : activeGrid.GetMovePathTo(actorPos, targetPos);
         if (path == null || path.Count == 0)
         {
             errorMessage = "도달할 수 없는 대상입니다";

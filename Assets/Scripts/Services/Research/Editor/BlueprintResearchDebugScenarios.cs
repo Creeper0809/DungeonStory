@@ -25,7 +25,7 @@ public static class BlueprintResearchDebugScenarios
         List<string> errors = new List<string>();
         RunScenario("설계도 연구 데이터", VerifyBlueprintResearchData, errors);
         RunScenario("설계도 해금 Inspector 목록", VerifyUnlockAuthoringList, errors);
-        RunScenario("구매 이벤트 연구 대기열", VerifyBlueprintPurchaseQueuesResearch, errors);
+        RunScenario("구매 이벤트 물리 설계도 전환", VerifyBlueprintPurchaseDoesNotQueueResearch, errors);
         RunScenario("연구 중단/재개 진행도", VerifyResearchProgressPersistsUntilCompletion, errors);
         RunScenario("연구 완료 모듈 건축 조기 해금", VerifyCompletionUnlocksModularConstruction, errors);
         RunScenario("연구 완료 조합식 해금", VerifyCompletionUnlocksRecipes, errors);
@@ -69,24 +69,30 @@ public static class BlueprintResearchDebugScenarios
     {
         FacilityBlueprintSO commercial = LoadBlueprint("BP_CommercialBasics");
         FacilityBlueprintSO rare = LoadBlueprint("BP_BattleDining");
+        ResearchProjectSO commercialProject = LoadProject(commercial?.TargetResearchProjectId);
+        ResearchProjectSO rareProject = LoadProject(rare?.TargetResearchProjectId);
 
         return commercial != null
-            && commercial.researchWorkRequired > 0f
-            && commercial.Unlocks.OfType<BlueprintBuildingUnlock>().Count() >= 5
-            && commercial.Unlocks
+            && commercialProject != null
+            && commercialProject.RequiredWork > 0f
+            && commercialProject.BlueprintRule == ResearchBlueprintRule.Required
+            && commercialProject.Unlocks.OfType<BlueprintBuildingUnlock>().Count() >= 5
+            && commercialProject.Unlocks
                 .OfType<BlueprintBuildingUnlock>()
                 .Select(unlock => new EditorFacilityShopCatalog().FindBuildingById(unlock.buildingId))
                 .All(building => building != null
                     && building.IsModularFacility()
                     && building.GetUnlockPhase() > 1)
             && rare != null
-            && rare.researchWorkRequired > commercial.researchWorkRequired
-            && rare.Unlocks
+            && rareProject != null
+            && rareProject.RequiredWork > commercialProject.RequiredWork
+            && rareProject.BlueprintRule == ResearchBlueprintRule.Shortcut
+            && rareProject.Unlocks
                 .OfType<BlueprintRecipeUnlock>()
                 .Any(unlock => unlock.recipeId == "recipe_commerce_secure_display_2");
     }
 
-    private static bool VerifyBlueprintPurchaseQueuesResearch()
+    private static bool VerifyBlueprintPurchaseDoesNotQueueResearch()
     {
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_CommercialBasics");
         GameData gameData = CreateGameData(500);
@@ -114,8 +120,8 @@ public static class BlueprintResearchDebugScenarios
             && result.TryGetBlueprint(out FacilityBlueprintSO purchasedBlueprint)
             && purchasedBlueprint == blueprint
             && state.IsBlueprintAcquired(blueprint)
-            && runtime.State.Tasks.Count == 1
-            && runtime.State.Tasks[0].Blueprint == blueprint;
+            && runtime.State.Tasks.Count == 0
+            && runtime.State.Projects.Queue.Count == 0;
 
         Object.DestroyImmediate(runtimeObject);
         Object.DestroyImmediate(gameData);
@@ -129,18 +135,21 @@ public static class BlueprintResearchDebugScenarios
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_DefenseBasics");
         BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
+        ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
 
+        CompletePrerequisitesForTest(runtime, project);
         runtime.EnqueueBlueprint(blueprint);
         BlueprintResearchWorkResult first = runtime.ApplyResearchWork(CharacterActor.From(researcher), lab, 0.5f);
         BlueprintResearchWorkResult second = runtime.ApplyResearchWork(CharacterActor.From(researcher), lab, 999f);
+        ResearchProjectProgressState progress = runtime.State.Projects.GetProgress(project.ProjectId);
 
         return first.Success
             && first.AddedProgress > 0f
             && !first.Completed
-            && runtime.State.Tasks[0].Progress > 0f
+            && progress.Progress > 0f
             && second.Success
             && second.Completed
-            && runtime.State.IsCompleted(blueprint);
+            && runtime.State.Projects.IsCompleted(project.ProjectId);
     }
 
     private static bool VerifyCompletionUnlocksModularConstruction()
@@ -152,10 +161,12 @@ public static class BlueprintResearchDebugScenarios
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         BuildingSO tacticalMap = LoadModularBuilding("G04_전술지도탁자");
         GameData dayOne = CreateGameData(500);
+        ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
         bool assetUnlockBefore = tacticalMap != null && tacticalMap.unlocked;
         bool blockedBeforeResearch = tacticalMap != null
             && !FacilityProgression.IsUnlocked(tacticalMap, dayOne);
 
+        CompletePrerequisitesForTest(runtime, project);
         runtime.EnqueueBlueprint(blueprint);
         BlueprintResearchWorkResult result = runtime.ApplyResearchWork(CharacterActor.From(researcher), lab, 999f);
         bool valid = result.Completed
@@ -175,7 +186,9 @@ public static class BlueprintResearchDebugScenarios
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_BattleDining");
         BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
+        ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
 
+        CompletePrerequisitesForTest(runtime, project);
         runtime.EnqueueBlueprint(blueprint);
         BlueprintResearchWorkResult result = runtime.ApplyResearchWork(CharacterActor.From(researcher), lab, 999f);
 
@@ -287,6 +300,34 @@ public static class BlueprintResearchDebugScenarios
         return AssetDatabase.LoadAssetAtPath<FacilityBlueprintSO>($"Assets/Resources/SO/Blueprint/P1/{assetName}.asset");
     }
 
+    private static ResearchProjectSO LoadProject(string projectId)
+    {
+        return AssetDatabase.FindAssets(
+                "t:ResearchProjectSO",
+                new[] { "Assets/Resources/SO/Research/Projects" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
+            .FirstOrDefault(project =>
+                project != null
+                && string.Equals(project.ProjectId.Value, projectId, StringComparison.Ordinal));
+    }
+
+    private static void CompletePrerequisitesForTest(
+        BlueprintResearchRuntime runtime,
+        ResearchProjectSO project)
+    {
+        if (runtime == null || project == null)
+        {
+            return;
+        }
+
+        foreach (ResearchProjectSO prerequisite in project.Prerequisites)
+        {
+            CompletePrerequisitesForTest(runtime, prerequisite);
+            runtime.State.Projects.RestoreCompleted(prerequisite.ProjectId);
+        }
+    }
+
     private static BuildingSO LoadBuilding(string assetName)
     {
         return AssetDatabase.LoadAssetAtPath<BuildingSO>($"Assets/Resources/SO/Building/P1/{assetName}.asset");
@@ -392,7 +433,15 @@ public static class BlueprintResearchDebugScenarios
                 new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry),
                 new DungeonWorkforceReplanService(
                     CharacterAiEditorTestDependencies.WorldRegistry),
-                new DungeonStory.Foundation.GameEventBus());
+                new DungeonStory.Foundation.GameEventBus(),
+                projectCatalog: new ResourceResearchProjectCatalog(
+                        AssetDatabase.FindAssets(
+                            "t:ResearchProjectSO",
+                            new[] { "Assets/Resources/SO/Research/Projects" })
+                        .Select(AssetDatabase.GUIDToAssetPath)
+                        .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
+                        .Where(project => project != null)),
+                blueprintArchiveQuery: new AlwaysArchivedBlueprintQuery());
             return runtime;
         }
 
@@ -493,6 +542,33 @@ public static class BlueprintResearchDebugScenarios
         public FacilityShopUnlockState GetUnlockState()
         {
             return state;
+        }
+    }
+
+    private sealed class AlwaysArchivedBlueprintQuery : IResearchBlueprintArchiveQuery
+    {
+        public int Version => 1;
+
+        public ResearchBlueprintArchiveStatus GetStatus(FacilityBlueprintSO blueprint)
+        {
+            return new ResearchBlueprintArchiveStatus(
+                blueprint != null,
+                false,
+                "검증 연구 보관대",
+                blueprint == null ? "설계도 없음" : string.Empty);
+        }
+
+        public IReadOnlyList<BuildableObject> GetValidArchives() =>
+            Array.Empty<BuildableObject>();
+
+        public bool TryGetPreferredArchive(
+            FacilityBlueprintSO blueprint,
+            out BuildableObject archive,
+            out string destinationId)
+        {
+            archive = null;
+            destinationId = string.Empty;
+            return false;
         }
     }
 

@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using TMPro;
 using UnityEditor;
 using UnityEngine;
@@ -43,6 +45,11 @@ public static class WorldCharacterNameplateDebugScenarios
             actorObject = CreateActorObject();
             CharacterActor actor = actorObject.GetComponent<CharacterActor>();
             actor.EnsureRuntimeState();
+            actorObject.GetComponent<CharacterStats>().ConstructCharacterStats(
+                new NoopStaffDiscontentRuntimeService(),
+                new NoopOwnerRunLifecycleService(),
+                new NeutralMetaProgressionRuntimeReader(),
+                new UnityGameClock());
             actor.SetLifecycleState(CharacterLifecycleState.Active);
             actor.InitializeStats(resetCurrentHealth: true);
 
@@ -128,5 +135,45 @@ public static class WorldCharacterNameplateDebugScenarios
         Sprite sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0f), 1f);
         sprite.hideFlags = HideFlags.HideAndDontSave;
         return sprite;
+    }
+
+    private sealed class NoopStaffDiscontentRuntimeService : IStaffDiscontentRuntimeService
+    {
+        public float GetWorkEfficiencyMultiplier(CharacterActor staff) => 1f;
+
+        public bool ShouldBlockWork(CharacterActor staff, out string reason)
+        {
+            reason = string.Empty;
+            return false;
+        }
+
+        public bool IsRebellionTarget(CharacterActor target) => false;
+
+        public bool ResolveSuppressedRebel(CharacterActor rebel, CharacterActor defender) => false;
+    }
+
+    private sealed class NoopOwnerRunLifecycleService : IOwnerRunLifecycleService
+    {
+        public void HandleOwnerDeath(CharacterActor owner, string reason)
+        {
+        }
+    }
+
+    private sealed class NeutralMetaProgressionRuntimeReader : IMetaProgressionRuntimeReader
+    {
+        public int GetStartingFacilityCandidateBonus() => 0;
+        public int GetStartingOwnerTraitCandidateBonus() => 0;
+        public float GetOwnerMaxHealthMultiplier() => 1f;
+        public float GetInvasionWarningThresholdMultiplier() => 1f;
+        public float GetCommerceStockCostMultiplier(StockCategory category) => 1f;
+        public float GetFortressFacilityCostMultiplier(BuildingSO building) => 1f;
+        public float GetArcaneResearchWorkMultiplier() => 1f;
+        public bool IsRecipePreserved(string recipeId) => false;
+
+        public IReadOnlyCollection<int> GetExpandedBasicPurchaseBuildingIds(
+            IEnumerable<BuildingSO> buildings)
+        {
+            return Array.Empty<int>();
+        }
     }
 }

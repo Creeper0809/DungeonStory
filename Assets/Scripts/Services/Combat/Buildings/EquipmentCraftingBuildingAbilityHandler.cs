@@ -41,36 +41,32 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         if (building == null
             || ability == null
             || workTypeId != BuiltInWorkTypeIds.Craft
-            || !building.TryGetExpeditionEquipmentRuntime(
-                out IExpeditionEquipmentRuntime expeditionRuntime))
+            || !building.TryGetCombatEquipmentRuntime(
+                out ICombatEquipmentRuntime equipmentRuntime))
         {
             return 0;
         }
 
-        float actorMultiplier = actor != null
-            ? Mathf.Max(0.1f, actor.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Craft))
-            : 1f;
-        int completed = expeditionRuntime.ApplyCraftWork(
+        int completed = equipmentRuntime.ApplyCraftWork(
             ability.CraftableEquipmentIds,
-            Mathf.Max(0.1f, ability.workSecondsPerCycle) * actorMultiplier,
-            out string completedEquipmentId,
-            addCompletedToInventory: false);
+            Mathf.Max(0.1f, ability.workUnitsPerCycle),
+            out string completedEquipmentId);
         if (completed > 0)
         {
-            bool spawnedOutput = SpawnCraftedOutput(
+            SpawnCraftedOutput(
                 actor,
                 building,
                 completedEquipmentId,
                 completed);
-            if (!spawnedOutput)
-            {
-                expeditionRuntime.AddInventory(completedEquipmentId, completed);
-            }
         }
 
         string targetName = string.IsNullOrWhiteSpace(completedEquipmentId)
             ? "장비"
-            : completedEquipmentId;
+            : equipmentRuntime.TryGetDefinition(
+                completedEquipmentId,
+                out CombatEquipmentDefinitionSO definition)
+                ? definition.DisplayName
+                : completedEquipmentId;
         actor?.AddActivity(CharacterActivityEvent.Work(
             FacilityWorkType.Craft,
             completed > 0
@@ -78,7 +74,7 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
                 : CharacterActivityOutcomes.Progress,
             completed > 0
                 ? $"{targetName} 제작을 마쳤다."
-                : $"{GetBuildingName(building)} 제작을 진행했다.",
+                : $"{GetBuildingName(building)}에서 제작을 진행했다.",
             building,
             reasonCode: completed > 0
                 ? "equipment-crafted"
@@ -137,15 +133,7 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             return true;
         }
 
-        return itemRuntime != null
-            && itemRuntime.SpawnItemAt(
-                DungeonItemCatalogSO.EquipmentItemId(completedEquipmentId),
-                completed,
-                building.centerPos,
-                WorldItemStackState.FacilityBuffer,
-                $"craft:{building.GetInstanceID()}",
-                out int spawnedEquipment)
-            && spawnedEquipment == completed;
+        return false;
     }
 
     private static CombatEquipmentQuality ResolveCraftedQuality(

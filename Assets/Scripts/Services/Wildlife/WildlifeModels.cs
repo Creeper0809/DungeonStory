@@ -494,6 +494,12 @@ public interface IWildlifeRuntime : IWildlifeQuery, IWildlifeHuntCommandService
     bool HasButcherWorkAvailable(BuildableObject building);
     float GetButcherWorkUrgency();
     bool DebugSpawn(string speciesId, int amount, Vector2Int position, out int spawned, out string message);
+    bool TrySpawnArrival(
+        string speciesId,
+        Vector2Int position,
+        out WildlifeActor actor,
+        out string message);
+    bool TryRemoveArrival(string wildlifeId);
     bool DebugDelete(string wildlifeId);
     int DebugDeleteAll();
 }
@@ -540,6 +546,18 @@ public interface ISurvivalFoodRuntime
     void DebugSetWeather(SurvivalWeatherType weather);
     void DebugAdvanceSpoilage(float seconds);
     void DebugResetSpoilage();
+}
+
+public interface ICharacterNutritionRuntime
+{
+    int GetMealsConsumed(int day);
+    int GetMealsConsumed(string characterId, int day);
+    IReadOnlyList<CharacterMealLedgerSaveData> GetRecentMeals(int maximumCount = 30);
+}
+
+public interface ISurvivalEnvironmentQuery
+{
+    SurvivalEnvironmentSnapshot GetEnvironmentSnapshot();
 }
 
 public static class WildlifeButcherFacilityUtility

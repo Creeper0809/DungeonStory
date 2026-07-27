@@ -143,12 +143,15 @@ public static class CharacterOwnerFixedSkillUtility
 
     public static IReadOnlyList<CharacterSkillInstance> GetSkills(CharacterSO ownerData)
     {
-        List<CharacterSkillInstance> skills = ownerData != null
-            ? ownerData.OwnerFixedSkills
-                .Where(skill => skill != null && !string.IsNullOrWhiteSpace(skill.displayName))
-                .Select(skill => Normalize(skill.Clone(), ownerData))
-                .ToList()
-            : new List<CharacterSkillInstance>();
+        if (ownerData == null || !ownerData.IsOwnerCandidate)
+        {
+            return Array.Empty<CharacterSkillInstance>();
+        }
+
+        List<CharacterSkillInstance> skills = ownerData.OwnerFixedSkills
+            .Where(skill => skill != null && !string.IsNullOrWhiteSpace(skill.displayName))
+            .Select(skill => Normalize(skill.Clone(), ownerData))
+            .ToList();
 
         for (int i = skills.Count; i < FixedSlotCount; i++)
         {

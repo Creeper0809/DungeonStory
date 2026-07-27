@@ -152,6 +152,11 @@ public static class ConstructionSafetyPlanner
             return true;
         }
 
+        if (CanReachExitByDirectRoute(grid, start, futureBlocked))
+        {
+            return true;
+        }
+
         return FloodFillUntil(
             grid,
             start,
@@ -209,6 +214,11 @@ public static class ConstructionSafetyPlanner
             return false;
         }
 
+        if (HasBoundedLocalRoute(grid, a, b, futureBlocked, 4))
+        {
+            return false;
+        }
+
         if (!FloodFillUntil(grid, a, null, position => position == b))
         {
             return false;
@@ -257,6 +267,7 @@ public static class ConstructionSafetyPlanner
         {
             if (IsWalkableAfterBuild(grid, position, futureBlocked)
                 && (!HasAnyExitCandidate(grid, futureBlocked)
+                    || CanReachExitByDirectRoute(grid, position, futureBlocked)
                     || FloodFillUntil(grid, position, futureBlocked, candidate => IsExitCell(grid, candidate))))
             {
                 return true;
@@ -306,7 +317,33 @@ public static class ConstructionSafetyPlanner
 
     private static bool HasAnyExitCandidate(Grid grid, HashSet<Vector2Int> futureBlocked)
     {
-        return grid != null && grid.GetCells().Any(cell =>
+        if (grid == null
+            || !grid.TryGetAnyWalkableExit(out Vector2Int cachedExit))
+        {
+            return false;
+        }
+
+        if (futureBlocked == null || !futureBlocked.Contains(cachedExit))
+        {
+            return true;
+        }
+
+        for (int y = 0; y < grid.height; y++)
+        {
+            Vector2Int left = new Vector2Int(0, y);
+            if (IsWalkableAfterBuild(grid, left, futureBlocked))
+            {
+                return true;
+            }
+
+            Vector2Int right = new Vector2Int(grid.width - 1, y);
+            if (IsWalkableAfterBuild(grid, right, futureBlocked))
+            {
+                return true;
+            }
+        }
+
+        return grid.GetCells().Any(cell =>
             cell != null
             && IsExitCell(grid, cell.Position)
             && IsWalkableAfterBuild(grid, cell.Position, futureBlocked));
@@ -379,6 +416,126 @@ public static class ConstructionSafetyPlanner
                 }
 
                 visited.Add(next);
+                open.Enqueue(next);
+            }
+        }
+
+        return false;
+    }
+
+    private static bool CanReachExitByDirectRoute(
+        Grid grid,
+        Vector2Int start,
+        HashSet<Vector2Int> futureBlocked)
+    {
+        if (grid == null
+            || !IsWalkableAfterBuild(grid, start, futureBlocked))
+        {
+            return false;
+        }
+
+        Vector2Int leftExit = new Vector2Int(0, start.y);
+        if (IsDirectLineWalkable(grid, start, leftExit, futureBlocked))
+        {
+            return true;
+        }
+
+        Vector2Int rightExit = new Vector2Int(grid.width - 1, start.y);
+        if (IsDirectLineWalkable(grid, start, rightExit, futureBlocked))
+        {
+            return true;
+        }
+
+        if (!grid.TryGetAnyWalkableExit(out Vector2Int exit)
+            || (futureBlocked != null && futureBlocked.Contains(exit)))
+        {
+            return false;
+        }
+
+        Vector2Int horizontalPivot = new Vector2Int(exit.x, start.y);
+        if (IsDirectLineWalkable(grid, start, horizontalPivot, futureBlocked)
+            && IsDirectLineWalkable(grid, horizontalPivot, exit, futureBlocked))
+        {
+            return true;
+        }
+
+        Vector2Int verticalPivot = new Vector2Int(start.x, exit.y);
+        return IsDirectLineWalkable(grid, start, verticalPivot, futureBlocked)
+            && IsDirectLineWalkable(grid, verticalPivot, exit, futureBlocked);
+    }
+
+    private static bool IsDirectLineWalkable(
+        Grid grid,
+        Vector2Int start,
+        Vector2Int end,
+        HashSet<Vector2Int> futureBlocked)
+    {
+        if (start.x != end.x && start.y != end.y)
+        {
+            return false;
+        }
+
+        int stepX = Math.Sign(end.x - start.x);
+        int stepY = Math.Sign(end.y - start.y);
+        Vector2Int current = start;
+        while (true)
+        {
+            if (!IsWalkableAfterBuild(grid, current, futureBlocked))
+            {
+                return false;
+            }
+
+            if (current == end)
+            {
+                return true;
+            }
+
+            current += new Vector2Int(stepX, stepY);
+        }
+    }
+
+    private static bool HasBoundedLocalRoute(
+        Grid grid,
+        Vector2Int start,
+        Vector2Int destination,
+        HashSet<Vector2Int> futureBlocked,
+        int margin)
+    {
+        if (!IsWalkableAfterBuild(grid, start, futureBlocked)
+            || !IsWalkableAfterBuild(grid, destination, futureBlocked))
+        {
+            return false;
+        }
+
+        int minX = Mathf.Min(start.x, destination.x) - margin;
+        int maxX = Mathf.Max(start.x, destination.x) + margin;
+        int minY = Mathf.Min(start.y, destination.y) - margin;
+        int maxY = Mathf.Max(start.y, destination.y) + margin;
+        Queue<Vector2Int> open = new Queue<Vector2Int>();
+        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
+        open.Enqueue(start);
+        visited.Add(start);
+        while (open.Count > 0)
+        {
+            Vector2Int current = open.Dequeue();
+            if (current == destination)
+            {
+                return true;
+            }
+
+            foreach (Vector2Int direction in CardinalDirections)
+            {
+                Vector2Int next = current + direction;
+                if (next.x < minX
+                    || next.x > maxX
+                    || next.y < minY
+                    || next.y > maxY
+                    || !visited.Add(next)
+                    || !IsWalkableAfterBuild(grid, next, futureBlocked))
+                {
+                    continue;
+                }
+
                 open.Enqueue(next);
             }
         }

@@ -170,6 +170,20 @@ public class OffenseWorldMapRuntime : MonoBehaviour
         return true;
     }
 
+    public bool TryGetTargetDefinition(
+        string targetId,
+        out OffenseTargetDefinition definition)
+    {
+        EnsureInitialized();
+        definition = targets.FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.id,
+                targetId,
+                StringComparison.Ordinal));
+        return definition != null;
+    }
+
     public bool TryRecordSuccessfulExpedition(
         string targetId,
         out OffenseTargetSnapshot completedTarget,

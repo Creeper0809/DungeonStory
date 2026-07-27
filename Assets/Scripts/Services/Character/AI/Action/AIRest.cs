@@ -16,6 +16,17 @@ public class AIRest : AIActionSet
         return CanUseVisitorAction(actor);
     }
 
+    public override bool CanStart(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        return actor != null
+            && context.HasShoppingAbility
+            && (!context.IsWorker
+                || context.IsOffDuty
+                || context.RestUrgency >= 0.1f);
+    }
+
     public override void Execute(CharacterActor actor)
     {
         actor?.GetAbility<AbilityShopping>()?.StartSopping();
@@ -40,14 +51,11 @@ public class AIRest : AIActionSet
         CharacterActor actor,
         IReadOnlyList<BuildableObject> candidates)
     {
-        GridPathSearchResult searchResult = actor != null && actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
         return FacilityCandidateScorer.SelectBest(
             actor,
             candidates,
             FacilityRole.Rest,
-            searchResult,
+            null,
             FacilityScoringContext.RequireFromActor(actor));
     }
 
@@ -57,18 +65,23 @@ public class AIRest : AIActionSet
         out BuildableObject destination,
         out AIActionFailure failure)
     {
-        if (FacilityCandidateScorer.TrySelectBest(
+        if (FacilityCandidateScorer.TrySelectBestIncremental(
             actor,
             searchResult,
             FacilityRole.Rest,
             FacilityScoringContext.RequireFromActor(actor),
-            out destination))
+            out destination,
+            out bool pending))
         {
             failure = AIActionFailure.None;
             return true;
         }
 
-        failure = AIActionFailure.Create(AIActionFailureKind.NoDestination);
+        failure = AIActionFailure.Create(
+            pending
+                ? AIActionFailureKind.PathSearchDeferred
+                : AIActionFailureKind.NoDestination,
+            pending ? "시설 후보를 나누어 확인하는 중" : string.Empty);
         return false;
     }
 

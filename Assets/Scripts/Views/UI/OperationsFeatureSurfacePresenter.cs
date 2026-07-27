@@ -21,6 +21,8 @@ public sealed class OperationsFeatureSurfaceModel
     public string ExteriorSummary { get; set; } = string.Empty;
     public IReadOnlyList<OperationsStatusRow> ExteriorRows { get; set; }
         = Array.Empty<OperationsStatusRow>();
+    public IReadOnlyList<OperationsExteriorIncidentRow> ExteriorIncidents { get; set; }
+        = Array.Empty<OperationsExteriorIncidentRow>();
     public string RunVariableSummary { get; set; } = string.Empty;
     public IReadOnlyList<OperationsStatusRow> RunVariableRows { get; set; }
         = Array.Empty<OperationsStatusRow>();
@@ -50,6 +52,15 @@ public sealed class OperationsStatusRow
     public int Index { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Detail { get; set; } = string.Empty;
+}
+
+public sealed class OperationsExteriorIncidentRow
+{
+    public string IncidentId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Detail { get; set; } = string.Empty;
+    public string ActionLabel { get; set; } = string.Empty;
+    public bool CanExecutePrimaryAction { get; set; }
 }
 
 public sealed class OperationsMetaUpgradeRow
@@ -117,6 +128,7 @@ public interface IOperationsFeatureCommandService
     OperationsFeatureCommandResult DuplicateMaintenancePolicy(string policyId);
     OperationsFeatureCommandResult DeleteMaintenancePolicy(string policyId);
     OperationsFeatureCommandResult AssignMaintenancePolicy(int actorRuntimeId, string policyId);
+    OperationsFeatureCommandResult ExecuteExteriorIncident(string incidentId);
 }
 
 public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryService
@@ -132,6 +144,7 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
     private readonly IWildlifeQuery wildlifeQuery;
     private readonly IWildlifeEcosystemRuntime wildlifeEcosystem;
     private readonly IExteriorZoneQuery exteriorZones;
+    private readonly IExteriorIncidentRuntime exteriorIncidents;
     private readonly ICombatEquipmentMaintenanceRuntime maintenanceRuntime;
     private readonly IStaffWorkforceQueryService workforceQuery;
     private readonly IGameplayFlowDiagnosticsQuery flowDiagnostics;
@@ -146,6 +159,7 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
         IWildlifeQuery wildlifeQuery,
         IWildlifeEcosystemRuntime wildlifeEcosystem,
         IExteriorZoneQuery exteriorZones,
+        IExteriorIncidentRuntime exteriorIncidents,
         ICombatEquipmentMaintenanceRuntime maintenanceRuntime,
         IStaffWorkforceQueryService workforceQuery,
         IGameplayFlowDiagnosticsQuery flowDiagnostics)
@@ -168,6 +182,8 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
             ?? throw new ArgumentNullException(nameof(wildlifeEcosystem));
         this.exteriorZones = exteriorZones
             ?? throw new ArgumentNullException(nameof(exteriorZones));
+        this.exteriorIncidents = exteriorIncidents
+            ?? throw new ArgumentNullException(nameof(exteriorIncidents));
         this.maintenanceRuntime = maintenanceRuntime
             ?? throw new ArgumentNullException(nameof(maintenanceRuntime));
         this.workforceQuery = workforceQuery
@@ -206,6 +222,26 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
                 .ToArray(),
             ExteriorSummary = CreateExteriorSummary(out IReadOnlyList<OperationsStatusRow> exteriorRows),
             ExteriorRows = exteriorRows,
+            ExteriorIncidents = exteriorIncidents.IncidentStates
+                .Where(incident => incident != null && !incident.IsTerminal)
+                .Take(MaxVisibleCards)
+                .Select(incident => new OperationsExteriorIncidentRow
+                {
+                    IncidentId = incident.incidentId,
+                    Title = FormatExteriorIncidentKind(incident.kind),
+                    Detail = $"{FormatExteriorIncidentStage(incident.stage)}"
+                        + $" / 남은 시간 {Mathf.CeilToInt(incident.remainingSeconds)}초"
+                        + (incident.offerPrice > 0
+                            ? $" / 가격 {incident.offerPrice}"
+                            : string.Empty),
+                    ActionLabel = incident.kind == ExteriorIncidentKind.MerchantCart
+                        ? "화물 구매"
+                        : "진행 중",
+                    CanExecutePrimaryAction =
+                        incident.kind == ExteriorIncidentKind.MerchantCart
+                        && incident.receptionApplied
+                })
+                .ToArray(),
             RunVariableSummary = CreateRunVariableSummary(out IReadOnlyList<OperationsStatusRow> variableRows),
             RunVariableRows = variableRows,
             MetaSummary = CreateMetaSummary(out IReadOnlyList<OperationsMetaUpgradeRow> metaRows),
@@ -540,6 +576,34 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
             _ => "취소"
         };
     }
+
+    private static string FormatExteriorIncidentKind(ExteriorIncidentKind kind)
+    {
+        return kind switch
+        {
+            ExteriorIncidentKind.MerchantCart => "상인 마차",
+            ExteriorIncidentKind.Informant => "정보상",
+            ExteriorIncidentKind.Thief => "도둑",
+            ExteriorIncidentKind.InjuredReturnee => "부상 귀환자",
+            ExteriorIncidentKind.PredatorApproach => "포식자 접근",
+            ExteriorIncidentKind.CargoDamage => "화물 훼손 위험",
+            _ => "외부 사건"
+        };
+    }
+
+    private static string FormatExteriorIncidentStage(ExteriorIncidentStage stage)
+    {
+        return stage switch
+        {
+            ExteriorIncidentStage.Preparing => "접근 중",
+            ExteriorIncidentStage.Active => "대응 중",
+            ExteriorIncidentStage.Interacting => "선택 대기",
+            ExteriorIncidentStage.Resolved => "해결",
+            ExteriorIncidentStage.Failed => "실패",
+            ExteriorIncidentStage.TimedOut => "시간 만료",
+            _ => "진행 중"
+        };
+    }
 }
 
 public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandService
@@ -549,13 +613,15 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
     private readonly IMetaProgressionRuntimeProvider metaProvider;
     private readonly ICombatEquipmentMaintenanceRuntime maintenanceRuntime;
     private readonly ICharacterWorldQuery characterWorld;
+    private readonly IExteriorIncidentRuntime exteriorIncidents;
 
     public OperationsFeatureCommandService(
         IOperatingDaySettlementRuntimeProvider settlementProvider,
         IRegularCustomerRuntimeProvider regularCustomerProvider,
         IMetaProgressionRuntimeProvider metaProvider,
         ICombatEquipmentMaintenanceRuntime maintenanceRuntime,
-        ICharacterWorldQuery characterWorld)
+        ICharacterWorldQuery characterWorld,
+        IExteriorIncidentRuntime exteriorIncidents)
     {
         this.settlementProvider = settlementProvider
             ?? throw new ArgumentNullException(nameof(settlementProvider));
@@ -567,6 +633,8 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
             ?? throw new ArgumentNullException(nameof(maintenanceRuntime));
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.exteriorIncidents = exteriorIncidents
+            ?? throw new ArgumentNullException(nameof(exteriorIncidents));
     }
 
     public OperationsFeatureCommandResult TakeEmergencyFunding()
@@ -706,6 +774,15 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
                 : "정비 정책을 배정하지 못했습니다.");
     }
 
+    public OperationsFeatureCommandResult ExecuteExteriorIncident(
+        string incidentId)
+    {
+        bool succeeded = exteriorIncidents.TryExecutePrimaryAction(
+            incidentId,
+            out string message);
+        return new OperationsFeatureCommandResult(succeeded, message);
+    }
+
     private OperationsFeatureCommandResult UpdateMaintenance(
         string policyId,
         Action<EquipmentMaintenancePolicyData> mutate)
@@ -799,8 +876,44 @@ public sealed class OperationsFeatureSurfacePresenter : IFeatureSurfaceTabPresen
         AddStatusSection(view, "작업·물류", model.FlowSummary, "P0State_Flow_", model.FlowRows);
         AddStatusSection(view, "생존", model.SurvivalSummary, "P0State_Survival_", model.SurvivalRows);
         AddStatusSection(view, "외부 활동", model.ExteriorSummary, "P0State_Exterior_", model.ExteriorRows);
+        AddExteriorIncidents(view, model);
         AddMeta(view, model);
         AddStatusSection(view, "런 변수", model.RunVariableSummary, "P1State_RunVariable_", model.RunVariableRows);
+    }
+
+    private void AddExteriorIncidents(
+        IFeatureSurfaceView view,
+        OperationsFeatureSurfaceModel model)
+    {
+        if (model.ExteriorIncidents.Count == 0)
+        {
+            return;
+        }
+
+        view.AddSection("진행 중 외부 사건", $"{model.ExteriorIncidents.Count}건");
+        foreach (OperationsExteriorIncidentRow row in model.ExteriorIncidents)
+        {
+            OperationsExteriorIncidentRow captured = row;
+            view.AddDataCard(
+                $"V16Action_ExteriorIncident_{captured.IncidentId}",
+                captured.Title,
+                captured.Detail,
+                captured.ActionLabel,
+                () =>
+                {
+                    if (!captured.CanExecutePrimaryAction)
+                    {
+                        view.ShowFeedback("사건이 진행 중입니다.");
+                        return;
+                    }
+
+                    Execute(
+                        view,
+                        () => commands.ExecuteExteriorIncident(
+                            captured.IncidentId));
+                },
+                CompactCardHeight);
+        }
     }
 
     private void AddRecruitment(IFeatureSurfaceView view, OperationsFeatureSurfaceModel model)

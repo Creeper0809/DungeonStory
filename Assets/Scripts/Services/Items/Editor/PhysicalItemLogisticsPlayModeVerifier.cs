@@ -84,7 +84,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
 
 public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehaviour
 {
-    private const string IronEdgeId = "weapon:attack-iron";
+    private const string DaggerId = "weapon:dagger";
     private const float HaulTimeoutSeconds = 18f;
 
     private readonly List<string> report = new List<string>();
@@ -96,7 +96,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         new Dictionary<WarehouseInventory, WarehouseInventorySnapshot>();
 
     private DungeonPhysicalItemSaveData physicalSnapshot;
-    private ExpeditionEquipmentSaveData equipmentSnapshot;
+    private DungeonCombatEquipmentSaveData equipmentSnapshot;
     private Mouse originalMouse;
     private Mouse verificationMouse;
     private int verificationMouseSerial;
@@ -120,7 +120,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         DungeonRuntimeLifetimeScope scope = FindScope();
         itemRuntime = Resolve<IWorldItemStackRuntime>(scope);
         IWorkOrderRuntime workOrderRuntime = Resolve<IWorkOrderRuntime>(scope);
-        IExpeditionEquipmentRuntime equipment = Resolve<IExpeditionEquipmentRuntime>(scope);
+        ICombatEquipmentRuntime equipment = Resolve<ICombatEquipmentRuntime>(scope);
         IOffensePreparationService preparation = Resolve<IOffensePreparationService>(scope);
         GridSystemManager gridSystem = UnityEngine.Object.FindFirstObjectByType<GridSystemManager>();
         Grid grid = gridSystem != null ? gridSystem.grid : null;
@@ -128,7 +128,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         Check(scope != null && scope.Container != null, "SCOPE_READY", "gameplay LifetimeScope resolved");
         Check(itemRuntime != null, "ITEM_RUNTIME_READY", "world item runtime resolved");
         Check(workOrderRuntime != null, "WORK_ORDER_RUNTIME_READY", "work order runtime resolved");
-        Check(equipment != null, "EQUIPMENT_RUNTIME_READY", "expedition equipment runtime resolved");
+        Check(equipment != null, "EQUIPMENT_RUNTIME_READY", "common combat equipment runtime resolved");
         Check(preparation != null, "PREPARATION_RUNTIME_READY", "offense preparation service resolved");
         Check(grid != null, "GRID_READY", "grid resolved");
         if (scope == null || itemRuntime == null || workOrderRuntime == null || equipment == null || preparation == null || grid == null)
@@ -465,19 +465,19 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
     private IEnumerator VerifyCraftMaterialsOutputAndEquipmentDeposit(
         IWorldItemStackRuntime itemRuntime,
-        IExpeditionEquipmentRuntime equipment,
+        ICombatEquipmentRuntime equipment,
         CharacterActor hauler,
         Facility warehouse,
         Facility bench)
     {
-        int inventoryBefore = equipment.GetAvailableCount(IronEdgeId);
-        Check(equipment.TryQueueCraft(IronEdgeId, bench, out string queueMessage),
+        int inventoryBefore = equipment.GetAvailableCount(DaggerId);
+        Check(equipment.TryQueueCraft(DaggerId, bench, out string queueMessage),
             "CRAFT_QUEUE_REQUESTED_PHYSICAL_MATERIALS",
             queueMessage);
 
-        ExpeditionEquipmentCraftOrderSaveData order = equipment.CraftQueue
+        CombatEquipmentCraftOrderSaveData order = equipment.CraftQueue
             .FirstOrDefault(item => item != null
-                && string.Equals(item.equipmentId, IronEdgeId, StringComparison.Ordinal)
+                && string.Equals(item.definitionId, DaggerId, StringComparison.Ordinal)
                 && !item.materialsReady);
         Check(order != null
                 && !string.IsNullOrWhiteSpace(order.materialDestinationId)
@@ -500,20 +500,20 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             Destroy(action);
         }
 
-        Check(equipment.HasPendingCraftWork(new[] { IronEdgeId }),
+        Check(equipment.HasPendingCraftWork(new[] { DaggerId }),
             "CRAFT_MATERIALS_READY_AFTER_HAUL",
             order != null ? $"ready={order.materialsReady}" : "missing order");
 
         int guard = 0;
         while (equipment.CraftQueue.Any(item => item != null
-                   && string.Equals(item.equipmentId, IronEdgeId, StringComparison.Ordinal))
+                   && string.Equals(item.definitionId, DaggerId, StringComparison.Ordinal))
                && guard++ < 40)
         {
             ModularFacilityRuntimeEffects.ApplyWorkCompleted(hauler, bench, BuiltInWorkTypeIds.Craft);
             yield return null;
         }
 
-        string outputItemId = DungeonItemCatalogSO.EquipmentItemId(IronEdgeId);
+        string outputItemId = DungeonItemCatalogSO.EquipmentItemId(DaggerId);
         WorldItemStackSnapshot output = itemRuntime.GetAllStacks().FirstOrDefault(stack =>
             stack.State == WorldItemStackState.FacilityBuffer
             && string.Equals(stack.ItemId, outputItemId, StringComparison.Ordinal));
@@ -525,17 +525,17 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         try
         {
             Check(action.CanStart(hauler), "AI_HAUL_CAN_START_CRAFT_OUTPUT", DescribeHaulState(itemRuntime, hauler));
-            yield return RunHaul(action, hauler, () => equipment.GetAvailableCount(IronEdgeId) >= inventoryBefore + 1);
+            yield return RunHaul(action, hauler, () => equipment.GetAvailableCount(DaggerId) >= inventoryBefore + 1);
         }
         finally
         {
             Destroy(action);
         }
 
-        int inventoryAfter = equipment.GetAvailableCount(IronEdgeId);
+        int inventoryAfter = equipment.GetAvailableCount(DaggerId);
         Check(inventoryAfter == inventoryBefore + 1,
             "AI_HAUL_DEPOSITED_EQUIPMENT_TO_INVENTORY",
-            $"IronEdge={inventoryBefore}->{inventoryAfter}; warehouseWeapon={warehouse.Inventory.GetStock(StockCategory.Weapon)}");
+            $"Dagger={inventoryBefore}->{inventoryAfter}; warehouseWeapon={warehouse.Inventory.GetStock(StockCategory.Weapon)}");
     }
 
     private void VerifyExpeditionPacking(
@@ -650,7 +650,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 : "owner missing");
     }
 
-    private void CaptureRuntimeState(IWorldItemStackRuntime itemRuntime, IExpeditionEquipmentRuntime equipment)
+    private void CaptureRuntimeState(IWorldItemStackRuntime itemRuntime, ICombatEquipmentRuntime equipment)
     {
         physicalSnapshot = itemRuntime.Capture();
         equipmentSnapshot = equipment.Capture();
@@ -667,7 +667,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         }
     }
 
-    private void RestoreRuntimeState(IWorldItemStackRuntime itemRuntime, IExpeditionEquipmentRuntime equipment)
+    private void RestoreRuntimeState(IWorldItemStackRuntime itemRuntime, ICombatEquipmentRuntime equipment)
     {
         CharacterSummeryInfo summary = UnityEngine.Object.FindFirstObjectByType<CharacterSummeryInfo>(
             FindObjectsInactive.Include);
@@ -746,7 +746,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         return FindBuildingAsset(asset =>
         {
             BuildingEquipmentCraftingAbility ability = asset.GetAbility<BuildingEquipmentCraftingAbility>();
-            return ability != null && ability.CraftableEquipmentIds.Contains(IronEdgeId, StringComparer.Ordinal);
+            return ability != null && ability.CraftableEquipmentIds.Contains(DaggerId, StringComparer.Ordinal);
         });
     }
 

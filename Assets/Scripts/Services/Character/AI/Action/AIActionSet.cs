@@ -41,6 +41,13 @@ public abstract class AIActionSet : SerializedScriptableObject
         return true;
     }
 
+    public virtual bool CanStart(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        return CanStart(actor);
+    }
+
     public virtual float AdjustScore(CharacterActor actor, float baseScore)
     {
         return Mathf.Clamp01(baseScore);
@@ -61,8 +68,80 @@ public abstract class AIActionSet : SerializedScriptableObject
         GridPathSearchResult searchResult,
         out AIActionFailure failure)
     {
+        return TryPrepareCandidate(
+            actor,
+            searchResult,
+            out _,
+            out failure);
+    }
+
+    public virtual bool TryPrepareCandidate(
+        CharacterActor actor,
+        GridPathSearchResult searchResult,
+        out BuildableObject destination,
+        out AIActionFailure failure)
+    {
+        CharacterAiDecisionContext context = default;
+        return TryPrepareCandidateCore(
+            actor,
+            false,
+            in context,
+            searchResult,
+            out destination,
+            out failure);
+    }
+
+    public virtual bool TryPrepareCandidate(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        GridPathSearchResult searchResult,
+        out BuildableObject destination,
+        out AIActionFailure failure)
+    {
+        return TryPrepareCandidateCore(
+            actor,
+            true,
+            in context,
+            searchResult,
+            out destination,
+            out failure);
+    }
+
+    private bool TryPrepareCandidateCore(
+        CharacterActor actor,
+        bool hasDecisionContext,
+        in CharacterAiDecisionContext context,
+        GridPathSearchResult searchResult,
+        out BuildableObject destination,
+        out AIActionFailure failure)
+    {
+        destination = null;
         failure = AIActionFailure.None;
-        if (!CanStart(actor))
+        ICharacterAiPerformanceRecorder recorder = actor?.Brain?.PerformanceRecorder;
+        long canStartStarted = recorder?.DetailedCollectionEnabled == true
+            ? System.Diagnostics.Stopwatch.GetTimestamp()
+            : 0L;
+        bool canStart = hasDecisionContext
+            ? CanStart(actor, in context)
+            : CanStart(actor);
+        if (canStartStarted != 0L)
+        {
+            double elapsedMilliseconds =
+                (System.Diagnostics.Stopwatch.GetTimestamp() - canStartStarted)
+                * 1000.0
+                / System.Diagnostics.Stopwatch.Frequency;
+            recorder.Record(
+                AiPerformanceCategory.ActionCanStart,
+                elapsedMilliseconds);
+            CharacterAiSlowOperationTrace.Record(
+                "can-start",
+                actor,
+                this,
+                null,
+                elapsedMilliseconds);
+        }
+
+        if (!canStart)
         {
             failure = AIActionFailure.Create(AIActionFailureKind.CannotStart);
             return false;
@@ -73,7 +152,32 @@ public abstract class AIActionSet : SerializedScriptableObject
             return true;
         }
 
-        if (!TryResolveDestinationWithFailure(actor, searchResult, out BuildableObject destination, out failure))
+        long destinationStarted = recorder?.DetailedCollectionEnabled == true
+            ? System.Diagnostics.Stopwatch.GetTimestamp()
+            : 0L;
+        bool resolved = TryResolveDestinationWithFailure(
+                actor,
+                searchResult,
+                out destination,
+                out failure);
+        if (destinationStarted != 0L)
+        {
+            double elapsedMilliseconds =
+                (System.Diagnostics.Stopwatch.GetTimestamp() - destinationStarted)
+                * 1000.0
+                / System.Diagnostics.Stopwatch.Frequency;
+            recorder.Record(
+                AiPerformanceCategory.ActionResolveDestination,
+                elapsedMilliseconds);
+            CharacterAiSlowOperationTrace.Record(
+                "resolve-destination",
+                actor,
+                this,
+                null,
+                elapsedMilliseconds);
+        }
+
+        if (!resolved)
         {
             if (!failure.HasFailure)
             {

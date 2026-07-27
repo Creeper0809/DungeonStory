@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using DungeonStory.Foundation;
@@ -7,6 +8,18 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
+
+internal sealed class CombatEquipmentUiStatBlock
+{
+    public static CombatEquipmentUiStatBlock Empty => new CombatEquipmentUiStatBlock();
+
+    public int maxHealth;
+    public int attack;
+    public int strength;
+    public int toughness;
+    public int dexterity;
+    public int moveSpeed;
+}
 
 public class CharacterSummeryInfo : UIPopUp
 {
@@ -62,7 +75,6 @@ public class CharacterSummeryInfo : UIPopUp
     private int pendingCandidateUnlockLevel = -1;
     private IUiPopupService popupService;
     private ICharacterSummaryRuntimeLogFactory runtimeLogFactory;
-    private IExpeditionEquipmentRuntime equipmentRuntime;
     private IDungeonItemCatalogProvider itemCatalogProvider;
     private IItemHaulingSettingsProvider haulingSettingsProvider;
     private ICharacterBodyHealthRuntime bodyHealthRuntime;
@@ -76,6 +88,7 @@ public class CharacterSummeryInfo : UIPopUp
     private ICaptivityRuntime captivityRuntime;
     private ICaptivityCommandService captivityCommands;
     private ICharacterAiWorldRegistry characterWorld;
+    private ICharacterAiPerformanceRecorder aiPerformanceRecorder;
     private IUiClock uiClock;
     private IGameEventBus gameEventBus;
     private IDisposable growthTabRequestedSubscription;
@@ -94,11 +107,11 @@ public class CharacterSummeryInfo : UIPopUp
         ICombatEquipmentCatalog combatEquipmentCatalog,
         ICombatEquipmentMaintenanceRuntime equipmentMaintenanceRuntime,
         ISurvivalFoodRuntime survivalFoodRuntime,
-        IExpeditionEquipmentRuntime equipmentRuntime,
         ICharacterAiDiagnosticsQuery aiDiagnostics,
         ICaptivityRuntime captivityRuntime,
         ICaptivityCommandService captivityCommands,
         ICharacterAiWorldRegistry characterWorld,
+        ICharacterAiPerformanceRecorder aiPerformanceRecorder,
         IUiClock uiClock,
         IGameEventBus gameEventBus)
     {
@@ -124,8 +137,6 @@ public class CharacterSummeryInfo : UIPopUp
             ?? throw new ArgumentNullException(nameof(equipmentMaintenanceRuntime));
         this.survivalFoodRuntime = survivalFoodRuntime
             ?? throw new ArgumentNullException(nameof(survivalFoodRuntime));
-        this.equipmentRuntime = equipmentRuntime
-            ?? throw new ArgumentNullException(nameof(equipmentRuntime));
         this.aiDiagnostics = aiDiagnostics
             ?? throw new ArgumentNullException(nameof(aiDiagnostics));
         this.captivityRuntime = captivityRuntime
@@ -134,6 +145,8 @@ public class CharacterSummeryInfo : UIPopUp
             ?? throw new ArgumentNullException(nameof(captivityCommands));
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.aiPerformanceRecorder = aiPerformanceRecorder
+            ?? throw new ArgumentNullException(nameof(aiPerformanceRecorder));
         this.uiClock = uiClock
             ?? throw new ArgumentNullException(nameof(uiClock));
         this.gameEventBus = gameEventBus
@@ -891,6 +904,36 @@ public class CharacterSummeryInfo : UIPopUp
 
     public void RefreshAiDetails()
     {
+        bool measure = aiPerformanceRecorder?.DetailedCollectionEnabled == true;
+        long allocatedBefore = measure
+            ? GC.GetAllocatedBytesForCurrentThread()
+            : 0L;
+        long startedAt = measure ? Stopwatch.GetTimestamp() : 0L;
+        try
+        {
+            RefreshAiDetailsCore();
+        }
+        finally
+        {
+            if (measure)
+            {
+                double elapsedMilliseconds =
+                    (Stopwatch.GetTimestamp() - startedAt)
+                    * 1000d
+                    / Stopwatch.Frequency;
+                long allocatedBytes = Math.Max(
+                    0L,
+                    GC.GetAllocatedBytesForCurrentThread() - allocatedBefore);
+                aiPerformanceRecorder.Record(
+                    AiPerformanceCategory.UiFeedback,
+                    elapsedMilliseconds,
+                    allocatedBytes);
+            }
+        }
+    }
+
+    private void RefreshAiDetailsCore()
+    {
         if (aiSummaryText == null)
         {
             return;
@@ -1512,13 +1555,13 @@ public class CharacterSummeryInfo : UIPopUp
         builder.AppendLine($"특성  {(string.IsNullOrWhiteSpace(traits) ? "없음" : traits)}");
         builder.AppendLine("능력치  기본 | 종족·특성 | 레벨 | 장비 | 조건부 | 최종");
 
-        ExpeditionEquipmentStatBlock equipment = GetCurrentEquipmentBonuses();
+        CombatEquipmentUiStatBlock equipment = GetCurrentEquipmentBonuses();
         foreach (CharacterStatDefinition definition in CharacterStatCatalog.All
                      .Where(item => item.LegacyType.HasValue))
         {
             CharacterStatType statType = definition.LegacyType.Value;
             CharacterStatBreakdown breakdown = progression.GetStatBreakdown(statType);
-            int equipmentBonus = GetEquipmentBonus(equipment, statType);
+            int equipmentBonus = 0;
             int finalValue = Mathf.Max(0, breakdown.FinalValue + equipmentBonus);
             builder.AppendLine(
                 $"{definition.DisplayName}  {breakdown.BaseValue} | {FormatSigned(breakdown.SpeciesTraitValue)} | {FormatSigned(breakdown.LevelGrowthValue)} | {FormatSigned(equipmentBonus)} | {FormatSigned(breakdown.ConditionalPassiveValue)} | {finalValue}");
@@ -1696,21 +1739,20 @@ public class CharacterSummeryInfo : UIPopUp
         nextVitalsRefreshAt = 0f;
     }
 
-    private ExpeditionEquipmentStatBlock GetCurrentEquipmentBonuses()
+    private CombatEquipmentUiStatBlock GetCurrentEquipmentBonuses()
     {
         string characterId = actor?.Identity?.PersistentId;
         if (string.IsNullOrWhiteSpace(characterId))
         {
-            return ExpeditionEquipmentStatBlock.Empty;
+            return CombatEquipmentUiStatBlock.Empty;
         }
 
-        IExpeditionEquipmentRuntime runtime = ResolveEquipmentRuntime();
-        return runtime?.GetCombatBonuses(characterId) ?? ExpeditionEquipmentStatBlock.Empty;
+        return CombatEquipmentUiStatBlock.Empty;
     }
 
-    private IExpeditionEquipmentRuntime ResolveEquipmentRuntime()
+    private ICombatEquipmentRuntime ResolveEquipmentRuntime()
     {
-        return equipmentRuntime;
+        return combatEquipmentRuntime;
     }
 
     private IUiPopupService ResolvePopupService()
@@ -1822,7 +1864,7 @@ public class CharacterSummeryInfo : UIPopUp
     }
 
     private static int GetEquipmentBonus(
-        ExpeditionEquipmentStatBlock equipment,
+        CombatEquipmentUiStatBlock equipment,
         CharacterStatType statType)
     {
         if (equipment == null)

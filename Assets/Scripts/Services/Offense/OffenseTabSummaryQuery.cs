@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 public readonly struct OffenseTabSummary
 {
@@ -55,11 +56,15 @@ public sealed class OffenseTabSummaryService : IOffenseTabSummaryService
     private readonly IOffenseWorldMapRuntimeProvider worldMapProvider;
     private readonly IOffenseExpeditionRuntimeProvider expeditionProvider;
     private readonly IOffenseRewardRuntimeProvider rewardProvider;
+    private readonly IRegularCustomerRuntimeProvider regularCustomerProvider;
+    private readonly ICaptivityRuntime captivityRuntime;
 
     public OffenseTabSummaryService(
         IOffenseWorldMapRuntimeProvider worldMapProvider,
         IOffenseExpeditionRuntimeProvider expeditionProvider,
-        IOffenseRewardRuntimeProvider rewardProvider)
+        IOffenseRewardRuntimeProvider rewardProvider,
+        IRegularCustomerRuntimeProvider regularCustomerProvider,
+        ICaptivityRuntime captivityRuntime)
     {
         this.worldMapProvider = worldMapProvider
             ?? throw new ArgumentNullException(nameof(worldMapProvider));
@@ -67,6 +72,10 @@ public sealed class OffenseTabSummaryService : IOffenseTabSummaryService
             ?? throw new ArgumentNullException(nameof(expeditionProvider));
         this.rewardProvider = rewardProvider
             ?? throw new ArgumentNullException(nameof(rewardProvider));
+        this.regularCustomerProvider = regularCustomerProvider
+            ?? throw new ArgumentNullException(nameof(regularCustomerProvider));
+        this.captivityRuntime = captivityRuntime
+            ?? throw new ArgumentNullException(nameof(captivityRuntime));
     }
 
     public OffenseTabSummary Capture()
@@ -74,6 +83,15 @@ public sealed class OffenseTabSummaryService : IOffenseTabSummaryService
         worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap);
         expeditionProvider.TryGetRuntime(out OffenseExpeditionRuntime expedition);
         rewardProvider.TryGetRuntime(out OffenseRewardRuntime rewards);
+        regularCustomerProvider.TryGetRuntime(out RegularCustomerRuntime regularCustomers);
+        int prisonerCount = captivityRuntime.Captives.Count(captive =>
+            captive != null
+            && captive.status is not CaptivityStatus.Released
+            and not CaptivityStatus.Escaped
+            and not CaptivityStatus.Dead
+            and not CaptivityStatus.Recruited);
+        int recruitCandidateCount = regularCustomers?.State.Records.Count(record =>
+            record != null && record.IsRecruitCandidate && !record.IsRecruited) ?? 0;
 
         return new OffenseTabSummary(
             worldMap != null,
@@ -86,7 +104,7 @@ public sealed class OffenseTabSummaryService : IOffenseTabSummaryService
             worldMap != null ? worldMap.CampaignTargetCount : 0,
             worldMap != null && worldMap.State.TruthRevealed,
             rewards != null ? rewards.State.MoneyEarned : 0,
-            rewards != null ? rewards.State.PrisonerCount : 0,
-            rewards != null ? rewards.State.RecruitCandidateCount : 0);
+            prisonerCount,
+            recruitCandidateCount);
     }
 }

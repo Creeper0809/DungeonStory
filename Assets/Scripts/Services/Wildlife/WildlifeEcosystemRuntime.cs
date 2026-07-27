@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -194,6 +195,9 @@ public sealed class WildlifeEcosystemRuntime :
     ITickable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("WildlifeEcosystemRuntime.Tick");
+
     private const int DefaultDesiredWildlifeCount = 8;
     private const float PatchTickInterval = 1f;
     private const float OverlayRefreshInterval = 0.45f;
@@ -261,6 +265,14 @@ public sealed class WildlifeEcosystemRuntime :
     }
 
     public void Tick()
+    {
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
     {
         if (gridSystemProvider == null || !gridSystemProvider.TryGetGrid(out Grid grid))
         {

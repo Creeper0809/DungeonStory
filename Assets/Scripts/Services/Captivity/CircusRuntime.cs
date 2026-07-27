@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -11,6 +12,9 @@ public sealed class CircusRuntime :
     IStartable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("CircusRuntime.Tick");
+
     private readonly CircusProgramRegistry programs;
     private readonly ICaptivityRuntime captivity;
     private readonly ICaptivityCommandService captivityCommands;
@@ -35,6 +39,8 @@ public sealed class CircusRuntime :
         new Dictionary<string, Vector2Int>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> wildlifeReturnOrders =
         new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly List<string> wildlifeReturnTickIds =
+        new List<string>();
     private int nextOrderSequence;
     private IDisposable invasionSubscription;
 
@@ -106,14 +112,26 @@ public sealed class CircusRuntime :
 
     public void Tick()
     {
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
         if (clock.IsPaused || clock.DeltaTime <= 0f)
         {
             return;
         }
 
-        foreach (CircusShowOrder order in orders.Where(item => !item.IsTerminal).ToArray())
+        for (int index = 0; index < orders.Count; index++)
         {
-            TickOrder(order);
+            CircusShowOrder order = orders[index];
+            if (order != null && !order.IsTerminal)
+            {
+                TickOrder(order);
+            }
         }
 
         TickWildlifeReturns();
@@ -155,6 +173,29 @@ public sealed class CircusRuntime :
             .Where(captive => captive != null && captive.IsActive)
             .Take(stageAbility.performerCapacity)
             .ToList();
+        foreach (CaptiveState performer in performers)
+        {
+            CharacterActor actor = FindActor(performer.captiveId);
+            CharacterBodyHealthSnapshot health = bodyHealth.GetSnapshot(actor);
+            bool injured = actor == null
+                || health.Downed
+                || health.BloodLoss > 0.01f
+                || health.Parts.Any(part =>
+                    part != null && part.currentHealth + 0.01f < part.maxHealth);
+            if (!injured)
+            {
+                continue;
+            }
+
+            if (actor != null)
+            {
+                medical.TryRequestTreatment(actor, out _, out _);
+            }
+
+            failureReason = $"{performer.displayName}은 부상 치료가 끝날 때까지 공연할 수 없습니다.";
+            return false;
+        }
+
         CircusShowOrder candidate = new CircusShowOrder
         {
             orderId = $"circus:{++nextOrderSequence}",
@@ -1145,25 +1186,43 @@ public sealed class CircusRuntime :
 
     private void TickWildlifeReturns()
     {
-        foreach (KeyValuePair<string, Vector2Int> pair in
-                 wildlifeReturnTargets.ToArray())
+        if (wildlifeReturnTargets.Count == 0)
         {
-            WildlifeActor wildlife = FindWildlife(pair.Key);
-            if (wildlife == null)
+            return;
+        }
+
+        wildlifeReturnTickIds.Clear();
+        foreach (string wildlifeId in wildlifeReturnTargets.Keys)
+        {
+            wildlifeReturnTickIds.Add(wildlifeId);
+        }
+
+        for (int index = 0; index < wildlifeReturnTickIds.Count; index++)
+        {
+            string wildlifeId = wildlifeReturnTickIds[index];
+            if (!wildlifeReturnTargets.TryGetValue(
+                    wildlifeId,
+                    out Vector2Int returnTarget))
             {
-                FinishWildlifeReturn(pair.Key);
                 continue;
             }
 
-            if (wildlife.GridPosition == pair.Value)
+            WildlifeActor wildlife = FindWildlife(wildlifeId);
+            if (wildlife == null)
             {
-                FinishWildlifeReturn(pair.Key);
+                FinishWildlifeReturn(wildlifeId);
+                continue;
+            }
+
+            if (wildlife.GridPosition == returnTarget)
+            {
+                FinishWildlifeReturn(wildlifeId);
                 continue;
             }
 
             if (!wildlife.IsMoving)
             {
-                wildlife.TrySetManagedCaptivePath(pair.Value, clock.Time);
+                wildlife.TrySetManagedCaptivePath(returnTarget, clock.Time);
             }
         }
     }

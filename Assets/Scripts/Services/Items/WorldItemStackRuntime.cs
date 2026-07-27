@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
@@ -38,6 +39,7 @@ public sealed class WorldItemStackRuntime :
     private readonly WorldItemQueryService itemQueryService;
     private readonly IWorldItemHaulPlanningService haulPlanningService;
     private readonly IItemTransferService itemTransferService;
+    private readonly ICharacterAiPerformanceRecorder performanceRecorder;
 
     private List<WorldItemStackRecord> stacks => itemRepository.Records;
     private Dictionary<string, WorldItemStackRecord> stacksById => itemRepository.RecordsById;
@@ -67,7 +69,8 @@ public sealed class WorldItemStackRuntime :
         WorldItemQueryService itemQueryService,
         IWorldItemHaulPlanningService haulPlanningService,
         IItemMarkerPresenter itemMarkerPresenter = null,
-        IItemTransferService itemTransferService = null)
+        IItemTransferService itemTransferService = null,
+        ICharacterAiPerformanceRecorder performanceRecorder = null)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.catalogProvider = catalogProvider ?? throw new ArgumentNullException(nameof(catalogProvider));
@@ -101,6 +104,7 @@ public sealed class WorldItemStackRuntime :
         this.haulPlanningService = haulPlanningService
             ?? throw new ArgumentNullException(nameof(haulPlanningService));
         this.itemMarkerPresenter = itemMarkerPresenter ?? NullItemMarkerPresenter.Instance;
+        this.performanceRecorder = performanceRecorder;
         this.itemTransferService = itemTransferService
             ?? new ItemTransferService(
                 this.gridSystemProvider,
@@ -326,6 +330,24 @@ public sealed class WorldItemStackRuntime :
         out int requested,
         out string failureReason)
     {
+        DungeonItemDefinition definition = catalogProvider.GetDefinition(category);
+        return TryRequestItemDelivery(
+            definition.ItemId,
+            amount,
+            destinationPosition,
+            destinationId,
+            out requested,
+            out failureReason);
+    }
+
+    public bool TryRequestItemDelivery(
+        string itemId,
+        int amount,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int requested,
+        out string failureReason)
+    {
         requested = 0;
         failureReason = string.Empty;
         int remaining = Mathf.Max(0, amount);
@@ -341,11 +363,14 @@ public sealed class WorldItemStackRuntime :
             return false;
         }
 
-        DungeonItemDefinition definition = catalogProvider.GetDefinition(category);
+        DungeonItemDefinition definition = catalogProvider.GetDefinition(itemId);
         IWarehouseFacility[] warehouses = GetWarehouses().ToArray();
         foreach (IWarehouseFacility warehouse in warehouses)
         {
-            EnsureStoredWarehouseMirror(warehouse, definition.ItemId, category);
+            EnsureStoredWarehouseMirror(
+                warehouse,
+                definition.ItemId,
+                definition.StockCategory);
         }
 
         int looseAvailable = CountLooseStockAvailable(definition.ItemId);
@@ -429,7 +454,22 @@ public sealed class WorldItemStackRuntime :
         out WorldItemHaulPlan plan,
         out string failureReason)
     {
-        return haulPlanningService.TryReserveBestPlan(actor, out plan, out failureReason);
+        long started = performanceRecorder?.DetailedCollectionEnabled == true
+            ? Stopwatch.GetTimestamp()
+            : 0L;
+        try
+        {
+            return haulPlanningService.TryReserveBestPlan(actor, out plan, out failureReason);
+        }
+        finally
+        {
+            if (started != 0L)
+            {
+                performanceRecorder.Record(
+                    AiPerformanceCategory.HaulPlanning,
+                    (Stopwatch.GetTimestamp() - started) * 1000.0 / Stopwatch.Frequency);
+            }
+        }
     }
 
     public bool TryReserveStoredItemForDirectPickup(
@@ -453,16 +493,6 @@ public sealed class WorldItemStackRuntime :
         }
 
         string actorId = characterIdRegistry.GetOrAssignPersistentId(actor);
-        GridPathSearchResult reachable = actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
-        if (reachable == null
-            && !pathSearchBroker.TryGetSearch(grid, actor.GetNowXY(), out reachable))
-        {
-            failureReason = "장비 보관 위치로 갈 수 없습니다.";
-            return false;
-        }
-
         WorldItemStackRecord selected = stacks
             .Where(record => record != null
                 && record.quantity > 0
@@ -479,8 +509,7 @@ public sealed class WorldItemStackRuntime :
                     out Vector2Int stand),
                 Stand = stand
             })
-            .Where(candidate => candidate.HasStand
-                && reachable.ContainsPosition(candidate.Stand))
+            .Where(candidate => candidate.HasStand)
             .OrderBy(candidate => GetManhattanDistance(
                 actor.GetNowXY(),
                 candidate.Stand))
@@ -650,10 +679,6 @@ public sealed class WorldItemStackRuntime :
 
         Vector2Int origin = ResolveActorGridPosition(actor);
         int radius = Mathf.Max(0, searchRadius);
-        GridPathSearchResult reachable = actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
-
         WorldItemStackRecord bestStack = null;
         DungeonItemDefinition bestDefinition = null;
         float bestScore = float.MinValue;
@@ -669,8 +694,7 @@ public sealed class WorldItemStackRuntime :
             }
 
             int distance = Mathf.Abs(stack.position.x - origin.x) + Mathf.Abs(stack.position.y - origin.y);
-            if (distance > radius
-                || (reachable != null && !reachable.ContainsPosition(stack.position)))
+            if (distance > radius)
             {
                 continue;
             }

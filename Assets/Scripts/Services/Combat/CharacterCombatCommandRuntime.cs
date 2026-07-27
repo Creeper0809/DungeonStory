@@ -31,6 +31,7 @@ public sealed class CharacterCombatCommandRuntime :
         new Dictionary<string, float>(StringComparer.Ordinal);
     private readonly Dictionary<string, int> commandRevisions =
         new Dictionary<string, int>(StringComparer.Ordinal);
+    private readonly List<string> tickCommandActorIds = new List<string>();
     private IReadOnlyList<CharacterCombatCommand> commandView = Array.Empty<CharacterCombatCommand>();
     private bool viewDirty = true;
     private int commandSequence;
@@ -101,6 +102,7 @@ public sealed class CharacterCombatCommandRuntime :
         commands.Clear();
         combatStance.Clear();
         nextMoveRetryAt.Clear();
+        tickCommandActorIds.Clear();
     }
 
     public void Tick()
@@ -111,19 +113,30 @@ public sealed class CharacterCombatCommandRuntime :
             return;
         }
 
-        foreach (KeyValuePair<string, CharacterCombatCommand> pair in commands.ToArray())
+        tickCommandActorIds.Clear();
+        foreach (string actorId in commands.Keys)
         {
-            CharacterCombatCommand command = pair.Value;
-            CharacterActor actor = FindCharacter(pair.Key);
-            if (actor == null || actor.IsDead || actor.CurrentLifecycleState != CharacterLifecycleState.Active)
+            tickCommandActorIds.Add(actorId);
+        }
+
+        for (int index = 0; index < tickCommandActorIds.Count; index++)
+        {
+            string actorId = tickCommandActorIds[index];
+            if (!commands.TryGetValue(actorId, out CharacterCombatCommand command))
             {
-                CancelCommandById(pair.Key, "전투 명령 수행 불가");
                 continue;
             }
 
-            if (!combatStance.Contains(pair.Key))
+            CharacterActor actor = FindCharacter(actorId);
+            if (actor == null || actor.IsDead || actor.CurrentLifecycleState != CharacterLifecycleState.Active)
             {
-                CancelCommandById(pair.Key, "전투 태세 해제");
+                CancelCommandById(actorId, "전투 명령 수행 불가");
+                continue;
+            }
+
+            if (!combatStance.Contains(actorId))
+            {
+                CancelCommandById(actorId, "전투 태세 해제");
                 continue;
             }
 
@@ -1075,22 +1088,49 @@ public sealed class CharacterCombatCommandRuntime :
             }
         }
 
-        if (!pathSearchBroker.TryGetSearch(
-                grid,
-                actor.GetNowXY(),
-                out GridPathSearchResult search))
+        Vector2Int actorCell = actor.GetNowXY();
+        string actorId = GetId(actor);
+        candidates.RemoveAll(cell =>
+            tacticalCoordinator.IsReservedForOther(actorId, cell));
+        candidates.Sort((left, right) =>
         {
-            return false;
+            int rangeComparison = Mathf.Abs(
+                    Manhattan(left, targetCell) - preferredRange)
+                .CompareTo(Mathf.Abs(
+                    Manhattan(right, targetCell) - preferredRange));
+            return rangeComparison != 0
+                ? rangeComparison
+                : Manhattan(actorCell, left).CompareTo(
+                    Manhattan(actorCell, right));
+        });
+
+        Vector2Int? selected = null;
+        for (int index = 0; index < candidates.Count; index++)
+        {
+            Vector2Int candidate = candidates[index];
+            if (candidate == actorCell)
+            {
+                selected = candidate;
+                break;
+            }
+
+            Queue<GridMoveStep> path = pathSearchBroker.GetMovePathTo(
+                grid,
+                actorCell,
+                candidate);
+            if (path == null)
+            {
+                // The broker resumes this exact A* search in a later frame.
+                return false;
+            }
+
+            if (path.Count > 0)
+            {
+                selected = candidate;
+                break;
+            }
         }
 
-        Vector2Int? selected = candidates
-            .Where(cell =>
-                !tacticalCoordinator.IsReservedForOther(GetId(actor), cell)
-                && (cell == actor.GetNowXY() || search.ContainsPosition(cell)))
-            .OrderBy(cell => Mathf.Abs(Manhattan(cell, targetCell) - preferredRange))
-            .ThenBy(cell => Manhattan(actor.GetNowXY(), cell))
-            .Cast<Vector2Int?>()
-            .FirstOrDefault();
         if (!selected.HasValue)
         {
             return false;
@@ -1098,7 +1138,7 @@ public sealed class CharacterCombatCommandRuntime :
 
         destination = selected.Value;
         return tacticalCoordinator.TryReserve(
-            GetId(actor),
+            actorId,
             FindTargetIdAt(targetCell),
             destination,
             weapon.IsRanged

@@ -59,14 +59,11 @@ public class AIFacilityRoleAction : AIActionSet
         CharacterActor actor,
         IReadOnlyList<BuildableObject> candidates)
     {
-        GridPathSearchResult searchResult = actor != null && actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
         return FacilityCandidateScorer.SelectBest(
             actor,
             candidates,
             role,
-            searchResult,
+            null,
             FacilityScoringContext.RequireFromActor(actor));
     }
 
@@ -76,18 +73,23 @@ public class AIFacilityRoleAction : AIActionSet
         out BuildableObject destination,
         out AIActionFailure failure)
     {
-        if (FacilityCandidateScorer.TrySelectBest(
+        if (FacilityCandidateScorer.TrySelectBestIncremental(
             actor,
             searchResult,
             role,
             FacilityScoringContext.RequireFromActor(actor),
-            out destination))
+            out destination,
+            out bool pending))
         {
             failure = AIActionFailure.None;
             return true;
         }
 
-        failure = AIActionFailure.Create(AIActionFailureKind.NoDestination);
+        failure = AIActionFailure.Create(
+            pending
+                ? AIActionFailureKind.PathSearchDeferred
+                : AIActionFailureKind.NoDestination,
+            pending ? "시설 후보를 나누어 확인하는 중" : string.Empty);
         return false;
     }
 

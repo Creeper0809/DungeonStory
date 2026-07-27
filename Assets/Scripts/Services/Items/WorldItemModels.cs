@@ -236,6 +236,13 @@ public interface IWorldItemStackRuntime
         string destinationId,
         out int requested,
         out string failureReason);
+    bool TryRequestItemDelivery(
+        string itemId,
+        int amount,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int requested,
+        out string failureReason);
     bool TryGetPileAt(Vector2Int position, out WorldItemPileSnapshot pile);
     bool TryGetPileTargetAt(
         Vector2Int position,

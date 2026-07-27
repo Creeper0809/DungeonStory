@@ -17,6 +17,7 @@ namespace DungeonStory.Foundation
     public sealed class SceneRuntimeRegistry<T> : ISceneRuntimeRegistry<T> where T : class
     {
         private readonly List<T> entries = new List<T>();
+        private readonly HashSet<T> entrySet = new HashSet<T>();
         private readonly ReadOnlyCollection<T> readOnlyEntries;
 
         public SceneRuntimeRegistry()
@@ -26,18 +27,11 @@ namespace DungeonStory.Foundation
 
         public int Version { get; private set; }
 
-        public IReadOnlyList<T> Entries
-        {
-            get
-            {
-                PruneDestroyedEntries();
-                return readOnlyEntries;
-            }
-        }
+        public IReadOnlyList<T> Entries => readOnlyEntries;
 
         public bool Register(T entry)
         {
-            if (!IsAlive(entry) || entries.Contains(entry))
+            if (!IsAlive(entry) || !entrySet.Add(entry))
             {
                 return false;
             }
@@ -49,11 +43,12 @@ namespace DungeonStory.Foundation
 
         public bool Unregister(T entry)
         {
-            if (entry == null || !entries.Remove(entry))
+            if (entry == null || !entrySet.Remove(entry))
             {
                 return false;
             }
 
+            entries.Remove(entry);
             IncrementVersion();
             return true;
         }
@@ -66,27 +61,8 @@ namespace DungeonStory.Foundation
             }
 
             entries.Clear();
+            entrySet.Clear();
             IncrementVersion();
-        }
-
-        private void PruneDestroyedEntries()
-        {
-            bool changed = false;
-            for (int index = entries.Count - 1; index >= 0; index--)
-            {
-                if (IsAlive(entries[index]))
-                {
-                    continue;
-                }
-
-                entries.RemoveAt(index);
-                changed = true;
-            }
-
-            if (changed)
-            {
-                IncrementVersion();
-            }
         }
 
         private void IncrementVersion()

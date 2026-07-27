@@ -42,11 +42,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: e175fa2724a20ee4e8bb5d2ed5817f09, type: 3}
   abilityModules:
     items:
-    - rid: 7302563192359357970
-    - rid: 7302563192359357971
-    - rid: 7302563192359357972
-    - rid: 7302563192359357973
-    - rid: 7302563192359357974
+    - rid: 7302563199433049772
+    - rid: 7302563199433049773
+    - rid: 7302563199433049774
+    - rid: 7302563199433049775
+    - rid: 7302563199433049776
   width: 1
   height: 1
   layer: 1
@@ -61,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563192359357970
+    - rid: 7302563199433049772
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CP02
-    - rid: 7302563192359357971
+    - rid: 7302563199433049773
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,7 +74,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563192359357972
+    - rid: 7302563199433049774
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -85,11 +85,11 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 0
           disabledWhenDamaged: 1
-    - rid: 7302563192359357973
+    - rid: 7302563199433049775
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563192359357974
+    - rid: 7302563199433049776
       type: {class: BuildingPublicPunishmentAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPublicPunishmentAbility

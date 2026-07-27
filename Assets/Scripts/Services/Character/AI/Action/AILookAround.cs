@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "DungeonStory/AI/Action/LookAround", order = 0)]
@@ -21,6 +20,16 @@ public class AILookAround : AIActionSet
     public override bool CanStart(CharacterActor actor)
     {
         return CanUseVisitLookAround(actor);
+    }
+
+    public override bool CanStart(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        return actor != null
+            && context.HasShoppingAbility
+            && context.CanLookAround
+            && (!context.IsWorker || context.IsOffDuty);
     }
 
     public override float AdjustScore(CharacterActor actor, float baseScore)
@@ -70,17 +79,34 @@ public class AILookAround : AIActionSet
             return new List<BuildableObject>();
         }
 
-        List<BuildableObject> reachableBuildings = searchResult != null
-            ? searchResult.GetAllReachableBuilding()
-            : actor.GetReachableBuilding();
-
         Vector2Int currentPos = actor.GetNowXY();
-        List<BuildableObject> candidates = reachableBuildings
-            .Where((building) => building != null
-                && !building.isDestroy
-                && building.IsGridMovement
-                && (building.buildPoses == null || !building.buildPoses.Contains(currentPos)))
-            .ToList();
+        IReadOnlyList<BuildableObject> source = searchResult != null
+            ? searchResult.GetAllReachableBuilding()
+            : actor.WorldRegistry?.Buildings;
+        if (source == null || source.Count == 0)
+        {
+            return new List<BuildableObject>();
+        }
+
+        Grid actorGrid = actor.Brain != null
+            && actor.Brain.TryGetRuntimeGrid(out Grid runtimeGrid)
+                ? runtimeGrid
+                : null;
+        List<BuildableObject> candidates = new List<BuildableObject>();
+        foreach (BuildableObject building in source)
+        {
+            if (building == null
+                || building.isDestroy
+                || !building.IsGridMovement
+                || (actorGrid != null && building.Grid != actorGrid)
+                || ContainsPosition(building.buildPoses, currentPos))
+            {
+                continue;
+            }
+
+            candidates.Add(building);
+        }
+
         Shuffle(actor, candidates);
         return candidates;
     }
@@ -94,7 +120,27 @@ public class AILookAround : AIActionSet
             return null;
         }
 
-        return candidates.FirstOrDefault();
+        return candidates[0];
+    }
+
+    private static bool ContainsPosition(
+        IReadOnlyList<Vector2Int> positions,
+        Vector2Int position)
+    {
+        if (positions == null)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < positions.Count; index++)
+        {
+            if (positions[index] == position)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static bool CanUseVisitLookAround(CharacterActor actor)

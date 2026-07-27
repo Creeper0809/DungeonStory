@@ -31,7 +31,7 @@ public enum FacilityRole
 }
 
 [Flags]
-internal enum FacilityWorkType
+public enum FacilityWorkType
 {
     None = 0,
     Operate = 1 << 0,
@@ -65,5 +65,8 @@ public enum StockCategory
     Water = 4,
     Medicine = 5,
     Fuel = 6,
-    Ammunition = 7
+    Ammunition = 7,
+    Biological = 8,
+    Knowledge = 9,
+    Blueprint = 10
 }

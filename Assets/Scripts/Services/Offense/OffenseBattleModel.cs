@@ -1858,8 +1858,7 @@ public static class OffenseEncounterCatalog
         CharacterActor actor,
         string persistentId,
         OffenseFormationSlot formation = OffenseFormationSlot.Front,
-        float stress = 0f,
-        ExpeditionEquipmentStatBlock equipment = null)
+        float stress = 0f)
     {
         if (actor == null)
         {
@@ -1869,8 +1868,7 @@ public static class OffenseEncounterCatalog
         actor.EnsureRuntimeState();
         CharacterIdentity identity = actor.Identity;
         float stressMultiplier = Mathf.Lerp(1f, 0.65f, Mathf.Clamp01(stress / 100f));
-        equipment ??= ExpeditionEquipmentStatBlock.Empty;
-        float maxHealth = Mathf.Max(1f, actor.MaxHealth + equipment.maxHealth);
+        float maxHealth = Mathf.Max(1f, actor.MaxHealth);
         return new OffenseBattleCombatant(
             persistentId,
             identity != null ? identity.DisplayName : actor.name,
@@ -1878,14 +1876,14 @@ public static class OffenseEncounterCatalog
             OffenseBattleTeam.Allies,
             new OffenseBattleStats(
                 maxHealth,
-                actor.GetCharacterStat(CharacterStatType.Attack) * stressMultiplier + equipment.attack,
-                actor.GetCharacterStat(CharacterStatType.Strength) * stressMultiplier + equipment.strength,
-                actor.GetCharacterStat(CharacterStatType.Toughness) * stressMultiplier + equipment.toughness,
-                actor.GetCharacterStat(CharacterStatType.Dexterity) * stressMultiplier + equipment.dexterity,
-                actor.GetCharacterStat(CharacterStatType.MoveSpeed) * stressMultiplier + equipment.moveSpeed,
+                actor.GetCharacterStat(CharacterStatType.Attack) * stressMultiplier,
+                actor.GetCharacterStat(CharacterStatType.Strength) * stressMultiplier,
+                actor.GetCharacterStat(CharacterStatType.Toughness) * stressMultiplier,
+                actor.GetCharacterStat(CharacterStatType.Dexterity) * stressMultiplier,
+                actor.GetCharacterStat(CharacterStatType.MoveSpeed) * stressMultiplier,
                 actor.GetCharacterStat(CharacterStatType.Shooting) * stressMultiplier,
                 actor.GetCharacterStat(CharacterStatType.Evasion) * stressMultiplier),
-            Mathf.Clamp(actor.CurrentHealth + equipment.maxHealth, 0f, maxHealth),
+            Mathf.Clamp(actor.CurrentHealth, 0f, maxHealth),
             CharacterCombatAbilityCatalog.GetAbilities(actor),
             identity?.Data != null ? identity.Data.id : -1,
             formation);
@@ -1894,7 +1892,8 @@ public static class OffenseEncounterCatalog
     public static IReadOnlyList<OffenseBattleCombatant> CreateEnemies(
         OffenseTargetDefinition target,
         DungeonDifficulty difficulty,
-        OffenseRouteNode routeNode = null)
+        OffenseRouteNode routeNode = null,
+        OffenseStrategicPressureSnapshot pressure = default)
     {
         int stage = Mathf.Clamp(target?.campaignOrder ?? 1, 1, 6);
         DungeonDifficultyMultipliers multipliers = DungeonDifficultyRules.GetOffenseMultipliers(difficulty);
@@ -1938,22 +1937,40 @@ public static class OffenseEncounterCatalog
         int enemyCount = routeNode == null || routeNode.IsBoss
             ? templates.Count
             : Mathf.Min(templates.Count, routeNode.Depth <= 1 ? 1 : 2);
+        if (target != null && !target.revealsTruth && pressure.Manpower >= 40f)
+        {
+            float countMultiplier = Mathf.Clamp(1f - pressure.Manpower * 0.005f, 0.5f, 1f);
+            enemyCount = Mathf.Clamp(
+                Mathf.CeilToInt(enemyCount * countMultiplier),
+                1,
+                templates.Count);
+        }
+
         float encounterScale = routeNode == null || routeNode.IsBoss
             ? 1f
             : Mathf.Clamp(routeNode.DangerMultiplier, 0.65f, 1.1f);
+        float healthPressureMultiplier = target != null && !target.revealsTruth
+            ? Mathf.Clamp(1f - pressure.Manpower * 0.002f, 0.8f, 1f)
+            : 1f;
+        float armamentPressureMultiplier = target != null && !target.revealsTruth
+            ? Mathf.Clamp(1f - pressure.Armament * 0.002f, 0.8f, 1f)
+            : 1f;
+        float readinessPressureMultiplier = target != null && !target.revealsTruth
+            ? Mathf.Clamp(1f - (pressure.Logistics + pressure.Intelligence) * 0.00075f, 0.85f, 1f)
+            : 1f;
         return templates.Take(enemyCount).Select((template, index) => new OffenseBattleCombatant(
             $"enemy:{target?.id ?? "unknown"}:{template.Id}:{index}",
             template.Name,
             template.Species,
             OffenseBattleTeam.Enemies,
             new OffenseBattleStats(
-                template.Health * multipliers.EnemyHealth * encounterScale,
-                template.Attack * multipliers.EnemyAttack * encounterScale,
-                template.Strength * multipliers.EnemyAttack * encounterScale,
-                template.Toughness * encounterScale,
-                template.Dexterity * multipliers.EnemyInitiative * encounterScale,
-                template.MoveSpeed * multipliers.EnemyInitiative * encounterScale),
-            template.Health * multipliers.EnemyHealth * encounterScale,
+                template.Health * multipliers.EnemyHealth * encounterScale * healthPressureMultiplier,
+                template.Attack * multipliers.EnemyAttack * encounterScale * armamentPressureMultiplier,
+                template.Strength * multipliers.EnemyAttack * encounterScale * armamentPressureMultiplier,
+                template.Toughness * encounterScale * armamentPressureMultiplier,
+                template.Dexterity * multipliers.EnemyInitiative * encounterScale * readinessPressureMultiplier,
+                template.MoveSpeed * multipliers.EnemyInitiative * encounterScale * readinessPressureMultiplier),
+            template.Health * multipliers.EnemyHealth * encounterScale * healthPressureMultiplier,
             template.Abilities,
             formation: (OffenseFormationSlot)Mathf.Clamp(index, 0, 2))).ToArray();
     }

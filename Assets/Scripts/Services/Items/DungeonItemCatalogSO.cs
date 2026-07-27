@@ -71,6 +71,9 @@ public sealed class DungeonItemDefinition
             StockCategory.Ammunition => 0.08f,
             StockCategory.Fuel => 0.8f,
             StockCategory.Mana => 0.35f,
+            StockCategory.Biological => 0.5f,
+            StockCategory.Knowledge => 0.2f,
+            StockCategory.Blueprint => 0.15f,
             _ => 1f
         };
 
@@ -265,11 +268,15 @@ public interface IDungeonItemCatalogProvider
 public sealed class ResourceDungeonItemCatalogProvider : IDungeonItemCatalogProvider
 {
     private readonly IResourcesAssetLoader resourcesAssetLoader;
+    private readonly IFacilityShopCatalog facilityShopCatalog;
     private DungeonItemCatalogSO catalog;
 
-    public ResourceDungeonItemCatalogProvider(IResourcesAssetLoader resourcesAssetLoader = null)
+    public ResourceDungeonItemCatalogProvider(
+        IResourcesAssetLoader resourcesAssetLoader = null,
+        IFacilityShopCatalog facilityShopCatalog = null)
     {
         this.resourcesAssetLoader = resourcesAssetLoader ?? new UnityResourcesAssetLoader();
+        this.facilityShopCatalog = facilityShopCatalog;
     }
 
     public DungeonItemCatalogSO Catalog
@@ -288,6 +295,14 @@ public sealed class ResourceDungeonItemCatalogProvider : IDungeonItemCatalogProv
 
     public DungeonItemDefinition GetDefinition(string itemId)
     {
+        if (ResearchBlueprintItemDefinitions.TryGetDefinition(
+                itemId,
+                facilityShopCatalog,
+                out DungeonItemDefinition blueprintDefinition))
+        {
+            return blueprintDefinition;
+        }
+
         if (Catalog != null)
         {
             return Catalog.GetDefinitionOrDefault(itemId);

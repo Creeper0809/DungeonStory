@@ -79,7 +79,7 @@ public static class InvasionIntruderPlanner
         if (focus >= pattern.directOwnerFocus)
         {
             directPath = true;
-            return searchResult.GetMovePath((pos) => pos == ownerPosition);
+            return searchResult.GetMovePathTo(ownerPosition);
         }
 
         Vector2Int exploreTarget = SelectExploreTarget(
@@ -91,10 +91,10 @@ public static class InvasionIntruderPlanner
         if (exploreTarget == start)
         {
             directPath = true;
-            return searchResult.GetMovePath((pos) => pos == ownerPosition);
+            return searchResult.GetMovePathTo(ownerPosition);
         }
 
-        return searchResult.GetMovePath((pos) => pos == exploreTarget);
+        return searchResult.GetMovePathTo(exploreTarget);
     }
 
     public static Vector2Int SelectExploreTarget(

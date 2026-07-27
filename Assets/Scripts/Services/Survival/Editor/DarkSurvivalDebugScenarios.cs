@@ -140,7 +140,7 @@ public static class DarkSurvivalDebugScenarios
 
     private static string VerifyV12RoundTrip()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 15, "game save version is not V15");
+        Require(DungeonGameSaveData.CurrentVersion == 16, "game save version is not V16");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonDarkSurvivalSaveData darkSurvival = new DungeonDarkSurvivalSaveData();
         darkSurvival.characters.Add(new CharacterDeprivationState
@@ -179,7 +179,7 @@ public static class DarkSurvivalDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonDarkSurvivalSaveData>(
                 restored,
                 DarkSurvivalSaveSection.Id);
-        Require(restored != null && restored.version == 15, "V15 root did not round-trip");
+        Require(restored != null && restored.version == 16, "V16 root did not round-trip");
         Require(restoredDarkSurvival.characters.Single().burdens.Single().burden == 74f,
             "deprivation burden did not round-trip");
         Require(restoredDarkSurvival.filth.Single().amount == 11f,

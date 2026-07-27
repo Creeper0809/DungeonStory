@@ -12,6 +12,9 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject
     [Min(0f), SerializeField] private float weight = 1f;
     [Range(0, 2), SerializeField] private int occupiedHands = 1;
     [Min(1f), SerializeField] private float maxDurability = 100f;
+    [Min(0.1f), SerializeField] private float requiredCraftWork = 6f;
+    [SerializeField] private List<CombatEquipmentCraftMaterial> craftMaterials =
+        new List<CombatEquipmentCraftMaterial>();
 
     public string EquipmentId => equipmentId?.Trim() ?? string.Empty;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? EquipmentId : displayName.Trim();
@@ -20,7 +23,17 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject
     public float Weight => Mathf.Max(0f, weight);
     public int OccupiedHands => Mathf.Clamp(occupiedHands, 0, 2);
     public float MaxDurability => Mathf.Max(1f, maxDurability);
+    public float RequiredCraftWork => Mathf.Max(0.1f, requiredCraftWork);
+    public IReadOnlyList<CombatEquipmentCraftMaterial> CraftMaterials =>
+        craftMaterials ??= new List<CombatEquipmentCraftMaterial>();
     public abstract CombatEquipmentKind Kind { get; }
+}
+
+[Serializable]
+public sealed class CombatEquipmentCraftMaterial
+{
+    public StockCategory category = StockCategory.General;
+    [Min(1)] public int amount = 1;
 }
 
 public interface ICombatEquipmentCatalog

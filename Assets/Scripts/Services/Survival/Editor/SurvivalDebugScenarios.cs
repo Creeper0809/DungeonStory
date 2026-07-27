@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
@@ -26,6 +27,7 @@ public static class SurvivalDebugScenarios
         Run("survival_item_definitions", VerifySurvivalItemDefinitions, errors);
         Run("ability_modules", VerifyAbilityModules, errors);
         Run("room_snapshot_survival_metrics", VerifyRoomSnapshotMetrics, errors);
+        Run("physical_meal_authority", VerifyPhysicalMealAuthority, errors);
         return errors;
     }
 
@@ -43,7 +45,7 @@ public static class SurvivalDebugScenarios
 
     private static string VerifySaveContract()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 15, "game save version is not V15");
+        Require(DungeonGameSaveData.CurrentVersion == 16, "game save version is not V16");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonSaveSectionPayload.Write(
             save,
@@ -55,7 +57,7 @@ public static class SurvivalDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonSurvivalSaveData>(
                 save,
                 SurvivalResourcesSaveSection.Id);
-        Require(save.version == DungeonGameSaveData.CurrentVersion, "new save did not default to V15");
+        Require(save.version == DungeonGameSaveData.CurrentVersion, "new save did not default to V16");
         Require(survival.version == DungeonSurvivalSaveData.CurrentVersion, "survival save version mismatch");
         return $"game={save.version}; survival={survival.version}";
     }
@@ -181,6 +183,147 @@ public static class SurvivalDebugScenarios
         Require(Mathf.Approximately(snapshot.Ventilation, 65f), "ventilation changed unexpectedly");
         Require(Mathf.Approximately(snapshot.Lighting, 80f), "lighting changed unexpectedly");
         return $"shelter={snapshot.Shelter}; temp={snapshot.Temperature}";
+    }
+
+    private static string VerifyPhysicalMealAuthority()
+    {
+        GameEventBus events = new GameEventBus();
+        SurvivalFoodRuntime runtime = new SurvivalFoodRuntime(
+            new EmptyGridSystemProvider(),
+            new EmptyWildlifeSpeciesCatalog(),
+            events);
+        GameObject actorObject = null;
+        GameObject facilityObject = null;
+        CharacterSO characterData = null;
+        BuildingSO buildingData = null;
+        IDisposable mealSubscription = null;
+
+        try
+        {
+            runtime.Initialize();
+            int publishedMeals = 0;
+            int publishedAmount = 0;
+            mealSubscription = events.Subscribe<CharacterMealConsumedEvent>(gameEvent =>
+            {
+                publishedMeals++;
+                publishedAmount += gameEvent.Amount;
+            });
+
+            actorObject = new GameObject("SurvivalMealWorker_Test");
+            actorObject.AddComponent<AbilityWork>();
+            CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.RefreshAbilityCache();
+            characterData = ScriptableObject.CreateInstance<CharacterSO>();
+            characterData.characterName = "식사 검증 직원";
+            characterData.characterType = CharacterType.NPC;
+            actor.data = characterData;
+            actor.characterType = CharacterType.NPC;
+            actor.Identity.SetPersistentId("survival:meal:test");
+
+            facilityObject = new GameObject("SurvivalMealFacility_Test");
+            BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
+            buildingData = ScriptableObject.CreateInstance<BuildingSO>();
+            buildingData.objectName = "검증 식당";
+            buildingData.width = 1;
+            buildingData.height = 1;
+            buildingData.category = BuildingCategory.Shop;
+            buildingData.Facility = new FacilityData
+            {
+                roles = FacilityRole.Meal,
+                capacity = 1
+            };
+            facility.Initialization(buildingData, Vector2Int.zero);
+
+            events.Publish(new OperatingDayStartedEvent(1));
+            Require(
+                runtime.GetRecentMeals().Count == 0,
+                "day transition created an abstract meal");
+
+            events.Publish(new FacilityStockConsumedEvent(
+                actor,
+                facility,
+                StockCategory.Food,
+                7));
+            IReadOnlyList<CharacterMealLedgerSaveData> meals =
+                runtime.GetRecentMeals();
+            Require(meals.Count == 1, "completed meal was not recorded exactly once");
+            Require(
+                meals[0].amount == 1
+                && runtime.GetMealsConsumed(actor.Identity.PersistentId, 1) == 1,
+                "one meal did not resolve to one food consumption record");
+            Require(
+                publishedMeals == 1 && publishedAmount == 1,
+                "meal event did not publish one physical serving");
+
+            events.Publish(new OperatingDayStartedEvent(2));
+            Require(
+                runtime.GetRecentMeals().Count == 1
+                && runtime.GetMealsConsumed(actor.Identity.PersistentId, 2) == 0,
+                "day transition duplicated or consumed another meal");
+            return $"ledger={meals.Count}; published={publishedMeals}; day2=0";
+        }
+        finally
+        {
+            mealSubscription?.Dispose();
+            runtime.Dispose();
+            if (actorObject != null)
+            {
+                UnityEngine.Object.DestroyImmediate(actorObject);
+            }
+            if (facilityObject != null)
+            {
+                UnityEngine.Object.DestroyImmediate(facilityObject);
+            }
+            if (characterData != null)
+            {
+                UnityEngine.Object.DestroyImmediate(characterData);
+            }
+            if (buildingData != null)
+            {
+                UnityEngine.Object.DestroyImmediate(buildingData);
+            }
+        }
+    }
+
+    private sealed class EmptyGridSystemProvider : IGridSystemProvider
+    {
+        public GridSystemManager Manager =>
+            throw new InvalidOperationException("No grid is available in this contract.");
+        public Grid Grid =>
+            throw new InvalidOperationException("No grid is available in this contract.");
+        public bool TryGetManager(out GridSystemManager manager)
+        {
+            manager = null;
+            return false;
+        }
+
+        public bool TryGetGrid(out Grid grid)
+        {
+            grid = null;
+            return false;
+        }
+    }
+
+    private sealed class EmptyWildlifeSpeciesCatalog :
+        IWildlifeSpeciesCatalogProvider
+    {
+        public IReadOnlyList<WildlifeSpeciesDefinition> All =>
+            Array.Empty<WildlifeSpeciesDefinition>();
+
+        public bool TryGetSpecies(
+            string speciesId,
+            out WildlifeSpeciesDefinition species)
+        {
+            species = null;
+            return false;
+        }
+
+        public WildlifeSpeciesDefinition GetRandomSpecies(
+            IRandomStream randomStream)
+        {
+            return WildlifeBuiltIns.CaveRat;
+        }
     }
 
     private static void Require(bool condition, string message)

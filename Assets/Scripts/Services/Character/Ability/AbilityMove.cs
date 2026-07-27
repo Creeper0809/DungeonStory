@@ -85,7 +85,7 @@ public class AbilityMove : CharacterAbility
             }
 
             GridMoveStep step = path.Dequeue();
-            if (step == null) continue;
+            if (!step.IsValid) continue;
 
             if (!IsAtStepStart(step))
             {
@@ -113,7 +113,104 @@ public class AbilityMove : CharacterAbility
             }
 
             RefreshCurrentActionReservation();
-            yield return MoveByStep(step, expectedAction);
+            if (step.MoveType != GridMoveType.Walk)
+            {
+                yield return MoveByStep(step, expectedAction);
+            }
+            else
+            {
+                LastGridMoveWasBlocked = false;
+                if (grid == null)
+                {
+                    yield break;
+                }
+
+                Vector2Int destination = step.To;
+                Vector3 startPosition = transform.position;
+                if (grid.IsMovementBlockedByWall(destination)
+                    || !CanTraverseDoor(destination, out _)
+                    || (defenseEngagementRuntime?.IsCellReservedForOther(
+                        actor,
+                        destination) ?? false))
+                {
+                    SetGridMoveBlocked();
+                    yield break;
+                }
+
+                int observedGridVersion = grid.TraversalVersion;
+                Vector3 endPosition = grid.GetWorldPos(destination);
+                float terrainSpeedMultiplier = Mathf.Max(
+                    0.01f,
+                    grid.GetGridCell(destination)
+                        ?.TerrainMoveSpeedMultiplier ?? 1f);
+                float distance = Vector3.Distance(startPosition, endPosition);
+                float totalSpeed = moveSpeed * terrainSpeedMultiplier;
+                if (totalSpeed <= 0f)
+                {
+                    yield break;
+                }
+
+                UpdateFacingForMovement(endPosition.x - startPosition.x);
+                float duration = distance / totalSpeed;
+                float timer = 0f;
+                while (timer < duration)
+                {
+                    if (TryRollbackForChangedGridBlock(
+                            destination,
+                            ref observedGridVersion,
+                            startPosition)
+                        || IsActionMovementCancelled(expectedAction))
+                    {
+                        yield break;
+                    }
+
+                    Vector3 nextPosition = Vector3.Lerp(
+                        startPosition,
+                        endPosition,
+                        timer / duration);
+                    UpdateFacingForMovement(
+                        nextPosition.x - transform.position.x);
+                    transform.position = nextPosition;
+                    timer += gameClock.DeltaTime;
+
+                    int frameStride = RequireAiSchedulingService()
+                        .GetMovementFrameStride(actor);
+                    for (int frame = 1;
+                         frame < frameStride && timer < duration;
+                         frame++)
+                    {
+                        yield return null;
+                        if (IsActionMovementCancelled(expectedAction)
+                            || TryRollbackForChangedGridBlock(
+                                destination,
+                                ref observedGridVersion,
+                                startPosition))
+                        {
+                            yield break;
+                        }
+
+                        timer += gameClock.DeltaTime;
+                    }
+
+                    yield return null;
+                }
+
+                if (TryRollbackForChangedGridBlock(
+                    destination,
+                    ref observedGridVersion,
+                    startPosition))
+                {
+                    yield break;
+                }
+
+                UpdateFacingForMovement(
+                    endPosition.x - transform.position.x);
+                transform.position = endPosition;
+                actor?.AiMemory?.RecordMovement(
+                    destination,
+                    distance,
+                    true);
+            }
 
             if (LastGridMoveWasBlocked || IsWalkStepBlocked(step))
             {
@@ -174,11 +271,13 @@ public class AbilityMove : CharacterAbility
             yield break;
         }
 
-        int observedGridVersion = grid.version;
+        int observedGridVersion = grid.TraversalVersion;
         Vector3 endPos = grid.GetWorldPos(gridPosition);
+        float terrainSpeedMultiplier = grid.GetGridCell(gridPosition)
+            ?.TerrainMoveSpeedMultiplier ?? 1f;
         yield return Move2PosBySpeedInternal(
             endPos,
-            1.0f,
+            Mathf.Max(0.01f, terrainSpeedMultiplier),
             expectedAction,
             gridPosition,
             observedGridVersion,
@@ -316,25 +415,15 @@ public class AbilityMove : CharacterAbility
         GridTraversalContext directContext = GridTraversalContext.ForCharacter(
             actor,
             DoorAccessOverrideKind.DirectCommand);
-        GridPathSearchResult search = pathSearchBroker != null
-            && pathSearchBroker.TryGetSearch(
-                grid,
-                start,
-                out GridPathSearchResult directSearch,
-                GridPathSearchPriority.Urgent,
-                directContext)
-                ? directSearch
-                : null;
-        if (search == null || !search.ContainsPosition(destination))
-        {
-            message = "해당 칸까지 이어지는 경로가 없습니다.";
-            return false;
-        }
-
-        Queue<GridMoveStep> path = search.GetMovePath(position => position == destination);
+        Queue<GridMoveStep> path = pathSearchBroker?.GetMovePathTo(
+            grid,
+            start,
+            destination,
+            GridPathSearchPriority.Urgent,
+            directContext);
         if (path == null || path.Count == 0)
         {
-            message = "이동 경로를 만들 수 없습니다.";
+            message = "해당 칸까지 이어지는 경로가 없습니다.";
             return false;
         }
 
@@ -375,25 +464,15 @@ public class AbilityMove : CharacterAbility
         GridTraversalContext context = GridTraversalContext.ForCharacter(
             actor,
             overrideKind);
-        GridPathSearchResult search = pathSearchBroker != null
-            && pathSearchBroker.TryGetSearch(
-                grid,
-                start,
-                out GridPathSearchResult systemSearch,
-                GridPathSearchPriority.Urgent,
-                context)
-                ? systemSearch
-                : null;
-        if (search == null || !search.ContainsPosition(destination))
-        {
-            message = "해당 칸까지 이어지는 경로가 없습니다.";
-            return false;
-        }
-
-        Queue<GridMoveStep> path = search.GetMovePath(position => position == destination);
+        Queue<GridMoveStep> path = pathSearchBroker?.GetMovePathTo(
+            grid,
+            start,
+            destination,
+            GridPathSearchPriority.Urgent,
+            context);
         if (path == null || path.Count == 0)
         {
-            message = "이동 경로를 만들 수 없습니다.";
+            message = "해당 칸까지 이어지는 경로가 없습니다.";
             return false;
         }
 
@@ -499,27 +578,57 @@ public class AbilityMove : CharacterAbility
         }
 
         Vector2Int originalPos = grid.GetXY(actor.transform.position);
-        GridPathSearchResult searchResult = GetIdleSearchResult(originalPos);
-        if (searchResult == null)
+        if (!grid.IsValidGridPos(originalPos) || !grid.IsWalkable(originalPos))
         {
             return false;
         }
 
         int min = Mathf.Max(1, minDistance);
-        return searchResult.TryGetMovePathToRandomReachablePosition(
-                IsPlainIdleWalkable,
-                IsSupportedIdleWanderPath,
-                min,
-                maxDistance,
-                movementRandom,
-                out path)
-            || searchResult.TryGetMovePathToRandomReachablePosition(
-                IsPlainIdleWalkable,
-                IsSupportedIdleWanderPath,
-                1,
-                0,
-                movementRandom,
-                out path);
+        int max = maxDistance > 0
+            ? Mathf.Max(min, maxDistance)
+            : Mathf.Max(min, 12);
+        IGridPathSearchBroker broker = pathSearchBroker ?? actor.PathSearchBroker;
+        if (broker == null)
+        {
+            return false;
+        }
+
+        const int maximumPathAttempts = 2;
+        for (int attempt = 0; attempt < maximumPathAttempts; attempt++)
+        {
+            int distance = movementRandom != null
+                ? movementRandom.NextInt(min, max + 1)
+                : min + attempt;
+            int direction = movementRandom != null
+                ? (movementRandom.Chance(0.5f) ? -1 : 1)
+                : (attempt == 0 ? -1 : 1);
+            Vector2Int destination =
+                originalPos + new Vector2Int(distance * direction, 0);
+            if (!IsPlainIdleWalkable(destination))
+            {
+                continue;
+            }
+
+            Queue<GridMoveStep> candidatePath = broker.GetMovePathTo(
+                grid,
+                originalPos,
+                destination,
+                GridPathSearchPriority.Normal,
+                GridTraversalContext.ForCharacter(actor));
+            if (candidatePath == null)
+            {
+                return false;
+            }
+
+            if (candidatePath.Count > 0
+                && IsSupportedIdleWanderPath(candidatePath))
+            {
+                path = candidatePath;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private bool IsPlainIdleWalkable(Vector2Int position)
@@ -542,7 +651,7 @@ public class AbilityMove : CharacterAbility
 
         foreach (GridMoveStep step in path)
         {
-            if (step == null)
+            if (!step.IsValid)
             {
                 return false;
             }
@@ -563,44 +672,15 @@ public class AbilityMove : CharacterAbility
 
     private static bool IsSupportedVerticalMovementStep(GridMoveStep step)
     {
-        return step != null
+        return step.IsValid
             && (step.MoveType == GridMoveType.Stair || step.MoveType == GridMoveType.Elevator)
             && step.MovementOccupant is IGridMovementHandler;
     }
 
     private static bool RequiresMovementHandler(GridMoveStep step)
     {
-        return step != null
+        return step.IsValid
             && (step.MoveType == GridMoveType.Stair || step.MoveType == GridMoveType.Elevator);
-    }
-
-    private GridPathSearchResult GetIdleSearchResult(Vector2Int originalPos)
-    {
-        if (grid == null)
-        {
-            return null;
-        }
-
-        if (!grid.IsValidGridPos(originalPos) || !grid.IsWalkable(originalPos))
-        {
-            return null;
-        }
-
-        if (actor != null && actor.Brain != null)
-        {
-            return actor.Brain.GetPathSearch(actor);
-        }
-
-        IGridPathSearchBroker broker = pathSearchBroker ?? actor?.PathSearchBroker;
-        return broker != null
-            && broker.TryGetSearch(
-                grid,
-                originalPos,
-                out GridPathSearchResult search,
-                GridPathSearchPriority.Urgent,
-                GridTraversalContext.ForCharacter(actor))
-            ? search
-            : null;
     }
 
     private void SnapToGridRowIfWalkable(Vector2Int gridPosition)
@@ -761,9 +841,24 @@ public class AbilityMove : CharacterAbility
             yield break;
         }
 
-        Func<Vector2Int, bool> condition = (pos) => grid.GetGridCell(pos)?.GetBuildingInlayer()?.id == 1;
+        TryResolveSpawner();
+        if (spawner == null
+            || !spawner.TryGetEntryGridPosition(out Vector2Int exitGridPosition))
+        {
+            if (actor != null)
+            {
+                actor.SetLifecycleState(CharacterLifecycleState.Active);
+            }
+
+            activeSystemMoveDestination = null;
+            activeSystemMoveOverride = DoorAccessOverrideKind.None;
+            yield break;
+        }
+
+        bool reachedExit = actor != null
+            && grid.GetXY(actor.transform.position) == exitGridPosition;
         int counter = 0;
-        while (counter < 5)
+        while (!reachedExit && counter < 5)
         {
             Vector2Int startPos = grid.GetXY(transform.position);
             startPos = grid.IsValidGridPos(startPos) ? startPos : Vector2Int.zero;
@@ -771,26 +866,47 @@ public class AbilityMove : CharacterAbility
                 ? GridTraversalContext.ForCharacter(actor, overrideKind)
                 : default;
             Queue<GridMoveStep> path = pathSearchBroker != null
-                ? pathSearchBroker.GetMovePath(
+                ? pathSearchBroker.GetMovePathTo(
                     grid,
                     startPos,
-                    condition,
+                    exitGridPosition,
                     GridPathSearchPriority.Urgent,
                     traversalContext)
-                : grid.GetMovePath(startPos, condition);
+                : grid.GetMovePathTo(startPos, exitGridPosition);
+            if (path == null)
+            {
+                yield return null;
+                counter++;
+                continue;
+            }
+
             if (path != null && path.Count > 0)
             {
                 yield return MoveByPath(path);
             }
-            if(actor != null && grid.GetXY(actor.transform.position).y == 0)
+
+            if (actor != null
+                && grid.GetXY(actor.transform.position) == exitGridPosition)
             {
+                reachedExit = true;
                 break;
             }
+
             yield return new WaitForSeconds(1f);
             counter++;
         }
 
-        TryResolveSpawner();
+        if (!reachedExit)
+        {
+            if (actor != null)
+            {
+                actor.SetLifecycleState(CharacterLifecycleState.Active);
+            }
+
+            activeSystemMoveDestination = null;
+            activeSystemMoveOverride = DoorAccessOverrideKind.None;
+            yield break;
+        }
 
         if (spawner != null)
         {
@@ -959,7 +1075,7 @@ public class AbilityMove : CharacterAbility
             return true;
         }
 
-        int currentGridVersion = grid.version;
+        int currentGridVersion = grid.TraversalVersion;
         if (currentGridVersion == observedGridVersion)
         {
             return false;
@@ -978,7 +1094,7 @@ public class AbilityMove : CharacterAbility
 
     private bool IsWalkStepBlocked(GridMoveStep step)
     {
-        return step != null
+        return step.IsValid
             && step.MoveType == GridMoveType.Walk
             && grid != null
             && (grid.IsMovementBlockedByWall(step.To)
@@ -1010,7 +1126,7 @@ public class AbilityMove : CharacterAbility
 
     private bool IsAtStepStart(GridMoveStep step)
     {
-        return step != null
+        return step.IsValid
             && grid != null
             && grid.GetXY(transform.position) == step.From;
     }

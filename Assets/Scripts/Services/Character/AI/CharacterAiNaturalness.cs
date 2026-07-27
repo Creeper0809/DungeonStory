@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -276,6 +277,27 @@ public readonly struct CharacterAiWorldSignalSnapshot
         || AreaType == GridCellAreaType.Entrance
         || AreaType == GridCellAreaType.BlockedExterior;
 
+    public CharacterAiWorldSignalSnapshot WithScheduleScore(float scheduleScore)
+    {
+        return new CharacterAiWorldSignalSnapshot(
+            TimeOfDay,
+            AreaType,
+            scheduleScore,
+            QueuePressure,
+            SocialOpportunity,
+            WeatherPressure,
+            ExteriorRisk,
+            FoodStockPressure,
+            WaterStockPressure,
+            PathConfidence,
+            RecentFailurePressure,
+            RecentMovementPressure,
+            NearbyCharacters,
+            NearbyWorkers,
+            NearbyVisitors,
+            NearbyWildlifeThreat);
+    }
+
     public string ToCompactString()
     {
         return $"시간 {FormatTime(TimeOfDay)}"
@@ -321,23 +343,95 @@ public interface ICharacterAiWorldSignalQuery
         GridPathSearchResult searchResult = null);
 }
 
+public static class CharacterAiScheduleUtility
+{
+    public static float Resolve(
+        CharacterActor actor,
+        CharacterAiBranch branch,
+        TimeOfDay timeOfDay)
+    {
+        bool isWorker = CharacterWorkRoleUtility.TryGetWork(
+            actor,
+            out AbilityWork work);
+        bool offDuty = isWorker && work.IsOffDuty;
+        return Resolve(isWorker, offDuty, branch, timeOfDay);
+    }
+
+    public static float Resolve(
+        bool isWorker,
+        bool offDuty,
+        CharacterAiBranch branch,
+        TimeOfDay timeOfDay)
+    {
+        if (branch == CharacterAiBranch.DutyWork
+            || branch == CharacterAiBranch.Work)
+        {
+            return offDuty ? 0.12f : 0.82f;
+        }
+
+        if (branch == CharacterAiBranch.LeisureVisit
+            || branch == CharacterAiBranch.Rest)
+        {
+            return offDuty ? 0.78f : 0.35f;
+        }
+
+        if (branch == CharacterAiBranch.Eat)
+        {
+            return timeOfDay == TimeOfDay.Morning
+                || timeOfDay == TimeOfDay.Evening
+                    ? 0.72f
+                    : 0.5f;
+        }
+
+        if (branch == CharacterAiBranch.Idle)
+        {
+            return offDuty ? 0.65f : 0.35f;
+        }
+
+        return 0.5f;
+    }
+}
+
 public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignalQuery
 {
+    private const int SpatialBucketWidth = 8;
+    private const int WildlifeSpatialUpdatesPerFrame = 8;
+    private const int MaxNearbyCharacterSamples = 12;
     private readonly Dictionary<int, CachedSignal> cache = new Dictionary<int, CachedSignal>();
+    private readonly Dictionary<long, List<CharacterSpatialEntry>> characterBuckets =
+        new Dictionary<long, List<CharacterSpatialEntry>>();
+    private readonly Dictionary<long, List<WildlifeSpatialEntry>> wildlifeBuckets =
+        new Dictionary<long, List<WildlifeSpatialEntry>>();
+    private readonly Dictionary<int, CharacterSpatialEntry> characterEntries =
+        new Dictionary<int, CharacterSpatialEntry>();
+    private readonly Dictionary<int, WildlifeSpatialEntry> wildlifeEntries =
+        new Dictionary<int, WildlifeSpatialEntry>();
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly ISurvivalFoodRuntime survivalFoodRuntime;
+    private readonly ISurvivalEnvironmentQuery survivalEnvironment;
+    private readonly ICharacterAiPerformanceRecorder performanceRecorder;
     private readonly IGameClock gameClock;
+    private int lastSpatialRefreshFrame = int.MinValue;
+    private int indexedCharacterVersion = -1;
+    private int indexedWildlifeVersion = -1;
+    private int characterMembershipEpoch;
+    private int wildlifeMembershipEpoch;
+    private int wildlifeRefreshCursor;
 
     public DefaultCharacterAiWorldSignalQuery(
         ICharacterAiWorldRegistry worldRegistry,
         IGameClock gameClock,
-        ISurvivalFoodRuntime survivalFoodRuntime = null)
+        ISurvivalFoodRuntime survivalFoodRuntime = null,
+        ISurvivalEnvironmentQuery survivalEnvironment = null,
+        ICharacterAiPerformanceRecorder performanceRecorder = null)
     {
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.survivalFoodRuntime = survivalFoodRuntime;
+        this.survivalEnvironment = survivalEnvironment;
+        this.performanceRecorder = performanceRecorder;
     }
 
     public CharacterAiWorldSignalSnapshot Capture(
@@ -346,13 +440,37 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         BuildableObject target = null,
         GridPathSearchResult searchResult = null)
     {
+        long started = performanceRecorder?.DetailedCollectionEnabled == true
+            ? Stopwatch.GetTimestamp()
+            : 0L;
+        try
+        {
+            return CaptureCore(actor, branch, target, searchResult);
+        }
+        finally
+        {
+            if (started != 0L)
+            {
+                performanceRecorder.Record(
+                    AiPerformanceCategory.WorldSignal,
+                    (Stopwatch.GetTimestamp() - started) * 1000.0 / Stopwatch.Frequency);
+            }
+        }
+    }
+
+    private CharacterAiWorldSignalSnapshot CaptureCore(
+        CharacterActor actor,
+        CharacterAiBranch branch,
+        BuildableObject target,
+        GridPathSearchResult searchResult)
+    {
         if (actor == null)
         {
             return CharacterAiWorldSignalSnapshot.Neutral;
         }
 
         Vector2Int actorPosition = actor.GetNowXY();
-        int cacheKey = BuildCacheKey(actor, branch, actorPosition);
+        int cacheKey = BuildCacheKey(actor, actorPosition);
         float now = gameClock.Time;
         float cacheSeconds = CharacterAiNaturalnessSettingsSO.Defaults.SignalCacheSeconds;
         CharacterAiWorldSignalSnapshot snapshot;
@@ -363,21 +481,25 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         }
         else
         {
-            snapshot = CaptureBaseUncached(actor, branch, actorPosition);
+            snapshot = CaptureBaseUncached(actor, actorPosition);
             cache[cacheKey] = new CachedSignal(now, snapshot);
         }
 
+        snapshot = snapshot.WithScheduleScore(
+            CharacterAiScheduleUtility.Resolve(
+                actor,
+                branch,
+                snapshot.TimeOfDay));
         return target != null
             ? ApplyTargetSignals(snapshot, target, searchResult)
             : snapshot;
     }
 
-    private int BuildCacheKey(CharacterActor actor, CharacterAiBranch branch, Vector2Int actorPosition)
+    private int BuildCacheKey(CharacterActor actor, Vector2Int actorPosition)
     {
         unchecked
         {
             int hash = actor.GetInstanceID();
-            hash = (hash * 397) ^ (int)branch;
             hash = (hash * 397) ^ actorPosition.GetHashCode();
             hash = (hash * 397) ^ worldRegistry.CharacterVersion;
             hash = (hash * 397) ^ worldRegistry.WildlifeVersion;
@@ -388,23 +510,39 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
 
     private CharacterAiWorldSignalSnapshot CaptureBaseUncached(
         CharacterActor actor,
-        CharacterAiBranch branch,
         Vector2Int actorPosition)
     {
         GridCellAreaType areaType = ResolveAreaType(actorPosition);
         TimeOfDay timeOfDay = ResolveTimeOfDay();
-        float scheduleScore = ResolveScheduleScore(actor, branch, timeOfDay);
+        long proximityStarted = StartDetailedTiming();
         float socialOpportunity = ResolveSocialOpportunity(
             actor,
             actorPosition,
             out int nearbyCharacters,
             out int nearbyWorkers,
             out int nearbyVisitors);
-        float weatherPressure = ResolveWeatherPressure(areaType, timeOfDay);
-        float exteriorRisk = ResolveExteriorRisk(areaType, timeOfDay, weatherPressure);
+        float wildlifeThreat = ResolveWildlifeThreat(actorPosition);
+        RecordDetailedTiming(
+            AiPerformanceCategory.WorldSignalProximity,
+            proximityStarted);
+
+        long environmentStarted = StartDetailedTiming();
+        SurvivalEnvironmentSnapshot environment = survivalEnvironment != null
+            ? survivalEnvironment.GetEnvironmentSnapshot()
+            : default;
+        float weatherPressure = ResolveWeatherPressure(
+            areaType,
+            timeOfDay,
+            environment,
+            survivalEnvironment != null);
+        float exteriorRisk = ResolveExteriorRisk(
+            areaType,
+            timeOfDay,
+            weatherPressure,
+            environment,
+            survivalEnvironment != null);
         float recentFailurePressure = actor.AiMemory != null ? actor.AiMemory.GetRecentFailurePressure() : 0f;
         float recentMovementPressure = actor.AiMemory != null ? actor.AiMemory.GetRecentMovementPressure() : 0f;
-        float wildlifeThreat = ResolveWildlifeThreat(actorPosition);
         float foodStockPressure = 0f;
         float waterStockPressure = 0f;
         if (survivalFoodRuntime != null)
@@ -413,11 +551,14 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
             foodStockPressure = CharacterAiSurvivalPressure.FromShortageDays(survival.ShortageDays);
             waterStockPressure = CharacterAiSurvivalPressure.FromShortageDays(survival.WaterShortageDays);
         }
+        RecordDetailedTiming(
+            AiPerformanceCategory.WorldSignalEnvironment,
+            environmentStarted);
 
         return new CharacterAiWorldSignalSnapshot(
             timeOfDay,
             areaType,
-            scheduleScore,
+            0.5f,
             0f,
             socialOpportunity,
             weatherPressure,
@@ -487,33 +628,6 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
             : TimeOfDay.None;
     }
 
-    private static float ResolveScheduleScore(CharacterActor actor, CharacterAiBranch branch, TimeOfDay timeOfDay)
-    {
-        bool isWorker = CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work);
-        bool offDuty = isWorker && work.IsOffDuty;
-        if (branch == CharacterAiBranch.DutyWork || branch == CharacterAiBranch.Work)
-        {
-            return offDuty ? 0.12f : 0.82f;
-        }
-
-        if (branch == CharacterAiBranch.LeisureVisit || branch == CharacterAiBranch.Rest)
-        {
-            return offDuty ? 0.78f : 0.35f;
-        }
-
-        if (branch == CharacterAiBranch.Eat)
-        {
-            return timeOfDay == TimeOfDay.Morning || timeOfDay == TimeOfDay.Evening ? 0.72f : 0.5f;
-        }
-
-        if (branch == CharacterAiBranch.Idle)
-        {
-            return offDuty ? 0.65f : 0.35f;
-        }
-
-        return 0.5f;
-    }
-
     private static float ResolveQueuePressure(BuildableObject target)
     {
         if (target == null)
@@ -543,37 +657,60 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         nearbyVisitors = 0;
         float radius = CharacterAiNaturalnessSettingsSO.Defaults.NearbyCharacterRadius;
         int maxDistance = Mathf.CeilToInt(radius);
-        IReadOnlyList<CharacterActor> registeredCharacters = worldRegistry.Characters;
-        for (int i = 0; i < registeredCharacters.Count; i++)
+        RefreshSpatialBucketsIfNeeded(actor);
+        int centerBucket = FloorDiv(actorPosition.x, SpatialBucketWidth);
+        int bucketRadius = Mathf.CeilToInt(radius / SpatialBucketWidth);
+        for (int bucketOffset = -bucketRadius; bucketOffset <= bucketRadius; bucketOffset++)
         {
-            CharacterActor candidate = registeredCharacters[i];
-            if (candidate == null || candidate == actor || candidate.IsDead)
+            long key = BuildSpatialKey(actorPosition.y, centerBucket + bucketOffset);
+            if (!characterBuckets.TryGetValue(key, out List<CharacterSpatialEntry> bucket))
             {
                 continue;
             }
 
-            Vector2Int position = candidate.GetNowXY();
-            int distance = Mathf.Abs(position.x - actorPosition.x) + Mathf.Abs(position.y - actorPosition.y);
-            if (distance > maxDistance)
+            for (int index = 0; index < bucket.Count; index++)
             {
-                continue;
-            }
+                CharacterSpatialEntry candidate = bucket[index];
+                if (candidate.Actor == null
+                    || candidate.Actor == actor
+                    || candidate.Actor.IsDead
+                    || candidate.MembershipEpoch != characterMembershipEpoch)
+                {
+                    continue;
+                }
 
-            nearbyCharacters++;
-            if (CharacterWorkRoleUtility.TryGetWork(candidate, out _))
-            {
-                nearbyWorkers++;
-            }
-            else
-            {
-                nearbyVisitors++;
+                int distance = Mathf.Abs(candidate.Position.x - actorPosition.x)
+                    + Mathf.Abs(candidate.Position.y - actorPosition.y);
+                if (distance > maxDistance)
+                {
+                    continue;
+                }
+
+                nearbyCharacters++;
+                if (candidate.IsWorker)
+                {
+                    nearbyWorkers++;
+                }
+                else
+                {
+                    nearbyVisitors++;
+                }
+
+                if (nearbyCharacters >= MaxNearbyCharacterSamples)
+                {
+                    return 1f;
+                }
             }
         }
 
         return Mathf.Clamp01(nearbyCharacters / 4f);
     }
 
-    private static float ResolveWeatherPressure(GridCellAreaType areaType, TimeOfDay timeOfDay)
+    private static float ResolveWeatherPressure(
+        GridCellAreaType areaType,
+        TimeOfDay timeOfDay,
+        SurvivalEnvironmentSnapshot environment,
+        bool hasEnvironment)
     {
         bool exterior = areaType == GridCellAreaType.ExteriorPath
             || areaType == GridCellAreaType.DropZone
@@ -582,12 +719,26 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         if (!exterior)
         {
             return 0f;
+        }
+
+        if (hasEnvironment)
+        {
+            float temperaturePressure = Mathf.Clamp01(
+                Mathf.Abs(environment.OutdoorTemperature - 20f) / 24f);
+            return Mathf.Clamp01(
+                environment.WeatherPressure01 * 0.8f
+                + temperaturePressure * 0.2f);
         }
 
         return timeOfDay == TimeOfDay.Night ? 0.42f : 0.18f;
     }
 
-    private static float ResolveExteriorRisk(GridCellAreaType areaType, TimeOfDay timeOfDay, float weatherPressure)
+    private static float ResolveExteriorRisk(
+        GridCellAreaType areaType,
+        TimeOfDay timeOfDay,
+        float weatherPressure,
+        SurvivalEnvironmentSnapshot environment,
+        bool hasEnvironment)
     {
         bool exterior = areaType == GridCellAreaType.ExteriorPath
             || areaType == GridCellAreaType.DropZone
@@ -598,8 +749,18 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
             return 0f;
         }
 
-        float nightRisk = timeOfDay == TimeOfDay.Night ? 0.48f : 0.08f;
-        return Mathf.Clamp01(nightRisk + weatherPressure * 0.35f);
+        float nightRisk = hasEnvironment
+            ? environment.ExteriorNightDanger / 100f
+            : 0.48f;
+        if (timeOfDay != TimeOfDay.Night)
+        {
+            nightRisk *= 0.2f;
+        }
+
+        float healthRisk = hasEnvironment
+            ? (environment.SanitationRisk + environment.DiseaseRisk) / 400f
+            : 0f;
+        return Mathf.Clamp01(nightRisk + weatherPressure * 0.35f + healthRisk);
     }
 
     private static float ResolvePathConfidence(BuildableObject target, GridPathSearchResult searchResult)
@@ -609,12 +770,14 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
             return searchResult != null ? 0.82f : 0.65f;
         }
 
-        int distance = searchResult.GetMoveDistanceTo(target);
-        if (distance == int.MaxValue)
+        int travelCost = searchResult.GetMoveCostTo(target);
+        if (travelCost == int.MaxValue)
         {
             return 0.45f;
         }
 
+        float distance = travelCost
+            / (float)DefaultGridTraversalCostPolicy.DryWalkCost;
         return Mathf.Clamp01(1f - Mathf.Max(0, distance - 4) / 26f);
     }
 
@@ -623,27 +786,406 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         float radius = CharacterAiNaturalnessSettingsSO.Defaults.WildlifeThreatRadius;
         int maxDistance = Mathf.CeilToInt(radius);
         float threat = 0f;
-        IReadOnlyList<WildlifeActor> registeredWildlife = worldRegistry.Wildlife;
-        for (int i = 0; i < registeredWildlife.Count; i++)
+        RefreshSpatialBucketsIfNeeded(null);
+        int centerBucket = FloorDiv(actorPosition.x, SpatialBucketWidth);
+        int bucketRadius = Mathf.CeilToInt(radius / SpatialBucketWidth);
+        for (int bucketOffset = -bucketRadius; bucketOffset <= bucketRadius; bucketOffset++)
         {
-            WildlifeActor candidate = registeredWildlife[i];
-            if (candidate == null || !candidate.IsAlive)
+            long key = BuildSpatialKey(actorPosition.y, centerBucket + bucketOffset);
+            if (!wildlifeBuckets.TryGetValue(key, out List<WildlifeSpatialEntry> bucket))
             {
                 continue;
             }
 
-            int distance = Mathf.Abs(candidate.GridPosition.x - actorPosition.x)
-                + Mathf.Abs(candidate.GridPosition.y - actorPosition.y);
-            if (distance > maxDistance)
+            for (int index = 0; index < bucket.Count; index++)
             {
-                continue;
-            }
+                WildlifeSpatialEntry candidate = bucket[index];
+                if (candidate.Actor == null
+                    || !candidate.Actor.IsAlive
+                    || candidate.MembershipEpoch != wildlifeMembershipEpoch)
+                {
+                    continue;
+                }
 
-            float danger = candidate.IsDangerous ? 1f : 0.35f;
-            threat = Mathf.Max(threat, danger * Mathf.Clamp01(1f - distance / radius));
+                int distance = Mathf.Abs(candidate.Position.x - actorPosition.x)
+                    + Mathf.Abs(candidate.Position.y - actorPosition.y);
+                if (distance > maxDistance)
+                {
+                    continue;
+                }
+
+                float danger = candidate.IsDangerous ? 1f : 0.35f;
+                threat = Mathf.Max(
+                    threat,
+                    danger * Mathf.Clamp01(1f - distance / radius));
+            }
         }
 
         return threat;
+    }
+
+    private void RefreshSpatialBucketsIfNeeded(CharacterActor priorityActor)
+    {
+        long started = StartDetailedTiming();
+        try
+        {
+            BeginMembershipRefreshIfNeeded();
+            UpdateCharacterEntry(priorityActor);
+
+            int frame = gameClock.FrameCount;
+            if (lastSpatialRefreshFrame == frame)
+            {
+                return;
+            }
+
+            lastSpatialRefreshFrame = frame;
+
+            IReadOnlyList<CharacterActor> characters = worldRegistry.Characters;
+            if (characters.Count == 0)
+            {
+                RemoveStaleCharacterEntries();
+            }
+
+            IReadOnlyList<WildlifeActor> wildlife = worldRegistry.Wildlife;
+            if (wildlife.Count == 0)
+            {
+                RemoveStaleWildlifeEntries();
+            }
+            int wildlifeUpdates = Mathf.Min(
+                WildlifeSpatialUpdatesPerFrame,
+                wildlife.Count);
+            for (int count = 0; count < wildlifeUpdates; count++)
+            {
+                if (wildlifeRefreshCursor >= wildlife.Count)
+                {
+                    wildlifeRefreshCursor = 0;
+                    RemoveStaleWildlifeEntries();
+                }
+
+                UpdateWildlifeEntry(wildlife[wildlifeRefreshCursor++]);
+            }
+        }
+        finally
+        {
+            RecordDetailedTiming(
+                AiPerformanceCategory.WorldSignalSpatialIndex,
+                started);
+        }
+    }
+
+    private long StartDetailedTiming()
+    {
+        return performanceRecorder?.DetailedCollectionEnabled == true
+            ? Stopwatch.GetTimestamp()
+            : 0L;
+    }
+
+    private void RecordDetailedTiming(
+        AiPerformanceCategory category,
+        long started)
+    {
+        if (started == 0L)
+        {
+            return;
+        }
+
+        performanceRecorder.Record(
+            category,
+            (Stopwatch.GetTimestamp() - started)
+            * 1000.0
+            / Stopwatch.Frequency);
+    }
+
+    private void BeginMembershipRefreshIfNeeded()
+    {
+        if (indexedCharacterVersion != worldRegistry.CharacterVersion)
+        {
+            indexedCharacterVersion = worldRegistry.CharacterVersion;
+            characterMembershipEpoch++;
+        }
+
+        if (indexedWildlifeVersion != worldRegistry.WildlifeVersion)
+        {
+            indexedWildlifeVersion = worldRegistry.WildlifeVersion;
+            wildlifeMembershipEpoch++;
+            wildlifeRefreshCursor = 0;
+        }
+    }
+
+    private void UpdateCharacterEntry(CharacterActor character)
+    {
+        if (character == null)
+        {
+            return;
+        }
+
+        int id = character.GetInstanceID();
+        if (character.IsDead)
+        {
+            RemoveCharacterEntry(id);
+            return;
+        }
+
+        Vector2Int position = character.GetNowXY();
+        long bucketKey = BuildSpatialKey(
+            position.y,
+            FloorDiv(position.x, SpatialBucketWidth));
+        if (!characterEntries.TryGetValue(id, out CharacterSpatialEntry entry))
+        {
+            entry = new CharacterSpatialEntry(character);
+            characterEntries.Add(id, entry);
+            AddCharacterToBucket(bucketKey, entry);
+        }
+        else if (entry.BucketKey != bucketKey)
+        {
+            RemoveCharacterFromBucket(entry);
+            AddCharacterToBucket(bucketKey, entry);
+        }
+
+        entry.Position = position;
+        entry.IsWorker = CharacterWorkRoleUtility.TryGetWork(character, out _);
+        entry.BucketKey = bucketKey;
+        entry.MembershipEpoch = characterMembershipEpoch;
+    }
+
+    private void UpdateWildlifeEntry(WildlifeActor animal)
+    {
+        if (animal == null)
+        {
+            return;
+        }
+
+        int id = animal.GetInstanceID();
+        if (!animal.IsAlive)
+        {
+            RemoveWildlifeEntry(id);
+            return;
+        }
+
+        Vector2Int position = animal.GridPosition;
+        long bucketKey = BuildSpatialKey(
+            position.y,
+            FloorDiv(position.x, SpatialBucketWidth));
+        if (!wildlifeEntries.TryGetValue(id, out WildlifeSpatialEntry entry))
+        {
+            entry = new WildlifeSpatialEntry(animal);
+            wildlifeEntries.Add(id, entry);
+            AddWildlifeToBucket(bucketKey, entry);
+        }
+        else if (entry.BucketKey != bucketKey)
+        {
+            RemoveWildlifeFromBucket(entry);
+            AddWildlifeToBucket(bucketKey, entry);
+        }
+
+        entry.Position = position;
+        entry.IsDangerous = animal.IsDangerous;
+        entry.BucketKey = bucketKey;
+        entry.MembershipEpoch = wildlifeMembershipEpoch;
+    }
+
+    private void RemoveStaleCharacterEntries()
+    {
+        using Dictionary<int, CharacterSpatialEntry>.Enumerator enumerator =
+            characterEntries.GetEnumerator();
+        List<int> staleIds = null;
+        while (enumerator.MoveNext())
+        {
+            CharacterSpatialEntry entry = enumerator.Current.Value;
+            if (entry.Actor == null
+                || entry.Actor.IsDead
+                || entry.MembershipEpoch != characterMembershipEpoch)
+            {
+                staleIds ??= new List<int>();
+                staleIds.Add(enumerator.Current.Key);
+            }
+        }
+
+        if (staleIds == null)
+        {
+            return;
+        }
+
+        for (int index = 0; index < staleIds.Count; index++)
+        {
+            RemoveCharacterEntry(staleIds[index]);
+        }
+    }
+
+    private void RemoveStaleWildlifeEntries()
+    {
+        using Dictionary<int, WildlifeSpatialEntry>.Enumerator enumerator =
+            wildlifeEntries.GetEnumerator();
+        List<int> staleIds = null;
+        while (enumerator.MoveNext())
+        {
+            WildlifeSpatialEntry entry = enumerator.Current.Value;
+            if (entry.Actor == null
+                || !entry.Actor.IsAlive
+                || entry.MembershipEpoch != wildlifeMembershipEpoch)
+            {
+                staleIds ??= new List<int>();
+                staleIds.Add(enumerator.Current.Key);
+            }
+        }
+
+        if (staleIds == null)
+        {
+            return;
+        }
+
+        for (int index = 0; index < staleIds.Count; index++)
+        {
+            RemoveWildlifeEntry(staleIds[index]);
+        }
+    }
+
+    private void RemoveCharacterEntry(int id)
+    {
+        if (!characterEntries.TryGetValue(id, out CharacterSpatialEntry entry))
+        {
+            return;
+        }
+
+        RemoveCharacterFromBucket(entry);
+        characterEntries.Remove(id);
+    }
+
+    private void RemoveWildlifeEntry(int id)
+    {
+        if (!wildlifeEntries.TryGetValue(id, out WildlifeSpatialEntry entry))
+        {
+            return;
+        }
+
+        RemoveWildlifeFromBucket(entry);
+        wildlifeEntries.Remove(id);
+    }
+
+    private void AddCharacterToBucket(
+        long key,
+        CharacterSpatialEntry entry)
+    {
+        if (!characterBuckets.TryGetValue(
+                key,
+                out List<CharacterSpatialEntry> bucket))
+        {
+            bucket = new List<CharacterSpatialEntry>(8);
+            characterBuckets[key] = bucket;
+        }
+
+        entry.BucketKey = key;
+        entry.BucketIndex = bucket.Count;
+        bucket.Add(entry);
+    }
+
+    private void RemoveCharacterFromBucket(
+        CharacterSpatialEntry entry)
+    {
+        if (!characterBuckets.TryGetValue(
+                entry.BucketKey,
+                out List<CharacterSpatialEntry> bucket))
+        {
+            entry.BucketIndex = -1;
+            return;
+        }
+
+        int index = entry.BucketIndex;
+        if (index < 0
+            || index >= bucket.Count
+            || !ReferenceEquals(bucket[index], entry))
+        {
+            index = bucket.IndexOf(entry);
+            if (index < 0)
+            {
+                entry.BucketIndex = -1;
+                return;
+            }
+        }
+
+        int lastIndex = bucket.Count - 1;
+        if (index != lastIndex)
+        {
+            CharacterSpatialEntry moved = bucket[lastIndex];
+            bucket[index] = moved;
+            moved.BucketIndex = index;
+        }
+
+        bucket.RemoveAt(lastIndex);
+        entry.BucketIndex = -1;
+        if (bucket.Count == 0)
+        {
+            characterBuckets.Remove(entry.BucketKey);
+        }
+    }
+
+    private void AddWildlifeToBucket(
+        long key,
+        WildlifeSpatialEntry entry)
+    {
+        if (!wildlifeBuckets.TryGetValue(
+                key,
+                out List<WildlifeSpatialEntry> bucket))
+        {
+            bucket = new List<WildlifeSpatialEntry>(8);
+            wildlifeBuckets[key] = bucket;
+        }
+
+        entry.BucketKey = key;
+        entry.BucketIndex = bucket.Count;
+        bucket.Add(entry);
+    }
+
+    private void RemoveWildlifeFromBucket(
+        WildlifeSpatialEntry entry)
+    {
+        if (!wildlifeBuckets.TryGetValue(
+                entry.BucketKey,
+                out List<WildlifeSpatialEntry> bucket))
+        {
+            entry.BucketIndex = -1;
+            return;
+        }
+
+        int index = entry.BucketIndex;
+        if (index < 0
+            || index >= bucket.Count
+            || !ReferenceEquals(bucket[index], entry))
+        {
+            index = bucket.IndexOf(entry);
+            if (index < 0)
+            {
+                entry.BucketIndex = -1;
+                return;
+            }
+        }
+
+        int lastIndex = bucket.Count - 1;
+        if (index != lastIndex)
+        {
+            WildlifeSpatialEntry moved = bucket[lastIndex];
+            bucket[index] = moved;
+            moved.BucketIndex = index;
+        }
+
+        bucket.RemoveAt(lastIndex);
+        entry.BucketIndex = -1;
+        if (bucket.Count == 0)
+        {
+            wildlifeBuckets.Remove(entry.BucketKey);
+        }
+    }
+
+    private static long BuildSpatialKey(int floor, int bucketX)
+    {
+        return ((long)floor << 32) ^ (uint)bucketX;
+    }
+
+    private static int FloorDiv(int value, int divisor)
+    {
+        int quotient = value / divisor;
+        int remainder = value % divisor;
+        return remainder < 0 ? quotient - 1 : quotient;
     }
 
     private readonly struct CachedSignal
@@ -656,5 +1198,35 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
 
         public float Time { get; }
         public CharacterAiWorldSignalSnapshot Snapshot { get; }
+    }
+
+    private sealed class CharacterSpatialEntry
+    {
+        public CharacterSpatialEntry(CharacterActor actor)
+        {
+            Actor = actor;
+        }
+
+        public CharacterActor Actor { get; }
+        public Vector2Int Position { get; set; }
+        public bool IsWorker { get; set; }
+        public long BucketKey { get; set; }
+        public int BucketIndex { get; set; } = -1;
+        public int MembershipEpoch { get; set; }
+    }
+
+    private sealed class WildlifeSpatialEntry
+    {
+        public WildlifeSpatialEntry(WildlifeActor actor)
+        {
+            Actor = actor;
+        }
+
+        public WildlifeActor Actor { get; }
+        public Vector2Int Position { get; set; }
+        public bool IsDangerous { get; set; }
+        public long BucketKey { get; set; }
+        public int BucketIndex { get; set; } = -1;
+        public int MembershipEpoch { get; set; }
     }
 }

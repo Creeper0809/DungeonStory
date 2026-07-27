@@ -16,6 +16,13 @@ public enum CharacterMedicalOrderState
     Cancelled = 8
 }
 
+public enum CharacterMedicalSupplyKind
+{
+    None = 0,
+    Medicine = 1,
+    ExtractedBlood = 2
+}
+
 [Serializable]
 public sealed class CharacterMedicalOrder
 {
@@ -30,6 +37,9 @@ public sealed class CharacterMedicalOrder
     public float completedStabilizationWork;
     public float requiredTreatmentWork;
     public float completedTreatmentWork;
+    public CharacterMedicalSupplyKind treatmentSupply;
+    public bool treatmentSupplyConsumed;
+    public string treatmentMaterialDestinationId = string.Empty;
     public int patientX;
     public int patientY;
     public int bedX;
@@ -104,6 +114,10 @@ public interface ICharacterMedicalRuntime
         CharacterActor patient,
         out CharacterMedicalOrder order,
         out string failureReason);
+    bool TryRequestTreatment(
+        CharacterActor patient,
+        out CharacterMedicalOrder order,
+        out string failureReason);
     bool TryGetOrder(string orderId, out CharacterMedicalOrder order);
     bool TryGetPatient(CharacterMedicalOrder order, out CharacterActor patient);
     bool TryGetTreatmentFacility(CharacterMedicalOrder order, out BuildableObject facility);
@@ -119,6 +133,12 @@ public interface ICharacterMedicalRuntime
     void NotifyCharacterRecovered(CharacterActor actor);
     DungeonCharacterMedicalSaveData Capture();
     void Restore(DungeonCharacterMedicalSaveData saveData, IList<string> warnings);
+}
+
+public interface ICharacterCarePriorityQuery
+{
+    bool IsCareSubject(string persistentCharacterId);
+    int GetCarePriority(string persistentCharacterId);
 }
 
 public sealed class CharacterPhysicalCapacityQuery :

@@ -36,6 +36,14 @@ public enum CaptiveInteractionKind
     CorruptionRitual
 }
 
+public enum CaptivePerformerMilestoneChoice
+{
+    None = 0,
+    StaffContract = 1,
+    ReleaseNegotiation = 2,
+    ExclusiveFighterContract = 3
+}
+
 [Flags]
 public enum CaptiveLaborPermission
 {
@@ -110,6 +118,12 @@ public sealed class CaptiveState
     public float performerFame;
     public int performerInjuries;
     public int privilegeTier;
+    public bool carePriorityUnlocked;
+    public float nextCareSupplyAt;
+    public bool staffContractUnlocked;
+    public bool finalContractPending;
+    public bool exclusiveFighter;
+    public CaptivePerformerMilestoneChoice resolvedMilestoneChoice;
     public int failedEscapeAttempts;
     public float nextSecurityCheckAt;
     [Range(0f, 100f)] public float retaliationPressure;
@@ -145,7 +159,7 @@ public sealed class CaptiveState
 [Serializable]
 public sealed class CaptivitySaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
     public int captureSequence;
@@ -294,11 +308,32 @@ public interface ICaptivityCommandService
         string trigger,
         out string failureReason);
     bool TryAssignPerformer(string captiveId, bool assigned, out string failureReason);
+    bool TryResolvePerformerMilestone(
+        string captiveId,
+        CaptivePerformerMilestoneChoice choice,
+        out string failureReason);
     void RecordPerformance(
         string captiveId,
         float fameGain,
         float skillGain,
         bool injured);
+}
+
+public readonly struct CaptivePerformerMilestoneEvent
+{
+    public CaptivePerformerMilestoneEvent(
+        string captiveId,
+        int fameThreshold,
+        string message)
+    {
+        CaptiveId = captiveId ?? string.Empty;
+        FameThreshold = fameThreshold;
+        Message = message ?? string.Empty;
+    }
+
+    public string CaptiveId { get; }
+    public int FameThreshold { get; }
+    public string Message { get; }
 }
 
 public interface ICaptivityEscapeRuntime

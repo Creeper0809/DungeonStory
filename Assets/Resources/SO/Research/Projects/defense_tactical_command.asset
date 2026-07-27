@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: defense_tactical_command
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7024
+  projectId: research:defense:tactical-command
+  displayName: "\uC804\uC220 \uC9C0\uD718"
+  description: "\uB2E4\uC911 \uACBD\uBE44\uC758 \uC804\uC120\uACFC \uAD50\uB300\uB97C
+    \uD1B5\uD569 \uC9C0\uD718\uD55C\uB2E4."
+  field: 2
+  requiredWork: 138
+  prerequisites:
+  - {fileID: 11400000, guid: e955f0b01ce59194e85a72b3de7d1c30, type: 2}
+  blueprintRule: 2
+  blueprint: {fileID: 11400000, guid: 74711e8d7994655e884e29ceb31c6100, type: 2}
+  unlocks:
+    items:
+    - rid: 7302563220868825640
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563220868825640
+      type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        recipeId: recipe_fortress_banner_2

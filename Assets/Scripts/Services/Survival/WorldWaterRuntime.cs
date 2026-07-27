@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using VContainer.Unity;
@@ -12,6 +13,9 @@ public sealed class WorldWaterRuntime :
     ITickable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("WorldWaterRuntime.Tick");
+
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IGameClock gameClock;
     private readonly List<WorldWaterSourceSaveData> sources = new List<WorldWaterSourceSaveData>();
@@ -42,6 +46,14 @@ public sealed class WorldWaterRuntime :
     }
 
     public void Tick()
+    {
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
     {
         float delta = gameClock.DeltaTime;
         if (delta <= 0f)
@@ -352,7 +364,9 @@ public sealed class WorldWaterRuntime :
 
         foreach (WorldWaterSourceSaveData source in sources)
         {
-            grid.GetGridCell(new Vector2Int(source.gridX, source.gridY))?.SetTerrainType(source.terrainType);
+            grid.SetTerrainType(
+                new Vector2Int(source.gridX, source.gridY),
+                source.terrainType);
         }
     }
 
@@ -365,7 +379,9 @@ public sealed class WorldWaterRuntime :
 
         foreach (WorldWaterSourceSaveData source in sources)
         {
-            grid.GetGridCell(new Vector2Int(source.gridX, source.gridY))?.SetTerrainType(GridCellTerrainType.Dry);
+            grid.SetTerrainType(
+                new Vector2Int(source.gridX, source.gridY),
+                GridCellTerrainType.Dry);
         }
     }
 

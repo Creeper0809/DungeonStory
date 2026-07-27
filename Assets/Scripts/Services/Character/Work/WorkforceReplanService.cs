@@ -82,11 +82,10 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
                 continue;
             }
 
-            GridPathSearchResult search = brain.GetPathSearch(actor);
-            if (!work.CanStartWorkAction(requestedWorkTypeId, search)
+            if (!work.CanStartWorkAction(requestedWorkTypeId, null)
                 || !work.TryGetBestWorkCandidate(
                     requestedWorkTypeId,
-                    search,
+                    null,
                     out WorkTargetCandidate candidate))
             {
                 continue;

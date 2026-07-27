@@ -298,6 +298,18 @@ public static class CodexService
 
 public class CodexRuntime : MonoBehaviour
 {
+    private static readonly string[] MemoryResidueClues =
+    {
+        "서로 다른 증언에서 같은 종소리가 반복된다. 장소는 달랐지만 시간은 같았다.",
+        "침입자의 기억에는 지도에 없는 검문소가 있다. 통행증에는 던전의 문장이 찍혀 있다.",
+        "지워진 이름 뒤에 같은 필체가 남아 있다. 원정 기록과 침공 명령서의 작성자가 같다.",
+        "봉인 지대의 보급 목록에는 전투 물자가 없다. 대신 빈 관과 기억 봉합용 실만 적혀 있다.",
+        "변경의 상인들은 길을 잃은 적이 없다고 말한다. 그러나 모두 같은 꿈에서 길을 배웠다.",
+        "경쟁 던전의 병사들은 승리를 기억하지만 전장을 기억하지 못한다.",
+        "회수된 기억 속 달은 두 번 뜬다. 두 번째 달 아래에서는 그림자가 사람보다 먼저 움직인다.",
+        "명령서의 마지막 문장은 잉크가 아니라 기억에서 지워진 흔적으로 남아 있다."
+    };
+
     [SerializeField] private bool importReferenceDataOnAwake = true;
 
     private readonly CodexState state = new CodexState();
@@ -386,6 +398,52 @@ public class CodexRuntime : MonoBehaviour
     public IReadOnlyList<CodexEntrySnapshot> GetEntries(CodexEntryCategory category)
     {
         return state.GetSnapshots(category);
+    }
+
+    public bool HasMemoryResidueClueAvailable
+    {
+        get
+        {
+            const string entryId = "memory-residue";
+            CodexEntryRecord entry = state.GetOrCreate(
+                CodexEntryCategory.Invasion,
+                entryId,
+                "기억 잔재");
+            return MemoryResidueClues.Any(candidate =>
+                !entry.Lines.Any(line => string.Equals(
+                    line.Text,
+                    candidate,
+                    StringComparison.Ordinal)));
+        }
+    }
+
+    public bool TryRecordMemoryResidueClue(out string message)
+    {
+        const string entryId = "memory-residue";
+        CodexEntryRecord entry = state.GetOrCreate(
+            CodexEntryCategory.Invasion,
+            entryId,
+            "기억 잔재");
+        string clue = MemoryResidueClues.FirstOrDefault(candidate =>
+            !entry.Lines.Any(line => string.Equals(
+                line.Text,
+                candidate,
+                StringComparison.Ordinal)));
+        if (string.IsNullOrWhiteSpace(clue))
+        {
+            message = "분석 가능한 기억 잔재 단서를 모두 정리했습니다.";
+            return false;
+        }
+
+        entry.AddInfo(clue, CodexInfoSource.Research);
+        PublishUpdated(CodexEntryCategory.Invasion, entryId);
+        message = $"도감 단서 확보: {clue}";
+        gameEventBus.RaiseAlert(
+            "기억 잔재 분석",
+            clue,
+            EventAlertImportance.Medium,
+            "도감");
+        return true;
     }
 
     public void OnTriggerEvent(FacilityVisitEvent eventType)

@@ -17,6 +17,8 @@ public enum ShoppingVisitOutcome
 public class AbilityShopping : CharacterAbility
 {
     private const int DefaultMaxLookAroundCount = 1;
+    private static readonly WaitForSeconds PurchaseFeedbackDelay =
+        new WaitForSeconds(0.5f);
 
     private int holdingMoney;
     private readonly List<BuildableObject> mutableVisitedBuildings = new List<BuildableObject>();
@@ -30,6 +32,7 @@ public class AbilityShopping : CharacterAbility
     private IRandomStreamProvider randomStreamProvider;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
+    private Predicate<BuildableObject> canVisitBuildingPredicate;
 
     public int visitCount { get; private set; }
     public int lookAroundCount { get; private set; }
@@ -341,16 +344,25 @@ public class AbilityShopping : CharacterAbility
 
     public bool CanLookAround()
     {
-        return actor != null
-            && visitCount > 0
-            && ShouldEndVisitCycle()
-            && lookAroundCount < DefaultMaxLookAroundCount;
+        GetDecisionState(out bool canLookAround, out _);
+        return canLookAround;
     }
 
     public bool ShouldExitDungeon()
     {
-        return actor != null
-            && ShouldEndVisitCycle()
+        GetDecisionState(out _, out bool shouldExitDungeon);
+        return shouldExitDungeon;
+    }
+
+    public void GetDecisionState(
+        out bool canLookAround,
+        out bool shouldExitDungeon)
+    {
+        bool shouldEndVisitCycle = actor != null && ShouldEndVisitCycle();
+        canLookAround = shouldEndVisitCycle
+            && visitCount > 0
+            && lookAroundCount < DefaultMaxLookAroundCount;
+        shouldExitDungeon = shouldEndVisitCycle
             && (visitCount <= 0
                 || lookAroundCount >= DefaultMaxLookAroundCount);
     }
@@ -382,15 +394,18 @@ public class AbilityShopping : CharacterAbility
             return false;
         }
 
-        foreach (BuildableObject building in actor.GetReachableBuilding())
+        AIBrain brain = actor.Brain;
+        if (brain == null || !brain.TryGetRuntimeGrid(out _))
         {
-            if (CanVisitBuilding(building))
-            {
-                return true;
-            }
+            return false;
         }
 
-        return false;
+        canVisitBuildingPredicate ??= CanVisitBuilding;
+        return FacilityCandidateScorer.HasCandidate(
+            actor,
+            null,
+            GetInterestRoles(),
+            canVisitBuildingPredicate);
     }
     public BuildableObject FindShop()
     {
@@ -411,7 +426,10 @@ public class AbilityShopping : CharacterAbility
                     GetRandomStream().NextInt(0, characterData.favoriteStore.Length)].id
                 : -1;
 
-        foreach (BuildableObject building in actor.GetReachableBuilding())
+        foreach (BuildableObject building in FacilityCandidateScorer.GetCandidates(
+                     actor,
+                     null,
+                     GetInterestRoles()))
         {
             if (!CanVisitBuilding(building))
             {
@@ -466,7 +484,7 @@ public class AbilityShopping : CharacterAbility
             RequireFloatingIconFeedbackService().Show(this, iteminfo.itemSprite, purchaseFeedbackIconMaxWorldSize);
         }
 
-        yield return new WaitForSeconds(0.5f);
+        yield return PurchaseFeedbackDelay;
         if (!IsInternalStaffUse())
         {
             holdingMoney -= Mathf.Max(0, purchaseCost);

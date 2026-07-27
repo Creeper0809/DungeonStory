@@ -18,7 +18,6 @@ public static class UiPlayModeRegressionBatchRunner
     private const string BuildPlacementRequestPath = "Temp/build-placement-ux.request";
     private const string CharacterClickRequestPath = "Temp/character-click-priority.request";
     private const string RoomInspectionRequestPath = "Temp/room-inspection-playmode.request";
-    private const string ExpeditionEquipmentRequestPath = "Temp/expedition-equipment-playmode.request";
     private const string PhysicalItemPileRequestPath = "Temp/physical-item-pile-playmode.request";
     private const string PhysicalItemLogisticsRequestPath = "Temp/physical-item-logistics-playmode.request";
     private const string StartPartyRequestPath = "Temp/start-party-playmode.request";
@@ -85,15 +84,6 @@ public static class UiPlayModeRegressionBatchRunner
                     RoomInspectionRequestPath,
                     RoomInspectionPlayModeVerifier.ReportPath,
                     () => RequestMarker(RoomInspectionRequestPath),
-                    text => text.Contains("RESULT=PASS"))
-            },
-            {
-                "ExpeditionEquipment",
-                new VerificationTarget(
-                    "ExpeditionEquipment",
-                    ExpeditionEquipmentRequestPath,
-                    ExpeditionEquipmentPlayModeVerifier.ReportPath,
-                    () => RequestMarker(ExpeditionEquipmentRequestPath),
                     text => text.Contains("RESULT=PASS"))
             },
             {
@@ -202,7 +192,6 @@ public static class UiPlayModeRegressionBatchRunner
                     "BuildPlacement",
                     "CharacterClick",
                     "RoomInspection",
-                    "ExpeditionEquipment",
                     "PhysicalItemPile",
                     "PhysicalItemLogistics",
                     "SkillRuntime"
@@ -349,17 +338,6 @@ public static class UiPlayModeRegressionBatchRunner
             {
                 new GameObject("Room Inspection PlayMode Verification Runner")
                     .AddComponent<RoomInspectionPlayModeVerificationRunner>();
-            }
-
-            return;
-        }
-
-        if (target.Name.Equals("ExpeditionEquipment", StringComparison.OrdinalIgnoreCase))
-        {
-            if (UnityEngine.Object.FindFirstObjectByType<ExpeditionEquipmentPlayModeVerificationRunner>() == null)
-            {
-                new GameObject("Expedition Equipment PlayMode Verification Runner")
-                    .AddComponent<ExpeditionEquipmentPlayModeVerificationRunner>();
             }
 
             return;

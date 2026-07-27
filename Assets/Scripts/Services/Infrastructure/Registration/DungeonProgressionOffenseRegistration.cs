@@ -26,8 +26,16 @@ public static class DungeonProgressionOffenseRegistration
             .As<IFacilityShopCatalog>();
         builder.Register<FacilityShopUnlockStateService>(Lifetime.Singleton)
             .As<IFacilityShopUnlockStateService>();
+        builder.Register<ResourceResearchProjectCatalog>(Lifetime.Singleton)
+            .As<IResearchProjectCatalog>();
+        builder.Register<ResearchGraphLayoutService>(Lifetime.Singleton)
+            .As<IResearchGraphLayoutService>();
+        builder.Register<ResearchBlueprintArchiveQuery>(Lifetime.Singleton)
+            .As<IResearchBlueprintArchiveQuery>();
         builder.Register<BlueprintResearchRuntimeProvider>(Lifetime.Singleton)
             .As<IBlueprintResearchRuntimeProvider>();
+        builder.Register<ResearchQueueCommandService>(Lifetime.Singleton)
+            .As<IResearchQueueCommandService>();
         builder.Register<BlueprintResearchWorkService>(Lifetime.Singleton)
             .As<IBlueprintResearchWorkService>();
         builder.Register<BlueprintResearchStateService>(Lifetime.Singleton)
@@ -51,12 +59,15 @@ public static class DungeonProgressionOffenseRegistration
             .As<IOffenseExpeditionRuntimeProvider>();
         builder.Register<OffenseExpeditionMemberQuery>(Lifetime.Singleton)
             .As<IOffenseExpeditionMemberQuery>();
+        builder.Register<OffenseRegionRuntime>(Lifetime.Singleton)
+            .As<IOffenseRegionRuntime>();
+        builder.RegisterEntryPoint<KnowledgeResidueProcessingRuntime>(
+                Lifetime.Singleton)
+            .As<IKnowledgeResidueProcessingRuntime>();
+        builder.RegisterEntryPoint<OffenseReturnArrivalRuntime>(Lifetime.Singleton)
+            .As<IOffenseReturnArrivalRuntime>();
         builder.Register<DungeonOffensePreparationService>(Lifetime.Singleton)
             .As<IOffensePreparationService>();
-        builder.Register<ResourceExpeditionEquipmentCatalogProvider>(Lifetime.Singleton)
-            .As<IExpeditionEquipmentCatalogProvider>();
-        builder.Register<ExpeditionEquipmentRuntime>(Lifetime.Singleton)
-            .As<IExpeditionEquipmentRuntime>();
         builder.RegisterEntryPoint<OffenseBattleRuntime>(Lifetime.Singleton)
             .As<IOffenseBattleRuntime>();
         builder.Register<DataCatalogOffenseRewardCatalog>(Lifetime.Singleton)
@@ -71,9 +82,7 @@ public static class DungeonProgressionOffenseRegistration
             .As<IOffenseRewardGrantHandler>();
         builder.Register<OffenseBlueprintRewardGrantHandler>(Lifetime.Singleton)
             .As<IOffenseRewardGrantHandler>();
-        builder.Register<OffenseHumanFactionRewardGrantHandler>(Lifetime.Singleton)
-            .As<IOffenseRewardGrantHandler>();
-        builder.Register<OffenseRivalFactionRewardGrantHandler>(Lifetime.Singleton)
+        builder.Register<OffenseRegionalPressureRewardGrantHandler>(Lifetime.Singleton)
             .As<IOffenseRewardGrantHandler>();
         builder.Register<OffenseRecruitCandidateRewardGrantHandler>(Lifetime.Singleton)
             .As<IOffenseRewardGrantHandler>();

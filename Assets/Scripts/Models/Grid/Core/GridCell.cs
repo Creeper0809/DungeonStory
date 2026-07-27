@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class GridCell
 {
+    private static readonly IReadOnlyList<GridTraversalLink> EmptyTraversalLinks =
+        Array.Empty<GridTraversalLink>();
+
     private static readonly GridLayer[] SelectionPriority =
     {
         GridLayer.Character,
@@ -19,15 +22,16 @@ public class GridCell
             GridLayer.Hallway
     };
 
-    private readonly Dictionary<GridLayer, IGridOccupant> occupants;
+    private Dictionary<GridLayer, IGridOccupant> occupants;
     private List<GridTraversalLink> traversalLinks;
-    private readonly IReadOnlyList<GridTraversalLink> traversalLinksView;
+    private IReadOnlyList<GridTraversalLink> traversalLinksView;
     private bool isBuildable;
 
     public Vector2Int Position { get; }
     public GridCellAreaType AreaType { get; private set; }
     public GridCellTerrainType TerrainType { get; private set; }
-    public IReadOnlyList<GridTraversalLink> TraversalLinks => traversalLinksView;
+    public IReadOnlyList<GridTraversalLink> TraversalLinks =>
+        traversalLinksView ?? EmptyTraversalLinks;
     public bool IsWalkableArea => GridCellAreaRules.IsWalkableArea(AreaType)
         && TerrainType != GridCellTerrainType.DeepWater;
     public float TerrainMoveSpeedMultiplier => TerrainType == GridCellTerrainType.ShallowWater ? 0.65f : 1f;
@@ -36,9 +40,6 @@ public class GridCell
 
     public GridCell(Vector2Int pos)
     {
-        occupants = new Dictionary<GridLayer, IGridOccupant>();
-        traversalLinks = new List<GridTraversalLink>();
-        traversalLinksView = ReadOnlyView.List(traversalLinks);
         isBuildable = true;
         AreaType = GridCellAreaType.DungeonInterior;
         TerrainType = GridCellTerrainType.Dry;
@@ -46,12 +47,13 @@ public class GridCell
     }
     public IGridOccupant GetOccupant(GridLayer layer = GridLayer.Building)
     {
-        if(!HasOccupantInLayer(layer)) return null;
-        return occupants[layer];
+        return occupants != null && occupants.TryGetValue(layer, out IGridOccupant occupant)
+            ? occupant
+            : null;
     }
     public IGridOccupant GetTopOccupant()
     {
-        if (occupants.Count == 0) return null;
+        if (occupants == null || occupants.Count == 0) return null;
 
         foreach (GridLayer layer in SelectionPriority)
         {
@@ -65,7 +67,7 @@ public class GridCell
     }
     public void ConnectFloor(IEnumerable<Vector2Int> poses)
     {
-        traversalLinks.Clear();
+        ClearTraversalLinks();
         if (poses == null)
         {
             return;
@@ -76,13 +78,14 @@ public class GridCell
         {
             if (pos != Position)
             {
+                EnsureTraversalLinks();
                 traversalLinks.Add(new GridTraversalLink(pos, topOccupant, GridMoveType.Instant));
             }
         }
     }
     public void SetTraversalLinks(IEnumerable<GridTraversalLink> links)
     {
-        traversalLinks.Clear();
+        ClearTraversalLinks();
         if (links == null)
         {
             return;
@@ -92,14 +95,18 @@ public class GridCell
         {
             if (link != null)
             {
+                EnsureTraversalLinks();
                 traversalLinks.Add(link);
             }
         }
     }
     public void RemoveOccupantByLayer(GridLayer layer)
     {
-        if (!HasOccupantInLayer(layer)) return;
-        occupants.Remove(layer);
+        if (occupants == null || !occupants.Remove(layer)) return;
+        if (occupants.Count == 0)
+        {
+            occupants = null;
+        }
     }
     public List<IGridOccupant> GetAllOccupants()
     {
@@ -114,6 +121,11 @@ public class GridCell
             return;
         }
 
+        if (occupants == null)
+        {
+            return;
+        }
+
         foreach (IGridOccupant building in occupants.Values)
         {
             result.Add(building);
@@ -122,6 +134,11 @@ public class GridCell
     public bool ContainsOccupant(IGridOccupant occupant)
     {
         if (occupant == null)
+        {
+            return false;
+        }
+
+        if (occupants == null)
         {
             return false;
         }
@@ -180,11 +197,11 @@ public class GridCell
     }
     public bool HasOccupantInLayer(GridLayer layer = GridLayer.Building)
     {
-        return occupants.ContainsKey(layer);
+        return occupants != null && occupants.ContainsKey(layer);
     }
     public bool HasOccupant()
     {
-        return occupants.Count > 0;
+        return occupants != null && occupants.Count > 0;
     }
     public bool HasPlacementSupport()
     {
@@ -195,6 +212,7 @@ public class GridCell
     {
         if (occupant == null || !CanOccupy(layer)) return false;
 
+        occupants ??= new Dictionary<GridLayer, IGridOccupant>();
         occupants.Add(layer, occupant);
         return true;
     }
@@ -204,4 +222,20 @@ public class GridCell
         TrySetOccupant(layer, occupant);
     }
 
+    private void EnsureTraversalLinks()
+    {
+        if (traversalLinks != null)
+        {
+            return;
+        }
+
+        traversalLinks = new List<GridTraversalLink>(2);
+        traversalLinksView = ReadOnlyView.List(traversalLinks);
+    }
+
+    private void ClearTraversalLinks()
+    {
+        traversalLinks = null;
+        traversalLinksView = null;
+    }
 }

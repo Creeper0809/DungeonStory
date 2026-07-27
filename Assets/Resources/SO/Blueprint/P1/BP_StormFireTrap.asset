@@ -28,13 +28,14 @@ MonoBehaviour:
   rarity: 1
   defaultCost: 340
   researchWorkRequired: 60
+  targetResearchProjectId: research:arcane:resonance
   unlocks:
     items:
-    - rid: 7302563192359358096
+    - rid: 7302563223825548165
   references:
     version: 2
     RefIds:
-    - rid: 7302563192359358096
+    - rid: 7302563223825548165
       type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
       data:
         recipeId: recipe_arcane_ritual_2

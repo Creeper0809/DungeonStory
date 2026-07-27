@@ -23,7 +23,8 @@ public enum UITabSurfaceKind
 {
     Construction,
     Staff,
-    Feature
+    Feature,
+    ResearchTree
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -65,7 +66,7 @@ public static class UITabCatalog
             new UITabDefinition(TabId.Operations, 5, "운영", "운영", UITabSurfaceKind.Feature),
             new UITabDefinition(TabId.Defense, 6, "방어", "침공/방어", UITabSurfaceKind.Feature),
             new UITabDefinition(TabId.Expedition, 7, "원정", "원정", UITabSurfaceKind.Feature),
-            new UITabDefinition(TabId.Research, 8, "연구", "연구/제작", UITabSurfaceKind.Feature),
+            new UITabDefinition(TabId.Research, 8, "연구", "연구 트리", UITabSurfaceKind.ResearchTree),
             new UITabDefinition(TabId.Codex, 9, "도감", "도감/기록", UITabSurfaceKind.Feature)
         });
 

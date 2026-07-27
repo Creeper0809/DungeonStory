@@ -14,10 +14,27 @@ public readonly struct CharacterInfectionBurdenRequestedEvent
     public float Amount { get; }
 }
 
+public readonly struct CharacterMentalInstabilityBurdenRequestedEvent
+{
+    public CharacterMentalInstabilityBurdenRequestedEvent(
+        CharacterActor actor,
+        float amount)
+    {
+        Actor = actor;
+        Amount = Mathf.Max(0f, amount);
+    }
+
+    public CharacterActor Actor { get; }
+    public float Amount { get; }
+}
+
 public interface ICharacterDeprivationRuntime
 {
     bool HasActiveBreakdown(CharacterActor actor);
     bool HasBreakdownKind(CharacterActor actor, CharacterBreakdownKind kind);
+    bool TryGetDisplayState(
+        CharacterActor actor,
+        out CharacterDeprivationDisplayState displayState);
     bool TryGetSnapshot(CharacterActor actor, out CharacterDeprivationSnapshot snapshot);
     bool TryRunActiveBreakdown(CharacterActor actor, out string status);
     bool TryRunSafeEmergencyRelief(CharacterActor actor, out string status);

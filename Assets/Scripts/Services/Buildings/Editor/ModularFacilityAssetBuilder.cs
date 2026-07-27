@@ -11,17 +11,10 @@ public static class ModularFacilityAssetBuilder
     private const string SpriteFolder = "Assets/Images/ModularFacilities";
     private const string BuildingFolder = "Assets/Resources/SO/Building/Modular";
     private const string StockFolder = "Assets/Resources/SO/Stock/Modular";
-    private const string EquipmentCatalogPath = "Assets/Resources/Config/ExpeditionEquipmentCatalog.asset";
     private const string GeneralStockSource = "Assets/Resources/SO/Stock/P1/P1_GeneralStoreStock.asset";
     private const string SaleItemFolder = "Assets/Resources/SO/Stock/Item";
     private static readonly string[] DefaultCraftableEquipmentIds =
     {
-        "weapon:attack-iron",
-        "weapon:strength-maul",
-        "weapon:dexterity-needle",
-        "armor:toughness-plate",
-        "armor:move-cloak",
-        "armor:endurance-mail",
         "weapon:dagger",
         "weapon:longsword",
         "weapon:spear",
@@ -76,10 +69,10 @@ public static class ModularFacilityAssetBuilder
         BuildAll();
     }
 
-    [MenuItem("DungeonStory/Content/Patch Expedition Equipment Assets")]
-    public static void PatchExpeditionEquipmentAssetsFromMenu()
+    [MenuItem("DungeonStory/Content/Patch Combat Equipment Assets")]
+    public static void PatchCombatEquipmentAssetsFromMenu()
     {
-        PatchExpeditionEquipmentAssets();
+        PatchCombatEquipmentAssets();
     }
 
     [MenuItem("DungeonStory/Content/Patch Survival Facility Abilities")]
@@ -88,14 +81,13 @@ public static class ModularFacilityAssetBuilder
         PatchSurvivalFacilityAbilities();
     }
 
-    public static void PatchExpeditionEquipmentAssets()
+    public static void PatchCombatEquipmentAssets()
     {
         EnsureFolder("Assets/Resources/Config");
-        EnsureEquipmentCatalogAsset();
         PatchEquipmentFacilityAbilities();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("Expedition equipment catalog and facility abilities patched.");
+        Debug.Log("Combat equipment definitions and facility abilities patched.");
     }
 
     public static void PatchSurvivalFacilityAbilities()
@@ -214,31 +206,6 @@ public static class ModularFacilityAssetBuilder
         }
     }
 
-    private static void EnsureEquipmentCatalogAsset()
-    {
-        ExpeditionEquipmentCatalogSO catalog =
-            AssetDatabase.LoadAssetAtPath<ExpeditionEquipmentCatalogSO>(EquipmentCatalogPath);
-        ExpeditionEquipmentCatalogSO defaults = ExpeditionEquipmentCatalogSO.CreateRuntimeDefaults();
-        defaults.name = "ExpeditionEquipmentCatalog";
-        try
-        {
-            if (catalog == null)
-            {
-                catalog = ScriptableObject.CreateInstance<ExpeditionEquipmentCatalogSO>();
-                catalog.name = "ExpeditionEquipmentCatalog";
-                AssetDatabase.CreateAsset(catalog, EquipmentCatalogPath);
-            }
-
-            EditorUtility.CopySerialized(defaults, catalog);
-            catalog.name = "ExpeditionEquipmentCatalog";
-            EditorUtility.SetDirty(catalog);
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(defaults);
-        }
-    }
-
     private static void PatchEquipmentFacilityAbilities()
     {
         foreach (string path in AssetDatabase.FindAssets("t:BuildingSO", new[] { "Assets/Resources/SO/Building" })
@@ -264,7 +231,7 @@ public static class ModularFacilityAssetBuilder
                 building.AbilityModules.Add(new BuildingEquipmentCraftingAbility
                 {
                     craftableEquipmentIds = DefaultCraftableEquipmentIds.ToArray(),
-                    workSecondsPerCycle = 1f
+                    workUnitsPerCycle = 1f
                 });
                 FacilityData facility = building.Facility ?? new FacilityData();
                 facility.SetSupportedWorkTypeIds(new[]
@@ -639,7 +606,7 @@ public static class ModularFacilityAssetBuilder
             ? new BuildingEquipmentCraftingAbility
             {
                 craftableEquipmentIds = DefaultCraftableEquipmentIds.ToArray(),
-                workSecondsPerCycle = 1f
+                workUnitsPerCycle = 1f
             }
             : null;
     }

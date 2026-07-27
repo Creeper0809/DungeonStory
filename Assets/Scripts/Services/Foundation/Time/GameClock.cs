@@ -37,10 +37,34 @@ namespace DungeonStory.Foundation
 
     public sealed class UnityGameTimeScaleController : IGameTimeScaleController
     {
+        private static readonly float BaseFixedDeltaTime =
+            ResolveBaseFixedDeltaTime();
+
         public float Scale
         {
             get => UnityEngine.Time.timeScale;
-            set => UnityEngine.Time.timeScale = value;
+            set
+            {
+                float scale = Mathf.Max(0f, value);
+                UnityEngine.Time.timeScale = scale;
+                UnityEngine.Time.fixedDeltaTime = scale > 0f
+                    ? BaseFixedDeltaTime * scale
+                    : BaseFixedDeltaTime;
+            }
+        }
+
+        private static float ResolveBaseFixedDeltaTime()
+        {
+            float fixedDeltaTime = Mathf.Max(
+                0.001f,
+                UnityEngine.Time.fixedDeltaTime);
+            float timeScale = UnityEngine.Time.timeScale;
+            if (timeScale > 1f && fixedDeltaTime > 0.05f)
+            {
+                return Mathf.Max(0.001f, fixedDeltaTime / timeScale);
+            }
+
+            return fixedDeltaTime;
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -11,11 +12,26 @@ public sealed class CharacterMedicalRuntime :
     ITickable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("CharacterMedicalRuntime.Tick");
+
+    private static readonly IReadOnlyDictionary<StockCategory, int> MedicineCost =
+        new Dictionary<StockCategory, int>
+        {
+            [StockCategory.Medicine] = 1
+        };
+    private static readonly IReadOnlyDictionary<StockCategory, int> ExtractedBloodCost =
+        new Dictionary<StockCategory, int>
+        {
+            [StockCategory.Biological] = 1
+        };
+
     private readonly ICharacterBodyHealthRuntime bodyHealth;
     private readonly IGridSystemProvider gridProvider;
     private readonly ICharacterAiWorldRegistry worldRegistry;
-    private readonly ISurvivalFoodRuntime survivalRuntime;
+    private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IGameEventBus gameEventBus;
+    private readonly ICharacterCarePriorityQuery carePriorityQuery;
     private readonly List<CharacterMedicalOrder> orders = new List<CharacterMedicalOrder>();
     private readonly Dictionary<string, DownedCharacterGridOccupant> downedOccupants =
         new Dictionary<string, DownedCharacterGridOccupant>(StringComparer.Ordinal);
@@ -33,14 +49,17 @@ public sealed class CharacterMedicalRuntime :
         ICharacterBodyHealthRuntime bodyHealth,
         IGridSystemProvider gridProvider,
         ICharacterAiWorldRegistry worldRegistry,
-        ISurvivalFoodRuntime survivalRuntime,
-        IGameEventBus gameEventBus)
+        IWorldItemStackRuntime itemStackRuntime,
+        IGameEventBus gameEventBus,
+        ICharacterCarePriorityQuery carePriorityQuery = null)
     {
         this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
         this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
         this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
-        this.survivalRuntime = survivalRuntime ?? throw new ArgumentNullException(nameof(survivalRuntime));
+        this.itemStackRuntime = itemStackRuntime
+            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.carePriorityQuery = carePriorityQuery;
     }
 
     public IReadOnlyList<CharacterMedicalOrder> ActiveOrders =>
@@ -74,8 +93,22 @@ public sealed class CharacterMedicalRuntime :
 
     public void Tick()
     {
-        foreach (CharacterMedicalOrder order in orders.Where(item => item.IsActive).ToArray())
+        using (TickProfilerMarker.Auto())
         {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
+    {
+        for (int index = 0; index < orders.Count; index++)
+        {
+            CharacterMedicalOrder order = orders[index];
+            if (order == null || !order.IsActive)
+            {
+                continue;
+            }
+
             if (!TryGetPatient(order, out CharacterActor patient) || patient.IsDead)
             {
                 CancelOrder(order, "환자 소실");
@@ -150,7 +183,9 @@ public sealed class CharacterMedicalRuntime :
         RefreshTreatmentFacilities();
         order = orders
             .Where(candidate => IsOrderAvailableTo(candidate, rescuer))
-            .OrderBy(candidate => candidate.stabilized ? 1 : 0)
+            .OrderByDescending(candidate =>
+                carePriorityQuery?.GetCarePriority(candidate.patientId) ?? 0)
+            .ThenBy(candidate => candidate.stabilized ? 1 : 0)
             .ThenBy(candidate => Manhattan(rescuer.GetNowXY(), candidate.PatientPosition))
             .FirstOrDefault();
         if (order == null)
@@ -206,6 +241,45 @@ public sealed class CharacterMedicalRuntime :
         return true;
     }
 
+    public bool TryRequestTreatment(
+        CharacterActor patient,
+        out CharacterMedicalOrder order,
+        out string failureReason)
+    {
+        order = null;
+        failureReason = string.Empty;
+        if (patient == null || patient.IsDead)
+        {
+            failureReason = "치료할 환자가 없습니다.";
+            return false;
+        }
+
+        CharacterBodyHealthSnapshot health = bodyHealth.GetSnapshot(patient);
+        bool injured = health.Downed
+            || health.BloodLoss > 0.01f
+            || health.Parts.Any(part =>
+                part != null && part.currentHealth + 0.01f < part.maxHealth);
+        if (!injured)
+        {
+            failureReason = "치료가 필요한 부상이 없습니다.";
+            return false;
+        }
+
+        NotifyCharacterDowned(patient);
+        string patientId = GetId(patient);
+        order = orders.FirstOrDefault(candidate =>
+            candidate.IsActive
+            && string.Equals(candidate.patientId, patientId, StringComparison.Ordinal));
+        if (order == null)
+        {
+            failureReason = "치료 주문을 만들지 못했습니다.";
+            return false;
+        }
+
+        order.status = "부상으로 공연 제외 · 치료 대기";
+        return true;
+    }
+
     public bool TryGetOrder(string orderId, out CharacterMedicalOrder order)
     {
         order = orders.FirstOrDefault(item => string.Equals(
@@ -254,20 +328,12 @@ public sealed class CharacterMedicalRuntime :
             return order.completedStabilizationWork / Mathf.Max(0.01f, order.requiredStabilizationWork);
         }
 
-        bool hadMedicine = survivalRuntime.TryConsumeStoredStock(
-            StockCategory.Medicine,
-            1) > 0;
         bodyHealth.Stabilize(patient);
-        if (!hadMedicine)
-        {
-            gameEventBus.Publish(new CharacterInfectionBurdenRequestedEvent(patient, 8f));
-        }
+        gameEventBus.Publish(new CharacterInfectionBurdenRequestedEvent(patient, 8f));
 
         order.stabilized = true;
         order.state = CharacterMedicalOrderState.AwaitingRescue;
-        order.status = hadMedicine
-            ? "안정화 완료"
-            : "응급 처치 완료 · 감염 위험";
+        order.status = "응급 처치 완료 · 감염 위험";
         TryAssignTreatmentFacility(order);
         return 1f;
     }
@@ -325,6 +391,8 @@ public sealed class CharacterMedicalRuntime :
             failureReason = "치료 목적지가 사라졌습니다.";
             if (order != null && patient != null)
             {
+                ReleaseTreatmentMaterials(order);
+                ReleaseFacilityReservation(order);
                 DropPatientAtCurrentPosition(order, patient, failureReason);
             }
 
@@ -346,23 +414,35 @@ public sealed class CharacterMedicalRuntime :
     public float AdvanceTreatment(string orderId, CharacterActor rescuer, float work)
     {
         if (!TryGetReservedOrder(orderId, rescuer, out CharacterMedicalOrder order)
-            || !TryGetPatient(order, out CharacterActor patient)
-            || !TryGetTreatmentFacility(order, out BuildableObject facility))
+            || !TryGetPatient(order, out CharacterActor patient))
         {
+            return 0f;
+        }
+
+        if (!TryGetTreatmentFacility(order, out BuildableObject facility))
+        {
+            ReleaseTreatmentMaterials(order);
+            ReleaseFacilityReservation(order);
+            order.rescuerId = string.Empty;
+            order.state = CharacterMedicalOrderState.AwaitingBed;
+            order.status = "치료 침상 필요";
+            RegisterDownedOccupant(patient);
             return 0f;
         }
 
         BuildingMedicalAbility medical = facility.BuildingData?.GetAbility<BuildingMedicalAbility>();
         if (medical?.requiresMedicine == true
             && order.completedTreatmentWork <= 0.001f
-            && survivalRuntime.TryConsumeStoredStock(StockCategory.Medicine, 1) <= 0)
+            && !EnsureTreatmentSupplyReady(order, facility))
         {
-            order.status = "약품 운반 대기";
             return 0f;
         }
 
         order.state = CharacterMedicalOrderState.Treating;
-        order.status = "병상 치료 중";
+        order.status =
+            order.treatmentSupply == CharacterMedicalSupplyKind.ExtractedBlood
+                ? "혈액 대체 치료 중"
+                : "병상 치료 중";
         order.completedTreatmentWork = Mathf.Min(
             order.requiredTreatmentWork,
             order.completedTreatmentWork + Mathf.Max(0f, work));
@@ -374,7 +454,20 @@ public sealed class CharacterMedicalRuntime :
         float severityReduction = medical != null
             ? Mathf.Max(0.05f, medical.severityReduction)
             : 0.18f;
-        bodyHealth.ApplyTreatment(patient, severityReduction * 40f, 25f);
+        bool usedExtractedBlood =
+            order.treatmentSupply == CharacterMedicalSupplyKind.ExtractedBlood;
+        float treatmentEfficiency = usedExtractedBlood ? 0.55f : 1f;
+        bodyHealth.ApplyTreatment(
+            patient,
+            severityReduction * 40f * treatmentEfficiency,
+            usedExtractedBlood ? 14f : 25f);
+        if (usedExtractedBlood)
+        {
+            ApplyExtractedBloodConsequences(patient, infection: 4f, instability: 6f);
+        }
+
+        order.treatmentSupply = CharacterMedicalSupplyKind.None;
+        order.treatmentSupplyConsumed = false;
         CharacterBodyHealthSnapshot snapshot = bodyHealth.GetSnapshot(patient);
         if (!snapshot.Downed)
         {
@@ -386,6 +479,111 @@ public sealed class CharacterMedicalRuntime :
         order.requiredTreatmentWork = CalculateTreatmentWork(patient);
         order.status = "추가 치료 필요";
         return 1f;
+    }
+
+    private bool EnsureTreatmentSupplyReady(
+        CharacterMedicalOrder order,
+        BuildableObject facility)
+    {
+        if (order == null || facility == null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(order.treatmentMaterialDestinationId))
+        {
+            order.treatmentMaterialDestinationId =
+                WorldItemStackRuntime.FacilityInputDestinationPrefix
+                + $"medical:{order.orderId}";
+        }
+
+        if (order.treatmentSupply == CharacterMedicalSupplyKind.None
+            && !TryRequestTreatmentSupply(
+                order,
+                facility,
+                StockCategory.Medicine,
+                CharacterMedicalSupplyKind.Medicine)
+            && !TryRequestTreatmentSupply(
+                order,
+                facility,
+                StockCategory.Biological,
+                CharacterMedicalSupplyKind.ExtractedBlood))
+        {
+            order.status = "약품과 추출 혈액이 부족함";
+            return false;
+        }
+
+        if (order.treatmentSupplyConsumed)
+        {
+            return true;
+        }
+
+        IReadOnlyDictionary<StockCategory, int> cost =
+            order.treatmentSupply == CharacterMedicalSupplyKind.Medicine
+                ? MedicineCost
+                : ExtractedBloodCost;
+        if (!itemStackRuntime.TryConsumeFacilityBuffer(
+                order.treatmentMaterialDestinationId,
+                cost,
+                out _))
+        {
+            order.status =
+                order.treatmentSupply == CharacterMedicalSupplyKind.Medicine
+                    ? "약품 운반 대기"
+                    : "추출 혈액 운반 대기";
+            return false;
+        }
+
+        order.treatmentSupplyConsumed = true;
+        return true;
+    }
+
+    private bool TryRequestTreatmentSupply(
+        CharacterMedicalOrder order,
+        BuildableObject facility,
+        StockCategory category,
+        CharacterMedicalSupplyKind supply)
+    {
+        if (!itemStackRuntime.TryRequestFacilityDelivery(
+                category,
+                1,
+                facility.centerPos,
+                order.treatmentMaterialDestinationId,
+                out int requested,
+                out _)
+            || requested < 1)
+        {
+            return false;
+        }
+
+        order.treatmentSupply = supply;
+        order.treatmentSupplyConsumed = false;
+        return true;
+    }
+
+    private void ApplyExtractedBloodConsequences(
+        CharacterActor patient,
+        float infection,
+        float instability)
+    {
+        if (patient == null)
+        {
+            return;
+        }
+
+        gameEventBus.Publish(new CharacterInfectionBurdenRequestedEvent(
+            patient,
+            infection));
+        gameEventBus.Publish(
+            new CharacterMentalInstabilityBurdenRequestedEvent(
+                patient,
+                instability));
+        patient.ApplyMoodFactor(
+            "medical:extracted-blood",
+            "낯선 피로 치료받음",
+            -4f,
+            240f,
+            1);
     }
 
     public void ReleaseReservation(string orderId, CharacterActor rescuer, string reason)
@@ -418,9 +616,11 @@ public sealed class CharacterMedicalRuntime :
 
     public void NotifyCharacterDowned(CharacterActor actor)
     {
+        string actorId = actor != null ? GetId(actor) : string.Empty;
         if (actor == null
             || actor.IsDead
-            || actor.characterType == CharacterType.Intruder)
+            || (actor.characterType == CharacterType.Intruder
+                && carePriorityQuery?.IsCareSubject(actorId) != true))
         {
             return;
         }
@@ -429,7 +629,7 @@ public sealed class CharacterMedicalRuntime :
         actor.SetLifecycleState(CharacterLifecycleState.Downed);
         RegisterDownedOccupant(actor);
 
-        string patientId = GetId(actor);
+        string patientId = actorId;
         CharacterMedicalOrder order = orders.FirstOrDefault(item =>
             item.IsActive
             && string.Equals(item.patientId, patientId, StringComparison.Ordinal));
@@ -474,6 +674,7 @@ public sealed class CharacterMedicalRuntime :
             order.carried = false;
             order.state = CharacterMedicalOrderState.Completed;
             order.status = "치료 완료";
+            ReleaseTreatmentMaterials(order);
             ReleaseFacilityReservation(order);
         }
 
@@ -696,6 +897,7 @@ public sealed class CharacterMedicalRuntime :
         order.carried = false;
         order.state = CharacterMedicalOrderState.Cancelled;
         order.status = reason ?? "취소";
+        ReleaseTreatmentMaterials(order);
         ReleaseFacilityReservation(order);
         RemoveDownedOccupant(order.patientId);
     }
@@ -831,11 +1033,37 @@ public sealed class CharacterMedicalRuntime :
             completedStabilizationWork = source.completedStabilizationWork,
             requiredTreatmentWork = source.requiredTreatmentWork,
             completedTreatmentWork = source.completedTreatmentWork,
+            treatmentSupply = source.treatmentSupply,
+            treatmentSupplyConsumed = source.treatmentSupplyConsumed,
+            treatmentMaterialDestinationId =
+                source.treatmentMaterialDestinationId ?? string.Empty,
             patientX = source.patientX,
             patientY = source.patientY,
             bedX = source.bedX,
             bedY = source.bedY,
             status = source.status ?? string.Empty
         };
+    }
+
+    private void ReleaseTreatmentMaterials(CharacterMedicalOrder order)
+    {
+        if (order == null
+            || string.IsNullOrWhiteSpace(order.treatmentMaterialDestinationId))
+        {
+            return;
+        }
+
+        Vector2Int releasePosition = order.BedPosition;
+        if (TryGetTreatmentFacility(order, out BuildableObject facility))
+        {
+            releasePosition = facility.centerPos;
+        }
+
+        itemStackRuntime.ReleaseStacksByDestination(
+            order.treatmentMaterialDestinationId,
+            releasePosition);
+        order.treatmentMaterialDestinationId = string.Empty;
+        order.treatmentSupply = CharacterMedicalSupplyKind.None;
+        order.treatmentSupplyConsumed = false;
     }
 }

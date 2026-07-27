@@ -14,9 +14,9 @@ public readonly struct FinalDefenseRallyPlan
         IEnumerable<GridMoveStep> intruderSteps)
     {
         Target = target;
-        this.ownerSteps = ownerSteps?.Where(step => step != null).ToArray()
+        this.ownerSteps = ownerSteps?.Where(step => step.IsValid).ToArray()
             ?? Array.Empty<GridMoveStep>();
-        this.intruderSteps = intruderSteps?.Where(step => step != null).ToArray()
+        this.intruderSteps = intruderSteps?.Where(step => step.IsValid).ToArray()
             ?? Array.Empty<GridMoveStep>();
     }
 
@@ -69,8 +69,8 @@ public static class FinalDefenseRallyPlanner
             }
 
             GridMoveStep[] intruderPath = entrySearch
-                .GetMovePath(position => position == candidate)
-                .Where(step => step != null)
+                .GetMovePathTo(candidate)
+                .Where(step => step.IsValid)
                 .ToArray();
             if (intruderPath.Length == 0)
             {
@@ -78,8 +78,8 @@ public static class FinalDefenseRallyPlanner
             }
 
             GridMoveStep[] ownerPath = ownerSearch
-                .GetMovePath(position => position == candidate)
-                .Where(step => step != null)
+                .GetMovePathTo(candidate)
+                .Where(step => step.IsValid)
                 .ToArray();
             if (candidate != ownerPosition && ownerPath.Length == 0)
             {

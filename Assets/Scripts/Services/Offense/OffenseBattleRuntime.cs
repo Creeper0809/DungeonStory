@@ -37,10 +37,10 @@ public sealed class OffenseBattleRuntime :
 {
     private readonly ICharacterWorldSaveService characterSaveService;
     private readonly IRunVariableRuntimeProvider runVariableRuntimeProvider;
-    private readonly IExpeditionEquipmentRuntime equipmentRuntime;
     private readonly ICombatResolutionService combatResolution;
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
     private readonly ICharacterBodyHealthRuntime bodyHealthRuntime;
+    private readonly IOffenseRegionRuntime offenseRegionRuntime;
     private readonly IGameEventBus gameEventBus;
     private readonly Dictionary<string, CharacterActor> actorsById =
         new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
@@ -52,20 +52,20 @@ public sealed class OffenseBattleRuntime :
         ICharacterWorldSaveService characterSaveService,
         IRunVariableRuntimeProvider runVariableRuntimeProvider,
         IGameEventBus gameEventBus,
-        IExpeditionEquipmentRuntime equipmentRuntime = null,
         ICombatResolutionService combatResolution = null,
         ICombatEquipmentRuntime combatEquipmentRuntime = null,
-        ICharacterBodyHealthRuntime bodyHealthRuntime = null)
+        ICharacterBodyHealthRuntime bodyHealthRuntime = null,
+        IOffenseRegionRuntime offenseRegionRuntime = null)
     {
         this.characterSaveService = characterSaveService
             ?? throw new ArgumentNullException(nameof(characterSaveService));
         this.runVariableRuntimeProvider = runVariableRuntimeProvider
             ?? throw new ArgumentNullException(nameof(runVariableRuntimeProvider));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
-        this.equipmentRuntime = equipmentRuntime;
         this.combatResolution = combatResolution;
         this.combatEquipmentRuntime = combatEquipmentRuntime;
         this.bodyHealthRuntime = bodyHealthRuntime;
+        this.offenseRegionRuntime = offenseRegionRuntime;
     }
 
     public OffenseBattleSession Session { get; private set; }
@@ -117,8 +117,7 @@ public sealed class OffenseBattleRuntime :
                 actor,
                 persistentId,
                 member.Formation,
-                member.Stress,
-                equipmentRuntime?.GetCombatBonuses(persistentId));
+                member.Stress);
             ConfigureCombatEquipment(combatant);
             ConfigureBodyHealth(actor, combatant);
             combatants.Add(combatant);
@@ -134,7 +133,8 @@ public sealed class OffenseBattleRuntime :
         combatants.AddRange(OffenseEncounterCatalog.CreateEnemies(
             expedition.Target,
             difficulty,
-            expedition.Phase == OffenseExpeditionPhase.InBattle ? expedition.CurrentNode : null));
+            expedition.Phase == OffenseExpeditionPhase.InBattle ? expedition.CurrentNode : null,
+            offenseRegionRuntime?.GetPressureForTarget(expedition.Target) ?? default));
         Session = new OffenseBattleSession(
             Guid.NewGuid().ToString("N"),
             expedition.ExpeditionId,
@@ -241,8 +241,7 @@ public sealed class OffenseBattleRuntime :
                 actor,
                 persistentId,
                 member.Formation,
-                member.Stress,
-                equipmentRuntime?.GetCombatBonuses(persistentId));
+                member.Stress);
             ConfigureCombatEquipment(combatant);
             ConfigureBodyHealth(actor, combatant);
             combatants.Add(combatant);
@@ -251,7 +250,8 @@ public sealed class OffenseBattleRuntime :
         combatants.AddRange(OffenseEncounterCatalog.CreateEnemies(
             expedition.Target,
             state.difficulty,
-            expedition.Phase == OffenseExpeditionPhase.InBattle ? expedition.CurrentNode : null));
+            expedition.Phase == OffenseExpeditionPhase.InBattle ? expedition.CurrentNode : null,
+            offenseRegionRuntime?.GetPressureForTarget(expedition.Target) ?? default));
         HashSet<string> configuredIds = combatants
             .Select(combatant => combatant.PersistentId)
             .ToHashSet(StringComparer.Ordinal);

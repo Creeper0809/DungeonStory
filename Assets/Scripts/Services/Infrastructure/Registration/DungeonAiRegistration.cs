@@ -27,6 +27,10 @@ public static class DungeonAiRegistration
 
         builder.Register<AiDirectorContextSceneQuery>(Lifetime.Singleton)
             .As<IAiDirectorContextSceneQuery>();
+        builder.Register<ResourceCharacterAiPerfSettingsProvider>(Lifetime.Singleton)
+            .As<ICharacterAiPerfSettingsProvider>();
+        builder.Register<CharacterAiPerformanceRecorder>(Lifetime.Singleton)
+            .As<ICharacterAiPerformanceRecorder>();
         builder.Register<CharacterAiFacilityLookup>(Lifetime.Singleton)
             .As<ICharacterAiFacilityLookup>();
         builder.Register<DefaultCharacterAiWorldSignalQuery>(Lifetime.Singleton)

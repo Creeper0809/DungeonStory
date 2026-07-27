@@ -13,6 +13,22 @@ public static class DungeonWorldSimulationRegistration
             ?? throw new System.ArgumentNullException(nameof(sceneReferences)));
         builder.Register<WorldDropZoneQuery>(Lifetime.Singleton)
             .As<IWorldDropZoneQuery>();
+        builder.Register<ExteriorIncidentActorService>(Lifetime.Singleton)
+            .As<IExteriorIncidentActorService>();
+        builder.Register<MerchantCartExteriorIncidentHandler>(Lifetime.Singleton)
+            .As<IExteriorIncidentHandler>();
+        builder.Register<InformantExteriorIncidentHandler>(Lifetime.Singleton)
+            .As<IExteriorIncidentHandler>();
+        builder.Register<ThiefExteriorIncidentHandler>(Lifetime.Singleton)
+            .As<IExteriorIncidentHandler>();
+        builder.Register<InjuredReturneeExteriorIncidentHandler>(Lifetime.Singleton)
+            .As<IExteriorIncidentHandler>();
+        builder.Register<PredatorApproachExteriorIncidentHandler>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IExteriorIncidentHandler>();
+        builder.Register<CargoDamageExteriorIncidentHandler>(Lifetime.Singleton)
+            .As<IExteriorIncidentHandler>();
+        builder.Register<ExteriorIncidentHandlerRegistry>(Lifetime.Singleton);
         builder.RegisterEntryPoint<ExteriorActivityRuntime>(Lifetime.Singleton)
             .As<IExteriorActivityRuntime>()
             .As<IExteriorZoneQuery>()
@@ -76,8 +92,12 @@ public static class DungeonWorldSimulationRegistration
             .As<IWildlifeRuntime>()
             .As<IWildlifeQuery>()
             .As<IWildlifeHuntCommandService>();
+        builder.RegisterEntryPoint<ExteriorIncidentWildlifeConnector>(
+            Lifetime.Singleton);
         builder.RegisterEntryPoint<SurvivalFoodRuntime>(Lifetime.Singleton)
-            .As<ISurvivalFoodRuntime>();
+            .As<ISurvivalFoodRuntime>()
+            .As<ICharacterNutritionRuntime>()
+            .As<ISurvivalEnvironmentQuery>();
         builder.Register<CaptivityPersuasionHandler>(Lifetime.Singleton)
             .As<ICaptivityInteractionHandler>();
         builder.Register<CaptivityIsolationHandler>(Lifetime.Singleton)
@@ -104,7 +124,8 @@ public static class DungeonWorldSimulationRegistration
             .As<ICaptiveLaborQuery>()
             .As<ICaptivityCommandService>()
             .As<ICaptivityEscortRuntime>()
-            .As<ICaptivityEscapeRuntime>();
+            .As<ICaptivityEscapeRuntime>()
+            .As<ICharacterCarePriorityQuery>();
         builder.RegisterEntryPoint<CaptivityRetaliationRuntime>(Lifetime.Singleton);
         builder.RegisterEntryPoint<WildlifeCaptureRuntime>(Lifetime.Singleton)
             .As<IWildlifeCaptureRuntime>()

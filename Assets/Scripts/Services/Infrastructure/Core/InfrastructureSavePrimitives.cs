@@ -34,7 +34,7 @@ public interface IDungeonSaveSlotCatalog
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonGameSaveData
 {
-    public const int CurrentVersion = 15;
+    public const int CurrentVersion = 16;
 
     public int version = CurrentVersion;
     public string savedAtUtc = string.Empty;

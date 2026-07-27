@@ -51,8 +51,18 @@ public sealed class CharacterFeedbackBubbleViewFactory : ICharacterFeedbackBubbl
             return;
         }
 
-        text.text = string.Empty;
+        Transform currentParent = text.transform.parent;
+        bool parentIsDeactivating = currentParent != null
+            && (!currentParent.gameObject.activeSelf
+                || !currentParent.gameObject.activeInHierarchy);
+        text.SetText(string.Empty);
         text.gameObject.SetActive(false);
+        if (parentIsDeactivating)
+        {
+            UnityEngine.Object.Destroy(text.gameObject);
+            return;
+        }
+
         Transform poolParent = Application.isPlaying
             ? DungeonRuntimeHierarchy.GetCategory(DungeonRuntimeHierarchy.WorldUi)
             : null;

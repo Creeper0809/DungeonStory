@@ -39,6 +39,7 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
     private float combatHorizontalOffset;
     private IMainCameraProvider mainCameraProvider;
     private IGameClock gameClock;
+    private IDynamicFrameWorkBudget frameWorkBudget;
     private ITmpKoreanFontService tmpKoreanFontService;
 
     public static WorldCharacterNameplate Ensure(
@@ -72,9 +73,20 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
         Refresh(force: true);
     }
 
-    private void LateUpdate()
+    internal void TickFromScheduler(bool isVisible, bool force)
     {
-        Refresh(force: false);
+        if (!isVisible)
+        {
+            SetRootActive(false);
+            return;
+        }
+
+        Refresh(force, visibilityOverride: true);
+    }
+
+    internal void HideFromScheduler()
+    {
+        SetRootActive(false);
     }
 
     public void Bind(CharacterActor owner)
@@ -103,8 +115,8 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
         stats = owner != null ? owner.Stats : null;
         mainCameraProvider = cameraProvider;
         gameClock = owner != null ? owner.GameClock : null;
+        frameWorkBudget = owner != null ? owner.FrameWorkBudget : null;
         tmpKoreanFontService = fontService;
-        EnsureView();
         Refresh(force: true);
     }
 
@@ -146,11 +158,16 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
 #if UNITY_EDITOR
     public void RefreshNowForDebug()
     {
-        Refresh(force: true);
+        Refresh(force: true, visibilityOverride: true);
     }
 #endif
 
     private void Refresh(bool force)
+    {
+        Refresh(force, visibilityOverride: null);
+    }
+
+    private void Refresh(bool force, bool? visibilityOverride)
     {
         if (actor == null)
         {
@@ -173,16 +190,18 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
             stats = actor.Stats;
         }
 
-        EnsureView();
         bool shouldShow = actor.CurrentLifecycleState != CharacterLifecycleState.OnExpedition
             && actor.CurrentLifecycleState != CharacterLifecycleState.Despawned
-            && !actor.IsDead;
+            && !actor.IsDead
+            && (visibilityOverride ?? IsWithinCameraViewport());
         SetRootActive(shouldShow);
         if (!shouldShow)
         {
             return;
         }
 
+        EnsureView();
+        SetRootActive(true);
         UpdatePosition();
         SyncSorting(force);
         RefreshName(force);
@@ -296,7 +315,7 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
         text.fontStyle = FontStyles.Bold;
         text.color = new Color(1f, 0.38f, 0.24f, 1f);
         ApplyKoreanFont(text);
-        if (text.fontSharedMaterial != null)
+        if (Application.isPlaying && text.fontSharedMaterial != null)
         {
             text.outlineColor = new Color(0.03f, 0.01f, 0.01f, 0.96f);
             text.outlineWidth = 0.2f;
@@ -370,7 +389,9 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
         float maximum = Mathf.Max(1f, stats != null ? stats.MaxHealth : actor != null ? actor.MaxHealth : 1f);
         float current = Mathf.Clamp(stats != null ? stats.CurrentHealth : actor != null ? actor.CurrentHealth : maximum, 0f, maximum);
         float health01 = Mathf.Clamp01(current / maximum);
-        bool visible = combatActive || GameTime < combatHealthVisibleUntil;
+        bool visible = current < maximum - 0.01f
+            || combatActive
+            || GameTime < combatHealthVisibleUntil;
         SetHealthLinesActive(visible);
         if (!visible)
         {
@@ -426,17 +447,19 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
         }
 
         if (actor?.DeprivationRuntime == null
-            || !actor.DeprivationRuntime.TryGetSnapshot(actor, out CharacterDeprivationSnapshot snapshot)
-            || (snapshot.HighestBurden < 40f && (snapshot.Breakdown == null || !snapshot.Breakdown.active)))
+            || !actor.DeprivationRuntime.TryGetDisplayState(
+                actor,
+                out CharacterDeprivationDisplayState displayState)
+            || (displayState.HighestBurden < 40f && !displayState.BreakdownActive))
         {
             warningText.gameObject.SetActive(false);
             return;
         }
 
         warningText.gameObject.SetActive(true);
-        if (snapshot.Breakdown != null && snapshot.Breakdown.active)
+        if (displayState.BreakdownActive)
         {
-            warningText.text = snapshot.Breakdown.kind switch
+            warningText.text = displayState.BreakdownKind switch
             {
                 CharacterBreakdownKind.DesperateRelief => "배변 통제 상실",
                 CharacterBreakdownKind.DesperateDrink => "절박한 갈증",
@@ -446,7 +469,7 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
             };
             warningText.color = new Color(1f, 0.16f, 0.12f, 1f);
         }
-        else if (snapshot.HighestBurden >= 70f)
+        else if (displayState.HighestBurden >= 70f)
         {
             warningText.text = "붕괴 위험";
             warningText.color = new Color(1f, 0.28f, 0.18f, 1f);
@@ -500,6 +523,32 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
         Vector3 local = warningText.transform.localPosition;
         local.x += worldDelta / parentScaleX;
         warningText.transform.localPosition = local;
+    }
+
+    private bool IsWithinCameraViewport()
+    {
+        Camera camera = null;
+        try
+        {
+            camera = mainCameraProvider != null ? mainCameraProvider.Camera : null;
+        }
+        catch (System.InvalidOperationException)
+        {
+            return false;
+        }
+
+        if (camera == null)
+        {
+            return false;
+        }
+
+        Vector3 viewport = camera.WorldToViewportPoint(transform.position);
+        const float margin = 0.08f;
+        return viewport.z >= 0f
+            && viewport.x >= -margin
+            && viewport.x <= 1f + margin
+            && viewport.y >= -margin
+            && viewport.y <= 1f + margin;
     }
 
     private void SyncSorting(bool force)

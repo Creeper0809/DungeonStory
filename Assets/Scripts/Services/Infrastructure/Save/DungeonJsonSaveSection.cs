@@ -20,7 +20,7 @@ public abstract class DungeonJsonSaveSection<TPayload> : IDungeonSaveSection
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion != SectionVersion)
+        if (!SupportsSectionVersion(sectionVersion))
         {
             throw new InvalidOperationException(
                 $"Unsupported {SectionId} section version {sectionVersion}.");
@@ -29,7 +29,21 @@ public abstract class DungeonJsonSaveSection<TPayload> : IDungeonSaveSection
         TPayload payload = string.IsNullOrWhiteSpace(payloadJson)
             ? new TPayload()
             : JsonUtility.FromJson<TPayload>(payloadJson) ?? new TPayload();
+        payload = MigratePayload(payload, sectionVersion, report) ?? new TPayload();
         RestorePayload(payload, report);
+    }
+
+    protected virtual bool SupportsSectionVersion(int sectionVersion)
+    {
+        return sectionVersion == SectionVersion;
+    }
+
+    protected virtual TPayload MigratePayload(
+        TPayload payload,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        return payload;
     }
 
     protected abstract TPayload CapturePayload();

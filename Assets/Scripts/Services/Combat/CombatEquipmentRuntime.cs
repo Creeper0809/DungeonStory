@@ -8,11 +8,56 @@ public sealed class DungeonCombatEquipmentSaveData
 {
     public List<CombatEquipmentInstance> instances = new List<CombatEquipmentInstance>();
     public List<CharacterCombatLoadoutState> loadouts = new List<CharacterCombatLoadoutState>();
+    public List<CombatEquipmentCraftOrderSaveData> craftOrders =
+        new List<CombatEquipmentCraftOrderSaveData>();
+}
+
+[Serializable]
+public sealed class CombatEquipmentCraftOrderSaveData
+{
+    public string orderId = string.Empty;
+    public string definitionId = string.Empty;
+    public float requiredWork;
+    public float completedWork;
+    public bool materialsReady;
+    public string materialDestinationId = string.Empty;
+    public int destinationX;
+    public int destinationY;
+
+    public float RemainingWork => Mathf.Max(0f, requiredWork - completedWork);
+
+    public CombatEquipmentCraftOrderSaveData Clone()
+    {
+        return new CombatEquipmentCraftOrderSaveData
+        {
+            orderId = orderId ?? string.Empty,
+            definitionId = definitionId ?? string.Empty,
+            requiredWork = Mathf.Max(0.1f, requiredWork),
+            completedWork = Mathf.Clamp(completedWork, 0f, Mathf.Max(0.1f, requiredWork)),
+            materialsReady = materialsReady,
+            materialDestinationId = materialDestinationId ?? string.Empty,
+            destinationX = destinationX,
+            destinationY = destinationY
+        };
+    }
 }
 
 public interface ICombatEquipmentRuntime
 {
+    IReadOnlyList<CombatEquipmentDefinitionSO> Definitions { get; }
     IReadOnlyCollection<CombatEquipmentInstance> Instances { get; }
+    IReadOnlyList<CombatEquipmentCraftOrderSaveData> CraftQueue { get; }
+    bool TryGetDefinition(string definitionId, out CombatEquipmentDefinitionSO definition);
+    int GetAvailableCount(string definitionId);
+    bool TryQueueCraft(
+        string definitionId,
+        BuildableObject craftingFacility,
+        out string failureReason);
+    bool HasPendingCraftWork(IEnumerable<string> craftableDefinitionIds);
+    int ApplyCraftWork(
+        IEnumerable<string> craftableDefinitionIds,
+        float workUnits,
+        out string completedDefinitionId);
     CombatEquipmentInstance CreateInstance(
         string definitionId,
         CombatEquipmentQuality quality,
@@ -26,6 +71,10 @@ public interface ICombatEquipmentRuntime
     bool TrySetWorldStateBySourceStack(string sourceStackId, CombatEquipmentWorldState worldState);
     bool TryMarkLost(string instanceId);
     bool TryAssignToCharacter(string characterId, string instanceId, out string failureReason);
+    bool TryUnassignSlot(
+        string characterId,
+        CombatEquipmentLoadoutSlot slot,
+        out string failureReason);
     bool TrySetActiveWeapon(string characterId, string instanceId, out string failureReason);
     bool TrySetActiveProfile(string characterId, string profileId);
     bool TrySetFireMode(string characterId, CombatFireMode fireMode, out string failureReason);
@@ -51,6 +100,7 @@ public interface ICombatEquipmentRuntime
         out CombatEquipmentInstance detached);
     IReadOnlyList<CombatEquipmentInstance> ConfiscateAllFromCharacter(
         string characterId);
+    void HandleCharacterDeath(string characterId);
     bool TryRestoreDurability(string instanceId, float durabilityRatio);
     float GetCarriedWeight(string characterId);
     DungeonCombatEquipmentSaveData Capture();
@@ -69,17 +119,165 @@ public interface ICombatLoadoutRuntime
 public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoadoutRuntime
 {
     private readonly ICombatEquipmentCatalog catalog;
+    private IWorldItemStackRuntime itemStackRuntime;
     private readonly Dictionary<string, CombatEquipmentInstance> instances =
         new Dictionary<string, CombatEquipmentInstance>(StringComparer.Ordinal);
     private readonly Dictionary<string, CharacterCombatLoadoutState> loadouts =
         new Dictionary<string, CharacterCombatLoadoutState>(StringComparer.Ordinal);
+    private readonly List<CombatEquipmentCraftOrderSaveData> craftOrders =
+        new List<CombatEquipmentCraftOrderSaveData>();
+    private IReadOnlyList<CombatEquipmentCraftOrderSaveData> craftQueueView;
 
     public CombatEquipmentRuntime(ICombatEquipmentCatalog catalog)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
     }
 
+    public IReadOnlyList<CombatEquipmentDefinitionSO> Definitions => catalog.All;
     public IReadOnlyCollection<CombatEquipmentInstance> Instances => instances.Values;
+    public IReadOnlyList<CombatEquipmentCraftOrderSaveData> CraftQueue =>
+        craftQueueView ??= craftOrders.AsReadOnly();
+
+    public void BindItemStackRuntime(IWorldItemStackRuntime runtime)
+    {
+        if (runtime == null)
+        {
+            throw new ArgumentNullException(nameof(runtime));
+        }
+
+        if (itemStackRuntime != null && !ReferenceEquals(itemStackRuntime, runtime))
+        {
+            throw new InvalidOperationException(
+                "Combat equipment is already bound to another item runtime.");
+        }
+
+        itemStackRuntime = runtime;
+    }
+
+    public bool TryGetDefinition(
+        string definitionId,
+        out CombatEquipmentDefinitionSO definition)
+    {
+        return catalog.TryGet(definitionId, out definition);
+    }
+
+    public int GetAvailableCount(string definitionId)
+    {
+        string normalizedId = definitionId?.Trim() ?? string.Empty;
+        return instances.Values.Count(instance =>
+            instance != null
+            && string.Equals(instance.definitionId, normalizedId, StringComparison.Ordinal)
+            && instance.worldState == CombatEquipmentWorldState.Stored);
+    }
+
+    public bool TryQueueCraft(
+        string definitionId,
+        BuildableObject craftingFacility,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string normalizedId = definitionId?.Trim() ?? string.Empty;
+        bool isAmmunitionRecipe = IsAmmunitionRecipe(normalizedId);
+        CombatEquipmentDefinitionSO definition = null;
+        if (!isAmmunitionRecipe && !catalog.TryGet(normalizedId, out definition))
+        {
+            failureReason = "제작할 장비를 찾을 수 없습니다.";
+            return false;
+        }
+
+        if (craftingFacility == null || itemStackRuntime == null)
+        {
+            failureReason = "제작 시설이나 물리 아이템 시스템이 준비되지 않았습니다.";
+            return false;
+        }
+
+        string orderId = $"combat-craft:{Guid.NewGuid():N}";
+        string destinationId = WorldItemStackRuntime.FacilityInputDestinationPrefix + orderId;
+        IReadOnlyDictionary<StockCategory, int> materials =
+            BuildCraftMaterials(definition, normalizedId);
+        foreach (KeyValuePair<StockCategory, int> material in materials)
+        {
+            if (!itemStackRuntime.TryRequestFacilityDelivery(
+                    material.Key,
+                    material.Value,
+                    craftingFacility.centerPos,
+                    destinationId,
+                    out int requested,
+                    out string requestFailure)
+                || requested < material.Value)
+            {
+                itemStackRuntime.ReleaseStacksByDestination(
+                    destinationId,
+                    craftingFacility.centerPos);
+                failureReason = string.IsNullOrWhiteSpace(requestFailure)
+                    ? "제작 재료가 부족합니다."
+                    : requestFailure;
+                return false;
+            }
+        }
+
+        craftOrders.Add(new CombatEquipmentCraftOrderSaveData
+        {
+            orderId = orderId,
+            definitionId = normalizedId,
+            requiredWork = isAmmunitionRecipe
+                ? 4f
+                : definition.RequiredCraftWork,
+            completedWork = 0f,
+            materialsReady = materials.Count == 0,
+            materialDestinationId = destinationId,
+            destinationX = craftingFacility.centerPos.x,
+            destinationY = craftingFacility.centerPos.y
+        });
+        return true;
+    }
+
+    public bool HasPendingCraftWork(IEnumerable<string> craftableDefinitionIds)
+    {
+        return craftOrders.Any(order =>
+            order != null
+            && order.RemainingWork > 0f
+            && IsCraftable(order.definitionId, craftableDefinitionIds)
+            && EnsureCraftMaterialsReady(order));
+    }
+
+    public int ApplyCraftWork(
+        IEnumerable<string> craftableDefinitionIds,
+        float workUnits,
+        out string completedDefinitionId)
+    {
+        completedDefinitionId = string.Empty;
+        float safeWork = Mathf.Max(0f, workUnits);
+        if (safeWork <= 0f)
+        {
+            return 0;
+        }
+
+        for (int index = 0; index < craftOrders.Count; index++)
+        {
+            CombatEquipmentCraftOrderSaveData order = craftOrders[index];
+            if (order == null
+                || !IsCraftable(order.definitionId, craftableDefinitionIds)
+                || !EnsureCraftMaterialsReady(order))
+            {
+                continue;
+            }
+
+            order.completedWork = Mathf.Min(
+                Mathf.Max(0.1f, order.requiredWork),
+                order.completedWork + safeWork);
+            if (order.RemainingWork > 0.001f)
+            {
+                return 0;
+            }
+
+            completedDefinitionId = order.definitionId;
+            craftOrders.RemoveAt(index);
+            return 1;
+        }
+
+        return 0;
+    }
 
     public CombatEquipmentInstance CreateInstance(
         string definitionId,
@@ -199,6 +397,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
     public bool TryAssignToCharacter(string characterId, string instanceId, out string failureReason)
     {
         failureReason = string.Empty;
+        string normalizedCharacterId = characterId?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(characterId)
             || !instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
             || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition))
@@ -207,7 +406,26 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             return false;
         }
 
-        CharacterCombatLoadoutProfile profile = GetActiveProfile(GetOrCreateLoadout(characterId));
+        if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
+            && !string.Equals(
+                instance.ownerCharacterId,
+                normalizedCharacterId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "다른 캐릭터가 이미 장착한 장비입니다.";
+            return false;
+        }
+
+        if (instance.worldState is CombatEquipmentWorldState.Lost
+            or CombatEquipmentWorldState.ExpeditionPacked
+            or CombatEquipmentWorldState.MaintenanceBuffer)
+        {
+            failureReason = "현재 장착할 수 없는 상태의 장비입니다.";
+            return false;
+        }
+
+        CharacterCombatLoadoutProfile profile = GetActiveProfile(
+            GetOrCreateLoadout(normalizedCharacterId));
         if (!ValidateLayerConflict(profile, definition, out failureReason))
         {
             return false;
@@ -219,7 +437,8 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         }
 
         RemoveFromAllLoadouts(instance.instanceId);
-        instance.ownerCharacterId = characterId.Trim();
+        instance.ownerCharacterId = normalizedCharacterId;
+        instance.sourceStackId = string.Empty;
         instance.worldState = CombatEquipmentWorldState.Equipped;
         switch (definition.Kind)
         {
@@ -237,6 +456,46 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
                     profile.activeWeaponInstanceId = instance.instanceId;
                 }
                 break;
+        }
+
+        return true;
+    }
+
+    public bool TryUnassignSlot(
+        string characterId,
+        CombatEquipmentLoadoutSlot slot,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (string.IsNullOrWhiteSpace(characterId))
+        {
+            failureReason = "캐릭터를 찾을 수 없습니다.";
+            return false;
+        }
+
+        CharacterCombatLoadoutProfile profile = GetActiveProfile(
+            GetOrCreateLoadout(characterId));
+        List<string> instanceIds = slot == CombatEquipmentLoadoutSlot.Weapon
+            ? profile.weaponInstanceIds.ToList()
+            : profile.armorInstanceIds
+                .Concat(string.IsNullOrWhiteSpace(profile.shieldInstanceId)
+                    ? Array.Empty<string>()
+                    : new[] { profile.shieldInstanceId })
+                .ToList();
+        if (instanceIds.Count == 0)
+        {
+            failureReason = "해제할 장비가 없습니다.";
+            return false;
+        }
+
+        foreach (string instanceId in instanceIds)
+        {
+            RemoveFromAllLoadouts(instanceId);
+            if (instances.TryGetValue(instanceId, out CombatEquipmentInstance instance))
+            {
+                instance.ownerCharacterId = string.Empty;
+                instance.worldState = CombatEquipmentWorldState.Stored;
+            }
         }
 
         return true;
@@ -660,6 +919,30 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         return confiscated.Select(instance => instance.Clone()).ToArray();
     }
 
+    public void HandleCharacterDeath(string characterId)
+    {
+        string normalized = characterId?.Trim() ?? string.Empty;
+        if (normalized.Length == 0)
+        {
+            return;
+        }
+
+        string[] lostInstanceIds = instances.Values
+            .Where(instance => instance != null
+                && string.Equals(
+                    instance.ownerCharacterId,
+                    normalized,
+                    StringComparison.Ordinal))
+            .Select(instance => instance.instanceId)
+            .ToArray();
+        foreach (string instanceId in lostInstanceIds)
+        {
+            TryMarkLost(instanceId);
+        }
+
+        loadouts.Remove(normalized);
+    }
+
     public bool TryRestoreDurability(string instanceId, float durabilityRatio)
     {
         if (!instances.TryGetValue(
@@ -702,7 +985,11 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         return new DungeonCombatEquipmentSaveData
         {
             instances = instances.Values.Select(item => item.Clone()).ToList(),
-            loadouts = loadouts.Values.Select(CloneLoadout).ToList()
+            loadouts = loadouts.Values.Select(CloneLoadout).ToList(),
+            craftOrders = craftOrders
+                .Where(order => order != null && order.RemainingWork > 0f)
+                .Select(order => order.Clone())
+                .ToList()
         };
     }
 
@@ -710,6 +997,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
     {
         instances.Clear();
         loadouts.Clear();
+        craftOrders.Clear();
         foreach (CombatEquipmentInstance instance in saveData?.instances ?? new List<CombatEquipmentInstance>())
         {
             if (instance == null
@@ -738,6 +1026,126 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             SanitizeLoadout(restored);
             loadouts.Add(loadout.characterId, restored);
         }
+
+        HashSet<string> orderIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (CombatEquipmentCraftOrderSaveData source in saveData?.craftOrders
+            ?? new List<CombatEquipmentCraftOrderSaveData>())
+        {
+            if (source == null
+                || string.IsNullOrWhiteSpace(source.orderId)
+                || !orderIds.Add(source.orderId)
+                || source.RemainingWork <= 0f
+                || (!IsAmmunitionRecipe(source.definitionId)
+                    && !catalog.TryGet(source.definitionId, out _)))
+            {
+                continue;
+            }
+
+            craftOrders.Add(source.Clone());
+        }
+    }
+
+    private bool EnsureCraftMaterialsReady(CombatEquipmentCraftOrderSaveData order)
+    {
+        if (order == null)
+        {
+            return false;
+        }
+
+        if (order.materialsReady)
+        {
+            return true;
+        }
+
+        CombatEquipmentDefinitionSO definition = null;
+        if (!IsAmmunitionRecipe(order.definitionId)
+            && !catalog.TryGet(order.definitionId, out definition))
+        {
+            return false;
+        }
+
+        IReadOnlyDictionary<StockCategory, int> materials =
+            BuildCraftMaterials(definition, order.definitionId);
+        if (materials.Count == 0)
+        {
+            order.materialsReady = true;
+            return true;
+        }
+
+        if (itemStackRuntime == null
+            || string.IsNullOrWhiteSpace(order.materialDestinationId)
+            || !itemStackRuntime.TryConsumeFacilityBuffer(
+                order.materialDestinationId,
+                materials,
+                out _))
+        {
+            return false;
+        }
+
+        order.materialsReady = true;
+        return true;
+    }
+
+    private static IReadOnlyDictionary<StockCategory, int> BuildCraftMaterials(
+        CombatEquipmentDefinitionSO definition,
+        string definitionId)
+    {
+        Dictionary<StockCategory, int> materials =
+            new Dictionary<StockCategory, int>();
+        if (IsAmmunitionRecipe(definitionId))
+        {
+            materials[StockCategory.General] = 1;
+            return materials;
+        }
+
+        foreach (CombatEquipmentCraftMaterial material in definition?.CraftMaterials
+            ?? Array.Empty<CombatEquipmentCraftMaterial>())
+        {
+            if (material == null || material.amount <= 0)
+            {
+                continue;
+            }
+
+            materials.TryGetValue(material.category, out int current);
+            materials[material.category] = current + material.amount;
+        }
+
+        if (materials.Count == 0)
+        {
+            materials[StockCategory.General] = 1;
+        }
+
+        return materials;
+    }
+
+    private static bool IsCraftable(
+        string definitionId,
+        IEnumerable<string> craftableDefinitionIds)
+    {
+        if (string.IsNullOrWhiteSpace(definitionId))
+        {
+            return false;
+        }
+
+        string[] allowed = craftableDefinitionIds?
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray() ?? Array.Empty<string>();
+        return allowed.Length == 0
+            || allowed.Contains(definitionId, StringComparer.Ordinal);
+    }
+
+    private static bool IsAmmunitionRecipe(string definitionId)
+    {
+        return string.Equals(
+                definitionId,
+                CombatItemDefinitions.ArrowBundleRecipeId,
+                StringComparison.Ordinal)
+            || string.Equals(
+                definitionId,
+                CombatItemDefinitions.BoltBundleRecipeId,
+                StringComparison.Ordinal);
     }
 
     private bool ValidateHandOccupancyForAssignment(

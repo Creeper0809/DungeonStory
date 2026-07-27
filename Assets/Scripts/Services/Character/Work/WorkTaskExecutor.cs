@@ -481,16 +481,8 @@ public sealed class WorkTaskExecutor
         }
 
         Vector2Int startPos = work.WorkGridResolver.GetGridPosition(grid, actor);
-        if (actor.PathSearchBroker == null
-            || !actor.PathSearchBroker.TryGetSearch(grid, startPos, out GridPathSearchResult searchResult))
-        {
-            failureReason = "창고 경로 계산 대기";
-            return false;
-        }
-
-        List<IWarehouseFacility> reachableWarehouses = searchResult
-            .GetAllReachableBuilding()
-            .OfType<IWarehouseFacility>()
+        List<IWarehouseFacility> reachableWarehouses = targetSelector
+            .FindReachableWarehouses(null)
             .Where((candidate) => candidate.HasWarehouseInventory && candidate.Inventory != null)
             .ToList();
 
@@ -512,7 +504,12 @@ public sealed class WorkTaskExecutor
             return false;
         }
 
-        pathToWarehouse = searchResult.GetMovePathTo(warehouseBuilding);
+        pathToWarehouse = actor.PathSearchBroker?.GetMovePathTo(
+            grid,
+            startPos,
+            warehouseBuilding.centerPos,
+            GridPathSearchPriority.Normal,
+            GridTraversalContext.ForCharacter(actor));
         if (pathToWarehouse == null)
         {
             failureReason = "창고 경로 없음";
@@ -570,13 +567,17 @@ public sealed class WorkTaskExecutor
         }
 
         Vector2Int startPos = work.WorkGridResolver.GetGridPosition(grid, actor);
-        if (actor.PathSearchBroker == null
-            || !actor.PathSearchBroker.TryGetSearch(grid, startPos, out GridPathSearchResult searchResult))
+        if (actor.PathSearchBroker == null)
         {
             return false;
         }
 
-        path = searchResult.GetMovePathTo(target);
+        path = actor.PathSearchBroker.GetMovePathTo(
+            grid,
+            startPos,
+            target.centerPos,
+            GridPathSearchPriority.Normal,
+            GridTraversalContext.ForCharacter(actor));
         return path != null;
     }
 

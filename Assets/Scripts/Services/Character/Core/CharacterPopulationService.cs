@@ -10,6 +10,9 @@ public interface ICharacterPopulationService
     WorldCharacterProfile AcquireVisitor(
         CharacterSO characterData,
         IEnumerable<string> unavailableProfileIds = null);
+    bool TryCreateRecruitCandidate(
+        out WorldCharacterProfile profile,
+        out CharacterSO sourceData);
     void BindActor(WorldCharacterProfile profile, CharacterActor actor);
     void RefreshProfile(CharacterActor actor);
     void ReleaseVisitor(CharacterActor actor);
@@ -125,6 +128,28 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         }
 
         return null;
+    }
+
+    public bool TryCreateRecruitCandidate(
+        out WorldCharacterProfile profile,
+        out CharacterSO sourceData)
+    {
+        CharacterSO[] templates = GetCustomerTemplates();
+        if (templates.Length == 0)
+        {
+            profile = null;
+            sourceData = null;
+            return false;
+        }
+
+        sourceData = templates[creationSerial % templates.Length];
+        profile = CreateProfile(sourceData);
+        profiles.Add(profile);
+
+        // Offense rewards are explicit player-facing candidates, so their
+        // identity and skill preparation takes priority over pool replenishment.
+        BeginPreparation(profile);
+        return true;
     }
 
     public void BindActor(WorldCharacterProfile profile, CharacterActor actor)

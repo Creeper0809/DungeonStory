@@ -12,6 +12,7 @@ using VContainer;
 public sealed class AiDirectorRuntime : SerializedMonoBehaviour
 {
     [SerializeField, Min(1f)] private float evaluationIntervalSeconds = 8f;
+    [SerializeField, Min(1)] private int maxActorsEvaluatedPerTick = 8;
     [SerializeField, Range(0f, 100f)] private float lowMoodThreshold = 18f;
     [SerializeField, Min(1f)] private float routineMacroGoalIntervalSeconds = 30f;
     [SerializeField, Range(0f, 100f)] private float routineMoodThreshold = 75f;
@@ -42,6 +43,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
     private ICharacterAiSchedulingService aiSchedulingService;
     private ICharacterAiFacilityLookup facilityLookup;
     private IGameClock gameClock;
+    private IUiClock uiClock;
 
     public string LastRequestDebug => lastRequestDebug;
     public CharacterMacroGoalType LastAppliedMacroGoalType => lastAppliedMacroGoalType;
@@ -51,6 +53,9 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
     public string LastAppliedMoodImpulseActorName => lastAppliedMoodImpulseActorName;
     public string LastAppliedMoodImpulseDebug => lastAppliedMoodImpulseDebug;
     public string LastError => lastError;
+    private float DirectorTime => uiClock != null
+        ? uiClock.Time
+        : gameClock != null ? gameClock.Time : 0f;
 
     [Inject]
     public void ConstructAiDirectorRuntime(
@@ -58,7 +63,8 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         IAiDirectorContextSceneQuery contextSceneQuery,
         ICharacterAiSchedulingService aiSchedulingService,
         ICharacterAiFacilityLookup facilityLookup,
-        IGameClock gameClock)
+        IGameClock gameClock,
+        IUiClock uiClock = null)
     {
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
@@ -70,6 +76,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
             ?? throw new ArgumentNullException(nameof(facilityLookup));
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
+        this.uiClock = uiClock;
     }
 
     public void SetWarningLogsSuppressedForDebug(bool value)
@@ -84,12 +91,13 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
             return;
         }
 
-        if (gameClock.Time < nextEvaluationTime)
+        if (DirectorTime < nextEvaluationTime)
         {
             return;
         }
 
-        nextEvaluationTime = gameClock.Time + Mathf.Max(1f, evaluationIntervalSeconds);
+        nextEvaluationTime =
+            DirectorTime + Mathf.Max(1f, evaluationIntervalSeconds);
         EvaluateOneActor();
     }
 
@@ -101,7 +109,10 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
             return;
         }
 
-        for (int i = 0; i < actors.Count; i++)
+        int evaluationCount = Mathf.Min(
+            actors.Count,
+            Mathf.Max(1, maxActorsEvaluatedPerTick));
+        for (int i = 0; i < evaluationCount; i++)
         {
             roundRobinIndex %= actors.Count;
             CharacterActor actor = actors[roundRobinIndex++];
@@ -129,7 +140,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
             return false;
         }
 
-        if (gameClock.Time < GetNextMoodImpulseTime(actor))
+        if (DirectorTime < GetNextMoodImpulseTime(actor))
         {
             return false;
         }
@@ -157,7 +168,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
             return true;
         }
 
-        if (gameClock.Time < GetNextRoutineMacroGoalTime(actor))
+        if (DirectorTime < GetNextRoutineMacroGoalTime(actor))
         {
             return false;
         }
@@ -196,10 +207,25 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
             return false;
         }
 
-        return GetMood(actor) <= routineMoodThreshold
-            || CharacterNeedCatalog.All.Any((definition) =>
-                definition.HasTag(CharacterNeedTag.DirectorRoutine)
-                && GetCondition(actor, definition.Condition) <= routineNeedThreshold);
+        if (GetMood(actor) <= routineMoodThreshold)
+        {
+            return true;
+        }
+
+        IReadOnlyList<CharacterNeedDefinition> needs =
+            CharacterNeedCatalog.All;
+        for (int index = 0; index < needs.Count; index++)
+        {
+            CharacterNeedDefinition definition = needs[index];
+            if (definition.HasTag(CharacterNeedTag.DirectorRoutine)
+                && GetCondition(actor, definition.Condition)
+                    <= routineNeedThreshold)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private float GetNextRoutineMacroGoalTime(CharacterActor actor)
@@ -222,7 +248,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         }
 
         nextRoutineMacroGoalTimeByActor[actor] =
-            gameClock.Time + Mathf.Max(1f, routineMacroGoalIntervalSeconds);
+            DirectorTime + Mathf.Max(1f, routineMacroGoalIntervalSeconds);
     }
 
     private float GetNextMoodImpulseTime(CharacterActor actor)
@@ -245,7 +271,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         }
 
         nextMoodImpulseTimeByActor[actor] =
-            gameClock.Time + Mathf.Max(1f, moodImpulseIntervalSeconds);
+            DirectorTime + Mathf.Max(1f, moodImpulseIntervalSeconds);
     }
 
     public bool RequestMoodImpulse(CharacterActor actor)

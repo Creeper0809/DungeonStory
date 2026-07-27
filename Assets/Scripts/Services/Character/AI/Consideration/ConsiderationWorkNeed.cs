@@ -23,12 +23,9 @@ public class ConsiderationWorkNeed : Consideration
             return 0f;
         }
 
-        GridPathSearchResult searchResult = actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
         float utilityScore = TryGetConfiguredWorkTypeId(out WorkTypeId workTypeId)
-            ? work.GetWorkUtilityScore(workTypeId, searchResult)
-            : work.GetAnyWorkUtilityScore(searchResult);
+            ? work.GetWorkUtilityScore(workTypeId, null)
+            : work.GetAnyWorkUtilityScore(null);
         if (utilityScore <= 0f)
         {
             return 0f;

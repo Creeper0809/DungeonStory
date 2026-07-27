@@ -17,6 +17,10 @@ public static class DungeonFoundationRegistration
             .As<IRandomStreamProvider>();
         builder.Register<GameEventBus>(Lifetime.Singleton)
             .As<IGameEventBus>();
+        builder.Register<DynamicFrameWorkBudget>(Lifetime.Singleton)
+            .As<IDynamicFrameWorkBudget>();
+        builder.RegisterInstance(DefaultGridTraversalCostPolicy.Instance)
+            .As<IGridTraversalCostPolicy>();
         builder.Register<GridPathSearchBroker>(Lifetime.Singleton)
             .As<IGridPathSearchBroker>();
 

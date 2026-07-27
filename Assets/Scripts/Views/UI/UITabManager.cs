@@ -25,6 +25,7 @@ public class UITabManager : MonoBehaviour
     private IUITabGeneratedPanelFactory generatedPanelFactory;
     private IStaffWorkPriorityPanelFactory staffWorkPriorityPanelFactory;
     private IP0FeatureSurfacePanelFactory p0FeatureSurfacePanelFactory;
+    private IResearchTreeWindowFactory researchTreeWindowFactory;
     private IUITabTopButtonFactory topButtonFactory;
     private IDungeonGridBuildingControllerProvider buildingControllerProvider;
     private IUiClock uiClock;
@@ -44,6 +45,7 @@ public class UITabManager : MonoBehaviour
         IUITabGeneratedPanelFactory generatedPanelFactory,
         IStaffWorkPriorityPanelFactory staffWorkPriorityPanelFactory,
         IP0FeatureSurfacePanelFactory p0FeatureSurfacePanelFactory,
+        IResearchTreeWindowFactory researchTreeWindowFactory,
         IUITabTopButtonFactory topButtonFactory,
         IDungeonGridBuildingControllerProvider buildingControllerProvider,
         IUiClock uiClock)
@@ -60,6 +62,8 @@ public class UITabManager : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(staffWorkPriorityPanelFactory));
         this.p0FeatureSurfacePanelFactory = p0FeatureSurfacePanelFactory
             ?? throw new ArgumentNullException(nameof(p0FeatureSurfacePanelFactory));
+        this.researchTreeWindowFactory = researchTreeWindowFactory
+            ?? throw new ArgumentNullException(nameof(researchTreeWindowFactory));
         this.topButtonFactory = topButtonFactory
             ?? throw new ArgumentNullException(nameof(topButtonFactory));
         this.buildingControllerProvider = buildingControllerProvider
@@ -257,6 +261,12 @@ public class UITabManager : MonoBehaviour
             {
                 P0FeatureSurfacePanel panel = RequireP0FeatureSurfacePanelFactory().Ensure(tab.gameObject, id);
                 panel?.Refresh();
+                break;
+            }
+            case UITabSurfaceKind.ResearchTree:
+            {
+                ResearchTreeWindow window = RequireResearchTreeWindowFactory().Ensure(tab.gameObject);
+                window?.Refresh();
                 break;
             }
         }
@@ -588,6 +598,13 @@ public class UITabManager : MonoBehaviour
         return p0FeatureSurfacePanelFactory
             ?? throw new InvalidOperationException(
                 $"{nameof(UITabManager)} requires VContainer injection of {nameof(IP0FeatureSurfacePanelFactory)}.");
+    }
+
+    private IResearchTreeWindowFactory RequireResearchTreeWindowFactory()
+    {
+        return researchTreeWindowFactory
+            ?? throw new InvalidOperationException(
+                $"{nameof(UITabManager)} requires VContainer injection of {nameof(IResearchTreeWindowFactory)}.");
     }
 
     private IUITabTopButtonFactory RequireTopButtonFactory()

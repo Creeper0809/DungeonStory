@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -9,6 +11,9 @@ public sealed class WildlifeRuntime :
     IWildlifeRuntime,
     ITickable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("WildlifeRuntime.Tick");
+
     private const int InitialWildlifeTargetCount = 7;
     private const float CarcassTickInterval = 2f;
 
@@ -30,6 +35,7 @@ public sealed class WildlifeRuntime :
     private readonly IGameClock gameClock;
     private readonly IRandomStreamProvider randomStreamProvider;
     private readonly IDoorAccessQuery doorAccessQuery;
+    private readonly ICharacterAiPerformanceRecorder performanceRecorder;
     private readonly IRandomStream randomStream;
     private readonly List<WildlifeActor> wildlife = new List<WildlifeActor>();
     private readonly Dictionary<string, float> nextBehaviorTickByWildlifeId =
@@ -58,7 +64,8 @@ public sealed class WildlifeRuntime :
         IWildlifeCarcassService carcassService = null,
         IGameClock gameClock = null,
         IRandomStreamProvider randomStreamProvider = null,
-        IDoorAccessQuery doorAccessQuery = null)
+        IDoorAccessQuery doorAccessQuery = null,
+        ICharacterAiPerformanceRecorder performanceRecorder = null)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.speciesCatalog = speciesCatalog ?? throw new ArgumentNullException(nameof(speciesCatalog));
@@ -80,12 +87,38 @@ public sealed class WildlifeRuntime :
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.randomStreamProvider = randomStreamProvider ?? new RandomStreamProvider(1);
         this.doorAccessQuery = doorAccessQuery;
+        this.performanceRecorder = performanceRecorder;
         randomStream = this.randomStreamProvider.Get("wildlife.runtime");
     }
 
     public IReadOnlyList<WildlifeActor> Wildlife => wildlife;
 
     public void Tick()
+    {
+        using (TickProfilerMarker.Auto())
+        {
+            long started = performanceRecorder?.DetailedCollectionEnabled == true
+                ? Stopwatch.GetTimestamp()
+                : 0L;
+            try
+            {
+                TickRuntime();
+            }
+            finally
+            {
+                if (started != 0L)
+                {
+                    performanceRecorder.Record(
+                        AiPerformanceCategory.Wildlife,
+                        (Stopwatch.GetTimestamp() - started)
+                            * 1000.0
+                            / Stopwatch.Frequency);
+                }
+            }
+        }
+    }
+
+    private void TickRuntime()
     {
         if (DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.PauseWildlifeAi))
         {
@@ -260,7 +293,73 @@ public sealed class WildlifeRuntime :
         return spawned > 0;
     }
 
+    public bool TrySpawnArrival(
+        string speciesId,
+        Vector2Int position,
+        out WildlifeActor actor,
+        out string message)
+    {
+        actor = null;
+        message = string.Empty;
+        if (!gridSystemProvider.TryGetGrid(out Grid grid))
+        {
+            message = "그리드가 준비되지 않았습니다.";
+            return false;
+        }
+
+        if (!speciesCatalog.TryGetSpecies(speciesId, out WildlifeSpeciesDefinition species))
+        {
+            message = "귀환시킬 야생동물 종을 찾지 못했습니다.";
+            return false;
+        }
+
+        Vector2Int spawnPosition = position;
+        if (!CanInitialSpawnAt(grid, spawnPosition))
+        {
+            bool found = false;
+            for (int radius = 1; radius <= 6 && !found; radius++)
+            {
+                for (int y = -radius; y <= radius && !found; y++)
+                {
+                    for (int x = -radius; x <= radius; x++)
+                    {
+                        if (Mathf.Abs(x) != radius && Mathf.Abs(y) != radius)
+                        {
+                            continue;
+                        }
+
+                        Vector2Int candidate = position + new Vector2Int(x, y);
+                        if (!CanInitialSpawnAt(grid, candidate))
+                        {
+                            continue;
+                        }
+
+                        spawnPosition = candidate;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!found)
+            {
+                message = "하차장 주변에 동물을 내릴 수 있는 외부 칸이 없습니다.";
+                return false;
+            }
+        }
+
+        actor = SpawnActor(grid, species, spawnPosition, NextWildlifeId(), null);
+        actor.SetIntent(WildlifeIntent.Rest, "원정대가 운반 상자에서 내려놓았습니다.");
+        message = $"{species.DisplayName}이 하차장에 도착했습니다.";
+        return true;
+    }
+
     public bool DebugDelete(string wildlifeId)
+    {
+        return TryRemoveArrival(wildlifeId);
+    }
+
+    public bool TryRemoveArrival(string wildlifeId)
     {
         WildlifeActor actor = wildlife.FirstOrDefault(candidate => candidate != null
             && string.Equals(candidate.WildlifeId, wildlifeId, StringComparison.Ordinal));
@@ -1176,11 +1275,6 @@ public sealed class WildlifeRuntime :
         }
 
         Vector2Int start = hunter.GetNowXY();
-        if (pathSearchBroker == null
-            || !pathSearchBroker.TryGetSearch(grid, start, out GridPathSearchResult search))
-        {
-            return false;
-        }
 
         string hunterId = hunter.Identity != null ? hunter.Identity.PersistentId : hunter.name;
         int bestPriority = -1;
@@ -1188,18 +1282,20 @@ public sealed class WildlifeRuntime :
         bool bestDangerous = false;
         foreach (WildlifeActor candidate in wildlife)
         {
+            Vector2Int candidatePosition = candidate != null
+                ? grid.GetXY(candidate.transform.position)
+                : default;
             if (candidate == null
                 || !candidate.IsAlive
                 || !candidate.HuntDesignated
                 || (!string.IsNullOrWhiteSpace(candidate.ReservedByPersistentId)
-                    && candidate.ReservedByPersistentId != hunterId)
-                || !search.ContainsVisitableOccupant(candidate))
+                    && candidate.ReservedByPersistentId != hunterId))
             {
                 continue;
             }
 
             int priority = candidate.PriorityHunt ? 1 : 0;
-            int distance = search.GetMoveDistanceTo(candidate);
+            int distance = Manhattan(start, candidatePosition);
             bool dangerous = candidate.IsDangerous;
             if (target == null
                 || priority > bestPriority

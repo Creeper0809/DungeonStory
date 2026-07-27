@@ -116,13 +116,13 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
             string sectionId = NormalizeId(envelope.sectionId);
             if (sectionId.Length == 0)
             {
-                report.AddError("V15 save contains a section with an empty id.");
+                report.AddError("V16 save contains a section with an empty id.");
                 continue;
             }
 
             if (!savedById.TryAdd(sectionId, envelope))
             {
-                report.AddError($"V15 save contains duplicate section '{sectionId}'.");
+                report.AddError($"V16 save contains duplicate section '{sectionId}'.");
             }
         }
 
@@ -135,7 +135,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         {
             if (!savedById.TryGetValue(section.SectionId, out DungeonSaveSectionEnvelope envelope))
             {
-                report.AddError($"V15 save is missing required section '{section.SectionId}'.");
+                report.AddError($"V16 save is missing required section '{section.SectionId}'.");
                 continue;
             }
 
@@ -152,7 +152,7 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
 
         foreach (string unknownId in savedById.Keys.Where(id => !byId.ContainsKey(id)))
         {
-            report.AddWarning($"Unknown V15 save section '{unknownId}' was ignored.");
+            report.AddWarning($"Unknown V16 save section '{unknownId}' was ignored.");
         }
 
         return report.Success;

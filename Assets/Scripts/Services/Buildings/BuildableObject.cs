@@ -29,13 +29,16 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
     private readonly List<IBuildingStateModule> runtimeStateModules = new List<IBuildingStateModule>();
     private int currentUserCount;
     private readonly Dictionary<CharacterActor, float> visitReservations = new Dictionary<CharacterActor, float>();
+    private readonly List<CharacterActor> expiredVisitReservations =
+        new List<CharacterActor>();
+    private float nextVisitReservationExpiry = float.PositiveInfinity;
     private CharacterActor workerReservation;
     private float workerReservationUntil;
     private IBlueprintResearchWorkService blueprintResearchWorkService;
     private IWorldInfoClickSelector worldInfoClickSelector;
     private IFacilityCandidateCache facilityCandidateCache;
     private IRoomFacilityPolicy roomFacilityPolicy;
-    private IExpeditionEquipmentRuntime expeditionEquipmentRuntime;
+    private ICombatEquipmentRuntime combatEquipmentRuntime;
     private ICharacterAiWorldRegistry worldRegistry;
     private IWorldItemStackRuntime worldItemStackRuntime;
     private IBuildingAbilityRuntimeDispatcher abilityRuntimeDispatcher;
@@ -94,7 +97,7 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         IWorldInfoClickSelector worldInfoClickSelector,
         IFacilityCandidateCache facilityCandidateCache,
         IRoomFacilityPolicy roomFacilityPolicy,
-        IExpeditionEquipmentRuntime expeditionEquipmentRuntime = null,
+        ICombatEquipmentRuntime combatEquipmentRuntime = null,
         ICharacterAiWorldRegistry worldRegistry = null,
         IWorldItemStackRuntime worldItemStackRuntime = null,
         IBuildingAbilityRuntimeDispatcher abilityRuntimeDispatcher = null,
@@ -109,7 +112,7 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         this.roomFacilityPolicy = roomFacilityPolicy
             ?? throw new ArgumentNullException(nameof(roomFacilityPolicy));
         this.worldRegistry = worldRegistry;
-        this.expeditionEquipmentRuntime = expeditionEquipmentRuntime;
+        this.combatEquipmentRuntime = combatEquipmentRuntime;
         this.worldItemStackRuntime = worldItemStackRuntime;
         this.abilityRuntimeDispatcher = abilityRuntimeDispatcher;
         this.gameClock = gameClock;
@@ -144,6 +147,8 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         facilityLevel = 1;
         currentUserCount = 0;
         visitReservations.Clear();
+        expiredVisitReservations.Clear();
+        nextVisitReservationExpiry = float.PositiveInfinity;
         workerReservation = null;
         workerReservationUntil = 0f;
         facilityState ??= new FacilityRuntimeState();
@@ -428,7 +433,18 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
             return false;
         }
 
-        visitReservations[visitor] = Now + Mathf.Max(0.1f, seconds);
+        float expiry = Now + Mathf.Max(0.1f, seconds);
+        if (visitReservations.TryGetValue(visitor, out float previousExpiry)
+            && previousExpiry <= nextVisitReservationExpiry
+            && expiry > previousExpiry)
+        {
+            nextVisitReservationExpiry = 0f;
+        }
+
+        visitReservations[visitor] = expiry;
+        nextVisitReservationExpiry = Mathf.Min(
+            nextVisitReservationExpiry,
+            expiry);
         MarkFacilityDynamicStateDirty();
         return true;
     }
@@ -440,7 +456,20 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
             return;
         }
 
-        visitReservations[visitor] = Now + Mathf.Max(0.1f, seconds);
+        float previousExpiry = visitReservations[visitor];
+        float expiry = Now + Mathf.Max(0.1f, seconds);
+        visitReservations[visitor] = expiry;
+        if (previousExpiry <= nextVisitReservationExpiry
+            && expiry > previousExpiry)
+        {
+            nextVisitReservationExpiry = 0f;
+        }
+        else
+        {
+            nextVisitReservationExpiry = Mathf.Min(
+                nextVisitReservationExpiry,
+                expiry);
+        }
     }
 
     public void ReleaseVisitReservation(CharacterActor visitor)
@@ -450,8 +479,14 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
             return;
         }
 
-        if (visitReservations.Remove(visitor))
+        if (visitReservations.TryGetValue(visitor, out float expiry)
+            && visitReservations.Remove(visitor))
         {
+            if (expiry <= nextVisitReservationExpiry)
+            {
+                nextVisitReservationExpiry = 0f;
+            }
+
             MarkFacilityDynamicStateDirty();
         }
     }
@@ -589,47 +624,48 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
     private int GetActiveVisitReservationCountExcept(CharacterActor visitor)
     {
         PruneExpiredVisitReservations();
-        int count = 0;
-        foreach (CharacterActor reservedVisitor in visitReservations.Keys)
-        {
-            if (reservedVisitor != null && reservedVisitor != visitor)
-            {
-                count++;
-            }
-        }
-
-        return count;
+        return Mathf.Max(
+            0,
+            visitReservations.Count
+            - (visitor != null && visitReservations.ContainsKey(visitor) ? 1 : 0));
     }
 
     private void PruneExpiredVisitReservations()
     {
         if (visitReservations.Count == 0)
         {
+            nextVisitReservationExpiry = float.PositiveInfinity;
+            return;
+        }
+
+        float now = Now;
+        if (now < nextVisitReservationExpiry)
+        {
             return;
         }
 
         bool changed = false;
-        List<CharacterActor> expired = null;
+        float nextExpiry = float.PositiveInfinity;
+        expiredVisitReservations.Clear();
         foreach (KeyValuePair<CharacterActor, float> pair in visitReservations)
         {
-            if (pair.Key != null && Now < pair.Value)
+            if (pair.Key != null && now < pair.Value)
             {
+                nextExpiry = Mathf.Min(nextExpiry, pair.Value);
                 continue;
             }
 
-            expired ??= new List<CharacterActor>();
-            expired.Add(pair.Key);
+            expiredVisitReservations.Add(pair.Key);
         }
 
-        if (expired != null)
+        for (int index = 0; index < expiredVisitReservations.Count; index++)
         {
-            foreach (CharacterActor visitor in expired)
-            {
-                visitReservations.Remove(visitor);
-                changed = true;
-            }
+            visitReservations.Remove(expiredVisitReservations[index]);
+            changed = true;
         }
 
+        expiredVisitReservations.Clear();
+        nextVisitReservationExpiry = nextExpiry;
         if (changed)
         {
             MarkFacilityDynamicStateDirty();
@@ -983,9 +1019,9 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         return RuntimeDependency.Require(blueprintResearchWorkService, this);
     }
 
-    public bool TryGetExpeditionEquipmentRuntime(out IExpeditionEquipmentRuntime runtime)
+    public bool TryGetCombatEquipmentRuntime(out ICombatEquipmentRuntime runtime)
     {
-        runtime = expeditionEquipmentRuntime;
+        runtime = combatEquipmentRuntime;
         return runtime != null;
     }
 
@@ -993,8 +1029,8 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
     {
         BuildingEquipmentCraftingAbility crafting = BuildingData?.GetAbility<BuildingEquipmentCraftingAbility>();
         return crafting != null
-            && expeditionEquipmentRuntime != null
-            && expeditionEquipmentRuntime.HasPendingCraftWork(crafting.CraftableEquipmentIds);
+            && combatEquipmentRuntime != null
+            && combatEquipmentRuntime.HasPendingCraftWork(crafting.CraftableEquipmentIds);
     }
 
     private IWorldInfoClickSelector RequireWorldInfoClickSelector()

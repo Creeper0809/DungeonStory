@@ -1,6 +1,7 @@
 using System;
 using DungeonStory.Foundation;
 using TMPro;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer.Unity;
@@ -34,7 +35,8 @@ public readonly struct FirstRunObjectiveSnapshot
         int completedRunCount,
         int completedOffenseTargetCount = 0,
         int totalOffenseTargetCount = 0,
-        bool truthRevealed = false)
+        bool truthRevealed = false,
+        bool hasResearchBlueprint = false)
     {
         HasOwner = hasOwner;
         HasUsableRoom = hasUsableRoom;
@@ -50,6 +52,7 @@ public readonly struct FirstRunObjectiveSnapshot
         CompletedOffenseTargetCount = Mathf.Max(0, completedOffenseTargetCount);
         TotalOffenseTargetCount = Mathf.Max(0, totalOffenseTargetCount);
         TruthRevealed = truthRevealed;
+        HasResearchBlueprint = hasResearchBlueprint;
     }
 
     public bool HasOwner { get; }
@@ -66,6 +69,7 @@ public readonly struct FirstRunObjectiveSnapshot
     public int CompletedOffenseTargetCount { get; }
     public int TotalOffenseTargetCount { get; }
     public bool TruthRevealed { get; }
+    public bool HasResearchBlueprint { get; }
 }
 
 public readonly struct FirstRunObjectivePresentation
@@ -118,7 +122,9 @@ public static class FirstRunObjectiveResolver
                 "벽과 내벽 문으로 닫힌 공간을 완성하세요.");
         }
 
-        if (state.ResearchTaskCount == 0 && state.CompletedResearchCount == 0)
+        if (!state.HasResearchBlueprint
+            && state.ResearchTaskCount == 0
+            && state.CompletedResearchCount == 0)
         {
             return Show(
                 FirstRunObjectiveId.AcquireBlueprint,
@@ -133,8 +139,12 @@ public static class FirstRunObjectiveResolver
             return Show(
                 FirstRunObjectiveId.CompleteResearch,
                 4,
-                "설계도 연구를 끝내세요",
-                $"연구 {progress}% · 연구 시설에 작업 인력을 배치하세요.");
+                state.ResearchTaskCount > 0
+                    ? "첫 연구를 끝내세요"
+                    : "설계도를 보관하고 연구를 예약하세요",
+                state.ResearchTaskCount > 0
+                    ? $"연구 {progress}% · 연구 시설에 작업 인력을 배치하세요."
+                    : "설계도를 연구실 보관대로 운반한 뒤 연구 트리에서 노드를 예약하세요.");
         }
 
         if (state.SettlementCount == 0)
@@ -201,6 +211,9 @@ public sealed class FirstRunObjectiveRuntime :
     ITickable,
     IDisposable
 {
+    private static readonly ProfilerMarker TickProfilerMarker =
+        new ProfilerMarker("FirstRunObjectiveRuntime.Tick");
+
     private const float RefreshInterval = 0.25f;
 
     private readonly IOwnerRunManagerProvider ownerProvider;
@@ -259,6 +272,14 @@ public sealed class FirstRunObjectiveRuntime :
     }
 
     public void Tick()
+    {
+        using (TickProfilerMarker.Auto())
+        {
+            TickRuntime();
+        }
+    }
+
+    private void TickRuntime()
     {
         if (uiClock.Time < nextRefreshAt)
         {
@@ -322,12 +343,27 @@ public sealed class FirstRunObjectiveRuntime :
         int taskCount = 0;
         int completedResearchCount = 0;
         float activeResearchRatio = 0f;
+        bool hasResearchBlueprint = false;
         if (researchProvider.TryGetRuntime(out BlueprintResearchRuntime research) && research != null)
         {
-            taskCount = research.State.Tasks.Count;
-            completedResearchCount = research.State.CompletedBlueprintIds.Count;
-            if (research.State.TryGetActiveTask(out BlueprintResearchTask activeTask))
+            taskCount = research.State.Projects.Queue.Count;
+            completedResearchCount = research.State.Projects.CompletedProjectIds.Count;
+            hasResearchBlueprint = research.ShopUnlockState.AcquiredBlueprintIds.Count > 0;
+            ResearchProjectId activeProjectId = research.State.Projects.ActiveProjectId;
+            if (activeProjectId.IsValid
+                && research.ProjectCatalog != null
+                && research.ProjectCatalog.TryGet(activeProjectId, out ResearchProjectSO activeProject))
             {
+                activeResearchRatio = research.State.Projects
+                    .GetProgress(activeProjectId)
+                    .GetRatio(activeProject);
+            }
+            else if (research.State.TryGetActiveTask(out BlueprintResearchTask activeTask))
+            {
+                taskCount = Mathf.Max(taskCount, research.State.Tasks.Count);
+                completedResearchCount = Mathf.Max(
+                    completedResearchCount,
+                    research.State.CompletedBlueprintIds.Count);
                 activeResearchRatio = activeTask.ProgressRatio;
             }
         }
@@ -372,7 +408,8 @@ public sealed class FirstRunObjectiveRuntime :
             completedRunCount,
             completedOffenseTargetCount,
             totalOffenseTargetCount,
-            truthRevealed);
+            truthRevealed,
+            hasResearchBlueprint);
     }
 
     private void EnsureView()

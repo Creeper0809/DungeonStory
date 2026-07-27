@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: commerce_expansion
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7013
+  projectId: research:commerce:expansion
+  displayName: "\uC0C1\uC5C5 \uD655\uC7A5"
+  description: "\uC804\uBB38 \uC0C1\uC810\uACFC \uACE0\uAE09 \uC81C\uC791 \uC124\uBE44\uB97C
+    \uAC1C\uBC29\uD55C\uB2E4."
+  field: 1
+  requiredWork: 88
+  prerequisites:
+  - {fileID: 11400000, guid: 37bea86414c60b04d9c5bcd13cfcef4b, type: 2}
+  blueprintRule: 1
+  blueprint: {fileID: 11400000, guid: 75a99e92193be87e2a49bdbb00980764, type: 2}
+  unlocks:
+    items:
+    - rid: 7302563220868825647
+    - rid: 7302563220868825648
+    - rid: 7302563220868825649
+    - rid: 7302563220868825650
+    - rid: 7302563220868825651
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563220868825647
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1005
+    - rid: 7302563220868825648
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1007
+    - rid: 7302563220868825649
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1010
+    - rid: 7302563220868825650
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1011
+    - rid: 7302563220868825651
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1019

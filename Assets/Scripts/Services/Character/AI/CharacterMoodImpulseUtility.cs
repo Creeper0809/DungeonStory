@@ -39,7 +39,8 @@ public static class CharacterMoodImpulseUtility
         CharacterActor actor,
         CharacterAiBranch routineBranch,
         float priority,
-        out string reasonSuffix)
+        out string reasonSuffix,
+        bool captureReason = true)
     {
         reasonSuffix = string.Empty;
         if (actor == null)
@@ -55,12 +56,18 @@ public static class CharacterMoodImpulseUtility
             if (routineBranch == CharacterAiBranch.DutyWork && IsOnDuty(actor))
             {
                 adjusted += Mathf.Lerp(2f, 10f, moodWeight);
-                reasonSuffix = AppendReason(reasonSuffix, $"goodMoodAdherence={moodWeight:0.###}");
+                if (captureReason)
+                {
+                    reasonSuffix = AppendReason(reasonSuffix, $"goodMoodAdherence={moodWeight:0.###}");
+                }
             }
             else if (routineBranch == CharacterAiBranch.LeisureVisit && !IsOnDuty(actor))
             {
                 adjusted += Mathf.Lerp(1f, 6f, moodWeight);
-                reasonSuffix = AppendReason(reasonSuffix, $"goodMoodLeisure={moodWeight:0.###}");
+                if (captureReason)
+                {
+                    reasonSuffix = AppendReason(reasonSuffix, $"goodMoodLeisure={moodWeight:0.###}");
+                }
             }
         }
 
@@ -70,17 +77,26 @@ public static class CharacterMoodImpulseUtility
             if (routineBranch == CharacterAiBranch.DutyWork)
             {
                 adjusted *= Mathf.Lerp(1f, 0.55f, lowMoodWeight);
-                reasonSuffix = AppendReason(reasonSuffix, $"lowMoodDutyDrop={lowMoodWeight:0.###}");
+                if (captureReason)
+                {
+                    reasonSuffix = AppendReason(reasonSuffix, $"lowMoodDutyDrop={lowMoodWeight:0.###}");
+                }
             }
             else if (routineBranch == CharacterAiBranch.LeisureVisit)
             {
                 adjusted = Mathf.Max(adjusted, Mathf.Lerp(18f, 44f, lowMoodWeight));
-                reasonSuffix = AppendReason(reasonSuffix, $"lowMoodLeisure={lowMoodWeight:0.###}");
+                if (captureReason)
+                {
+                    reasonSuffix = AppendReason(reasonSuffix, $"lowMoodLeisure={lowMoodWeight:0.###}");
+                }
             }
             else if (routineBranch == CharacterAiBranch.Idle)
             {
                 adjusted = Mathf.Max(adjusted, Mathf.Lerp(22f, 52f, lowMoodWeight));
-                reasonSuffix = AppendReason(reasonSuffix, $"lowMoodAutonomy={lowMoodWeight:0.###}");
+                if (captureReason)
+                {
+                    reasonSuffix = AppendReason(reasonSuffix, $"lowMoodAutonomy={lowMoodWeight:0.###}");
+                }
             }
         }
 
@@ -96,7 +112,10 @@ public static class CharacterMoodImpulseUtility
                 if (IsSurvivalImpulse(impulse.type))
                 {
                     adjusted = Mathf.Max(adjusted, 30f + strength * 60f);
-                    reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    if (captureReason)
+                    {
+                        reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    }
                 }
                 break;
 
@@ -104,17 +123,26 @@ public static class CharacterMoodImpulseUtility
                 if (impulse.type == CharacterMoodImpulseType.FollowRoutine)
                 {
                     adjusted += 8f + strength * 14f;
-                    reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    if (captureReason)
+                    {
+                        reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    }
                 }
                 else if (impulse.type == CharacterMoodImpulseType.IgnoreDuty)
                 {
                     adjusted *= Mathf.Lerp(1f, 0.18f, strength);
-                    reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    if (captureReason)
+                    {
+                        reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    }
                 }
                 else if (IsTemperamentalImpulse(impulse.type))
                 {
                     adjusted *= Mathf.Lerp(1f, 0.65f, strength);
-                    reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    if (captureReason)
+                    {
+                        reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    }
                 }
                 break;
 
@@ -122,7 +150,10 @@ public static class CharacterMoodImpulseUtility
                 if (IsLeisureImpulse(impulse.type))
                 {
                     adjusted = Mathf.Max(adjusted, 18f + strength * 62f);
-                    reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    if (captureReason)
+                    {
+                        reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    }
                 }
                 break;
 
@@ -133,7 +164,10 @@ public static class CharacterMoodImpulseUtility
                     || impulse.type == CharacterMoodImpulseType.Complain)
                 {
                     adjusted = Mathf.Max(adjusted, 12f + strength * 45f);
-                    reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    if (captureReason)
+                    {
+                        reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+                    }
                 }
                 break;
         }
@@ -145,7 +179,8 @@ public static class CharacterMoodImpulseUtility
         CharacterActor actor,
         CharacterAiBranch branch,
         float domainScore,
-        out string reasonSuffix)
+        out string reasonSuffix,
+        bool captureReason = true)
     {
         reasonSuffix = string.Empty;
         float adjusted = Mathf.Clamp01(domainScore);
@@ -156,12 +191,18 @@ public static class CharacterMoodImpulseUtility
             if (branch == CharacterAiBranch.Work)
             {
                 adjusted *= Mathf.Lerp(1f, 0.2f, lowMoodWeight);
-                reasonSuffix = AppendReason(reasonSuffix, $"lowMoodDutyDrop={lowMoodWeight:0.###}");
+                if (captureReason)
+                {
+                    reasonSuffix = AppendReason(reasonSuffix, $"lowMoodDutyDrop={lowMoodWeight:0.###}");
+                }
             }
             else if (branch == CharacterAiBranch.Wait || branch == CharacterAiBranch.LookAround)
             {
                 adjusted = Mathf.Max(adjusted, Mathf.Lerp(0.48f, 0.9f, lowMoodWeight));
-                reasonSuffix = AppendReason(reasonSuffix, $"lowMoodAutonomy={lowMoodWeight:0.###}");
+                if (captureReason)
+                {
+                    reasonSuffix = AppendReason(reasonSuffix, $"lowMoodAutonomy={lowMoodWeight:0.###}");
+                }
             }
         }
 
@@ -174,21 +215,32 @@ public static class CharacterMoodImpulseUtility
         if (MatchesBranch(impulse.type, branch))
         {
             adjusted = Mathf.Max(adjusted, 0.22f + strength * 0.62f);
-            reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+            if (captureReason)
+            {
+                reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+            }
+
             return Mathf.Clamp01(adjusted);
         }
 
         if (branch == CharacterAiBranch.Work && impulse.type == CharacterMoodImpulseType.IgnoreDuty)
         {
             adjusted *= Mathf.Lerp(1f, 0.12f, strength);
-            reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+            if (captureReason)
+            {
+                reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+            }
+
             return Mathf.Clamp01(adjusted);
         }
 
         if (branch == CharacterAiBranch.Work && IsTemperamentalImpulse(impulse.type))
         {
             adjusted *= Mathf.Lerp(1f, 0.7f, strength);
-            reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+            if (captureReason)
+            {
+                reasonSuffix = AppendImpulseReason(reasonSuffix, impulse);
+            }
         }
 
         return Mathf.Clamp01(adjusted);

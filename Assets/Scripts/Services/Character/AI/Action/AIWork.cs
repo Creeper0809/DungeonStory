@@ -28,12 +28,9 @@ public class AIWork : AIActionSet
             return 0f;
         }
 
-        GridPathSearchResult searchResult = actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
         float utilityScore = TryResolveWorkTypeId(actor, out WorkTypeId workTypeId)
-            ? work.GetWorkUtilityScore(workTypeId, searchResult)
-            : work.GetAnyWorkUtilityScore(searchResult);
+            ? work.GetWorkUtilityScore(workTypeId, null)
+            : work.GetAnyWorkUtilityScore(null);
         if (utilityScore <= 0f)
         {
             return 0f;
@@ -50,12 +47,9 @@ public class AIWork : AIActionSet
             return false;
         }
 
-        GridPathSearchResult searchResult = actor.Brain != null
-            ? actor.Brain.GetPathSearch(actor)
-            : null;
         return TryResolveWorkTypeId(actor, out WorkTypeId workTypeId)
-            ? work.CanStartWorkAction(workTypeId, searchResult)
-            : work.CanStartAnyWorkAction(searchResult);
+            ? work.CanStartWorkAction(workTypeId, null)
+            : work.CanStartAnyWorkAction(null);
     }
 
     public override bool CanContinue(CharacterActor actor, AIAction runningAction, out string stopReason)

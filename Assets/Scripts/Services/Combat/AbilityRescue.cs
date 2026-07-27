@@ -265,10 +265,10 @@ public sealed class AbilityRescue : MonoBehaviour
             return true;
         }
 
-        path = actor.PathSearchBroker?.GetMovePath(
+        path = actor.PathSearchBroker?.GetMovePathTo(
             grid,
             actor.GetNowXY(),
-            cell => cell == destination);
+            destination);
         actor.Brain?.SetActionPhase(phase, null, destination.ToString());
         return path != null && path.Count > 0 && !IsActionCancelled(expectedAction);
     }
