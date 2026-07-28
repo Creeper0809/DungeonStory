@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: food_preserved_ration
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8068
+  itemId: food:preserved-ration
+  displayName: "\uBCF4\uC874 \uBC30\uAE09\uC2DD"
+  description: "\uC804\uBD84\uACFC \uC18C\uAE08\uC73C\uB85C \uC218\uBA85\uC744 \uB298\uB9B0
+    \uC6D0\uC815 \uC2DD\uB7C9."
+  stockCategory: 0
+  kind: 2
+  ingredientTags: 1
+  unitPrice: 13
+  unitWeight: 0.5
+  maxStack: 60
+  sprite: {fileID: 0}
+  requiredResearchId: research:cuisine:lavish
+  mealQuality: 3
+  nutrition: 36
+  mealMood: 1
+  freshnessSeconds: 1800
+  preserved: 1
+  supportsInjuryTreatment: 0
+  treatmentPotency: 1
+  infectionReduction: 0
+  detoxReduction: 0
+  painReduction: 0

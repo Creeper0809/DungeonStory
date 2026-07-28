@@ -119,7 +119,6 @@ public sealed class FacilityBuildingOffer : FacilityShopOffer
 
     protected internal override string ApplyPurchase(FacilityShopUnlockState unlockState)
     {
-        Building.unlocked = true;
         if (IsBasicPurchase)
         {
             unlockState?.UnlockBasicPurchase(Building);

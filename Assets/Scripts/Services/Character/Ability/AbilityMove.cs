@@ -6,6 +6,22 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
+public enum GridMoveFailureReason
+{
+    None,
+    Cancelled,
+    MissingPath,
+    StaleStepStart,
+    WallBlocked,
+    DoorDenied,
+    DefenseReservation,
+    TraversalChanged,
+    MissingMovementHandler,
+    GridUnavailable,
+    InvalidSpeed,
+    DestinationMismatch
+}
+
 public class AbilityMove : CharacterAbility
 {
     private float moveSpeed;
@@ -22,8 +38,21 @@ public class AbilityMove : CharacterAbility
     private Vector2Int? activeManualMoveDestination;
     private Vector2Int? activeSystemMoveDestination;
     private DoorAccessOverrideKind activeSystemMoveOverride;
+    private int movementOperationVersion;
 
     public bool LastGridMoveWasBlocked { get; private set; }
+    public GridMoveFailureReason LastGridMoveFailureReason { get; private set; }
+
+    public void MarkGridMoveFailure(GridMoveFailureReason reason)
+    {
+        if (reason == GridMoveFailureReason.None)
+        {
+            return;
+        }
+
+        LastGridMoveWasBlocked = false;
+        LastGridMoveFailureReason = reason;
+    }
 
     [Inject]
     public void ConstructAbilityMove(
@@ -74,13 +103,35 @@ public class AbilityMove : CharacterAbility
 
     public IEnumerator MoveByPath(Queue<GridMoveStep> path, AIAction expectedAction = null)
     {
-        if (path == null) yield break;
+        int operationVersion = BeginMovementOperation();
+        yield return MoveByPathInternal(path, expectedAction, operationVersion);
+    }
 
+    private IEnumerator MoveByPathInternal(
+        Queue<GridMoveStep> path,
+        AIAction expectedAction,
+        int operationVersion)
+    {
+        LastGridMoveWasBlocked = false;
+        LastGridMoveFailureReason = GridMoveFailureReason.None;
+        if (path == null)
+        {
+            LastGridMoveFailureReason = GridMoveFailureReason.MissingPath;
+            yield break;
+        }
+
+        bool hasExpectedDestination =
+            TryGetPathDestination(path, out Vector2Int expectedDestination);
+        Vector3 pathStartPosition = transform.position;
+        float completedPathDistance = 0f;
         int staleReplanAttempts = 0;
         while (path.Count > 0)
         {
-            if (IsActionMovementCancelled(expectedAction))
+            if (IsMovementOperationCancelled(
+                    expectedAction,
+                    operationVersion))
             {
+                LastGridMoveFailureReason = GridMoveFailureReason.Cancelled;
                 yield break;
             }
 
@@ -99,29 +150,38 @@ public class AbilityMove : CharacterAbility
 
                 if (expectedAction != null && expectedAction.planKind == AIActionPlanKind.DestinationOnly)
                 {
+                    LastGridMoveFailureReason =
+                        GridMoveFailureReason.StaleStepStart;
                     yield break;
                 }
 
-                SetGridMoveBlocked();
+                SetGridMoveBlocked(GridMoveFailureReason.StaleStepStart);
                 yield break;
             }
 
-            if (IsWalkStepBlocked(step))
+            if (TryGetWalkStepBlockReason(
+                    step,
+                    out GridMoveFailureReason initialBlockReason))
             {
-                SetGridMoveBlocked();
+                SetGridMoveBlocked(initialBlockReason);
                 yield break;
             }
 
             RefreshCurrentActionReservation();
             if (step.MoveType != GridMoveType.Walk)
             {
-                yield return MoveByStep(step, expectedAction);
+                yield return MoveByStepInternal(
+                    step,
+                    expectedAction,
+                    operationVersion);
             }
             else
             {
                 LastGridMoveWasBlocked = false;
                 if (grid == null)
                 {
+                    LastGridMoveFailureReason =
+                        GridMoveFailureReason.GridUnavailable;
                     yield break;
                 }
 
@@ -133,7 +193,8 @@ public class AbilityMove : CharacterAbility
                         actor,
                         destination) ?? false))
                 {
-                    SetGridMoveBlocked();
+                    SetGridMoveBlocked(
+                        GetCellBlockReason(destination));
                     yield break;
                 }
 
@@ -147,6 +208,8 @@ public class AbilityMove : CharacterAbility
                 float totalSpeed = moveSpeed * terrainSpeedMultiplier;
                 if (totalSpeed <= 0f)
                 {
+                    LastGridMoveFailureReason =
+                        GridMoveFailureReason.InvalidSpeed;
                     yield break;
                 }
 
@@ -159,8 +222,15 @@ public class AbilityMove : CharacterAbility
                             destination,
                             ref observedGridVersion,
                             startPosition)
-                        || IsActionMovementCancelled(expectedAction))
+                        || IsMovementOperationCancelled(
+                            expectedAction,
+                            operationVersion))
                     {
+                        if (!LastGridMoveWasBlocked)
+                        {
+                            LastGridMoveFailureReason =
+                                GridMoveFailureReason.Cancelled;
+                        }
                         yield break;
                     }
 
@@ -180,12 +250,19 @@ public class AbilityMove : CharacterAbility
                          frame++)
                     {
                         yield return null;
-                        if (IsActionMovementCancelled(expectedAction)
+                        if (IsMovementOperationCancelled(
+                                expectedAction,
+                                operationVersion)
                             || TryRollbackForChangedGridBlock(
                                 destination,
                                 ref observedGridVersion,
                                 startPosition))
                         {
+                            if (!LastGridMoveWasBlocked)
+                            {
+                                LastGridMoveFailureReason =
+                                    GridMoveFailureReason.Cancelled;
+                            }
                             yield break;
                         }
 
@@ -206,68 +283,149 @@ public class AbilityMove : CharacterAbility
                 UpdateFacingForMovement(
                     endPosition.x - transform.position.x);
                 transform.position = endPosition;
-                actor?.AiMemory?.RecordMovement(
-                    destination,
-                    distance,
-                    true);
+                completedPathDistance += distance;
             }
 
-            if (LastGridMoveWasBlocked || IsWalkStepBlocked(step))
+            if (LastGridMoveWasBlocked)
             {
-                SetGridMoveBlocked();
+                yield break;
+            }
+
+            if (TryGetWalkStepBlockReason(
+                    step,
+                    out GridMoveFailureReason completedBlockReason))
+            {
+                SetGridMoveBlocked(completedBlockReason);
                 yield break;
             }
         }
+
+        if (IsMovementOperationCancelled(
+                expectedAction,
+                operationVersion))
+        {
+            LastGridMoveFailureReason = GridMoveFailureReason.Cancelled;
+            yield break;
+        }
+
+        if (hasExpectedDestination
+            && !LastGridMoveWasBlocked
+            && (grid == null
+                || grid.GetXY(transform.position) != expectedDestination))
+        {
+            SetGridMoveBlocked(GridMoveFailureReason.DestinationMismatch);
+            yield break;
+        }
+
+        Vector2Int completedDestination = hasExpectedDestination
+            ? expectedDestination
+            : grid != null
+                ? grid.GetXY(transform.position)
+                : Vector2Int.zero;
+        actor?.AiMemory?.RecordMovement(
+            completedDestination,
+            completedPathDistance > 0f
+                ? completedPathDistance
+                : Vector3.Distance(pathStartPosition, transform.position),
+            true);
     }
 
     public IEnumerator MoveByStep(GridMoveStep step, AIAction expectedAction = null)
     {
+        int operationVersion = BeginMovementOperation();
+        yield return MoveByStepInternal(
+            step,
+            expectedAction,
+            operationVersion);
+    }
+
+    private IEnumerator MoveByStepInternal(
+        GridMoveStep step,
+        AIAction expectedAction,
+        int operationVersion)
+    {
         LastGridMoveWasBlocked = false;
+        LastGridMoveFailureReason = GridMoveFailureReason.None;
         if (!IsAtStepStart(step))
         {
-            SetGridMoveBlocked();
+            SetGridMoveBlocked(GridMoveFailureReason.StaleStepStart);
             yield break;
         }
 
         if (step.MoveType == GridMoveType.Walk)
         {
-            yield return Move2GridPosition(step.To, expectedAction);
+            yield return Move2GridPositionInternal(
+                step.To,
+                expectedAction,
+                operationVersion);
             yield break;
         }
 
-        yield return Move2GridPosition(step.From, expectedAction);
-        if (IsActionMovementCancelled(expectedAction))
+        yield return Move2GridPositionInternal(
+            step.From,
+            expectedAction,
+            operationVersion);
+        if (IsMovementOperationCancelled(
+                expectedAction,
+                operationVersion))
         {
+            LastGridMoveFailureReason = GridMoveFailureReason.Cancelled;
             yield break;
         }
 
-        if (step.MovementOccupant is BuildableObject building
-            && !building.isDestroy
-            && building is IGridMovementHandler movementHandler)
+        if (step.MovementOccupant is IGridMovementHandler movementHandler
+            && (step.MovementOccupant is not BuildableObject building
+                || !building.isDestroy))
         {
             yield return movementHandler.Traverse(actor, step);
+            if (IsMovementOperationCancelled(
+                    expectedAction,
+                    operationVersion))
+            {
+                LastGridMoveFailureReason = GridMoveFailureReason.Cancelled;
+            }
             yield break;
         }
 
         if (RequiresMovementHandler(step))
         {
-            SetGridMoveBlocked();
+            SetGridMoveBlocked(
+                GridMoveFailureReason.MissingMovementHandler);
             yield break;
         }
 
-        yield return Move2GridPosition(step.To, expectedAction);
+        yield return Move2GridPositionInternal(
+            step.To,
+            expectedAction,
+            operationVersion);
     }
 
     public IEnumerator Move2GridPosition(Vector2Int gridPosition, AIAction expectedAction = null)
     {
-        if (grid == null) yield break;
+        yield return Move2GridPositionInternal(
+            gridPosition,
+            expectedAction,
+            movementOperationVersion);
+    }
+
+    private IEnumerator Move2GridPositionInternal(
+        Vector2Int gridPosition,
+        AIAction expectedAction,
+        int operationVersion)
+    {
+        if (grid == null)
+        {
+            LastGridMoveFailureReason =
+                GridMoveFailureReason.GridUnavailable;
+            yield break;
+        }
 
         RefreshCurrentActionReservation();
         Vector3 startPos = transform.position;
         if (grid.IsMovementBlockedByWall(gridPosition)
             || !CanTraverseDoor(gridPosition, out _))
         {
-            SetGridMoveBlocked();
+            SetGridMoveBlocked(GetCellBlockReason(gridPosition));
             yield break;
         }
 
@@ -281,7 +439,8 @@ public class AbilityMove : CharacterAbility
             expectedAction,
             gridPosition,
             observedGridVersion,
-            startPos);
+            startPos,
+            operationVersion);
     }
 
     public void StartExitDungeon()
@@ -372,6 +531,7 @@ public class AbilityMove : CharacterAbility
 
     public void CancelActiveMovement()
     {
+        InvalidateMovementOperation();
         if (activeActionMovementRoutine != null)
         {
             StopCoroutine(activeActionMovementRoutine);
@@ -628,7 +788,28 @@ public class AbilityMove : CharacterAbility
             }
         }
 
-        return false;
+        Queue<GridMoveStep> fallbackPath = broker.GetMovePath(
+            grid,
+            originalPos,
+            position =>
+            {
+                int distance = Mathf.Abs(position.x - originalPos.x)
+                    + Mathf.Abs(position.y - originalPos.y);
+                return distance >= min
+                    && distance <= max
+                    && IsPlainIdleWalkable(position);
+            },
+            GridPathSearchPriority.Normal,
+            GridTraversalContext.ForCharacter(actor));
+        if (fallbackPath == null
+            || fallbackPath.Count == 0
+            || !IsSupportedIdleWanderPath(fallbackPath))
+        {
+            return false;
+        }
+
+        path = fallbackPath;
+        return true;
     }
 
     private bool IsPlainIdleWalkable(Vector2Int position)
@@ -766,6 +947,53 @@ public class AbilityMove : CharacterAbility
                 || actor.Brain == null
                 || actor.Brain.bestAction != expectedAction
                 || actor.Brain.isBestActionEnd);
+    }
+
+    private int BeginMovementOperation()
+    {
+        InvalidateMovementOperation();
+        return movementOperationVersion;
+    }
+
+    private void InvalidateMovementOperation()
+    {
+        unchecked
+        {
+            movementOperationVersion++;
+        }
+    }
+
+    private bool IsMovementOperationCancelled(
+        AIAction expectedAction,
+        int operationVersion)
+    {
+        return operationVersion != movementOperationVersion
+            || IsActionMovementCancelled(expectedAction);
+    }
+
+    private static bool TryGetPathDestination(
+        Queue<GridMoveStep> path,
+        out Vector2Int destination)
+    {
+        destination = default;
+        if (path == null || path.Count == 0)
+        {
+            return false;
+        }
+
+        bool found = false;
+        foreach (GridMoveStep step in path)
+        {
+            if (!step.IsValid)
+            {
+                continue;
+            }
+
+            destination = step.To;
+            found = true;
+        }
+
+        return found;
     }
 
     private IEnumerator WaitForAiAction(float duration, AIAction expectedAction)
@@ -963,7 +1191,8 @@ public class AbilityMove : CharacterAbility
             expectedAction,
             null,
             0,
-            transform.position);
+            transform.position,
+            movementOperationVersion);
     }
 
     private IEnumerator Move2PosBySpeedInternal(
@@ -972,7 +1201,8 @@ public class AbilityMove : CharacterAbility
         AIAction expectedAction,
         Vector2Int? blockedGridPosition,
         int observedGridVersion,
-        Vector3 blockedFallbackPosition)
+        Vector3 blockedFallbackPosition,
+        int operationVersion)
     {
         Vector3 startPos = transform.position;
         float deltaX = endPos.x - startPos.x;
@@ -988,6 +1218,8 @@ public class AbilityMove : CharacterAbility
         float totalSpeed = moveSpeed * multifly;
         if (totalSpeed <= 0f)
         {
+            LastGridMoveFailureReason =
+                GridMoveFailureReason.InvalidSpeed;
             yield break;
         }
 
@@ -1004,8 +1236,12 @@ public class AbilityMove : CharacterAbility
                 yield break;
             }
 
-            if (IsActionMovementCancelled(expectedAction))
+            if (IsMovementOperationCancelled(
+                    expectedAction,
+                    operationVersion))
             {
+                LastGridMoveFailureReason =
+                    GridMoveFailureReason.Cancelled;
                 yield break;
             }
 
@@ -1017,8 +1253,12 @@ public class AbilityMove : CharacterAbility
             for (int i = 1; i < frameStride && timer < duration; i++)
             {
                 yield return null;
-                if (IsActionMovementCancelled(expectedAction))
+                if (IsMovementOperationCancelled(
+                        expectedAction,
+                        operationVersion))
                 {
+                    LastGridMoveFailureReason =
+                        GridMoveFailureReason.Cancelled;
                     yield break;
                 }
 
@@ -1045,10 +1285,6 @@ public class AbilityMove : CharacterAbility
 
         UpdateFacingForMovement(endPos.x - transform.position.x);
         transform.position = endPos;
-        if (blockedGridPosition.HasValue)
-        {
-            actor?.AiMemory?.RecordMovement(blockedGridPosition.Value, distance, true);
-        }
     }
 
     private bool TryRollbackForChangedGridBlock(
@@ -1064,14 +1300,15 @@ public class AbilityMove : CharacterAbility
         if (defenseEngagementRuntime?.IsCellReservedForOther(actor, blockedGridPosition.Value) ?? false)
         {
             transform.position = blockedFallbackPosition;
-            SetGridMoveBlocked();
+            SetGridMoveBlocked(
+                GridMoveFailureReason.DefenseReservation);
             return true;
         }
 
         if (!CanTraverseDoor(blockedGridPosition.Value, out _))
         {
             transform.position = blockedFallbackPosition;
-            SetGridMoveBlocked();
+            SetGridMoveBlocked(GridMoveFailureReason.DoorDenied);
             return true;
         }
 
@@ -1088,18 +1325,47 @@ public class AbilityMove : CharacterAbility
         }
 
         transform.position = blockedFallbackPosition;
-        SetGridMoveBlocked();
+        SetGridMoveBlocked(GridMoveFailureReason.TraversalChanged);
         return true;
     }
 
-    private bool IsWalkStepBlocked(GridMoveStep step)
+    private bool TryGetWalkStepBlockReason(
+        GridMoveStep step,
+        out GridMoveFailureReason reason)
     {
-        return step.IsValid
-            && step.MoveType == GridMoveType.Walk
-            && grid != null
-            && (grid.IsMovementBlockedByWall(step.To)
-                || !CanTraverseDoor(step.To, out _)
-                || (defenseEngagementRuntime?.IsCellReservedForOther(actor, step.To) ?? false));
+        reason = GridMoveFailureReason.None;
+        if (!step.IsValid
+            || step.MoveType != GridMoveType.Walk
+            || grid == null)
+        {
+            return false;
+        }
+
+        reason = GetCellBlockReason(step.To);
+        return reason != GridMoveFailureReason.None;
+    }
+
+    private GridMoveFailureReason GetCellBlockReason(
+        Vector2Int position)
+    {
+        if (grid != null && grid.IsMovementBlockedByWall(position))
+        {
+            return GridMoveFailureReason.WallBlocked;
+        }
+
+        if (!CanTraverseDoor(position, out _))
+        {
+            return GridMoveFailureReason.DoorDenied;
+        }
+
+        if (defenseEngagementRuntime?.IsCellReservedForOther(
+                actor,
+                position) ?? false)
+        {
+            return GridMoveFailureReason.DefenseReservation;
+        }
+
+        return GridMoveFailureReason.None;
     }
 
     private bool CanTraverseDoor(
@@ -1131,9 +1397,15 @@ public class AbilityMove : CharacterAbility
             && grid.GetXY(transform.position) == step.From;
     }
 
-    private void SetGridMoveBlocked()
+    private void SetGridMoveBlocked(
+        GridMoveFailureReason reason =
+            GridMoveFailureReason.WallBlocked)
     {
         LastGridMoveWasBlocked = true;
+        if (LastGridMoveFailureReason == GridMoveFailureReason.None)
+        {
+            LastGridMoveFailureReason = reason;
+        }
         actor?.AiMemory?.RecordMovement(
             grid != null ? grid.GetXY(transform.position) : Vector2Int.zero,
             0f,

@@ -147,6 +147,8 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
     internal IWorldItemStackRuntime WorldItemStackRuntime => runtimeBridge?.WorldItemStackRuntime;
     internal ICharacterMedicalRuntime MedicalRuntime => runtimeBridge?.MedicalRuntime;
     internal ICharacterDeprivationRuntime DeprivationRuntime => runtimeBridge?.DeprivationRuntime;
+    internal ICharacterConsumablesRuntime ConsumablesRuntime =>
+        runtimeBridge?.ConsumablesRuntime;
     internal IGameClock GameClock => runtimeBridge?.GameClock;
     public event Action<CharacterActor, string> OnDied;
 
@@ -166,6 +168,7 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         IWildlifeRuntime wildlifeRuntime = null,
         ICharacterMedicalRuntime medicalRuntime = null,
         ICharacterDeprivationRuntime deprivationRuntime = null,
+        ICharacterConsumablesRuntime consumablesRuntime = null,
         IGameClock gameClock = null,
         ITmpKoreanFontService tmpKoreanFontService = null,
         ICharacterPresentationScheduler presentationScheduler = null)
@@ -184,6 +187,7 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
             wildlifeRuntime,
             medicalRuntime,
             deprivationRuntime,
+            consumablesRuntime,
             gameClock);
         presentationBridge.Configure(
             this,
@@ -202,6 +206,7 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         EnsureSocialMemory();
         AbilityHunt.Ensure(this, wildlifeRuntime);
         AbilityRescue.Ensure(this);
+        AbilityUseSubstance.Ensure(this);
         runtimeBridge.OnActorEnabled();
     }
 
@@ -472,6 +477,7 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
             carryInventory = CharacterCarryInventory.Ensure(this);
             AbilityHaul.Ensure(this);
             AbilityHunt.Ensure(this, runtimeBridge?.WildlifeRuntime);
+            AbilityUseSubstance.Ensure(this);
             abilityCache = GetComponent<CharacterAbilityCache>();
             characterStats = GetComponent<CharacterStats>();
             visual = GetComponent<CharacterVisual>();
@@ -576,6 +582,15 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
                 ? identity.Data.moveSpeed
                 : 1f;
         return baseSpeed * (carryInventory != null ? carryInventory.GetMoveSpeedMultiplier() : 1f);
+    }
+
+    public CharacterCarryInventory CarryInventory
+    {
+        get
+        {
+            EnsureRuntimeState();
+            return carryInventory;
+        }
     }
 
     public float GetConsumptionMultiplier()

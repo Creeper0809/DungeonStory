@@ -199,8 +199,7 @@ public static class RoomDetector
                 if (building == null
                     || IsDoor(building)
                     || IsWall(building)
-                    || building.Facility == null
-                    || building.Facility.roles == FacilityRole.None
+                    || building.BuildingData == null
                     || result.Contains(building))
                 {
                     continue;

@@ -24,8 +24,8 @@ MonoBehaviour:
   id: 7014
   projectId: research:commerce:secure-trade
   displayName: "\uC0C1\uAD8C \uD1B5\uD569"
-  description: "\uC694\uC0C8\uD654\uB41C \uAD50\uC5ED\uB9DD\uC73C\uB85C \uC0C1\uAD8C
-    \uC804\uCCB4\uB97C \uBB36\uB294\uB2E4."
+  description: "\uC9C0\uC5ED \uACF5\uAE09 \uACC4\uC57D\uACFC \uC694\uC0C8\uD654\uB41C
+    \uAD50\uC5ED\uB9DD\uC744 \uC5F0\uB2E4."
   field: 1
   requiredWork: 132
   prerequisites:

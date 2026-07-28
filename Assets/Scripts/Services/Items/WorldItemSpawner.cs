@@ -18,13 +18,22 @@ public interface IWorldItemSpawner
         string sourceSpeciesTag = "",
         string sourceDeathReason = "",
         bool emergencyButcheryAllowed = false,
-        string sourceStorageDestinationId = "");
+        string sourceStorageDestinationId = "",
+        WasteOriginKind wasteOrigin = WasteOriginKind.Unknown,
+        float contamination = 0f);
 
     bool SpawnUnique(
         string itemId,
         Vector2Int position,
         WorldItemStackState state,
         string destinationId,
+        out string stackId);
+    bool SpawnUnique(
+        string itemId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        Vector2Int destinationPosition,
         out string stackId);
 }
 
@@ -60,7 +69,9 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
         string sourceSpeciesTag = "",
         string sourceDeathReason = "",
         bool emergencyButcheryAllowed = false,
-        string sourceStorageDestinationId = "")
+        string sourceStorageDestinationId = "",
+        WasteOriginKind wasteOrigin = WasteOriginKind.Unknown,
+        float contamination = 0f)
     {
         if (string.IsNullOrWhiteSpace(itemId) || amount <= 0)
         {
@@ -86,7 +97,9 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
                 sourceSpeciesTag,
                 sourceDeathReason,
                 emergencyButcheryAllowed,
-                sourceStorageDestinationId);
+                sourceStorageDestinationId,
+                wasteOrigin,
+                contamination);
             if (mergeTarget != null)
             {
                 int merged = Mathf.Min(
@@ -120,7 +133,9 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
                 sourceDisplayName = sourceDisplayName ?? string.Empty,
                 sourceSpeciesTag = sourceSpeciesTag ?? string.Empty,
                 sourceDeathReason = sourceDeathReason ?? string.Empty,
-                emergencyButcheryAllowed = emergencyButcheryAllowed
+                emergencyButcheryAllowed = emergencyButcheryAllowed,
+                wasteOrigin = wasteOrigin,
+                contamination = Mathf.Clamp(contamination, 0f, 100f)
             });
             remaining -= amountForStack;
             spawned += amountForStack;
@@ -135,6 +150,43 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
         Vector2Int position,
         WorldItemStackState state,
         string destinationId,
+        out string stackId)
+    {
+        return SpawnUniqueInternal(
+            itemId,
+            position,
+            state,
+            destinationId,
+            false,
+            default,
+            out stackId);
+    }
+
+    public bool SpawnUnique(
+        string itemId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        Vector2Int destinationPosition,
+        out string stackId)
+    {
+        return SpawnUniqueInternal(
+            itemId,
+            position,
+            state,
+            destinationId,
+            true,
+            destinationPosition,
+            out stackId);
+    }
+
+    private bool SpawnUniqueInternal(
+        string itemId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        bool hasDestinationPosition,
+        Vector2Int destinationPosition,
         out string stackId)
     {
         stackId = string.Empty;
@@ -152,7 +204,9 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
             1,
             position,
             state,
-            destinationId ?? string.Empty);
+            destinationId ?? string.Empty,
+            hasDestinationPosition,
+            destinationPosition);
         WorldItemStackRecord created = repository.Records.LastOrDefault(record =>
             record != null && !existingIds.Contains(record.stackId));
         if (spawned != 1 || created == null)
@@ -177,7 +231,9 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
         string sourceSpeciesTag,
         string sourceDeathReason,
         bool emergencyButcheryAllowed,
-        string sourceStorageDestinationId)
+        string sourceStorageDestinationId,
+        WasteOriginKind wasteOrigin,
+        float contamination)
     {
         if (!repository.RecordsByPosition.TryGetValue(
                 position,
@@ -222,6 +278,8 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
                 stack.sourceDeathReason ?? string.Empty,
                 sourceDeathReason ?? string.Empty,
                 StringComparison.Ordinal)
-            && stack.emergencyButcheryAllowed == emergencyButcheryAllowed);
+            && stack.emergencyButcheryAllowed == emergencyButcheryAllowed
+            && stack.wasteOrigin == wasteOrigin
+            && Mathf.Abs(stack.contamination - contamination) < 0.01f);
     }
 }

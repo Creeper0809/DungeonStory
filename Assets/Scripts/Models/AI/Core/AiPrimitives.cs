@@ -42,6 +42,7 @@ public enum CharacterAiInterruptReason
     PatienceExceeded,
     MacroGoalChanged,
     MoodImpulseChanged,
+    SurvivalEmergency,
     ManualReplan,
     CurrentActionStopped
 }

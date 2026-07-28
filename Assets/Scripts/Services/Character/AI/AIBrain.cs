@@ -6,10 +6,17 @@ using UnityEngine.Serialization;
 using Sirenix.OdinInspector;
 using System;
 using System.Linq;
+using Unity.Profiling;
 using VContainer;
 
 public class AIBrain : CharacterAbility
 {
+    private static readonly ProfilerMarker ActionScoringMarker =
+        new ProfilerMarker("CharacterAi.ActionScoring");
+    private static readonly ProfilerMarker ActionPrepareMarker =
+        new ProfilerMarker("CharacterAi.ActionPrepare");
+    private static readonly ProfilerMarker ActionConsiderationsMarker =
+        new ProfilerMarker("CharacterAi.ActionConsiderations");
     private const string WaitActionPath = "SO/AI/Action/Wait";
     private const string WorkActionPath = "SO/AI/Action/Work";
     private const string EatActionPath = "SO/AI/Action/Eat";
@@ -54,6 +61,8 @@ public class AIBrain : CharacterAbility
     private readonly Dictionary<(BuildableObject Building, FacilityRole Role), float>
         facilityScoreCache =
             new Dictionary<(BuildableObject Building, FacilityRole Role), float>();
+    private readonly ActionScoringContinuation reusableActionScoringContinuation =
+        new ActionScoringContinuation();
     private ActionScoringContinuation actionScoringContinuation;
     private readonly List<AIAction> destinationFailedThisDecision = new List<AIAction>();
     private readonly List<AIActionDebugCandidate> lastCandidateScores = new List<AIActionDebugCandidate>();
@@ -83,10 +92,13 @@ public class AIBrain : CharacterAbility
     private string currentDestinationDebugLabel = string.Empty;
     private float nextActionSwitchAllowedAt;
     private bool manualCommandActive;
+    private bool externallyDrivenActionActive;
+    private bool externalReplanClearFailures;
     private int directDecisionTickCount;
     public bool IsPathSearchDeferred { get; private set; }
     public bool IsActionScoringPending => actionScoringContinuation != null;
     public bool IsManualCommandActive => manualCommandActive;
+    public bool IsExternallyDrivenActionActive => externallyDrivenActionActive;
     public AIActionFailure LastActionFailure => lastActionFailure;
     public IReadOnlyList<AIActionDebugCandidate> LastCandidateScores =>
         lastCandidateScoresView ??= ReadOnlyView.List(lastCandidateScores);
@@ -125,6 +137,20 @@ public class AIBrain : CharacterAbility
         public AIActionFailure BestFailure = AIActionFailure.Create(
             AIActionFailureKind.NoAction,
             "일치하는 AI 행동이 없습니다.");
+
+        public void Reset(
+            Predicate<AIActionSet> predicate,
+            bool hasDecisionContext)
+        {
+            Predicate = predicate;
+            HasDecisionContext = hasDecisionContext;
+            NextActionIndex = 0;
+            BestCandidate = null;
+            BestScore = float.MinValue;
+            BestFailure = AIActionFailure.Create(
+                AIActionFailureKind.NoAction,
+                "선택할 수 있는 AI 행동이 없습니다.");
+        }
 
         public bool Matches(
             Predicate<AIActionSet> predicate,
@@ -276,6 +302,7 @@ public class AIBrain : CharacterAbility
         AddRuntimeRescueAction(actions);
         AddRuntimeHaulAction(actions);
         AddRuntimeHuntAction(actions);
+        AddRuntimeSubstanceUseAction(actions);
         AddRequiredAction(actions, EatActionPath, CharacterAiBranch.Eat);
         AddRequiredAction(actions, RestActionPath, CharacterAiBranch.Rest);
         AddRequiredAction(actions, ToiletActionPath, CharacterAiBranch.Toilet);
@@ -302,6 +329,7 @@ public class AIBrain : CharacterAbility
         AddRuntimeRescueAction(actions);
         AddRuntimeHaulAction(actions);
         AddRuntimeHuntAction(actions);
+        AddRuntimeSubstanceUseAction(actions);
         availableActions = actions.ToArray();
         BindActionClocks();
         isBestActionEnd = true;
@@ -356,6 +384,24 @@ public class AIBrain : CharacterAbility
         actions.Add(new AIAction
         {
             actionset = hunt
+        });
+    }
+
+    private void AddRuntimeSubstanceUseAction(List<AIAction> actions)
+    {
+        if (actions == null
+            || actions.Any(action => action?.actionset is AISubstanceUse))
+        {
+            return;
+        }
+
+        AISubstanceUse substanceUse =
+            ScriptableObject.CreateInstance<AISubstanceUse>();
+        substanceUse.hideFlags = HideFlags.HideAndDontSave;
+        substanceUse.actionName = "정책에 따라 복용";
+        actions.Add(new AIAction
+        {
+            actionset = substanceUse
         });
     }
 
@@ -549,6 +595,7 @@ public class AIBrain : CharacterAbility
             return false;
         }
 
+        actionEvaluationCache.Remove(action);
         if (!TryGetActionEvaluation(action, out ActionEvaluation evaluation))
         {
             failure = evaluation.Failure;
@@ -596,12 +643,15 @@ public class AIBrain : CharacterAbility
             : 0L;
         try
         {
+            using (ActionScoringMarker.Auto())
+            {
             CharacterAiDecisionContext context = default;
             return TryFindBestScoredActionCore(
                 predicate,
                 false,
                 in context,
                 out candidate);
+            }
         }
         finally
         {
@@ -635,11 +685,14 @@ public class AIBrain : CharacterAbility
             : 0L;
         try
         {
+            using (ActionScoringMarker.Auto())
+            {
             return TryFindBestScoredActionCore(
                 predicate,
                 true,
                 in context,
                 out candidate);
+            }
         }
         finally
         {
@@ -705,17 +758,16 @@ public class AIBrain : CharacterAbility
 
         if (actionScoringContinuation == null)
         {
-            actionScoringContinuation = new ActionScoringContinuation
-            {
-                Predicate = predicate,
-                HasDecisionContext = hasDecisionContext
-            };
+            reusableActionScoringContinuation.Reset(
+                predicate,
+                hasDecisionContext);
+            actionScoringContinuation = reusableActionScoringContinuation;
         }
 
         ActionScoringContinuation continuation = actionScoringContinuation;
         double sliceMilliseconds = aiSchedulingService != null
             ? aiSchedulingService.GetDecisionWorkSliceMilliseconds(actor)
-            : 0.25;
+            : double.PositiveInfinity;
         long sliceStarted = System.Diagnostics.Stopwatch.GetTimestamp();
         int processedThisSlice = 0;
         while (continuation.NextActionIndex < availableActions.Length)
@@ -829,6 +881,24 @@ public class AIBrain : CharacterAbility
                 ? bestEvaluation.Destination
                 : null);
         return score > 0f;
+    }
+
+    internal void InvalidateActionEvaluations(
+        Predicate<AIActionSet> predicate)
+    {
+        if (predicate == null || availableActions == null)
+        {
+            return;
+        }
+
+        for (int index = 0; index < availableActions.Length; index++)
+        {
+            AIAction action = availableActions[index];
+            if (action?.actionset != null && predicate(action.actionset))
+            {
+                actionEvaluationCache.Remove(action);
+            }
+        }
     }
 
     private static bool ShouldYieldActionScoringSlice(
@@ -1000,6 +1070,12 @@ public class AIBrain : CharacterAbility
 
     public void RequestImmediateReplan(bool clearFailures = false)
     {
+        if (externallyDrivenActionActive)
+        {
+            externalReplanClearFailures |= clearFailures;
+            return;
+        }
+
         actor?.GetAbility<AbilityMove>()?.CancelActiveMovement();
         bestAction?.ReleaseReservation(actor);
         queuedAction?.ReleaseReservation(actor);
@@ -1171,8 +1247,19 @@ public class AIBrain : CharacterAbility
 
     public void BeginExternallyDrivenAction(string actionLabel, string phase, string detail = null)
     {
+        if (externallyDrivenActionActive)
+        {
+            UpdateExternallyDrivenAction(actionLabel, phase, detail);
+            return;
+        }
+
+        bestAction?.actionset?.OnStop(
+            actor,
+            bestAction,
+            "외부 구동 행동으로 전환");
         bestAction?.ReleaseReservation(actor);
         queuedAction?.ReleaseReservation(actor);
+        actor?.GetAbility<AbilityMove>()?.CancelActiveMovement();
         bestAction = null;
         queuedAction = null;
         destinationFailedThisDecision.Clear();
@@ -1180,12 +1267,50 @@ public class AIBrain : CharacterAbility
         currentActionPhase = phase ?? string.Empty;
         currentActionPhaseDetail = detail ?? string.Empty;
         currentDestinationDebugLabel = string.Empty;
+        externallyDrivenActionActive = true;
+        externalReplanClearFailures = false;
         isExecuted = true;
         isBestActionEnd = false;
         IsPathSearchDeferred = false;
         actionScoringContinuation = null;
         ClearPathSearchCache();
         MarkDebugDirty();
+    }
+
+    public void UpdateExternallyDrivenAction(
+        string actionLabel,
+        string phase,
+        string detail = null)
+    {
+        if (!externallyDrivenActionActive)
+        {
+            BeginExternallyDrivenAction(actionLabel, phase, detail);
+            return;
+        }
+
+        currentActionDebugLabel = string.IsNullOrWhiteSpace(actionLabel)
+            ? "외부 행동"
+            : actionLabel;
+        currentActionPhase = phase ?? string.Empty;
+        currentActionPhaseDetail = detail ?? string.Empty;
+        currentDestinationDebugLabel = string.Empty;
+        isExecuted = true;
+        isBestActionEnd = false;
+        MarkDebugDirty();
+    }
+
+    public void EndExternallyDrivenAction(bool clearFailures = true)
+    {
+        if (!externallyDrivenActionActive)
+        {
+            return;
+        }
+
+        bool shouldClearFailures =
+            clearFailures || externalReplanClearFailures;
+        externallyDrivenActionActive = false;
+        externalReplanClearFailures = false;
+        RequestImmediateReplan(shouldClearFailures);
     }
 
     public void NotifyActionStarted()
@@ -1311,6 +1436,33 @@ public class AIBrain : CharacterAbility
         return false;
     }
 
+    public bool CanInterruptCurrentActionForSurvivalEmergency(out string interruptReason)
+    {
+        interruptReason = string.Empty;
+        if (actor == null || bestAction == null || bestAction.actionset == null)
+        {
+            return false;
+        }
+
+        AIActionSet runningActionSet = bestAction.actionset;
+        if (!runningActionSet.IsContinuous
+            || !bestAction.HasStarted
+            || !runningActionSet.AllowsSurvivalEmergencyInterrupt
+            || bestAction.RunningSeconds < GetMinimumPersistenceSeconds(runningActionSet))
+        {
+            return false;
+        }
+
+        if (actor.Blackboard != null
+            && !actor.Blackboard.CanBreakCommitment(CharacterAiInterruptReason.SurvivalEmergency))
+        {
+            return false;
+        }
+
+        interruptReason = "생존 위기로 현재 행동 중단";
+        return true;
+    }
+
     public bool CanContinueCurrentAction(out string status)
     {
         status = string.Empty;
@@ -1433,6 +1585,11 @@ public class AIBrain : CharacterAbility
 
     public bool StopCurrentActionForReplan(string reason)
     {
+        if (externallyDrivenActionActive)
+        {
+            return false;
+        }
+
         AIAction actionToStop = bestAction;
         AIAction queuedActionToClear = queuedAction;
         if (actionToStop == null && queuedActionToClear == null)
@@ -1716,18 +1873,22 @@ public class AIBrain : CharacterAbility
         long prepareAllocatedAtStart = prepareStarted != 0L
             ? GC.GetAllocatedBytesForCurrentThread()
             : 0L;
-        bool prepared = hasDecisionContext
-            ? action.actionset.TryPrepareCandidate(
-                actor,
-                in context,
-                null,
-                out destination,
-                out failure)
-            : action.actionset.TryPrepareCandidate(
-                actor,
-                null,
-                out destination,
-                out failure);
+        bool prepared;
+        using (ActionPrepareMarker.Auto())
+        {
+            prepared = hasDecisionContext
+                ? action.actionset.TryPrepareCandidate(
+                    actor,
+                    in context,
+                    null,
+                    out destination,
+                    out failure)
+                : action.actionset.TryPrepareCandidate(
+                    actor,
+                    null,
+                    out destination,
+                    out failure);
+        }
         if (prepareStarted != 0L)
         {
             double elapsedMilliseconds =
@@ -1766,7 +1927,13 @@ public class AIBrain : CharacterAbility
         long scoreAllocatedAtStart = scoreStarted != 0L
             ? GC.GetAllocatedBytesForCurrentThread()
             : 0L;
-        float actionScore = action.CalculateScore(actor);
+        float actionScore;
+        using (ActionConsiderationsMarker.Auto())
+        {
+            actionScore = hasDecisionContext
+                ? action.CalculateScore(actor, in context)
+                : action.CalculateScore(actor);
+        }
         if (scoreStarted != 0L)
         {
             double elapsedMilliseconds =
@@ -2183,6 +2350,8 @@ public sealed class AIActionPlan
 [Serializable]
 public class AIAction
 {
+    private static readonly Dictionary<Type, ProfilerMarker> ConsiderationTypeMarkers =
+        new Dictionary<Type, ProfilerMarker>();
     public AIActionSet actionset;
     private float _score;
     public float score
@@ -2231,16 +2400,42 @@ public class AIAction
 
     public float CalculateScore(CharacterActor actor)
     {
+        CharacterAiDecisionContext context = default;
+        return CalculateScoreCore(actor, false, in context);
+    }
+
+    public float CalculateScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        return CalculateScoreCore(actor, true, in context);
+    }
+
+    private float CalculateScoreCore(
+        CharacterActor actor,
+        bool hasDecisionContext,
+        in CharacterAiDecisionContext context)
+    {
         if (actionset == null)
         {
             this.score = 0f;
             return this.score;
         }
 
+        if (hasDecisionContext)
+        {
+            actionset.PrepareScoreContext(actor, in context);
+        }
+
         if (actionset.considerations == null || actionset.considerations.Length == 0)
         {
             float baseScore = EvaluatePersonalityScore(actor, actionset);
-            this.score = EvaluateAdjustedScore(actor, actionset, baseScore);
+            this.score = EvaluateAdjustedScore(
+                actor,
+                actionset,
+                hasDecisionContext,
+                in context,
+                baseScore);
             return this.score;
         }
 
@@ -2257,7 +2452,11 @@ public class AIAction
             long considerationStarted = CharacterAiSlowOperationTrace.Enabled
                 ? System.Diagnostics.Stopwatch.GetTimestamp()
                 : 0L;
-            float considerationScore = Mathf.Clamp01(consideration.ScoreConsideration(actor));
+            float considerationScore;
+            using (GetConsiderationMarker(consideration.GetType()).Auto())
+            {
+                considerationScore = Mathf.Clamp01(consideration.ScoreConsideration(actor));
+            }
             if (considerationStarted != 0L)
             {
                 double elapsedMilliseconds =
@@ -2282,8 +2481,25 @@ public class AIAction
 
         float actionScore = totalScore / considerationCount;
         actionScore *= EvaluatePersonalityScore(actor, actionset);
-        this.score = EvaluateAdjustedScore(actor, actionset, actionScore);
+        this.score = EvaluateAdjustedScore(
+            actor,
+            actionset,
+            hasDecisionContext,
+            in context,
+            actionScore);
         return this.score;
+    }
+
+    private static ProfilerMarker GetConsiderationMarker(Type type)
+    {
+        if (ConsiderationTypeMarkers.TryGetValue(type, out ProfilerMarker marker))
+        {
+            return marker;
+        }
+
+        marker = new ProfilerMarker("CharacterAi.Consideration." + type.Name);
+        ConsiderationTypeMarkers[type] = marker;
+        return marker;
     }
 
     private static float EvaluatePersonalityScore(
@@ -2317,15 +2533,21 @@ public class AIAction
     private static float EvaluateAdjustedScore(
         CharacterActor actor,
         AIActionSet actionSet,
+        bool hasDecisionContext,
+        in CharacterAiDecisionContext context,
         float baseScore)
     {
         if (!CharacterAiSlowOperationTrace.Enabled)
         {
-            return actionSet.AdjustScore(actor, baseScore);
+            return hasDecisionContext
+                ? actionSet.AdjustScore(actor, in context, baseScore)
+                : actionSet.AdjustScore(actor, baseScore);
         }
 
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
-        float value = actionSet.AdjustScore(actor, baseScore);
+        float value = hasDecisionContext
+            ? actionSet.AdjustScore(actor, in context, baseScore)
+            : actionSet.AdjustScore(actor, baseScore);
         double elapsedMilliseconds =
             (System.Diagnostics.Stopwatch.GetTimestamp() - started)
             * 1000.0

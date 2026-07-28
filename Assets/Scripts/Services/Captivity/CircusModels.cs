@@ -108,7 +108,7 @@ public sealed class CircusShowOrder
 [Serializable]
 public sealed class CircusSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public int version = CurrentVersion;
     public int nextOrderSequence;
     public List<CircusShowOrder> orders = new List<CircusShowOrder>();
@@ -129,11 +129,15 @@ public sealed class CapturedWildlifeState
     public CapturedWildlifeTransportState transportState =
         CapturedWildlifeTransportState.AwaitingTransport;
     public bool escaped;
+    public bool isTamed;
     public Vector2Int escapeDestination;
     public float nextCareAt;
     [Range(0f, 100f)] public float escapeRisk;
     public bool foodDeliveryPending;
     public bool waterDeliveryPending;
+    public string lastFeedItemId = string.Empty;
+    [Range(0f, 100f)] public float feedSicknessSeverity;
+    [Range(0f, 1f)] public float lastFeedDiseaseChance;
     public string lastCareStatus = string.Empty;
 
     public CapturedWildlifeState Clone()
@@ -214,10 +218,21 @@ public interface IWildlifeCaptureRuntime
     bool TryGetCaptured(
         string wildlifeId,
         out CapturedWildlifeState state);
+    bool TrySetTamed(
+        string wildlifeId,
+        bool tamed,
+        out string failureReason);
+    bool TryRegisterPenBorn(
+        WildlifeActor wildlife,
+        string penId,
+        Vector2Int penPosition,
+        out string failureReason);
+    bool TryGetPenCapacity(string penId, out int capacity);
     bool TryRelease(string wildlifeId, out string failureReason);
     bool TryAssignToShow(string wildlifeId, string orderId, out string failureReason);
     void CompleteShowAssignment(string wildlifeId, string orderId);
     IReadOnlyList<CapturedWildlifeState> CapturedAnimals { get; }
+    void CopyCapturedAnimalReferences(List<CapturedWildlifeState> destination);
     IReadOnlyList<CapturedWildlifeState> Capture();
     void Restore(IEnumerable<CapturedWildlifeState> states, IList<string> warnings);
 }

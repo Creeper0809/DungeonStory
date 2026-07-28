@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Profiling;
 using UnityEngine;
 
 public readonly struct CharacterAiDecisionTickResult
@@ -88,6 +89,20 @@ public sealed class CharacterAiFacilityLookup : ICharacterAiFacilityLookup
 
 public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 {
+    private static readonly ProfilerMarker EmergencyDecisionMarker =
+        new ProfilerMarker("CharacterAi.EmergencyDecision");
+    private static readonly ProfilerMarker EmergencyPrepareMarker =
+        new ProfilerMarker("CharacterAi.EmergencyDecision.Prepare");
+    private static readonly ProfilerMarker EmergencyReliefMarker =
+        new ProfilerMarker("CharacterAi.EmergencyDecision.Relief");
+    private static readonly ProfilerMarker EmergencyContextMarker =
+        new ProfilerMarker("CharacterAi.EmergencyDecision.Context");
+    private static readonly ProfilerMarker EmergencySelectionMarker =
+        new ProfilerMarker("CharacterAi.EmergencyDecision.Selection");
+    private static readonly ProfilerMarker RoutineDecisionMarker =
+        new ProfilerMarker("CharacterAi.RoutineDecision");
+    private static readonly ProfilerMarker DomainSelectionMarker =
+        new ProfilerMarker("CharacterAi.DomainSelection");
     private const float SecondaryEmergencyNeedThreshold = 0.2f;
     private readonly ICharacterDeprivationRuntime deprivationRuntime;
     private readonly List<CharacterAiJobGiver> jobGiverBuffer = new List<CharacterAiJobGiver>(10);
@@ -252,10 +267,20 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             status,
             "Run Deprivation Breakdown",
             status);
-        actor.Brain?.BeginExternallyDrivenAction(
-            "결핍 붕괴",
-            status,
-            "붕괴 행동이 끝날 때까지 유지");
+        if (actor.Brain?.IsExternallyDrivenActionActive == true)
+        {
+            actor.Brain.UpdateExternallyDrivenAction(
+                "결핍 붕괴",
+                status,
+                "붕괴 행동이 끝날 때까지 유지");
+        }
+        else
+        {
+            actor.Brain?.BeginExternallyDrivenAction(
+                "결핍 붕괴",
+                status,
+                "붕괴 행동이 끝날 때까지 유지");
+        }
         return Result(true, CharacterAiBranch.DeprivationBreakdown, "Run Deprivation Breakdown", status, blackboard);
     }
 
@@ -264,14 +289,16 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         return actor != null
             && actor.Brain != null
             && actor.Brain.CanContinueCurrentAction(out _)
-            && !actor.Brain.ShouldStopCurrentActionForReplan(out _);
+            && !actor.Brain.ShouldStopCurrentActionForReplan(out _)
+            && !ShouldInterruptForSafeEmergencyRelief(actor, out _);
     }
 
     public bool CanInterruptCurrentAction(CharacterActor actor)
     {
         return actor != null
             && actor.Brain != null
-            && actor.Brain.ShouldStopCurrentActionForReplan(out _);
+            && (actor.Brain.ShouldStopCurrentActionForReplan(out _)
+                || ShouldInterruptForSafeEmergencyRelief(actor, out _));
     }
 
     public bool HasContinuableCurrentAction(CharacterActor actor)
@@ -368,21 +395,39 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             return Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", "AIBrain is missing.", blackboard);
         }
 
+        CharacterAiInterruptReason interruptReason =
+            CharacterAiInterruptReason.CurrentActionStopped;
         if (!actor.Brain.ShouldStopCurrentActionForReplan(out string stopReason))
         {
-            return Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", "Current action does not need replan.", blackboard);
+            if (!ShouldInterruptForSafeEmergencyRelief(actor, out stopReason))
+            {
+                return Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", "Current action does not need replan.", blackboard);
+            }
+
+            interruptReason = CharacterAiInterruptReason.SurvivalEmergency;
         }
 
         AIAction runningAction = actor.Brain.bestAction;
         string actionLabel = GetActionLabel(runningAction?.actionset);
         actor.Brain.StopCurrentActionForReplan(stopReason);
-        blackboard.ForceClearCommitment(CharacterAiInterruptReason.CurrentActionStopped, stopReason);
+        blackboard.ForceClearCommitment(interruptReason, stopReason);
         blackboard.SetIntent(
             CharacterAiBranch.InterruptCheck,
             actionLabel,
             "Interrupt Check",
             stopReason);
         return Result(true, CharacterAiBranch.InterruptCheck, "Interrupt Check", stopReason, blackboard);
+    }
+
+    private bool ShouldInterruptForSafeEmergencyRelief(
+        CharacterActor actor,
+        out string reason)
+    {
+        reason = string.Empty;
+        return actor != null
+            && actor.Brain != null
+            && deprivationRuntime?.NeedsSafeEmergencyRelief(actor, out reason) == true
+            && actor.Brain.CanInterruptCurrentActionForSurvivalEmergency(out _);
     }
 
     public CharacterAiDecisionTickResult SelectJobGiverAction(
@@ -576,33 +621,47 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 
     public CharacterAiDecisionTickResult RunEmergencyDecision(CharacterActor actor)
     {
-        if (!TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
+        using (EmergencyDecisionMarker.Auto())
         {
-            return Result(false, CharacterAiBranch.Emergency, "Run Emergency Decision", error, blackboard);
+        CharacterBlackboard blackboard;
+        string error;
+        using (EmergencyPrepareMarker.Auto())
+        {
+            if (!TryPrepare(actor, out blackboard, out error))
+            {
+                return Result(false, CharacterAiBranch.Emergency, "Run Emergency Decision", error, blackboard);
+            }
         }
 
-        if (HasDeprivationBreakdown(actor))
+        using (EmergencyReliefMarker.Auto())
         {
-            return RunDeprivationBreakdown(actor);
+            if (HasDeprivationBreakdown(actor))
+            {
+                return RunDeprivationBreakdown(actor);
+            }
+
+            if (deprivationRuntime != null
+                && deprivationRuntime.TryRunSafeEmergencyRelief(actor, out string reliefStatus))
+            {
+                blackboard.SetIntent(
+                    CharacterAiBranch.Emergency,
+                    reliefStatus,
+                    "Run Safe Emergency Relief",
+                    reliefStatus);
+                return Result(true, CharacterAiBranch.Emergency, "Run Safe Emergency Relief", reliefStatus, blackboard);
+            }
         }
 
-        if (deprivationRuntime != null
-            && deprivationRuntime.TryRunSafeEmergencyRelief(actor, out string reliefStatus))
+        CharacterAiDecisionContext context;
+        using (EmergencyContextMarker.Auto())
         {
-            blackboard.SetIntent(
-                CharacterAiBranch.Emergency,
-                reliefStatus,
-                "Run Safe Emergency Relief",
-                reliefStatus);
-            return Result(true, CharacterAiBranch.Emergency, "Run Safe Emergency Relief", reliefStatus, blackboard);
-        }
-
-        CharacterAiDecisionContext context = GetDecisionContext(
-            actor,
-            CharacterAiBranch.Emergency);
-        if (actor.ShouldCollectDetailedAiDiagnostics)
-        {
-            blackboard.RecordDecisionContext(context);
+            context = GetDecisionContext(
+                actor,
+                CharacterAiBranch.Emergency);
+            if (actor.ShouldCollectDetailedAiDiagnostics)
+            {
+                blackboard.RecordDecisionContext(context);
+            }
         }
 
         if (context.EmergencyScore < 0.58f)
@@ -617,19 +676,26 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 blackboard);
         }
 
-        IReadOnlyList<CharacterAiJobGiver> emergencyGivers = BuildEmergencyJobGivers(actor, context);
-        return TrySelectAndRunBestJobGiver(
-            actor,
-            blackboard,
-            CharacterAiBranch.Emergency,
-            "Run Emergency Decision",
-            emergencyGivers,
-            default,
-            out _);
+        using (EmergencySelectionMarker.Auto())
+        {
+            IReadOnlyList<CharacterAiJobGiver> emergencyGivers =
+                BuildEmergencyJobGivers(actor, context);
+            return TrySelectAndRunBestJobGiver(
+                actor,
+                blackboard,
+                CharacterAiBranch.Emergency,
+                "Run Emergency Decision",
+                emergencyGivers,
+                default,
+                out _);
+        }
+        }
     }
 
     public CharacterAiDecisionTickResult RunRoutineUtilityDecision(CharacterActor actor)
     {
+        using (RoutineDecisionMarker.Auto())
+        {
         if (!TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
         {
             return Result(false, CharacterAiBranch.RoutineUtility, "Run Routine Utility", error, blackboard);
@@ -703,6 +769,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         }
 
         return Result(false, CharacterAiBranch.RoutineUtility, "Run Routine Utility", failure, blackboard);
+        }
     }
 
     public CharacterAiDecisionTickResult RecordBtDecisionTrace(
@@ -877,10 +944,17 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         FacilityRole availableFacilityRoles,
         out string failureSummary)
     {
+        using (DomainSelectionMarker.Auto())
+        {
         ICharacterAiPerformanceRecorder recorder =
             actor?.Brain?.PerformanceRecorder;
-        long domainStarted = recorder?.DetailedCollectionEnabled == true
+        bool collectDomainPerformance =
+            recorder?.DetailedCollectionEnabled == true;
+        long domainStarted = collectDomainPerformance
             ? System.Diagnostics.Stopwatch.GetTimestamp()
+            : 0L;
+        long domainAllocatedAtStart = collectDomainPerformance
+            ? GC.GetAllocatedBytesForCurrentThread()
             : 0L;
         int remainingMask = 0;
         for (int index = 0; index < jobGiverCount; index++)
@@ -920,7 +994,11 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 AiPerformanceCategory.DomainSelection,
                 (System.Diagnostics.Stopwatch.GetTimestamp() - domainStarted)
                 * 1000.0
-                / System.Diagnostics.Stopwatch.Frequency);
+                / System.Diagnostics.Stopwatch.Frequency,
+                Math.Max(
+                    0L,
+                    GC.GetAllocatedBytesForCurrentThread()
+                        - domainAllocatedAtStart));
         }
 
         AIActionFailure lastFailure = AIActionFailure.Create(
@@ -1025,6 +1103,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             taskName,
             failureSummary,
             blackboard);
+        }
     }
 
     private CharacterAiDecisionContext GetDecisionContext(
@@ -1041,8 +1120,13 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 
         ICharacterAiPerformanceRecorder recorder =
             actor?.Brain?.PerformanceRecorder;
-        long started = recorder?.DetailedCollectionEnabled == true
+        bool collectContextPerformance =
+            recorder?.DetailedCollectionEnabled == true;
+        long started = collectContextPerformance
             ? System.Diagnostics.Stopwatch.GetTimestamp()
+            : 0L;
+        long allocatedAtStart = collectContextPerformance
+            ? GC.GetAllocatedBytesForCurrentThread()
             : 0L;
         if (decisionContextActor == actor)
         {
@@ -1060,7 +1144,11 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 AiPerformanceCategory.DecisionContext,
                 (System.Diagnostics.Stopwatch.GetTimestamp() - started)
                 * 1000.0
-                / System.Diagnostics.Stopwatch.Frequency);
+                / System.Diagnostics.Stopwatch.Frequency,
+                Math.Max(
+                    0L,
+                    GC.GetAllocatedBytesForCurrentThread()
+                        - allocatedAtStart));
         }
 
         decisionContextBuffer[branch] = context;

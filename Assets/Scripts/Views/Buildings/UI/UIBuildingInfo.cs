@@ -26,6 +26,10 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private IGameEventBus gameEventBus;
     private IDoorAccessPanelPresenter doorAccessPanelPresenter;
     private ICircusBuildingPanelPresenter circusBuildingPanelPresenter;
+    private IEquipmentCraftingPanelPresenter equipmentCraftingPanelPresenter;
+    private IProductionBuildingPanelPresenter productionBuildingPanelPresenter;
+    private ICropPlotBuildingPanelPresenter cropPlotBuildingPanelPresenter;
+    private IAnimalHusbandryBuildingPanelPresenter animalHusbandryPanelPresenter;
     private IDisposable infoFeedSubscription;
     private bool initialized;
     private readonly List<GameObject> craftActionObjects = new List<GameObject>();
@@ -53,7 +57,11 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         ICombatEquipmentCatalog combatEquipmentCatalog,
         IWorkOrderRuntime workOrderRuntime,
         IDoorAccessPanelPresenter doorAccessPanelPresenter,
-        ICircusBuildingPanelPresenter circusBuildingPanelPresenter)
+        ICircusBuildingPanelPresenter circusBuildingPanelPresenter,
+        IEquipmentCraftingPanelPresenter equipmentCraftingPanelPresenter,
+        IProductionBuildingPanelPresenter productionBuildingPanelPresenter,
+        ICropPlotBuildingPanelPresenter cropPlotBuildingPanelPresenter,
+        IAnimalHusbandryBuildingPanelPresenter animalHusbandryPanelPresenter)
     {
         this.buildingDefinitionLookup = buildingDefinitionLookup
             ?? throw new ArgumentNullException(nameof(buildingDefinitionLookup));
@@ -73,6 +81,18 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             ?? throw new ArgumentNullException(nameof(doorAccessPanelPresenter));
         this.circusBuildingPanelPresenter = circusBuildingPanelPresenter
             ?? throw new ArgumentNullException(nameof(circusBuildingPanelPresenter));
+        this.equipmentCraftingPanelPresenter = equipmentCraftingPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(equipmentCraftingPanelPresenter));
+        this.productionBuildingPanelPresenter = productionBuildingPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(productionBuildingPanelPresenter));
+        this.cropPlotBuildingPanelPresenter = cropPlotBuildingPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(cropPlotBuildingPanelPresenter));
+        this.animalHusbandryPanelPresenter = animalHusbandryPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(animalHusbandryPanelPresenter));
     }
 
     [Inject]
@@ -275,8 +295,39 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             return;
         }
 
-        RenderCraftActions(buildingData, building);
+        IReadOnlyList<GameObject> equipmentCraftingObjects =
+            equipmentCraftingPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(equipmentCraftingObjects);
         RenderMaintenanceActions(buildingData, building);
+        IReadOnlyList<GameObject> productionObjects =
+            productionBuildingPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(productionObjects);
+        IReadOnlyList<GameObject> cropObjects =
+            cropPlotBuildingPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(cropObjects);
+        IReadOnlyList<GameObject> husbandryObjects =
+            animalHusbandryPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(husbandryObjects);
         if (building is Door door)
         {
             IReadOnlyList<GameObject> doorObjects = doorAccessPanelPresenter.Render(
@@ -322,48 +373,6 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             });
         cancelButton.name = "BuildingConstructionCancel";
         craftActionObjects.Add(cancelButton);
-    }
-
-    private void RenderCraftActions(BuildingSO buildingData, BuildableObject building)
-    {
-        BuildingEquipmentCraftingAbility crafting = buildingData
-            ?.GetAbility<BuildingEquipmentCraftingAbility>();
-        if (crafting == null
-            || !building.TryGetCombatEquipmentRuntime(out ICombatEquipmentRuntime runtime))
-        {
-            craftStatusMessage = string.Empty;
-            return;
-        }
-
-        HashSet<string> craftableIds = new HashSet<string>(
-            crafting.CraftableEquipmentIds.Where(id => !string.IsNullOrWhiteSpace(id)),
-            StringComparer.Ordinal);
-        Transform actionsRoot = RequireContextActionsRoot();
-        foreach (CombatEquipmentDefinitionSO definition in runtime.Definitions
-            .Where(definition => definition != null && craftableIds.Contains(definition.EquipmentId))
-            .OrderBy(definition => definition.Kind)
-            .ThenBy(definition => definition.DisplayName, StringComparer.Ordinal))
-        {
-            CombatEquipmentDefinitionSO captured = definition;
-            GameObject buttonObject = CreateCraftButton(
-                actionsRoot,
-                $"제작 {definition.DisplayName}",
-                () =>
-                {
-                    craftStatusMessage = runtime.TryQueueCraft(captured.EquipmentId, building, out string message)
-                        ? $"{captured.DisplayName} 제작 예약"
-                        : FormatCraftMessage(message);
-                    DisplayBuildingInfo(building);
-                });
-            buttonObject.name = $"BuildingCraft_{SanitizeObjectName(definition.EquipmentId)}";
-            craftActionObjects.Add(buttonObject);
-        }
-
-        if (!string.IsNullOrWhiteSpace(craftStatusMessage))
-        {
-            GameObject statusObject = CreateCraftStatus(actionsRoot, craftStatusMessage);
-            craftActionObjects.Add(statusObject);
-        }
     }
 
     private void RenderMaintenanceActions(

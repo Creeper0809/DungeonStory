@@ -43,6 +43,8 @@ public sealed class BuildingBeastPenAbility : BuildingAbility
     [Range(0f, 100f), InspectorName("기본 보안")] public float baseSecurity = 30f;
     [Min(0f), InspectorName("일일 식량")] public float dailyFood = 1f;
     [Min(0f), InspectorName("일일 물")] public float dailyWater = 1f;
+    [Min(1f), InspectorName("길들이기 작업량")] public float tamingWork = 18f;
+    [Min(1f), InspectorName("산출물 수거 작업량")] public float productCollectionWork = 8f;
 
     public bool IsValid => capacity > 0;
 }

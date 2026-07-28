@@ -166,7 +166,8 @@ public sealed class WorldItemStackRuntime :
             return;
         }
 
-        if (snapshot.version != DungeonPhysicalItemSaveData.CurrentVersion)
+        if (snapshot.version < 1
+            || snapshot.version > DungeonPhysicalItemSaveData.CurrentVersion)
         {
             throw new InvalidOperationException(
                 $"Unsupported physical item save version {snapshot.version}.");
@@ -203,6 +204,15 @@ public sealed class WorldItemStackRuntime :
                 ,sourceSpeciesTag = entry.sourceSpeciesTag?.Trim() ?? string.Empty
                 ,sourceDeathReason = entry.sourceDeathReason?.Trim() ?? string.Empty
                 ,emergencyButcheryAllowed = entry.emergencyButcheryAllowed
+                ,wasteOrigin = snapshot.version >= 2
+                    && Enum.IsDefined(typeof(WasteOriginKind), entry.wasteOrigin)
+                        ? entry.wasteOrigin
+                        : ResolveLegacyWasteOrigin(entry.itemId)
+                ,contamination = snapshot.version >= 2
+                    ? Mathf.Clamp(entry.contamination, 0f, 100f)
+                    : IsLegacyWasteItem(entry.itemId)
+                        ? 50f
+                        : 0f
             };
             if (!string.IsNullOrWhiteSpace(entry.reservedByPersistentId)
                 && IsCombatLoadoutDestination(record.destinationId))
@@ -247,6 +257,41 @@ public sealed class WorldItemStackRuntime :
         return spawned == amount;
     }
 
+    public bool SpawnStockInWarehouse(
+        IWarehouseFacility warehouse,
+        StockCategory category,
+        int amount,
+        out int spawned)
+    {
+        spawned = 0;
+        if (warehouse?.Inventory == null
+            || !warehouse.HasWarehouseInventory
+            || amount <= 0
+            || !warehouse.Inventory.Accepts(category))
+        {
+            return false;
+        }
+
+        DungeonItemDefinition definition =
+            catalogProvider.GetDefinition(category);
+        int accepted = warehouse.Inventory.Deposit(category, amount);
+        if (accepted <= 0)
+        {
+            return false;
+        }
+
+        spawned = AddStoredWarehouseItems(
+            warehouse,
+            definition.ItemId,
+            accepted);
+        if (spawned < accepted)
+        {
+            warehouse.Inventory.Withdraw(category, accepted - spawned);
+        }
+
+        return spawned == amount;
+    }
+
     public bool SpawnItemAt(
         string itemId,
         int amount,
@@ -265,6 +310,33 @@ public sealed class WorldItemStackRuntime :
         return spawned == amount;
     }
 
+    public bool SpawnWasteAt(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        WasteOriginKind origin,
+        float contamination,
+        out int spawned)
+    {
+        spawned = 0;
+        if (string.IsNullOrWhiteSpace(itemId)
+            || amount <= 0
+            || origin == WasteOriginKind.Unknown)
+        {
+            return false;
+        }
+
+        spawned = Spawn(
+            itemId.Trim(),
+            amount,
+            position,
+            WorldItemStackState.Loose,
+            string.Empty,
+            wasteOrigin: origin,
+            contamination: contamination);
+        return spawned == amount;
+    }
+
     public bool SpawnUniqueItemAt(
         string itemId,
         Vector2Int position,
@@ -277,6 +349,23 @@ public sealed class WorldItemStackRuntime :
             position,
             state,
             destinationId,
+            out stackId);
+    }
+
+    public bool SpawnUniqueItemAt(
+        string itemId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        Vector2Int destinationPosition,
+        out string stackId)
+    {
+        return itemSpawner.SpawnUnique(
+            itemId,
+            position,
+            state,
+            destinationId,
+            destinationPosition,
             out stackId);
     }
 
@@ -365,12 +454,17 @@ public sealed class WorldItemStackRuntime :
 
         DungeonItemDefinition definition = catalogProvider.GetDefinition(itemId);
         IWarehouseFacility[] warehouses = GetWarehouses().ToArray();
-        foreach (IWarehouseFacility warehouse in warehouses)
-        {
-            EnsureStoredWarehouseMirror(
-                warehouse,
+        if (IsLegacyCategoryMirrorItem(
                 definition.ItemId,
-                definition.StockCategory);
+                definition.StockCategory))
+        {
+            foreach (IWarehouseFacility warehouse in warehouses)
+            {
+                EnsureStoredWarehouseMirror(
+                    warehouse,
+                    definition.ItemId,
+                    definition.StockCategory);
+            }
         }
 
         int looseAvailable = CountLooseStockAvailable(definition.ItemId);
@@ -418,6 +512,86 @@ public sealed class WorldItemStackRuntime :
         return true;
     }
 
+    public bool TryRequestStackDelivery(
+        string stackId,
+        int amount,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int requested,
+        out string failureReason)
+    {
+        requested = 0;
+        failureReason = string.Empty;
+        string id = stackId?.Trim() ?? string.Empty;
+        string destination = destinationId?.Trim() ?? string.Empty;
+        if (id.Length == 0
+            || destination.Length == 0
+            || amount <= 0
+            || !stacksById.TryGetValue(id, out WorldItemStackRecord source)
+            || source == null
+            || source.quantity <= 0
+            || source.forbidden
+            || !string.IsNullOrWhiteSpace(source.reservedByPersistentId)
+            || !string.IsNullOrWhiteSpace(source.sourceStorageDestinationId)
+            || !string.IsNullOrWhiteSpace(source.destinationId)
+                && source.state != WorldItemStackState.Stored)
+        {
+            failureReason = "선택한 물품을 운반 요청할 수 없습니다.";
+            return false;
+        }
+
+        if (source.state is not (WorldItemStackState.Loose
+                or WorldItemStackState.Stored))
+        {
+            failureReason = "바닥이나 창고에 있는 물품만 운반할 수 있습니다.";
+            return false;
+        }
+
+        int moved = Mathf.Min(amount, source.quantity);
+        Vector2Int sourcePosition = source.position;
+        string storageDestination = source.state == WorldItemStackState.Stored
+            ? source.destinationId
+            : string.Empty;
+        source.quantity -= moved;
+        MarkStacksChanged();
+        if (source.quantity <= 0)
+        {
+            RemoveRecord(source);
+        }
+
+        requested = Spawn(
+            source.itemId,
+            moved,
+            sourcePosition,
+            source.state,
+            destination,
+            hasDestinationPosition: true,
+            destinationPosition: destinationPosition,
+            sourceStorageDestinationId: storageDestination,
+            wasteOrigin: source.wasteOrigin,
+            contamination: source.contamination);
+        if (requested < moved)
+        {
+            Spawn(
+                source.itemId,
+                moved - requested,
+                sourcePosition,
+                source.state,
+                storageDestination,
+                wasteOrigin: source.wasteOrigin,
+                contamination: source.contamination);
+        }
+
+        RefreshMarkerAt(sourcePosition);
+        if (requested <= 0)
+        {
+            failureReason = "물품 운반 요청을 만들지 못했습니다.";
+            return false;
+        }
+
+        return requested == amount;
+    }
+
     public bool TryGetPileAt(Vector2Int position, out WorldItemPileSnapshot pile)
     {
         return itemQueryService.TryGetPileAt(position, out pile);
@@ -442,6 +616,37 @@ public sealed class WorldItemStackRuntime :
     public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks()
     {
         return itemQueryService.GetAllStacks();
+    }
+
+    public bool TryFindNearestAvailableStock(
+        Vector2Int origin,
+        StockCategory category,
+        bool preferStored,
+        out WorldItemStackSnapshot stack)
+    {
+        return itemQueryService.TryFindNearestAvailableStock(
+            origin,
+            category,
+            preferStored,
+            out stack);
+    }
+
+    public void CopyAvailableStockCandidates(
+        StockCategory category,
+        List<WorldItemStockCandidate> destination)
+    {
+        itemQueryService.CopyAvailableStockCandidates(category, destination);
+    }
+
+    public bool TryFindBestAvailableStack(
+        Vector2Int origin,
+        Func<string, int> rankSelector,
+        out WorldItemStackSnapshot stack)
+    {
+        return itemQueryService.TryFindBestAvailableStack(
+            origin,
+            rankSelector,
+            out stack);
     }
 
     public bool HasAvailableHaulJob(CharacterActor actor)
@@ -656,6 +861,17 @@ public sealed class WorldItemStackRuntime :
             out failureReason);
     }
 
+    public bool TryConsumeFacilityItemBuffer(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        out string failureReason)
+    {
+        return itemTransferService.TryConsumeFacilityItemBuffer(
+            destinationId,
+            costs,
+            out failureReason);
+    }
+
     public bool TryStealLooseItem(
         CharacterActor actor,
         int searchRadius,
@@ -728,14 +944,23 @@ public sealed class WorldItemStackRuntime :
             return false;
         }
 
-        if (!inventory.TryAdd(
+        if (!inventory.TryAddPartialStack(
                 $"floor-theft:{bestStack.stackId}:{gameClock.FrameCount}",
                 bestStack.itemId,
                 1,
                 catalogProvider,
                 haulingSettingsProvider,
+                bestStack.wasteOrigin,
+                bestStack.contamination,
+                out int accepted,
                 out failureReason))
         {
+            return false;
+        }
+
+        if (accepted != 1)
+        {
+            failureReason = "carry limit";
             return false;
         }
 
@@ -783,6 +1008,35 @@ public sealed class WorldItemStackRuntime :
         return reservationService.PrioritizeHaul(stackId);
     }
 
+    public bool TryRouteStackToDestination(
+        string stackId,
+        WorldItemStackState state,
+        string destinationId,
+        Vector2Int destinationPosition,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (string.IsNullOrWhiteSpace(stackId)
+            || string.IsNullOrWhiteSpace(destinationId)
+            || !stacksById.TryGetValue(stackId, out WorldItemStackRecord record)
+            || record == null
+            || record.quantity <= 0)
+        {
+            failureReason = "이동시킬 물품 스택을 찾을 수 없습니다.";
+            return false;
+        }
+
+        record.state = state;
+        record.destinationId = destinationId.Trim();
+        record.sourceStorageDestinationId = string.Empty;
+        record.hasDestinationPosition = true;
+        record.destinationPosition = destinationPosition;
+        record.reservedByPersistentId = string.Empty;
+        MarkStacksChanged();
+        RefreshMarkerAt(record.position);
+        return true;
+    }
+
     public bool DeleteStack(string stackId)
     {
         if (string.IsNullOrWhiteSpace(stackId)
@@ -817,6 +1071,31 @@ public sealed class WorldItemStackRuntime :
         }
 
         int amount = Mathf.Min(quantity, record.quantity);
+        if (record.state == WorldItemStackState.Stored)
+        {
+            if (!TryResolveStoredWarehouse(
+                    record,
+                    out IWarehouseFacility sourceWarehouse)
+                || !TryGetWarehouseStockCategory(
+                    record.itemId,
+                    out StockCategory category)
+                || sourceWarehouse.Inventory.GetStock(category) < amount)
+            {
+                return false;
+            }
+
+            int withdrawn = sourceWarehouse.Inventory.Withdraw(category, amount);
+            if (withdrawn != amount)
+            {
+                if (withdrawn > 0)
+                {
+                    sourceWarehouse.Inventory.Deposit(category, withdrawn);
+                }
+
+                return false;
+            }
+        }
+
         consumed = ToSnapshot(record);
         consumed.Quantity = amount;
         Vector2Int position = record.position;
@@ -829,6 +1108,52 @@ public sealed class WorldItemStackRuntime :
 
         RefreshMarkerAt(position);
         return amount > 0;
+    }
+
+    private bool TryResolveStoredWarehouse(
+        WorldItemStackRecord record,
+        out IWarehouseFacility warehouse)
+    {
+        warehouse = null;
+        if (record == null
+            || record.state != WorldItemStackState.Stored)
+        {
+            return false;
+        }
+
+        string destinationId = GetStoredSourceDestinationId(record);
+        IWarehouseFacility positionMatch = null;
+        foreach (IWarehouseFacility candidate in GetWarehouses())
+        {
+            if (candidate?.Inventory == null)
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(destinationId)
+                && string.Equals(
+                    GetWarehouseStorageDestinationId(candidate),
+                    destinationId,
+                    StringComparison.Ordinal))
+            {
+                warehouse = candidate;
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(destinationId)
+                && ResolveWarehouseStoragePosition(candidate) == record.position)
+            {
+                if (positionMatch != null)
+                {
+                    return false;
+                }
+
+                positionMatch = candidate;
+            }
+        }
+
+        warehouse = positionMatch;
+        return warehouse != null;
     }
 
     public bool SetEmergencyButcheryAllowed(string stackId, bool allowed)
@@ -1022,7 +1347,9 @@ public sealed class WorldItemStackRuntime :
                 WorldItemStackState.Loose,
                 destinationId,
                 hasDestinationPosition: true,
-                destinationPosition: destinationPosition);
+                destinationPosition: destinationPosition,
+                wasteOrigin: stack.wasteOrigin,
+                contamination: stack.contamination);
             remaining -= moved;
             RefreshMarkerAt(sourcePosition);
         }
@@ -1094,10 +1421,17 @@ public sealed class WorldItemStackRuntime :
                     destinationId,
                     hasDestinationPosition: true,
                     destinationPosition: destinationPosition,
-                    sourceStorageDestinationId: storageDestinationId);
+                    sourceStorageDestinationId: storageDestinationId,
+                    wasteOrigin: stack.wasteOrigin,
+                    contamination: stack.contamination);
                 if (created < assigned)
                 {
-                    AddStoredWarehouseItems(warehouse, itemId, assigned - created);
+                    AddStoredWarehouseItems(
+                        warehouse,
+                        itemId,
+                        assigned - created,
+                        stack.wasteOrigin,
+                        stack.contamination);
                 }
 
                 requested += created;
@@ -1139,6 +1473,16 @@ public sealed class WorldItemStackRuntime :
         }
     }
 
+    private static bool IsLegacyCategoryMirrorItem(
+        string itemId,
+        StockCategory category)
+    {
+        return string.Equals(
+            itemId,
+            DungeonItemCatalogSO.StockItemId(category),
+            StringComparison.Ordinal);
+    }
+
     private int CountUnassignedStoredStock(IWarehouseFacility warehouse, string itemId)
     {
         if (warehouse == null || string.IsNullOrWhiteSpace(itemId))
@@ -1175,7 +1519,9 @@ public sealed class WorldItemStackRuntime :
         string sourceSpeciesTag = "",
         string sourceDeathReason = "",
         bool emergencyButcheryAllowed = false,
-        string sourceStorageDestinationId = "")
+        string sourceStorageDestinationId = "",
+        WasteOriginKind wasteOrigin = WasteOriginKind.Unknown,
+        float contamination = 0f)
     {
         return itemSpawner.Spawn(
             itemId,
@@ -1190,12 +1536,44 @@ public sealed class WorldItemStackRuntime :
             sourceSpeciesTag,
             sourceDeathReason,
             emergencyButcheryAllowed,
-            sourceStorageDestinationId);
+            sourceStorageDestinationId,
+            wasteOrigin,
+            contamination);
     }
 
     private static int GetManhattanDistance(Vector2Int a, Vector2Int b)
     {
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+    }
+
+    private static WasteOriginKind ResolveLegacyWasteOrigin(string itemId)
+    {
+        string id = itemId?.Trim() ?? string.Empty;
+        if (string.Equals(id, "waste:plant-rot", StringComparison.Ordinal))
+        {
+            return WasteOriginKind.Plant;
+        }
+
+        if (string.Equals(id, "waste:animal-rot", StringComparison.Ordinal))
+        {
+            return WasteOriginKind.Animal;
+        }
+
+        if (string.Equals(id, "waste:forbidden-rot", StringComparison.Ordinal))
+        {
+            return WasteOriginKind.Forbidden;
+        }
+
+        return IsLegacyWasteItem(id)
+            ? WasteOriginKind.Mixed
+            : WasteOriginKind.Unknown;
+    }
+
+    private static bool IsLegacyWasteItem(string itemId)
+    {
+        string id = itemId?.Trim() ?? string.Empty;
+        return id.StartsWith("waste:", StringComparison.Ordinal)
+            || string.Equals(id, WildlifeItemDefinitions.RotItemId, StringComparison.Ordinal);
     }
 
     private IEnumerable<IWarehouseFacility> GetWarehouses()
@@ -1264,7 +1642,12 @@ public sealed class WorldItemStackRuntime :
         }
     }
 
-    private int AddStoredWarehouseItems(IWarehouseFacility warehouse, string itemId, int amount)
+    private int AddStoredWarehouseItems(
+        IWarehouseFacility warehouse,
+        string itemId,
+        int amount,
+        WasteOriginKind wasteOrigin = WasteOriginKind.Unknown,
+        float contamination = 0f)
     {
         if (warehouse == null || string.IsNullOrWhiteSpace(itemId) || amount <= 0)
         {
@@ -1276,7 +1659,9 @@ public sealed class WorldItemStackRuntime :
             amount,
             ResolveWarehouseStoragePosition(warehouse),
             WorldItemStackState.Stored,
-            GetWarehouseStorageDestinationId(warehouse));
+            GetWarehouseStorageDestinationId(warehouse),
+            wasteOrigin: wasteOrigin,
+            contamination: contamination);
     }
 
     private int RemoveStoredWarehouseItems(IWarehouseFacility warehouse, string itemId, int amount)
@@ -1572,6 +1957,8 @@ public sealed class WorldItemStackRuntime :
             ,sourceSpeciesTag = stack.sourceSpeciesTag ?? string.Empty
             ,sourceDeathReason = stack.sourceDeathReason ?? string.Empty
             ,emergencyButcheryAllowed = stack.emergencyButcheryAllowed
+            ,wasteOrigin = stack.wasteOrigin
+            ,contamination = Mathf.Clamp(stack.contamination, 0f, 100f)
         };
     }
 

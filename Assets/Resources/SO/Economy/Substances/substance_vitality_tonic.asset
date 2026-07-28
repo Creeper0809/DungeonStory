@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e250501876384e04bbf47d82cdcbe4ce, type: 3}
+  m_Name: substance_vitality_tonic
+  m_EditorClassIdentifier: Assembly-CSharp::SubstanceDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 12001
+  substanceId: substance:vitality-tonic
+  itemId: drug:vitality-tonic
+  displayName: "\uD65C\uB825 \uAC15\uC7A5\uC81C"
+  useClass: 1
+  addictionChance: 0
+  overdoseChance: 0.006
+  toleranceGain: 0
+  withdrawalPerHour: 0
+  moodEffect: 2
+  workSpeedEffect: 0.12
+  combatEffect: 0
+  durationSeconds: 150
+  requiredResearchId: research:pharmacology:distillation

@@ -42,12 +42,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 82a6eb1a53fe9014f824947d5a05aa8d, type: 3}
   abilityModules:
     items:
-    - rid: 7302563199433049801
-    - rid: 7302563199433049802
-    - rid: 7302563199433049803
-    - rid: 7302563199433049804
-    - rid: 7302563199433049805
-    - rid: 7302563199433049806
+    - rid: 7302563252714865591
+    - rid: 7302563252714865592
+    - rid: 7302563252714865593
+    - rid: 7302563252714865594
+    - rid: 7302563252714865595
+    - rid: 7302563252714865596
   width: 2
   height: 1
   layer: 1
@@ -62,12 +62,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563199433049801
+    - rid: 7302563252714865591
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CS02
-    - rid: 7302563199433049802
+    - rid: 7302563252714865592
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +75,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563199433049803
+    - rid: 7302563252714865593
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -86,16 +86,16 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 0
           disabledWhenDamaged: 1
-    - rid: 7302563199433049804
+    - rid: 7302563252714865594
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563199433049805
+    - rid: 7302563252714865595
       type: {class: BuildingSeatingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSeatingAbility
         capacity: 2
-    - rid: 7302563199433049806
+    - rid: 7302563252714865596
       type: {class: BuildingAudienceSeatingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAudienceSeatingAbility

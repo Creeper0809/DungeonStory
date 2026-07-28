@@ -70,6 +70,10 @@ public class CharacterSummeryInfo : UIPopUp
     private Button combatHoldFireButton;
     private Button combatRepairButton;
     private Button captivityActionButton;
+    private Button dietPolicyButton;
+    private Button substanceSelectionButton;
+    private Button substancePolicyButton;
+    private int selectedSubstanceIndex;
     private float nextVitalsRefreshAt;
     private int pendingCandidateConfirmation = -1;
     private int pendingCandidateUnlockLevel = -1;
@@ -84,6 +88,8 @@ public class CharacterSummeryInfo : UIPopUp
     private ICombatEquipmentCatalog combatEquipmentCatalog;
     private ICombatEquipmentMaintenanceRuntime equipmentMaintenanceRuntime;
     private ISurvivalFoodRuntime survivalFoodRuntime;
+    private ICharacterConsumablesRuntime consumablesRuntime;
+    private IResourceEconomyContentCatalog resourceCatalog;
     private ICharacterAiDiagnosticsQuery aiDiagnostics;
     private ICaptivityRuntime captivityRuntime;
     private ICaptivityCommandService captivityCommands;
@@ -107,6 +113,8 @@ public class CharacterSummeryInfo : UIPopUp
         ICombatEquipmentCatalog combatEquipmentCatalog,
         ICombatEquipmentMaintenanceRuntime equipmentMaintenanceRuntime,
         ISurvivalFoodRuntime survivalFoodRuntime,
+        ICharacterConsumablesRuntime consumablesRuntime,
+        IResourceEconomyContentCatalog resourceCatalog,
         ICharacterAiDiagnosticsQuery aiDiagnostics,
         ICaptivityRuntime captivityRuntime,
         ICaptivityCommandService captivityCommands,
@@ -137,6 +145,10 @@ public class CharacterSummeryInfo : UIPopUp
             ?? throw new ArgumentNullException(nameof(equipmentMaintenanceRuntime));
         this.survivalFoodRuntime = survivalFoodRuntime
             ?? throw new ArgumentNullException(nameof(survivalFoodRuntime));
+        this.consumablesRuntime = consumablesRuntime
+            ?? throw new ArgumentNullException(nameof(consumablesRuntime));
+        this.resourceCatalog = resourceCatalog
+            ?? throw new ArgumentNullException(nameof(resourceCatalog));
         this.aiDiagnostics = aiDiagnostics
             ?? throw new ArgumentNullException(nameof(aiDiagnostics));
         this.captivityRuntime = captivityRuntime
@@ -217,8 +229,8 @@ public class CharacterSummeryInfo : UIPopUp
 
         if (characterStats != null)
         {
-            OnStatChange(characterStats.StatSnapshot);
-            characterStats.OnStatChange += OnStatChange;
+            RefreshStatSliders();
+            characterStats.OnStatsInvalidated += RefreshStatSliders;
         }
 
         if (characterLog != null)
@@ -243,6 +255,23 @@ public class CharacterSummeryInfo : UIPopUp
 
     public void OnStatChange(IReadOnlyDictionary<CharacterCondition, float> stats)
     {
+        SetSlider(fun, stats, CharacterCondition.FUN);
+        SetSlider(hunger, stats, CharacterCondition.HUNGER);
+        SetSlider(thirst, stats, CharacterCondition.THIRST);
+        SetSlider(sleep, stats, CharacterCondition.SLEEP);
+        SetSlider(excretion, stats, CharacterCondition.EXCRETION);
+        SetSlider(hygiene, stats, CharacterCondition.HYGIENE);
+        RefreshMoodDetails();
+    }
+
+    private void RefreshStatSliders()
+    {
+        if (characterStats == null)
+        {
+            return;
+        }
+
+        IDictionary<CharacterCondition, float> stats = characterStats.Stats;
         SetSlider(fun, stats, CharacterCondition.FUN);
         SetSlider(hunger, stats, CharacterCondition.HUNGER);
         SetSlider(thirst, stats, CharacterCondition.THIRST);
@@ -314,13 +343,67 @@ public class CharacterSummeryInfo : UIPopUp
         TMP_Text generatedHealthSummaryText,
         GameObject generatedHealthTabContent,
         Button generatedHealthTabButton,
-        Button generatedCaptivityActionButton)
+        Button generatedCaptivityActionButton,
+        Button generatedDietPolicyButton,
+        Button generatedSubstanceSelectionButton,
+        Button generatedSubstancePolicyButton)
     {
         thirst = generatedThirst;
         healthSummaryText = generatedHealthSummaryText;
         healthTabContent = generatedHealthTabContent;
         healthTabButton = generatedHealthTabButton;
         captivityActionButton = generatedCaptivityActionButton;
+        dietPolicyButton = generatedDietPolicyButton;
+        substanceSelectionButton = generatedSubstanceSelectionButton;
+        substancePolicyButton = generatedSubstancePolicyButton;
+        RefreshHealthDetails();
+    }
+
+    public void CycleDietPolicy()
+    {
+        if (actor == null || consumablesRuntime == null)
+        {
+            return;
+        }
+
+        CharacterDietPolicyKind current = consumablesRuntime.GetPolicy(actor);
+        CharacterDietPolicyKind next = (CharacterDietPolicyKind)(
+            ((int)current + 1)
+            % Enum.GetValues(typeof(CharacterDietPolicyKind)).Length);
+        consumablesRuntime.SetPolicy(actor, next);
+        RefreshHealthDetails();
+    }
+
+    public void SelectNextSubstance()
+    {
+        int count = resourceCatalog?.Substances?.Count ?? 0;
+        selectedSubstanceIndex = count > 0
+            ? (selectedSubstanceIndex + 1) % count
+            : 0;
+        RefreshHealthDetails();
+    }
+
+    public void CycleSelectedSubstancePolicy()
+    {
+        if (actor == null
+            || consumablesRuntime == null
+            || !TryGetSelectedSubstance(out SubstanceDefinitionSO substance))
+        {
+            return;
+        }
+
+        CharacterSubstancePolicyState current = consumablesRuntime.GetPolicy(
+            actor,
+            substance.SubstanceId);
+        SubstancePolicyMode next = (SubstancePolicyMode)(
+            ((int)current.mode + 1)
+            % Enum.GetValues(typeof(SubstancePolicyMode)).Length);
+        consumablesRuntime.SetPolicy(
+            actor,
+            substance.SubstanceId,
+            next,
+            current.moodThreshold,
+            current.scheduledHour);
         RefreshHealthDetails();
     }
 
@@ -1097,9 +1180,22 @@ public class CharacterSummeryInfo : UIPopUp
             string ammo = weapon.RequiresAmmo
                 ? $" · 장전 {weapon.LoadedAmmo}/{weapon.MagazineCapacity}"
                 : string.Empty;
+            bool hasDerivedStats = equipment.TryGetDerivedStats(
+                weapon.InstanceId,
+                out CombatEquipmentDerivedStats weaponStats);
+            string weaponName = hasDerivedStats
+                ? weaponStats.DisplayName
+                : weaponDefinition.DisplayName;
             builder.AppendLine(
-                $"활성 무기  {weaponDefinition.DisplayName} [{CombatQualityRules.GetDisplayName(weapon.Quality)}]"
+                $"활성 무기  {weaponName} [{CombatQualityRules.GetDisplayName(weapon.Quality)}]"
                 + $" · 최대 {weapon.MaximumRange}칸{ammo}");
+            if (hasDerivedStats)
+            {
+                builder.AppendLine(
+                    $"재질 성능  피해 ×{weaponStats.DamageMultiplier:0.##}"
+                    + $" · 관통 ×{weaponStats.PenetrationDefenseMultiplier:0.##}"
+                    + $" · {weaponStats.Weight:0.##}kg");
+            }
             builder.AppendLine(
                 $"사격 모드  {FormatCombatFireMode(profile?.fireMode ?? CombatFireMode.Aimed)}"
                 + ((profile?.holdFire ?? false) ? " · 사격 중지" : string.Empty));
@@ -1150,7 +1246,8 @@ public class CharacterSummeryInfo : UIPopUp
                         StringComparison.Ordinal)));
         builder.AppendLine(repairOrder != null
             ? $"수리 상태  {FormatRepairState(repairOrder.state)} · {repairOrder.ProgressRatio:P0}"
-                + $" · 재료 {repairOrder.requiredGeneralMaterials} · 작업량 {repairOrder.completedWork:0.#}/{repairOrder.requiredWork:0.#}"
+                + $" · {repairOrder.materialItemId} ×{repairOrder.requiredMaterialAmount}"
+                + $" · 작업량 {repairOrder.completedWork:0.#}/{repairOrder.requiredWork:0.#}"
             : "수리 상태  대기 없음");
 
         CharacterCarryInventory carry = CharacterCarryInventory.Ensure(actor);
@@ -1245,9 +1342,22 @@ public class CharacterSummeryInfo : UIPopUp
                 continue;
             }
 
-            rows.Add(
-                $"{definition.DisplayName} [{CombatQualityRules.GetDisplayName(instance.quality)}]"
-                + $" {instance.durabilityRatio * 100f:0}%");
+            if (equipment.TryGetDerivedStats(
+                    instance.instanceId,
+                    out CombatEquipmentDerivedStats stats))
+            {
+                rows.Add(
+                    $"{stats.DisplayName} [{CombatQualityRules.GetDisplayName(instance.quality)}]"
+                    + $" · 내구 {instance.durabilityRatio * 100f:0}%"
+                    + $" · 방어 ×{stats.PenetrationDefenseMultiplier:0.##}"
+                    + $" · {stats.Weight:0.##}kg");
+            }
+            else
+            {
+                rows.Add(
+                    $"{definition.DisplayName} [{CombatQualityRules.GetDisplayName(instance.quality)}]"
+                    + $" {instance.durabilityRatio * 100f:0}%");
+            }
         }
 
         builder.AppendLine(rows.Count > 0
@@ -1358,8 +1468,129 @@ public class CharacterSummeryInfo : UIPopUp
         }
 
         AppendCaptivityDetails(builder);
+        AppendConsumableDetails(builder);
         healthSummaryText.text = builder.ToString().TrimEnd();
         RefreshCaptivityActionButton();
+        RefreshConsumableButtons();
+    }
+
+    private void AppendConsumableDetails(StringBuilder builder)
+    {
+        if (actor == null || consumablesRuntime == null || resourceCatalog == null)
+        {
+            return;
+        }
+
+        builder.AppendLine();
+        builder.AppendLine("식단·약물");
+        builder.AppendLine(
+            $"식단 정책  {FormatDietPolicy(consumablesRuntime.GetPolicy(actor))}");
+        foreach (SubstanceDefinitionSO substance in resourceCatalog.Substances)
+        {
+            if (substance == null)
+            {
+                continue;
+            }
+
+            CharacterSubstancePolicyState policy = consumablesRuntime.GetPolicy(
+                actor,
+                substance.SubstanceId);
+            CharacterSubstanceState state = consumablesRuntime.GetState(
+                actor,
+                substance.SubstanceId);
+            bool hasState = state.activeSeconds > 0f
+                || state.tolerance > 0.01f
+                || state.addiction > 0.01f
+                || state.withdrawal > 0.01f
+                || state.addicted;
+            if (!hasState && policy.mode == SubstancePolicyMode.Forbidden)
+            {
+                continue;
+            }
+
+            builder.AppendLine(
+                $"{substance.DisplayName}  {FormatSubstancePolicy(policy.mode)}"
+                + $" · 내성 {state.tolerance:0.#}"
+                + $" · 중독 {state.addiction:0.#}"
+                + $" · 금단 {state.withdrawal:0.#}"
+                + (state.activeSeconds > 0f
+                    ? $" · 효과 {state.activeSeconds:0}s"
+                    : string.Empty));
+        }
+    }
+
+    private void RefreshConsumableButtons()
+    {
+        SetButtonLabel(
+            dietPolicyButton,
+            actor != null && consumablesRuntime != null
+                ? $"식단: {FormatDietPolicy(consumablesRuntime.GetPolicy(actor))}"
+                : "식단 정책");
+        if (!TryGetSelectedSubstance(out SubstanceDefinitionSO substance))
+        {
+            SetButtonLabel(substanceSelectionButton, "약물 없음");
+            SetButtonLabel(substancePolicyButton, "정책 없음");
+            if (substancePolicyButton != null)
+            {
+                substancePolicyButton.interactable = false;
+            }
+
+            return;
+        }
+
+        SetButtonLabel(substanceSelectionButton, substance.DisplayName);
+        CharacterSubstancePolicyState policy = consumablesRuntime.GetPolicy(
+            actor,
+            substance.SubstanceId);
+        SetButtonLabel(
+            substancePolicyButton,
+            FormatSubstancePolicy(policy.mode));
+        if (substancePolicyButton != null)
+        {
+            substancePolicyButton.interactable = actor != null;
+        }
+    }
+
+    private bool TryGetSelectedSubstance(out SubstanceDefinitionSO substance)
+    {
+        substance = null;
+        IReadOnlyList<SubstanceDefinitionSO> definitions =
+            resourceCatalog?.Substances;
+        if (definitions == null || definitions.Count == 0)
+        {
+            return false;
+        }
+
+        selectedSubstanceIndex = Mathf.Clamp(
+            selectedSubstanceIndex,
+            0,
+            definitions.Count - 1);
+        substance = definitions[selectedSubstanceIndex];
+        return substance != null;
+    }
+
+    private static string FormatDietPolicy(CharacterDietPolicyKind policy)
+    {
+        return policy switch
+        {
+            CharacterDietPolicyKind.Vegan => "비건",
+            CharacterDietPolicyKind.Vegetarian => "채식",
+            CharacterDietPolicyKind.CarnivorePreferred => "육식 선호",
+            CharacterDietPolicyKind.StrictTaboo => "금기 엄수",
+            _ => "자유식"
+        };
+    }
+
+    private static string FormatSubstancePolicy(SubstancePolicyMode mode)
+    {
+        return mode switch
+        {
+            SubstancePolicyMode.MedicalOnly => "의료 전용",
+            SubstancePolicyMode.CombatOnly => "전투 시",
+            SubstancePolicyMode.MoodThreshold => "기분 임계",
+            SubstancePolicyMode.Scheduled => "예약 복용",
+            _ => "금지"
+        };
     }
 
     private void AppendCaptivityDetails(StringBuilder builder)
@@ -1716,7 +1947,7 @@ public class CharacterSummeryInfo : UIPopUp
 
         if (characterStats != null)
         {
-            characterStats.OnStatChange -= OnStatChange;
+            characterStats.OnStatsInvalidated -= RefreshStatSliders;
         }
 
         if (characterLog != null)
@@ -1790,6 +2021,20 @@ public class CharacterSummeryInfo : UIPopUp
     private static void SetSlider(
         Slider slider,
         IReadOnlyDictionary<CharacterCondition, float> stats,
+        CharacterCondition condition)
+    {
+        if (slider == null || stats == null)
+        {
+            return;
+        }
+
+        float rawValue = stats.TryGetValue(condition, out float value) ? value : 0f;
+        SetMeter(slider, rawValue / 100f, $"{Mathf.RoundToInt(rawValue)}");
+    }
+
+    private static void SetSlider(
+        Slider slider,
+        IDictionary<CharacterCondition, float> stats,
         CharacterCondition condition)
     {
         if (slider == null || stats == null)

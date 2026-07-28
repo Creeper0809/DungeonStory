@@ -20,6 +20,9 @@ MonoBehaviour:
   occupiedHands: 1
   maxDurability: 160
   requiredCraftWork: 6
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 5
+  allowedMaterialFamilies: 000000000200000003000000
   craftMaterials: []
   frontalBlockChance: 0.38
   slashDefense: 18

@@ -2,11 +2,21 @@ using Sirenix.OdinInspector;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Profiling;
 using UnityEngine;
 
 [DrawWithUnity]
 public abstract class AIActionSet : SerializedScriptableObject
 {
+    private static readonly ProfilerMarker CanStartMarker =
+        new ProfilerMarker("CharacterAi.ActionCanStart");
+    private static readonly ProfilerMarker ResolveDestinationMarker =
+        new ProfilerMarker("CharacterAi.ActionResolveDestination");
+    private static readonly Dictionary<Type, ProfilerMarker> CanStartTypeMarkers =
+        new Dictionary<Type, ProfilerMarker>();
+    private static readonly Dictionary<Type, ProfilerMarker> ResolveDestinationTypeMarkers =
+        new Dictionary<Type, ProfilerMarker>();
+
     public string actionName;
     [SerializeField] private int defaultInterruptPriority;
 
@@ -16,6 +26,7 @@ public abstract class AIActionSet : SerializedScriptableObject
     public virtual bool IsContinuous => false;
     public virtual float MinimumDuration => 0f;
     public virtual int InterruptPriority => defaultInterruptPriority;
+    public virtual bool AllowsSurvivalEmergencyInterrupt => true;
     public virtual CharacterAiActionDescriptor Descriptor => CharacterAiActionDescriptor.None;
     public CharacterAiBranch Branch => Descriptor?.Branch ?? CharacterAiBranch.None;
 
@@ -51,6 +62,20 @@ public abstract class AIActionSet : SerializedScriptableObject
     public virtual float AdjustScore(CharacterActor actor, float baseScore)
     {
         return Mathf.Clamp01(baseScore);
+    }
+
+    public virtual float AdjustScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        float baseScore)
+    {
+        return AdjustScore(actor, baseScore);
+    }
+
+    public virtual void PrepareScoreContext(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
     }
 
     public bool CanStartWithContext(
@@ -121,9 +146,14 @@ public abstract class AIActionSet : SerializedScriptableObject
         long canStartStarted = recorder?.DetailedCollectionEnabled == true
             ? System.Diagnostics.Stopwatch.GetTimestamp()
             : 0L;
-        bool canStart = hasDecisionContext
-            ? CanStart(actor, in context)
-            : CanStart(actor);
+        bool canStart;
+        using (CanStartMarker.Auto())
+        using (GetTypeMarker(CanStartTypeMarkers, "CharacterAi.CanStart.", GetType()).Auto())
+        {
+            canStart = hasDecisionContext
+                ? CanStart(actor, in context)
+                : CanStart(actor);
+        }
         if (canStartStarted != 0L)
         {
             double elapsedMilliseconds =
@@ -155,11 +185,19 @@ public abstract class AIActionSet : SerializedScriptableObject
         long destinationStarted = recorder?.DetailedCollectionEnabled == true
             ? System.Diagnostics.Stopwatch.GetTimestamp()
             : 0L;
-        bool resolved = TryResolveDestinationWithFailure(
+        bool resolved;
+        using (ResolveDestinationMarker.Auto())
+        using (GetTypeMarker(
+                   ResolveDestinationTypeMarkers,
+                   "CharacterAi.ResolveDestination.",
+                   GetType()).Auto())
+        {
+            resolved = TryResolveDestinationWithFailure(
                 actor,
                 searchResult,
                 out destination,
                 out failure);
+        }
         if (destinationStarted != 0L)
         {
             double elapsedMilliseconds =
@@ -194,6 +232,21 @@ public abstract class AIActionSet : SerializedScriptableObject
         }
 
         return true;
+    }
+
+    private static ProfilerMarker GetTypeMarker(
+        Dictionary<Type, ProfilerMarker> markers,
+        string prefix,
+        Type type)
+    {
+        if (markers.TryGetValue(type, out ProfilerMarker marker))
+        {
+            return marker;
+        }
+
+        marker = new ProfilerMarker(prefix + type.Name);
+        markers[type] = marker;
+        return marker;
     }
 
     public virtual bool CanContinue(CharacterActor actor, AIAction runningAction, out string stopReason)

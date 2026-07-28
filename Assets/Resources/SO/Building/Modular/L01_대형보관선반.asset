@@ -42,13 +42,13 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 522f55e0b9cc87f4f9226bfacf8ec674, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602493
-    - rid: 7302562995605602494
-    - rid: 7302562995605602495
-    - rid: 7302562995605602496
-    - rid: 7302562995605602497
-    - rid: 7302562995605602498
-    - rid: 7302562995605602499
+    - rid: 7302563239038813123
+    - rid: 7302563239038813124
+    - rid: 7302563239038813125
+    - rid: 7302563239038813126
+    - rid: 7302563239038813127
+    - rid: 7302563239038813128
+    - rid: 7302563239038813129
   width: 2
   height: 1
   layer: 1
@@ -63,12 +63,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602493
+    - rid: 7302563239038813123
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: L01
-    - rid: 7302562995605602494
+    - rid: 7302563239038813124
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -76,7 +76,7 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602495
+    - rid: 7302563239038813125
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -87,17 +87,17 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 6
           disabledWhenDamaged: 1
-    - rid: 7302562995605602496
+    - rid: 7302563239038813126
       type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 60
         restockRequestThreshold: 15
-    - rid: 7302562995605602497
+    - rid: 7302563239038813127
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302562995605602498
+    - rid: 7302563239038813128
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -112,7 +112,7 @@ MonoBehaviour:
           - key: Storage
             value: 2.5
           metrics: []
-    - rid: 7302562995605602499
+    - rid: 7302563239038813129
       type: {class: BuildingStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingStorageAbility

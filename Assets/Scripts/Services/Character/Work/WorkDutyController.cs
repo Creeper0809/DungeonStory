@@ -4,6 +4,8 @@ using UnityEngine;
 
 public sealed class WorkDutyController
 {
+    private static readonly WaitForSeconds WorkCheckDelay = new WaitForSeconds(1f);
+
     private readonly AbilityWork work;
     private AbilityWork.DutyState dutyState = AbilityWork.DutyState.OnDuty;
     private float offDutyStartedAt = float.NegativeInfinity;
@@ -346,7 +348,7 @@ public sealed class WorkDutyController
                 break;
             }
 
-            yield return new WaitForSeconds(1f);
+            yield return WorkCheckDelay;
         }
 
         if (!work.IsActiveWorkRun(runId))

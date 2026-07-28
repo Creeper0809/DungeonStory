@@ -15,6 +15,16 @@ public sealed class AIHunt : AIActionSet
 
     public override float AdjustScore(CharacterActor actor, float baseScore)
     {
+        CharacterAiDecisionContext context =
+            CharacterAiDecisionContext.Capture(actor, CharacterAiBranch.Work);
+        return AdjustScore(actor, in context, baseScore);
+    }
+
+    public override float AdjustScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        float baseScore)
+    {
         if (!TryGetEnabledPriority(actor, out WorkPriorityLevel priority))
         {
             return 0f;
@@ -33,7 +43,6 @@ public sealed class AIHunt : AIActionSet
             WorkPriorityLevel.Priority3 => 0.52f,
             _ => 0f
         };
-        CharacterAiDecisionContext context = CharacterAiDecisionContext.Capture(actor, CharacterAiBranch.Work);
         float survivalBoost = context.FoodStockPressure >= 0.85f ? 1.35f : 1f;
         float healthWindow = Mathf.Lerp(1f, 0.35f, Mathf.Max(context.HealthUrgency, context.InjuryUrgency));
         float weatherWindow = Mathf.Lerp(1f, 0.72f, context.WeatherPressure);

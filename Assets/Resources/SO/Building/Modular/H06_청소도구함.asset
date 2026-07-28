@@ -42,12 +42,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 63f03661259d8b14fa0cb53af0ab225f, type: 3}
   abilityModules:
     items:
-    - rid: 7302562991791407981
-    - rid: 7302562991791407982
-    - rid: 7302562991791407983
-    - rid: 7302562991791407984
-    - rid: 7302562991791407985
-    - rid: 7302563106683093124
+    - rid: 7302563239583285424
+    - rid: 7302563239583285425
+    - rid: 7302563239583285426
+    - rid: 7302563239583285427
+    - rid: 7302563239583285428
+    - rid: 7302563239583285429
   width: 1
   height: 1
   layer: 1
@@ -62,12 +62,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562991791407981
+    - rid: 7302563239583285424
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: H06
-    - rid: 7302562991791407982
+    - rid: 7302563239583285425
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +75,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562991791407983
+    - rid: 7302563239583285426
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -90,19 +90,19 @@ MonoBehaviour:
           - key: Storage
             value: 2.5
           metrics: []
-    - rid: 7302562991791407984
+    - rid: 7302563239583285427
       type: {class: BuildingStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingStorageAbility
         category: 1
         capacity: 8
         allCategories: 0
-    - rid: 7302562991791407985
+    - rid: 7302563239583285428
       type: {class: BuildingCleaningAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
-    - rid: 7302563106683093124
+    - rid: 7302563239583285429
       type: {class: BuildingVentilationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingVentilationAbility

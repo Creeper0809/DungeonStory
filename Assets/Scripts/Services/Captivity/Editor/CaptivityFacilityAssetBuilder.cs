@@ -70,13 +70,15 @@ public static class CaptivityFacilityAssetBuilder
             "\uC57C\uC218 \uC6B0\uB9AC",
             "CB01",
             FacilityRole.Entertainment,
-            Array.Empty<WorkTypeId>(),
+            new[] { BuiltInWorkTypeIds.AnimalCare },
             new BuildingBeastPenAbility
             {
                 capacity = 2,
                 baseSecurity = 55f,
                 dailyFood = 2f,
-                dailyWater = 2f
+                dailyWater = 2f,
+                tamingWork = 18f,
+                productCollectionWork = 8f
             },
             requiresRoom: true);
         Build(

@@ -46,7 +46,10 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
                 || generated.Find("Content/GrowthContent/GrowthList") == null
                 || generated.Find("Content/StatusContent/Thirst") == null
                 || generated.Find("Content/HealthContent/HealthContentViewport/HealthSummaryText") == null
-                || generated.Find("Content/HealthContent/CaptivityCommand") == null
+                || generated.Find("Content/HealthContent/HealthCommandRow/CaptivityCommand") == null
+                || generated.Find("Content/HealthContent/HealthCommandRow/DietPolicy") == null
+                || generated.Find("Content/HealthContent/SubstanceCommandRow/SubstanceSelection") == null
+                || generated.Find("Content/HealthContent/SubstanceCommandRow/SubstancePolicy") == null
                 || generated.Find("Content/CombatContent/CombatContentViewport/CombatSummaryText") == null
                 || generated.Find("Content/CombatContent/CombatCommands/LoadoutButton") == null
                 || generated.Find("Content/StatusContent/CarrySummaryText") == null
@@ -175,18 +178,57 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
 
         RectTransform healthContent = CreateRect("HealthContent", content);
         SetStretch(healthContent, Vector2.zero, Vector2.zero);
+        RectTransform healthCommandRow = CreateRect(
+            "HealthCommandRow",
+            healthContent);
+        healthCommandRow.anchorMin = new Vector2(0f, 1f);
+        healthCommandRow.anchorMax = new Vector2(1f, 1f);
+        healthCommandRow.pivot = new Vector2(0.5f, 1f);
+        healthCommandRow.anchoredPosition = Vector2.zero;
+        healthCommandRow.sizeDelta = new Vector2(0f, 44f);
+        HorizontalLayoutGroup healthCommands =
+            healthCommandRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+        healthCommands.spacing = 5f;
+        healthCommands.childControlWidth = true;
+        healthCommands.childControlHeight = true;
+        healthCommands.childForceExpandWidth = true;
+        healthCommands.childForceExpandHeight = true;
         Button captivityCommand = CreateButton(
             "CaptivityCommand",
-            healthContent,
+            healthCommandRow,
             "포획 명령");
-        RectTransform captivityCommandRect =
-            captivityCommand.GetComponent<RectTransform>();
-        captivityCommandRect.anchorMin = new Vector2(0f, 1f);
-        captivityCommandRect.anchorMax = new Vector2(1f, 1f);
-        captivityCommandRect.pivot = new Vector2(0.5f, 1f);
-        captivityCommandRect.anchoredPosition = Vector2.zero;
-        captivityCommandRect.sizeDelta = new Vector2(0f, 44f);
+        Button dietPolicy = CreateButton(
+            "DietPolicy",
+            healthCommandRow,
+            "식단: 자유식");
         captivityCommand.onClick.AddListener(owner.ExecuteCaptivityAction);
+        dietPolicy.onClick.AddListener(owner.CycleDietPolicy);
+
+        RectTransform substanceCommandRow = CreateRect(
+            "SubstanceCommandRow",
+            healthContent);
+        substanceCommandRow.anchorMin = new Vector2(0f, 1f);
+        substanceCommandRow.anchorMax = new Vector2(1f, 1f);
+        substanceCommandRow.pivot = new Vector2(0.5f, 1f);
+        substanceCommandRow.anchoredPosition = new Vector2(0f, -49f);
+        substanceCommandRow.sizeDelta = new Vector2(0f, 44f);
+        HorizontalLayoutGroup substanceCommands =
+            substanceCommandRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+        substanceCommands.spacing = 5f;
+        substanceCommands.childControlWidth = true;
+        substanceCommands.childControlHeight = true;
+        substanceCommands.childForceExpandWidth = true;
+        substanceCommands.childForceExpandHeight = true;
+        Button substanceSelection = CreateButton(
+            "SubstanceSelection",
+            substanceCommandRow,
+            "약물 선택");
+        Button substancePolicy = CreateButton(
+            "SubstancePolicy",
+            substanceCommandRow,
+            "금지");
+        substanceSelection.onClick.AddListener(owner.SelectNextSubstance);
+        substancePolicy.onClick.AddListener(owner.CycleSelectedSubstancePolicy);
         TMP_Text healthSummaryText = CreateScrollableText(
             "HealthContentViewport",
             "HealthSummaryText",
@@ -198,7 +240,7 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             healthSummaryText.transform.parent as RectTransform;
         if (healthViewport != null)
         {
-            healthViewport.offsetMax = new Vector2(0f, -50f);
+            healthViewport.offsetMax = new Vector2(0f, -99f);
         }
         healthContent.gameObject.SetActive(false);
 
@@ -386,7 +428,10 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             healthSummaryText,
             healthContent.gameObject,
             healthTabButton,
-            captivityCommand);
+            captivityCommand,
+            dietPolicy,
+            substanceSelection,
+            substancePolicy);
         owner.BindGeneratedCombat(
             combatSummaryText,
             combatContent.gameObject,
@@ -449,7 +494,10 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             generated.Find("Content/HealthContent/HealthContentViewport/HealthSummaryText")?.GetComponent<TMP_Text>(),
             generated.Find("Content/HealthContent")?.gameObject,
             generated.Find("TabBar/HealthTab")?.GetComponent<Button>(),
-            generated.Find("Content/HealthContent/CaptivityCommand")?.GetComponent<Button>());
+            generated.Find("Content/HealthContent/HealthCommandRow/CaptivityCommand")?.GetComponent<Button>(),
+            generated.Find("Content/HealthContent/HealthCommandRow/DietPolicy")?.GetComponent<Button>(),
+            generated.Find("Content/HealthContent/SubstanceCommandRow/SubstanceSelection")?.GetComponent<Button>(),
+            generated.Find("Content/HealthContent/SubstanceCommandRow/SubstancePolicy")?.GetComponent<Button>());
         owner.BindGeneratedCombat(
             generated.Find("Content/CombatContent/CombatContentViewport/CombatSummaryText")?.GetComponent<TMP_Text>(),
             generated.Find("Content/CombatContent")?.gameObject,

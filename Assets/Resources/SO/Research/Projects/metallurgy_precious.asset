@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: metallurgy_precious
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7105
+  projectId: research:metallurgy:precious
+  displayName: "\uADC0\uAE08 \uC138\uACF5"
+  description: "\uAE08\uACFC \uBCF4\uC11D\uC744 \uAD8C\uC704 \uC2DC\uC124\uACFC \uACE0\uAC00
+    \uC7A5\uBE44\uC5D0 \uC0AC\uC6A9\uD55C\uB2E4."
+  field: 10
+  requiredWork: 164
+  prerequisites:
+  - {fileID: 11400000, guid: 113a95410d965e04e9305eeabfd30003, type: 2}
+  - {fileID: 11400000, guid: 00b8c28931f47544faecc8b510851912, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563230216618545
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563230216618545
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1081

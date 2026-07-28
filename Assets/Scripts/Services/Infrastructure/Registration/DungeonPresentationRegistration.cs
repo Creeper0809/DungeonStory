@@ -182,6 +182,16 @@ public static class DungeonPresentationRegistration
             .As<IDoorAccessPanelPresenter>();
         builder.Register<CircusBuildingPanelPresenter>(Lifetime.Singleton)
             .As<ICircusBuildingPanelPresenter>();
+        builder.Register<ProductionBuildingPanelPresenter>(Lifetime.Singleton)
+            .As<IProductionBuildingPanelPresenter>();
+        builder.Register<EquipmentCraftingPanelPresenter>(Lifetime.Singleton)
+            .As<IEquipmentCraftingPanelPresenter>();
+        builder.Register<CropPlotBuildingPanelPresenter>(Lifetime.Singleton)
+            .As<ICropPlotBuildingPanelPresenter>();
+        builder.Register<AnimalHusbandryBuildingPanelPresenter>(
+                Lifetime.Singleton)
+            .As<IAnimalHusbandryBuildingPanelPresenter>();
+        builder.RegisterEntryPoint<CropPlotVisualPresenter>(Lifetime.Singleton);
 
         builder.RegisterComponentOnNewGameObject<ItemPileInfoPanel>(
                 Lifetime.Singleton,

@@ -42,12 +42,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 668ef84bb3a19de47b58e0758c7cc9e4, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602304
-    - rid: 7302562995605602305
-    - rid: 7302562995605602306
-    - rid: 7302562995605602307
-    - rid: 7302562995605602308
-    - rid: 7302562995605602309
+    - rid: 7302563239583285294
+    - rid: 7302563239583285295
+    - rid: 7302563239583285296
+    - rid: 7302563239583285297
+    - rid: 7302563239583285298
+    - rid: 7302563239583285299
   width: 2
   height: 1
   layer: 1
@@ -62,12 +62,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602304
+    - rid: 7302563239583285294
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: R04
-    - rid: 7302562995605602305
+    - rid: 7302563239583285295
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +75,7 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602306
+    - rid: 7302563239583285296
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -86,11 +86,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 132
           disabledWhenDamaged: 1
-    - rid: 7302562995605602307
+    - rid: 7302563239583285297
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302562995605602308
+    - rid: 7302563239583285298
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -102,7 +102,7 @@ MonoBehaviour:
           - key: Rest
             value: 2
           metrics: []
-    - rid: 7302562995605602309
+    - rid: 7302563239583285299
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility

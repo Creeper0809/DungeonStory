@@ -32,6 +32,9 @@ public sealed class WorldItemStackSnapshot
     public string SourceSpeciesTag { get; set; }
     public string SourceDeathReason { get; set; }
     public bool EmergencyButcheryAllowed { get; set; }
+    public WasteOriginKind WasteOrigin { get; set; }
+    public float Contamination { get; set; }
+    public bool IsWaste => WasteOrigin != WasteOriginKind.Unknown;
     public bool HasUniqueMetadata => !string.IsNullOrWhiteSpace(SourceCharacterId);
     public float TotalWeight => UnitWeight * Quantity;
     public int TotalValue => UnitPrice * Quantity;
@@ -48,6 +51,27 @@ public sealed class WorldItemPileSnapshot
     public int KindCount => Stacks.Select(stack => stack.ItemId).Distinct(StringComparer.Ordinal).Count();
     public float TotalWeight => Stacks.Sum(stack => stack.TotalWeight);
     public bool HasReservedItems => Stacks.Any(stack => stack.IsReserved);
+}
+
+public readonly struct WorldItemStockCandidate
+{
+    public WorldItemStockCandidate(
+        string stackId,
+        Vector2Int position,
+        WorldItemStackState state,
+        int quantity)
+    {
+        StackId = stackId ?? string.Empty;
+        Position = position;
+        State = state;
+        Quantity = Mathf.Max(0, quantity);
+    }
+
+    public string StackId { get; }
+    public Vector2Int Position { get; }
+    public WorldItemStackState State { get; }
+    public int Quantity { get; }
+    public bool IsValid => !string.IsNullOrWhiteSpace(StackId) && Quantity > 0;
 }
 
 public sealed class ItemPileInfoTarget : IInfoable
@@ -211,6 +235,11 @@ public interface IWorldItemStackRuntime
         WorldItemStackState state,
         string destinationId,
         out int spawned);
+    bool SpawnStockInWarehouse(
+        IWarehouseFacility warehouse,
+        StockCategory category,
+        int amount,
+        out int spawned);
     bool SpawnItemAt(
         string itemId,
         int amount,
@@ -218,11 +247,25 @@ public interface IWorldItemStackRuntime
         WorldItemStackState state,
         string destinationId,
         out int spawned);
+    bool SpawnWasteAt(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        WasteOriginKind origin,
+        float contamination,
+        out int spawned);
     bool SpawnUniqueItemAt(
         string itemId,
         Vector2Int position,
         WorldItemStackState state,
         string destinationId,
+        out string stackId);
+    bool SpawnUniqueItemAt(
+        string itemId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        Vector2Int destinationPosition,
         out string stackId);
     bool SpawnHumanoidCorpse(
         CharacterActor source,
@@ -243,6 +286,13 @@ public interface IWorldItemStackRuntime
         string destinationId,
         out int requested,
         out string failureReason);
+    bool TryRequestStackDelivery(
+        string stackId,
+        int amount,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int requested,
+        out string failureReason);
     bool TryGetPileAt(Vector2Int position, out WorldItemPileSnapshot pile);
     bool TryGetPileTargetAt(
         Vector2Int position,
@@ -250,6 +300,18 @@ public interface IWorldItemStackRuntime
         out UnityEngine.Object markerObject);
     IReadOnlyList<WorldItemStackSnapshot> GetStacksAt(Vector2Int position, bool includeStored = false);
     IReadOnlyList<WorldItemStackSnapshot> GetAllStacks();
+    bool TryFindNearestAvailableStock(
+        Vector2Int origin,
+        StockCategory category,
+        bool preferStored,
+        out WorldItemStackSnapshot stack);
+    void CopyAvailableStockCandidates(
+        StockCategory category,
+        List<WorldItemStockCandidate> destination);
+    bool TryFindBestAvailableStack(
+        Vector2Int origin,
+        Func<string, int> rankSelector,
+        out WorldItemStackSnapshot stack);
     bool HasAvailableHaulJob(CharacterActor actor);
     bool TryReserveBestHaulPlan(CharacterActor actor, out WorldItemHaulPlan plan, out string failureReason);
     bool TryReserveStoredItemForDirectPickup(
@@ -286,6 +348,10 @@ public interface IWorldItemStackRuntime
         string destinationId,
         IReadOnlyDictionary<StockCategory, int> costs,
         out string failureReason);
+    bool TryConsumeFacilityItemBuffer(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        out string failureReason);
     bool TryStealLooseItem(
         CharacterActor actor,
         int searchRadius,
@@ -295,6 +361,12 @@ public interface IWorldItemStackRuntime
     bool TryClearReservation(string stackId);
     bool SetForbidden(string stackId, bool forbidden);
     bool PrioritizeHaul(string stackId);
+    bool TryRouteStackToDestination(
+        string stackId,
+        WorldItemStackState state,
+        string destinationId,
+        Vector2Int destinationPosition,
+        out string failureReason);
     bool DeleteStack(string stackId);
     bool TryConsumeStackQuantity(string stackId, int quantity, out WorldItemStackSnapshot consumed);
     bool SetEmergencyButcheryAllowed(string stackId, bool allowed);
@@ -320,4 +392,6 @@ internal sealed class WorldItemStackRecord
     public string sourceSpeciesTag = string.Empty;
     public string sourceDeathReason = string.Empty;
     public bool emergencyButcheryAllowed;
+    public WasteOriginKind wasteOrigin;
+    public float contamination;
 }

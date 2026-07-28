@@ -32,6 +32,11 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly WorldItemRepository repository;
     private readonly IItemReservationService reservationService;
+    private CharacterActor cachedAvailabilityActor;
+    private int cachedAvailabilityHaulVersion = -1;
+    private int cachedAvailabilityWarehouseVersion = -1;
+    private int cachedAvailabilityTraversalVersion = -1;
+    private bool cachedAvailability;
 
     public WorldItemHaulPlanningService(
         IGridSystemProvider gridSystemProvider,
@@ -63,7 +68,28 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
 
     public bool HasAvailablePlan(CharacterActor actor)
     {
-        return TryBuildBestPlan(actor, reserve: false, out _, out _);
+        if (actor == null || !gridSystemProvider.TryGetGrid(out Grid grid))
+        {
+            return false;
+        }
+
+        int haulVersion = repository.HaulJobVersion;
+        int warehouseVersion = worldRegistry.WarehouseVersion;
+        int traversalVersion = grid.TraversalVersion;
+        if (ReferenceEquals(cachedAvailabilityActor, actor)
+            && cachedAvailabilityHaulVersion == haulVersion
+            && cachedAvailabilityWarehouseVersion == warehouseVersion
+            && cachedAvailabilityTraversalVersion == traversalVersion)
+        {
+            return cachedAvailability;
+        }
+
+        cachedAvailabilityActor = actor;
+        cachedAvailabilityHaulVersion = haulVersion;
+        cachedAvailabilityWarehouseVersion = warehouseVersion;
+        cachedAvailabilityTraversalVersion = traversalVersion;
+        cachedAvailability = HasAvailablePlanCore(actor, grid);
+        return cachedAvailability;
     }
 
     public bool TryPreviewBestPlan(
@@ -206,6 +232,93 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             seed.DestinationKind,
             seed.DestinationId);
         return true;
+    }
+
+    private bool HasAvailablePlanCore(CharacterActor actor, Grid grid)
+    {
+        CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(actor);
+        if (inventory == null)
+        {
+            return false;
+        }
+
+        string actorId = characterIdRegistry.GetOrAssignPersistentId(actor);
+        IReadOnlyList<WorldItemStackRecord> stacks = GetHaulableStacks();
+        for (int index = 0; index < stacks.Count; index++)
+        {
+            WorldItemStackRecord stack = stacks[index];
+            if (!CanUseStack(stack, actorId)
+                || GetAcceptableQuantity(
+                    inventory,
+                    stack.itemId,
+                    stack.quantity,
+                    plannedWeight: 0f) <= 0
+                || !TryResolvePickupStandCell(
+                    grid,
+                    stack.position,
+                    out _))
+            {
+                continue;
+            }
+
+            if (stack.hasDestinationPosition
+                && !string.IsNullOrWhiteSpace(stack.destinationId))
+            {
+                if (TryResolveFacilityDeliveryCell(
+                    grid,
+                    stack.destinationPosition,
+                    out _))
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (HasAvailableWarehouseDestination(grid, stack))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasAvailableWarehouseDestination(
+        Grid grid,
+        WorldItemStackRecord stack)
+    {
+        bool isStockItem = TryGetWarehouseStockCategory(
+            stack.itemId,
+            out StockCategory category);
+        bool isEquipmentItem = DungeonItemCatalogSO.TryGetEquipmentIdFromItemId(
+            stack.itemId,
+            out _);
+        if (!isStockItem && !isEquipmentItem)
+        {
+            return false;
+        }
+
+        IReadOnlyList<IWarehouseFacility> warehouses = worldRegistry.Warehouses;
+        for (int index = 0; index < warehouses.Count; index++)
+        {
+            IWarehouseFacility candidate = warehouses[index];
+            if (!IsUsableWarehouse(candidate)
+                || (!isEquipmentItem
+                    && !candidate.Inventory.CanStore(category, 1))
+                || candidate is not BuildableObject building
+                || building.isDestroy)
+            {
+                continue;
+            }
+
+            if (TryResolveDeliveryCell(grid, building, out _))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private HaulCandidate FindSeedCandidate(
@@ -592,35 +705,15 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             && stack.state == WorldItemStackState.Stored
             && stack.hasDestinationPosition
             && !string.IsNullOrWhiteSpace(stack.destinationId)
-            && !string.IsNullOrWhiteSpace(stack.sourceStorageDestinationId)
-            && (IsFacilityInputDestination(stack.destinationId)
-                || IsCombatLoadoutDestination(stack.destinationId));
+            && !string.IsNullOrWhiteSpace(stack.sourceStorageDestinationId);
     }
 
     private static bool IsFacilityInputBuffer(WorldItemStackRecord stack)
     {
         return stack != null
             && stack.state == WorldItemStackState.FacilityBuffer
-            && IsFacilityInputDestination(stack.destinationId);
-    }
-
-    private static bool IsFacilityInputDestination(string destinationId)
-    {
-        return !string.IsNullOrWhiteSpace(destinationId)
-            && (destinationId.StartsWith(
-                    WorldItemStackRuntime.FacilityInputDestinationPrefix,
-                    StringComparison.Ordinal)
-                || destinationId.StartsWith(
-                    WorkOrderRuntime.ConstructionDestinationPrefix,
-                    StringComparison.Ordinal));
-    }
-
-    private static bool IsCombatLoadoutDestination(string destinationId)
-    {
-        return !string.IsNullOrWhiteSpace(destinationId)
-            && destinationId.StartsWith(
-                WorldItemStackRuntime.CombatLoadoutDestinationPrefix,
-                StringComparison.Ordinal);
+            && stack.hasDestinationPosition
+            && !string.IsNullOrWhiteSpace(stack.destinationId);
     }
 
     private static bool TryGetWarehouseStockCategory(

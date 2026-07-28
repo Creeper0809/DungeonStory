@@ -42,11 +42,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 63fe001860c3cc344ac763e22973f274, type: 3}
   abilityModules:
     items:
-    - rid: 7302563199433049812
-    - rid: 7302563199433049813
-    - rid: 7302563199433049814
-    - rid: 7302563199433049815
-    - rid: 7302563199433049816
+    - rid: 7302563252714865602
+    - rid: 7302563252714865603
+    - rid: 7302563252714865604
+    - rid: 7302563252714865605
+    - rid: 7302563252714865606
   width: 1
   height: 1
   layer: 1
@@ -61,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563199433049812
+    - rid: 7302563252714865602
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CB01
-    - rid: 7302563199433049813
+    - rid: 7302563252714865603
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,7 +74,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563199433049814
+    - rid: 7302563252714865604
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -82,14 +82,14 @@ MonoBehaviour:
           roles: 2048
           capacity: 1
           useDuration: 1
-          requiredWorkers: 0
-          supportedWorkTypes: 0
+          requiredWorkers: 1
+          supportedWorkTypes: 33554432
           disabledWhenDamaged: 1
-    - rid: 7302563199433049815
+    - rid: 7302563252714865605
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563199433049816
+    - rid: 7302563252714865606
       type: {class: BuildingBeastPenAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingBeastPenAbility
@@ -97,3 +97,5 @@ MonoBehaviour:
         baseSecurity: 55
         dailyFood: 2
         dailyWater: 2
+        tamingWork: 18
+        productCollectionWork: 8

@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: cuisine_milling
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7122
+  projectId: research:cuisine:milling
+  displayName: "\uC81C\uBD84\xB7\uC81C\uBE75"
+  description: "\uD669\uD63C\uACE1\uC744 \uBC00\uAC00\uB8E8\uC640 \uBE75\uC73C\uB85C
+    \uAC00\uACF5\uD55C\uB2E4."
+  field: 12
+  requiredWork: 54
+  prerequisites:
+  - {fileID: 11400000, guid: 36ea1732c9a8ac5488a5376f7daeada6, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563230216618555
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563230216618555
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1073

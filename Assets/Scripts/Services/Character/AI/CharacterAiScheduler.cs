@@ -82,6 +82,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     private IDynamicFrameWorkBudget frameWorkBudget;
     private ICharacterAiPerformanceRecorder performanceRecorder;
     private IFacilityCandidateCache facilityCandidateCache;
+    private IPlayerStaffCommandSource playerStaffCommands;
     private double worldIndexMillisecondsThisFrame;
 
     public int RegisteredCharacterCount => actors.Count;
@@ -139,7 +140,8 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         IDynamicFrameWorkBudget frameWorkBudget,
         ICharacterAiPerformanceRecorder performanceRecorder = null,
         IUiClock uiClock = null,
-        IFacilityCandidateCache facilityCandidateCache = null)
+        IFacilityCandidateCache facilityCandidateCache = null,
+        IPlayerStaffCommandSource playerStaffCommands = null)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
@@ -156,6 +158,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         this.performanceRecorder = performanceRecorder;
         this.uiClock = uiClock;
         this.facilityCandidateCache = facilityCandidateCache;
+        this.playerStaffCommands = playerStaffCommands;
         schedulingTime = uiClock != null
             ? uiClock.Time
             : gameClock.Time;
@@ -246,7 +249,17 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
     public bool ShouldCollectDetailedDiagnosticsFor(CharacterActor actor)
     {
-        return ShouldShowCharacterFeedbackFor(actor);
+        if (actor == null)
+        {
+            return false;
+        }
+
+        if (playerStaffCommands != null)
+        {
+            return playerStaffCommands.SelectedActor == actor;
+        }
+
+        return actor.IsOwner;
     }
 
     public int GetMovementFrameStrideFor(CharacterActor actor)
@@ -424,16 +437,25 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                         continue;
                     }
 
+                    bool collectDecisionPerformance =
+                        performanceRecorder?.DetailedCollectionEnabled == true;
                     long behaviorStart = Stopwatch.GetTimestamp();
+                    long behaviorAllocatedAtStart = collectDecisionPerformance
+                        ? GC.GetAllocatedBytesForCurrentThread()
+                        : 0L;
                     bool decided = TryRunScheduledDecision(actor);
                     double decisionMilliseconds =
                         GetElapsedMilliseconds(behaviorStart);
                     UpdateEstimatedDecisionCost(actor, decisionMilliseconds);
-                    if (performanceRecorder?.DetailedCollectionEnabled == true)
+                    if (collectDecisionPerformance)
                     {
                         performanceRecorder.Record(
                             AiPerformanceCategory.BehaviorTree,
-                            decisionMilliseconds);
+                            decisionMilliseconds,
+                            Math.Max(
+                                0L,
+                                GC.GetAllocatedBytesForCurrentThread()
+                                    - behaviorAllocatedAtStart));
                     }
                     AIBrain brain = actor.Brain;
                     bool hasPendingDecisionWork = brain != null

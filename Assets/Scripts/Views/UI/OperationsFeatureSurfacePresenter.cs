@@ -15,6 +15,9 @@ public sealed class OperationsFeatureSurfaceModel
     public string SurvivalSummary { get; set; } = string.Empty;
     public IReadOnlyList<OperationsStatusRow> SurvivalRows { get; set; }
         = Array.Empty<OperationsStatusRow>();
+    public string WasteSummary { get; set; } = string.Empty;
+    public IReadOnlyList<OperationsWastePolicyRow> WastePolicies { get; set; }
+        = Array.Empty<OperationsWastePolicyRow>();
     public string FlowSummary { get; set; } = string.Empty;
     public IReadOnlyList<OperationsStatusRow> FlowRows { get; set; }
         = Array.Empty<OperationsStatusRow>();
@@ -52,6 +55,16 @@ public sealed class OperationsStatusRow
     public int Index { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Detail { get; set; } = string.Empty;
+}
+
+public sealed class OperationsWastePolicyRow
+{
+    public WasteOriginKind Origin { get; set; }
+    public string OriginLabel { get; set; } = string.Empty;
+    public string DispositionLabel { get; set; } = string.Empty;
+    public string Detail { get; set; } = string.Empty;
+    public bool Enabled { get; set; }
+    public float MaximumFeedContamination { get; set; }
 }
 
 public sealed class OperationsExteriorIncidentRow
@@ -129,6 +142,9 @@ public interface IOperationsFeatureCommandService
     OperationsFeatureCommandResult DeleteMaintenancePolicy(string policyId);
     OperationsFeatureCommandResult AssignMaintenancePolicy(int actorRuntimeId, string policyId);
     OperationsFeatureCommandResult ExecuteExteriorIncident(string incidentId);
+    OperationsFeatureCommandResult CycleWasteDisposition(WasteOriginKind origin);
+    OperationsFeatureCommandResult StepWasteFeedContamination(WasteOriginKind origin);
+    OperationsFeatureCommandResult ToggleWastePolicy(WasteOriginKind origin);
 }
 
 public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryService
@@ -148,6 +164,7 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
     private readonly ICombatEquipmentMaintenanceRuntime maintenanceRuntime;
     private readonly IStaffWorkforceQueryService workforceQuery;
     private readonly IGameplayFlowDiagnosticsQuery flowDiagnostics;
+    private readonly IWasteProcessingRuntime wasteProcessing;
 
     public OperationsFeatureQueryService(
         IOperationTabSummaryService operationSummary,
@@ -162,7 +179,8 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
         IExteriorIncidentRuntime exteriorIncidents,
         ICombatEquipmentMaintenanceRuntime maintenanceRuntime,
         IStaffWorkforceQueryService workforceQuery,
-        IGameplayFlowDiagnosticsQuery flowDiagnostics)
+        IGameplayFlowDiagnosticsQuery flowDiagnostics,
+        IWasteProcessingRuntime wasteProcessing)
     {
         this.operationSummary = operationSummary
             ?? throw new ArgumentNullException(nameof(operationSummary));
@@ -190,6 +208,8 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
             ?? throw new ArgumentNullException(nameof(workforceQuery));
         this.flowDiagnostics = flowDiagnostics
             ?? throw new ArgumentNullException(nameof(flowDiagnostics));
+        this.wasteProcessing = wasteProcessing
+            ?? throw new ArgumentNullException(nameof(wasteProcessing));
     }
 
     public OperationsFeatureSurfaceModel Capture(string selectedMaintenancePolicyId)
@@ -211,6 +231,8 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
             RecruitmentSummary = recruitmentSummary,
             SurvivalSummary = CreateSurvivalSummary(out IReadOnlyList<OperationsStatusRow> survivalRows),
             SurvivalRows = survivalRows,
+            WasteSummary = CreateWasteSummary(out IReadOnlyList<OperationsWastePolicyRow> wasteRows),
+            WastePolicies = wasteRows,
             FlowSummary = flow.Summary,
             FlowRows = flow.Items
                 .Select((item, index) => new OperationsStatusRow
@@ -272,6 +294,31 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
                 })
                 .ToArray()
         };
+    }
+
+    private string CreateWasteSummary(
+        out IReadOnlyList<OperationsWastePolicyRow> rows)
+    {
+        WasteProcessingOverview overview = wasteProcessing.CaptureOverview();
+        rows = wasteProcessing.Policies
+            .Select(policy => new OperationsWastePolicyRow
+            {
+                Origin = policy.origin,
+                OriginLabel = FormatWasteOrigin(policy.origin),
+                DispositionLabel = FormatWasteDisposition(policy.disposition),
+                Enabled = policy.enabled,
+                MaximumFeedContamination = policy.maximumFeedContamination,
+                Detail = $"{FormatWasteDisposition(policy.disposition)}"
+                    + $" / 급여 허용 오염도 {policy.maximumFeedContamination:0}"
+                    + (policy.enabled ? " / 사용 중" : " / 중지됨")
+            })
+            .ToArray();
+        return $"식물성 {overview.PlantWaste}"
+            + $" / 동물성 {overview.AnimalWaste}"
+            + $" / 혼합 {overview.MixedWaste}"
+            + $" / 금기 {overview.ForbiddenWaste}"
+            + $" / 독성 {overview.ToxicWaste}"
+            + $" / 처리 중 {overview.ProcessingBills}";
     }
 
     private static string CreateSettlementSummary(OperatingDaySettlementRuntime settlement)
@@ -604,6 +651,32 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
             _ => "진행 중"
         };
     }
+
+    private static string FormatWasteOrigin(WasteOriginKind origin)
+    {
+        return origin switch
+        {
+            WasteOriginKind.Plant => "식물성 부패물",
+            WasteOriginKind.Animal => "동물성 부패물",
+            WasteOriginKind.Mixed => "혼합 부패물",
+            WasteOriginKind.Forbidden => "금기 부패물",
+            _ => "원산지 불명"
+        };
+    }
+
+    private static string FormatWasteDisposition(WasteDispositionKind disposition)
+    {
+        return disposition switch
+        {
+            WasteDispositionKind.Store => "보관",
+            WasteDispositionKind.DirectFeed => "직접 급여",
+            WasteDispositionKind.Compost => "퇴비화",
+            WasteDispositionKind.Fuel => "연료화",
+            WasteDispositionKind.Alchemy => "연금 가공",
+            WasteDispositionKind.Incinerate => "소각",
+            _ => "처리 안 함"
+        };
+    }
 }
 
 public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandService
@@ -614,6 +687,7 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
     private readonly ICombatEquipmentMaintenanceRuntime maintenanceRuntime;
     private readonly ICharacterWorldQuery characterWorld;
     private readonly IExteriorIncidentRuntime exteriorIncidents;
+    private readonly IWasteProcessingRuntime wasteProcessing;
 
     public OperationsFeatureCommandService(
         IOperatingDaySettlementRuntimeProvider settlementProvider,
@@ -621,7 +695,8 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
         IMetaProgressionRuntimeProvider metaProvider,
         ICombatEquipmentMaintenanceRuntime maintenanceRuntime,
         ICharacterWorldQuery characterWorld,
-        IExteriorIncidentRuntime exteriorIncidents)
+        IExteriorIncidentRuntime exteriorIncidents,
+        IWasteProcessingRuntime wasteProcessing)
     {
         this.settlementProvider = settlementProvider
             ?? throw new ArgumentNullException(nameof(settlementProvider));
@@ -635,6 +710,8 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
             ?? throw new ArgumentNullException(nameof(characterWorld));
         this.exteriorIncidents = exteriorIncidents
             ?? throw new ArgumentNullException(nameof(exteriorIncidents));
+        this.wasteProcessing = wasteProcessing
+            ?? throw new ArgumentNullException(nameof(wasteProcessing));
     }
 
     public OperationsFeatureCommandResult TakeEmergencyFunding()
@@ -783,6 +860,64 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
         return new OperationsFeatureCommandResult(succeeded, message);
     }
 
+    public OperationsFeatureCommandResult CycleWasteDisposition(
+        WasteOriginKind origin)
+    {
+        WastePolicyData policy = wasteProcessing.GetPolicy(origin);
+        WasteDispositionKind[] values =
+            (WasteDispositionKind[])Enum.GetValues(typeof(WasteDispositionKind));
+        int start = Array.IndexOf(values, policy.disposition);
+        for (int offset = 1; offset <= values.Length; offset++)
+        {
+            policy.disposition = values[(start + offset) % values.Length];
+            if (wasteProcessing.SetPolicy(policy, out _))
+            {
+                return new OperationsFeatureCommandResult(
+                    true,
+                    $"{FormatWasteOrigin(origin)} 처리 방식: "
+                    + FormatWasteDisposition(policy.disposition));
+            }
+        }
+
+        return new OperationsFeatureCommandResult(
+            false,
+            "선택 가능한 폐기 방식이 없습니다.");
+    }
+
+    public OperationsFeatureCommandResult StepWasteFeedContamination(
+        WasteOriginKind origin)
+    {
+        WastePolicyData policy = wasteProcessing.GetPolicy(origin);
+        float next = Mathf.Round(policy.maximumFeedContamination / 10f) * 10f
+            + 10f;
+        policy.maximumFeedContamination = next >= 80f ? 0f : next;
+        bool succeeded = wasteProcessing.SetPolicy(
+            policy,
+            out string failureReason);
+        return new OperationsFeatureCommandResult(
+            succeeded,
+            succeeded
+                ? $"{FormatWasteOrigin(origin)} 급여 허용 오염도: "
+                    + $"{policy.maximumFeedContamination:0}"
+                : failureReason);
+    }
+
+    public OperationsFeatureCommandResult ToggleWastePolicy(
+        WasteOriginKind origin)
+    {
+        WastePolicyData policy = wasteProcessing.GetPolicy(origin);
+        policy.enabled = !policy.enabled;
+        bool succeeded = wasteProcessing.SetPolicy(
+            policy,
+            out string failureReason);
+        return new OperationsFeatureCommandResult(
+            succeeded,
+            succeeded
+                ? $"{FormatWasteOrigin(origin)} 정책 "
+                    + (policy.enabled ? "활성화" : "중지")
+                : failureReason);
+    }
+
     private OperationsFeatureCommandResult UpdateMaintenance(
         string policyId,
         Action<EquipmentMaintenancePolicyData> mutate)
@@ -819,6 +954,32 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
         return new OperationsFeatureCommandResult(
             false,
             $"{feature} 시스템을 불러오지 못했습니다.");
+    }
+
+    private static string FormatWasteOrigin(WasteOriginKind origin)
+    {
+        return origin switch
+        {
+            WasteOriginKind.Plant => "식물성 부패물",
+            WasteOriginKind.Animal => "동물성 부패물",
+            WasteOriginKind.Mixed => "혼합 부패물",
+            WasteOriginKind.Forbidden => "금기 부패물",
+            _ => "원산지 불명"
+        };
+    }
+
+    private static string FormatWasteDisposition(WasteDispositionKind disposition)
+    {
+        return disposition switch
+        {
+            WasteDispositionKind.Store => "보관",
+            WasteDispositionKind.DirectFeed => "직접 급여",
+            WasteDispositionKind.Compost => "퇴비화",
+            WasteDispositionKind.Fuel => "연료화",
+            WasteDispositionKind.Alchemy => "연금 가공",
+            WasteDispositionKind.Incinerate => "소각",
+            _ => "처리 안 함"
+        };
     }
 }
 
@@ -875,10 +1036,49 @@ public sealed class OperationsFeatureSurfacePresenter : IFeatureSurfaceTabPresen
         AddMaintenance(view, model);
         AddStatusSection(view, "작업·물류", model.FlowSummary, "P0State_Flow_", model.FlowRows);
         AddStatusSection(view, "생존", model.SurvivalSummary, "P0State_Survival_", model.SurvivalRows);
+        AddWastePolicies(view, model);
         AddStatusSection(view, "외부 활동", model.ExteriorSummary, "P0State_Exterior_", model.ExteriorRows);
         AddExteriorIncidents(view, model);
         AddMeta(view, model);
         AddStatusSection(view, "런 변수", model.RunVariableSummary, "P1State_RunVariable_", model.RunVariableRows);
+    }
+
+    private void AddWastePolicies(
+        IFeatureSurfaceView view,
+        OperationsFeatureSurfaceModel model)
+    {
+        view.AddSection("부패물 처리", model.WasteSummary);
+        foreach (OperationsWastePolicyRow row in model.WastePolicies)
+        {
+            OperationsWastePolicyRow captured = row;
+            view.AddDataCard(
+                $"EconomyWasteDisposition_{captured.Origin}",
+                captured.OriginLabel,
+                captured.Detail,
+                captured.DispositionLabel,
+                () => Execute(
+                    view,
+                    () => commands.CycleWasteDisposition(captured.Origin)),
+                CompactCardHeight);
+            view.AddDataCard(
+                $"EconomyWasteContamination_{captured.Origin}",
+                $"급여 오염 한도 {captured.MaximumFeedContamination:0}",
+                "80 이상 독성 부패물은 한도와 관계없이 직접 급여하지 않습니다.",
+                "+10",
+                () => Execute(
+                    view,
+                    () => commands.StepWasteFeedContamination(captured.Origin)),
+                CompactCardHeight);
+            view.AddDataCard(
+                $"EconomyWasteEnabled_{captured.Origin}",
+                captured.Enabled ? "정책 사용 중" : "정책 중지됨",
+                "중지하면 자동 급여와 처리 주문 생성을 모두 멈춥니다.",
+                captured.Enabled ? "중지" : "사용",
+                () => Execute(
+                    view,
+                    () => commands.ToggleWastePolicy(captured.Origin)),
+                CompactCardHeight);
+        }
     }
 
     private void AddExteriorIncidents(

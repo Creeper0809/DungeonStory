@@ -11,6 +11,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using VContainer;
 using VContainer.Unity;
@@ -273,11 +274,9 @@ public static class P0FeatureSurfacePlayModeVerifier
                     CaptureTab("Temp/p0-ui-shop-basic.png", lines));
                 yield return null;
 
-                RunStep("WAREHOUSE", lines, () =>
-                {
-                    VerifyWarehouse(manager, lines);
-                    CaptureTab("Temp/p0-ui-warehouse.png", lines);
-                });
+                yield return VerifyWarehouse(manager, lines);
+                RunStep("WAREHOUSE-CAPTURE", lines, () =>
+                    CaptureTab("Temp/p0-ui-warehouse.png", lines));
                 yield return null;
 
                 RunStep("WAREHOUSE-ACTIONS-VISUAL", lines, () =>
@@ -631,7 +630,7 @@ public static class P0FeatureSurfacePlayModeVerifier
                 $"SHOP visible={IsTabActive(3)}; runtime={shopRuntime != null}; dailyButtons={dailyButtonsBefore}; dailyClicked={dailyClicked}; basicButtons={basicButtonsBefore}; basicClicked={basicClicked}; money={beforeMoney}->{afterMoney}; blueprintItems={beforeBlueprintItems}->{afterBlueprintItems}; researchQueue={beforeQueue}->{afterQueue}; stateChanged={afterMoney != beforeMoney || afterBlueprintItems != beforeBlueprintItems}");
         }
 
-        private void VerifyWarehouse(UITabManager manager, List<string> lines)
+        private IEnumerator VerifyWarehouse(UITabManager manager, List<string> lines)
         {
             List<IWarehouseFacility> warehouses = FindActiveSceneComponents<MonoBehaviour>()
                 .OfType<IWarehouseFacility>()
@@ -644,17 +643,263 @@ public static class P0FeatureSurfacePlayModeVerifier
             int beforeShopStock = shops.Sum((shop) => shop.CurrentStock);
             int beforeMoney = GetHoldingMoney();
 
-            manager.ToggleSelectButton(4);
+            LifetimeScope scope = FindActiveSceneLifetimeScope();
+            IResourceStockPolicyRuntime stockPolicies =
+                scope?.Container?.Resolve(typeof(IResourceStockPolicyRuntime))
+                as IResourceStockPolicyRuntime;
+            IResourceEconomyContentCatalog economyCatalog =
+                scope?.Container?.Resolve(typeof(IResourceEconomyContentCatalog))
+                as IResourceEconomyContentCatalog;
+            IRegionalSupplyContractRuntime contracts =
+                scope?.Container?.Resolve(typeof(IRegionalSupplyContractRuntime))
+                as IRegionalSupplyContractRuntime;
+            IWorldItemStackRuntime itemRuntime =
+                scope?.Container?.Resolve(typeof(IWorldItemStackRuntime))
+                as IWorldItemStackRuntime;
+            IWorldDropZoneQuery dropZones =
+                scope?.Container?.Resolve(typeof(IWorldDropZoneQuery))
+                as IWorldDropZoneQuery;
+            IWarehouseFeatureQueryService warehouseQuery =
+                scope?.Container?.Resolve(typeof(IWarehouseFeatureQueryService))
+                as IWarehouseFeatureQueryService;
+            IResourceEconomyForecastService forecastService =
+                scope?.Container?.Resolve(typeof(IResourceEconomyForecastService))
+                as IResourceEconomyForecastService;
+            BlueprintResearchRuntime research =
+                FindActiveSceneComponent<BlueprintResearchRuntime>();
+
+            ResourceEconomyForecast forecast = forecastService?.Capture(3);
+            string controlItemId = forecast?.Shortages
+                .Concat(forecast.Surpluses)
+                .Select(row => row?.ItemId)
+                .FirstOrDefault(itemId =>
+                    economyCatalog?.TryGetItem(itemId, out _) == true
+                    || DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
+                        itemId,
+                        out _));
+            HashSet<string> physicalItemIds = new HashSet<string>(
+                itemRuntime?.GetAllStacks()
+                    .Where(stack => stack != null && stack.Quantity > 0)
+                    .Select(stack => stack.ItemId)
+                    ?? Array.Empty<string>(),
+                StringComparer.Ordinal);
+            ResourceItemDefinitionSO fallbackItem = economyCatalog?.Items
+                .FirstOrDefault(item => item != null
+                    && physicalItemIds.Contains(item.ItemId));
+            controlItemId ??= fallbackItem?.ItemId;
+            if (string.IsNullOrWhiteSpace(controlItemId)
+                && economyCatalog != null
+                && itemRuntime != null
+                && dropZones != null
+                && dropZones.TryGetDeliveryDropoff(out Vector2Int dropoff))
+            {
+                foreach (ResourceItemDefinitionSO candidate in
+                         economyCatalog.Items.Where(item => item != null))
+                {
+                    if (!itemRuntime.SpawnItemAt(
+                            candidate.ItemId,
+                            1,
+                            dropoff,
+                            WorldItemStackState.Loose,
+                            string.Empty,
+                            out int spawned)
+                        || spawned <= 0)
+                    {
+                        continue;
+                    }
+
+                    controlItemId = candidate.ItemId;
+                    break;
+                }
+            }
+            ResourceStockPolicyData policyBefore = null;
+            if (stockPolicies != null
+                && !string.IsNullOrWhiteSpace(controlItemId))
+            {
+                int owned = stockPolicies.CountOwned(controlItemId);
+                policyBefore = stockPolicies.GetOrCreate(controlItemId);
+                policyBefore.enabled = true;
+                policyBefore.minimumStock = owned + 50;
+                policyBefore.targetStock = owned + 60;
+                policyBefore.maximumStock = owned + 70;
+                policyBefore.surplusDisposition = StockSurplusDisposition.Hold;
+                stockPolicies.SetPolicy(policyBefore, out _);
+                policyBefore = stockPolicies.GetOrCreate(controlItemId);
+            }
+
+            research?.State.Projects.Complete(
+                new ResearchProjectId("research:commerce:integration"));
+            PrepareWarehouseContracts(contracts);
+
+            Button warehouseTabButton = FindActiveTabButton(TabId.Warehouse);
+            yield return ClickWithInput(warehouseTabButton);
+            if (!IsTabActive(4))
+            {
+                manager.ToggleSelectButton(4);
+            }
+
             Canvas.ForceUpdateCanvases();
-            bool restockClicked = ClickFirst("P0Action_WarehouseRestock_");
+            yield return null;
+            WarehouseFeatureSurfaceModel warehouseModel =
+                warehouseQuery?.Capture();
+            lines.Add(
+                "WAREHOUSE_CONTROLS modelForecast="
+                + string.Join(
+                    ",",
+                    warehouseModel?.ForecastRows.Select(row => row.ItemId)
+                    ?? Array.Empty<string>())
+                + "; modelContracts="
+                + string.Join(
+                    ",",
+                    warehouseModel?.Contracts.Select(row =>
+                        $"{row.ContractId}:{row.Status}")
+                    ?? Array.Empty<string>())
+                + "; buttons="
+                + string.Join(
+                    ",",
+                    FindActiveButtonNames(
+                        "EconomyForecast_",
+                        "RegionalContract_")));
+
+            Button restockButton =
+                FindActiveButtonByPrefix("P0Action_WarehouseRestock_");
+            ScrollContainingButton(restockButton);
+            yield return null;
+            bool restockClicked = restockButton != null && restockButton.interactable;
+            yield return ClickWithInput(restockButton);
+
             Canvas.ForceUpdateCanvases();
-            bool deliveryClicked = ClickFirst("P0Action_WarehouseDelivery_");
+            Button deliveryButton =
+                FindActiveButtonByPrefix("P0Action_WarehouseDelivery_");
+            ScrollContainingButton(deliveryButton);
+            yield return null;
+            bool deliveryClicked = deliveryButton != null && deliveryButton.interactable;
+            yield return ClickWithInput(deliveryButton);
+
+            int policyPointerClicks = 0;
+            List<string> policyPointerTargets = new List<string>();
+            if (!string.IsNullOrWhiteSpace(controlItemId))
+            {
+                string controlPrefix = "EconomyForecast_" + controlItemId;
+                string[] controlNames =
+                {
+                    controlPrefix + "_Minimum_Increase",
+                    controlPrefix + "_Target_Increase",
+                    controlPrefix + "_Maximum_Increase",
+                    controlPrefix + "_Toggle",
+                    controlPrefix + "_Disposition"
+                };
+
+                foreach (string controlName in controlNames)
+                {
+                    Button controlButton = FindActiveButton(controlName);
+                    ScrollContainingButton(controlButton);
+                    yield return null;
+                    policyPointerTargets.Add(
+                        controlName + "->" + DescribePointerTarget(controlButton));
+                    if (controlButton != null && controlButton.interactable)
+                    {
+                        yield return ClickWithInput(controlButton);
+                        policyPointerClicks++;
+                        Canvas.ForceUpdateCanvases();
+                        yield return null;
+                    }
+                }
+            }
+
+            RegionalSupplyContractState acceptTarget = contracts?.Contracts
+                .FirstOrDefault(contract => contract != null
+                    && contract.status == RegionalSupplyContractStatus.Offered);
+            bool contractAcceptClicked = false;
+            if (acceptTarget != null)
+            {
+                Button acceptButton = FindActiveButton(
+                    "RegionalContract_" + acceptTarget.contractId + "_Accept");
+                ScrollContainingButton(acceptButton);
+                yield return null;
+                contractAcceptClicked =
+                    acceptButton != null && acceptButton.interactable;
+                yield return ClickWithInput(acceptButton);
+                Canvas.ForceUpdateCanvases();
+                yield return null;
+            }
+
+            RegionalSupplyContractState declineTarget = contracts?.Contracts
+                .FirstOrDefault(contract => contract != null
+                    && contract.status == RegionalSupplyContractStatus.Offered);
+            bool contractDeclineClicked = false;
+            string contractDeclinePointerTarget = "none";
+            if (declineTarget != null)
+            {
+                Button declineButton = FindActiveButton(
+                    "RegionalContract_" + declineTarget.contractId + "_Decline");
+                ScrollContainingButton(declineButton);
+                yield return null;
+                contractDeclinePointerTarget =
+                    DescribePointerTarget(declineButton);
+                contractDeclineClicked =
+                    declineButton != null && declineButton.interactable;
+                yield return ClickWithInput(declineButton);
+                Canvas.ForceUpdateCanvases();
+                yield return null;
+                RegionalSupplyContractStatus declineStatusAfterFirstClick =
+                    contracts.Contracts
+                        .FirstOrDefault(contract => contract != null
+                            && contract.contractId == declineTarget.contractId)
+                        ?.status
+                    ?? RegionalSupplyContractStatus.Offered;
+                if (declineStatusAfterFirstClick
+                    == RegionalSupplyContractStatus.Offered)
+                {
+                    declineButton = FindActiveButton(
+                        "RegionalContract_"
+                        + declineTarget.contractId
+                        + "_Decline");
+                    ScrollContainingButton(declineButton);
+                    yield return null;
+                    yield return null;
+                    yield return ClickWithInput(declineButton);
+                    Canvas.ForceUpdateCanvases();
+                    yield return null;
+                }
+            }
 
             int afterWarehouse = warehouses.Sum((warehouse) => warehouse.Inventory.TotalStock);
             int afterShopStock = shops.Sum((shop) => shop.CurrentStock);
             int afterMoney = GetHoldingMoney();
+            ResourceStockPolicyData policyAfter =
+                !string.IsNullOrWhiteSpace(controlItemId)
+                ? stockPolicies?.GetOrCreate(controlItemId)
+                : null;
+            RegionalSupplyContractStatus? acceptStatus = acceptTarget != null
+                ? contracts?.Contracts
+                    .FirstOrDefault(contract => contract != null
+                        && contract.contractId == acceptTarget.contractId)
+                    ?.status
+                : null;
+            RegionalSupplyContractStatus? declineStatus = declineTarget != null
+                ? contracts?.Contracts
+                    .FirstOrDefault(contract => contract != null
+                        && contract.contractId == declineTarget.contractId)
+                    ?.status
+                : null;
+            bool policyChanged = policyBefore != null
+                && policyAfter != null
+                && policyAfter.minimumStock == policyBefore.minimumStock + 5
+                && policyAfter.targetStock == policyBefore.targetStock + 5
+                && policyAfter.maximumStock == policyBefore.maximumStock + 5
+                && policyAfter.enabled != policyBefore.enabled
+                && policyAfter.surplusDisposition !=
+                    policyBefore.surplusDisposition;
+            bool contractsChanged =
+                (acceptTarget == null
+                    || acceptStatus is RegionalSupplyContractStatus.Accepted
+                        or RegionalSupplyContractStatus.Delivering
+                        or RegionalSupplyContractStatus.Completed)
+                && (declineTarget == null
+                    || declineStatus == RegionalSupplyContractStatus.Declined);
             lines.Add(
-                $"WAREHOUSE visible={IsTabActive(4)}; warehouses={warehouses.Count}; shops={shops.Count}; restockClicked={restockClicked}; deliveryClicked={deliveryClicked}; warehouseStock={beforeWarehouse}->{afterWarehouse}; shopStock={beforeShopStock}->{afterShopStock}; money={beforeMoney}->{afterMoney}; stateChanged={beforeWarehouse != afterWarehouse || beforeShopStock != afterShopStock || beforeMoney != afterMoney}");
+                $"WAREHOUSE visible={IsTabActive(4)}; tabPointerClicked={warehouseTabButton != null}; warehouses={warehouses.Count}; shops={shops.Count}; restockPointerClicked={restockClicked}; deliveryPointerClicked={deliveryClicked}; warehouseStock={beforeWarehouse}->{afterWarehouse}; shopStock={beforeShopStock}->{afterShopStock}; money={beforeMoney}->{afterMoney}; policyItem={controlItemId ?? "none"}; policyPointerClicks={policyPointerClicks}/5; policyPointerTargets={string.Join(",", policyPointerTargets)}; policy={FormatPolicy(policyBefore)}->{FormatPolicy(policyAfter)}; policyChanged={policyChanged}; contractAcceptPointerClicked={contractAcceptClicked}; contractAcceptStatus={acceptStatus?.ToString() ?? "none"}; contractDeclinePointerClicked={contractDeclineClicked}; contractDeclinePointerTarget={contractDeclinePointerTarget}; contractDeclineStatus={declineStatus?.ToString() ?? "none"}; contractsChanged={contractsChanged}; stateChanged={beforeWarehouse != afterWarehouse || beforeShopStock != afterShopStock || beforeMoney != afterMoney || policyChanged || contractsChanged}");
         }
 
         private IEnumerator VerifyOperationRecruitmentMeta(UITabManager manager, List<string> lines)
@@ -734,6 +979,62 @@ public static class P0FeatureSurfacePlayModeVerifier
                 $"OPERATION visible={IsTabActive(5)}; flowSection={flowSectionVisible}; flowState={flowStateVisible}; flowText={flowText}; fundingClicked={fundingClicked}; fundingUsed={beforeFundingUsed}->{afterFundingUsed}; money={beforeMoney}->{afterMoney}; debt={beforeDebt}->{afterDebt}; report={(report != null)}; recruitClicked={recruitClicked}; recruited={beforeRecruited}->{afterRecruited}; strategyCards={strategyCardsPresent}; commerceMetaClicked={metaClicked}; commerceLevel={beforeStrategyLevel}->{afterStrategyLevel}; metaCurrency={beforeCurrency}->{afterCurrency}; metaLevels={beforeLevels}->{afterLevels}; stateChanged={flowSectionVisible && flowStateVisible && (beforeFundingUsed != afterFundingUsed || beforeMoney != afterMoney || beforeDebt != afterDebt || beforeRecruited != afterRecruited || beforeLevels != afterLevels)}");
         }
 
+        private static string FormatPolicy(ResourceStockPolicyData policy)
+        {
+            return policy == null
+                ? "none"
+                : $"{policy.minimumStock}/{policy.targetStock}/{policy.maximumStock}"
+                    + $":enabled={policy.enabled}"
+                    + $":surplus={policy.surplusDisposition}";
+        }
+
+        private static void PrepareWarehouseContracts(
+            IRegionalSupplyContractRuntime contracts)
+        {
+            if (contracts == null
+                || contracts.Contracts.Count(contract => contract != null
+                    && contract.status == RegionalSupplyContractStatus.Offered) >= 2)
+            {
+                return;
+            }
+
+            DungeonRegionalSupplyContractSaveData saveData =
+                contracts.Capture();
+            saveData.nextOfferDay = Mathf.Max(saveData.currentDay + 3, 4);
+            saveData.contracts.RemoveAll(contract => contract != null
+                && contract.contractId.StartsWith(
+                    "qa:p0:",
+                    StringComparison.Ordinal));
+            for (int index = 0; index < 2; index++)
+            {
+                saveData.contracts.Add(new RegionalSupplyContractState
+                {
+                    contractId = $"qa:p0:{index}",
+                    title = index == 0
+                        ? "검증용 식수 공급"
+                        : "검증용 연료 공급",
+                    regionName = "검증 교역권",
+                    offeredDay = saveData.currentDay,
+                    deadlineDay = saveData.currentDay + 3,
+                    rewardGold = 75 + index * 25,
+                    status = RegionalSupplyContractStatus.Offered,
+                    lastStatus = "계약 결정을 기다리고 있습니다.",
+                    requirements = new List<RegionalSupplyContractRequirement>
+                    {
+                        new RegionalSupplyContractRequirement
+                        {
+                            itemId = index == 0
+                                ? "stock-item:4"
+                                : "stock-item:6",
+                            amount = 1
+                        }
+                    }
+                });
+            }
+
+            contracts.Restore(saveData);
+        }
+
         private IEnumerator DismissStartupAndSelectOwner(List<string> lines)
         {
             yield return null;
@@ -790,6 +1091,35 @@ public static class P0FeatureSurfacePlayModeVerifier
             yield return null;
         }
 
+        private static string DescribePointerTarget(Button button)
+        {
+            if (button == null || EventSystem.current == null)
+            {
+                return "missing";
+            }
+
+            RectTransform rect = button.transform as RectTransform;
+            if (rect == null)
+            {
+                return "no-rect";
+            }
+
+            Vector2 point = RectTransformUtility.WorldToScreenPoint(
+                null,
+                rect.TransformPoint(rect.rect.center));
+            PointerEventData eventData = new PointerEventData(
+                EventSystem.current)
+            {
+                position = point
+            };
+            List<RaycastResult> results = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(eventData, results);
+            string top = results.Count > 0 && results[0].gameObject != null
+                ? results[0].gameObject.name
+                : "none";
+            return $"{point.x:0},{point.y:0}:{top}";
+        }
+
         private static void ScrollContainingButton(Button button)
         {
             ScrollRect scroll = button != null ? button.GetComponentInParent<ScrollRect>() : null;
@@ -805,12 +1135,18 @@ public static class P0FeatureSurfacePlayModeVerifier
             Canvas.ForceUpdateCanvases();
             float overflow = Mathf.Max(0f, scroll.content.rect.height - scroll.viewport.rect.height);
             Bounds targetBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
-                scroll.viewport,
+                scroll.content,
                 target);
             if (overflow > 0.1f)
             {
-                scroll.verticalNormalizedPosition = Mathf.Clamp01(
-                    scroll.verticalNormalizedPosition + targetBounds.center.y / overflow);
+                float distanceFromTop =
+                    scroll.content.rect.yMax - targetBounds.center.y;
+                float desiredOffset = Mathf.Clamp(
+                    distanceFromTop - scroll.viewport.rect.height * 0.5f,
+                    0f,
+                    overflow);
+                scroll.verticalNormalizedPosition =
+                    1f - desiredOffset / overflow;
             }
 
             Canvas.ForceUpdateCanvases();
@@ -824,6 +1160,35 @@ public static class P0FeatureSurfacePlayModeVerifier
                 .FirstOrDefault(candidate => candidate != null
                     && candidate.gameObject.activeInHierarchy
                     && candidate.name == name);
+        }
+
+        private static Button FindActiveButtonByPrefix(string prefix)
+        {
+            return UnityEngine.Object.FindObjectsByType<Button>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(candidate => candidate != null
+                    && candidate.gameObject.activeInHierarchy
+                    && candidate.name.StartsWith(
+                        prefix,
+                        StringComparison.Ordinal));
+        }
+
+        private static IEnumerable<string> FindActiveButtonNames(
+            params string[] prefixes)
+        {
+            string[] requested = prefixes ?? Array.Empty<string>();
+            return UnityEngine.Object.FindObjectsByType<Button>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Where(candidate => candidate != null
+                    && candidate.gameObject.activeInHierarchy
+                    && requested.Any(prefix => candidate.name.StartsWith(
+                        prefix,
+                        StringComparison.Ordinal)))
+                .Select(candidate => candidate.name)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray();
         }
 
         private static Button FindActiveTabButton(TabId tabId)
@@ -1002,6 +1367,9 @@ public static class P0FeatureSurfacePlayModeVerifier
                 window = FindVisibleResearchTreeWindow();
             }
 
+            bool nodeCentered = window != null && window.CenterProject(project);
+            yield return null;
+            Canvas.ForceUpdateCanvases();
             Button nodeButton = FindButtonInResearchTree(
                 window,
                 $"Node_{project.ProjectId.Value}");
@@ -1015,13 +1383,14 @@ public static class P0FeatureSurfacePlayModeVerifier
                 "Temp/p0-ui-research-construction-unlock.png",
                 lines);
             bool passed = lockedBefore
+                && nodeCentered
                 && nodeFound
                 && actionBlocked
                 && state is ResearchNodeState.Locked or ResearchNodeState.BlueprintInTransit
                 && !string.IsNullOrWhiteSpace(blocker);
 
             lines.Add(
-                $"RESEARCH_CONSTRUCTION_GATE passed={passed}; project={project.DisplayName}; target={targetBuilding.objectName}#{targetBuilding.id}; phase={currentPhase}; locked={lockedBefore}; node={nodeFound}; actionBlocked={actionBlocked}; state={state}; blocker={blocker}");
+                $"RESEARCH_CONSTRUCTION_GATE passed={passed}; project={project.DisplayName}; target={targetBuilding.objectName}#{targetBuilding.id}; phase={currentPhase}; locked={lockedBefore}; centered={nodeCentered}; node={nodeFound}; actionBlocked={actionBlocked}; state={state}; blocker={blocker}");
             if (!passed)
             {
                 Debug.LogError("Locked research reward was not represented by the research tree's public gating UI.");

@@ -32,6 +32,9 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
     {
         public FacilityRole AvailableRoles;
         public bool FallbackBuilt;
+        public int FallbackGridVersion = -1;
+        public readonly HashSet<BuildableObject> IndexedBuildings =
+            new HashSet<BuildableObject>();
         public readonly Dictionary<FacilityRole, IReadOnlyList<BuildableObject>> CandidatesByRole =
             new Dictionary<FacilityRole, IReadOnlyList<BuildableObject>>();
         public readonly Dictionary<FacilityWorkType, IReadOnlyList<BuildableObject>> CandidatesByWorkType =
@@ -204,12 +207,8 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
         }
 
         PrepareIndexForQuery(grid);
-        bool useWorldRegistry = worldRegistry.Buildings.Count > 0;
-        IReadOnlyList<BuildableObject> source = useWorldRegistry
-            ? worldRegistry.Buildings
-            : GetCandidates(grid, role);
-        if (!useWorldRegistry
-            && indexBuildComplete
+        IReadOnlyList<BuildableObject> source = GetCandidates(grid, role);
+        if (indexBuildComplete
             && source.Count <= maximumCount)
         {
             candidates = source;
@@ -272,7 +271,7 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
 
         sourceCount = scan.Source?.Count ?? 0;
         scan.Complete = scan.SourceIndex >= sourceCount
-            && (useWorldRegistry || indexBuildComplete);
+            && indexBuildComplete;
         if (!scan.Complete)
         {
             frameWorkBudget?.SetBacklog(
@@ -396,22 +395,42 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
     private void PrepareIndexForQuery(Grid grid)
     {
         EnsureIndexVersion();
+        GridFacilityCache cache = GetCache(grid);
         if (worldRegistry.Buildings.Count > 0)
         {
             // Runtime indexing is advanced once by the frame scheduler. Advancing
             // here would multiply index work by every actor and facility query.
             if (frameWorkBudget == null)
             {
-                AdvanceIndex(SynchronousQueryBudgetMilliseconds);
+                while (!indexBuildComplete
+                    && AdvanceIndex(SynchronousQueryBudgetMilliseconds) > 0)
+                {
+                }
+            }
+            else
+            {
+                return;
             }
 
+            if (cache.IndexedBuildings.Count > 0)
+            {
+                return;
+            }
+        }
+
+        if (cache.FallbackBuilt && cache.FallbackGridVersion == grid.version)
+        {
             return;
         }
 
-        GridFacilityCache cache = GetCache(grid);
         if (cache.FallbackBuilt)
         {
-            return;
+            cache = new GridFacilityCache();
+            cacheByGrid[grid] = cache;
+            unchecked
+            {
+                candidateIndexVersion++;
+            }
         }
 
         foreach (IGridOccupant occupant in grid.FindAllOccupants(null))
@@ -423,7 +442,7 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
         }
 
         cache.FallbackBuilt = true;
-        indexBuildComplete = true;
+        cache.FallbackGridVersion = grid.version;
     }
 
     private void EnsureIndexVersion()
@@ -454,6 +473,11 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
         }
 
         GridFacilityCache cache = GetCache(building.Grid);
+        if (!cache.IndexedBuildings.Add(building))
+        {
+            return;
+        }
+
         FacilityRole roles = building.Facility?.roles ?? FacilityRole.None;
         cache.AvailableRoles |= roles;
         foreach (FacilityRole role in GetSingleRoles(roles))

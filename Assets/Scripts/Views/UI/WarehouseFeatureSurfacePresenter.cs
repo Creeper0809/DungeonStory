@@ -16,6 +16,13 @@ public sealed class WarehouseFeatureSurfaceModel
         = Array.Empty<WarehouseFeatureRestockRow>();
     public IReadOnlyList<WarehouseFeatureDeliveryRow> DeliveryOffers { get; set; }
         = Array.Empty<WarehouseFeatureDeliveryRow>();
+    public IReadOnlyList<WarehouseFeatureForecastRow> ForecastRows { get; set; }
+        = Array.Empty<WarehouseFeatureForecastRow>();
+    public IReadOnlyList<WarehouseFeatureContractRow> Contracts { get; set; }
+        = Array.Empty<WarehouseFeatureContractRow>();
+    public IReadOnlyList<WarehouseFeatureGrandProjectRow> GrandProjects { get; set; }
+        = Array.Empty<WarehouseFeatureGrandProjectRow>();
+    public string ForecastSummary { get; set; } = string.Empty;
 }
 
 public sealed class WarehouseFeatureWarehouseRow
@@ -41,6 +48,34 @@ public sealed class WarehouseFeatureDeliveryRow
     public string Detail { get; set; } = string.Empty;
 }
 
+public sealed class WarehouseFeatureForecastRow
+{
+    public string ItemId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Detail { get; set; } = string.Empty;
+    public bool PolicyEnabled { get; set; }
+    public int MinimumStock { get; set; }
+    public int TargetStock { get; set; }
+    public int MaximumStock { get; set; }
+    public StockSurplusDisposition SurplusDisposition { get; set; }
+}
+
+public sealed class WarehouseFeatureContractRow
+{
+    public string ContractId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Detail { get; set; } = string.Empty;
+    public RegionalSupplyContractStatus Status { get; set; }
+}
+
+public sealed class WarehouseFeatureGrandProjectRow
+{
+    public string ProjectId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Detail { get; set; } = string.Empty;
+    public GrandProjectStatus Status { get; set; }
+}
+
 public readonly struct WarehouseFeatureCommandResult
 {
     public WarehouseFeatureCommandResult(bool succeeded, string message)
@@ -62,6 +97,16 @@ public interface IWarehouseFeatureCommandService
 {
     WarehouseFeatureCommandResult Restock(int targetRuntimeId, int amount);
     WarehouseFeatureCommandResult PurchaseDelivery(StockDeliveryOffer offer);
+    WarehouseFeatureCommandResult CycleStockPolicy(string itemId);
+    WarehouseFeatureCommandResult ToggleStockPolicy(string itemId);
+    WarehouseFeatureCommandResult AdjustStockPolicy(
+        string itemId,
+        ResourceStockThreshold threshold,
+        int delta);
+    WarehouseFeatureCommandResult AcceptContract(string contractId);
+    WarehouseFeatureCommandResult DeclineContract(string contractId);
+    WarehouseFeatureCommandResult StartGrandProject(string projectId);
+    WarehouseFeatureCommandResult CancelGrandProject();
 }
 
 public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
@@ -73,6 +118,11 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
     private readonly IWarehouseWorldQuery warehouseWorld;
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly ICharacterWorldQuery characterWorld;
+    private readonly IResourceEconomyForecastService forecastService;
+    private readonly IResourceStockPolicyRuntime stockPolicies;
+    private readonly IRegionalSupplyContractRuntime contracts;
+    private readonly IGrandProjectRuntime grandProjects;
+    private readonly IResourceEconomyContentCatalog economyCatalog;
 
     public WarehouseFeatureQueryService(
         IBuildingManagementSummaryService summaryService,
@@ -81,7 +131,12 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
         IWorldItemStackRuntime worldItemStackRuntime,
         IWarehouseWorldQuery warehouseWorld,
         IBuildingWorldQuery buildingWorld,
-        ICharacterWorldQuery characterWorld)
+        ICharacterWorldQuery characterWorld,
+        IResourceEconomyForecastService forecastService,
+        IResourceStockPolicyRuntime stockPolicies,
+        IRegionalSupplyContractRuntime contracts,
+        IGrandProjectRuntime grandProjects,
+        IResourceEconomyContentCatalog economyCatalog)
     {
         this.summaryService = summaryService ?? throw new ArgumentNullException(nameof(summaryService));
         this.gameDataProvider = gameDataProvider ?? throw new ArgumentNullException(nameof(gameDataProvider));
@@ -94,6 +149,16 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
             ?? throw new ArgumentNullException(nameof(buildingWorld));
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.forecastService = forecastService
+            ?? throw new ArgumentNullException(nameof(forecastService));
+        this.stockPolicies = stockPolicies
+            ?? throw new ArgumentNullException(nameof(stockPolicies));
+        this.contracts = contracts
+            ?? throw new ArgumentNullException(nameof(contracts));
+        this.grandProjects = grandProjects
+            ?? throw new ArgumentNullException(nameof(grandProjects));
+        this.economyCatalog = economyCatalog
+            ?? throw new ArgumentNullException(nameof(economyCatalog));
     }
 
     public WarehouseFeatureSurfaceModel Capture()
@@ -104,6 +169,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
         int money = ResolveMoney();
         IReadOnlyList<StockDeliveryOffer> offers =
             StockSupplyService.CreateDailyDeliveryOffers(ResolveCurrentDay(), runVariableReader);
+        ResourceEconomyForecast forecast = forecastService.Capture(3);
 
         return new WarehouseFeatureSurfaceModel
         {
@@ -127,7 +193,146 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
                     Name = $"{StockCategoryCatalog.GetDisplayName(offer.category)} {offer.amount}개",
                     Detail = $"{offer.sourceLabel} / 비용 {offer.cost} / 현재 자금 {FormatMoney(money)}"
                 })
+                .ToArray(),
+            ForecastSummary =
+                $"3일 전망 / 부족 {forecast.Shortages.Count}종 / 초과 {forecast.Surpluses.Count}종",
+            ForecastRows = CreateForecastRows(forecast),
+            Contracts = contracts.Contracts
+                .Where(contract => contract != null
+                    && contract.status is RegionalSupplyContractStatus.Offered
+                        or RegionalSupplyContractStatus.Accepted
+                        or RegionalSupplyContractStatus.Delivering)
+                .Take(WarehouseFeatureSurfacePresenter.MaxVisibleCardsPerSection)
+                .Select(CreateContractRow)
+                .ToArray(),
+            GrandProjects = grandProjects.Definitions
+                .Select(CreateGrandProjectRow)
                 .ToArray()
+        };
+    }
+
+    private IReadOnlyList<WarehouseFeatureForecastRow> CreateForecastRows(
+        ResourceEconomyForecast forecast)
+    {
+        HashSet<string> enabledPolicyIds = new HashSet<string>(
+            stockPolicies.Policies
+                .Where(policy => policy != null && policy.enabled)
+                .Select(policy => policy.itemId),
+            StringComparer.Ordinal);
+        IEnumerable<ResourceEconomyForecastRow> priorityRows =
+            forecast.Shortages
+                .Concat(forecast.Surpluses)
+                .Where(row => economyCatalog.TryGetItem(row.ItemId, out _)
+                    || DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
+                        row.ItemId,
+                        out _))
+                .GroupBy(row => row.ItemId, StringComparer.Ordinal)
+                .Select(group => group.First())
+                .OrderByDescending(row =>
+                    enabledPolicyIds.Contains(row.ItemId))
+                .ThenBy(row => row.ProjectedBalance)
+                .ThenBy(row => row.DisplayName, StringComparer.Ordinal)
+                .Take(WarehouseFeatureSurfacePresenter.MaxVisibleCardsPerSection);
+        return priorityRows
+            .Select(row =>
+            {
+                ResourceStockPolicyData policy =
+                    stockPolicies.GetOrCreate(row.ItemId);
+                string direction = row.ProjectedBalance < 0
+                    ? "부족"
+                    : "초과";
+                return new WarehouseFeatureForecastRow
+                {
+                    ItemId = row.ItemId,
+                    Name = $"{row.DisplayName} {direction}",
+                    Detail =
+                        $"보유 {row.Available} / 예약 {row.Reserved} / 생산 +{row.ExpectedProduction} / "
+                        + $"수요 -{row.ExpectedDemand} / 예상 {row.ProjectedBalance}\n"
+                        + FormatPolicy(policy),
+                    PolicyEnabled = policy.enabled,
+                    MinimumStock = policy.minimumStock,
+                    TargetStock = policy.targetStock,
+                    MaximumStock = policy.maximumStock,
+                    SurplusDisposition = policy.surplusDisposition
+                };
+            })
+            .ToArray();
+    }
+
+    private WarehouseFeatureContractRow CreateContractRow(
+        RegionalSupplyContractState contract)
+    {
+        string requirements = string.Join(
+            ", ",
+            (contract.requirements
+                ?? new List<RegionalSupplyContractRequirement>())
+            .Select(requirement =>
+                $"{ResolveItemName(requirement.itemId)} {requirement.amount}"));
+        return new WarehouseFeatureContractRow
+        {
+            ContractId = contract.contractId,
+            Name = contract.title,
+            Status = contract.status,
+            Detail =
+                $"{requirements} / 보상 {contract.rewardGold} 골드 / 기한 {contract.deadlineDay}일\n"
+                + contract.lastStatus
+        };
+    }
+
+    private WarehouseFeatureGrandProjectRow CreateGrandProjectRow(
+        GrandProjectDefinition definition)
+    {
+        GrandProjectStatus status = grandProjects.GetStatus(
+            definition.ProjectId,
+            out string reason);
+        string requirements = string.Join(
+            ", ",
+            definition.Requirements.Select(requirement =>
+                $"{ResolveItemName(requirement.ItemId)} {requirement.Amount}"));
+        return new WarehouseFeatureGrandProjectRow
+        {
+            ProjectId = definition.ProjectId,
+            Name = definition.DisplayName,
+            Status = status,
+            Detail =
+                $"{definition.Description}\n재료 {requirements} / 작업량 {definition.RequiredWork:0}\n"
+                + reason
+        };
+    }
+
+    private string ResolveItemName(string itemId)
+    {
+        return economyCatalog.TryGetItem(
+            itemId,
+            out ResourceItemDefinitionSO item)
+            ? item.DisplayName
+            : itemId;
+    }
+
+    private static string FormatPolicy(ResourceStockPolicyData policy)
+    {
+        if (policy == null || !policy.enabled)
+        {
+            return "재고 정책 꺼짐";
+        }
+
+        return $"정책 {policy.minimumStock}/{policy.targetStock}/{policy.maximumStock}"
+            + $" · 초과 시 {FormatDisposition(policy.surplusDisposition)}"
+            + (string.IsNullOrWhiteSpace(policy.lastStatus)
+                ? string.Empty
+                : $" · {policy.lastStatus}");
+    }
+
+    private static string FormatDisposition(
+        StockSurplusDisposition disposition)
+    {
+        return disposition switch
+        {
+            StockSurplusDisposition.Sell => "판매",
+            StockSurplusDisposition.Process => "가공",
+            StockSurplusDisposition.Compost => "퇴비화",
+            StockSurplusDisposition.Dismantle => "해체",
+            _ => "보관"
         };
     }
 
@@ -286,13 +491,19 @@ public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandSer
     private readonly IWarehouseWorldQuery warehouseWorld;
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IGameEventBus gameEventBus;
+    private readonly IResourceStockPolicyRuntime stockPolicies;
+    private readonly IRegionalSupplyContractRuntime contracts;
+    private readonly IGrandProjectRuntime grandProjects;
 
     public WarehouseFeatureCommandService(
         IGameDataProvider gameDataProvider,
         IWorldItemStackRuntime worldItemStackRuntime,
         IWarehouseWorldQuery warehouseWorld,
         IBuildingWorldQuery buildingWorld,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IResourceStockPolicyRuntime stockPolicies,
+        IRegionalSupplyContractRuntime contracts,
+        IGrandProjectRuntime grandProjects)
     {
         this.gameDataProvider = gameDataProvider ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.worldItemStackRuntime = worldItemStackRuntime
@@ -303,6 +514,12 @@ public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandSer
             ?? throw new ArgumentNullException(nameof(buildingWorld));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.stockPolicies = stockPolicies
+            ?? throw new ArgumentNullException(nameof(stockPolicies));
+        this.contracts = contracts
+            ?? throw new ArgumentNullException(nameof(contracts));
+        this.grandProjects = grandProjects
+            ?? throw new ArgumentNullException(nameof(grandProjects));
     }
 
     public WarehouseFeatureCommandResult Restock(int targetRuntimeId, int amount)
@@ -351,6 +568,123 @@ public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandSer
             $"납품 {(success ? "성공" : "실패")}: {result.ToSummaryText()} / " +
             $"자금 {beforeMoney}->{GetHoldingMoney(gameData)}, 창고 {beforeStock}->{afterStock}";
         return new WarehouseFeatureCommandResult(success, message);
+    }
+
+    public WarehouseFeatureCommandResult CycleStockPolicy(string itemId)
+    {
+        ResourceStockPolicyData policy = stockPolicies.GetOrCreate(itemId);
+        if (policy.surplusDisposition
+                 < StockSurplusDisposition.Dismantle)
+        {
+            policy.surplusDisposition++;
+        }
+        else
+        {
+            policy.surplusDisposition = StockSurplusDisposition.Hold;
+        }
+
+        bool succeeded = stockPolicies.SetPolicy(
+            policy,
+            out string failureReason);
+        return new WarehouseFeatureCommandResult(
+            succeeded,
+            succeeded
+                ? $"초과 처리: {FormatDisposition(policy.surplusDisposition)}"
+                : failureReason);
+    }
+
+    public WarehouseFeatureCommandResult ToggleStockPolicy(string itemId)
+    {
+        ResourceStockPolicyData policy = stockPolicies.GetOrCreate(itemId);
+        policy.enabled = !policy.enabled;
+        bool succeeded = stockPolicies.SetPolicy(policy, out string failureReason);
+        return new WarehouseFeatureCommandResult(
+            succeeded,
+            succeeded
+                ? $"재고 정책을 {(policy.enabled ? "켰습니다." : "껐습니다.")}"
+                : failureReason);
+    }
+
+    public WarehouseFeatureCommandResult AdjustStockPolicy(
+        string itemId,
+        ResourceStockThreshold threshold,
+        int delta)
+    {
+        ResourceStockPolicyData policy = stockPolicies.GetOrCreate(itemId);
+        int amount = Mathf.Clamp(delta, -100, 100);
+        switch (threshold)
+        {
+            case ResourceStockThreshold.Minimum:
+                policy.minimumStock = Mathf.Max(0, policy.minimumStock + amount);
+                policy.targetStock = Mathf.Max(
+                    policy.minimumStock,
+                    policy.targetStock);
+                policy.maximumStock = Mathf.Max(
+                    policy.targetStock,
+                    policy.maximumStock);
+                break;
+            case ResourceStockThreshold.Target:
+                policy.targetStock = Mathf.Max(
+                    policy.minimumStock,
+                    policy.targetStock + amount);
+                policy.maximumStock = Mathf.Max(
+                    policy.targetStock,
+                    policy.maximumStock);
+                break;
+            case ResourceStockThreshold.Maximum:
+                policy.maximumStock = Mathf.Max(
+                    policy.targetStock,
+                    policy.maximumStock + amount);
+                break;
+            default:
+                return new WarehouseFeatureCommandResult(
+                    false,
+                    "알 수 없는 재고 기준입니다.");
+        }
+
+        bool succeeded = stockPolicies.SetPolicy(policy, out string failureReason);
+        return new WarehouseFeatureCommandResult(
+            succeeded,
+            succeeded
+                ? $"재고 기준 {policy.minimumStock}/{policy.targetStock}/{policy.maximumStock}"
+                : failureReason);
+    }
+
+    public WarehouseFeatureCommandResult AcceptContract(string contractId)
+    {
+        bool succeeded = contracts.Accept(contractId, out string message);
+        return new WarehouseFeatureCommandResult(succeeded, message);
+    }
+
+    public WarehouseFeatureCommandResult DeclineContract(string contractId)
+    {
+        bool succeeded = contracts.Decline(contractId, out string message);
+        return new WarehouseFeatureCommandResult(succeeded, message);
+    }
+
+    public WarehouseFeatureCommandResult StartGrandProject(string projectId)
+    {
+        bool succeeded = grandProjects.Start(projectId, out string message);
+        return new WarehouseFeatureCommandResult(succeeded, message);
+    }
+
+    public WarehouseFeatureCommandResult CancelGrandProject()
+    {
+        bool succeeded = grandProjects.CancelActive(out string message);
+        return new WarehouseFeatureCommandResult(succeeded, message);
+    }
+
+    private static string FormatDisposition(
+        StockSurplusDisposition disposition)
+    {
+        return disposition switch
+        {
+            StockSurplusDisposition.Sell => "판매",
+            StockSurplusDisposition.Process => "가공",
+            StockSurplusDisposition.Compost => "퇴비화",
+            StockSurplusDisposition.Dismantle => "해체",
+            _ => "보관"
+        };
     }
 
     private void PublishSupplyResult(StockSupplyResult result)
@@ -459,5 +793,186 @@ public sealed class WarehouseFeatureSurfacePresenter : IFeatureSurfaceTabPresent
                 () => view.ShowFeedback(commandService.PurchaseDelivery(captured.Offer).Message),
                 CompactCardHeight);
         }
+
+        view.AddSection("자원 전망", model.ForecastSummary);
+        if (model.ForecastRows.Count == 0)
+        {
+            view.AddLabel("3일 안에 예상되는 부족 또는 초과 품목이 없습니다.", 18f, 36f);
+        }
+
+        foreach (WarehouseFeatureForecastRow forecast in model.ForecastRows)
+        {
+            WarehouseFeatureForecastRow captured = forecast;
+            view.AddControlCard(
+                "EconomyForecast_" + captured.ItemId,
+                captured.Name,
+                captured.Detail,
+                new[]
+                {
+                    CreateStockStepper(
+                        view,
+                        captured,
+                        ResourceStockThreshold.Minimum,
+                        "최소",
+                        captured.MinimumStock),
+                    CreateStockStepper(
+                        view,
+                        captured,
+                        ResourceStockThreshold.Target,
+                        "목표",
+                        captured.TargetStock),
+                    CreateStockStepper(
+                        view,
+                        captured,
+                        ResourceStockThreshold.Maximum,
+                        "최대",
+                        captured.MaximumStock)
+                },
+                new[]
+                {
+                    new FeatureSurfaceAction(
+                        "Toggle",
+                        captured.PolicyEnabled ? "정책 끄기" : "정책 켜기",
+                        () => ShowAndRefresh(
+                            view,
+                            commandService.ToggleStockPolicy(
+                                captured.ItemId))),
+                    new FeatureSurfaceAction(
+                        "Disposition",
+                        "초과: " + FormatDisposition(
+                            captured.SurplusDisposition),
+                        () => ShowAndRefresh(
+                            view,
+                            commandService.CycleStockPolicy(
+                                captured.ItemId)))
+                },
+                144f);
+        }
+
+        view.AddSection(
+            "지역 공급 계약",
+            model.Contracts.Count > 0
+                ? "계약 물품은 창고에서 하차장 집결점으로 실제 운반됩니다."
+                : "현재 제안되거나 진행 중인 계약이 없습니다.");
+        foreach (WarehouseFeatureContractRow contract in model.Contracts)
+        {
+            WarehouseFeatureContractRow captured = contract;
+            bool offered =
+                captured.Status == RegionalSupplyContractStatus.Offered;
+            if (offered)
+            {
+                view.AddControlCard(
+                    "RegionalContract_" + captured.ContractId,
+                    captured.Name,
+                    captured.Detail,
+                    Array.Empty<FeatureSurfaceStepper>(),
+                    new[]
+                    {
+                        new FeatureSurfaceAction(
+                            "Accept",
+                            "수락",
+                            () => ShowAndRefresh(
+                                view,
+                                commandService.AcceptContract(
+                                    captured.ContractId))),
+                        new FeatureSurfaceAction(
+                            "Decline",
+                            "거절",
+                            () => ShowAndRefresh(
+                                view,
+                                commandService.DeclineContract(
+                                    captured.ContractId)))
+                    },
+                    116f);
+            }
+            else
+            {
+                view.AddDataCard(
+                    "RegionalContract_" + captured.ContractId,
+                    captured.Name,
+                    captured.Detail,
+                    "운반 현황",
+                    () => view.ShowFeedback(captured.Detail),
+                    98f);
+            }
+        }
+
+        view.AddSection(
+            "대형 사업",
+            "대규모 재료를 사무실로 운반한 뒤 누적 작업량을 채워 완성합니다.");
+        foreach (WarehouseFeatureGrandProjectRow project in
+                 model.GrandProjects)
+        {
+            WarehouseFeatureGrandProjectRow captured = project;
+            bool active = captured.Status is
+                GrandProjectStatus.WaitingForMaterials
+                or GrandProjectStatus.InProgress;
+            bool canStart = captured.Status == GrandProjectStatus.Available;
+            view.AddDataCard(
+                "GrandProject_" + captured.ProjectId,
+                captured.Name,
+                captured.Detail,
+                active ? "사업 취소" : canStart ? "사업 시작" : "상태",
+                () =>
+                {
+                    WarehouseFeatureCommandResult result = active
+                        ? commandService.CancelGrandProject()
+                        : canStart
+                            ? commandService.StartGrandProject(
+                                captured.ProjectId)
+                            : new WarehouseFeatureCommandResult(
+                                false,
+                                captured.Detail);
+                    view.ShowFeedback(result.Message);
+                    view.RequestRefresh();
+                },
+                112f);
+        }
+    }
+
+    private FeatureSurfaceStepper CreateStockStepper(
+        IFeatureSurfaceView view,
+        WarehouseFeatureForecastRow row,
+        ResourceStockThreshold threshold,
+        string label,
+        int value)
+    {
+        return new FeatureSurfaceStepper(
+            threshold.ToString(),
+            label,
+            value.ToString(),
+            () => ShowAndRefresh(
+                view,
+                commandService.AdjustStockPolicy(
+                    row.ItemId,
+                    threshold,
+                    -5)),
+            () => ShowAndRefresh(
+                view,
+                commandService.AdjustStockPolicy(
+                    row.ItemId,
+                    threshold,
+                    5)));
+    }
+
+    private static void ShowAndRefresh(
+        IFeatureSurfaceView view,
+        WarehouseFeatureCommandResult result)
+    {
+        view.ShowFeedback(result.Message);
+        view.RequestRefresh();
+    }
+
+    private static string FormatDisposition(
+        StockSurplusDisposition disposition)
+    {
+        return disposition switch
+        {
+            StockSurplusDisposition.Sell => "판매",
+            StockSurplusDisposition.Process => "가공",
+            StockSurplusDisposition.Compost => "퇴비화",
+            StockSurplusDisposition.Dismantle => "해체",
+            _ => "보관"
+        };
     }
 }

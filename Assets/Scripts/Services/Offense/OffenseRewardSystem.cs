@@ -225,7 +225,8 @@ public sealed class OffenseRareFacilityRewardGrantHandler :
                 break;
             }
 
-            building.unlocked = true;
+            (context.researchState ?? context.researchRuntime?.State)
+                ?.UnlockBuilding(building.id);
             if (FacilityShopService.CanEnterBasicPurchase(building))
             {
                 context.shopUnlockState?.UnlockBasicPurchase(building);

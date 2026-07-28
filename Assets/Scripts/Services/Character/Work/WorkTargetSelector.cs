@@ -2,10 +2,31 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 
 public sealed class WorkTargetSelector
 {
+    private static readonly ProfilerMarker CandidateSelectionMarker =
+        new ProfilerMarker("CharacterAi.WorkTargetSelection");
+    private static readonly ProfilerMarker CandidateUrgencyMarker =
+        new ProfilerMarker("CharacterAi.WorkTarget.Urgency");
+    private static readonly ProfilerMarker CandidateActorStatsMarker =
+        new ProfilerMarker("CharacterAi.WorkTarget.ActorStats");
+    private static readonly ProfilerMarker CandidateSpatialMarker =
+        new ProfilerMarker("CharacterAi.WorkTarget.Spatial");
+    private static readonly ProfilerMarker CandidateDistanceMarker =
+        new ProfilerMarker("CharacterAi.WorkTarget.Spatial.Distance");
+    private static readonly ProfilerMarker CandidateRoomMarker =
+        new ProfilerMarker("CharacterAi.WorkTarget.Spatial.Room");
+    private static readonly ProfilerMarker CandidateFacilityStateMarker =
+        new ProfilerMarker("CharacterAi.WorkTarget.Spatial.FacilityState");
+    private static readonly ProfilerMarker CandidateRoleMarker =
+        new ProfilerMarker("CharacterAi.WorkTarget.Spatial.Role");
+    private static readonly ProfilerMarker CandidateWorldSignalMarker =
+        new ProfilerMarker("CharacterAi.WorkTarget.WorldSignal");
+    private static readonly ProfilerMarker CandidateMemoryMarker =
+        new ProfilerMarker("CharacterAi.WorkTarget.Memory");
     private const float WorkUtilityScoreDivisor = 460f;
     private const double CandidateScanFallbackSliceMilliseconds = 0.2;
     private const int CandidateScanMinimumBatch = 1;
@@ -26,6 +47,18 @@ public sealed class WorkTargetSelector
         public bool Found { get; }
         public WorkTargetCandidate Candidate { get; }
         public WorkTargetCandidate Rejected { get; }
+    }
+
+    private readonly struct ActorWorkScore
+    {
+        public ActorWorkScore(float preference, float speed)
+        {
+            Preference = preference;
+            Speed = speed;
+        }
+
+        public float Preference { get; }
+        public float Speed { get; }
     }
 
     private sealed class IncrementalCandidateScan
@@ -52,9 +85,12 @@ public sealed class WorkTargetSelector
         new Dictionary<FacilityWorkType, CandidateCacheEntry>();
     private readonly Dictionary<FacilityWorkType, IncrementalCandidateScan> incrementalScans =
         new Dictionary<FacilityWorkType, IncrementalCandidateScan>();
+    private readonly Dictionary<WorkTypeId, ActorWorkScore> actorWorkScoreCache =
+        new Dictionary<WorkTypeId, ActorWorkScore>();
     private CharacterActor cachedContextActor;
     private CharacterAiDecisionContext cachedDecisionContext;
     private int cachedDecisionContextFrame = -1;
+    private int actorWorkScoreCacheFrame = -1;
     private int candidateCacheFrame = -1;
     private int candidateCacheGridVersion = -1;
     private int candidateCacheBuildingVersion = -1;
@@ -72,6 +108,20 @@ public sealed class WorkTargetSelector
         this.work = work;
         this.workPolicyRegistry = workPolicyRegistry;
         this.captiveLaborQuery = captiveLaborQuery;
+    }
+
+    public void SeedDecisionContext(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        if (actor == null)
+        {
+            return;
+        }
+
+        cachedContextActor = actor;
+        cachedDecisionContext = context;
+        cachedDecisionContextFrame = work.GameClock.FrameCount;
     }
 
     public bool TryAssignAnyWork(GridPathSearchResult searchResult = null)
@@ -245,11 +295,18 @@ public sealed class WorkTargetSelector
 
         ICharacterAiPerformanceRecorder recorder =
             work.WorkerActor?.Brain?.PerformanceRecorder;
-        long started = recorder?.DetailedCollectionEnabled == true
+        bool collectPerformance =
+            recorder?.DetailedCollectionEnabled == true;
+        long started = collectPerformance
             ? Stopwatch.GetTimestamp()
+            : 0L;
+        long allocatedAtStart = collectPerformance
+            ? System.GC.GetAllocatedBytesForCurrentThread()
             : 0L;
         try
         {
+            using (CandidateSelectionMarker.Auto())
+            {
             WorkTargetCandidate rejected = default;
             bool scanComplete = true;
             bool found = useCache
@@ -277,6 +334,7 @@ public sealed class WorkTargetSelector
             }
 
             return found;
+            }
         }
         finally
         {
@@ -286,7 +344,11 @@ public sealed class WorkTargetSelector
                     AiPerformanceCategory.WorkTargetSelection,
                     (Stopwatch.GetTimestamp() - started)
                     * 1000.0
-                    / Stopwatch.Frequency);
+                    / Stopwatch.Frequency,
+                    System.Math.Max(
+                        0L,
+                        System.GC.GetAllocatedBytesForCurrentThread()
+                            - allocatedAtStart));
             }
         }
     }
@@ -770,8 +832,19 @@ public sealed class WorkTargetSelector
         }
 
         AIActionFailure lastWorkTypeFailure = AIActionFailure.None;
-        foreach (WorkTypeDefinition definition in WorkTypeCatalog.Enumerate(supportedTypes))
+        IReadOnlyList<WorkTypeDefinition> workTypeDefinitions =
+            WorkTypeCatalog.All;
+        for (int definitionIndex = 0;
+            definitionIndex < workTypeDefinitions.Count;
+            definitionIndex++)
         {
+            WorkTypeDefinition definition =
+                workTypeDefinitions[definitionIndex];
+            if ((supportedTypes & definition.Type) == 0)
+            {
+                continue;
+            }
+
             FacilityWorkType workType = definition.Type;
             WorkTypeId workTypeId = definition.WorkTypeId;
             if (forcedWorkType != FacilityWorkType.None && workType != forcedWorkType)
@@ -813,9 +886,26 @@ public sealed class WorkTargetSelector
                     continue;
                 }
 
-                if (!restockable.HasRestockSupply(
-                    FindReachableWarehouses(searchResult),
-                    out string supplyFailureReason))
+                bool hasRestockSupply;
+                string supplyFailureReason;
+                IReadOnlyList<IWarehouseFacility> registeredWarehouses =
+                    searchResult == null
+                        ? work.WorkerActor?.WorldRegistry?.Warehouses
+                        : null;
+                if (registeredWarehouses != null)
+                {
+                    hasRestockSupply = restockable.HasRestockSupply(
+                        registeredWarehouses,
+                        out supplyFailureReason);
+                }
+                else
+                {
+                    hasRestockSupply = restockable.HasRestockSupply(
+                        FindReachableWarehouses(searchResult),
+                        out supplyFailureReason);
+                }
+
+                if (!hasRestockSupply)
                 {
                     lastWorkTypeFailure = AIActionFailure.Create(
                         AIActionFailureKind.NoWork,
@@ -894,33 +984,82 @@ public sealed class WorkTargetSelector
         FacilityWorkType workType = definition.Type;
         WorkTypeId workTypeId = definition.WorkTypeId;
         CharacterActor actor = work.WorkerActor;
-        float urgency = building.GetWorkUrgency(workTypeId);
-        urgency = Mathf.Max(
-            urgency,
-            workPolicyRegistry?.GetAdditionalUrgency(workTypeId, actor, building) ?? 0f);
-        urgency += GetExteriorWorkUrgency(building, actor, workTypeId);
-        float preferenceScore = actor != null ? actor.GetWorkPreferenceScore(workTypeId) : 0.5f;
-        float speedScore = actor != null ? Mathf.Clamp01(actor.GetWorkSpeedMultiplier(workTypeId) / 2f) : 0.5f;
-        float distanceScore = GetDistanceScore(building, searchResult);
-        float roomContextScore = GetRoomContextScore(building);
-        float facilityStateScore = GetFacilityStateScore(building, workType);
-        float roleFitScore = GetWorkRoleFitScore(building, workType);
-        CharacterAiWorldSignalSnapshot signals = actor?.WorldSignalQuery?.Capture(
-                actor,
-                CharacterAiBranch.Work,
-                building,
-                searchResult)
-            ?? CharacterAiWorldSignalSnapshot.Neutral;
-        float survivalPressure = actor != null
-            ? GetDecisionContext(actor).EmergencyScore
-            : 0f;
-        float fatigueScale = Mathf.Lerp(1f, 0.25f, Mathf.Clamp01(Mathf.Max(urgency / 85f, survivalPressure)));
-        float fatiguePenalty = actor != null && actor.AiMemory != null
-            ? actor.AiMemory.GetRepeatedWorkFatigue(workTypeId) * 18f * fatigueScale
-            : 0f;
-        float targetFatiguePenalty = actor != null && actor.AiMemory != null
-            ? actor.AiMemory.GetRecentTargetWorkFatigue(building, workTypeId) * 14f * fatigueScale
-            : 0f;
+        float urgency;
+        using (CandidateUrgencyMarker.Auto())
+        {
+            urgency = building.GetWorkUrgency(workTypeId);
+            urgency = Mathf.Max(
+                urgency,
+                workPolicyRegistry?.GetAdditionalUrgency(workTypeId, actor, building) ?? 0f);
+            urgency += GetExteriorWorkUrgency(building, actor, workTypeId);
+        }
+
+        float preferenceScore;
+        float speedScore;
+        float survivalPressure;
+        using (CandidateActorStatsMarker.Auto())
+        {
+            ActorWorkScore actorScore = GetActorWorkScore(actor, workTypeId);
+            preferenceScore = actorScore.Preference;
+            speedScore = actorScore.Speed;
+            survivalPressure = actor != null
+                ? GetDecisionContext(actor).EmergencyScore
+                : 0f;
+        }
+
+        float distanceScore;
+        float roomContextScore;
+        float facilityStateScore;
+        float roleFitScore;
+        using (CandidateSpatialMarker.Auto())
+        {
+            using (CandidateDistanceMarker.Auto())
+            {
+                distanceScore = GetDistanceScore(building, searchResult);
+            }
+
+            using (CandidateRoomMarker.Auto())
+            {
+                roomContextScore = GetRoomContextScore(building);
+            }
+
+            using (CandidateFacilityStateMarker.Auto())
+            {
+                facilityStateScore = GetFacilityStateScore(building, workType);
+            }
+
+            using (CandidateRoleMarker.Auto())
+            {
+                roleFitScore = GetWorkRoleFitScore(building, workType);
+            }
+        }
+
+        CharacterAiWorldSignalSnapshot signals;
+        using (CandidateWorldSignalMarker.Auto())
+        {
+            signals = actor?.WorldSignalQuery?.Capture(
+                    actor,
+                    CharacterAiBranch.Work,
+                    building,
+                    searchResult)
+                ?? CharacterAiWorldSignalSnapshot.Neutral;
+        }
+
+        float fatigueScale = Mathf.Lerp(
+            1f,
+            0.25f,
+            Mathf.Clamp01(Mathf.Max(urgency / 85f, survivalPressure)));
+        float fatiguePenalty;
+        float targetFatiguePenalty;
+        using (CandidateMemoryMarker.Auto())
+        {
+            fatiguePenalty = actor != null && actor.AiMemory != null
+                ? actor.AiMemory.GetRepeatedWorkFatigue(workTypeId) * 18f * fatigueScale
+                : 0f;
+            targetFatiguePenalty = actor != null && actor.AiMemory != null
+                ? actor.AiMemory.GetRecentTargetWorkFatigue(building, workTypeId) * 14f * fatigueScale
+                : 0f;
+        }
         float queueBonus = Mathf.Clamp01(1f - signals.QueuePressure) * 8f;
         float pathConfidenceBonus = signals.PathConfidence * 9f;
         float scheduleBonus = signals.ScheduleScore * 8f;
@@ -1053,6 +1192,36 @@ public sealed class WorkTargetSelector
         cachedDecisionContext = CharacterAiDecisionContext.Capture(actor, CharacterAiBranch.Work);
         cachedDecisionContextFrame = frame;
         return cachedDecisionContext;
+    }
+
+    private ActorWorkScore GetActorWorkScore(
+        CharacterActor actor,
+        WorkTypeId workTypeId)
+    {
+        if (actor == null)
+        {
+            return new ActorWorkScore(0.5f, 0.5f);
+        }
+
+        int frame = work.GameClock.FrameCount;
+        if (actorWorkScoreCacheFrame != frame)
+        {
+            actorWorkScoreCache.Clear();
+            actorWorkScoreCacheFrame = frame;
+        }
+
+        if (actorWorkScoreCache.TryGetValue(
+                workTypeId,
+                out ActorWorkScore cached))
+        {
+            return cached;
+        }
+
+        ActorWorkScore score = new ActorWorkScore(
+            actor.GetWorkPreferenceScore(workTypeId),
+            Mathf.Clamp01(actor.GetWorkSpeedMultiplier(workTypeId) / 2f));
+        actorWorkScoreCache[workTypeId] = score;
+        return score;
     }
 
     private float GetDistanceScore(BuildableObject building, GridPathSearchResult searchResult)
@@ -1264,10 +1433,16 @@ public sealed class WorkTargetSelector
             return true;
         }
 
-        if (building.Grid == searchResult.sourceGrid
-            && building.buildPoses.Any(searchResult.ContainsPosition))
+        if (building.Grid == searchResult.sourceGrid)
         {
-            return true;
+            IReadOnlyList<Vector2Int> positions = building.buildPoses;
+            for (int index = 0; index < positions.Count; index++)
+            {
+                if (searchResult.ContainsPosition(positions[index]))
+                {
+                    return true;
+                }
+            }
         }
 
         return building is ExteriorZoneMarker marker
@@ -1276,10 +1451,23 @@ public sealed class WorkTargetSelector
 
     private static bool HasExteriorWorkRuntime(BuildableObject building, WorkTypeId workTypeId)
     {
-        return building?.BuildingData != null
-            && building.BuildingData.Abilities
-                .OfType<IBuildingExteriorWorkRuntimeAbility>()
-                .Any(ability => ability.SupportsExteriorWork(workTypeId));
+        IReadOnlyList<BuildingAbility> abilities =
+            building?.BuildingData?.Abilities;
+        if (abilities == null)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < abilities.Count; index++)
+        {
+            if (abilities[index] is IBuildingExteriorWorkRuntimeAbility ability
+                && ability.SupportsExteriorWork(workTypeId))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsExteriorWorkAvailable(
@@ -1292,10 +1480,12 @@ public sealed class WorkTargetSelector
             return false;
         }
 
-        foreach (IBuildingExteriorWorkRuntimeAbility ability in building.BuildingData.Abilities
-                     .OfType<IBuildingExteriorWorkRuntimeAbility>())
+        IReadOnlyList<BuildingAbility> abilities =
+            building.BuildingData.Abilities;
+        for (int index = 0; index < abilities.Count; index++)
         {
-            if (ability.SupportsExteriorWork(workTypeId)
+            if (abilities[index] is IBuildingExteriorWorkRuntimeAbility ability
+                && ability.SupportsExteriorWork(workTypeId)
                 && ability.IsExteriorWorkAvailable(actor, building, workTypeId))
             {
                 return true;
@@ -1316,10 +1506,12 @@ public sealed class WorkTargetSelector
         }
 
         float urgency = 0f;
-        foreach (IBuildingExteriorWorkRuntimeAbility ability in building.BuildingData.Abilities
-                     .OfType<IBuildingExteriorWorkRuntimeAbility>())
+        IReadOnlyList<BuildingAbility> abilities =
+            building.BuildingData.Abilities;
+        for (int index = 0; index < abilities.Count; index++)
         {
-            if (ability.SupportsExteriorWork(workTypeId)
+            if (abilities[index] is IBuildingExteriorWorkRuntimeAbility ability
+                && ability.SupportsExteriorWork(workTypeId)
                 && ability.IsExteriorWorkAvailable(actor, building, workTypeId))
             {
                 urgency += Mathf.Max(0f, ability.GetExteriorWorkUrgency(actor, building, workTypeId));

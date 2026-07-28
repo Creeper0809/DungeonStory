@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: pharmacology_antiseptic
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7132
+  projectId: research:pharmacology:antiseptic
+  displayName: "\uC18C\uB3C5\xB7\uBD95\uB300"
+  description: "\uC12C\uC720\uC640 \uC57D\uCD08\uB85C \uAC10\uC5FC\uC744 \uB9C9\uB294
+    \uCE58\uB8CC\uC7AC\uB97C \uB9CC\uB4E0\uB2E4."
+  field: 13
+  requiredWork: 58
+  prerequisites:
+  - {fileID: 11400000, guid: fa1b0718630dd0244b3cfafb2e1cb805, type: 2}
+  - {fileID: 11400000, guid: 8f2a5bca31574f1478107e01d22cd5f2, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563230216618562
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563230216618562
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1090

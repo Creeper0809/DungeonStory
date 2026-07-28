@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: textile_tanning
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7112
+  projectId: research:textile:tanning
+  displayName: "\uBB34\uB450\uC9C8"
+  description: "\uAC00\uC8FD\uACFC \uC18C\uAE08\uC11D\uC744 \uB0B4\uAD6C\uC131 \uC788\uB294
+    \uC6D0\uB2E8\uC73C\uB85C \uAC00\uACF5\uD55C\uB2E4."
+  field: 11
+  requiredWork: 58
+  prerequisites:
+  - {fileID: 11400000, guid: 8f2a5bca31574f1478107e01d22cd5f2, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563230216618546
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563230216618546
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1084

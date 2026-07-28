@@ -25,6 +25,7 @@ public class CharacterVisual : SerializedMonoBehaviour
     private List<CanvasVisibilityState> traversalCanvasStates;
     private Tween fadeTween;
     private bool isTraversalHidden;
+    private bool facingApplied;
     private float traversalVisibilityRestoreDeadline = -1f;
     private IGameClock gameClock;
 
@@ -77,6 +78,11 @@ public class CharacterVisual : SerializedMonoBehaviour
 
     public void EnsureVisualReferences()
     {
+        if (visualRoot != null && spriteRenderer != null)
+        {
+            return;
+        }
+
         if (visualRoot == null)
         {
             visualRoot = transform.Find("Visual");
@@ -242,6 +248,14 @@ public class CharacterVisual : SerializedMonoBehaviour
 
     public void Flip(CharacterFacing nextFacing)
     {
+        if (facingApplied
+            && facing == nextFacing
+            && visualRoot != null
+            && spriteRenderer != null)
+        {
+            return;
+        }
+
         facing = nextFacing;
         EnsureVisualReferences();
         Vector3 rootScale = transform.localScale;
@@ -257,6 +271,8 @@ public class CharacterVisual : SerializedMonoBehaviour
         {
             spriteRenderer.flipX = facing == CharacterFacing.RIGHT;
         }
+
+        facingApplied = true;
     }
 
     public void HideForTraversal(float failSafeSeconds)

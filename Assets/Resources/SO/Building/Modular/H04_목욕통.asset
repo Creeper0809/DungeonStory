@@ -42,17 +42,17 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 82837bd385cbe1a4fa4e145349a3211a, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602456
-    - rid: 7302562995605602457
-    - rid: 7302562995605602459
-    - rid: 7302562995605602460
-    - rid: 7302562995605602461
-    - rid: 7302562995605602462
-    - rid: 7302563106683093102
-    - rid: 7302563106683093103
-    - rid: 7302563106683093104
-    - rid: 7302563106683093105
-    - rid: 7302563133342875893
+    - rid: 7302563239038813087
+    - rid: 7302563239038813088
+    - rid: 7302563239038813089
+    - rid: 7302563239038813090
+    - rid: 7302563239038813091
+    - rid: 7302563239038813092
+    - rid: 7302563239038813093
+    - rid: 7302563239038813094
+    - rid: 7302563239038813095
+    - rid: 7302563239038813096
+    - rid: 7302563239038813097
   width: 2
   height: 1
   layer: 1
@@ -67,12 +67,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602456
+    - rid: 7302563239038813087
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: H04
-    - rid: 7302562995605602457
+    - rid: 7302563239038813088
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -80,11 +80,22 @@ MonoBehaviour:
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602459
+    - rid: 7302563239038813089
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 260
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 40972
+          disabledWhenDamaged: 1
+    - rid: 7302563239038813090
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302562995605602460
+    - rid: 7302563239038813091
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -99,7 +110,7 @@ MonoBehaviour:
           - key: Rest
             value: 2
           metrics: []
-    - rid: 7302562995605602461
+    - rid: 7302563239038813092
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -110,46 +121,35 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 85
-    - rid: 7302562995605602462
+    - rid: 7302563239038813093
       type: {class: BuildingCleaningAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
-    - rid: 7302563106683093102
-      type: {class: BuildingWaterSourceAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingWaterSourceAbility
-        waterPerWork: 6
-        workSeconds: 1.2
-        blockedByFreezingWeather: 1
-    - rid: 7302563106683093103
-      type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingMedicalAbility
-        workSeconds: 1.1
-        severityReduction: 0.28
-        requiresMedicine: 0
-    - rid: 7302563106683093104
-      type: {class: BuildingVentilationAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingVentilationAbility
-        hygieneRiskReduction: 16
-        smokeRiskReduction: 6
-    - rid: 7302563106683093105
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 260
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 40972
-          disabledWhenDamaged: 1
-    - rid: 7302563133342875893
+    - rid: 7302563239038813094
       type: {class: BuildingExpeditionRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingExpeditionRecoveryAbility
         healthHealRatio: 0.08
         injuryReduction: 0.12
         stressRecovery: 26
+    - rid: 7302563239038813095
+      type: {class: BuildingWaterSourceAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWaterSourceAbility
+        waterPerWork: 6
+        workSeconds: 1.2
+        blockedByFreezingWeather: 1
+    - rid: 7302563239038813096
+      type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingMedicalAbility
+        workSeconds: 1.1
+        severityReduction: 0.28
+        requiresMedicine: 0
+    - rid: 7302563239038813097
+      type: {class: BuildingVentilationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingVentilationAbility
+        hygieneRiskReduction: 16
+        smokeRiskReduction: 6

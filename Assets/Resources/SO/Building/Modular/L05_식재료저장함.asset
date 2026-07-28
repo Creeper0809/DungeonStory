@@ -42,11 +42,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: a3446c7c133c53547890206a6ff6a40d, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602463
-    - rid: 7302562995605602464
-    - rid: 7302562995605602465
-    - rid: 7302562995605602466
-    - rid: 7302563106683093106
+    - rid: 7302563239038813098
+    - rid: 7302563239038813099
+    - rid: 7302563239038813100
+    - rid: 7302563239038813101
+    - rid: 7302563239038813102
   width: 1
   height: 1
   layer: 1
@@ -61,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602463
+    - rid: 7302563239038813098
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: L05
-    - rid: 7302562995605602464
+    - rid: 7302563239038813099
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,7 +74,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602465
+    - rid: 7302563239038813100
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -89,14 +89,14 @@ MonoBehaviour:
           - key: Cooking
             value: 2
           metrics: []
-    - rid: 7302562995605602466
+    - rid: 7302563239038813101
       type: {class: BuildingStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingStorageAbility
         category: 0
         capacity: 20
         allCategories: 0
-    - rid: 7302563106683093106
+    - rid: 7302563239038813102
       type: {class: BuildingPreservationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPreservationAbility

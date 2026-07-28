@@ -21,6 +21,16 @@ public class AIWork : AIActionSet
     public override float MinimumDuration => minimumDuration;
     public override int InterruptPriority => workInterruptPriority;
 
+    public override void PrepareScoreContext(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        if (actor != null && actor.TryGetAbility(out AbilityWork work))
+        {
+            work.SeedDecisionContext(in context);
+        }
+    }
+
     public override float AdjustScore(CharacterActor actor, float baseScore)
     {
         if (actor == null || !actor.TryGetAbility(out AbilityWork work))
@@ -40,6 +50,19 @@ public class AIWork : AIActionSet
         return Mathf.Clamp01(baseScore * availableWorkWeight);
     }
 
+    public override float AdjustScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        float baseScore)
+    {
+        if (actor != null && actor.TryGetAbility(out AbilityWork work))
+        {
+            work.SeedDecisionContext(in context);
+        }
+
+        return AdjustScore(actor, baseScore);
+    }
+
     public override bool CanStart(CharacterActor actor)
     {
         if (actor == null || !actor.TryGetAbility(out AbilityWork work))
@@ -50,6 +73,18 @@ public class AIWork : AIActionSet
         return TryResolveWorkTypeId(actor, out WorkTypeId workTypeId)
             ? work.CanStartWorkAction(workTypeId, null)
             : work.CanStartAnyWorkAction(null);
+    }
+
+    public override bool CanStart(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        if (actor != null && actor.TryGetAbility(out AbilityWork work))
+        {
+            work.SeedDecisionContext(in context);
+        }
+
+        return CanStart(actor);
     }
 
     public override bool CanContinue(CharacterActor actor, AIAction runningAction, out string stopReason)
@@ -156,6 +191,55 @@ public class AIWork : AIActionSet
         return found
             ? new List<BuildableObject> { candidate.Building }
             : new List<BuildableObject>();
+    }
+
+    public override bool TryResolveDestinationWithFailure(
+        CharacterActor actor,
+        GridPathSearchResult searchResult,
+        out BuildableObject destination,
+        out AIActionFailure failure)
+    {
+        destination = null;
+        failure = AIActionFailure.None;
+        if (actor == null || !actor.TryGetAbility(out AbilityWork work))
+        {
+            failure = AIActionFailure.Create(
+                AIActionFailureKind.NoDestination);
+            return false;
+        }
+
+        if (CanHandleSuppressCommand()
+            && work.TryGetPrioritySuppressDestination(
+                searchResult,
+                out destination))
+        {
+            return destination != null && !destination.isDestroy;
+        }
+
+        WorkTargetCandidate candidate;
+        bool found = TryResolveWorkTypeId(actor, out WorkTypeId workTypeId)
+            ? work.TryGetBestWorkCandidate(
+                workTypeId,
+                searchResult,
+                out candidate)
+            : work.TryGetBestAnyWorkCandidate(
+                searchResult,
+                out candidate);
+        if (!found || candidate.Building == null || candidate.Building.isDestroy)
+        {
+            AIActionFailureKind failureKind =
+                candidate.FailureKind != AIActionFailureKind.None
+                    ? candidate.FailureKind
+                    : AIActionFailureKind.NoDestination;
+            failure = AIActionFailure.Create(
+                failureKind,
+                candidate.FailureReason,
+                candidate.Building);
+            return false;
+        }
+
+        destination = candidate.Building;
+        return true;
     }
 
     private bool CanHandleSuppressCommand()

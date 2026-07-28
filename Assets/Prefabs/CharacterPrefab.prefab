@@ -252,7 +252,7 @@ MonoBehaviour:
   bestAction:
     actionset: {fileID: 0}
     startedAt: -1
-  isBestActionEnd: 1
+  decisionPending: 1
   isExecuted: 0
   actionFailureCooldown: 1
   actionSwitchScoreMargin: 0.12

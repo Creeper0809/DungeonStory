@@ -27,7 +27,10 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
     public bool SupportsRapid => supportsRapid;
     public bool SupportsSuppressive => supportsSuppressive;
 
-    public CombatWeaponSnapshot CreateSnapshot(CombatEquipmentInstance instance, int verbIndex = 0)
+    public CombatWeaponSnapshot CreateSnapshot(
+        CombatEquipmentInstance instance,
+        int verbIndex = 0,
+        CraftMaterialDefinitionSO material = null)
     {
         CombatAttackVerb verb = Verbs.Count > 0
             ? Verbs[Mathf.Clamp(verbIndex, 0, Verbs.Count - 1)]
@@ -46,6 +49,8 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
             ReloadSeconds,
             SupportsAimed,
             SupportsRapid,
-            SupportsSuppressive);
+            SupportsSuppressive,
+            material?.DamageMultiplier ?? 1f,
+            material?.PenetrationDefenseMultiplier ?? 1f);
     }
 }

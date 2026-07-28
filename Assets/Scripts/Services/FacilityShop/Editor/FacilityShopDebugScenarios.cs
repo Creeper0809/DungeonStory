@@ -25,7 +25,7 @@ public static class FacilityShopDebugScenarios
         RunScenario("일일 상품 시설/설계도 포함", VerifyDailyOffersContainBuildingAndBlueprint, errors);
         RunScenario("희귀 상품 랜덤 등장", VerifyRareOffersAppearRandomly, errors);
         RunScenario("기본 구매 해금", VerifyBasicPurchaseUnlocksLowStarsOnly, errors);
-        RunScenario("시설 구매", VerifyBuildingPurchaseUsesMoneyAndUnlocksBuilding, errors);
+        RunScenario("시설 구매 시 정적 자산 보존", VerifyBuildingPurchasePreservesStaticAsset, errors);
         RunScenario("설계도 구매", VerifyBlueprintPurchaseUsesMoneyAndRecordsBlueprint, errors);
         RunScenario("표시 이름과 시설 등급 분리", VerifyBuildingStarUsesQualityAbility, errors);
         RunScenario("새 상품 타입 다형 구매", VerifyCustomOfferPurchasesWithoutServiceBranch, errors);
@@ -153,7 +153,7 @@ public static class FacilityShopDebugScenarios
         return valid;
     }
 
-    private static bool VerifyBuildingPurchaseUsesMoneyAndUnlocksBuilding()
+    private static bool VerifyBuildingPurchasePreservesStaticAsset()
     {
         BuildingSO source = LoadBuilding("P1_GuardRoom");
         BuildingSO building = Object.Instantiate(source);
@@ -174,7 +174,7 @@ public static class FacilityShopDebugScenarios
             && result.success
             && result.TryGetBuilding(out BuildingSO purchasedBuilding)
             && purchasedBuilding == building
-            && building.unlocked
+            && !building.unlocked
             && gameData.holdingMoney.Value == 380
             && result.message.Contains("구매 완료");
 

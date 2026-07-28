@@ -377,6 +377,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
         return Mathf.Max(1f, (verb.baseDamage + statDamage)
             * rangeDamage
             * quality
+            * weapon.MaterialDamageMultiplier
             * Mathf.Max(0.01f, request.Attacker.HealthMultiplier)
             * Mathf.Max(0.01f, request.AttackPowerMultiplier));
     }
@@ -425,7 +426,9 @@ public sealed class CombatResolutionService : ICombatResolutionService
         }
 
         float penetration = Mathf.Max(0f, verb.penetration)
-            * CombatQualityRules.GetMultiplier(request.Weapon?.Quality ?? CombatEquipmentQuality.Normal);
+            * CombatQualityRules.GetMultiplier(
+                request.Weapon?.Quality ?? CombatEquipmentQuality.Normal)
+            * (request.Weapon?.MaterialPenetrationMultiplier ?? 1f);
         List<CombatArmorSnapshot> layers = new List<CombatArmorSnapshot>(5);
         for (int i = 0; i < request.DefenderArmor.Count; i++)
         {

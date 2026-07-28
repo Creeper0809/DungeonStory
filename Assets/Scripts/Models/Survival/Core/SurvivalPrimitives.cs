@@ -3,11 +3,29 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum MealDietClass
+{
+    Vegan = 0,
+    Vegetarian = 1,
+    Mixed = 2,
+    Carnivore = 3
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum MealQualityTier
+{
+    Simple = 0,
+    Fine = 1,
+    Lavish = 2,
+    Preserved = 3
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonSurvivalSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public int version = CurrentVersion;
     public int lastProcessedDay;
@@ -42,6 +60,13 @@ public sealed class CharacterMealLedgerSaveData
     public string mealId = string.Empty;
     public string characterId = string.Empty;
     public string facilityId = string.Empty;
+    public string itemId = string.Empty;
+    public string displayName = string.Empty;
+    public MealDietClass dietClass = MealDietClass.Vegan;
+    public MealQualityTier quality = MealQualityTier.Simple;
+    public float nutrition;
+    public bool policyViolation;
+    public bool contaminated;
     public int day;
     public int amount = 1;
 }
@@ -55,10 +80,46 @@ public readonly struct CharacterMealConsumedEvent
         string facilityId,
         int day,
         int amount)
+        : this(
+            mealId,
+            characterId,
+            facilityId,
+            string.Empty,
+            string.Empty,
+            MealDietClass.Vegan,
+            MealQualityTier.Simple,
+            0f,
+            false,
+            false,
+            day,
+            amount)
+    {
+    }
+
+    public CharacterMealConsumedEvent(
+        string mealId,
+        string characterId,
+        string facilityId,
+        string itemId,
+        string displayName,
+        MealDietClass dietClass,
+        MealQualityTier quality,
+        float nutrition,
+        bool policyViolation,
+        bool contaminated,
+        int day,
+        int amount)
     {
         MealId = mealId ?? string.Empty;
         CharacterId = characterId ?? string.Empty;
         FacilityId = facilityId ?? string.Empty;
+        ItemId = itemId ?? string.Empty;
+        DisplayName = displayName ?? string.Empty;
+        DietClass = dietClass;
+        Quality = quality;
+        Nutrition = Mathf.Max(0f, nutrition);
+        PolicyViolation = policyViolation;
+        Contaminated = contaminated;
         Day = Mathf.Max(1, day);
         Amount = Mathf.Max(1, amount);
     }
@@ -66,6 +127,13 @@ public readonly struct CharacterMealConsumedEvent
     public string MealId { get; }
     public string CharacterId { get; }
     public string FacilityId { get; }
+    public string ItemId { get; }
+    public string DisplayName { get; }
+    public MealDietClass DietClass { get; }
+    public MealQualityTier Quality { get; }
+    public float Nutrition { get; }
+    public bool PolicyViolation { get; }
+    public bool Contaminated { get; }
     public int Day { get; }
     public int Amount { get; }
 }

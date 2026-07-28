@@ -221,6 +221,7 @@ internal static class CharacterAiEditorTestDependencies
             null,
             null,
             null,
+            null,
             GameClock);
     }
 
@@ -358,6 +359,7 @@ internal static class CharacterAiEditorTestDependencies
             WorldInfo,
             FacilityCandidates,
             RoomPolicy,
+            worldRegistry: WorldRegistry,
             abilityRuntimeDispatcher: BuildingAbilities,
             gameClock: GameClock);
         building?.ConstructBuildableObjectEventBus(GameEvents);
@@ -413,7 +415,8 @@ internal static class CharacterAiEditorTestDependencies
         public bool ShouldShowCharacterFeedback(CharacterActor actor) => false;
         public bool ShouldCollectDetailedDiagnostics(CharacterActor actor) => true;
         public int GetMovementFrameStride(CharacterActor actor) => 1;
-        public double GetDecisionWorkSliceMilliseconds(CharacterActor actor) => 0.25;
+        public double GetDecisionWorkSliceMilliseconds(CharacterActor actor) =>
+            double.PositiveInfinity;
         public void ResetPathSearchBudgetForDebug() { }
     }
 
@@ -472,6 +475,7 @@ internal static class CharacterAiEditorTestDependencies
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None);
             GridSystemManager scenarioManager = null;
+            GridSystemManager staffScenarioManager = null;
             for (int index = 0; index < managers.Length; index++)
             {
                 GridSystemManager candidate = managers[index];
@@ -488,10 +492,19 @@ internal static class CharacterAiEditorTestDependencies
                     scenarioManager = candidate;
                     break;
                 }
+
+                if (objectName.EndsWith(
+                        " GridSystem",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    staffScenarioManager = candidate;
+                }
             }
 
             cachedManager = scenarioManager != null
                 ? scenarioManager
+                : staffScenarioManager != null
+                    ? staffScenarioManager
                 : managers.Length > 0
                     ? managers[0]
                     : null;

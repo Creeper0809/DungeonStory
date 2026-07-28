@@ -42,12 +42,13 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 1f00fc8c03658f646be863afaa640006, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602383
-    - rid: 7302562995605602384
-    - rid: 7302562995605602385
-    - rid: 7302562995605602386
-    - rid: 7302563106683093088
-    - rid: 7302563106683093089
+    - rid: 7302563239038813025
+    - rid: 7302563239038813026
+    - rid: 7302563239038813027
+    - rid: 7302563239038813028
+    - rid: 7302563239038813029
+    - rid: 7302563239038813030
+    - rid: 7302563239038813031
   width: 2
   height: 1
   layer: 1
@@ -62,12 +63,18 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602383
+    - rid: 7302563239038813025
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D03
-    - rid: 7302562995605602384
+    - rid: 7302563239038813026
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - cookbench
+    - rid: 7302563239038813027
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +82,18 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602385
+    - rid: 7302563239038813028
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 0
+          useDuration: 0
+          requiredWorkers: 1
+          supportedWorkTypes: 16384
+          disabledWhenDamaged: 1
+    - rid: 7302563239038813029
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -90,14 +108,14 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7302562995605602386
+    - rid: 7302563239038813030
       type: {class: BuildingServiceAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceAbility
         capacity: 1
         contributesStockCategory: 1
         stockCategory: 0
-    - rid: 7302563106683093088
+    - rid: 7302563239038813031
       type: {class: BuildingCookingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCookingAbility
@@ -105,14 +123,3 @@ MonoBehaviour:
         cookedMeals: 1
         workSeconds: 1
         requiresFuel: 0
-    - rid: 7302563106683093089
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 0
-          capacity: 1
-          useDuration: 1
-          requiredWorkers: 1
-          supportedWorkTypes: 16384
-          disabledWhenDamaged: 1

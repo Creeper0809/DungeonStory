@@ -126,8 +126,7 @@ public sealed class CharacterNeedDefinition
     {
         CharacterStats stats = actor != null ? actor.Stats : null;
         if (stats == null
-            || stats.Stats == null
-            || !stats.Stats.TryGetValue(Condition, out float value))
+            || !stats.TryGetConditionValue(Condition, out float value))
         {
             return 0.5f;
         }
@@ -279,8 +278,10 @@ public static class CharacterNeedCatalog
     {
         strongest = null;
         urgency = 0f;
-        foreach (CharacterNeedDefinition definition in All)
+        IReadOnlyList<CharacterNeedDefinition> definitions = All;
+        for (int i = 0; i < definitions.Count; i++)
         {
+            CharacterNeedDefinition definition = definitions[i];
             if (!definition.HasTag(requiredTag))
             {
                 continue;

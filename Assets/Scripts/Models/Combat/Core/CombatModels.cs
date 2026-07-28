@@ -183,6 +183,7 @@ public sealed class CombatEquipmentInstance
 {
     public string instanceId = string.Empty;
     public string definitionId = string.Empty;
+    public string materialId = string.Empty;
     public CombatEquipmentQuality quality = CombatEquipmentQuality.Normal;
     [Range(0f, 1f)] public float durabilityRatio = 1f;
     [Min(0)] public int loadedAmmo;
@@ -194,6 +195,42 @@ public sealed class CombatEquipmentInstance
     {
         return (CombatEquipmentInstance)MemberwiseClone();
     }
+}
+
+public readonly struct CombatEquipmentDerivedStats
+{
+    public CombatEquipmentDerivedStats(
+        string definitionId,
+        string materialId,
+        string displayName,
+        float weight,
+        float maxDurability,
+        float damageMultiplier,
+        float penetrationDefenseMultiplier,
+        float valueMultiplier,
+        Color tint)
+    {
+        DefinitionId = definitionId ?? string.Empty;
+        MaterialId = materialId ?? string.Empty;
+        DisplayName = displayName ?? string.Empty;
+        Weight = Mathf.Max(0f, weight);
+        MaxDurability = Mathf.Max(1f, maxDurability);
+        DamageMultiplier = Mathf.Max(0.01f, damageMultiplier);
+        PenetrationDefenseMultiplier =
+            Mathf.Max(0.01f, penetrationDefenseMultiplier);
+        ValueMultiplier = Mathf.Max(0.01f, valueMultiplier);
+        Tint = tint;
+    }
+
+    public string DefinitionId { get; }
+    public string MaterialId { get; }
+    public string DisplayName { get; }
+    public float Weight { get; }
+    public float MaxDurability { get; }
+    public float DamageMultiplier { get; }
+    public float PenetrationDefenseMultiplier { get; }
+    public float ValueMultiplier { get; }
+    public Color Tint { get; }
 }
 
 [Serializable]
@@ -334,7 +371,8 @@ public readonly struct CombatArmorSnapshot
         float durabilityRatio,
         float slashDefense,
         float pierceDefense,
-        float bluntDefense)
+        float bluntDefense,
+        float materialDefenseMultiplier = 1f)
     {
         InstanceId = instanceId ?? string.Empty;
         BodyPart = bodyPart;
@@ -344,6 +382,7 @@ public readonly struct CombatArmorSnapshot
         SlashDefense = Mathf.Max(0f, slashDefense);
         PierceDefense = Mathf.Max(0f, pierceDefense);
         BluntDefense = Mathf.Max(0f, bluntDefense);
+        MaterialDefenseMultiplier = Mathf.Max(0.01f, materialDefenseMultiplier);
     }
 
     public string InstanceId { get; }
@@ -354,6 +393,7 @@ public readonly struct CombatArmorSnapshot
     public float SlashDefense { get; }
     public float PierceDefense { get; }
     public float BluntDefense { get; }
+    public float MaterialDefenseMultiplier { get; }
 
     public float GetDefense(CombatDamageType damageType)
     {
@@ -364,7 +404,10 @@ public readonly struct CombatArmorSnapshot
             _ => SlashDefense
         };
         float wornMultiplier = Mathf.Lerp(0.35f, 1f, DurabilityRatio);
-        return baseDefense * CombatQualityRules.GetMultiplier(Quality) * wornMultiplier;
+        return baseDefense
+            * CombatQualityRules.GetMultiplier(Quality)
+            * wornMultiplier
+            * MaterialDefenseMultiplier;
     }
 }
 
@@ -390,7 +433,8 @@ public readonly struct CombatShieldSnapshot
         float incomingAngleDegrees,
         float slashDefense,
         float pierceDefense,
-        float bluntDefense)
+        float bluntDefense,
+        float materialDefenseMultiplier = 1f)
     {
         InstanceId = instanceId ?? string.Empty;
         Quality = quality;
@@ -400,6 +444,7 @@ public readonly struct CombatShieldSnapshot
         SlashDefense = Mathf.Max(0f, slashDefense);
         PierceDefense = Mathf.Max(0f, pierceDefense);
         BluntDefense = Mathf.Max(0f, bluntDefense);
+        MaterialDefenseMultiplier = Mathf.Max(0.01f, materialDefenseMultiplier);
     }
 
     public string InstanceId { get; }
@@ -410,6 +455,7 @@ public readonly struct CombatShieldSnapshot
     public float SlashDefense { get; }
     public float PierceDefense { get; }
     public float BluntDefense { get; }
+    public float MaterialDefenseMultiplier { get; }
     public bool IsValid => !string.IsNullOrWhiteSpace(InstanceId) && DurabilityRatio > 0f;
 
     public float GetBlockChance()
@@ -436,7 +482,8 @@ public readonly struct CombatShieldSnapshot
         };
         return defense
             * Mathf.Lerp(0.35f, 1f, DurabilityRatio)
-            * CombatQualityRules.GetMultiplier(Quality);
+            * CombatQualityRules.GetMultiplier(Quality)
+            * MaterialDefenseMultiplier;
     }
 }
 

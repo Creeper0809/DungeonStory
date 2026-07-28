@@ -1,0 +1,11 @@
+# Crop Plot Runtime Verification
+utc=2026-07-28T12:20:31.0066721Z
+playMode=True
+plot=crop-plot:1095:4:0
+crop=crop:twilight-grain
+materials=stock-item:4x1
+harvest=0->6
+indoorPlot=crop-plot:1096:8:0
+indoorMaterials=stock-item:4x1,material:compostx1,stock-item:6x1
+indoorPhase=Growing
+valid=true

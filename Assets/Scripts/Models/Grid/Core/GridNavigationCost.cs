@@ -111,7 +111,13 @@ internal readonly struct GridSearchQueueNode
 
 internal sealed class GridSearchPriorityQueue
 {
-    private GridSearchQueueNode[] nodes = new GridSearchQueueNode[256];
+    private GridSearchQueueNode[] nodes;
+
+    public GridSearchPriorityQueue(int initialCapacity = 256)
+    {
+        nodes = new GridSearchQueueNode[
+            Mathf.NextPowerOfTwo(Mathf.Max(1, initialCapacity))];
+    }
 
     public int Count { get; private set; }
 

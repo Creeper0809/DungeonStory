@@ -144,9 +144,9 @@ public static class ModularFacilityAssetBuilder
     public static void BuildAll()
     {
         FacilityPartSpec[] specs = CreateSpecs();
-        if (specs.Length != 73)
+        if (specs.Length != 98)
         {
-            throw new InvalidOperationException($"Modular facility catalog must contain 73 parts, found {specs.Length}.");
+            throw new InvalidOperationException($"Modular facility catalog must contain 98 parts, found {specs.Length}.");
         }
 
         EnsureFolder(SpriteFolder);
@@ -338,8 +338,15 @@ public static class ModularFacilityAssetBuilder
         building.movementAnchorOffset = Vector2.zero;
         building.movementTravelTime = 2f;
         building.ReplaceAbilities(CreateAbilities(spec));
-        building.unlocked = true;
+        building.unlocked = !IsResearchProductionStation(spec.Code);
         EditorUtility.SetDirty(building);
+    }
+
+    private static bool IsResearchProductionStation(string code)
+    {
+        return !string.IsNullOrWhiteSpace(code)
+            && code.StartsWith("P", StringComparison.Ordinal)
+            && code.Length == 3;
     }
 
     private static BuildingAbilityCollection CreateAbilities(FacilityPartSpec spec)
@@ -347,6 +354,10 @@ public static class ModularFacilityAssetBuilder
         BuildingAbilityCollection abilities = new BuildingAbilityCollection();
         bool hasSurvivalWork = GetSurvivalWorkTypes(spec.Code) != FacilityWorkType.None;
         AddAbility(abilities, new BuildingFacilityPartAbility { code = spec.Code });
+        string[] productionTags = GetProductionFacilityTags(spec.Code);
+        AddAbility(abilities, productionTags.Length > 0
+            ? new BuildingSemanticTagsAbility { tags = productionTags }
+            : null);
         AddAbility(abilities, EnsureEconomyAbility(spec));
         AddAbility(abilities, spec.Core || hasSurvivalWork
             ? new BuildingFacilityAbility { settings = CreateFacilityData(spec) }
@@ -383,8 +394,71 @@ public static class ModularFacilityAssetBuilder
         AddAbility(abilities, CreateFuelConsumerAbility(spec.Code));
         AddAbility(abilities, CreateTemperatureAbility(spec.Code));
         AddAbility(abilities, CreateVentilationAbility(spec.Code));
+        AddAbility(abilities, CreateCropPlotAbility(spec.Code));
 
         return abilities;
+    }
+
+    private static string[] GetProductionFacilityTags(string code)
+    {
+        return code switch
+        {
+            "D03" or "P15" => new[] { "cookbench" },
+            "D12" or "P02" => new[] { "brewery" },
+            "Q02" or "P19" => new[] { "alchemy" },
+            "S08" or "P21" => new[] { "forge" },
+            "P01" => new[] { "mill" },
+            "P03" => new[] { "sawmill" },
+            "P04" => new[] { "charcoal-kiln" },
+            "P05" => new[] { "stonecutter" },
+            "P06" => new[] { "ore-sorter" },
+            "P07" => new[] { "furnace" },
+            "P08" => new[] { "steelworks" },
+            "P09" => new[] { "jeweler" },
+            "P10" => new[] { "arcane-forge" },
+            "P11" => new[] { "loom" },
+            "P12" => new[] { "tannery" },
+            "P13" => new[] { "composter" },
+            "P14" => new[] { "distillery" },
+            "P16" => new[] { "smoker" },
+            "P17" => new[] { "feedbench" },
+            "P18" => new[] { "apothecary" },
+            "P20" => new[] { "arcane-loom" },
+            "P22" => new[] { "quarry" },
+            "P23" => new[] { "crop-plot", "crop-outdoor" },
+            "P24" => new[] { "crop-plot", "crop-indoor" },
+            "P25" => new[] { "incinerator" },
+            "R07" => new[] { "grand-project-office" },
+            _ => Array.Empty<string>()
+        };
+    }
+
+    private static BuildingCropPlotAbility CreateCropPlotAbility(string code)
+    {
+        BuildingCropPlotAbility ability;
+        switch (code)
+        {
+            case "P23":
+                ability = new BuildingCropPlotAbility();
+                ability.Configure(
+                    isIndoor: false,
+                    growthRate: 1f,
+                    waterRate: 1f,
+                    compost: 0,
+                    fuel: 0);
+                return ability;
+            case "P24":
+                ability = new BuildingCropPlotAbility();
+                ability.Configure(
+                    isIndoor: true,
+                    growthRate: 1.25f,
+                    waterRate: 0.85f,
+                    compost: 1,
+                    fuel: 1);
+                return ability;
+            default:
+                return null;
+        }
     }
 
     private static void AddAbility(BuildingAbilityCollection abilities, BuildingAbility ability)
@@ -773,6 +847,12 @@ public static class ModularFacilityAssetBuilder
         if ((workTypes & FacilityWorkType.Cook) != 0) yield return BuiltInWorkTypeIds.Cook;
         if ((workTypes & FacilityWorkType.Treat) != 0) yield return BuiltInWorkTypeIds.Treat;
         if ((workTypes & FacilityWorkType.Refuel) != 0) yield return BuiltInWorkTypeIds.Refuel;
+        if ((workTypes & FacilityWorkType.Gather) != 0) yield return BuiltInWorkTypeIds.Gather;
+        if ((workTypes & FacilityWorkType.Sow) != 0) yield return BuiltInWorkTypeIds.Sow;
+        if ((workTypes & FacilityWorkType.Harvest) != 0) yield return BuiltInWorkTypeIds.Harvest;
+        if ((workTypes & FacilityWorkType.Logging) != 0) yield return BuiltInWorkTypeIds.Logging;
+        if ((workTypes & FacilityWorkType.Quarry) != 0) yield return BuiltInWorkTypeIds.Quarry;
+        if ((workTypes & FacilityWorkType.AnimalCare) != 0) yield return BuiltInWorkTypeIds.AnimalCare;
     }
 
     private static FacilityWorkType GetSurvivalFallbackWorkTypes(BuildingSO building)
@@ -1087,7 +1167,7 @@ public static class ModularFacilityAssetBuilder
             Core("R04", "휴식용소파", 2, GridLayer.Building, BuildingCategory.Special, FacilityRole.Rest, FacilityWorkType.Rest | FacilityWorkType.Repair, VisualForm.Sofa, Traits(FacilityEvolutionTerms.Rest), capacity: 2),
             Support("R05", "협탁", 1, GridLayer.Building, BuildingCategory.Special, VisualForm.Table, Traits(FacilityEvolutionTerms.Luxury, FacilityEvolutionTerms.Quiet), phase: 2),
             Support("R06", "옷장", 1, GridLayer.Building, BuildingCategory.Special, VisualForm.Cabinet, Traits(FacilityEvolutionTerms.Storage, FacilityEvolutionTerms.Luxury), phase: 2),
-            Core("R07", "영주집무책상", 2, GridLayer.Building, BuildingCategory.Special, FacilityRole.Administration, FacilityWorkType.Operate | FacilityWorkType.Repair, VisualForm.Desk, Traits("Administration", FacilityEvolutionTerms.Service)),
+            Core("R07", "영주집무책상", 2, GridLayer.Building, BuildingCategory.Special, FacilityRole.Administration, FacilityWorkType.Operate | FacilityWorkType.Repair | FacilityWorkType.GrandProject, VisualForm.Desk, Traits("Administration", FacilityEvolutionTerms.Service)),
             Support("R08", "지휘의자", 1, GridLayer.Building, BuildingCategory.Special, VisualForm.Chair, Traits("Administration", FacilityEvolutionTerms.Noble, FacilityEvolutionTerms.Luxury)),
             Support("R09", "개인보관함", 1, GridLayer.Building, BuildingCategory.Special, VisualForm.Cabinet, Traits(FacilityEvolutionTerms.Storage)),
             Support("R10", "침실용책장", 1, GridLayer.Building, BuildingCategory.Special, VisualForm.Shelf, Traits(FacilityEvolutionTerms.Quiet, FacilityEvolutionTerms.Research), phase: 2),
@@ -1140,7 +1220,33 @@ public static class ModularFacilityAssetBuilder
             Support("E06", "액자초상화", 1, GridLayer.WallFixture, BuildingCategory.Resource, VisualForm.Portrait, Traits(FacilityEvolutionTerms.Luxury, FacilityEvolutionTerms.Noble), phase: 2),
             Support("E07", "촛대", 1, GridLayer.Building, BuildingCategory.Resource, VisualForm.Candlestick, Traits(FacilityEvolutionTerms.Quiet, FacilityEvolutionTerms.Luxury)),
             Support("E08", "해골피장식", 1, GridLayer.WallFixture, BuildingCategory.Resource, VisualForm.Skull, Traits(FacilityEvolutionTerms.Brutal, FacilityEvolutionTerms.Fear), phase: 3),
-            Support("E09", "방표지판", 1, GridLayer.WallFixture, BuildingCategory.Resource, VisualForm.Sign, Array.Empty<string>(), contributesToRoom: false, phase: 2)
+            Support("E09", "방표지판", 1, GridLayer.WallFixture, BuildingCategory.Resource, VisualForm.Sign, Array.Empty<string>(), contributesToRoom: false, phase: 2),
+
+            Core("P01", "제분소", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Grain"), phase: 1),
+            Core("P02", "양조장", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Barrels, Traits("Production", "Fermentation"), phase: 2),
+            Core("P03", "제재소", 3, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Wood"), phase: 1),
+            Core("P04", "숯가마", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Hearth, Traits("Production", "Fuel"), phase: 2),
+            Core("P05", "석재 절단대", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Stone"), phase: 1),
+            Core("P06", "광석 선별대", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Table, Traits("Production", "Ore"), phase: 2),
+            Core("P07", "용광로", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Hearth, Traits("Production", "Metal"), phase: 2),
+            Core("P08", "제강로", 3, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Hearth, Traits("Production", "Steel"), phase: 2),
+            Core("P09", "귀금 세공대", 2, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", FacilityEvolutionTerms.Luxury), phase: 3),
+            Core("P10", "비전 단조대", 3, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.Mana, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Rune, Traits("Production", FacilityEvolutionTerms.Mana), phase: 3),
+            Core("P11", "직조기", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Textile"), phase: 1),
+            Core("P12", "무두질대", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Leather"), phase: 1),
+            Core("P13", "퇴비장", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Crates, Traits("Production", FacilityEvolutionTerms.Hygiene), phase: 1),
+            Core("P14", "증류기", 2, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Rune, Traits("Production", "Distillation"), phase: 2),
+            Core("P15", "조리대", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Cook | FacilityWorkType.Craft | FacilityWorkType.Clean | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Cooking"), phase: 1),
+            Core("P16", "훈연대", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Cook | FacilityWorkType.Repair, VisualForm.Hearth, Traits("Production", "Preservation"), phase: 2),
+            Core("P17", "사료 배합대", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Feed"), phase: 1),
+            Core("P18", "약제대", 2, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Cabinet, Traits("Production", "Medicine"), phase: 2),
+            Core("P19", "연금대", 2, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.Research | FacilityRole.Mana, FacilityWorkType.Craft | FacilityWorkType.Research | FacilityWorkType.Repair, VisualForm.Rune, Traits("Production", FacilityEvolutionTerms.Research, FacilityEvolutionTerms.Mana), phase: 2),
+            Core("P20", "몽직기", 2, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.Mana, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Rune, Traits("Production", "Textile", FacilityEvolutionTerms.Mana), phase: 3),
+            Core("P21", "대장간", 3, GridLayer.Building, BuildingCategory.Crafting, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", FacilityEvolutionTerms.Combat), phase: 1),
+            Core("P22", "심부 채석장", 3, GridLayer.Building, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Quarry | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Mining"), phase: 2),
+            Core("P23", "야외 경작지", 3, GridLayer.FloorOverlay, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Repair, VisualForm.Mat, Traits("Production", "Agriculture"), phase: 1),
+            Core("P24", "실내 재배조", 3, GridLayer.Building, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Sow | FacilityWorkType.Harvest | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Agriculture"), phase: 2),
+            Core("P25", "폐기 소각로", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Clean | FacilityWorkType.Repair, VisualForm.Hearth, Traits("Production", "Waste", FacilityEvolutionTerms.Hygiene), phase: 1)
         };
     }
     private static FacilityPartSpec Core(

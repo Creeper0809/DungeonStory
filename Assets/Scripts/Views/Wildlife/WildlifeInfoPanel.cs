@@ -13,6 +13,7 @@ public sealed class WildlifeInfoPanel : UIPopUp
     private IDungeonItemCatalogProvider itemCatalogProvider;
     private IWildlifeHuntCommandService huntCommandService;
     private IWildlifeCaptureRuntime captureRuntime;
+    private IAnimalHusbandryRuntime husbandryRuntime;
     private ICharacterAiWorldRegistry worldRegistry;
     private GameObject uiRoot;
     private TMP_Text titleText;
@@ -35,6 +36,7 @@ public sealed class WildlifeInfoPanel : UIPopUp
         IDungeonItemCatalogProvider itemCatalogProvider,
         IWildlifeHuntCommandService huntCommandService,
         IWildlifeCaptureRuntime captureRuntime,
+        IAnimalHusbandryRuntime husbandryRuntime,
         ICharacterAiWorldRegistry worldRegistry)
     {
         this.popupService = popupService ?? throw new ArgumentNullException(nameof(popupService));
@@ -45,6 +47,8 @@ public sealed class WildlifeInfoPanel : UIPopUp
             ?? throw new ArgumentNullException(nameof(huntCommandService));
         this.captureRuntime = captureRuntime
             ?? throw new ArgumentNullException(nameof(captureRuntime));
+        this.husbandryRuntime = husbandryRuntime
+            ?? throw new ArgumentNullException(nameof(husbandryRuntime));
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
     }
@@ -216,17 +220,18 @@ public sealed class WildlifeInfoPanel : UIPopUp
             Render();
         });
         CreateBottomButton(parent, 3, "생포·방생", ToggleCapture);
+        CreateBottomButton(parent, 4, "도축 지정", ToggleSlaughter);
     }
 
     private void CreateBottomButton(Transform parent, int index, string label, Action action)
     {
         Button button = CreateButton("Action_" + index, parent, label, action);
         RectTransform rect = button.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(index / 4f, 0f);
-        rect.anchorMax = new Vector2((index + 1) / 4f, 0f);
+        rect.anchorMin = new Vector2(index / 5f, 0f);
+        rect.anchorMax = new Vector2((index + 1) / 5f, 0f);
         rect.pivot = new Vector2(0.5f, 0f);
         rect.offsetMin = new Vector2(index == 0 ? 18f : 8f, 22f);
-        rect.offsetMax = new Vector2(index == 3 ? -18f : -8f, 66f);
+        rect.offsetMax = new Vector2(index == 4 ? -18f : -8f, 66f);
     }
 
     private void Render()
@@ -265,6 +270,7 @@ public sealed class WildlifeInfoPanel : UIPopUp
             + $"예약자 {FormatEmpty(current.ReservedByPersistentId)}\n"
             + $"사냥 지정 {(current.HuntDesignated ? (current.PriorityHunt ? "우선" : "지정됨") : "없음")}\n"
             + $"수용 상태 {FormatCaptureState(current.WildlifeId)}"
+            + FormatHusbandryState(current.WildlifeId)
             + (string.IsNullOrWhiteSpace(actionMessage)
                 ? string.Empty
                 : $"\n{actionMessage}");
@@ -310,6 +316,65 @@ public sealed class WildlifeInfoPanel : UIPopUp
             ? "가장 가까운 야수 우리로 생포·운반을 명령했습니다."
             : captureReason;
         Render();
+    }
+
+    private void ToggleSlaughter()
+    {
+        if (current == null
+            || !husbandryRuntime.TryGetAnimal(
+                current.WildlifeId,
+                out HusbandryAnimalState state))
+        {
+            actionMessage = "우리에서 관리 중인 동물만 도축 지정할 수 있습니다.";
+            Render();
+            return;
+        }
+
+        actionMessage = husbandryRuntime.DesignateSlaughter(
+            current.WildlifeId,
+            !state.slaughterDesignated,
+            out string failureReason)
+                ? state.slaughterDesignated
+                    ? "도축 지정을 해제했습니다."
+                    : "도축 작업으로 지정했습니다."
+                : failureReason;
+        Render();
+    }
+
+    private string FormatHusbandryState(string wildlifeId)
+    {
+        if (!husbandryRuntime.TryGetAnimal(
+                wildlifeId,
+                out HusbandryAnimalState state))
+        {
+            return string.Empty;
+        }
+
+        AnimalPenCompatibilityResult compatibility =
+            husbandryRuntime.EvaluatePen(state.penId);
+        string sex = state.sex == AnimalSex.Female ? "암컷" : "수컷";
+        string growth = current?.Species != null
+            && state.ageDays < current.Species.Husbandry.AdultAgeDays
+                ? "새끼"
+                : "성체";
+        string pregnancy = state.pregnant
+            ? current?.Species?.Husbandry.LaysEggs == true
+                ? " · 부화 준비 중"
+                : " · 임신 중"
+            : string.Empty;
+        string products = state.products != null
+            ? string.Join(
+                ", ",
+                state.products
+                    .Where(product => product != null && product.readyCycles > 0)
+                    .Select(product => $"{product.itemId} {product.readyCycles}회"))
+            : string.Empty;
+        return $"\n축산 {sex} · {growth} · {state.ageDays:0.0}일"
+            + $" · {(state.tamed ? "길들임 완료" : $"길들임 {state.tamingProgress:P0}")}"
+            + pregnancy
+            + $"\n우리 위험 {compatibility.Risk:P0}"
+            + (products.Length > 0 ? $" · 수거 대기 {products}" : string.Empty)
+            + (state.slaughterDesignated ? " · 도축 지정" : string.Empty);
     }
 
     private string FormatCaptureState(string wildlifeId)

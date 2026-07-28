@@ -79,30 +79,61 @@ public sealed class CombatTacticalOverlayPresenter :
         if (selected == null || selected.Count == 0)
         {
             CharacterActor single = ownerCommands?.SelectedActor;
-            selected = single != null
-                ? new[] { single }
-                : Array.Empty<CharacterActor>();
-        }
+            if (single == null || !commandRuntime.IsInCombatStance(single))
+            {
+                Clear();
+                return;
+            }
 
-        CharacterActor[] combatants = selected
-            .Where(actor => actor != null
-                && !actor.IsDead
-                && commandRuntime.IsInCombatStance(actor))
-            .Distinct()
-            .ToArray();
-        if (combatants.Length == 0)
-        {
-            Clear();
+            renderer.BeginFrame();
+            RenderActor(grid, single);
+            renderer.EndFrame();
+            IsVisible = true;
             return;
         }
 
+        bool hasCombatant = false;
         renderer.BeginFrame();
-        foreach (CharacterActor actor in combatants)
+        for (int index = 0; index < selected.Count; index++)
         {
+            CharacterActor actor = selected[index];
+            if (actor == null
+                || actor.IsDead
+                || !commandRuntime.IsInCombatStance(actor)
+                || WasRenderedEarlier(selected, index, actor))
+            {
+                continue;
+            }
+
             RenderActor(grid, actor);
+            hasCombatant = true;
         }
+
+        if (!hasCombatant)
+        {
+            renderer.Clear();
+            IsVisible = false;
+            return;
+        }
+
         renderer.EndFrame();
         IsVisible = true;
+    }
+
+    private static bool WasRenderedEarlier(
+        IReadOnlyList<CharacterActor> selected,
+        int currentIndex,
+        CharacterActor actor)
+    {
+        for (int index = 0; index < currentIndex; index++)
+        {
+            if (ReferenceEquals(selected[index], actor))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public void Clear()

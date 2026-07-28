@@ -20,9 +20,7 @@ public class AIShopping : AIActionSet
         CharacterActor actor,
         in CharacterAiDecisionContext context)
     {
-        return actor != null
-            && context.HasShoppingAbility
-            && (!context.IsWorker || context.IsOffDuty);
+        return CanStart(actor);
     }
 
     public override void Execute(CharacterActor actor)

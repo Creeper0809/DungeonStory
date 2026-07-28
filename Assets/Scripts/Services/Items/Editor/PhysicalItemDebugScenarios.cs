@@ -29,6 +29,7 @@ public static class PhysicalItemDebugScenarios
         Run("stack_delete_fallback", VerifyStackDeleteFallback, lines, errors);
         Run("warehouse_aggregate_view", VerifyWarehouseAggregateView, lines, errors);
         Run("warehouse_stored_stack_mirror", VerifyWarehouseStoredStackMirror, lines, errors);
+        Run("warehouse_stored_stack_consumption", VerifyWarehouseStoredStackConsumption, lines, errors);
         Run("restore_releases_transient_reservations", VerifyRestoreReleasesTransientReservations, lines, errors);
         Run("cancelled_destination_releases_materials", VerifyCancelledDestinationReleasesMaterials, lines, errors);
         Run("save_v10_contract", VerifySaveV10Contract, lines, errors);
@@ -437,6 +438,75 @@ public static class PhysicalItemDebugScenarios
             runtime?.Dispose();
             CharacterAiEditorTestDependencies.WorldRegistry.UnregisterWarehouse(warehouse);
             UnityEngine.Object.DestroyImmediate(carrierObject);
+            UnityEngine.Object.DestroyImmediate(warehouseObject);
+        }
+    }
+
+    private static string VerifyWarehouseStoredStackConsumption()
+    {
+        GameObject warehouseObject =
+            new GameObject("PhysicalItemStoredConsumptionWarehouse");
+        WorldItemStackRuntime runtime = null;
+        TestWarehouseFacility warehouse = null;
+        try
+        {
+            warehouse = warehouseObject.AddComponent<TestWarehouseFacility>();
+            CharacterAiEditorTestDependencies.WorldRegistry.RegisterWarehouse(
+                warehouse);
+            runtime = CreateRuntime();
+            runtime.Start();
+
+            Require(
+                runtime.SpawnStockInWarehouse(
+                    warehouse,
+                    StockCategory.Water,
+                    10,
+                    out int spawned)
+                && spawned == 10,
+                $"warehouse water seed failed: spawned={spawned}");
+            WorldItemStackSnapshot stored = runtime
+                .GetAllStacks()
+                .SingleOrDefault(stack =>
+                    stack.State == WorldItemStackState.Stored
+                    && DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
+                        stack.ItemId,
+                        out StockCategory category)
+                    && category == StockCategory.Water);
+            Require(
+                stored != null && stored.Quantity == 10,
+                "stored water mirror was missing");
+            Require(
+                warehouse.Inventory.GetStock(StockCategory.Water) == 10,
+                "warehouse water aggregate was not seeded");
+
+            Require(
+                runtime.TryConsumeStackQuantity(
+                    stored.StackId,
+                    1,
+                    out WorldItemStackSnapshot consumed)
+                && consumed != null
+                && consumed.Quantity == 1,
+                "stored water consumption failed");
+            WorldItemStackSnapshot remaining = runtime
+                .GetAllStacks()
+                .SingleOrDefault(stack =>
+                    string.Equals(
+                        stack.StackId,
+                        stored.StackId,
+                        StringComparison.Ordinal));
+            Require(
+                remaining != null && remaining.Quantity == 9,
+                $"stored water mirror did not decrement: {remaining?.Quantity}");
+            Require(
+                warehouse.Inventory.GetStock(StockCategory.Water) == 9,
+                "warehouse aggregate did not decrement with stored water");
+            return "seeded=10; consumed=1; remaining=9";
+        }
+        finally
+        {
+            runtime?.Dispose();
+            CharacterAiEditorTestDependencies.WorldRegistry.UnregisterWarehouse(
+                warehouse);
             UnityEngine.Object.DestroyImmediate(warehouseObject);
         }
     }

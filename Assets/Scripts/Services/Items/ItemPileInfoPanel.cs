@@ -12,6 +12,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
 {
     private IWorldItemStackRuntime itemStackRuntime;
     private ISurvivalFoodRuntime survivalFoodRuntime;
+    private IResourceEconomyContentCatalog resourceCatalog;
     private IUiPopupService popupService;
     private ITmpKoreanFontService fontService;
 
@@ -28,11 +29,14 @@ public sealed class ItemPileInfoPanel : UIPopUp
     public void Construct(
         IWorldItemStackRuntime itemStackRuntime,
         ISurvivalFoodRuntime survivalFoodRuntime,
+        IResourceEconomyContentCatalog resourceCatalog,
         IUiPopupService popupService,
         ITmpKoreanFontService fontService)
     {
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.survivalFoodRuntime = survivalFoodRuntime ?? throw new ArgumentNullException(nameof(survivalFoodRuntime));
+        this.resourceCatalog = resourceCatalog
+            ?? throw new ArgumentNullException(nameof(resourceCatalog));
         this.popupService = popupService ?? throw new ArgumentNullException(nameof(popupService));
         this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
     }
@@ -237,7 +241,9 @@ public sealed class ItemPileInfoPanel : UIPopUp
             + $"단가 {stack.UnitPrice}\n"
             + $"총 가치 {stack.TotalValue}\n"
             + $"상태 {FormatState(stack)}\n"
+            + FormatResourceConsumableLine(stack)
             + FormatSurvivalStatusLine(stack)
+            + FormatWasteMetadata(stack)
             + FormatCorpseMetadata(stack)
             + $"위치 ({stack.Position.x}, {stack.Position.y})\n"
             + $"예약자 {FormatEmpty(stack.ReservedByPersistentId)}\n"
@@ -260,6 +266,27 @@ public sealed class ItemPileInfoPanel : UIPopUp
         string deathReason = string.IsNullOrWhiteSpace(stack.SourceDeathReason) ? "사인 불명" : stack.SourceDeathReason;
         return $"원래 이름 {sourceName}\n종족 {species}\n사망 원인 {deathReason}\n"
             + $"비상 도축 {(stack.EmergencyButcheryAllowed ? "허용" : "금지")}\n";
+    }
+
+    private static string FormatWasteMetadata(WorldItemStackSnapshot stack)
+    {
+        if (stack == null || !stack.IsWaste)
+        {
+            return string.Empty;
+        }
+
+        string origin = stack.WasteOrigin switch
+        {
+            WasteOriginKind.Plant => "식물성",
+            WasteOriginKind.Animal => "동물성",
+            WasteOriginKind.Mixed => "혼합",
+            WasteOriginKind.Forbidden => "금기",
+            _ => "원산지 불명"
+        };
+        string feeding = stack.Contamination >= 80f
+            ? "직접 급여 불가"
+            : "식성에 맞으면 사료 사용 가능";
+        return $"원산지 {origin}\n오염도 {stack.Contamination:0}/100\n{feeding}\n";
     }
 
     private void CreateEmergencyButcheryAction(WorldItemStackSnapshot stack)
@@ -484,6 +511,86 @@ public sealed class ItemPileInfoPanel : UIPopUp
         string contamination = status.Contaminated ? "오염됨" : "오염 없음";
         int freshnessPercent = Mathf.RoundToInt(status.Freshness01 * 100f);
         return $"신선도 {freshnessPercent}% · {status.Label} · {preservation} · {contamination}\n";
+    }
+
+    private string FormatResourceConsumableLine(WorldItemStackSnapshot stack)
+    {
+        if (stack == null
+            || resourceCatalog == null
+            || !resourceCatalog.TryGetItem(
+                stack.ItemId,
+                out ResourceItemDefinitionSO item))
+        {
+            return string.Empty;
+        }
+
+        if (item.IsMeal)
+        {
+            return $"식단 {FormatMealDiet(item.MealDietClass)}"
+                + $" · {FormatMealQuality(item.MealQuality)}"
+                + $" · 영양 {item.Nutrition:0.#}"
+                + $" · 기분 {(item.MealMood >= 0f ? "+" : string.Empty)}{item.MealMood:0.#}\n";
+        }
+
+        if (item.Kind == ResourceItemKind.Medicine)
+        {
+            string treatment = item.SupportsInjuryTreatment
+                ? $"치료력 x{item.TreatmentPotency:0.##}"
+                : "보조 약품";
+            return $"{treatment}"
+                + $" · 감염 -{item.InfectionReduction:0.#}"
+                + $" · 해독 -{item.DetoxReduction:0.#}"
+                + $" · 진정 {item.PainReduction:0.#}\n";
+        }
+
+        SubstanceDefinitionSO substance = resourceCatalog.Substances
+            .FirstOrDefault(candidate => candidate != null
+                && string.Equals(
+                    candidate.ItemId,
+                    item.ItemId,
+                    StringComparison.Ordinal));
+        if (substance == null)
+        {
+            return string.Empty;
+        }
+
+        return $"약물 {FormatSubstanceClass(substance.UseClass)}"
+            + $" · 중독 {substance.AddictionChance * 100f:0.#}%"
+            + $" · 과다 복용 {substance.OverdoseChance * 100f:0.#}%"
+            + $" · 지속 {substance.DurationSeconds:0}s\n";
+    }
+
+    private static string FormatMealDiet(MealDietClass dietClass)
+    {
+        return dietClass switch
+        {
+            MealDietClass.Vegetarian => "채식",
+            MealDietClass.Mixed => "혼합식",
+            MealDietClass.Carnivore => "육식",
+            _ => "비건"
+        };
+    }
+
+    private static string FormatMealQuality(MealQualityTier quality)
+    {
+        return quality switch
+        {
+            MealQualityTier.Fine => "고급식",
+            MealQualityTier.Lavish => "호화식",
+            MealQualityTier.Preserved => "보존식",
+            _ => "단순식"
+        };
+    }
+
+    private static string FormatSubstanceClass(SubstanceUseClass useClass)
+    {
+        return useClass switch
+        {
+            SubstanceUseClass.NonAddictive => "비중독성",
+            SubstanceUseClass.Addictive => "중독성",
+            SubstanceUseClass.Recreational => "유흥성",
+            _ => "의료용"
+        };
     }
 
     private static string FormatEmpty(string value)

@@ -136,7 +136,8 @@ public abstract class CharacterAiJobGiver
     {
         FacilityRole requiredRoles = RequiredFacilityRoles;
         if (requiredRoles != FacilityRole.None
-            && (availableFacilityRoles & requiredRoles) == FacilityRole.None)
+            && (availableFacilityRoles & requiredRoles) == FacilityRole.None
+            && !HasDestinationlessMatchingAction(actor))
         {
             domainReason = "required facility role unavailable";
             return 0f;
@@ -174,6 +175,28 @@ public abstract class CharacterAiJobGiver
         return brain.RequireFacilityCandidateCache().GetAvailableRoles(grid);
     }
 
+    private bool HasDestinationlessMatchingAction(CharacterActor actor)
+    {
+        AIAction[] actions = actor?.Brain?.availableActions;
+        if (actions == null)
+        {
+            return false;
+        }
+
+        for (int index = 0; index < actions.Length; index++)
+        {
+            AIActionSet actionSet = actions[index]?.actionset;
+            if (actionSet != null
+                && !actionSet.RequiresDestination
+                && actionMatcher(actionSet))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     internal bool TryEvaluate(
         CharacterActor actor,
         in CharacterAiDecisionContext context,
@@ -200,6 +223,11 @@ public abstract class CharacterAiJobGiver
             candidate = CreateRejected(domainScore, "AIBrain is missing.");
             RecordRejectedBreakdown(actor, context, "AIBrain is missing.");
             return false;
+        }
+
+        if (!brain.IsActionScoringPending)
+        {
+            brain.InvalidateActionEvaluations(actionMatcher);
         }
 
         if (!brain.TryFindBestScoredAction(

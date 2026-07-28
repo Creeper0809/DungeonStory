@@ -51,12 +51,16 @@ public sealed class CombatEquipmentRepairOrder
     public int facilityX;
     public int facilityY;
     public int requiredGeneralMaterials;
+    public string materialItemId = string.Empty;
+    public int requiredMaterialAmount;
     public float requiredWork;
     public float completedWork;
     public float targetDurability = 0.9f;
     public string reservedWorkerId = string.Empty;
     public CombatEquipmentRepairOrderState state;
     public bool manuallyRequested;
+    public bool equipmentDeliveryRequested;
+    public bool materialDeliveryRequested;
 
     public Vector2Int FacilityPosition
     {
@@ -154,6 +158,7 @@ public sealed class EquipmentMaintenancePolicyRuntime :
 
     private readonly ICombatEquipmentRuntime equipment;
     private readonly ICombatEquipmentCatalog catalog;
+    private readonly IResourceEconomyContentCatalog resourceCatalog;
     private readonly IWorldItemStackRuntime items;
     private readonly ICombatEquipmentPickupRuntime equipmentPickup;
     private readonly ICharacterAiWorldRegistry worldRegistry;
@@ -173,6 +178,7 @@ public sealed class EquipmentMaintenancePolicyRuntime :
     public EquipmentMaintenancePolicyRuntime(
         ICombatEquipmentRuntime equipment,
         ICombatEquipmentCatalog catalog,
+        IResourceEconomyContentCatalog resourceCatalog,
         IWorldItemStackRuntime items,
         ICombatEquipmentPickupRuntime equipmentPickup,
         ICharacterAiWorldRegistry worldRegistry,
@@ -182,6 +188,8 @@ public sealed class EquipmentMaintenancePolicyRuntime :
     {
         this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        this.resourceCatalog = resourceCatalog
+            ?? throw new ArgumentNullException(nameof(resourceCatalog));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.equipmentPickup = equipmentPickup
             ?? throw new ArgumentNullException(nameof(equipmentPickup));
@@ -497,7 +505,14 @@ public sealed class EquipmentMaintenancePolicyRuntime :
                 continue;
             }
 
-            orders[source.orderId] = source.Clone();
+            CombatEquipmentRepairOrder restoredOrder = source.Clone();
+            restoredOrder.materialItemId =
+                ResolveOrderMaterialItemId(restoredOrder);
+            restoredOrder.requiredMaterialAmount =
+                ResolveOrderMaterialAmount(restoredOrder);
+            restoredOrder.requiredGeneralMaterials =
+                restoredOrder.requiredMaterialAmount;
+            orders[source.orderId] = restoredOrder;
         }
     }
 
@@ -564,6 +579,17 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         EquipmentMaintenancePolicyData policy = GetPolicyByCharacterId(
             instance.ownerCharacterId);
         float lost = 1f - instance.durabilityRatio;
+        if (!TryResolveRepairMaterial(
+                instance,
+                definition,
+                out string materialItemId))
+        {
+            message = "장비의 원래 재질을 확인할 수 없습니다.";
+            return false;
+        }
+
+        int requiredMaterialAmount =
+            Mathf.Max(1, Mathf.CeilToInt(lost / 0.25f));
         CombatEquipmentRepairOrder order = new CombatEquipmentRepairOrder
         {
             orderId = $"equipment-repair:{++orderSequence:D6}",
@@ -571,7 +597,9 @@ public sealed class EquipmentMaintenancePolicyRuntime :
             originalOwnerCharacterId = instance.ownerCharacterId,
             FacilityPosition = facility.centerPos,
             facilityDestinationId = $"{DestinationPrefix}{instance.instanceId}",
-            requiredGeneralMaterials = Mathf.Max(1, Mathf.CeilToInt(lost / 0.25f)),
+            requiredGeneralMaterials = requiredMaterialAmount,
+            materialItemId = materialItemId,
+            requiredMaterialAmount = requiredMaterialAmount,
             requiredWork = 12f + lost * 28f,
             completedWork = 0f,
             targetDurability = policy.returnAtDurability,
@@ -640,19 +668,39 @@ public sealed class EquipmentMaintenancePolicyRuntime :
             return;
         }
 
-        if (!HasEquipmentEnRoute(order, instance))
+        if (!order.equipmentDeliveryRequested
+            && HasEquipmentEnRoute(order, instance))
+        {
+            order.equipmentDeliveryRequested = true;
+        }
+
+        if (!order.equipmentDeliveryRequested)
         {
             Vector2Int sourcePosition = ResolveEquipmentSourcePosition(instance);
             string previousStackId = instance.sourceStackId;
-            if (catalog.TryGet(
-                    instance.definitionId,
-                    out CombatEquipmentDefinitionSO definition)
-                && items.SpawnUniqueItemAt(
-                    definition.ItemId,
-                    sourcePosition,
+            bool reusedPhysicalStack =
+                !string.IsNullOrWhiteSpace(previousStackId)
+                && items.TryRouteStackToDestination(
+                    previousStackId,
                     WorldItemStackState.Loose,
                     order.facilityDestinationId,
-                    out string stackId))
+                    order.FacilityPosition,
+                    out _);
+            string stackId = reusedPhysicalStack
+                ? previousStackId
+                : string.Empty;
+            bool stackReady = reusedPhysicalStack
+                || (catalog.TryGet(
+                        instance.definitionId,
+                        out CombatEquipmentDefinitionSO definition)
+                    && items.SpawnUniqueItemAt(
+                        definition.ItemId,
+                        sourcePosition,
+                        WorldItemStackState.Loose,
+                        order.facilityDestinationId,
+                        order.FacilityPosition,
+                        out stackId));
+            if (stackReady)
             {
                 if (equipment.TryDetachForMaintenance(
                         instance.instanceId,
@@ -662,7 +710,9 @@ public sealed class EquipmentMaintenancePolicyRuntime :
                         stackId,
                         CombatEquipmentWorldState.Loose))
                 {
-                    if (!string.IsNullOrWhiteSpace(previousStackId)
+                    order.equipmentDeliveryRequested = true;
+                    if (!reusedPhysicalStack
+                        && !string.IsNullOrWhiteSpace(previousStackId)
                         && !string.Equals(
                             previousStackId,
                             stackId,
@@ -675,29 +725,43 @@ public sealed class EquipmentMaintenancePolicyRuntime :
                 }
                 else
                 {
-                    items.DeleteStack(stackId);
+                    if (!reusedPhysicalStack)
+                    {
+                        items.DeleteStack(stackId);
+                    }
                 }
             }
         }
 
-        int pendingGeneral = items.GetAllStacks()
+        string materialItemId = ResolveOrderMaterialItemId(order);
+        int pendingMaterial = items.GetAllStacks()
             .Where(stack => stack != null
                 && string.Equals(
                     stack.DestinationId,
                     order.facilityDestinationId,
                     StringComparison.Ordinal)
-                && stack.StockCategory == StockCategory.General)
+                && string.Equals(
+                    stack.ItemId,
+                    materialItemId,
+                    StringComparison.Ordinal))
             .Sum(stack => stack.Quantity);
-        int missing = Mathf.Max(0, order.requiredGeneralMaterials - pendingGeneral);
-        if (missing > 0)
+        int requiredAmount = ResolveOrderMaterialAmount(order);
+        if (pendingMaterial >= requiredAmount)
         {
-            items.TryRequestFacilityDelivery(
-                StockCategory.General,
+            order.materialDeliveryRequested = true;
+        }
+
+        int missing = Mathf.Max(0, requiredAmount - pendingMaterial);
+        if (missing > 0 && !order.materialDeliveryRequested)
+        {
+            bool requestedDelivery = items.TryRequestItemDelivery(
+                materialItemId,
                 missing,
                 order.FacilityPosition,
                 order.facilityDestinationId,
-                out _,
+                out int requested,
                 out _);
+            order.materialDeliveryRequested = requestedDelivery && requested > 0;
         }
     }
 
@@ -714,11 +778,13 @@ public sealed class EquipmentMaintenancePolicyRuntime :
             return false;
         }
 
-        Dictionary<StockCategory, int> materialCost = new Dictionary<StockCategory, int>
+        Dictionary<string, int> materialCost = new Dictionary<string, int>(
+            StringComparer.Ordinal)
         {
-            [StockCategory.General] = order.requiredGeneralMaterials
+            [ResolveOrderMaterialItemId(order)] =
+                ResolveOrderMaterialAmount(order)
         };
-        if (!items.TryConsumeFacilityBuffer(
+        if (!items.TryConsumeFacilityItemBuffer(
                 order.facilityDestinationId,
                 materialCost,
                 out message))
@@ -764,6 +830,13 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         CombatEquipmentRepairOrder order,
         CombatEquipmentInstance instance)
     {
+        if (instance != null
+            && instance.worldState is CombatEquipmentWorldState.Carried
+                or CombatEquipmentWorldState.MaintenanceBuffer)
+        {
+            return true;
+        }
+
         return !string.IsNullOrWhiteSpace(instance.sourceStackId)
             && items.GetAllStacks().Any(stack =>
                 stack != null
@@ -803,6 +876,7 @@ public sealed class EquipmentMaintenancePolicyRuntime :
 
     private bool HasDeliveredMaterials(CombatEquipmentRepairOrder order)
     {
+        string materialItemId = ResolveOrderMaterialItemId(order);
         return items.GetAllStacks()
             .Where(stack => stack != null
                 && stack.State == WorldItemStackState.FacilityBuffer
@@ -810,8 +884,11 @@ public sealed class EquipmentMaintenancePolicyRuntime :
                     stack.DestinationId,
                     order.facilityDestinationId,
                     StringComparison.Ordinal)
-                && stack.StockCategory == StockCategory.General)
-            .Sum(stack => stack.Quantity) >= order.requiredGeneralMaterials;
+                && string.Equals(
+                    stack.ItemId,
+                    materialItemId,
+                    StringComparison.Ordinal))
+            .Sum(stack => stack.Quantity) >= ResolveOrderMaterialAmount(order);
     }
 
     private Vector2Int ResolveEquipmentSourcePosition(CombatEquipmentInstance instance)
@@ -891,6 +968,63 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         {
             equipmentPickup.TryRequestEquipmentPickup(owner, definitionId, out _);
         }
+    }
+
+    private bool TryResolveRepairMaterial(
+        CombatEquipmentInstance instance,
+        CombatEquipmentDefinitionSO definition,
+        out string materialItemId)
+    {
+        materialItemId = string.Empty;
+        if (instance == null || definition == null)
+        {
+            return false;
+        }
+
+        string materialId = string.IsNullOrWhiteSpace(instance.materialId)
+            ? definition.DefaultMaterialId
+            : instance.materialId;
+        if (!resourceCatalog.TryGetMaterial(
+                materialId,
+                out CraftMaterialDefinitionSO material)
+            || !definition.AllowsMaterial(material)
+            || string.IsNullOrWhiteSpace(material.ItemId))
+        {
+            return false;
+        }
+
+        materialItemId = material.ItemId;
+        return true;
+    }
+
+    private string ResolveOrderMaterialItemId(
+        CombatEquipmentRepairOrder order)
+    {
+        if (!string.IsNullOrWhiteSpace(order?.materialItemId))
+        {
+            return order.materialItemId.Trim();
+        }
+
+        return order != null
+            && equipment.TryGetInstance(
+                order.equipmentInstanceId,
+                out CombatEquipmentInstance instance)
+            && catalog.TryGet(
+                instance.definitionId,
+                out CombatEquipmentDefinitionSO definition)
+            && TryResolveRepairMaterial(instance, definition, out string itemId)
+                ? itemId
+                : DungeonItemCatalogSO.StockItemId(StockCategory.General);
+    }
+
+    private static int ResolveOrderMaterialAmount(
+        CombatEquipmentRepairOrder order)
+    {
+        return Mathf.Max(
+            1,
+            order?.requiredMaterialAmount > 0
+                ? order.requiredMaterialAmount
+                : order?.requiredGeneralMaterials ?? 1);
     }
 
     private void EnsureDefaults()

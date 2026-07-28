@@ -8,14 +8,18 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     private CharacterActor worker;
     private WarehouseInventory warehouseInventory;
     private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
+    private IMealConsumptionRuntime mealConsumptionRuntime;
 
     public WarehouseInventory Inventory => warehouseInventory;
     public bool HasWarehouseInventory => warehouseInventory != null;
 
     [Inject]
-    public void ConstructFacility(IRoomEnvironmentExperienceService roomEnvironmentExperienceService)
+    public void ConstructFacility(
+        IRoomEnvironmentExperienceService roomEnvironmentExperienceService,
+        IMealConsumptionRuntime mealConsumptionRuntime = null)
     {
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
+        this.mealConsumptionRuntime = mealConsumptionRuntime;
     }
 
     public override void Initialization(BuildingSO buildingSO, Vector2Int buildPos)
@@ -94,7 +98,33 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             yield return new WaitForSeconds(duration);
         }
 
-        ApplyConfiguredUseRecovery(actor);
+        MealConsumptionResult mealResult = default;
+        if (Facility != null && Facility.SupportsRole(FacilityRole.Meal))
+        {
+            if (mealConsumptionRuntime == null
+                || !mealConsumptionRuntime.TryConsumeMeal(
+                    actor,
+                    this,
+                    out mealResult))
+            {
+                string reason = mealResult.FailureReason;
+                actor?.AddActivity(CharacterActivityEvent.Facility(
+                    CharacterActivityKinds.FacilityUse,
+                    CharacterActivityOutcomes.Failed,
+                    $"{objectNameOrDefault()} 식사 실패: "
+                    + (string.IsNullOrWhiteSpace(reason) ? "메뉴 없음" : reason),
+                    this,
+                    reasonCode: reason,
+                    bubbleEligible: true));
+                EndUse(actor);
+                yield break;
+            }
+        }
+        else
+        {
+            ApplyConfiguredUseRecovery(actor);
+        }
+
         ModularFacilityRuntimeEffects.ApplyUseCompleted(actor, this);
         roomEnvironmentExperienceService?.Apply(new RoomEnvironmentExperienceEvent(
             actor,
@@ -105,7 +135,9 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         actor?.AddActivity(CharacterActivityEvent.Facility(
             CharacterActivityKinds.FacilityUse,
             CharacterActivityOutcomes.Completed,
-            $"{objectNameOrDefault()} 이용 완료",
+            mealResult.Success
+                ? $"{mealResult.DisplayName} 식사 완료"
+                : $"{objectNameOrDefault()} 이용 완료",
             this));
         EndUse(actor);
     }

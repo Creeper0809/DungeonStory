@@ -42,16 +42,16 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 54cea29c0ca705a42954cf271a95be83, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602327
-    - rid: 7302562995605602328
-    - rid: 7302562995605602330
-    - rid: 7302562995605602331
-    - rid: 7302562995605602332
-    - rid: 7302562995605602333
-    - rid: 7302563106683093112
-    - rid: 7302563106683093113
-    - rid: 7302563106683093114
-    - rid: 7302563106683093115
+    - rid: 7302563239038812960
+    - rid: 7302563239038812961
+    - rid: 7302563239038812962
+    - rid: 7302563239038812963
+    - rid: 7302563239038812964
+    - rid: 7302563239038812965
+    - rid: 7302563239038812966
+    - rid: 7302563239038812967
+    - rid: 7302563239038812968
+    - rid: 7302563239038812969
   width: 1
   height: 1
   layer: 1
@@ -66,12 +66,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602327
+    - rid: 7302563239038812960
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D01
-    - rid: 7302562995605602328
+    - rid: 7302563239038812961
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -79,11 +79,22 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602330
+    - rid: 7302563239038812962
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 1
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 81933
+          disabledWhenDamaged: 1
+    - rid: 7302563239038812963
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302562995605602331
+    - rid: 7302563239038812964
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -95,7 +106,7 @@ MonoBehaviour:
           - key: Cooking
             value: 2
           metrics: []
-    - rid: 7302562995605602332
+    - rid: 7302563239038812965
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -106,13 +117,13 @@ MonoBehaviour:
           hunger: 35
           excretion: 0
           hygiene: 0
-    - rid: 7302562995605602333
+    - rid: 7302563239038812966
       type: {class: BuildingProductionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionAbility
         outputCategory: 0
         amount: 4
-    - rid: 7302563106683093112
+    - rid: 7302563239038812967
       type: {class: BuildingCookingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCookingAbility
@@ -120,7 +131,7 @@ MonoBehaviour:
         cookedMeals: 2
         workSeconds: 1.1
         requiresFuel: 1
-    - rid: 7302563106683093113
+    - rid: 7302563239038812968
       type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFuelConsumerAbility
@@ -128,21 +139,10 @@ MonoBehaviour:
         workSeconds: 0.8
         warmth: 8
         lightSafety: 6
-    - rid: 7302563106683093114
+    - rid: 7302563239038812969
       type: {class: BuildingTemperatureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingTemperatureAbility
         roomTemperatureOffset: 4
         coldProtection: 6
         heatProtection: 1
-    - rid: 7302563106683093115
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 1
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 81933
-          disabledWhenDamaged: 1

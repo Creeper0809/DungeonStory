@@ -39,6 +39,11 @@ public sealed class CharacterMedicalOrder
     public float completedTreatmentWork;
     public CharacterMedicalSupplyKind treatmentSupply;
     public bool treatmentSupplyConsumed;
+    public bool treatmentSupplyDeliveryRequested;
+    public string treatmentItemId = string.Empty;
+    public float treatmentPotency = 1f;
+    public float treatmentInfectionReduction;
+    public float treatmentPainReduction;
     public string treatmentMaterialDestinationId = string.Empty;
     public int patientX;
     public int patientY;

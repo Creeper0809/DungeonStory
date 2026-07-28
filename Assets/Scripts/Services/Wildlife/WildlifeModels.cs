@@ -28,7 +28,8 @@ public sealed class WildlifeSpeciesDefinition
         float dailyWaterNeed = 1f,
         float restPreference = 0.5f,
         float predationDrive = 0f,
-        float fleePreference = 0.5f)
+        float fleePreference = 0.5f,
+        WildlifeHusbandryProfile husbandry = null)
     {
         SpeciesId = string.IsNullOrWhiteSpace(speciesId) ? "wildlife:unknown" : speciesId.Trim();
         DisplayName = string.IsNullOrWhiteSpace(displayName) ? SpeciesId : displayName.Trim();
@@ -50,6 +51,10 @@ public sealed class WildlifeSpeciesDefinition
         RestPreference = Mathf.Clamp01(restPreference);
         PredationDrive = Mathf.Clamp01(predationDrive);
         FleePreference = Mathf.Clamp01(fleePreference);
+        Husbandry = husbandry
+            ?? WildlifeHusbandryProfile.CreateDefault(
+                Aggression,
+                CarcassWeight);
         PreferredHabitats = (preferredHabitats ?? GetDefaultHabitats(Diet, Aggression))
             .Distinct()
             .ToArray();
@@ -86,6 +91,7 @@ public sealed class WildlifeSpeciesDefinition
     public float RestPreference { get; }
     public float PredationDrive { get; }
     public float FleePreference { get; }
+    public WildlifeHusbandryProfile Husbandry { get; }
     public IReadOnlyList<WildlifeButcherYield> ButcherYields { get; }
     public string CarcassItemId => WildlifeItemDefinitions.GetCarcassItemId(SpeciesId);
     public bool IsPredator => Aggression >= 0.75f;
@@ -133,6 +139,7 @@ public sealed class ResourceWildlifeSpeciesCatalogProvider : IWildlifeSpeciesCat
 {
     private const string ResourcePath = "SO/Wildlife/Species";
     private List<WildlifeSpeciesDefinition> species;
+    private Dictionary<string, WildlifeSpeciesDefinition> speciesById;
 
     public IReadOnlyList<WildlifeSpeciesDefinition> All
     {
@@ -147,9 +154,7 @@ public sealed class ResourceWildlifeSpeciesCatalogProvider : IWildlifeSpeciesCat
     {
         string normalized = speciesId?.Trim() ?? string.Empty;
         EnsureLoaded();
-        definition = species.FirstOrDefault(candidate =>
-            string.Equals(candidate.SpeciesId, normalized, StringComparison.Ordinal));
-        return definition != null;
+        return speciesById.TryGetValue(normalized, out definition);
     }
 
     public WildlifeSpeciesDefinition GetRandomSpecies(IRandomStream randomStream)
@@ -195,9 +200,24 @@ public sealed class ResourceWildlifeSpeciesCatalogProvider : IWildlifeSpeciesCat
             .Select(group => group.First())
             .ToList();
 
-        if (species.Count == 0)
+        foreach (WildlifeSpeciesDefinition builtIn in WildlifeBuiltIns.All)
         {
-            species.AddRange(WildlifeBuiltIns.All);
+            if (species.All(candidate => !string.Equals(
+                    candidate.SpeciesId,
+                    builtIn.SpeciesId,
+                    StringComparison.Ordinal)))
+            {
+                species.Add(builtIn);
+            }
+        }
+
+        speciesById = new Dictionary<string, WildlifeSpeciesDefinition>(
+            species.Count,
+            StringComparer.Ordinal);
+        for (int index = 0; index < species.Count; index++)
+        {
+            WildlifeSpeciesDefinition definition = species[index];
+            speciesById[definition.SpeciesId] = definition;
         }
     }
 }
@@ -217,7 +237,15 @@ public static class WildlifeBuiltIns
         herd: 2,
         canEnterDungeon: false,
         carcassWeight: 2.5f,
-        food: 1);
+        food: 1,
+        husbandry: H(
+            0.35f,
+            2f,
+            24f,
+            2f,
+            false,
+            0.2f,
+            1.5f));
 
     public static readonly WildlifeSpeciesDefinition ShadowHare = Create(
         "shadow_hare",
@@ -232,7 +260,15 @@ public static class WildlifeBuiltIns
         herd: 2,
         canEnterDungeon: false,
         carcassWeight: 3f,
-        food: 2);
+        food: 2,
+        husbandry: H(
+            0.4f,
+            3f,
+            30f,
+            3f,
+            false,
+            0.25f,
+            2f));
 
     public static readonly WildlifeSpeciesDefinition MossBoar = Create(
         "moss_boar",
@@ -248,7 +284,15 @@ public static class WildlifeBuiltIns
         canEnterDungeon: false,
         carcassWeight: 28f,
         food: 8,
-        hide: 2);
+        hide: 2,
+        husbandry: H(
+            0.65f,
+            6f,
+            55f,
+            6f,
+            false,
+            1.4f,
+            1f));
 
     public static readonly WildlifeSpeciesDefinition RuneDeer = Create(
         "rune_deer",
@@ -264,7 +308,16 @@ public static class WildlifeBuiltIns
         canEnterDungeon: false,
         carcassWeight: 22f,
         food: 6,
-        runeDust: 2);
+        runeDust: 2,
+        husbandry: H(
+            0.72f,
+            8f,
+            70f,
+            7f,
+            false,
+            1.1f,
+            1.5f,
+            P("resource:horn", 1, 8f)));
 
     public static readonly WildlifeSpeciesDefinition ShadowWolf = Create(
         "shadow_wolf",
@@ -281,10 +334,78 @@ public static class WildlifeBuiltIns
         carcassWeight: 18f,
         food: 4,
         hide: 2,
-        fang: 2);
+        fang: 2,
+        husbandry: H(
+            0.9f,
+            8f,
+            60f,
+            7f,
+            false,
+            1f,
+            1.5f));
+
+    public static readonly WildlifeSpeciesDefinition AshGoat = Create(
+        "ash_goat",
+        "잿빛 산양",
+        "그을린 비탈에서도 젖과 털을 내주는 온순한 가축.",
+        maxHealth: 24,
+        moveSpeed: 0.95f,
+        fear: 0.8f,
+        aggression: 0.12f,
+        retaliation: 2,
+        weight: 0.8f,
+        herd: 2,
+        canEnterDungeon: false,
+        carcassWeight: 20f,
+        food: 5,
+        hide: 1,
+        husbandry: H(
+            0.32f,
+            6f,
+            65f,
+            5f,
+            false,
+            1f,
+            1.25f,
+            P("resource:milk", 2, 1.5f, femaleOnly: true),
+            P("resource:wool", 2, 4f)));
+
+    public static readonly WildlifeSpeciesDefinition TwilightChicken = Create(
+        "twilight_chicken",
+        "황혼닭",
+        "어둠이 내려앉을 때 알을 낳는 작은 잡식성 가축.",
+        maxHealth: 7,
+        moveSpeed: 1.1f,
+        fear: 1.4f,
+        aggression: 0.03f,
+        retaliation: 0,
+        weight: 2.4f,
+        herd: 3,
+        canEnterDungeon: false,
+        carcassWeight: 2.2f,
+        food: 1,
+        husbandry: H(
+            0.22f,
+            3f,
+            28f,
+            2f,
+            true,
+            0.18f,
+            2f,
+            P("resource:egg", 1, 1f, femaleOnly: true),
+            P("resource:feather", 2, 4f)));
 
     public static IReadOnlyList<WildlifeSpeciesDefinition> All { get; } =
-        new[] { CaveRat, ShadowHare, MossBoar, RuneDeer, ShadowWolf };
+        new[]
+        {
+            CaveRat,
+            ShadowHare,
+            MossBoar,
+            RuneDeer,
+            ShadowWolf,
+            AshGoat,
+            TwilightChicken
+        };
 
     private static WildlifeSpeciesDefinition Create(
         string id,
@@ -302,7 +423,8 @@ public static class WildlifeBuiltIns
         int food = 0,
         int hide = 0,
         int fang = 0,
-        int runeDust = 0)
+        int runeDust = 0,
+        WildlifeHusbandryProfile husbandry = null)
     {
         List<WildlifeButcherYield> yields = new List<WildlifeButcherYield>();
         AddYield(yields, DungeonItemCatalogSO.StockItemId(StockCategory.Food), food);
@@ -323,7 +445,43 @@ public static class WildlifeBuiltIns
             herd,
             canEnterDungeon,
             carcassWeight,
-            yields);
+            yields,
+            husbandry: husbandry);
+    }
+
+    private static WildlifeHusbandryProfile H(
+        float tamingDifficulty,
+        float adultAgeDays,
+        float maximumAgeDays,
+        float gestationDays,
+        bool laysEggs,
+        float bodySize,
+        float manureIntervalDays,
+        params WildlifeHusbandryProductDefinition[] products)
+    {
+        return new WildlifeHusbandryProfile(
+            true,
+            tamingDifficulty,
+            adultAgeDays,
+            maximumAgeDays,
+            gestationDays,
+            laysEggs,
+            bodySize,
+            manureIntervalDays,
+            products);
+    }
+
+    private static WildlifeHusbandryProductDefinition P(
+        string itemId,
+        int amount,
+        float intervalDays,
+        bool femaleOnly = false)
+    {
+        return new WildlifeHusbandryProductDefinition(
+            itemId,
+            amount,
+            intervalDays,
+            femaleOnly);
     }
 
     private static void AddYield(List<WildlifeButcherYield> yields, string itemId, int amount)
@@ -495,6 +653,11 @@ public interface IWildlifeRuntime : IWildlifeQuery, IWildlifeHuntCommandService
     float GetButcherWorkUrgency();
     bool DebugSpawn(string speciesId, int amount, Vector2Int position, out int spawned, out string message);
     bool TrySpawnArrival(
+        string speciesId,
+        Vector2Int position,
+        out WildlifeActor actor,
+        out string message);
+    bool TrySpawnDomesticBirth(
         string speciesId,
         Vector2Int position,
         out WildlifeActor actor,

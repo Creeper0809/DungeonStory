@@ -31,6 +31,11 @@ public interface IItemTransferService
         string destinationId,
         IReadOnlyDictionary<StockCategory, int> costs,
         out string failureReason);
+
+    bool TryConsumeFacilityItemBuffer(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        out string failureReason);
 }
 
 public sealed class ItemTransferService : IItemTransferService
@@ -42,6 +47,7 @@ public sealed class ItemTransferService : IItemTransferService
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
     private readonly ICombatEquipmentCatalog combatEquipmentCatalog;
+    private readonly IResourceEconomyContentCatalog resourceEconomyCatalog;
     private readonly IGameEventBus gameEventBus;
     private readonly WorldItemRepository repository;
     private readonly IWorldItemSpawner itemSpawner;
@@ -58,7 +64,8 @@ public sealed class ItemTransferService : IItemTransferService
         IGameEventBus gameEventBus,
         WorldItemRepository repository,
         IWorldItemSpawner itemSpawner,
-        IItemMarkerPresenter markerPresenter)
+        IItemMarkerPresenter markerPresenter,
+        IResourceEconomyContentCatalog resourceEconomyCatalog = null)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -74,6 +81,7 @@ public sealed class ItemTransferService : IItemTransferService
             ?? throw new ArgumentNullException(nameof(combatEquipmentRuntime));
         this.combatEquipmentCatalog = combatEquipmentCatalog
             ?? throw new ArgumentNullException(nameof(combatEquipmentCatalog));
+        this.resourceEconomyCatalog = resourceEconomyCatalog;
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.repository = repository
@@ -145,12 +153,15 @@ public sealed class ItemTransferService : IItemTransferService
                 return false;
             }
 
-            if (!inventory.TryAdd(
+            if (!inventory.TryAddPartialStack(
                     record.stackId,
                     record.itemId,
                     pickedUp,
                     catalogProvider,
                     haulingSettingsProvider,
+                    record.wasteOrigin,
+                    record.contamination,
+                    out int acceptedQuantity,
                     out string carryFailure))
             {
                 sourceWarehouse.Inventory.Deposit(sourceCategory, pickedUp);
@@ -160,6 +171,14 @@ public sealed class ItemTransferService : IItemTransferService
                     : carryFailure;
                 return false;
             }
+
+            if (acceptedQuantity != pickedUp)
+            {
+                sourceWarehouse.Inventory.Deposit(
+                    sourceCategory,
+                    pickedUp - acceptedQuantity);
+                pickedUp = acceptedQuantity;
+            }
         }
         else if (!inventory.TryAddPartialStack(
                      record.stackId,
@@ -167,6 +186,8 @@ public sealed class ItemTransferService : IItemTransferService
                      requested,
                      catalogProvider,
                      haulingSettingsProvider,
+                     record.wasteOrigin,
+                     record.contamination,
                      out pickedUp,
                      out failureReason)
                  || pickedUp <= 0)
@@ -243,7 +264,9 @@ public sealed class ItemTransferService : IItemTransferService
                     AddStoredWarehouseItems(
                         warehouse,
                         item.itemId,
-                        deposited);
+                        deposited,
+                        item.wasteOrigin,
+                        item.contamination);
                 }
 
                 remaining -= deposited;
@@ -307,7 +330,9 @@ public sealed class ItemTransferService : IItemTransferService
                     remaining,
                     dropPosition,
                     WorldItemStackState.Loose,
-                    string.Empty);
+                    string.Empty,
+                    wasteOrigin: item.wasteOrigin,
+                    contamination: item.contamination);
             }
         }
 
@@ -367,6 +392,7 @@ public sealed class ItemTransferService : IItemTransferService
                     destinationPosition,
                     WorldItemStackState.FacilityBuffer,
                     normalizedDestination,
+                    destinationPosition,
                     out string bufferStackId))
             {
                 combatEquipmentRuntime.TryLinkToWorldStack(
@@ -382,7 +408,11 @@ public sealed class ItemTransferService : IItemTransferService
                     item.quantity,
                     destinationPosition,
                     WorldItemStackState.FacilityBuffer,
-                    normalizedDestination);
+                    normalizedDestination,
+                    hasDestinationPosition: true,
+                    destinationPosition: destinationPosition,
+                    wasteOrigin: item.wasteOrigin,
+                    contamination: item.contamination);
             }
 
             depositedAny |= spawned > 0;
@@ -483,6 +513,88 @@ public sealed class ItemTransferService : IItemTransferService
         return true;
     }
 
+    public bool TryConsumeFacilityItemBuffer(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string normalizedDestination = destinationId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalizedDestination))
+        {
+            failureReason = "destination missing";
+            return false;
+        }
+
+        Dictionary<string, int> required = costs?
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && pair.Value > 0)
+            .GroupBy(pair => pair.Key.Trim(), StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(pair => Mathf.Max(0, pair.Value)),
+                StringComparer.Ordinal)
+            ?? new Dictionary<string, int>(StringComparer.Ordinal);
+        if (required.Count == 0 || DungeonDebugRuntimeRules.ShouldSkipCosts())
+        {
+            return true;
+        }
+
+        Dictionary<string, int> available =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (WorldItemStackRecord stack in repository.Records)
+        {
+            if (!MatchesFacilityItemBuffer(stack, normalizedDestination))
+            {
+                continue;
+            }
+
+            available.TryGetValue(stack.itemId, out int current);
+            available[stack.itemId] = current + stack.quantity;
+        }
+
+        foreach (KeyValuePair<string, int> pair in required)
+        {
+            if (!available.TryGetValue(pair.Key, out int stock)
+                || stock < pair.Value)
+            {
+                failureReason = $"facility item missing: {pair.Key}";
+                return false;
+            }
+        }
+
+        foreach (KeyValuePair<string, int> pair in required)
+        {
+            int remaining = pair.Value;
+            foreach (WorldItemStackRecord stack in repository.Records.ToArray())
+            {
+                if (remaining <= 0)
+                {
+                    break;
+                }
+
+                if (!MatchesFacilityItemBuffer(stack, normalizedDestination)
+                    || !string.Equals(stack.itemId, pair.Key, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                int consumed = Mathf.Min(remaining, stack.quantity);
+                Vector2Int position = stack.position;
+                stack.quantity -= consumed;
+                remaining -= consumed;
+                repository.MarkChanged();
+                if (stack.quantity <= 0)
+                {
+                    repository.Remove(stack);
+                }
+
+                markerPresenter.RefreshAt(position);
+            }
+        }
+
+        return true;
+    }
+
     private bool MatchesFacilityBuffer(
         WorldItemStackRecord stack,
         string destinationId,
@@ -497,6 +609,20 @@ public sealed class ItemTransferService : IItemTransferService
                 destinationId,
                 StringComparison.Ordinal)
             && TryGetWarehouseStockCategory(stack.itemId, out category);
+    }
+
+    private static bool MatchesFacilityItemBuffer(
+        WorldItemStackRecord stack,
+        string destinationId)
+    {
+        return stack != null
+            && stack.quantity > 0
+            && stack.state == WorldItemStackState.FacilityBuffer
+            && string.Equals(
+                stack.destinationId ?? string.Empty,
+                destinationId,
+                StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(stack.itemId);
     }
 
     private bool TryWithdrawOutboundStoredStock(
@@ -562,7 +688,9 @@ public sealed class ItemTransferService : IItemTransferService
     private int AddStoredWarehouseItems(
         IWarehouseFacility warehouse,
         string itemId,
-        int amount)
+        int amount,
+        WasteOriginKind wasteOrigin = WasteOriginKind.Unknown,
+        float contamination = 0f)
     {
         return warehouse == null
             || string.IsNullOrWhiteSpace(itemId)
@@ -573,7 +701,9 @@ public sealed class ItemTransferService : IItemTransferService
                 amount,
                 ResolveWarehouseStoragePosition(warehouse),
                 WorldItemStackState.Stored,
-                GetWarehouseStorageDestinationId(warehouse));
+                GetWarehouseStorageDestinationId(warehouse),
+                wasteOrigin: wasteOrigin,
+                contamination: contamination);
     }
 
     private Vector2Int ResolveActorGridPosition(CharacterActor actor)
@@ -616,20 +746,7 @@ public sealed class ItemTransferService : IItemTransferService
             && stack.state == WorldItemStackState.Stored
             && stack.hasDestinationPosition
             && !string.IsNullOrWhiteSpace(stack.destinationId)
-            && !string.IsNullOrWhiteSpace(stack.sourceStorageDestinationId)
-            && (IsFacilityInputDestination(stack.destinationId)
-                || IsCombatLoadoutDestination(stack.destinationId));
-    }
-
-    private static bool IsFacilityInputDestination(string destinationId)
-    {
-        return !string.IsNullOrWhiteSpace(destinationId)
-            && (destinationId.StartsWith(
-                    WorldItemStackRuntime.FacilityInputDestinationPrefix,
-                    StringComparison.Ordinal)
-                || destinationId.StartsWith(
-                    WorkOrderRuntime.ConstructionDestinationPrefix,
-                    StringComparison.Ordinal));
+            && !string.IsNullOrWhiteSpace(stack.sourceStorageDestinationId);
     }
 
     private static bool IsCombatLoadoutDestination(string destinationId)
@@ -640,7 +757,7 @@ public sealed class ItemTransferService : IItemTransferService
                 StringComparison.Ordinal);
     }
 
-    private static bool TryGetWarehouseStockCategory(
+    private bool TryGetWarehouseStockCategory(
         string itemId,
         out StockCategory category)
     {
@@ -656,6 +773,15 @@ public sealed class ItemTransferService : IItemTransferService
                 out DungeonItemDefinition ammunition))
         {
             category = ammunition.StockCategory;
+            return true;
+        }
+
+        if (resourceEconomyCatalog != null
+            && resourceEconomyCatalog.TryGetItem(
+                itemId,
+                out ResourceItemDefinitionSO resource))
+        {
+            category = resource.StockCategory;
             return true;
         }
 

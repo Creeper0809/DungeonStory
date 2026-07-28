@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 
 public enum GridPathSearchPriority
@@ -59,6 +60,13 @@ public interface IGridPathSearchBroker
 
 public sealed class GridPathSearchBroker : IGridPathSearchBroker
 {
+    private static readonly ProfilerMarker IncrementalCreateProfilerMarker =
+        new ProfilerMarker("GridPath.IncrementalCreate");
+    private static readonly ProfilerMarker IncrementalAdvanceProfilerMarker =
+        new ProfilerMarker("GridPath.IncrementalAdvance");
+    private static readonly ProfilerMarker IncrementalResultProfilerMarker =
+        new ProfilerMarker("GridPath.IncrementalResult");
+
     private sealed class CacheEntry
     {
         public GridPathSearchResult Result;
@@ -67,30 +75,20 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
 
     private sealed class IncrementalExactSearch
     {
-        private sealed class NodeRecord
-        {
-            public int Cost;
-            public int ParentIndex = -1;
-            public IGridOccupant MovementOccupant;
-            public GridMoveType MoveType;
-        }
-
         private readonly Grid grid;
         private readonly Vector2Int start;
         private readonly Vector2Int destination;
         private readonly GridTraversalContext traversalContext;
-        private readonly Func<Vector2Int, bool> traversalFilter;
+        private readonly IDoorAccessQuery doorAccessQuery;
         private readonly IGridTraversalCostPolicy costPolicy;
-        private readonly GridSearchPriorityQueue queue =
-            new GridSearchPriorityQueue();
-        private readonly Dictionary<int, NodeRecord> records =
-            new Dictionary<int, NodeRecord>(256);
-        private readonly List<GridTraversalStepData> nextSteps =
-            new List<GridTraversalStepData>(8);
+        private GridSearchPriorityQueue queue;
+        private SparseGridSearchWorkspace workspace;
+        private List<GridTraversalStepData> nextSteps;
         private readonly int startIndex;
         private int sequence;
         private int expandedNodeCount;
         private bool completed;
+        private bool scratchReleased;
         private int destinationCost = int.MaxValue;
 
         public IncrementalExactSearch(
@@ -98,19 +96,23 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             Vector2Int start,
             Vector2Int destination,
             GridTraversalContext traversalContext,
-            Func<Vector2Int, bool> traversalFilter,
+            IDoorAccessQuery doorAccessQuery,
             IGridTraversalCostPolicy costPolicy,
             int accessFrame)
         {
+            using ProfilerMarker.AutoScope profile =
+                IncrementalCreateProfilerMarker.Auto();
             this.grid = grid;
             this.start = start;
             this.destination = destination;
             this.traversalContext = traversalContext;
-            this.traversalFilter = traversalFilter;
+            this.doorAccessQuery = doorAccessQuery;
             this.costPolicy =
                 costPolicy ?? DefaultGridTraversalCostPolicy.Instance;
             TraversalVersion = grid != null ? grid.TraversalVersion : -1;
             LastAccessFrame = accessFrame;
+            queue = GridSearchScratch.RentPriorityQueue();
+            nextSteps = GridSearchScratch.RentTraversalStepList();
 
             if (grid == null
                 || !grid.TryGetCellIndex(start, out int resolvedStartIndex)
@@ -122,7 +124,8 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             }
 
             startIndex = resolvedStartIndex;
-            records[startIndex] = new NodeRecord { Cost = 0 };
+            workspace = GridSearchScratch.RentSparseWorkspace();
+            workspace.SetStart(startIndex);
             queue.Enqueue(new GridSearchQueueNode(
                 startIndex,
                 0,
@@ -150,10 +153,9 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             while (queue.Count > 0)
             {
                 GridSearchQueueNode current = queue.Dequeue();
-                if (!records.TryGetValue(
-                        current.CellIndex,
-                        out NodeRecord currentRecord)
-                    || current.Cost != currentRecord.Cost)
+                int currentCost =
+                    workspace.GetMoveCost(current.CellIndex);
+                if (current.Cost != currentCost)
                 {
                     continue;
                 }
@@ -200,7 +202,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
                         GridTraversalStepData step = nextSteps[index];
                         ExpandStep(
                             current.CellIndex,
-                            current.Cost,
+                            currentCost,
                             in step);
                     }
                 }
@@ -227,7 +229,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
                 return null;
             }
 
-            GridMoveStep[] path = BuildPath();
+            Queue<GridMoveStep> path = BuildOwnedPath();
             return new GridPathSearchResult(
                 grid,
                 start,
@@ -238,6 +240,22 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
                 expandedNodeCount);
         }
 
+        public void ReleaseScratch()
+        {
+            if (scratchReleased)
+            {
+                return;
+            }
+
+            scratchReleased = true;
+            GridSearchScratch.Return(queue);
+            GridSearchScratch.ReturnTraversalStepList(nextSteps);
+            GridSearchScratch.Return(workspace);
+            queue = null;
+            nextSteps = null;
+            workspace = null;
+        }
+
         private void ExpandStep(
             int currentIndex,
             int currentCost,
@@ -245,8 +263,13 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         {
             Vector2Int nextPosition = step.To;
             GridCell nextCell = grid.GetGridCell(nextPosition);
-            bool passesFilter =
-                traversalFilter == null || traversalFilter(nextPosition);
+            bool passesFilter = !traversalContext.HasSubject
+                || doorAccessQuery == null
+                || doorAccessQuery.CanTraverse(
+                    grid,
+                    nextPosition,
+                    traversalContext,
+                    out _);
             bool allowedTerminal = nextPosition == destination
                 && !grid.IsMovementBlockedByWall(nextPosition)
                 && passesFilter;
@@ -269,18 +292,17 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             }
 
             int candidateCost = currentCost + stepCost;
-            if (records.TryGetValue(nextIndex, out NodeRecord known)
-                && candidateCost >= known.Cost)
+            if (candidateCost >= workspace.GetMoveCost(nextIndex))
             {
                 return;
             }
 
-            NodeRecord record = known ?? new NodeRecord();
-            record.Cost = candidateCost;
-            record.ParentIndex = currentIndex;
-            record.MovementOccupant = step.MovementOccupant;
-            record.MoveType = step.MoveType;
-            records[nextIndex] = record;
+            workspace.SetNode(
+                nextIndex,
+                candidateCost,
+                currentIndex,
+                step.MovementOccupant,
+                step.MoveType);
             int priority = candidateCost
                 + grid.EstimatePathHeuristicCost(
                     nextPosition,
@@ -293,63 +315,68 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
                 sequence++));
         }
 
-        private GridMoveStep[] BuildPath()
+        private Queue<GridMoveStep> BuildOwnedPath()
         {
             if (destinationCost == int.MaxValue
                 || !grid.TryGetCellIndex(
                     destination,
                     out int destinationIndex))
             {
-                return Array.Empty<GridMoveStep>();
+                return GridSearchScratch.RentMovePath();
             }
 
             if (destinationIndex == startIndex)
             {
-                return Array.Empty<GridMoveStep>();
+                return GridSearchScratch.RentMovePath();
             }
 
-            List<int> reversed = new List<int>();
+            List<Vector2Int> reversePositions =
+                GridSearchScratch.RentPositionList();
             int currentIndex = destinationIndex;
-            int guard = records.Count + 1;
+            int guard = expandedNodeCount + 1;
             while (currentIndex != startIndex && guard-- > 0)
             {
-                reversed.Add(currentIndex);
-                if (!records.TryGetValue(
-                        currentIndex,
-                        out NodeRecord record)
-                    || record.ParentIndex < 0)
+                int parentIndex = workspace.GetParentIndex(currentIndex);
+                if (workspace.GetMoveCost(currentIndex) == int.MaxValue
+                    || parentIndex < 0)
                 {
                     destinationCost = int.MaxValue;
-                    return Array.Empty<GridMoveStep>();
+                    GridSearchScratch.ReturnPositionList(reversePositions);
+                    return GridSearchScratch.RentMovePath();
                 }
 
-                currentIndex = record.ParentIndex;
+                reversePositions.Add(
+                    grid.GetPositionFromCellIndex(currentIndex));
+                currentIndex = parentIndex;
             }
 
             if (currentIndex != startIndex)
             {
                 destinationCost = int.MaxValue;
-                return Array.Empty<GridMoveStep>();
+                GridSearchScratch.ReturnPositionList(reversePositions);
+                return GridSearchScratch.RentMovePath();
             }
 
-            GridMoveStep[] path = new GridMoveStep[reversed.Count];
-            for (int index = reversed.Count - 1, pathIndex = 0;
-                index >= 0;
-                index--, pathIndex++)
+            Queue<GridMoveStep> path =
+                GridSearchScratch.RentMovePath(reversePositions.Count);
+            for (int pathIndex = reversePositions.Count - 1;
+                 pathIndex >= 0;
+                 pathIndex--)
             {
-                int toIndex = reversed[index];
-                NodeRecord record = records[toIndex];
+                Vector2Int to = reversePositions[pathIndex];
+                int toIndex = grid.GetCellIndexUnchecked(to);
+                int parentIndex = workspace.GetParentIndex(toIndex);
                 Vector2Int from =
-                    grid.GetPositionFromCellIndex(record.ParentIndex);
-                Vector2Int to = grid.GetPositionFromCellIndex(toIndex);
-                path[pathIndex] = new GridMoveStep(
+                    grid.GetPositionFromCellIndex(parentIndex);
+                path.Enqueue(new GridMoveStep(
                     from,
                     to,
                     grid.GetGridCell(to)?.GetTopOccupant(),
-                    record.MovementOccupant,
-                    record.MoveType);
+                    workspace.GetParentMovementOccupant(toIndex),
+                    workspace.GetParentMoveType(toIndex)));
             }
 
+            GridSearchScratch.ReturnPositionList(reversePositions);
             return path;
         }
 
@@ -462,6 +489,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         this.doorAccessQuery = doorAccessQuery;
         this.performanceRecorder = performanceRecorder;
         this.costPolicy = costPolicy ?? DefaultGridTraversalCostPolicy.Instance;
+        GridSearchScratch.EnsureIncrementalSearchCapacity(64);
     }
 
     public int SearchesThisFrame { get; private set; }
@@ -572,13 +600,18 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             return GridPathRequestStatus.Unreachable;
         }
 
-        path = search.GetMovePathTo(destination);
+        path = search.TakeOwnedExactMovePath(destination);
         return GridPathRequestStatus.Reachable;
     }
 
     public void Clear()
     {
         pathCache.Clear();
+        foreach (IncrementalExactSearch search
+                 in incrementalExactSearches.Values)
+        {
+            search?.ReleaseScratch();
+        }
         incrementalExactSearches.Clear();
         deferredKeys.Clear();
         staleKeys.Clear();
@@ -676,14 +709,6 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             return false;
         }
 
-        Func<Vector2Int, bool> traversalFilter = traversalContext.HasSubject
-            && doorAccessQuery != null
-            ? position => doorAccessQuery.CanTraverse(
-                grid,
-                position,
-                traversalContext,
-                out _)
-            : null;
         bool recordSearch = performanceRecorder?.DetailedCollectionEnabled == true;
         long searchStarted = Stopwatch.GetTimestamp();
         if (destination.HasValue)
@@ -693,23 +718,44 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
                     out IncrementalExactSearch incremental)
                 || incremental.TraversalVersion != grid.TraversalVersion)
             {
+                incremental?.ReleaseScratch();
                 incremental = new IncrementalExactSearch(
                     grid,
                     start,
                     destination.Value,
                     traversalContext,
-                    traversalFilter,
+                    doorAccessQuery,
                     costPolicy,
                     cacheFrame);
                 incrementalExactSearches[key] = incremental;
             }
 
             incremental.LastAccessFrame = cacheFrame;
-            incremental.Advance(ResolveExactSearchSliceMilliseconds(priority));
-            result = incremental.CreateResult();
+            using (IncrementalAdvanceProfilerMarker.Auto())
+            {
+                incremental.Advance(
+                    ResolveExactSearchSliceMilliseconds(priority));
+            }
+            using (IncrementalResultProfilerMarker.Auto())
+            {
+                result = incremental.CreateResult();
+            }
+            if (result != null)
+            {
+                incremental.ReleaseScratch();
+            }
         }
         else
         {
+            Func<Vector2Int, bool> traversalFilter =
+                traversalContext.HasSubject
+                    && doorAccessQuery != null
+                    ? position => doorAccessQuery.CanTraverse(
+                        grid,
+                        position,
+                        traversalContext,
+                        out _)
+                    : null;
             result = grid.SearchPathWeighted(
                 start,
                 traversalFilter,
@@ -739,6 +785,11 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         if (destination.HasValue)
         {
             incrementalExactSearches.Remove(key);
+        }
+
+        if (destination.HasValue)
+        {
+            return true;
         }
 
         pathCache[key] = new CacheEntry
@@ -821,7 +872,12 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
 
         foreach (PathKey key in staleKeys)
         {
-            incrementalExactSearches.Remove(key);
+            if (incrementalExactSearches.Remove(
+                    key,
+                    out IncrementalExactSearch search))
+            {
+                search?.ReleaseScratch();
+            }
         }
 
         staleKeys.Clear();

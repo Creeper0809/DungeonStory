@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ac9ff51e4d0a0d41af84ab1478ff26a, type: 3}
+  m_Name: material_cloth
+  m_EditorClassIdentifier: Assembly-CSharp::CraftMaterialDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 11007
+  materialId: material:cloth
+  itemId: material:cloth
+  displayName: "\uCC9C"
+  family: 4
+  damageMultiplier: 0.65
+  penetrationDefenseMultiplier: 0.45
+  durabilityMultiplier: 0.55
+  weightMultiplier: 0.4
+  valueMultiplier: 0.65
+  insulation: 0.15
+  mentalResistance: 0.05
+  arcaneResistance: 0
+  tint: {r: 0.62, g: 0.58, b: 0.55, a: 1}
+  rareMaterial: 0
+  requiredResearchId: research:textile:fiber

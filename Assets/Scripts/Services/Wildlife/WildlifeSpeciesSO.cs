@@ -27,6 +27,17 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
     [SerializeField, Range(0f, 1f)] private float predationDrive = 0f;
     [SerializeField, Range(0f, 1f)] private float fleePreference = 0.55f;
     [SerializeField] private List<WildlifeButcherYield> butcherYields = new List<WildlifeButcherYield>();
+    [Header("Husbandry")]
+    [SerializeField] private bool domesticable = true;
+    [SerializeField, Range(0f, 1f)] private float tamingDifficulty = 0.45f;
+    [SerializeField, Min(0.25f)] private float adultAgeDays = 4f;
+    [SerializeField, Min(1f)] private float maximumAgeDays = 40f;
+    [SerializeField, Min(0.25f)] private float gestationDays = 4f;
+    [SerializeField] private bool laysEggs;
+    [SerializeField, Min(0.1f)] private float bodySize = 1f;
+    [SerializeField, Min(0.25f)] private float manureIntervalDays = 2f;
+    [SerializeField] private List<WildlifeHusbandryProductDefinition> husbandryProducts =
+        new List<WildlifeHusbandryProductDefinition>();
 
     public string SpeciesId => string.IsNullOrWhiteSpace(speciesId) ? name : speciesId.Trim();
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? SpeciesId : displayName.Trim();
@@ -50,6 +61,16 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
     public float PredationDrive => Mathf.Clamp01(Mathf.Max(predationDrive, Aggression >= 0.75f ? 0.7f : 0f));
     public float FleePreference => Mathf.Clamp01(fleePreference);
     public IReadOnlyList<WildlifeButcherYield> ButcherYields => butcherYields;
+    public WildlifeHusbandryProfile Husbandry => new WildlifeHusbandryProfile(
+        domesticable,
+        tamingDifficulty,
+        adultAgeDays,
+        maximumAgeDays,
+        gestationDays,
+        laysEggs,
+        bodySize,
+        manureIntervalDays,
+        husbandryProducts);
 
     public WildlifeSpeciesDefinition ToDefinition()
     {
@@ -75,7 +96,8 @@ public sealed class WildlifeSpeciesSO : ScriptableObject
             DailyWaterNeed,
             RestPreference,
             PredationDrive,
-            FleePreference);
+            FleePreference,
+            Husbandry);
     }
 
     private WildlifeDietType ResolveDiet()

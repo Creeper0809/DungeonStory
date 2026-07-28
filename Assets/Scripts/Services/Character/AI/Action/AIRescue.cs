@@ -13,6 +13,7 @@ public sealed class AIRescue : AIActionSet
     public override bool IsContinuous => true;
     public override float MinimumDuration => 0.25f;
     public override int InterruptPriority => 96;
+    public override bool AllowsSurvivalEmergencyInterrupt => false;
 
     public override float AdjustScore(CharacterActor actor, float baseScore)
     {

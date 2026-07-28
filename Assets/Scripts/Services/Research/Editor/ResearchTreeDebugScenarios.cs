@@ -23,8 +23,8 @@ public static class ResearchTreeDebugScenarios
     {
         ResearchProjectAssetBuilder.Rebuild();
         List<string> failures = new List<string>();
-        Verify("24개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
-        Verify("24개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
+        Verify("72개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
+        Verify("72개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
         Verify("100개 합성 그래프 배치", () => VerifySyntheticLayout(100), failures);
         Verify("250개 합성 그래프 배치", () => VerifySyntheticLayout(250), failures);
         Verify("선행 자동 큐와 설계도 우회", VerifyQueueRules, failures);
@@ -64,7 +64,7 @@ public static class ResearchTreeDebugScenarios
             .Distinct()
             .ToArray();
         int projectUnlockCount = projects.Sum(project => project.Unlocks.Count);
-        return projects.Length == 24
+        return projects.Length == 72
             && catalog.Validate().Count == 0
             && required == 4
             && shortcut == 3
@@ -96,7 +96,7 @@ public static class ResearchTreeDebugScenarios
                     $"synthetic:{count}:{index:000}",
                     $"합성 연구 {index + 1}",
                     "자동 배치 검증용 연구",
-                    (ResearchField)(index % 6),
+                    (ResearchField)(index % Enum.GetValues(typeof(ResearchField)).Length),
                     40f + index,
                     ResearchBlueprintRule.None,
                     null,

@@ -16,6 +16,16 @@ public class AIWait : AIActionSet
 
     public override bool RequiresDestination => false;
 
+    public override void PrepareScoreContext(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context)
+    {
+        if (actor != null && actor.TryGetAbility(out AbilityWork work))
+        {
+            work.SeedDecisionContext(in context);
+        }
+    }
+
     public override float AdjustScore(CharacterActor actor, float baseScore)
     {
         if (!CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work))

@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: food_egg_pancake
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8060
+  itemId: food:egg-pancake
+  displayName: "\uB2EC\uAC40\uC804"
+  description: "\uC54C\uACFC \uACE1\uBB3C\uB85C \uB9CC\uB4E0 \uCC44\uC2DD\uC2DD."
+  stockCategory: 0
+  kind: 2
+  ingredientTags: 9
+  unitPrice: 11
+  unitWeight: 0.65
+  maxStack: 40
+  sprite: {fileID: 0}
+  requiredResearchId: research:cuisine:livestock
+  mealQuality: 1
+  nutrition: 44
+  mealMood: 6
+  freshnessSeconds: 360
+  preserved: 0
+  supportsInjuryTreatment: 0
+  treatmentPotency: 1
+  infectionReduction: 0
+  detoxReduction: 0
+  painReduction: 0

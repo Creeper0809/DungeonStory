@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75000297946ffe4481d69575fdbfd0a, type: 3}
+  m_Name: recipe_dreamweave
+  m_EditorClassIdentifier: Assembly-CSharp::ProductionRecipeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9037
+  recipeId: recipe:dreamweave
+  displayName: "\uBABD\uC9C1\uBB3C \uC9C1\uC870"
+  description: "\uBABD\uC9C1\uBB3C \uC9C1\uC870 \uC0DD\uC0B0 \uC8FC\uBB38"
+  facilityTag: arcane-loom
+  workTypeId: work:craft
+  requiredResearchId: research:textile:dreamweave
+  requiredWork: 24
+  inputs:
+  - itemId: material:cloth
+    amount: 2
+  - itemId: resource:dreamleaf
+    amount: 2
+  - itemId: resource:mana-crystal
+    amount: 1
+  outputs:
+  - itemId: material:dreamweave
+    amount: 1
+    probability: 1

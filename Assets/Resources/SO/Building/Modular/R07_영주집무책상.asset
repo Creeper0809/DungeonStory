@@ -42,11 +42,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: f86825c79ad87264b9dbf9d7715bd80b, type: 3}
   abilityModules:
     items:
-    - rid: 7302562991791408108
-    - rid: 7302562991791408109
-    - rid: 7302562991791408110
-    - rid: 7302562991791408111
-    - rid: 7302562991791408112
+    - rid: 7302563239583285274
+    - rid: 7302563239583285275
+    - rid: 7302563239583285276
+    - rid: 7302563239583285277
+    - rid: 7302563239583285278
+    - rid: 7302563239583285279
   width: 2
   height: 1
   layer: 1
@@ -61,12 +62,18 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562991791408108
+    - rid: 7302563239583285274
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: R07
-    - rid: 7302562991791408109
+    - rid: 7302563239583285275
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - grand-project-office
+    - rid: 7302563239583285276
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,7 +81,7 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562991791408110
+    - rid: 7302563239583285277
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -85,11 +92,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 5
           disabledWhenDamaged: 1
-    - rid: 7302562991791408111
+    - rid: 7302563239583285278
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302562991791408112
+    - rid: 7302563239583285279
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility

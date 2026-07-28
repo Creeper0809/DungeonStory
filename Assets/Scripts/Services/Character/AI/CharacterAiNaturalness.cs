@@ -106,6 +106,7 @@ public sealed class CharacterAiIntentState
             || reason == CharacterAiInterruptReason.FacilityUnavailable
             || reason == CharacterAiInterruptReason.MacroGoalChanged
             || reason == CharacterAiInterruptReason.MoodImpulseChanged
+            || reason == CharacterAiInterruptReason.SurvivalEmergency
             || reason == CharacterAiInterruptReason.ManualReplan;
     }
 

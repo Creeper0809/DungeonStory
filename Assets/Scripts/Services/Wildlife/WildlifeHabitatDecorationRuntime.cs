@@ -3,6 +3,32 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+public enum NaturalResourceVisualKind
+{
+    Tree = 0,
+    Rock = 1
+}
+
+public readonly struct NaturalResourceVisualSnapshot
+{
+    public NaturalResourceVisualSnapshot(
+        string visualId,
+        Vector2Int position,
+        NaturalResourceVisualKind kind,
+        bool active)
+    {
+        VisualId = visualId ?? string.Empty;
+        Position = position;
+        Kind = kind;
+        Active = active;
+    }
+
+    public string VisualId { get; }
+    public Vector2Int Position { get; }
+    public NaturalResourceVisualKind Kind { get; }
+    public bool Active { get; }
+}
+
 public sealed class WildlifeHabitatDecorationRuntime : IDisposable
 {
     private const string RootName = "WildlifeHabitatDecorations";
@@ -22,6 +48,8 @@ public sealed class WildlifeHabitatDecorationRuntime : IDisposable
         new Dictionary<string, FlowerPatchVisual>(StringComparer.Ordinal);
     private readonly List<SpriteRenderer> treeRenderers = new List<SpriteRenderer>();
     private readonly List<SpriteRenderer> rockRenderers = new List<SpriteRenderer>();
+    private readonly Dictionary<string, ResourceVisual> resourceVisuals =
+        new Dictionary<string, ResourceVisual>(StringComparer.Ordinal);
 
     private GameObject root;
     private Grid grid;
@@ -37,6 +65,14 @@ public sealed class WildlifeHabitatDecorationRuntime : IDisposable
     public int TreeCount => treeRenderers.Count(renderer => renderer != null);
     public int RockCount => rockRenderers.Count(renderer => renderer != null);
     public bool IsReady => root != null && palette != null && palette.IsComplete;
+    public int StructureVersion { get; private set; }
+
+    private sealed class ResourceVisual
+    {
+        public Vector2Int Position;
+        public NaturalResourceVisualKind Kind;
+        public SpriteRenderer Renderer;
+    }
 
     public void Rebuild(
         Grid runtimeGrid,
@@ -88,6 +124,7 @@ public sealed class WildlifeHabitatDecorationRuntime : IDisposable
 
         ScatterPersistentDecorations(patches);
         Refresh(patches);
+        StructureVersion++;
     }
 
     public void Refresh(IReadOnlyList<WildlifeHabitatPatch> patches)
@@ -133,6 +170,31 @@ public sealed class WildlifeHabitatDecorationRuntime : IDisposable
         return visual.Renderers.Count(renderer => renderer != null && renderer.gameObject.activeSelf);
     }
 
+    public IReadOnlyList<NaturalResourceVisualSnapshot> GetResourceVisuals()
+    {
+        return resourceVisuals
+            .OrderBy(entry => entry.Key, StringComparer.Ordinal)
+            .Select(entry => new NaturalResourceVisualSnapshot(
+                entry.Key,
+                entry.Value.Position,
+                entry.Value.Kind,
+                entry.Value.Renderer != null && entry.Value.Renderer.gameObject.activeSelf))
+            .ToArray();
+    }
+
+    public bool SetResourceVisualActive(string visualId, bool active)
+    {
+        if (string.IsNullOrWhiteSpace(visualId)
+            || !resourceVisuals.TryGetValue(visualId.Trim(), out ResourceVisual visual)
+            || visual.Renderer == null)
+        {
+            return false;
+        }
+
+        visual.Renderer.gameObject.SetActive(active);
+        return true;
+    }
+
     public static int CalculateVisibleFlowerCount(float resource01, int rendererCount)
     {
         if (rendererCount <= 0 || resource01 <= FlowerDepletedThreshold)
@@ -151,12 +213,21 @@ public sealed class WildlifeHabitatDecorationRuntime : IDisposable
 
     public void Clear()
     {
+        bool hadStructure = root != null
+            || flowerPatchVisuals.Count > 0
+            || resourceVisuals.Count > 0;
         flowerPatchVisuals.Clear();
         treeRenderers.Clear();
         rockRenderers.Clear();
+        resourceVisuals.Clear();
         if (root != null)
         {
             DestroyObject(root);
+        }
+
+        if (hadStructure)
+        {
+            StructureVersion++;
         }
 
         root = null;
@@ -296,6 +367,14 @@ public sealed class WildlifeHabitatDecorationRuntime : IDisposable
         {
             renderer.flipX = (seed & 1) == 0;
             collection.Add(renderer);
+            resourceVisuals[objectName] = new ResourceVisual
+            {
+                Position = position,
+                Kind = ReferenceEquals(collection, treeRenderers)
+                    ? NaturalResourceVisualKind.Tree
+                    : NaturalResourceVisualKind.Rock,
+                Renderer = renderer
+            };
         }
 
         return renderer;

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
+using Unity.Profiling;
 using UnityEngine;
 using VContainer;
 
@@ -16,6 +17,8 @@ public sealed class CharacterProgression : MonoBehaviour
 
     private static readonly Dictionary<int, CharacterTraitSO> TraitCache =
         new Dictionary<int, CharacterTraitSO>();
+    private static readonly ProfilerMarker EffectiveProfileBuildMarker =
+        new ProfilerMarker("Character.Progression.BuildEffectiveProfile");
     private static IResourcesAssetLoader traitResourcesAssetLoader;
 
     [SerializeField, Min(1)] private int level = 1;
@@ -32,6 +35,10 @@ public sealed class CharacterProgression : MonoBehaviour
     private IGameEventBus gameEventBus;
     private CharacterRuntimeProfile effectiveRuntimeProfile;
     private int effectiveRuntimeProfileKey;
+    private readonly List<CharacterTraitSO> resolvedSelectedTraits =
+        new List<CharacterTraitSO>();
+    private IReadOnlyList<CharacterTraitSO> resolvedSelectedTraitsView;
+    private int resolvedSelectedTraitsKey = int.MinValue;
     private bool suppressPublicSkillNotifications;
 
     public CharacterActor Actor => actor;
@@ -111,6 +118,7 @@ public sealed class CharacterProgression : MonoBehaviour
     {
         actor = owner;
         EnsureInitialized();
+        WarmEffectiveRuntimeProfile();
         EnsureUnlockedDrafts();
     }
 
@@ -373,18 +381,50 @@ public sealed class CharacterProgression : MonoBehaviour
     public IReadOnlyList<CharacterTraitSO> ResolveSelectedTraits()
     {
         CharacterSO data = actor?.Identity?.Data;
-        if (GrowthState.traitIds == null || GrowthState.traitIds.Count == 0)
+        int key = data != null
+            ? BuildEffectiveRuntimeProfileKey(data)
+            : 0;
+        if (resolvedSelectedTraitsKey == key
+            && resolvedSelectedTraitsView != null)
         {
-            return data?.traits?.Where(item => item != null).ToArray()
-                ?? Array.Empty<CharacterTraitSO>();
+            return resolvedSelectedTraitsView;
         }
 
-        EnsureTraitCache();
-        return GrowthState.traitIds
-            .Where(id => TraitCache.ContainsKey(id))
-            .Select(id => TraitCache[id])
-            .Where(item => item != null)
-            .ToArray();
+        resolvedSelectedTraits.Clear();
+        IReadOnlyList<int> traitIds = GrowthState.traitIds;
+        if (traitIds == null || traitIds.Count == 0)
+        {
+            IReadOnlyList<CharacterTraitSO> sourceTraits = data?.traits;
+            if (sourceTraits != null)
+            {
+                for (int index = 0; index < sourceTraits.Count; index++)
+                {
+                    CharacterTraitSO trait = sourceTraits[index];
+                    if (trait != null)
+                    {
+                        resolvedSelectedTraits.Add(trait);
+                    }
+                }
+            }
+        }
+        else
+        {
+            EnsureTraitCache();
+            for (int index = 0; index < traitIds.Count; index++)
+            {
+                if (TraitCache.TryGetValue(
+                        traitIds[index],
+                        out CharacterTraitSO trait)
+                    && trait != null)
+                {
+                    resolvedSelectedTraits.Add(trait);
+                }
+            }
+        }
+
+        resolvedSelectedTraitsKey = key;
+        resolvedSelectedTraitsView ??= ReadOnlyView.List(resolvedSelectedTraits);
+        return resolvedSelectedTraitsView;
     }
 
     public CharacterRuntimeProfile GetEffectiveRuntimeProfile()
@@ -395,22 +435,61 @@ public sealed class CharacterProgression : MonoBehaviour
             return actor?.Identity?.Profile;
         }
 
-        int key = data.GetInstanceID();
-        unchecked
-        {
-            foreach (int traitId in GrowthState.traitIds.OrderBy(id => id))
-            {
-                key = (key * 397) ^ traitId;
-            }
-        }
+        int key = BuildEffectiveRuntimeProfileKey(data);
 
         if (effectiveRuntimeProfile == null || effectiveRuntimeProfileKey != key)
         {
             effectiveRuntimeProfileKey = key;
-            effectiveRuntimeProfile = CharacterRuntimeProfile.From(data, ResolveSelectedTraits());
+            using (EffectiveProfileBuildMarker.Auto())
+            {
+                effectiveRuntimeProfile = CharacterRuntimeProfile.From(data, ResolveSelectedTraits());
+            }
         }
 
         return effectiveRuntimeProfile;
+    }
+
+    private int BuildEffectiveRuntimeProfileKey(CharacterSO data)
+    {
+        IReadOnlyList<int> traitIds = GrowthState.traitIds;
+        if (traitIds == null || traitIds.Count == 0)
+        {
+            return data.GetInstanceID();
+        }
+
+        unchecked
+        {
+            uint sum = 0u;
+            uint squaredSum = 0u;
+            uint xor = 0u;
+            for (int index = 0; index < traitIds.Count; index++)
+            {
+                uint mixed = MixTraitId((uint)traitIds[index]);
+                sum += mixed;
+                squaredSum += mixed * mixed;
+                xor ^= mixed;
+            }
+
+            int key = data.GetInstanceID();
+            key = (key * 397) ^ traitIds.Count;
+            key = (key * 397) ^ (int)sum;
+            key = (key * 397) ^ (int)squaredSum;
+            key = (key * 397) ^ (int)xor;
+            return key;
+        }
+    }
+
+    private static uint MixTraitId(uint value)
+    {
+        unchecked
+        {
+            value ^= value >> 16;
+            value *= 0x7FEB352Du;
+            value ^= value >> 15;
+            value *= 0x846CA68Bu;
+            value ^= value >> 16;
+            return value;
+        }
     }
 
     public CharacterSkillSlotProfile GetSlotProfile()
@@ -555,6 +634,7 @@ public sealed class CharacterProgression : MonoBehaviour
             : 0;
         RebuildLegacySkillViews();
         EnsureInitialized();
+        WarmEffectiveRuntimeProfile();
         EnsureUnlockedDrafts();
         Changed?.Invoke();
     }
@@ -601,6 +681,7 @@ public sealed class CharacterProgression : MonoBehaviour
         GrowthState.pendingRequestKeys.Clear();
         GrowthState.nextActiveDraftHasPity = false;
         InvalidateEffectiveRuntimeProfile();
+        WarmEffectiveRuntimeProfile();
         EnsureUnlockedDrafts();
         actor?.Stats?.RecalculateVitals(resetCurrentHealth: true);
         Changed?.Invoke();
@@ -748,13 +829,23 @@ public sealed class CharacterProgression : MonoBehaviour
     private int GetConditionalPassiveStatBonus(CharacterStatType statType)
     {
         int bonus = 0;
-        foreach (CharacterSkillInstance passive in GrowthState.passiveSkills.Where(item => item != null))
+        IReadOnlyList<CharacterSkillInstance> passives =
+            GrowthState.passiveSkills;
+        for (int passiveIndex = 0;
+            passiveIndex < passives.Count;
+            passiveIndex++)
         {
+            CharacterSkillInstance passive = passives[passiveIndex];
+            if (passive == null)
+            {
+                continue;
+            }
+
             bool conditionActive = passive.trigger switch
             {
                 CharacterSkillTrigger.DamageTaken => actor != null && actor.InjurySeverity >= 0.25f,
-                CharacterSkillTrigger.NeedChanged => actor != null && actor.Mood.Value < 50f,
-                CharacterSkillTrigger.MoodChanged => actor != null && actor.Mood.Value >= 70f,
+                CharacterSkillTrigger.NeedChanged => actor?.Stats != null && actor.Stats.Mood < 50f,
+                CharacterSkillTrigger.MoodChanged => actor?.Stats != null && actor.Stats.Mood >= 70f,
                 _ => false
             };
             if (!conditionActive)
@@ -762,8 +853,18 @@ public sealed class CharacterProgression : MonoBehaviour
                 continue;
             }
 
-            foreach (CharacterSkillModuleSelection module in passive.modules ?? new List<CharacterSkillModuleSelection>())
+            IReadOnlyList<CharacterSkillModuleSelection> modules =
+                passive.modules;
+            if (modules == null)
             {
+                continue;
+            }
+
+            for (int moduleIndex = 0;
+                moduleIndex < modules.Count;
+                moduleIndex++)
+            {
+                CharacterSkillModuleSelection module = modules[moduleIndex];
                 if ((statType == CharacterStatType.Attack || statType == CharacterStatType.Strength)
                     && string.Equals(module.moduleId, "buff", StringComparison.Ordinal))
                 {
@@ -895,6 +996,15 @@ public sealed class CharacterProgression : MonoBehaviour
     {
         effectiveRuntimeProfile = null;
         effectiveRuntimeProfileKey = 0;
+        resolvedSelectedTraitsKey = int.MinValue;
+    }
+
+    private void WarmEffectiveRuntimeProfile()
+    {
+        if (actor?.Identity?.Data != null)
+        {
+            GetEffectiveRuntimeProfile();
+        }
     }
 
     private static void EnsureTraitCache()

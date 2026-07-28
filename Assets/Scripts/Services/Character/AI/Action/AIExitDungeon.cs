@@ -28,10 +28,7 @@ public class AIExitDungeon : AIActionSet
         CharacterActor actor,
         in CharacterAiDecisionContext context)
     {
-        return actor != null
-            && !context.IsWorker
-            && context.HasShoppingAbility
-            && context.ShouldExitDungeon;
+        return CanStart(actor);
     }
 
     public override void Execute(CharacterActor actor)

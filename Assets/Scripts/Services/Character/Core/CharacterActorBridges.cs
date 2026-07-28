@@ -18,6 +18,7 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
     public IWildlifeRuntime WildlifeRuntime { get; private set; }
     public ICharacterMedicalRuntime MedicalRuntime { get; private set; }
     public ICharacterDeprivationRuntime DeprivationRuntime { get; private set; }
+    public ICharacterConsumablesRuntime ConsumablesRuntime { get; private set; }
     public IGameClock GameClock { get; private set; }
     public IGridPathSearchBroker PathSearchBroker => pathSearchBroker;
     public ICharacterAiWorldRegistry WorldRegistry => worldRegistry;
@@ -37,6 +38,7 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
         IWildlifeRuntime wildlifeRuntime,
         ICharacterMedicalRuntime medicalRuntime,
         ICharacterDeprivationRuntime deprivationRuntime,
+        ICharacterConsumablesRuntime consumablesRuntime,
         IGameClock gameClock)
     {
         this.actor = actor ?? throw new ArgumentNullException(nameof(actor));
@@ -54,6 +56,7 @@ public sealed class CharacterActorRuntimeBridge : MonoBehaviour
         WildlifeRuntime = wildlifeRuntime;
         MedicalRuntime = medicalRuntime;
         DeprivationRuntime = deprivationRuntime;
+        ConsumablesRuntime = consumablesRuntime;
         GameClock = gameClock;
         worldRegistry.RegisterCharacterLifetime(actor);
         RegisterIfActive();

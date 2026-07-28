@@ -2,53 +2,68 @@
 [PASS] ITEM_RUNTIME_READY world item runtime resolved
 [PASS] WORK_ORDER_RUNTIME_READY work order runtime resolved
 [PASS] EQUIPMENT_RUNTIME_READY common combat equipment runtime resolved
+[PASS] EQUIPMENT_MAINTENANCE_READY equipment maintenance runtime resolved
+[PASS] ECONOMY_CATALOG_READY resource economy catalog resolved
 [PASS] PREPARATION_RUNTIME_READY offense preparation service resolved
 [PASS] GRID_READY grid resolved
-[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Haram:-9181174:staff:400469281:02:active=True,Ruka:-9181064:staff:400469281:01:active=True; diagnostics=prepared-1:name=Ruka;go=-9181036;id=staff:400469281:01;active=False || prepared-2:name=Haram;go=-9181146;id=staff:400469281:02;active=False || scan:name=Ruka;go=-9181036;id=staff:400469281:01;active=False;retained=True || scan:name=Haram;go=-9181146;id=staff:400469281:02;active=False;retained=True || scan:name=Ruka;go=-9181036;id=staff:400469281:01;active=True;retained=True || scan:name=Haram;go=-9181146;id=staff:400469281:02;active=True;retained=True || retained:name=Ruka;go=-9181036;id=staff:400469281:01;active=True || retained:name=Haram;go=-9181146;id=staff:400469281:02;active=True
-[PASS] RUN_READY owner=Arin
-[PASS] HAULER_READY Haram
-[PASS] REACHABLE_TEST_CELLS count=8; actor=(3, 0)
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Miru:-8873480:staff:132566125:02:active=True,Leon:-8873410:staff:132566125:01:active=True; diagnostics=prepared-1:name=Leon;go=-8873382;id=staff:132566125:01;active=False || prepared-2:name=Miru;go=-8873452;id=staff:132566125:02;active=False || scan:name=Leon;go=-8873382;id=staff:132566125:01;active=False;retained=True || scan:name=Miru;go=-8873452;id=staff:132566125:02;active=False;retained=True || scan:name=Leon;go=-8873382;id=staff:132566125:01;active=True;retained=True || scan:name=Miru;go=-8873452;id=staff:132566125:02;active=True;retained=True || retained:name=Leon;go=-8873382;id=staff:132566125:01;active=True || retained:name=Miru;go=-8873452;id=staff:132566125:02;active=True
+[PASS] RUN_READY owner=Serin
+[PASS] HAULER_READY Miru
+[PASS] REACHABLE_TEST_CELLS count=8; actor=(2, 0)
 [PASS] TEMP_WAREHOUSE_READY QA_Physical_Logistics_Warehouse
 [PASS] TEMP_CRAFT_BENCH_READY QA_Physical_Logistics_Bench
 [PASS] TEMP_WAREHOUSE_SEEDED food=5; general=20; weapon=20
-[PASS] LOOSE_STACK_SPAWNED pos=(1, 0); amount=3
-[PASS] AI_HAUL_CAN_START_WAREHOUSE actor=Haram; pos=(3, 0); carry=0/19.25/28.88kg ; stacks=stack:00000001:stock-item:0x3:Loose:dest=:pos=(1, 0)
-[PASS] AI_HAUL_COMPLETED elapsed=4.6s
-[PASS] AI_HAUL_DEPOSITED_TO_WAREHOUSE totalFood=0->3; testWarehouseFood=0->3; carry=0/19.25/28.88kg 
+[PASS] TEMP_WAREHOUSE_IRON_SEEDED item=material:iron-ingot; amount=6; destination=warehouse:1050:1:0
+[PASS] LOOSE_STACK_SPAWNED pos=(0, 0); amount=3
+[PASS] AI_HAUL_CAN_START_WAREHOUSE actor=Miru; pos=(2, 0); phase=/; haul=운반 계획 없음; unload=운반 중단; carry=0/20/30kg ; stacks=stack:00000001:material:iron-ingotx6:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000002:stock-item:0x3:Loose:dest=:pos=(0, 0)
+[PASS] AI_HAUL_COMPLETED elapsed=1.5s
+[PASS] AI_HAUL_DEPOSITED_TO_WAREHOUSE totalFood=0->3; testWarehouseFood=0->3; carry=0/20/30kg 
 [PASS] FACILITY_DELIVERY_REQUESTED requested=2; reason=; general=20->20
 [PASS] FACILITY_STOCK_HELD_UNTIL_PICKUP general=20->20
-[PASS] FACILITY_REQUEST_NO_LOOSE_PILE stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x18:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000004:stock-item:1x2:Stored:dest=facility-input:qa-logistics-input:pos=(2, 0)
-[PASS] FACILITY_REQUEST_RESERVED_IN_STORAGE stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x18:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000004:stock-item:1x2:Stored:dest=facility-input:qa-logistics-input:pos=(2, 0)
-[PASS] AI_HAUL_CAN_START_FACILITY actor=Haram; pos=(1, 0); carry=0/19.25/28.88kg ; stacks=stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x18:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000004:stock-item:1x2:Stored:dest=facility-input:qa-logistics-input:pos=(2, 0)
-[PASS] AI_HAUL_COMPLETED elapsed=2.4s
-[PASS] AI_HAUL_DEPOSITED_TO_FACILITY_BUFFER stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x18:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000005:stock-item:1x2:FacilityBuffer:dest=facility-input:qa-logistics-input:pos=(4, 0)
+[PASS] FACILITY_REQUEST_NO_LOOSE_PILE stack:00000001:material:iron-ingotx6:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x18:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000005:stock-item:1x2:Stored:dest=facility-input:qa-logistics-input:pos=(1, 0)
+[PASS] FACILITY_REQUEST_RESERVED_IN_STORAGE stack:00000001:material:iron-ingotx6:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x18:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000005:stock-item:1x2:Stored:dest=facility-input:qa-logistics-input:pos=(1, 0)
+[PASS] AI_HAUL_CAN_START_FACILITY actor=Miru; pos=(0, 0); phase=/; haul=운반 계획 없음; unload=배송 완료; carry=0/20/30kg ; stacks=stack:00000001:material:iron-ingotx6:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x18:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000005:stock-item:1x2:Stored:dest=facility-input:qa-logistics-input:pos=(1, 0)
+[PASS] AI_HAUL_COMPLETED elapsed=2.3s
+[PASS] AI_HAUL_DEPOSITED_TO_FACILITY_BUFFER stack:00000001:material:iron-ingotx6:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x18:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000006:stock-item:1x2:FacilityBuffer:dest=facility-input:qa-logistics-input:pos=(3, 0)
 [PASS] FACILITY_STOCK_WITHDRAWN_ON_PICKUP general=20->18
 [PASS] FACILITY_BUFFER_CONSUMED 
-[PASS] CONSTRUCTION_SITE_REGISTERED pos=(1, 0)
+[PASS] CONSTRUCTION_SITE_REGISTERED pos=(0, 0)
 [PASS] CONSTRUCTION_ORDER_CREATED order=work:000001
-[PASS] CONSTRUCTION_WAITS_FOR_MATERIALS status=WaitingForMaterials; destination=construction:99121:1:0
+[PASS] CONSTRUCTION_WAITS_FOR_MATERIALS status=WaitingForMaterials; destination=construction:99121:0:0
 [PASS] CONSTRUCTION_STOCK_HELD_UNTIL_PICKUP general=18->18
-[PASS] CONSTRUCTION_REQUEST_NO_LOOSE_PILE stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x16:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000006:stock-item:1x2:Stored:dest=construction:99121:1:0:pos=(2, 0)
-[PASS] CONSTRUCTION_MATERIAL_RESERVED_IN_STORAGE stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x16:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000006:stock-item:1x2:Stored:dest=construction:99121:1:0:pos=(2, 0)
-[PASS] AI_HAUL_CAN_START_CONSTRUCTION actor=Haram; pos=(4, 0); carry=0/19.25/28.88kg ; stacks=stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x16:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000006:stock-item:1x2:Stored:dest=construction:99121:1:0:pos=(2, 0)
-[PASS] AI_HAUL_COMPLETED elapsed=2.4s
+[PASS] CONSTRUCTION_REQUEST_NO_LOOSE_PILE stack:00000001:material:iron-ingotx6:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000007:stock-item:1x2:Stored:dest=construction:99121:0:0:pos=(1, 0)
+[PASS] CONSTRUCTION_MATERIAL_RESERVED_IN_STORAGE stack:00000001:material:iron-ingotx6:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000007:stock-item:1x2:Stored:dest=construction:99121:0:0:pos=(1, 0)
+[PASS] AI_HAUL_CAN_START_CONSTRUCTION actor=Miru; pos=(3, 0); phase=/; haul=운반 계획 없음; unload=배송 완료; carry=0/20/30kg ; stacks=stack:00000001:material:iron-ingotx6:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000007:stock-item:1x2:Stored:dest=construction:99121:0:0:pos=(1, 0)
+[PASS] AI_HAUL_COMPLETED elapsed=2.3s
 [PASS] CONSTRUCTION_STOCK_WITHDRAWN_ON_PICKUP general=18->16
 [PASS] CONSTRUCTION_READY_AFTER_PHYSICAL_DELIVERY status=Ready; delivered=2
 [PASS] CRAFT_QUEUE_REQUESTED_PHYSICAL_MATERIALS 
-[PASS] CRAFT_MATERIAL_STACK_CREATED destination=facility-input:combat-craft:d6312b456b6d4bcca0995d546f4a7be1
-[PASS] AI_HAUL_CAN_START_CRAFT_MATERIALS actor=Haram; pos=(1, 0); carry=0/19.25/28.88kg ; stacks=stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x15:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000008:stock-item:1x1:Stored:dest=facility-input:combat-craft:d6312b456b6d4bcca0995d546f4a7be1:pos=(2, 0)
-[PASS] AI_HAUL_COMPLETED elapsed=2.4s
+[PASS] CRAFT_MATERIAL_STACK_CREATED destination=facility-input:combat-craft:b4b770d260684fadaa686520e6d3c70c
+[PASS] AI_HAUL_CAN_START_CRAFT_MATERIALS actor=Miru; pos=(0, 0); phase=/; haul=운반 계획 없음; unload=배송 완료; carry=0/20/30kg ; stacks=stack:00000001:material:iron-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000009:material:iron-ingotx1:Stored:dest=facility-input:combat-craft:b4b770d260684fadaa686520e6d3c70c:pos=(1, 0)
+[PASS] AI_HAUL_COMPLETED elapsed=2.3s
 [PASS] CRAFT_MATERIALS_READY_AFTER_HAUL ready=True
-[PASS] CRAFT_OUTPUT_WORLD_STACK_CREATED stack=stack:00000010; pos=(4, 0)
-[PASS] AI_HAUL_CAN_START_CRAFT_OUTPUT actor=Haram; pos=(4, 0); carry=0/19.25/28.88kg ; stacks=stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x15:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000010:equipment-item:weapon:daggerx1:FacilityBuffer:dest=craft:-9181536:pos=(4, 0)
-[PASS] AI_HAUL_COMPLETED elapsed=2.7s
+[PASS] CRAFT_OUTPUT_WORLD_STACK_CREATED stack=stack:00000011; pos=(3, 0)
+[PASS] CRAFT_OUTPUT_RETAINED_SELECTED_MATERIAL stack=stack:00000011
+[PASS] AI_HAUL_CAN_START_CRAFT_OUTPUT actor=Miru; pos=(3, 0); phase=/; haul=운반 계획 없음; unload=배송 완료; carry=0/20/30kg ; stacks=stack:00000001:material:iron-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000011:equipment-item:weapon:daggerx1:FacilityBuffer:dest=craft:-8873744:pos=(3, 0)
+[PASS] AI_HAUL_COMPLETED elapsed=2.3s
 [PASS] AI_HAUL_DEPOSITED_EQUIPMENT_TO_INVENTORY Dagger=0->1; warehouseWeapon=20
-[PASS] EXPEDITION_SUPPLIES_PACKED message=던전 창고에서 원정 보급품을 실었습니다.; stacks=stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x15:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000011:equipment-item:weapon:daggerx1:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000012:stock-item:0x2:ExpeditionPacked:dest=qa-package-b89a3a13eb1e4dfcb6c341d66cbe6399:pos=(16, 0)
-[PASS] EXPEDITION_PACKED_STACK_VISIBLE packed=2; package=qa-package-b89a3a13eb1e4dfcb6c341d66cbe6399
-[PASS] EXPEDITION_PACKED_STACK_CONSUMED stack:00000002:stock-item:0x3:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000003:stock-item:1x15:Stored:dest=warehouse:1050:2:0:pos=(2, 0) | stack:00000011:equipment-item:weapon:daggerx1:Stored:dest=warehouse:1050:2:0:pos=(2, 0)
-[PASS] CARRY_UI_ITEM_SEEDED failure=; 4.5/19.25/28.88kg stock-item:2x2
-[PASS] CARRY_UI_WEIGHT_VISIBLE 연료가 부족합니다 || Arin || Haram || Ruka || 런 시작 변수 || 생존 상태 건강 · 식량 정상 · 물 정상 · 체온 안정  소지 무게 4.5kg / 기본 19.3kg / 최대 28.9kg  과적 없음 · 이동 속도 100%  무기 x2 || 94 || 위생 || 88 || 배변 || 97 || 휴식 || 100 || 재미 || 76 || 갈증
-[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-carry-ui.png; bytes=585197
+[PASS] MATERIAL_REPAIR_FACILITY_READY pos=(1, 0)
+[PASS] MATERIAL_REPAIR_STOCK_SEEDED item=material:blacksteel-ingot; amount=8; destination=warehouse:1050:1:0
+[PASS] MATERIAL_REPAIR_ARMOR_DAMAGED instance=combat-item:b56357f6c76241859b71c895ac1e4bd4; material=material:blacksteel
+[PASS] MATERIAL_REPAIR_ORDER_CREATED 장비 수리 운반을 요청했습니다.
+[PASS] MATERIAL_REPAIR_REQUIRES_ORIGINAL_MATERIAL item=material:blacksteel-ingot; amount=3
+[PASS] MATERIAL_REPAIR_EQUIPMENT_DESTINATION_READY stack=stack:00000014; stack:00000001:material:iron-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000012:equipment-item:weapon:daggerx1:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000013:material:blacksteel-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000014:equipment-item:armor:breastplatex1:Loose:dest=equipment-repair:combat-item:b56357f6c76241859b71c895ac1e4bd4:pos=(1, 0) | stack:00000015:material:blacksteel-ingotx3:Stored:dest=equipment-repair:combat-item:b56357f6c76241859b71c895ac1e4bd4:pos=(1, 0)
+[PASS] AI_REPEATED_HAUL_COMPLETED elapsed=1.6s; actor=Miru; pos=(2, 0); phase=이동/MovePath / 12칸; haul=운반 계획 없음; unload=배송 완료; carry=0/20/30kg ; stacks=stack:00000001:material:iron-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000012:equipment-item:weapon:daggerx1:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000013:material:blacksteel-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000016:material:blacksteel-ingotx3:FacilityBuffer:dest=equipment-repair:combat-item:b56357f6c76241859b71c895ac1e4bd4:pos=(1, 0) | stack:00000017:equipment-item:armor:breastplatex1:FacilityBuffer:dest=equipment-repair:combat-item:b56357f6c76241859b71c895ac1e4bd4:pos=(1, 0)
+[PASS] MATERIAL_REPAIR_INPUTS_DELIVERED stack:00000001:material:iron-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000012:equipment-item:weapon:daggerx1:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000013:material:blacksteel-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000016:material:blacksteel-ingotx3:FacilityBuffer:dest=equipment-repair:combat-item:b56357f6c76241859b71c895ac1e4bd4:pos=(1, 0) | stack:00000017:equipment-item:armor:breastplatex1:FacilityBuffer:dest=equipment-repair:combat-item:b56357f6c76241859b71c895ac1e4bd4:pos=(1, 0)
+[PASS] MATERIAL_REPAIR_NO_DUPLICATE_REQUEST required=3; delivered=3; destinationTotal=3; stack:00000001:material:iron-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000012:equipment-item:weapon:daggerx1:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000013:material:blacksteel-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000016:material:blacksteel-ingotx3:FacilityBuffer:dest=equipment-repair:combat-item:b56357f6c76241859b71c895ac1e4bd4:pos=(1, 0) | stack:00000017:equipment-item:armor:breastplatex1:FacilityBuffer:dest=equipment-repair:combat-item:b56357f6c76241859b71c895ac1e4bd4:pos=(1, 0)
+[PASS] MATERIAL_REPAIR_PRESERVES_INSTANCE_AND_MATERIAL 철 흉갑 수리 완료
+[PASS] MATERIAL_SALVAGE_RETURNS_ORIGINAL_MATERIAL item=material:blacksteel-ingot; amount=3; reason=
+[PASS] EXPEDITION_SUPPLIES_PACKED message=던전 창고에서 원정 보급품을 실었습니다.; stacks=stack:00000001:material:iron-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000012:equipment-item:weapon:daggerx1:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000013:material:blacksteel-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000019:material:blacksteel-ingotx3:Loose:dest=:pos=(1, 0) | stack:00000020:stock-item:0x2:ExpeditionPacked:dest=qa-package-544b6d7bb2624d7986c59bb69c07f0ae:pos=(16, 0)
+[PASS] EXPEDITION_PACKED_STACK_VISIBLE packed=2; package=qa-package-544b6d7bb2624d7986c59bb69c07f0ae
+[PASS] EXPEDITION_PACKED_STACK_CONSUMED stack:00000001:material:iron-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000003:stock-item:0x3:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000004:stock-item:1x16:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000012:equipment-item:weapon:daggerx1:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000013:material:blacksteel-ingotx5:Stored:dest=warehouse:1050:1:0:pos=(1, 0) | stack:00000019:material:blacksteel-ingotx3:Loose:dest=:pos=(1, 0)
+[PASS] CARRY_UI_ITEM_SEEDED failure=; 4.5/20/30kg stock-item:2x2
+[PASS] CARRY_UI_WEIGHT_VISIBLE 3 || 연료가 부족합니다 || 런 시작 변수 || 생존 상태 건강 · 식량 정상 · 물 정상 · 체온 안정  소지 무게 4.5kg / 기본 20kg / 최대 30kg  과적 없음 · 이동 속도 100%  무기 x2 || 96 || 위생 || 91 || 배변 || 100 || 휴식 || 100 || 재미 || 82 || 갈증 || 85 || 포만감
+[PASS] SCREEN_CAPTURE_NONBLANK Artifacts/QA/physical-item-carry-ui.png; bytes=627409
 capturedErrors=0; <none>
 capturedWarnings=0; <none>
 RESULT=PASS; failures=0; <none>

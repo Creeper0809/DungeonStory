@@ -151,10 +151,25 @@ public sealed class DefenseTacticalCoordinator :
 
     public bool IsReservedForOther(string actorId, Vector2Int cell)
     {
-        return byActor.Values.Any(item =>
-            item != null
-            && item.Cell == cell
-            && !string.Equals(item.actorId, actorId, StringComparison.Ordinal));
+        if (byActor.Count == 0)
+        {
+            return false;
+        }
+
+        foreach (CombatPositionReservation reservation in byActor.Values)
+        {
+            if (reservation != null
+                && reservation.Cell == cell
+                && !string.Equals(
+                    reservation.actorId,
+                    actorId,
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public bool CanAssignTarget(string actorId, string targetId, int maximumAttackers = 2)
@@ -164,10 +179,23 @@ public sealed class DefenseTacticalCoordinator :
             return true;
         }
 
-        int assigned = byActor.Values.Count(item =>
-            item != null
-            && string.Equals(item.targetId, targetId, StringComparison.Ordinal)
-            && !string.Equals(item.actorId, actorId, StringComparison.Ordinal));
+        int assigned = 0;
+        foreach (CombatPositionReservation reservation in byActor.Values)
+        {
+            if (reservation != null
+                && string.Equals(
+                    reservation.targetId,
+                    targetId,
+                    StringComparison.Ordinal)
+                && !string.Equals(
+                    reservation.actorId,
+                    actorId,
+                    StringComparison.Ordinal))
+            {
+                assigned++;
+            }
+        }
+
         return assigned < Mathf.Max(1, maximumAttackers);
     }
 

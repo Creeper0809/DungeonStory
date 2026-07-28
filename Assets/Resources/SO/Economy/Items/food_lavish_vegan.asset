@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: food_lavish_vegan
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8066
+  itemId: food:lavish-vegan
+  displayName: "\uC6D4\uC57C \uBE44\uAC74 \uB9CC\uCC2C"
+  description: "\uC138 \uAC00\uC9C0 \uC2DD\uBB3C \uC7AC\uB8CC\uAD70\uC744 \uC4F4
+    \uBE44\uAC74 \uD638\uD654\uC2DD."
+  stockCategory: 0
+  kind: 2
+  ingredientTags: 3
+  unitPrice: 24
+  unitWeight: 0.9
+  maxStack: 30
+  sprite: {fileID: 0}
+  requiredResearchId: research:cuisine:lavish
+  mealQuality: 2
+  nutrition: 58
+  mealMood: 13
+  freshnessSeconds: 480
+  preserved: 0
+  supportsInjuryTreatment: 0
+  treatmentPotency: 1
+  infectionReduction: 0
+  detoxReduction: 0
+  painReduction: 0

@@ -16,6 +16,18 @@ public interface IWorldItemQueryService
         Vector2Int position,
         bool includeStored = false);
     IReadOnlyList<WorldItemStackSnapshot> GetAllStacks();
+    bool TryFindNearestAvailableStock(
+        Vector2Int origin,
+        StockCategory category,
+        bool preferStored,
+        out WorldItemStackSnapshot stack);
+    void CopyAvailableStockCandidates(
+        StockCategory category,
+        List<WorldItemStockCandidate> destination);
+    bool TryFindBestAvailableStack(
+        Vector2Int origin,
+        Func<string, int> rankSelector,
+        out WorldItemStackSnapshot stack);
 }
 
 public sealed class WorldItemQueryService : IWorldItemQueryService
@@ -24,6 +36,9 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
     private readonly WorldItemRepository repository;
     private readonly IItemMarkerPresenter markerPresenter;
     private bool storedItemMarkersVisible;
+    private int allStacksCacheVersion = -1;
+    private IReadOnlyList<WorldItemStackSnapshot> allStacksCache =
+        Array.Empty<WorldItemStackSnapshot>();
 
     public WorldItemQueryService(
         IDungeonItemCatalogProvider catalogProvider,
@@ -121,10 +136,178 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
 
     public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks()
     {
-        return repository.Records
-            .Where(stack => stack != null && stack.quantity > 0)
-            .Select(CreateSnapshot)
-            .ToArray();
+        int version = repository.ItemStackVersion;
+        if (allStacksCacheVersion == version)
+        {
+            return allStacksCache;
+        }
+
+        List<WorldItemStackRecord> records = repository.Records;
+        List<WorldItemStackSnapshot> snapshots =
+            new List<WorldItemStackSnapshot>(records.Count);
+        for (int index = 0; index < records.Count; index++)
+        {
+            WorldItemStackRecord record = records[index];
+            if (record != null && record.quantity > 0)
+            {
+                snapshots.Add(CreateSnapshot(record));
+            }
+        }
+
+        allStacksCache = snapshots.Count > 0
+            ? snapshots.ToArray()
+            : Array.Empty<WorldItemStackSnapshot>();
+        allStacksCacheVersion = version;
+        return allStacksCache;
+    }
+
+    public bool TryFindNearestAvailableStock(
+        Vector2Int origin,
+        StockCategory category,
+        bool preferStored,
+        out WorldItemStackSnapshot stack)
+    {
+        WorldItemStackRecord best = null;
+        int bestStateRank = int.MaxValue;
+        int bestDistance = int.MaxValue;
+        List<WorldItemStackRecord> records = repository.Records;
+        for (int index = 0; index < records.Count; index++)
+        {
+            WorldItemStackRecord candidate = records[index];
+            if (!IsConsumableStock(candidate)
+                || catalogProvider.GetDefinition(candidate.itemId).StockCategory
+                    != category)
+            {
+                continue;
+            }
+
+            int stateRank = preferStored
+                && candidate.state == WorldItemStackState.Stored
+                    ? 0
+                    : 1;
+            int distance = Manhattan(origin, candidate.position);
+            if (stateRank > bestStateRank
+                || (stateRank == bestStateRank && distance >= bestDistance))
+            {
+                continue;
+            }
+
+            best = candidate;
+            bestStateRank = stateRank;
+            bestDistance = distance;
+        }
+
+        stack = best != null ? CreateSnapshot(best) : null;
+        return stack != null;
+    }
+
+    public void CopyAvailableStockCandidates(
+        StockCategory category,
+        List<WorldItemStockCandidate> destination)
+    {
+        if (destination == null)
+        {
+            throw new ArgumentNullException(nameof(destination));
+        }
+
+        destination.Clear();
+        List<WorldItemStackRecord> records = repository.Records;
+        for (int index = 0; index < records.Count; index++)
+        {
+            WorldItemStackRecord candidate = records[index];
+            if (!IsConsumableStock(candidate)
+                || catalogProvider.GetDefinition(candidate.itemId).StockCategory
+                    != category)
+            {
+                continue;
+            }
+
+            destination.Add(new WorldItemStockCandidate(
+                candidate.stackId,
+                candidate.position,
+                candidate.state,
+                candidate.quantity));
+        }
+    }
+
+    public bool TryFindBestAvailableStack(
+        Vector2Int origin,
+        Func<string, int> rankSelector,
+        out WorldItemStackSnapshot stack)
+    {
+        if (rankSelector == null)
+        {
+            throw new ArgumentNullException(nameof(rankSelector));
+        }
+
+        WorldItemStackRecord best = null;
+        int bestRank = int.MaxValue;
+        int bestDistance = int.MaxValue;
+        List<WorldItemStackRecord> records = repository.Records;
+        for (int index = 0; index < records.Count; index++)
+        {
+            WorldItemStackRecord candidate = records[index];
+            if (!IsConsumableStock(candidate))
+            {
+                continue;
+            }
+
+            int rank = rankSelector(candidate.itemId);
+            if (rank == int.MaxValue)
+            {
+                continue;
+            }
+
+            int distance = Manhattan(origin, candidate.position);
+            if (rank > bestRank
+                || (rank == bestRank && distance >= bestDistance))
+            {
+                continue;
+            }
+
+            best = candidate;
+            bestRank = rank;
+            bestDistance = distance;
+        }
+
+        stack = best != null ? CreateSnapshot(best) : null;
+        return stack != null;
+    }
+
+    private static bool IsAvailable(WorldItemStackRecord stack)
+    {
+        return stack != null
+            && stack.quantity > 0
+            && !stack.forbidden
+            && string.IsNullOrWhiteSpace(stack.reservedByPersistentId);
+    }
+
+    private static bool IsConsumableStock(WorldItemStackRecord stack)
+    {
+        if (!IsAvailable(stack))
+        {
+            return false;
+        }
+
+        if (stack.state == WorldItemStackState.Loose)
+        {
+            return string.IsNullOrWhiteSpace(stack.destinationId);
+        }
+
+        if (stack.state != WorldItemStackState.Stored)
+        {
+            return false;
+        }
+
+        return string.IsNullOrWhiteSpace(stack.destinationId)
+            || stack.destinationId.StartsWith(
+                WorldItemStackRuntime.WarehouseStorageDestinationPrefix,
+                StringComparison.Ordinal);
+    }
+
+    private static int Manhattan(Vector2Int left, Vector2Int right)
+    {
+        return Mathf.Abs(left.x - right.x) + Mathf.Abs(left.y - right.y);
     }
 
     internal WorldItemStackSnapshot CreateSnapshot(
@@ -157,7 +340,9 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
             SourceDisplayName = stack.sourceDisplayName ?? string.Empty,
             SourceSpeciesTag = stack.sourceSpeciesTag ?? string.Empty,
             SourceDeathReason = stack.sourceDeathReason ?? string.Empty,
-            EmergencyButcheryAllowed = stack.emergencyButcheryAllowed
+            EmergencyButcheryAllowed = stack.emergencyButcheryAllowed,
+            WasteOrigin = stack.wasteOrigin,
+            Contamination = Mathf.Clamp(stack.contamination, 0f, 100f)
         };
     }
 

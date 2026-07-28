@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
@@ -28,6 +29,9 @@ public static class SurvivalDebugScenarios
         Run("ability_modules", VerifyAbilityModules, errors);
         Run("room_snapshot_survival_metrics", VerifyRoomSnapshotMetrics, errors);
         Run("physical_meal_authority", VerifyPhysicalMealAuthority, errors);
+        Run("meal_diet_content", VerifyMealDietContent, errors);
+        Run("medicine_and_substance_content", VerifyMedicineAndSubstanceContent, errors);
+        Run("consumables_save_payload", VerifyConsumablesSavePayload, errors);
         return errors;
     }
 
@@ -284,6 +288,192 @@ public static class SurvivalDebugScenarios
                 UnityEngine.Object.DestroyImmediate(buildingData);
             }
         }
+    }
+
+    private static string VerifyMealDietContent()
+    {
+        ResourceItemDefinitionSO[] meals = Resources
+            .LoadAll<ResourceItemDefinitionSO>(ResourceItemDefinitionSO.ResourcePath)
+            .Where(item => item != null && item.IsMeal)
+            .OrderBy(item => item.ItemId, StringComparer.Ordinal)
+            .ToArray();
+        Require(meals.Length == 13, $"expected 13 authored meals, found {meals.Length}");
+        Require(meals.All(item => item.Nutrition > 0f),
+            "a meal has no nutrition");
+        Require(meals.All(item => item.FreshnessSeconds > 0f),
+            "a meal has no shelf life");
+
+        Dictionary<MealDietClass, int> counts = meals
+            .GroupBy(item => item.MealDietClass)
+            .ToDictionary(group => group.Key, group => group.Count());
+        Require(GetCount(counts, MealDietClass.Vegan) == 6,
+            "vegan meal classification count mismatch");
+        Require(GetCount(counts, MealDietClass.Vegetarian) == 2,
+            "vegetarian meal classification count mismatch");
+        Require(GetCount(counts, MealDietClass.Mixed) == 3,
+            "mixed meal classification count mismatch");
+        Require(GetCount(counts, MealDietClass.Carnivore) == 2,
+            "carnivore meal classification count mismatch");
+
+        Require(ResourceMealClassification.IsAllowed(
+                CharacterDietPolicyKind.Vegan,
+                MealDietClass.Vegan,
+                false)
+            && !ResourceMealClassification.IsAllowed(
+                CharacterDietPolicyKind.Vegan,
+                MealDietClass.Vegetarian,
+                false),
+            "vegan policy matrix mismatch");
+        Require(ResourceMealClassification.IsAllowed(
+                CharacterDietPolicyKind.Vegetarian,
+                MealDietClass.Vegetarian,
+                false)
+            && !ResourceMealClassification.IsAllowed(
+                CharacterDietPolicyKind.Vegetarian,
+                MealDietClass.Mixed,
+                false),
+            "vegetarian policy matrix mismatch");
+        Require(ResourceMealClassification.IsAllowed(
+                CharacterDietPolicyKind.CarnivorePreferred,
+                MealDietClass.Carnivore,
+                false)
+            && !ResourceMealClassification.IsAllowed(
+                CharacterDietPolicyKind.CarnivorePreferred,
+                MealDietClass.Vegan,
+                false),
+            "carnivore-preferred policy matrix mismatch");
+        Require(!ResourceMealClassification.IsAllowed(
+                CharacterDietPolicyKind.StrictTaboo,
+                MealDietClass.Vegan,
+                true),
+            "strict taboo policy accepted a forbidden ingredient");
+
+        ResourceItemDefinitionSO ration = meals.Single(item =>
+            item.ItemId == "food:preserved-ration");
+        Require(ration.Preserved
+            && ration.MealQuality == MealQualityTier.Preserved
+            && ration.FreshnessSeconds == meals.Max(item => item.FreshnessSeconds),
+            "preserved ration metadata mismatch");
+        return $"meals={meals.Length}; vegan={GetCount(counts, MealDietClass.Vegan)}; preserved={ration.FreshnessSeconds:0}s";
+    }
+
+    private static string VerifyMedicineAndSubstanceContent()
+    {
+        ResourceItemDefinitionSO[] items = Resources
+            .LoadAll<ResourceItemDefinitionSO>(ResourceItemDefinitionSO.ResourcePath);
+        ResourceItemDefinitionSO[] medicines = items
+            .Where(item => item != null && item.Kind == ResourceItemKind.Medicine)
+            .ToArray();
+        SubstanceDefinitionSO[] substances = Resources
+            .LoadAll<SubstanceDefinitionSO>(SubstanceDefinitionSO.ResourcePath)
+            .Where(item => item != null)
+            .ToArray();
+        Require(medicines.Length >= 6, $"medicine definitions={medicines.Length}");
+        Require(medicines.Count(item => item.SupportsInjuryTreatment) >= 4,
+            "fewer than four medicines can treat injuries");
+
+        ResourceItemDefinitionSO herbal = medicines.Single(item =>
+            item.ItemId == "medicine:herbal-poultice");
+        ResourceItemDefinitionSO antiseptic = medicines.Single(item =>
+            item.ItemId == "medicine:antiseptic");
+        ResourceItemDefinitionSO standard = medicines.Single(item =>
+            item.ItemId == "medicine:standard");
+        ResourceItemDefinitionSO advanced = medicines.Single(item =>
+            item.ItemId == "medicine:advanced");
+        ResourceItemDefinitionSO antidote = medicines.Single(item =>
+            item.ItemId == "medicine:antidote");
+        ResourceItemDefinitionSO anesthetic = medicines.Single(item =>
+            item.ItemId == "medicine:anesthetic");
+        Require(advanced.TreatmentPotency > standard.TreatmentPotency
+            && standard.TreatmentPotency > herbal.TreatmentPotency,
+            "medicine treatment potency progression mismatch");
+        Require(antiseptic.InfectionReduction > herbal.InfectionReduction,
+            "antiseptic does not reduce more infection than herbal treatment");
+        Require(antidote.DetoxReduction > 0f && !antidote.SupportsInjuryTreatment,
+            "antidote role metadata mismatch");
+        Require(anesthetic.PainReduction > 0f && !anesthetic.SupportsInjuryTreatment,
+            "anesthetic role metadata mismatch");
+
+        Require(substances.Length == 7, $"substances={substances.Length}");
+        HashSet<string> itemIds = items
+            .Where(item => item != null)
+            .Select(item => item.ItemId)
+            .ToHashSet(StringComparer.Ordinal);
+        Require(substances.All(substance => itemIds.Contains(substance.ItemId)),
+            "a substance has no physical item");
+        Require(substances
+            .Where(substance => substance.UseClass == SubstanceUseClass.NonAddictive)
+            .All(substance => Mathf.Approximately(substance.AddictionChance, 0f)),
+            "a non-addictive substance has addiction chance");
+        Require(substances
+            .Where(substance => substance.UseClass == SubstanceUseClass.Addictive)
+            .All(substance => substance.ToleranceGain > 0f
+                && substance.WithdrawalPerHour > 0f),
+            "an addictive substance has no tolerance or withdrawal");
+        return $"medicines={medicines.Length}; substances={substances.Length}";
+    }
+
+    private static string VerifyConsumablesSavePayload()
+    {
+        DungeonCharacterConsumablesSaveData source =
+            new DungeonCharacterConsumablesSaveData
+            {
+                dietPolicies = new List<CharacterDietPolicyState>
+                {
+                    new CharacterDietPolicyState
+                    {
+                        characterId = "staff:test",
+                        policy = CharacterDietPolicyKind.Vegan
+                    }
+                },
+                substancePolicies = new List<CharacterSubstancePolicyState>
+                {
+                    new CharacterSubstancePolicyState
+                    {
+                        characterId = "staff:test",
+                        substanceId = "substance:blood-stimulant",
+                        mode = SubstancePolicyMode.CombatOnly
+                    }
+                },
+                substanceStates = new List<CharacterSubstanceState>
+                {
+                    new CharacterSubstanceState
+                    {
+                        characterId = "staff:test",
+                        substanceId = "substance:blood-stimulant",
+                        tolerance = 22f,
+                        addiction = 64f,
+                        withdrawal = 17f,
+                        activeSeconds = 31f,
+                        scheduledCooldownSeconds = 640f,
+                        addicted = true
+                    }
+                }
+            };
+        string json = JsonUtility.ToJson(source);
+        DungeonCharacterConsumablesSaveData restored =
+            JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(json);
+        Require(restored != null
+            && restored.version == DungeonCharacterConsumablesSaveData.CurrentVersion
+            && restored.dietPolicies.Single().policy == CharacterDietPolicyKind.Vegan
+            && restored.substancePolicies.Single().mode == SubstancePolicyMode.CombatOnly,
+            "consumables policy save round-trip mismatch");
+        CharacterSubstanceState state = restored.substanceStates.Single();
+        Require(state.addicted
+            && Mathf.Approximately(state.tolerance, 22f)
+            && Mathf.Approximately(state.addiction, 64f)
+            && Mathf.Approximately(state.withdrawal, 17f)
+            && Mathf.Approximately(state.activeSeconds, 31f)
+            && Mathf.Approximately(state.scheduledCooldownSeconds, 640f),
+            "substance state save round-trip mismatch");
+        return $"version={restored.version}; tolerance={state.tolerance:0.#}; withdrawal={state.withdrawal:0.#}";
+    }
+
+    private static int GetCount(
+        IReadOnlyDictionary<MealDietClass, int> counts,
+        MealDietClass key)
+    {
+        return counts.TryGetValue(key, out int count) ? count : 0;
     }
 
     private sealed class EmptyGridSystemProvider : IGridSystemProvider

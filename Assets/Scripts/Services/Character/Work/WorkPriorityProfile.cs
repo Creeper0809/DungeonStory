@@ -159,22 +159,33 @@ public static class WorkCommandResolver
             return true;
         }
 
-        List<FacilityWorkType> assignableTypes = new List<FacilityWorkType>();
-        foreach (WorkTypeDefinition definition in WorkTypeCatalog.Enumerate(supportedTypes))
+        int assignableTypeCount = 0;
+        FacilityWorkType assignableType = FacilityWorkType.None;
+        IReadOnlyList<WorkTypeDefinition> definitions = WorkTypeCatalog.All;
+        for (int definitionIndex = 0;
+            definitionIndex < definitions.Count;
+            definitionIndex++)
         {
+            WorkTypeDefinition definition = definitions[definitionIndex];
+            if ((supportedTypes & definition.Type) == 0)
+            {
+                continue;
+            }
+
             if (TryUse(target, supportedTypes, definition.Type, out workType))
             {
-                assignableTypes.Add(workType);
+                assignableType = workType;
+                assignableTypeCount++;
             }
         }
 
-        if (assignableTypes.Count == 1)
+        if (assignableTypeCount == 1)
         {
-            workType = assignableTypes[0];
+            workType = assignableType;
             return true;
         }
 
-        if (assignableTypes.Count > 1)
+        if (assignableTypeCount > 1)
         {
             workType = FacilityWorkType.None;
             failureReason = "작업 종류를 명시해야 합니다";
@@ -496,11 +507,21 @@ public class WorkPriorityProfile : ISerializationCallbackReceiver
 
     private WorkPriorityEntry FindEntry(WorkTypeId workTypeId)
     {
-        return priorities.FirstOrDefault((entry) => entry != null
-            && string.Equals(
-                entry.WorkTypeId,
-                workTypeId.Value,
-                StringComparison.Ordinal));
+        string requestedId = workTypeId.Value;
+        for (int index = 0; index < priorities.Count; index++)
+        {
+            WorkPriorityEntry entry = priorities[index];
+            if (entry != null
+                && string.Equals(
+                    entry.WorkTypeId,
+                    requestedId,
+                    StringComparison.Ordinal))
+            {
+                return entry;
+            }
+        }
+
+        return null;
     }
 
     private WorkPriorityLevel GetLegacyPriority(

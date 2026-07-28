@@ -53,7 +53,14 @@ public enum FacilityWorkType
     Refuel = 1 << 16,
     Construct = 1 << 17,
     Warden = 1 << 18,
-    Perform = 1 << 19
+    Perform = 1 << 19,
+    Gather = 1 << 20,
+    Sow = 1 << 21,
+    Harvest = 1 << 22,
+    Logging = 1 << 23,
+    Quarry = 1 << 24,
+    AnimalCare = 1 << 25,
+    GrandProject = 1 << 26
 }
 
 public enum StockCategory

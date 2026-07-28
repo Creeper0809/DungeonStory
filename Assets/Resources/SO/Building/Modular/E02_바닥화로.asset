@@ -42,13 +42,13 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: f7e2de93c5c462a4bb65d89ffecf0e81, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602485
-    - rid: 7302562995605602486
-    - rid: 7302562995605602487
-    - rid: 7302562995605602488
-    - rid: 7302563106683093109
-    - rid: 7302563106683093110
-    - rid: 7302563106683093111
+    - rid: 7302563239038813116
+    - rid: 7302563239038813117
+    - rid: 7302563239038813118
+    - rid: 7302563239038813119
+    - rid: 7302563239038813120
+    - rid: 7302563239038813121
+    - rid: 7302563239038813122
   width: 1
   height: 1
   layer: 1
@@ -63,12 +63,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602485
+    - rid: 7302563239038813116
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: E02
-    - rid: 7302562995605602486
+    - rid: 7302563239038813117
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -76,7 +76,18 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602487
+    - rid: 7302563239038813118
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 0
+          useDuration: 0
+          requiredWorkers: 1
+          supportedWorkTypes: 65536
+          disabledWhenDamaged: 1
+    - rid: 7302563239038813119
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -91,14 +102,14 @@ MonoBehaviour:
           - key: Rest
             value: 2
           metrics: []
-    - rid: 7302562995605602488
+    - rid: 7302563239038813120
       type: {class: BuildingLightingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingLightingAbility
         settings: {fileID: 0}
         intensity: 0.9
         radius: 3.2
-    - rid: 7302563106683093109
+    - rid: 7302563239038813121
       type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFuelConsumerAbility
@@ -106,21 +117,10 @@ MonoBehaviour:
         workSeconds: 0.8
         warmth: 14
         lightSafety: 10
-    - rid: 7302563106683093110
+    - rid: 7302563239038813122
       type: {class: BuildingTemperatureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingTemperatureAbility
         roomTemperatureOffset: 6
         coldProtection: 12
         heatProtection: 0
-    - rid: 7302563106683093111
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 0
-          capacity: 1
-          useDuration: 1
-          requiredWorkers: 1
-          supportedWorkTypes: 65536
-          disabledWhenDamaged: 1

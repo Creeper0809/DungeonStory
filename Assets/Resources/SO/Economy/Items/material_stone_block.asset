@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: material_stone_block
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8039
+  itemId: material:stone-block
+  displayName: "\uC11D\uC7AC \uBE14\uB85D"
+  description: "\uBCBD, \uBC14\uB2E5, \uC5C4\uD3D0\uC640 \uC11D\uC870 \uC7A5\uC2DD\uC758
+    \uC7AC\uB8CC."
+  stockCategory: 1
+  kind: 1
+  ingredientTags: 512
+  unitPrice: 4
+  unitWeight: 1.3
+  maxStack: 60
+  sprite: {fileID: 0}
+  requiredResearchId: research:mining:stonecutting
+  mealQuality: 0
+  nutrition: 0
+  mealMood: 0
+  freshnessSeconds: 0
+  preserved: 0
+  supportsInjuryTreatment: 0
+  treatmentPotency: 1
+  infectionReduction: 0
+  detoxReduction: 0
+  painReduction: 0

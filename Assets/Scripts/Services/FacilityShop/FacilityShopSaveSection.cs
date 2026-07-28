@@ -8,32 +8,33 @@ public sealed class FacilityShopSaveSection :
     public const string Id = "facility-shop.state";
 
     private readonly IDailyFacilityShopRuntimeProvider runtimeProvider;
-    private readonly IFacilityShopCatalog facilityCatalog;
+    private readonly IBlueprintResearchRuntimeProvider researchRuntimeProvider;
 
     public FacilityShopSaveSection(
         IDailyFacilityShopRuntimeProvider runtimeProvider,
-        IFacilityShopCatalog facilityCatalog)
+        IBlueprintResearchRuntimeProvider researchRuntimeProvider)
     {
         this.runtimeProvider = runtimeProvider
             ?? throw new ArgumentNullException(nameof(runtimeProvider));
-        this.facilityCatalog = facilityCatalog
-            ?? throw new ArgumentNullException(nameof(facilityCatalog));
+        this.researchRuntimeProvider = researchRuntimeProvider
+            ?? throw new ArgumentNullException(nameof(researchRuntimeProvider));
     }
 
     public override string SectionId => Id;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.RuntimeState;
+    public override IReadOnlyList<string> DependsOn =>
+        new[] { BlueprintResearchSaveSection.Id };
 
     protected override DungeonFacilityShopSaveData CapturePayload()
     {
-        DungeonFacilityShopSaveData destination = new DungeonFacilityShopSaveData
+        DungeonFacilityShopSaveData destination = new DungeonFacilityShopSaveData();
+        if (researchRuntimeProvider.TryGetRuntime(out BlueprintResearchRuntime research))
         {
-            unlockedBuildingIds = facilityCatalog.Buildings
-                .Where(building => building != null && building.unlocked)
-                .Select(building => building.id)
-                .OrderBy(id => id)
-                .ToList()
-        };
+            destination.unlockedBuildingIds =
+                research.State.UnlockedBuildingIds.OrderBy(id => id).ToList();
+        }
+
         if (!runtimeProvider.TryGetRuntime(out DailyFacilityShopRuntime runtime))
         {
             return destination;
@@ -51,15 +52,19 @@ public sealed class FacilityShopSaveSection :
         DungeonFacilityShopSaveData source,
         DungeonGameRestoreReport report)
     {
-        HashSet<int> unlockedIds =
-            new HashSet<int>(source.unlockedBuildingIds ?? new List<int>());
-        foreach (BuildingSO building in facilityCatalog.Buildings
-                     .Where(building => building != null))
+        IReadOnlyList<int> unlockedIds =
+            source.unlockedBuildingIds ?? new List<int>();
+        if (researchRuntimeProvider.TryGetRuntime(out BlueprintResearchRuntime research))
         {
-            if (unlockedIds.Contains(building.id))
+            foreach (int buildingId in unlockedIds)
             {
-                building.unlocked = true;
+                research.State.RestoreUnlockedBuildingId(buildingId);
             }
+        }
+        else if (unlockedIds.Count > 0)
+        {
+            report.AddWarning(
+                "Research runtime was not present; legacy facility unlocks were skipped.");
         }
 
         if (!runtimeProvider.TryGetRuntime(out DailyFacilityShopRuntime runtime))

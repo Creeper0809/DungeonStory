@@ -20,6 +20,9 @@ MonoBehaviour:
   occupiedHands: 0
   maxDurability: 120
   requiredCraftWork: 6
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 2
+  allowedMaterialFamilies: 03000000
   craftMaterials: []
   layer: 2
   collisionTag: headwear-mail

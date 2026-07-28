@@ -32,11 +32,11 @@ MonoBehaviour:
   targetResearchProjectId: research:commerce:secure-trade
   unlocks:
     items:
-    - rid: 7302563223825548166
+    - rid: 7302563252806877233
   references:
     version: 2
     RefIds:
-    - rid: 7302563223825548166
+    - rid: 7302563252806877233
       type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
       data:
         recipeId: recipe_commerce_secure_display_2

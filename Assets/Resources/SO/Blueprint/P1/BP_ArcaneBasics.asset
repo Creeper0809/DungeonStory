@@ -31,26 +31,26 @@ MonoBehaviour:
   targetResearchProjectId: research:arcane:advanced
   unlocks:
     items:
-    - rid: 7302563223825548161
-    - rid: 7302563223825548162
-    - rid: 7302563223825548163
-    - rid: 7302563223825548164
+    - rid: 7302563252806877228
+    - rid: 7302563252806877229
+    - rid: 7302563252806877230
+    - rid: 7302563252806877231
   references:
     version: 2
     RefIds:
-    - rid: 7302563223825548161
+    - rid: 7302563252806877228
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1034
-    - rid: 7302563223825548162
+    - rid: 7302563252806877229
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1035
-    - rid: 7302563223825548163
+    - rid: 7302563252806877230
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1056
-    - rid: 7302563223825548164
+    - rid: 7302563252806877231
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1029

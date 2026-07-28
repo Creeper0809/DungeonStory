@@ -337,6 +337,7 @@ public sealed class WildlifeEcosystemRuntime :
         {
             ReplaceWaterPatchesWithWorldSources(grid);
         }
+        EnsureForagePatches(grid);
 
         ApplyPendingRespawns();
         if (Application.isPlaying)
@@ -442,16 +443,39 @@ public sealed class WildlifeEcosystemRuntime :
             return;
         }
 
-        if (actor.State is WildlifeState.Hunted or WildlifeState.Fleeing or WildlifeState.Retaliating)
+        if (actor.State is WildlifeState.Captured
+            or WildlifeState.Hunted
+            or WildlifeState.Fleeing
+            or WildlifeState.Retaliating)
         {
             return;
         }
 
         EnsureInitialized(grid);
-        WildlifeHabitatPatch currentPatch = patches
-            .Where(patch => patch.Contains(actor.GridPosition) && PatchMatchesIntent(patch, actor.Intent))
-            .OrderBy(patch => Mathf.Abs(patch.Center.x - actor.GridPosition.x) + Mathf.Abs(patch.Center.y - actor.GridPosition.y))
-            .FirstOrDefault();
+        WildlifeHabitatPatch currentPatch = null;
+        int nearestDistance = int.MaxValue;
+        for (int index = 0; index < patches.Count; index++)
+        {
+            WildlifeHabitatPatch candidate = patches[index];
+            if (candidate == null
+                || !candidate.Contains(actor.GridPosition)
+                || !PatchMatchesIntent(candidate, actor.Intent))
+            {
+                continue;
+            }
+
+            int distance =
+                Mathf.Abs(candidate.Center.x - actor.GridPosition.x)
+                + Mathf.Abs(candidate.Center.y - actor.GridPosition.y);
+            if (distance >= nearestDistance)
+            {
+                continue;
+            }
+
+            currentPatch = candidate;
+            nearestDistance = distance;
+        }
+
         if (currentPatch == null)
         {
             return;
@@ -799,6 +823,55 @@ public sealed class WildlifeEcosystemRuntime :
         AddDefaultPatch(grid, cells, 0.58f, WildlifeHabitatType.Grass, 5, 10f, 0.04f, 0.02f);
         AddDefaultPatch(grid, cells, 0.72f, WildlifeHabitatType.Burrow, 3, 4f, 0.012f, 0.04f);
         AddDefaultPatch(grid, cells, 0.88f, WildlifeHabitatType.Lair, 4, 5f, 0.015f, 0.22f);
+    }
+
+    private void EnsureForagePatches(Grid grid)
+    {
+        int forageCount = patches.Count(patch =>
+            patch != null
+            && patch.HabitatType is WildlifeHabitatType.Grass or WildlifeHabitatType.Brush);
+        if (forageCount >= 2)
+        {
+            return;
+        }
+
+        List<Vector2Int> cells = grid.GetCells()
+            .Where(cell => IsHabitatCell(grid, cell))
+            .Select(cell => cell.Position)
+            .OrderBy(position => position.x)
+            .ThenBy(position => position.y)
+            .ToList();
+        if (cells.Count == 0)
+        {
+            return;
+        }
+
+        if (forageCount == 0)
+        {
+            AddDefaultPatch(
+                grid,
+                cells,
+                0.25f,
+                WildlifeHabitatType.Brush,
+                4,
+                5f,
+                0.018f,
+                0.08f);
+            forageCount++;
+        }
+
+        if (forageCount < 2)
+        {
+            AddDefaultPatch(
+                grid,
+                cells,
+                0.62f,
+                WildlifeHabitatType.Grass,
+                5,
+                10f,
+                0.04f,
+                0.02f);
+        }
     }
 
     private void ReplaceWaterPatchesWithWorldSources(Grid grid)

@@ -17,12 +17,16 @@ public sealed class SurvivalWorkExecutionHandler :
     };
 
     private readonly ISurvivalFoodRuntime survivalRuntime;
+    private readonly IProductionBillRuntime productionBills;
     private readonly IReadOnlyDictionary<WorkTypeId, Func<BuildableObject, float>> workAmounts;
 
-    public SurvivalWorkExecutionHandler(ISurvivalFoodRuntime survivalRuntime)
+    public SurvivalWorkExecutionHandler(
+        ISurvivalFoodRuntime survivalRuntime,
+        IProductionBillRuntime productionBills = null)
     {
         this.survivalRuntime = survivalRuntime
             ?? throw new ArgumentNullException(nameof(survivalRuntime));
+        this.productionBills = productionBills;
         workAmounts = new Dictionary<WorkTypeId, Func<BuildableObject, float>>
         {
             [BuiltInWorkTypeIds.DrawWater] = target =>
@@ -45,6 +49,14 @@ public sealed class SurvivalWorkExecutionHandler :
         out string reason)
     {
         reason = string.Empty;
+        if (workTypeId == BuiltInWorkTypeIds.Cook
+            && productionBills != null
+            && productionBills.HasWorkAvailable(target, workTypeId, out reason))
+        {
+            return true;
+        }
+
+        reason = string.Empty;
         return workTypeId.IsValid
             && survivalRuntime.HasSurvivalWorkAvailable(target, workTypeId);
     }
@@ -61,6 +73,39 @@ public sealed class SurvivalWorkExecutionHandler :
 
     public IEnumerator Execute(WorkExecutionContext context, WorkExecutionResult result)
     {
+        if (context.WorkTypeId == BuiltInWorkTypeIds.Cook
+            && productionBills != null
+            && productionBills.TryBeginWork(
+                context.Actor,
+                context.Target,
+                context.WorkTypeId,
+                out ProductionBillSnapshot bill,
+                out _))
+        {
+            bool applied = true;
+            bool completed = false;
+            yield return context.ExecutePersistentWorkAmount(
+                bill.RequiredWork,
+                bill.CompletedWork,
+                bill.RecipeName,
+                delta =>
+                {
+                    bool succeeded = productionBills.ApplyWork(
+                        context.Actor,
+                        context.Target,
+                        bill.BillId,
+                        delta,
+                        out bool cycleCompleted,
+                        out _);
+                    applied &= succeeded;
+                    completed |= cycleCompleted;
+                    return succeeded;
+                });
+            result.CompletedSuccessfully = applied && completed;
+            result.CompletionEffectsAlreadyApplied = completed;
+            yield break;
+        }
+
         result.CompletedSuccessfully =
             survivalRuntime.HasSurvivalWorkAvailable(context.Target, context.WorkTypeId);
         if (!result.CompletedSuccessfully)

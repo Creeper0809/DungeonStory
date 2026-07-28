@@ -36,6 +36,8 @@ public static class DungeonWorldSimulationRegistration
             .As<IExteriorIncidentRuntime>()
             .As<IExpeditionDepartureService>()
             .As<IExpeditionReturnService>();
+        builder.Register<ResourceEconomyContentCatalog>(Lifetime.Singleton)
+            .As<IResourceEconomyContentCatalog>();
         builder.Register<ResourceDungeonItemCatalogProvider>(Lifetime.Singleton)
             .As<IDungeonItemCatalogProvider>();
         builder.Register<ResourceItemHaulingSettingsProvider>(
@@ -57,6 +59,25 @@ public static class DungeonWorldSimulationRegistration
             .As<IItemTransferService>();
         builder.RegisterEntryPoint<WorldItemStackRuntime>(Lifetime.Singleton)
             .As<IWorldItemStackRuntime>();
+        builder.Register<ResourceUsageIndex>(Lifetime.Singleton)
+            .As<IResourceUsageIndex>();
+        builder.Register<ProductionItemGateway>(Lifetime.Singleton)
+            .As<IProductionItemGateway>();
+        builder.Register<ProductionBillRuntime>(Lifetime.Singleton)
+            .As<IProductionBillRuntime>();
+        builder.RegisterEntryPoint<GrandProjectRuntime>(Lifetime.Singleton)
+            .As<IGrandProjectRuntime>()
+            .As<IGrandProjectBenefitQuery>();
+        builder.RegisterEntryPoint<ResourceStockPolicyRuntime>(
+                Lifetime.Singleton)
+            .As<IResourceStockPolicyRuntime>();
+        builder.RegisterEntryPoint<RegionalSupplyContractRuntime>(
+                Lifetime.Singleton)
+            .As<IRegionalSupplyContractRuntime>();
+        builder.Register<ResourceEconomyForecastService>(Lifetime.Singleton)
+            .As<IResourceEconomyForecastService>();
+        builder.RegisterEntryPoint<WasteProcessingRuntime>(Lifetime.Singleton)
+            .As<IWasteProcessingRuntime>();
         builder.RegisterEntryPoint<WorldFilthRuntime>(Lifetime.Singleton)
             .As<IWorldFilthQuery>();
         builder.RegisterEntryPoint<WorldWaterRuntime>(Lifetime.Singleton)
@@ -85,6 +106,12 @@ public static class DungeonWorldSimulationRegistration
                 Lifetime.Singleton)
             .AsSelf()
             .As<IWildlifeEcosystemRuntime>();
+        builder.RegisterEntryPoint<WorldResourceRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IWorldResourceRuntime>();
+        builder.RegisterEntryPoint<CropPlotRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<ICropPlotRuntime>();
         builder.Register<WildlifeCarcassService>(Lifetime.Singleton)
             .As<IWildlifeCarcassService>();
         builder.RegisterEntryPoint<WildlifeRuntime>(Lifetime.Singleton)
@@ -98,6 +125,12 @@ public static class DungeonWorldSimulationRegistration
             .As<ISurvivalFoodRuntime>()
             .As<ICharacterNutritionRuntime>()
             .As<ISurvivalEnvironmentQuery>();
+        builder.RegisterEntryPoint<CharacterConsumablesRuntime>(
+                Lifetime.Singleton)
+            .As<ICharacterConsumablesRuntime>()
+            .As<ICharacterDietPolicyRuntime>()
+            .As<IMealConsumptionRuntime>()
+            .As<ICharacterSubstanceRuntime>();
         builder.Register<CaptivityPersuasionHandler>(Lifetime.Singleton)
             .As<ICaptivityInteractionHandler>();
         builder.Register<CaptivityIsolationHandler>(Lifetime.Singleton)
@@ -130,6 +163,9 @@ public static class DungeonWorldSimulationRegistration
         builder.RegisterEntryPoint<WildlifeCaptureRuntime>(Lifetime.Singleton)
             .As<IWildlifeCaptureRuntime>()
             .As<IWildlifeCaptureTransportRuntime>();
+        builder.RegisterEntryPoint<AnimalHusbandryRuntime>(Lifetime.Singleton)
+            .As<IAnimalHusbandryRuntime>()
+            .As<IAnimalPenCompatibilityQuery>();
         builder.Register<NonlethalActCircusProgram>(Lifetime.Singleton)
             .As<ICircusProgramHandler>();
         builder.Register<DangerousStuntCircusProgram>(Lifetime.Singleton)

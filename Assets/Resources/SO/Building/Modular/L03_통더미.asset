@@ -42,12 +42,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: a98b7bf1297b8c9498133414933c429c, type: 3}
   abilityModules:
     items:
-    - rid: 7302562991791408040
-    - rid: 7302562991791408041
-    - rid: 7302562991791408042
-    - rid: 7302562991791408043
-    - rid: 7302563106683093090
-    - rid: 7302563106683093091
+    - rid: 7302563239038813153
+    - rid: 7302563239038813154
+    - rid: 7302563239038813155
+    - rid: 7302563239038813156
+    - rid: 7302563239038813157
+    - rid: 7302563239038813158
   width: 1
   height: 1
   layer: 1
@@ -62,12 +62,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562991791408040
+    - rid: 7302563239038813153
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: L03
-    - rid: 7302562991791408041
+    - rid: 7302563239038813154
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +75,18 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562991791408042
+    - rid: 7302563239038813155
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 0
+          useDuration: 0
+          requiredWorkers: 1
+          supportedWorkTypes: 8192
+          disabledWhenDamaged: 1
+    - rid: 7302563239038813156
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -87,28 +98,17 @@ MonoBehaviour:
           - key: Storage
             value: 2.5
           metrics: []
-    - rid: 7302562991791408043
+    - rid: 7302563239038813157
       type: {class: BuildingStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingStorageAbility
         category: 0
         capacity: 14
         allCategories: 0
-    - rid: 7302563106683093090
+    - rid: 7302563239038813158
       type: {class: BuildingWaterSourceAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterSourceAbility
         waterPerWork: 3
         workSeconds: 1.1
         blockedByFreezingWeather: 0
-    - rid: 7302563106683093091
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 0
-          capacity: 1
-          useDuration: 1
-          requiredWorkers: 1
-          supportedWorkTypes: 8192
-          disabledWhenDamaged: 1

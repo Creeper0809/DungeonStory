@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public sealed class DoorAccessService :
@@ -13,18 +12,62 @@ public sealed class DoorAccessService :
     {
         private DoorAccessService owner;
         private readonly string key;
+        private readonly OverrideSubjectKey subjectKey;
 
-        public OverrideToken(DoorAccessService owner, string key)
+        public OverrideToken(
+            DoorAccessService owner,
+            string key,
+            OverrideSubjectKey subjectKey)
         {
             this.owner = owner;
             this.key = key;
+            this.subjectKey = subjectKey;
         }
 
         public void Dispose()
         {
             DoorAccessService current = owner;
             owner = null;
-            current?.ReleaseOverride(key);
+            current?.ReleaseOverride(key, subjectKey);
+        }
+    }
+
+    private readonly struct OverrideSubjectKey :
+        IEquatable<OverrideSubjectKey>
+    {
+        public OverrideSubjectKey(
+            string persistentId,
+            DoorAccessOverrideKind kind)
+        {
+            PersistentId = persistentId ?? string.Empty;
+            Kind = kind;
+        }
+
+        private string PersistentId { get; }
+        private DoorAccessOverrideKind Kind { get; }
+
+        public bool Equals(OverrideSubjectKey other)
+        {
+            return Kind == other.Kind
+                && string.Equals(
+                    PersistentId,
+                    other.PersistentId,
+                    StringComparison.Ordinal);
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is OverrideSubjectKey other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((PersistentId != null
+                    ? StringComparer.Ordinal.GetHashCode(PersistentId)
+                    : 0) * 397) ^ (int)Kind;
+            }
         }
     }
 
@@ -36,6 +79,8 @@ public sealed class DoorAccessService :
         new HashSet<string>(StringComparer.Ordinal);
     private readonly Dictionary<string, int> activeOverrides =
         new Dictionary<string, int>(StringComparer.Ordinal);
+    private readonly Dictionary<OverrideSubjectKey, int> activeOverrideCounts =
+        new Dictionary<OverrideSubjectKey, int>();
     private DoorAccessPolicyState clipboard;
 
     public DoorAccessService(
@@ -250,14 +295,22 @@ public sealed class DoorAccessService :
     {
         if (!subject.IsValid || !IsBypass(kind))
         {
-            return new OverrideToken(null, string.Empty);
+            return new OverrideToken(
+                null,
+                string.Empty,
+                default);
         }
 
         string key = BuildOverrideKey(subject.PersistentId, kind, scopeId);
+        OverrideSubjectKey subjectKey = new OverrideSubjectKey(
+            subject.PersistentId,
+            kind);
         activeOverrides.TryGetValue(key, out int count);
         activeOverrides[key] = count + 1;
+        activeOverrideCounts.TryGetValue(subjectKey, out int subjectCount);
+        activeOverrideCounts[subjectKey] = subjectCount + 1;
         NotifyDoorPolicyChanged();
-        return new OverrideToken(this, key);
+        return new OverrideToken(this, key, subjectKey);
     }
 
     public void SetCaptive(string persistentId, bool captive)
@@ -292,13 +345,15 @@ public sealed class DoorAccessService :
         DoorAccessSubjectRef subject,
         DoorAccessOverrideKind kind)
     {
-        string prefix = $"{subject.PersistentId}|{kind}|";
-        return activeOverrides.Any(pair =>
-            pair.Value > 0
-            && pair.Key.StartsWith(prefix, StringComparison.Ordinal));
+        return activeOverrideCounts.TryGetValue(
+                new OverrideSubjectKey(subject.PersistentId, kind),
+                out int count)
+            && count > 0;
     }
 
-    private void ReleaseOverride(string key)
+    private void ReleaseOverride(
+        string key,
+        OverrideSubjectKey subjectKey)
     {
         if (string.IsNullOrWhiteSpace(key)
             || !activeOverrides.TryGetValue(key, out int count))
@@ -313,6 +368,20 @@ public sealed class DoorAccessService :
         else
         {
             activeOverrides[key] = count - 1;
+        }
+
+        if (activeOverrideCounts.TryGetValue(
+                subjectKey,
+                out int subjectCount))
+        {
+            if (subjectCount <= 1)
+            {
+                activeOverrideCounts.Remove(subjectKey);
+            }
+            else
+            {
+                activeOverrideCounts[subjectKey] = subjectCount - 1;
+            }
         }
 
         NotifyDoorPolicyChanged();

@@ -354,6 +354,77 @@ public sealed class WildlifeRuntime :
         return true;
     }
 
+    public bool TrySpawnDomesticBirth(
+        string speciesId,
+        Vector2Int position,
+        out WildlifeActor actor,
+        out string message)
+    {
+        actor = null;
+        message = string.Empty;
+        if (!gridSystemProvider.TryGetGrid(out Grid grid))
+        {
+            message = "그리드가 준비되지 않았습니다.";
+            return false;
+        }
+
+        if (!speciesCatalog.TryGetSpecies(
+                speciesId,
+                out WildlifeSpeciesDefinition species))
+        {
+            message = "태어날 동물 종을 찾을 수 없습니다.";
+            return false;
+        }
+
+        Vector2Int spawnPosition = position;
+        bool found = false;
+        for (int radius = 0; radius <= 3 && !found; radius++)
+        {
+            for (int y = -radius; y <= radius && !found; y++)
+            {
+                for (int x = -radius; x <= radius; x++)
+                {
+                    if (radius > 0
+                        && Mathf.Abs(x) != radius
+                        && Mathf.Abs(y) != radius)
+                    {
+                        continue;
+                    }
+
+                    Vector2Int candidate = position + new Vector2Int(x, y);
+                    GridCell cell = grid.GetGridCell(candidate);
+                    if (cell == null
+                        || !grid.IsWalkable(candidate)
+                        || cell.HasOccupantInLayer(GridLayer.Wildlife)
+                        || cell.AreaType == GridCellAreaType.BlockedExterior)
+                    {
+                        continue;
+                    }
+
+                    spawnPosition = candidate;
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if (!found)
+        {
+            message = "우리 안에 새끼가 태어날 빈 칸이 없습니다.";
+            return false;
+        }
+
+        actor = SpawnActor(
+            grid,
+            species,
+            spawnPosition,
+            NextWildlifeId(),
+            null);
+        actor.SetIntent(WildlifeIntent.Rest, "우리에서 막 태어남");
+        message = $"{species.DisplayName} 새끼가 태어났습니다.";
+        return true;
+    }
+
     public bool DebugDelete(string wildlifeId)
     {
         return TryRemoveArrival(wildlifeId);

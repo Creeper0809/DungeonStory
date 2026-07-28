@@ -117,6 +117,7 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
         gameClock = owner != null ? owner.GameClock : null;
         frameWorkBudget = owner != null ? owner.FrameWorkBudget : null;
         tmpKoreanFontService = fontService;
+        EnsureView();
         Refresh(force: true);
     }
 

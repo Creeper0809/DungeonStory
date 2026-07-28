@@ -42,13 +42,13 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 32456faaa86eb5846a20025260c71c3e, type: 3}
   abilityModules:
     items:
-    - rid: 7302562991791408085
-    - rid: 7302562991791408086
-    - rid: 7302562991791408087
-    - rid: 7302562991791408088
-    - rid: 7302562991791408089
-    - rid: 7302562991791408090
-    - rid: 7302562991791408091
+    - rid: 7302563239038812917
+    - rid: 7302563239038812918
+    - rid: 7302563239038812919
+    - rid: 7302563239038812920
+    - rid: 7302563239038812921
+    - rid: 7302563239038812922
+    - rid: 7302563239038812923
   width: 1
   height: 1
   layer: 1
@@ -63,12 +63,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562991791408085
+    - rid: 7302563239038812917
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: T02
-    - rid: 7302562991791408086
+    - rid: 7302563239038812918
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -76,7 +76,7 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562991791408087
+    - rid: 7302563239038812919
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -87,11 +87,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 5
           disabledWhenDamaged: 1
-    - rid: 7302562991791408088
+    - rid: 7302563239038812920
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302562991791408089
+    - rid: 7302563239038812921
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -106,7 +106,7 @@ MonoBehaviour:
           - key: Combat
             value: 2
           metrics: []
-    - rid: 7302562991791408090
+    - rid: 7302563239038812922
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -117,10 +117,11 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 0
-    - rid: 7302562991791408091
+    - rid: 7302563239038812923
       type: {class: BuildingTrainingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingTrainingAbility
         moodLabel: "\uACFC\uB141\uC5D0 \uC9D1\uC911\uD574 \uB9C8\uC74C\uC774 \uB9D1\uC544\uC9D0"
         moodAmount: 3
         durationSeconds: 180
+        experienceAmount: 24

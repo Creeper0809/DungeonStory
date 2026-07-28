@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,12 +6,15 @@ public sealed class AbilityHaul : MonoBehaviour
 {
     private const int MaximumPathResolveFrames = 240;
     private const int MaximumMovementAttempts = 5;
+    private static readonly WaitForSeconds MovementRetryDelay =
+        new WaitForSeconds(0.15f);
 
     private CharacterActor actor;
     private AbilityMove move;
     private Coroutine haulingRoutine;
     private WorldItemHaulPlan activePlan;
     private WorldItemHaulPlanUnloadReason unloadReason;
+    private bool lastMoveSucceeded;
     private IWorldItemStackRuntime ItemRuntime => actor?.WorldItemStackRuntime;
 
     public bool IsHauling => haulingRoutine != null;
@@ -107,7 +109,9 @@ public sealed class AbilityHaul : MonoBehaviour
     private IEnumerator HaulRoutine(WorldItemHaulPlan plan)
     {
         IWorldItemStackRuntime itemRuntime = ItemRuntime;
-        CharacterCarryInventory carry = CharacterCarryInventory.Ensure(actor);
+        CharacterCarryInventory carry = actor != null
+            ? actor.CarryInventory
+            : null;
         if (carry == null || itemRuntime == null || plan == null || !plan.IsValid)
         {
             EndAiAction();
@@ -124,8 +128,10 @@ public sealed class AbilityHaul : MonoBehaviour
 
         AIAction expectedAction = GetExpectedHaulAction();
         int pickedStackCount = 0;
-        foreach (WorldItemHaulPlanLeg pickup in plan.PickupLegs)
+        IReadOnlyList<WorldItemHaulPlanLeg> pickupLegs = plan.PickupLegs;
+        for (int pickupIndex = 0; pickupIndex < pickupLegs.Count; pickupIndex++)
         {
+            WorldItemHaulPlanLeg pickup = pickupLegs[pickupIndex];
             if (!pickup.IsValid)
             {
                 continue;
@@ -135,12 +141,16 @@ public sealed class AbilityHaul : MonoBehaviour
                 "물건 가지러 이동",
                 null,
                 $"{pickup.ItemPosition} · {pickedStackCount + 1}/{plan.PickupLegs.Count}");
-            bool pickupReached = false;
-            yield return MoveTo(
-                grid,
-                pickup.PickupStandPosition,
-                expectedAction,
-                reached => pickupReached = reached);
+            bool pickupReached = IsActorAt(pickup.PickupStandPosition);
+            if (!pickupReached)
+            {
+                yield return MoveTo(
+                    grid,
+                    pickup.PickupStandPosition,
+                    expectedAction);
+                pickupReached = lastMoveSucceeded;
+            }
+
             if (!pickupReached)
             {
                 unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
@@ -166,7 +176,7 @@ public sealed class AbilityHaul : MonoBehaviour
             }
 
             pickedStackCount++;
-            yield return new WaitForSeconds(0.05f);
+            yield return null;
             if (pickedUp < pickup.Reservation.Quantity
                 || carry.GetLoadRatio(
                     itemRuntime.CatalogProvider,
@@ -186,8 +196,10 @@ public sealed class AbilityHaul : MonoBehaviour
             yield break;
         }
 
-        foreach (WorldItemHaulPlanLeg delivery in plan.DeliveryLegs)
+        IReadOnlyList<WorldItemHaulPlanLeg> deliveryLegs = plan.DeliveryLegs;
+        for (int deliveryIndex = 0; deliveryIndex < deliveryLegs.Count; deliveryIndex++)
         {
+            WorldItemHaulPlanLeg delivery = deliveryLegs[deliveryIndex];
             if (!delivery.IsValid)
             {
                 continue;
@@ -199,12 +211,16 @@ public sealed class AbilityHaul : MonoBehaviour
                     : "창고로 이동",
                 null,
                 delivery.DeliveryPosition.ToString());
-            bool deliveryReached = false;
-            yield return MoveTo(
-                grid,
-                delivery.DeliveryPosition,
-                expectedAction,
-                reached => deliveryReached = reached);
+            bool deliveryReached = IsActorAt(delivery.DeliveryPosition);
+            if (!deliveryReached)
+            {
+                yield return MoveTo(
+                    grid,
+                    delivery.DeliveryPosition,
+                    expectedAction);
+                deliveryReached = lastMoveSucceeded;
+            }
+
             if (!deliveryReached)
             {
                 unloadReason = WorldItemHaulPlanUnloadReason.JobChanged;
@@ -255,25 +271,23 @@ public sealed class AbilityHaul : MonoBehaviour
     private IEnumerator MoveTo(
         Grid grid,
         Vector2Int target,
-        AIAction expectedAction,
-        Action<bool> onResolved)
+        AIAction expectedAction)
     {
+        lastMoveSucceeded = false;
         if (grid == null || actor == null)
         {
-            onResolved?.Invoke(false);
             yield break;
         }
 
         if (IsActorAt(target))
         {
-            onResolved?.Invoke(true);
+            lastMoveSucceeded = true;
             yield break;
         }
 
         IGridPathSearchBroker broker = actor.PathSearchBroker;
         if (broker == null)
         {
-            onResolved?.Invoke(false);
             yield break;
         }
 
@@ -285,7 +299,7 @@ public sealed class AbilityHaul : MonoBehaviour
         {
             if (IsActorAt(target))
             {
-                onResolved?.Invoke(true);
+                lastMoveSucceeded = true;
                 yield break;
             }
 
@@ -294,7 +308,6 @@ public sealed class AbilityHaul : MonoBehaviour
             {
                 if (IsActionCancelled(expectedAction))
                 {
-                    onResolved?.Invoke(false);
                     yield break;
                 }
 
@@ -316,7 +329,6 @@ public sealed class AbilityHaul : MonoBehaviour
                         "운반 경로 없음",
                         null,
                         target.ToString());
-                    onResolved?.Invoke(false);
                     yield break;
                 }
 
@@ -337,7 +349,6 @@ public sealed class AbilityHaul : MonoBehaviour
                     "운반 경로 지연",
                     null,
                     target.ToString());
-                onResolved?.Invoke(false);
                 yield break;
             }
 
@@ -345,13 +356,12 @@ public sealed class AbilityHaul : MonoBehaviour
             if (IsActorAt(target)
                 && !IsActionCancelled(expectedAction))
             {
-                onResolved?.Invoke(true);
+                lastMoveSucceeded = true;
                 yield break;
             }
 
             if (IsActionCancelled(expectedAction))
             {
-                onResolved?.Invoke(false);
                 yield break;
             }
 
@@ -359,10 +369,8 @@ public sealed class AbilityHaul : MonoBehaviour
                 "운반 경로 다시 계산",
                 null,
                 $"{movementAttempt + 1}/{MaximumMovementAttempts}");
-            yield return new WaitForSeconds(0.15f);
+            yield return MovementRetryDelay;
         }
-
-        onResolved?.Invoke(false);
     }
 
     private AIAction GetExpectedHaulAction()
@@ -407,8 +415,11 @@ public sealed class AbilityHaul : MonoBehaviour
         }
 
         string actorId = actor.Identity != null ? actor.Identity.PersistentId : string.Empty;
-        foreach (WorldItemReservedStackQuantity reservation in activePlan.ReservedStackQuantities)
+        IReadOnlyList<WorldItemReservedStackQuantity> reservations =
+            activePlan.ReservedStackQuantities;
+        for (int index = 0; index < reservations.Count; index++)
         {
+            WorldItemReservedStackQuantity reservation = reservations[index];
             itemRuntime.ReleaseReservation(reservation.StackId, actorId);
         }
     }

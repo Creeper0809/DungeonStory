@@ -322,6 +322,150 @@ public sealed partial class P0FeatureSurfacePanel : MonoBehaviour, IFeatureSurfa
         detailLayout.minHeight = 18f;
     }
 
+    private void CreateControlCard(
+        string actionName,
+        string title,
+        string detail,
+        IReadOnlyList<FeatureSurfaceStepper> steppers,
+        IReadOnlyList<FeatureSurfaceAction> actions,
+        float height)
+    {
+        GameObject card = CreateUiObject(actionName + "_Card", contentRoot);
+        spawnedObjects.Add(card);
+        RectTransform rect = card.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(0f, height);
+
+        Image image = card.AddComponent<Image>();
+        image.color = DungeonUiTheme.Surface;
+        image.raycastTarget = false;
+
+        VerticalLayoutGroup vertical = card.AddComponent<VerticalLayoutGroup>();
+        vertical.spacing = 5f;
+        vertical.padding = new RectOffset(12, 12, 8, 8);
+        vertical.childControlWidth = true;
+        vertical.childControlHeight = true;
+        vertical.childForceExpandWidth = true;
+        vertical.childForceExpandHeight = false;
+
+        LayoutElement cardLayout = card.AddComponent<LayoutElement>();
+        cardLayout.preferredHeight = height;
+        cardLayout.minHeight = height;
+
+        TMP_Text titleText = AddText(card.transform, title, 20f, FontStyles.Bold);
+        titleText.color = DungeonUiTheme.TextPrimary;
+        titleText.enableAutoSizing = true;
+        titleText.fontSizeMin = 14f;
+        titleText.fontSizeMax = 20f;
+        titleText.overflowMode = TextOverflowModes.Truncate;
+        LayoutElement titleLayout = titleText.gameObject.AddComponent<LayoutElement>();
+        titleLayout.preferredHeight = 23f;
+
+        TMP_Text detailText = AddText(card.transform, detail, 15f, FontStyles.Normal);
+        detailText.color = DungeonUiTheme.TextSecondary;
+        detailText.enableAutoSizing = true;
+        detailText.fontSizeMin = 10f;
+        detailText.fontSizeMax = 15f;
+        detailText.overflowMode = TextOverflowModes.Truncate;
+        LayoutElement detailLayout = detailText.gameObject.AddComponent<LayoutElement>();
+        detailLayout.preferredHeight = 22f;
+
+        GameObject controls = CreateUiObject("Controls", card.transform);
+        HorizontalLayoutGroup horizontal = controls.AddComponent<HorizontalLayoutGroup>();
+        horizontal.spacing = 7f;
+        horizontal.childControlWidth = true;
+        horizontal.childControlHeight = true;
+        horizontal.childForceExpandWidth = false;
+        horizontal.childForceExpandHeight = true;
+        LayoutElement controlsLayout = controls.AddComponent<LayoutElement>();
+        controlsLayout.preferredHeight = Mathf.Max(38f, height - 72f);
+
+        foreach (FeatureSurfaceStepper stepper in steppers
+                     ?? Array.Empty<FeatureSurfaceStepper>())
+        {
+            if (stepper == null)
+            {
+                continue;
+            }
+
+            CreateStepperControl(controls.transform, actionName, stepper);
+        }
+
+        foreach (FeatureSurfaceAction action in actions
+                     ?? Array.Empty<FeatureSurfaceAction>())
+        {
+            if (action == null)
+            {
+                continue;
+            }
+
+            CreateActionButton(
+                controls.transform,
+                actionName + "_" + action.Id,
+                action.Label,
+                action.Execute,
+                112f,
+                controlsLayout.preferredHeight);
+        }
+    }
+
+    private void CreateStepperControl(
+        Transform parent,
+        string actionName,
+        FeatureSurfaceStepper stepper)
+    {
+        GameObject group = CreateUiObject(
+            actionName + "_" + stepper.Id,
+            parent);
+        VerticalLayoutGroup vertical = group.AddComponent<VerticalLayoutGroup>();
+        vertical.spacing = 2f;
+        vertical.childControlWidth = true;
+        vertical.childControlHeight = true;
+        vertical.childForceExpandWidth = true;
+        vertical.childForceExpandHeight = false;
+        LayoutElement groupLayout = group.AddComponent<LayoutElement>();
+        groupLayout.preferredWidth = 132f;
+        groupLayout.minWidth = 106f;
+
+        TMP_Text label = AddText(
+            group.transform,
+            $"{stepper.Label} {stepper.Value}",
+            14f,
+            FontStyles.Bold);
+        label.color = DungeonUiTheme.TextSecondary;
+        label.alignment = TextAlignmentOptions.Center;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 9f;
+        label.fontSizeMax = 14f;
+        LayoutElement labelLayout = label.gameObject.AddComponent<LayoutElement>();
+        labelLayout.preferredHeight = 18f;
+
+        GameObject buttons = CreateUiObject("Adjust", group.transform);
+        HorizontalLayoutGroup horizontal = buttons.AddComponent<HorizontalLayoutGroup>();
+        horizontal.spacing = 4f;
+        horizontal.childControlWidth = true;
+        horizontal.childControlHeight = true;
+        horizontal.childForceExpandWidth = false;
+        horizontal.childForceExpandHeight = true;
+        horizontal.childAlignment = TextAnchor.MiddleCenter;
+        LayoutElement buttonRowLayout = buttons.AddComponent<LayoutElement>();
+        buttonRowLayout.preferredHeight = 32f;
+
+        CreateActionButton(
+            buttons.transform,
+            actionName + "_" + stepper.Id + "_Decrease",
+            "-",
+            stepper.Decrease,
+            48f,
+            32f);
+        CreateActionButton(
+            buttons.transform,
+            actionName + "_" + stepper.Id + "_Increase",
+            "+",
+            stepper.Increase,
+            48f,
+            32f);
+    }
+
     private void CreateButtonRow(string actionName, string buttonText, string detail, Action onClick)
     {
         CreateDataCard(actionName, buttonText, detail, buttonText, onClick, CompactCardHeight);
@@ -336,6 +480,7 @@ public sealed partial class P0FeatureSurfacePanel : MonoBehaviour, IFeatureSurfa
 
         Image image = section.AddComponent<Image>();
         image.color = DungeonUiTheme.SurfaceRaised;
+        image.raycastTarget = false;
 
         VerticalLayoutGroup vertical = section.AddComponent<VerticalLayoutGroup>();
         vertical.spacing = 1f;
@@ -501,6 +646,23 @@ public sealed partial class P0FeatureSurfacePanel : MonoBehaviour, IFeatureSurfa
         float height)
     {
         CreateDataCard(actionName, title, detail, buttonText, onClick, height);
+    }
+
+    void IFeatureSurfaceView.AddControlCard(
+        string actionName,
+        string title,
+        string detail,
+        IReadOnlyList<FeatureSurfaceStepper> steppers,
+        IReadOnlyList<FeatureSurfaceAction> actions,
+        float height)
+    {
+        CreateControlCard(
+            actionName,
+            title,
+            detail,
+            steppers,
+            actions,
+            height);
     }
 
     void IFeatureSurfaceView.ShowFeedback(string message)

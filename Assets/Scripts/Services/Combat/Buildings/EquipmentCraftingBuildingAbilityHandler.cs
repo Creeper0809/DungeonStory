@@ -50,13 +50,15 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         int completed = equipmentRuntime.ApplyCraftWork(
             ability.CraftableEquipmentIds,
             Mathf.Max(0.1f, ability.workUnitsPerCycle),
-            out string completedEquipmentId);
+            out string completedEquipmentId,
+            out string completedMaterialId);
         if (completed > 0)
         {
             SpawnCraftedOutput(
                 actor,
                 building,
                 completedEquipmentId,
+                completedMaterialId,
                 completed);
         }
 
@@ -87,6 +89,7 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         CharacterActor actor,
         BuildableObject building,
         string completedEquipmentId,
+        string completedMaterialId,
         int completed)
     {
         IWorldItemStackRuntime itemRuntime = building.WorldItemStackRuntime;
@@ -125,7 +128,8 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             CombatEquipmentInstance instance = combatRuntime.CreateInstance(
                 completedEquipmentId,
                 ResolveCraftedQuality(actor, building),
-                CombatEquipmentWorldState.Loose);
+                CombatEquipmentWorldState.Loose,
+                completedMaterialId);
             combatRuntime.TryLinkToWorldStack(
                 instance.instanceId,
                 outputStackId,

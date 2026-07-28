@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: husbandry_capture
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7091
+  projectId: research:husbandry:capture
+  displayName: "\uC57C\uC0DD \uD3EC\uD68D"
+  description: "\uC0B4\uC544 \uC788\uB294 \uC57C\uC0DD\uB3D9\uBB3C\uC744 \uC548\uC815\uD654\uD574
+    \uC6B0\uB9AC\uB85C \uC62E\uAE34\uB2E4."
+  field: 9
+  requiredWork: 36
+  prerequisites: []
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items: []
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

@@ -609,16 +609,70 @@ public sealed class CharacterBodyHealthRuntime :
 
     private static void UpdateDowned(CharacterBodyHealthState state)
     {
-        CharacterBodyHealthSnapshot snapshot = BuildSnapshot(state);
+        GetPhysicalCapacity(
+            state,
+            out float consciousness,
+            out _,
+            out float mobility);
         if (state.downed)
         {
-            state.downed = snapshot.Consciousness < 0.35f
-                || snapshot.Mobility < 0.3f
-                || snapshot.BloodLoss >= 70f;
+            state.downed = consciousness < 0.35f
+                || mobility < 0.3f
+                || state.bloodLoss >= 70f;
             return;
         }
 
-        state.downed = snapshot.Consciousness < 0.25f || snapshot.Mobility < 0.2f;
+        state.downed = consciousness < 0.25f || mobility < 0.2f;
+    }
+
+    private static void GetPhysicalCapacity(
+        CharacterBodyHealthState state,
+        out float consciousness,
+        out float manipulation,
+        out float mobility)
+    {
+        float head = 1f;
+        float torso = 1f;
+        float leftArm = 1f;
+        float rightArm = 1f;
+        float leftLeg = 1f;
+        float rightLeg = 1f;
+
+        for (int i = 0; i < state.parts.Count; i++)
+        {
+            CharacterBodyPartHealthState part = state.parts[i];
+            if (part == null)
+            {
+                continue;
+            }
+
+            switch (part.bodyPart)
+            {
+                case CombatBodyPart.Head:
+                    head = part.HealthRatio;
+                    break;
+                case CombatBodyPart.Torso:
+                    torso = part.HealthRatio;
+                    break;
+                case CombatBodyPart.LeftArm:
+                    leftArm = part.HealthRatio;
+                    break;
+                case CombatBodyPart.RightArm:
+                    rightArm = part.HealthRatio;
+                    break;
+                case CombatBodyPart.LeftLeg:
+                    leftLeg = part.HealthRatio;
+                    break;
+                case CombatBodyPart.RightLeg:
+                    rightLeg = part.HealthRatio;
+                    break;
+            }
+        }
+
+        consciousness = Mathf.Min(head, torso)
+            * Mathf.Lerp(1f, 0.2f, state.bloodLoss / 100f);
+        manipulation = (leftArm + rightArm) * 0.5f;
+        mobility = (leftLeg + rightLeg) * 0.5f;
     }
 
     private void SyncLifecycle(

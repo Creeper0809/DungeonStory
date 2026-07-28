@@ -86,7 +86,7 @@ public class CharacterFeedbackBubble : MonoBehaviour
 
         if (characterStats != null)
         {
-            characterStats.OnStatChange += OnStatChanged;
+            characterStats.OnStatsInvalidated += OnStatsInvalidated;
         }
 
         nextPassiveRefreshFrame = (gameClock != null ? gameClock.FrameCount : 0)
@@ -102,7 +102,7 @@ public class CharacterFeedbackBubble : MonoBehaviour
 
         if (characterStats != null)
         {
-            characterStats.OnStatChange -= OnStatChanged;
+            characterStats.OnStatsInvalidated -= OnStatsInvalidated;
         }
 
         if (text != null)
@@ -288,7 +288,7 @@ public class CharacterFeedbackBubble : MonoBehaviour
         }
     }
 
-    private void OnStatChanged(System.Collections.Generic.IReadOnlyDictionary<CharacterCondition, float> stats)
+    private void OnStatsInvalidated()
     {
         if ((CurrentState == CharacterFeedbackState.None || gameClock.Time > visibleUntil)
             && aiSchedulingService != null

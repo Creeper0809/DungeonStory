@@ -58,4 +58,12 @@ public static class BuiltInWorkTypeIds
     public static readonly WorkTypeId Refuel = new WorkTypeId("work:refuel");
     public static readonly WorkTypeId Warden = new WorkTypeId("work:warden");
     public static readonly WorkTypeId Perform = new WorkTypeId("work:perform");
+    public static readonly WorkTypeId Gather = new WorkTypeId("work:gather");
+    public static readonly WorkTypeId Sow = new WorkTypeId("work:sow");
+    public static readonly WorkTypeId Harvest = new WorkTypeId("work:harvest");
+    public static readonly WorkTypeId Logging = new WorkTypeId("work:logging");
+    public static readonly WorkTypeId Quarry = new WorkTypeId("work:quarry");
+    public static readonly WorkTypeId AnimalCare = new WorkTypeId("work:animal-care");
+    public static readonly WorkTypeId GrandProject =
+        new WorkTypeId("work:grand-project");
 }

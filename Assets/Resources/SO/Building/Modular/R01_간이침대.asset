@@ -42,14 +42,14 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 2e8bb37627d98644f84857f21f98e99d, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602479
-    - rid: 7302562995605602480
-    - rid: 7302562995605602482
-    - rid: 7302562995605602483
-    - rid: 7302562995605602484
-    - rid: 7302563106683093107
-    - rid: 7302563106683093108
-    - rid: 7302563133342875894
+    - rid: 7302563239583285395
+    - rid: 7302563239583285396
+    - rid: 7302563239583285397
+    - rid: 7302563239583285398
+    - rid: 7302563239583285399
+    - rid: 7302563239583285400
+    - rid: 7302563239583285401
+    - rid: 7302563239583285402
   width: 2
   height: 1
   layer: 1
@@ -64,12 +64,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602479
+    - rid: 7302563239583285395
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: R01
-    - rid: 7302562995605602480
+    - rid: 7302563239583285396
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -77,11 +77,22 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602482
+    - rid: 7302563239583285397
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 32900
+          disabledWhenDamaged: 1
+    - rid: 7302563239583285398
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302562995605602483
+    - rid: 7302563239583285399
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -93,7 +104,7 @@ MonoBehaviour:
           - key: Rest
             value: 2
           metrics: []
-    - rid: 7302562995605602484
+    - rid: 7302563239583285400
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -104,28 +115,17 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 0
-    - rid: 7302563106683093107
-      type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingMedicalAbility
-        workSeconds: 1.4
-        severityReduction: 0.22
-        requiresMedicine: 1
-    - rid: 7302563106683093108
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 4
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 32900
-          disabledWhenDamaged: 1
-    - rid: 7302563133342875894
+    - rid: 7302563239583285401
       type: {class: BuildingExpeditionRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingExpeditionRecoveryAbility
         healthHealRatio: 0.12
         injuryReduction: 0.03
         stressRecovery: 12
+    - rid: 7302563239583285402
+      type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingMedicalAbility
+        workSeconds: 1.4
+        severityReduction: 0.22
+        requiresMedicine: 1

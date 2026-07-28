@@ -48,6 +48,7 @@ public static class CharacterAiNaturalnessDebugScenarios
         RunScenario("Low mood chooses autonomous movement without LLM", VerifyLowMoodAutonomy, errors);
         RunScenario("Critical logistics survives low mood autonomy", VerifyCriticalLogisticsSurvivesLowMoodAutonomy, errors);
         RunScenario("Critical mood interrupts ordinary work", VerifyCriticalMoodInterruptsWork, errors);
+        RunScenario("Survival emergency interrupts only safe actions", VerifySurvivalEmergencyInterruptPolicy, errors);
 
         if (errors.Count > 0)
         {
@@ -510,6 +511,68 @@ public static class CharacterAiNaturalnessDebugScenarios
         }
     }
 
+    private static bool VerifySurvivalEmergencyInterruptPolicy()
+    {
+        GameObject actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(
+            "Survival Emergency Interrupt");
+        CharacterSO data = CharacterAiPlanDebugFixtures.CreateCharacterData(
+            CharacterType.NPC,
+            "Survival Emergency Worker",
+            "Slime");
+        ProbeContinuableWorkActionSet workAction =
+            ScriptableObject.CreateInstance<ProbeContinuableWorkActionSet>();
+        SurvivalHardLockProbeActionSet hardLockAction =
+            ScriptableObject.CreateInstance<SurvivalHardLockProbeActionSet>();
+        try
+        {
+            actorObject.SetActive(false);
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actorObject.SetActive(true);
+
+            CharacterActor actor = actorObject.GetComponent<CharacterActor>();
+            actor.EnsureRuntimeState();
+            actor.Initialize(data);
+            actor.SetLifecycleState(CharacterLifecycleState.Active);
+            SerializedObject brainFixture = new SerializedObject(actor.Brain);
+            brainFixture.FindProperty("defaultActionPersistenceSeconds").floatValue = 0f;
+            brainFixture.FindProperty("actionTransitionCooldown").floatValue = 0f;
+            brainFixture.ApplyModifiedPropertiesWithoutUndo();
+
+            ProbeSafeReliefRuntime deprivation = new ProbeSafeReliefRuntime();
+            CharacterAiDecisionPipeline pipeline = new CharacterAiDecisionPipeline(deprivation);
+            AIAction runningWork = new AIAction { actionset = workAction };
+            runningWork.MarkStarted(Mathf.Max(0f, Time.time - 1f));
+            actor.Brain.bestAction = runningWork;
+
+            bool workCanInterrupt = !pipeline.HasLockedAction(actor)
+                && pipeline.CanInterruptCurrentAction(actor);
+            CharacterAiDecisionTickResult interrupted =
+                pipeline.StopCurrentActionForReplan(actor);
+            bool workStopped = interrupted.Handled
+                && interrupted.Branch == CharacterAiBranch.InterruptCheck
+                && actor.Brain.bestAction == null
+                && actor.Blackboard.LastCommitBreakReason.StartsWith(
+                    CharacterAiInterruptReason.SurvivalEmergency.ToString(),
+                    StringComparison.Ordinal);
+
+            AIAction runningHardLock = new AIAction { actionset = hardLockAction };
+            runningHardLock.MarkStarted(Mathf.Max(0f, Time.time - 1f));
+            actor.Brain.bestAction = runningHardLock;
+            bool hardLockPreserved = pipeline.HasLockedAction(actor)
+                && !pipeline.CanInterruptCurrentAction(actor)
+                && actor.Brain.bestAction == runningHardLock;
+
+            return workCanInterrupt && workStopped && hardLockPreserved;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(workAction);
+            UnityEngine.Object.DestroyImmediate(hardLockAction);
+            UnityEngine.Object.DestroyImmediate(data);
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
     private static bool WithActor(string name, Func<CharacterActor, bool> verify)
     {
         GameObject actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(name);
@@ -544,4 +607,73 @@ public static class CharacterAiNaturalnessDebugScenarios
         actor.stats[CharacterCondition.HYGIENE] = hygiene;
         actor.stats[CharacterCondition.MOOD] = 100f;
     }
+}
+
+internal sealed class SurvivalHardLockProbeActionSet : AIActionSet
+{
+    public override bool IsContinuous => true;
+    public override bool AllowsSurvivalEmergencyInterrupt => false;
+
+    public override bool CanContinue(
+        CharacterActor actor,
+        AIAction runningAction,
+        out string stopReason)
+    {
+        stopReason = string.Empty;
+        return true;
+    }
+}
+
+internal sealed class ProbeSafeReliefRuntime : ICharacterDeprivationRuntime
+{
+    public bool HasActiveBreakdown(CharacterActor actor) => false;
+    public bool HasBreakdownKind(CharacterActor actor, CharacterBreakdownKind kind) => false;
+    public bool TryGetDisplayState(CharacterActor actor, out CharacterDeprivationDisplayState displayState)
+    {
+        displayState = default;
+        return false;
+    }
+    public bool TryGetSnapshot(CharacterActor actor, out CharacterDeprivationSnapshot snapshot)
+    {
+        snapshot = default;
+        return false;
+    }
+    public bool TryRunActiveBreakdown(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool NeedsSafeEmergencyRelief(CharacterActor actor, out string reason)
+    {
+        reason = "갈증 10: 안전한 식수 필요";
+        return actor != null;
+    }
+    public bool TryRunSafeEmergencyRelief(CharacterActor actor, out string status)
+    {
+        status = "안전한 식수로 이동";
+        return actor != null;
+    }
+    public CharacterDeprivationDiagnosticsSnapshot GetDiagnostics() => default;
+    public void ResetDiagnostics() { }
+    public void BeginBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind) { }
+    public bool IsSuppressible(CharacterActor actor) => false;
+    public bool ApplySuppression(CharacterActor actor, float amount, out bool ended)
+    {
+        ended = false;
+        return false;
+    }
+    public float GetMoveSpeedMultiplier(CharacterActor actor) => 1f;
+    public float GetWorkSpeedMultiplier(CharacterActor actor) => 1f;
+    public void AddInfectionBurden(CharacterActor actor, float amount) { }
+    public void ReduceInfectionBurden(CharacterActor actor, float amount) { }
+    public void RecordTaboo(CharacterActor actor, string memory) { }
+    public void RecordTabooWitnesses(
+        CharacterActor source,
+        Vector2Int position,
+        string memory,
+        float moodPenalty) { }
+    public DungeonDarkSurvivalSaveData Capture() => new DungeonDarkSurvivalSaveData();
+    public void Restore(DungeonDarkSurvivalSaveData saveData) { }
+    public bool DebugForceBreakdown(CharacterActor actor, CharacterBreakdownKind kind) => false;
+    public bool DebugClearBreakdown(CharacterActor actor) => false;
 }

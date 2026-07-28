@@ -14,6 +14,16 @@ public enum WorldItemStackState
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum WasteOriginKind
+{
+    Unknown = 0,
+    Plant = 1,
+    Animal = 2,
+    Mixed = 3,
+    Forbidden = 4
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public readonly struct EquipmentStoredEvent
 {
     public EquipmentStoredEvent(string equipmentId, int quantity)
@@ -42,7 +52,7 @@ public sealed class ItemHaulingSettingsSnapshot
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonPhysicalItemSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
     public int nextStackSequence = 1;
@@ -74,6 +84,8 @@ public sealed class WorldItemStackSaveData
     public string sourceSpeciesTag = string.Empty;
     public string sourceDeathReason = string.Empty;
     public bool emergencyButcheryAllowed;
+    public WasteOriginKind wasteOrigin;
+    [Range(0f, 100f)] public float contamination;
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -102,6 +114,8 @@ public sealed class CharacterCarriedItemSaveData
     public string sourceStackId = string.Empty;
     public string itemId = string.Empty;
     public int quantity;
+    public WasteOriginKind wasteOrigin;
+    [Range(0f, 100f)] public float contamination;
 }
 
 [Serializable]

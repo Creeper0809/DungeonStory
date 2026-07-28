@@ -48,6 +48,7 @@ public class CharacterStats : SerializedMonoBehaviour
     private IMetaProgressionRuntimeReader metaProgressionRuntimeReader;
     private ICharacterPhysicalCapacityQuery physicalCapacityQuery;
     private ICharacterDeprivationRuntime deprivationRuntime;
+    private ICharacterSubstanceRuntime substanceRuntime;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
     private float nextNeedDecayAt = float.PositiveInfinity;
@@ -76,8 +77,36 @@ public class CharacterStats : SerializedMonoBehaviour
     public float MaxHealth => maxHealth;
     public float CurrentHealth => currentHealth;
     public float InjurySeverity => injurySeverity;
-    public float Mood => GetMoodSnapshot().Value;
+    public float Mood
+    {
+        get
+        {
+            EnsureStats();
+            return stats.TryGetValue(CharacterCondition.MOOD, out float value)
+                ? value
+                : baseMood;
+        }
+    }
+
+    public bool TryGetConditionValue(
+        CharacterCondition condition,
+        out float value)
+    {
+        EnsureStats();
+        return stats.TryGetValue(condition, out value);
+    }
+
+    public float GetConditionValue(
+        CharacterCondition condition,
+        float fallback = 0f)
+    {
+        return TryGetConditionValue(condition, out float value)
+            ? value
+            : fallback;
+    }
+
     public IReadOnlyDictionary<CharacterCondition, float> StatSnapshot => CreateStatSnapshot();
+    public event Action OnStatsInvalidated;
     public event Action<IReadOnlyDictionary<CharacterCondition, float>> OnStatChange;
     public event Action<CharacterMoodSnapshot> OnMoodChange;
 
@@ -94,7 +123,8 @@ public class CharacterStats : SerializedMonoBehaviour
         IGameClock gameClock,
         ICharacterPhysicalCapacityQuery physicalCapacityQuery = null,
         ICharacterDeprivationRuntime deprivationRuntime = null,
-        IGameEventBus gameEventBus = null)
+        IGameEventBus gameEventBus = null,
+        ICharacterSubstanceRuntime substanceRuntime = null)
     {
         this.staffDiscontentRuntimeService = staffDiscontentRuntimeService
             ?? throw new ArgumentNullException(nameof(staffDiscontentRuntimeService));
@@ -107,6 +137,7 @@ public class CharacterStats : SerializedMonoBehaviour
         this.physicalCapacityQuery = physicalCapacityQuery;
         this.deprivationRuntime = deprivationRuntime;
         this.gameEventBus = gameEventBus;
+        this.substanceRuntime = substanceRuntime;
 
         if (actor != null)
         {
@@ -411,7 +442,8 @@ public class CharacterStats : SerializedMonoBehaviour
             * Mathf.Min(injuryMultiplier, bodyMultiplier)
             * discontentMultiplier
             * CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(actor)
-            * (deprivationRuntime?.GetWorkSpeedMultiplier(actor) ?? 1f);
+            * (deprivationRuntime?.GetWorkSpeedMultiplier(actor) ?? 1f)
+            * (substanceRuntime?.GetWorkSpeedMultiplier(actor) ?? 1f);
     }
 
     public float GetFacilityPreferenceScore(FacilityRole roles)
@@ -448,7 +480,8 @@ public class CharacterStats : SerializedMonoBehaviour
     public float GetCombatPowerMultiplier()
     {
         return (GetEffectiveProfile()?.GetCombatPowerMultiplier() ?? 1f)
-            * GetInjuryEfficiencyMultiplier();
+            * GetInjuryEfficiencyMultiplier()
+            * (substanceRuntime?.GetCombatMultiplier(actor) ?? 1f);
     }
 
     public float GetSpendingMultiplier()
@@ -735,17 +768,25 @@ public class CharacterStats : SerializedMonoBehaviour
 
         float now = RequireGameClock().Time;
         bool expired = PruneExpiredMoodFactors(now);
-        CharacterMoodSnapshot snapshot = BuildMoodSnapshot(now);
+        float nextMood = CalculateMoodValue(now);
         float previous = stats.TryGetValue(CharacterCondition.MOOD, out float current)
             ? current
-            : snapshot.Value;
-        stats[CharacterCondition.MOOD] = snapshot.Value;
-        lastCalculatedMood = snapshot.Value;
+            : nextMood;
+        stats[CharacterCondition.MOOD] = nextMood;
+        lastCalculatedMood = nextMood;
 
-        if (notify && (forceNotify || expired || !Mathf.Approximately(previous, snapshot.Value)))
+        if (notify && (forceNotify || expired || !Mathf.Approximately(previous, nextMood)))
         {
-            OnStatChange?.Invoke(CreateStatSnapshot());
-            OnMoodChange?.Invoke(snapshot);
+            OnStatsInvalidated?.Invoke();
+            if (OnStatChange != null)
+            {
+                OnStatChange(CreateStatSnapshot());
+            }
+
+            if (OnMoodChange != null)
+            {
+                OnMoodChange(BuildMoodSnapshot(now));
+            }
         }
     }
 
@@ -788,10 +829,15 @@ public class CharacterStats : SerializedMonoBehaviour
 
     private void PublishStatsChanged(bool includeMood)
     {
-        OnStatChange?.Invoke(CreateStatSnapshot());
-        if (includeMood)
+        OnStatsInvalidated?.Invoke();
+        if (OnStatChange != null)
         {
-            OnMoodChange?.Invoke(BuildMoodSnapshot(RequireGameClock().Time));
+            OnStatChange(CreateStatSnapshot());
+        }
+
+        if (includeMood && OnMoodChange != null)
+        {
+            OnMoodChange(BuildMoodSnapshot(RequireGameClock().Time));
         }
     }
 
@@ -949,6 +995,24 @@ public class CharacterStats : SerializedMonoBehaviour
 
         float mood = Mathf.Clamp(baseMood + CalculateFactorTotal(factors), 0f, 100f);
         return new CharacterMoodSnapshot(mood, baseMood, factors);
+    }
+
+    private float CalculateMoodValue(float now)
+    {
+        float total = CharacterMoodRules.CalculateNeedFactorTotal(stats);
+        if (interactionMoodFactors != null)
+        {
+            for (int i = 0; i < interactionMoodFactors.Count; i++)
+            {
+                CharacterMoodMemory factor = interactionMoodFactors[i];
+                if (factor != null && !factor.IsExpired(now))
+                {
+                    total += factor.TotalValue;
+                }
+            }
+        }
+
+        return Mathf.Clamp(baseMood + total, 0f, 100f);
     }
 
     private static float CalculateFactorTotal(IReadOnlyList<CharacterMoodFactorSnapshot> factors)

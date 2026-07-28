@@ -42,10 +42,10 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 995ffde9884951840b1647be964efad4, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602500
-    - rid: 7302562995605602501
-    - rid: 7302562995605602502
-    - rid: 7302562995605602503
+    - rid: 7302563239583285412
+    - rid: 7302563239583285413
+    - rid: 7302563239583285414
+    - rid: 7302563239583285415
   width: 3
   height: 1
   layer: 1
@@ -60,12 +60,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602500
+    - rid: 7302563239583285412
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D06
-    - rid: 7302562995605602501
+    - rid: 7302563239583285413
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -73,7 +73,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602502
+    - rid: 7302563239583285414
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -90,7 +90,7 @@ MonoBehaviour:
           metrics:
           - key: LargeTableCount
             value: 1
-    - rid: 7302562995605602503
+    - rid: 7302563239583285415
       type: {class: BuildingTableAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingTableAbility

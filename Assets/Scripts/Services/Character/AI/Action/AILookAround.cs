@@ -26,10 +26,7 @@ public class AILookAround : AIActionSet
         CharacterActor actor,
         in CharacterAiDecisionContext context)
     {
-        return actor != null
-            && context.HasShoppingAbility
-            && context.CanLookAround
-            && (!context.IsWorker || context.IsOffDuty);
+        return CanStart(actor);
     }
 
     public override float AdjustScore(CharacterActor actor, float baseScore)

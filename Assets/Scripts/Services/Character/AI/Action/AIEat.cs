@@ -20,11 +20,7 @@ public class AIEat : AIActionSet
         CharacterActor actor,
         in CharacterAiDecisionContext context)
     {
-        return actor != null
-            && context.HasShoppingAbility
-            && (!context.IsWorker
-                || context.IsOffDuty
-                || context.HungerUrgency >= 0.35f);
+        return CanStart(actor);
     }
 
     public override void Execute(CharacterActor actor)

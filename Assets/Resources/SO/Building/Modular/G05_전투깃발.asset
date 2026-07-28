@@ -42,10 +42,10 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 9140eba2d65802f4dab061d9d20625e5, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602409
-    - rid: 7302562995605602410
-    - rid: 7302562995605602411
-    - rid: 7302562995605602412
+    - rid: 7302563239038813042
+    - rid: 7302563239038813043
+    - rid: 7302563239038813044
+    - rid: 7302563239038813045
   width: 1
   height: 1
   layer: 3
@@ -60,12 +60,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602409
+    - rid: 7302563239038813042
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: G05
-    - rid: 7302562995605602410
+    - rid: 7302563239038813043
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -73,7 +73,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602411
+    - rid: 7302563239038813044
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -88,7 +88,7 @@ MonoBehaviour:
           - key: Brutal
             value: 2
           metrics: []
-    - rid: 7302562995605602412
+    - rid: 7302563239038813045
       type: {class: BuildingSecurityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSecurityAbility

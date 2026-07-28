@@ -20,6 +20,9 @@ MonoBehaviour:
   occupiedHands: 0
   maxDurability: 120
   requiredCraftWork: 6
+  defaultMaterialId: material:leather
+  primaryMaterialAmount: 4
+  allowedMaterialFamilies: 05000000
   craftMaterials: []
   layer: 4
   collisionTag: torso-outer

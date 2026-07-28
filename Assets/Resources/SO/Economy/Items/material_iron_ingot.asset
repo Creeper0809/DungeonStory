@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: material_iron_ingot
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8040
+  itemId: material:iron-ingot
+  displayName: "\uCCA0\uAD34"
+  description: "\uCCA0 \uC7A5\uBE44\uC640 \uAC15\uCCA0\uC758 \uC8FC\uC7AC\uB8CC."
+  stockCategory: 1
+  kind: 1
+  ingredientTags: 512
+  unitPrice: 9
+  unitWeight: 0.9
+  maxStack: 50
+  sprite: {fileID: 0}
+  requiredResearchId: research:metallurgy:iron
+  mealQuality: 0
+  nutrition: 0
+  mealMood: 0
+  freshnessSeconds: 0
+  preserved: 0
+  supportsInjuryTreatment: 0
+  treatmentPotency: 1
+  infectionReduction: 0
+  detoxReduction: 0
+  painReduction: 0

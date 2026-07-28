@@ -10,8 +10,6 @@ public sealed class WildlifeCaptureRuntime :
     IWildlifeCaptureTransportRuntime,
     ITickable
 {
-    private static readonly IReadOnlyDictionary<StockCategory, int> FoodCost =
-        new Dictionary<StockCategory, int> { [StockCategory.Food] = 1 };
     private static readonly IReadOnlyDictionary<StockCategory, int> WaterCost =
         new Dictionary<StockCategory, int> { [StockCategory.Water] = 1 };
 
@@ -22,6 +20,9 @@ public sealed class WildlifeCaptureRuntime :
     private readonly IDoorAccessSubjectRegistry doorSubjects;
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IWorldFilthQuery filth;
+    private readonly IResourceEconomyContentCatalog contentCatalog;
+    private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
+    private readonly IWasteProcessingRuntime wasteProcessing;
     private readonly IGameClock clock;
     private readonly IRandomStream random;
     private readonly Dictionary<string, CapturedWildlifeState> captured =
@@ -39,8 +40,11 @@ public sealed class WildlifeCaptureRuntime :
         IDoorAccessSubjectRegistry doorSubjects,
         IWorldItemStackRuntime itemRuntime,
         IWorldFilthQuery filth,
+        IResourceEconomyContentCatalog contentCatalog,
+        IWildlifeSpeciesCatalogProvider speciesCatalog,
         IGameClock clock,
-        IRandomStreamProvider randomStreamProvider)
+        IRandomStreamProvider randomStreamProvider,
+        IWasteProcessingRuntime wasteProcessing = null)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.rooms = rooms ?? throw new ArgumentNullException(nameof(rooms));
@@ -52,6 +56,11 @@ public sealed class WildlifeCaptureRuntime :
         this.itemRuntime = itemRuntime
             ?? throw new ArgumentNullException(nameof(itemRuntime));
         this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
+        this.contentCatalog = contentCatalog
+            ?? throw new ArgumentNullException(nameof(contentCatalog));
+        this.speciesCatalog = speciesCatalog
+            ?? throw new ArgumentNullException(nameof(speciesCatalog));
+        this.wasteProcessing = wasteProcessing;
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         random = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
@@ -60,6 +69,21 @@ public sealed class WildlifeCaptureRuntime :
 
     public IReadOnlyList<CapturedWildlifeState> CapturedAnimals =>
         captured.Values.Select(item => item.Clone()).ToArray();
+
+    public void CopyCapturedAnimalReferences(
+        List<CapturedWildlifeState> destination)
+    {
+        if (destination == null)
+        {
+            throw new ArgumentNullException(nameof(destination));
+        }
+
+        destination.Clear();
+        foreach (CapturedWildlifeState state in captured.Values)
+        {
+            destination.Add(state);
+        }
+    }
 
     public bool IsCaptured(string wildlifeId)
     {
@@ -264,6 +288,91 @@ public sealed class WildlifeCaptureRuntime :
 
         state = null;
         return false;
+    }
+
+    public bool TrySetTamed(
+        string wildlifeId,
+        bool tamed,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string id = wildlifeId?.Trim() ?? string.Empty;
+        if (!captured.TryGetValue(id, out CapturedWildlifeState state))
+        {
+            failureReason = "우리에서 관리 중인 동물을 찾을 수 없습니다.";
+            return false;
+        }
+
+        state.isTamed = tamed;
+        if (tamed)
+        {
+            state.escapeRisk = Mathf.Min(state.escapeRisk, 12f);
+            state.lastCareStatus = "길들임 완료";
+        }
+
+        return true;
+    }
+
+    public bool TryGetPenCapacity(string penId, out int capacity)
+    {
+        BuildingBeastPenAbility ability = FindPen(penId)
+            ?.BuildingData
+            .GetBeastPenAbility();
+        capacity = ability != null && ability.IsValid
+            ? Mathf.Max(1, ability.capacity)
+            : 0;
+        return capacity > 0;
+    }
+
+    public bool TryRegisterPenBorn(
+        WildlifeActor wildlife,
+        string penId,
+        Vector2Int penPosition,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        string normalizedPenId = penId?.Trim() ?? string.Empty;
+        BuildableObject pen = FindPen(normalizedPenId);
+        BuildingBeastPenAbility penAbility =
+            pen?.BuildingData.GetBeastPenAbility();
+        if (wildlife == null || !wildlife.IsAlive)
+        {
+            failureReason = "태어난 동물 개체가 유효하지 않습니다.";
+            return false;
+        }
+
+        if (pen == null || penAbility == null || !penAbility.IsValid)
+        {
+            failureReason = "새끼를 수용할 유효한 우리가 없습니다.";
+            return false;
+        }
+
+        int occupied = captured.Values.Count(state =>
+            !state.escaped
+            && string.Equals(state.penId, normalizedPenId, StringComparison.Ordinal));
+        if (occupied >= penAbility.capacity)
+        {
+            failureReason = "우리 수용량이 부족해 새끼를 등록할 수 없습니다.";
+            return false;
+        }
+
+        CapturedWildlifeState state = new CapturedWildlifeState
+        {
+            wildlifeId = wildlife.WildlifeId,
+            speciesId = wildlife.SpeciesId,
+            penId = normalizedPenId,
+            penPosition = penPosition,
+            capturePosition = penPosition,
+            transportState = CapturedWildlifeTransportState.Penned,
+            nextCareAt = clock.Time + 5f,
+            isTamed = true,
+            lastCareStatus = "우리에서 태어난 새끼"
+        };
+        captured[state.wildlifeId] = state;
+        doorSubjects.SetCapturedWildlife(state.wildlifeId, true);
+        wildlife.WarpTo(penPosition);
+        wildlife.SetCaptured(true);
+        return true;
     }
 
     public bool TryRelease(string wildlifeId, out string failureReason)
@@ -535,13 +644,14 @@ public sealed class WildlifeCaptureRuntime :
         }
 
         RefreshDeliveryPending(state);
-        bool fed = TrySatisfyNeed(
+        state.feedSicknessSeverity = Mathf.Max(
+            0f,
+            state.feedSicknessSeverity - 1.5f);
+        bool fed = TrySatisfyFoodNeed(
             state,
             actor,
-            StockCategory.Food,
             ability.dailyFood,
             actor.Hunger,
-            FoodCost,
             ref state.foodDeliveryPending);
         bool watered = TrySatisfyNeed(
             state,
@@ -555,11 +665,14 @@ public sealed class WildlifeCaptureRuntime :
             || !room.IsUsable
             || room.Doors.OfType<Door>().Any(CaptiveWildlifeCanUse);
         float filthPenalty = filth.GetCleanlinessPenalty(state.penPosition, 1);
+        float baseRisk = state.isTamed ? 1f : 10f;
+        float securityMultiplier = state.isTamed ? 0.08f : 0.35f;
+        float deprivationMultiplier = state.isTamed ? 12f : 28f;
         state.escapeRisk = Mathf.Clamp(
-            10f
-            + (100f - ability.baseSecurity) * 0.35f
-            + actor.Hunger * 28f
-            + actor.Thirst * 34f
+            baseRisk
+            + (100f - ability.baseSecurity) * securityMultiplier
+            + actor.Hunger * deprivationMultiplier
+            + actor.Thirst * deprivationMultiplier
             + filthPenalty * 0.3f
             + (insecure ? 45f : 0f),
             0f,
@@ -574,12 +687,13 @@ public sealed class WildlifeCaptureRuntime :
             actor.ApplyDamage(1, null);
         }
 
-        if (state.escapeRisk >= 70f)
+        float escapeThreshold = state.isTamed ? 92f : 70f;
+        if (state.escapeRisk >= escapeThreshold)
         {
             float chance = Mathf.Lerp(
                 0.02f,
                 0.16f,
-                Mathf.InverseLerp(70f, 100f, state.escapeRisk));
+                Mathf.InverseLerp(escapeThreshold, 100f, state.escapeRisk));
             if (random.Chance(chance))
             {
                 TryBeginEscape(state, actor);
@@ -635,6 +749,139 @@ public sealed class WildlifeCaptureRuntime :
         return false;
     }
 
+    private bool TrySatisfyFoodNeed(
+        CapturedWildlifeState state,
+        WildlifeActor actor,
+        float dailyNeed,
+        float currentNeed,
+        ref bool deliveryPending)
+    {
+        if (dailyNeed <= 0f || currentNeed < 0.45f)
+        {
+            return currentNeed < 0.45f;
+        }
+
+        WildlifeDietType diet = speciesCatalog.TryGetSpecies(
+                state.speciesId,
+                out WildlifeSpeciesDefinition species)
+            ? species.Diet
+            : WildlifeDietType.Omnivore;
+        ResourceItemDefinitionSO[] candidates = contentCatalog.Items
+            .Where(item => item != null
+                && item.StockCategory == StockCategory.Food
+                && IsFoodAllowed(diet, item.IngredientTags))
+            .OrderBy(item => GetFeedPreference(diet, item))
+            .ThenBy(item => item.UnitPrice)
+            .ThenBy(item => item.ItemId, StringComparer.Ordinal)
+            .ToArray();
+
+        foreach (ResourceItemDefinitionSO candidate in candidates)
+        {
+            IReadOnlyDictionary<string, int> cost =
+                new Dictionary<string, int>(StringComparer.Ordinal)
+                {
+                    [candidate.ItemId] = 1
+                };
+            if (!itemRuntime.TryConsumeFacilityItemBuffer(
+                    state.penId,
+                    cost,
+                    out _))
+            {
+                continue;
+            }
+
+            actor.SatisfyCaptiveNeeds(0.72f, 0f);
+            state.lastFeedItemId = candidate.ItemId;
+            deliveryPending = false;
+            return true;
+        }
+
+        if (wasteProcessing?.TryConsumeDirectFeed(
+                diet,
+                state.penId,
+                out WasteFeedResult wasteFeed) == true)
+        {
+            actor.SatisfyCaptiveNeeds(
+                Mathf.Clamp(wasteFeed.Nutrition * 0.9f, 0.35f, 0.8f),
+                0f);
+            state.lastFeedItemId = wasteFeed.ItemId;
+            state.lastFeedDiseaseChance = wasteFeed.DiseaseChance;
+            if (random.Chance(wasteFeed.DiseaseChance))
+            {
+                state.feedSicknessSeverity = Mathf.Clamp(
+                    state.feedSicknessSeverity + 25f,
+                    0f,
+                    100f);
+                actor.ApplyDamage(1, null);
+            }
+
+            state.lastCareStatus = wasteFeed.Message;
+            deliveryPending = false;
+            return true;
+        }
+
+        if (!deliveryPending)
+        {
+            int amount = Mathf.Max(1, Mathf.CeilToInt(dailyNeed));
+            foreach (ResourceItemDefinitionSO candidate in candidates
+                         .Where(candidate => GetFeedPreference(diet, candidate) <= 1))
+            {
+                if (!itemRuntime.TryRequestItemDelivery(
+                        candidate.ItemId,
+                        amount,
+                        state.penPosition,
+                        state.penId,
+                        out int requested,
+                        out _)
+                    || requested <= 0)
+                {
+                    continue;
+                }
+
+                state.lastFeedItemId = candidate.ItemId;
+                deliveryPending = true;
+                break;
+            }
+
+            if (!deliveryPending
+                && wasteProcessing?.TryRequestDirectFeed(
+                    diet,
+                    state.penPosition,
+                    state.penId,
+                    out string wasteItemId,
+                    out _) == true)
+            {
+                state.lastFeedItemId = wasteItemId;
+                deliveryPending = true;
+            }
+
+            if (!deliveryPending)
+            {
+                foreach (ResourceItemDefinitionSO candidate in candidates
+                             .Where(candidate => GetFeedPreference(diet, candidate) > 1))
+                {
+                    if (!itemRuntime.TryRequestItemDelivery(
+                            candidate.ItemId,
+                            amount,
+                            state.penPosition,
+                            state.penId,
+                            out int requested,
+                            out _)
+                        || requested <= 0)
+                    {
+                        continue;
+                    }
+
+                    state.lastFeedItemId = candidate.ItemId;
+                    deliveryPending = true;
+                    break;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private void RefreshDeliveryPending(CapturedWildlifeState state)
     {
         bool hasFood = false;
@@ -651,12 +898,67 @@ public sealed class WildlifeCaptureRuntime :
 
             DungeonItemDefinition definition =
                 itemRuntime.CatalogProvider.GetDefinition(stack.ItemId);
-            hasFood |= definition?.StockCategory == StockCategory.Food;
+            hasFood |= string.IsNullOrWhiteSpace(state.lastFeedItemId)
+                ? definition?.StockCategory == StockCategory.Food
+                : string.Equals(
+                    stack.ItemId,
+                    state.lastFeedItemId,
+                    StringComparison.Ordinal);
             hasWater |= definition?.StockCategory == StockCategory.Water;
         }
 
         state.foodDeliveryPending &= hasFood;
         state.waterDeliveryPending &= hasWater;
+    }
+
+    private static bool IsFoodAllowed(
+        WildlifeDietType diet,
+        ResourceIngredientTag tags)
+    {
+        bool plant = (tags & (ResourceIngredientTag.Plant
+            | ResourceIngredientTag.Fungus)) != 0;
+        bool animal = (tags & (ResourceIngredientTag.Meat
+            | ResourceIngredientTag.Blood
+            | ResourceIngredientTag.Fat
+            | ResourceIngredientTag.Egg
+            | ResourceIngredientTag.Milk)) != 0;
+        bool spoiled = (tags & ResourceIngredientTag.Spoiled) != 0;
+        return diet switch
+        {
+            WildlifeDietType.Herbivore => plant && !animal,
+            WildlifeDietType.Carnivore => animal,
+            WildlifeDietType.Scavenger => animal || spoiled,
+            _ => plant || animal
+        };
+    }
+
+    private static int GetFeedPreference(
+        WildlifeDietType diet,
+        ResourceItemDefinitionSO item)
+    {
+        if (diet == WildlifeDietType.Herbivore
+            && string.Equals(item.ItemId, "feed:hay", StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        if (diet is WildlifeDietType.Carnivore
+                or WildlifeDietType.Omnivore
+                or WildlifeDietType.Scavenger
+            && string.Equals(
+                item.ItemId,
+                "feed:dog-food",
+                StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        if (item.Kind == ResourceItemKind.FinishedGood)
+        {
+            return 1;
+        }
+
+        return item.Kind == ResourceItemKind.Food ? 3 : 2;
     }
 
     private void TryBeginEscape(

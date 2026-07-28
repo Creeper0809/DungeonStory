@@ -102,6 +102,12 @@ public class AbilityWork : CharacterAbility
     internal IWorkOrderRuntime WorkOrderRuntime => workOrderRuntime;
     internal IGameClock GameClock => gameClock;
 
+    public void SeedDecisionContext(
+        in CharacterAiDecisionContext context)
+    {
+        TargetSelector.SeedDecisionContext(actor, in context);
+    }
+
     internal float GetWorkEnvironmentDurationMultiplier(WorkTypeId workTypeId)
     {
         return workTypeId.IsValid

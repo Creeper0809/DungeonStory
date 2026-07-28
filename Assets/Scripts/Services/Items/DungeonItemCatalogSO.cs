@@ -269,14 +269,17 @@ public sealed class ResourceDungeonItemCatalogProvider : IDungeonItemCatalogProv
 {
     private readonly IResourcesAssetLoader resourcesAssetLoader;
     private readonly IFacilityShopCatalog facilityShopCatalog;
+    private readonly IResourceEconomyContentCatalog resourceEconomyCatalog;
     private DungeonItemCatalogSO catalog;
 
     public ResourceDungeonItemCatalogProvider(
         IResourcesAssetLoader resourcesAssetLoader = null,
-        IFacilityShopCatalog facilityShopCatalog = null)
+        IFacilityShopCatalog facilityShopCatalog = null,
+        IResourceEconomyContentCatalog resourceEconomyCatalog = null)
     {
         this.resourcesAssetLoader = resourcesAssetLoader ?? new UnityResourcesAssetLoader();
         this.facilityShopCatalog = facilityShopCatalog;
+        this.resourceEconomyCatalog = resourceEconomyCatalog;
     }
 
     public DungeonItemCatalogSO Catalog
@@ -295,6 +298,14 @@ public sealed class ResourceDungeonItemCatalogProvider : IDungeonItemCatalogProv
 
     public DungeonItemDefinition GetDefinition(string itemId)
     {
+        if (resourceEconomyCatalog != null
+            && resourceEconomyCatalog.TryGetItem(
+                itemId,
+                out ResourceItemDefinitionSO economyDefinition))
+        {
+            return economyDefinition.ToDungeonItemDefinition();
+        }
+
         if (ResearchBlueprintItemDefinitions.TryGetDefinition(
                 itemId,
                 facilityShopCatalog,

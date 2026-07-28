@@ -172,7 +172,22 @@ public sealed class WorkTaskExecutor
                         requiredWork,
                         label,
                         extraMultiplier),
-                    () => CanContinueTimedWork(runId, actor) && work.isWorking);
+                    () => CanContinueTimedWork(runId, actor) && work.isWorking,
+                    (
+                        requiredWork,
+                        completedWork,
+                        label,
+                        extraMultiplier,
+                        applyDelta) => ExecutePersistentWorkAmountLoop(
+                            runId,
+                            actor,
+                            assignedTarget,
+                            workType,
+                            requiredWork,
+                            completedWork,
+                            label,
+                            applyDelta,
+                            extraMultiplier));
                 yield return executionHandler.Execute(executionContext, executionResult);
                 completedSuccessfully = executionResult.CompletedSuccessfully;
                 completionEffectsAlreadyApplied =
@@ -750,6 +765,87 @@ public sealed class WorkTaskExecutor
                     $"{label} 진행 {Mathf.RoundToInt(ratio * 100f)}%",
                     target,
                     reasonCode: "work-progress",
+                    value: ratio));
+            }
+
+            yield return null;
+        }
+    }
+
+    private IEnumerator ExecutePersistentWorkAmountLoop(
+        int runId,
+        CharacterActor actor,
+        BuildableObject target,
+        FacilityWorkType workType,
+        float requiredWork,
+        float completedWork,
+        string label,
+        Func<float, bool> applyDelta,
+        float extraMultiplier = 1f)
+    {
+        requiredWork = Mathf.Max(0.1f, requiredWork);
+        completedWork = Mathf.Clamp(completedWork, 0f, requiredWork);
+        label = string.IsNullOrWhiteSpace(label)
+            ? WorkTaskCatalog.GetLegacyDisplayName(workType)
+            : label;
+
+        if (DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.InstantWork))
+        {
+            float remainingWork = Mathf.Max(0f, requiredWork - completedWork);
+            if (remainingWork > 0f)
+            {
+                applyDelta(remainingWork);
+            }
+
+            actor?.Brain?.SetActionPhase($"{label} 100%", target);
+            yield return null;
+            yield break;
+        }
+
+        WorkTypeId workTypeId = WorkTypeCatalog.TryGet(
+                workType,
+                out WorkTypeDefinition definition)
+            ? definition.WorkTypeId
+            : default;
+        float durationMultiplier =
+            work.GetWorkEnvironmentDurationMultiplier(workTypeId);
+        float lastReportTime = -10f;
+
+        while (completedWork + 0.001f < requiredWork
+            && CanContinueTimedWork(runId, actor)
+            && work.isWorking)
+        {
+            float tickDeltaTime = gameClock.DeltaTime > 0f
+                ? gameClock.DeltaTime
+                : 1f / 60f;
+            float deltaWork = Mathf.Min(
+                requiredWork - completedWork,
+                CalculateWorkPerSecond(
+                        actor,
+                        target,
+                        workTypeId,
+                        durationMultiplier)
+                    * Mathf.Max(0.05f, extraMultiplier)
+                    * tickDeltaTime);
+            if (deltaWork <= 0f || !applyDelta(deltaWork))
+            {
+                yield break;
+            }
+
+            completedWork = Mathf.Min(requiredWork, completedWork + deltaWork);
+            if (gameClock.Time - lastReportTime >= 0.75f)
+            {
+                lastReportTime = gameClock.Time;
+                float ratio = Mathf.Clamp01(completedWork / requiredWork);
+                actor?.Brain?.SetActionPhase(
+                    $"{label} {Mathf.RoundToInt(ratio * 100f)}%",
+                    target);
+                actor?.AddActivity(CharacterActivityEvent.Work(
+                    workType,
+                    CharacterActivityOutcomes.Progress,
+                    $"{label} 진행 {Mathf.RoundToInt(ratio * 100f)}%",
+                    target,
+                    reasonCode: "persistent-work-progress",
                     value: ratio));
             }
 

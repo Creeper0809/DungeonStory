@@ -112,6 +112,7 @@ public class GridPathSearchResult
     private readonly Vector2Int? exactDestination;
     private readonly GridMoveStep[] exactPath;
     private readonly int exactMoveCost;
+    private Queue<GridMoveStep> ownedExactPath;
     private HashSet<IGridOccupant> visitableOccupantSet;
     private Dictionary<IGridOccupant, Vector2Int> visitableOccupantPositions;
     private bool visitableOccupantPositionsBuilt;
@@ -143,6 +144,7 @@ public class GridPathSearchResult
         exactDestination = null;
         exactPath = null;
         exactMoveCost = int.MaxValue;
+        ownedExactPath = null;
     }
 
     internal GridPathSearchResult(
@@ -168,7 +170,51 @@ public class GridPathSearchResult
         exactDestination = destination;
         exactPath = path ?? Array.Empty<GridMoveStep>();
         exactMoveCost = moveCost;
+        ownedExactPath = null;
         ExpandedNodeCount = Mathf.Max(0, expandedNodeCount);
+    }
+
+    internal GridPathSearchResult(
+        Grid sourceGrid,
+        Vector2Int start,
+        int gridVersion,
+        Vector2Int destination,
+        Queue<GridMoveStep> path,
+        int moveCost,
+        int expandedNodeCount = 0)
+    {
+        this.sourceGrid = sourceGrid;
+        this.start = start;
+        this.gridVersion = gridVersion;
+        traversalVersion = gridVersion;
+        parentIndex = Array.Empty<int>();
+        parentMovementOccupant = Array.Empty<IGridOccupant>();
+        parentMoveType = Array.Empty<GridMoveType>();
+        searchOrder = Array.Empty<int>();
+        searchOrderCount = 0;
+        this.moveCost = Array.Empty<int>();
+        visitableOccupants = new List<IGridOccupant>(0);
+        exactDestination = destination;
+        exactPath = Array.Empty<GridMoveStep>();
+        exactMoveCost = moveCost;
+        ownedExactPath = path;
+        ExpandedNodeCount = Mathf.Max(0, expandedNodeCount);
+    }
+
+    internal Queue<GridMoveStep> TakeOwnedExactMovePath(
+        Vector2Int destination)
+    {
+        if (ownedExactPath != null
+            && exactDestination.HasValue
+            && exactDestination.Value == destination
+            && exactMoveCost != int.MaxValue)
+        {
+            Queue<GridMoveStep> path = ownedExactPath;
+            ownedExactPath = null;
+            return path;
+        }
+
+        return GetMovePathTo(destination);
     }
 
     public List<IGridOccupant> GetAllVisitableOccupants()
@@ -2072,6 +2118,205 @@ internal sealed class GridSearchWorkspace
     }
 }
 
+internal sealed class SparseGridSearchWorkspace
+{
+    private const int InitialCapacity = 512;
+    private const int LoadFactorNumerator = 7;
+    private const int LoadFactorDenominator = 10;
+
+    private int[] keys = new int[InitialCapacity];
+    private int[] generations = new int[InitialCapacity];
+    private int[] parentIndices = new int[InitialCapacity];
+    private int[] moveCosts = new int[InitialCapacity];
+    private IGridOccupant[] parentMovementOccupants =
+        new IGridOccupant[InitialCapacity];
+    private GridMoveType[] parentMoveTypes =
+        new GridMoveType[InitialCapacity];
+    private int[] occupiedSlots = new int[InitialCapacity];
+    private int currentGeneration;
+    private int count;
+
+    public void Prepare()
+    {
+        currentGeneration++;
+        if (currentGeneration == int.MaxValue)
+        {
+            Array.Clear(generations, 0, generations.Length);
+            currentGeneration = 1;
+        }
+
+        count = 0;
+    }
+
+    public int GetMoveCost(int cellIndex)
+    {
+        int slot = FindExistingSlot(cellIndex);
+        return slot >= 0 ? moveCosts[slot] : int.MaxValue;
+    }
+
+    public int GetParentIndex(int cellIndex)
+    {
+        int slot = FindExistingSlot(cellIndex);
+        return slot >= 0 ? parentIndices[slot] : -1;
+    }
+
+    public IGridOccupant GetParentMovementOccupant(int cellIndex)
+    {
+        int slot = FindExistingSlot(cellIndex);
+        return slot >= 0 ? parentMovementOccupants[slot] : null;
+    }
+
+    public GridMoveType GetParentMoveType(int cellIndex)
+    {
+        int slot = FindExistingSlot(cellIndex);
+        return slot >= 0 ? parentMoveTypes[slot] : default;
+    }
+
+    public void SetStart(int cellIndex)
+    {
+        int slot = FindOrCreateSlot(cellIndex);
+        parentIndices[slot] = -1;
+        parentMovementOccupants[slot] = null;
+        parentMoveTypes[slot] = default;
+        moveCosts[slot] = 0;
+    }
+
+    public void SetNode(
+        int cellIndex,
+        int cost,
+        int parentIndex,
+        IGridOccupant movementOccupant,
+        GridMoveType moveType)
+    {
+        int slot = FindOrCreateSlot(cellIndex);
+        parentIndices[slot] = parentIndex;
+        parentMovementOccupants[slot] = movementOccupant;
+        parentMoveTypes[slot] = moveType;
+        moveCosts[slot] = cost;
+    }
+
+    public void ReleaseReferences()
+    {
+        for (int index = 0; index < count; index++)
+        {
+            parentMovementOccupants[occupiedSlots[index]] = null;
+        }
+    }
+
+    private int FindExistingSlot(int cellIndex)
+    {
+        int mask = keys.Length - 1;
+        int slot = Hash(cellIndex) & mask;
+        while (generations[slot] == currentGeneration)
+        {
+            if (keys[slot] == cellIndex)
+            {
+                return slot;
+            }
+
+            slot = (slot + 1) & mask;
+        }
+
+        return -1;
+    }
+
+    private int FindOrCreateSlot(int cellIndex)
+    {
+        int existing = FindExistingSlot(cellIndex);
+        if (existing >= 0)
+        {
+            return existing;
+        }
+
+        EnsureInsertCapacity();
+        int mask = keys.Length - 1;
+        int slot = Hash(cellIndex) & mask;
+        while (generations[slot] == currentGeneration)
+        {
+            slot = (slot + 1) & mask;
+        }
+
+        generations[slot] = currentGeneration;
+        keys[slot] = cellIndex;
+        parentIndices[slot] = -1;
+        moveCosts[slot] = int.MaxValue;
+        parentMovementOccupants[slot] = null;
+        parentMoveTypes[slot] = default;
+        occupiedSlots[count++] = slot;
+        return slot;
+    }
+
+    private void EnsureInsertCapacity()
+    {
+        if ((count + 1) * LoadFactorDenominator
+            < keys.Length * LoadFactorNumerator)
+        {
+            return;
+        }
+
+        Grow(keys.Length << 1);
+    }
+
+    private void Grow(int capacity)
+    {
+        int[] oldKeys = keys;
+        int[] oldGenerations = generations;
+        int[] oldParentIndices = parentIndices;
+        int[] oldMoveCosts = moveCosts;
+        IGridOccupant[] oldParentMovementOccupants =
+            parentMovementOccupants;
+        GridMoveType[] oldParentMoveTypes = parentMoveTypes;
+        int oldGeneration = currentGeneration;
+
+        keys = new int[capacity];
+        generations = new int[capacity];
+        parentIndices = new int[capacity];
+        moveCosts = new int[capacity];
+        parentMovementOccupants = new IGridOccupant[capacity];
+        parentMoveTypes = new GridMoveType[capacity];
+        occupiedSlots = new int[capacity];
+        currentGeneration = 1;
+        count = 0;
+
+        int mask = capacity - 1;
+        for (int oldSlot = 0; oldSlot < oldKeys.Length; oldSlot++)
+        {
+            if (oldGenerations[oldSlot] != oldGeneration)
+            {
+                continue;
+            }
+
+            int cellIndex = oldKeys[oldSlot];
+            int slot = Hash(cellIndex) & mask;
+            while (generations[slot] == currentGeneration)
+            {
+                slot = (slot + 1) & mask;
+            }
+
+            generations[slot] = currentGeneration;
+            keys[slot] = cellIndex;
+            parentIndices[slot] = oldParentIndices[oldSlot];
+            moveCosts[slot] = oldMoveCosts[oldSlot];
+            parentMovementOccupants[slot] =
+                oldParentMovementOccupants[oldSlot];
+            parentMoveTypes[slot] = oldParentMoveTypes[oldSlot];
+            occupiedSlots[count++] = slot;
+        }
+    }
+
+    private static int Hash(int value)
+    {
+        unchecked
+        {
+            uint hash = (uint)value;
+            hash ^= hash >> 16;
+            hash *= 0x7FEB352Du;
+            hash ^= hash >> 15;
+            return (int)hash;
+        }
+    }
+}
+
 internal static class GridSearchScratch
 {
     private static readonly Stack<Queue<Vector2Int>> PositionQueues = new Stack<Queue<Vector2Int>>();
@@ -2080,10 +2325,14 @@ internal static class GridSearchScratch
         new Stack<List<GridTraversalStepData>>();
     private static readonly Stack<List<IGridOccupant>> OccupantLists = new Stack<List<IGridOccupant>>();
     private static readonly Stack<HashSet<IGridOccupant>> OccupantSets = new Stack<HashSet<IGridOccupant>>();
+    private static readonly Stack<Queue<GridMoveStep>> MovePaths =
+        new Stack<Queue<GridMoveStep>>();
     private static readonly Stack<GridSearchPriorityQueue> PriorityQueues =
         new Stack<GridSearchPriorityQueue>();
     private static readonly Stack<GridSearchWorkspace> Workspaces =
         new Stack<GridSearchWorkspace>();
+    private static readonly Stack<SparseGridSearchWorkspace> SparseWorkspaces =
+        new Stack<SparseGridSearchWorkspace>();
 
     [ThreadStatic] private static List<IGridOccupant> sharedOccupants;
 
@@ -2093,6 +2342,13 @@ internal static class GridSearchScratch
     public static Queue<Vector2Int> RentPositionQueue()
     {
         return PositionQueues.Count > 0 ? PositionQueues.Pop() : new Queue<Vector2Int>(128);
+    }
+
+    public static Queue<GridMoveStep> RentMovePath(int capacity = 0)
+    {
+        return MovePaths.Count > 0
+            ? MovePaths.Pop()
+            : new Queue<GridMoveStep>(Mathf.Max(4, capacity));
     }
 
     public static List<GridTraversalStepData> RentTraversalStepList()
@@ -2133,12 +2389,47 @@ internal static class GridSearchScratch
         return workspace;
     }
 
+    public static SparseGridSearchWorkspace RentSparseWorkspace()
+    {
+        SparseGridSearchWorkspace workspace =
+            SparseWorkspaces.Count > 0
+                ? SparseWorkspaces.Pop()
+                : new SparseGridSearchWorkspace();
+        workspace.Prepare();
+        return workspace;
+    }
+
+    public static void EnsureIncrementalSearchCapacity(int count)
+    {
+        int target = Mathf.Max(0, count);
+        while (SparseWorkspaces.Count < target)
+        {
+            SparseWorkspaces.Push(new SparseGridSearchWorkspace());
+        }
+
+        while (PriorityQueues.Count < target)
+        {
+            PriorityQueues.Push(new GridSearchPriorityQueue());
+        }
+    }
+
     public static void Return(Queue<Vector2Int> queue)
     {
         if (queue == null) return;
 
         queue.Clear();
         PositionQueues.Push(queue);
+    }
+
+    public static void ReturnMovePath(Queue<GridMoveStep> path)
+    {
+        if (path == null)
+        {
+            return;
+        }
+
+        path.Clear();
+        MovePaths.Push(path);
     }
 
     public static void ReturnTraversalStepList(List<GridTraversalStepData> list)
@@ -2192,6 +2483,17 @@ internal static class GridSearchScratch
         Workspaces.Push(workspace);
     }
 
+    public static void Return(SparseGridSearchWorkspace workspace)
+    {
+        if (workspace == null)
+        {
+            return;
+        }
+
+        workspace.ReleaseReferences();
+        SparseWorkspaces.Push(workspace);
+    }
+
     internal static void ClearRetainedMemory()
     {
         PositionQueues.Clear();
@@ -2199,8 +2501,10 @@ internal static class GridSearchScratch
         TraversalStepLists.Clear();
         OccupantLists.Clear();
         OccupantSets.Clear();
+        MovePaths.Clear();
         PriorityQueues.Clear();
         Workspaces.Clear();
+        SparseWorkspaces.Clear();
         sharedOccupants = null;
     }
 }

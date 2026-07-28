@@ -20,11 +20,7 @@ public class AIRest : AIActionSet
         CharacterActor actor,
         in CharacterAiDecisionContext context)
     {
-        return actor != null
-            && context.HasShoppingAbility
-            && (!context.IsWorker
-                || context.IsOffDuty
-                || context.RestUrgency >= 0.1f);
+        return CanStart(actor);
     }
 
     public override void Execute(CharacterActor actor)

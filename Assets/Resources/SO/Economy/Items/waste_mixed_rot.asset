@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: waste_mixed_rot
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8031
+  itemId: waste:mixed-rot
+  displayName: "\uD63C\uD569 \uBD80\uD328\uBB3C"
+  description: "\uC7AC\uB8CC\uAC00 \uC11E\uC5EC \uC2DD\uC131\uC744 \uAD6C\uBD84\uD558\uAE30
+    \uC5B4\uB824\uC6B4 \uBD80\uD328\uBB3C."
+  stockCategory: 1
+  kind: 6
+  ingredientTags: 2065
+  unitPrice: 0
+  unitWeight: 0.65
+  maxStack: 75
+  sprite: {fileID: 0}
+  requiredResearchId: research:agriculture:compost
+  mealQuality: 0
+  nutrition: 0
+  mealMood: 0
+  freshnessSeconds: 0
+  preserved: 0
+  supportsInjuryTreatment: 0
+  treatmentPotency: 1
+  infectionReduction: 0
+  detoxReduction: 0
+  painReduction: 0

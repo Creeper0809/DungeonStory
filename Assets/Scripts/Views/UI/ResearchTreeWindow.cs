@@ -271,6 +271,25 @@ public sealed class ResearchTreeWindow : MonoBehaviour
         RebuildInspector();
     }
 
+    public bool CenterProject(ResearchProjectSO project)
+    {
+        if (project == null
+            || graphRoot == null
+            || graphViewport == null
+            || graphLayout == null
+            || !graphLayout.NodeRects.TryGetValue(project.ProjectId.Value, out Rect rect))
+        {
+            return false;
+        }
+
+        Canvas.ForceUpdateCanvases();
+        Vector2 nodeCenter = new Vector2(rect.center.x, -rect.center.y);
+        Vector3 nodeWorldPosition = graphRoot.TransformPoint(nodeCenter);
+        Vector2 nodePositionInViewport = graphViewport.InverseTransformPoint(nodeWorldPosition);
+        graphRoot.anchoredPosition += graphViewport.rect.center - nodePositionInViewport;
+        return true;
+    }
+
     public void MoveQueueEntry(int fromIndex, Vector2 pointerScreenPosition)
     {
         if (queueRows.Count == 0)
@@ -746,16 +765,11 @@ public sealed class ResearchTreeWindow : MonoBehaviour
 
     private void CycleField()
     {
-        ResearchField?[] options =
-        {
-            null,
-            ResearchField.LifeAndSurvival,
-            ResearchField.CommerceAndCraft,
-            ResearchField.DefenseAndTactics,
-            ResearchField.RecordsAndArcane,
-            ResearchField.CaptivityAndEntertainment,
-            ResearchField.AuthorityAndHousing
-        };
+        ResearchField?[] options = new ResearchField?[] { null }
+            .Concat(Enum.GetValues(typeof(ResearchField))
+                .Cast<ResearchField>()
+                .Select(field => (ResearchField?)field))
+            .ToArray();
         int current = Array.IndexOf(options, selectedField);
         selectedField = options[(current + 1) % options.Length];
         fieldFilterLabel.text = selectedField.HasValue
@@ -865,16 +879,7 @@ public sealed class ResearchTreeWindow : MonoBehaviour
 
     private void CenterSelected()
     {
-        if (selectedProject == null
-            || graphLayout == null
-            || !graphLayout.NodeRects.TryGetValue(selectedProject.ProjectId.Value, out Rect rect))
-        {
-            return;
-        }
-
-        Vector2 viewportCenter = graphViewport.rect.center;
-        Vector2 nodeCenter = new Vector2(rect.center.x, -rect.center.y);
-        graphRoot.anchoredPosition = viewportCenter - nodeCenter * zoom;
+        CenterProject(selectedProject);
     }
 
     private void ShowFeedback(string message, bool success)
@@ -959,6 +964,14 @@ public sealed class ResearchTreeWindow : MonoBehaviour
             ResearchField.RecordsAndArcane => "기록·비전",
             ResearchField.CaptivityAndEntertainment => "포로·흥행",
             ResearchField.AuthorityAndHousing => "권위·주거",
+            ResearchField.Agriculture => "재배",
+            ResearchField.Forestry => "임업",
+            ResearchField.Mining => "채광",
+            ResearchField.Husbandry => "축산",
+            ResearchField.Metallurgy => "금속",
+            ResearchField.Textiles => "직물",
+            ResearchField.Cuisine => "요리",
+            ResearchField.Pharmacology => "약리",
             _ => "기타"
         };
     }

@@ -32,6 +32,7 @@ public sealed class CharacterMedicalRuntime :
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IGameEventBus gameEventBus;
     private readonly ICharacterCarePriorityQuery carePriorityQuery;
+    private readonly IResourceEconomyContentCatalog resourceCatalog;
     private readonly List<CharacterMedicalOrder> orders = new List<CharacterMedicalOrder>();
     private readonly Dictionary<string, DownedCharacterGridOccupant> downedOccupants =
         new Dictionary<string, DownedCharacterGridOccupant>(StringComparer.Ordinal);
@@ -51,7 +52,8 @@ public sealed class CharacterMedicalRuntime :
         ICharacterAiWorldRegistry worldRegistry,
         IWorldItemStackRuntime itemStackRuntime,
         IGameEventBus gameEventBus,
-        ICharacterCarePriorityQuery carePriorityQuery = null)
+        ICharacterCarePriorityQuery carePriorityQuery = null,
+        IResourceEconomyContentCatalog resourceCatalog = null)
     {
         this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
         this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
@@ -60,6 +62,7 @@ public sealed class CharacterMedicalRuntime :
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.carePriorityQuery = carePriorityQuery;
+        this.resourceCatalog = resourceCatalog;
     }
 
     public IReadOnlyList<CharacterMedicalOrder> ActiveOrders =>
@@ -456,7 +459,9 @@ public sealed class CharacterMedicalRuntime :
             : 0.18f;
         bool usedExtractedBlood =
             order.treatmentSupply == CharacterMedicalSupplyKind.ExtractedBlood;
-        float treatmentEfficiency = usedExtractedBlood ? 0.55f : 1f;
+        float treatmentEfficiency = usedExtractedBlood
+            ? 0.55f
+            : Mathf.Max(0.1f, order.treatmentPotency);
         bodyHealth.ApplyTreatment(
             patient,
             severityReduction * 40f * treatmentEfficiency,
@@ -465,9 +470,33 @@ public sealed class CharacterMedicalRuntime :
         {
             ApplyExtractedBloodConsequences(patient, infection: 4f, instability: 6f);
         }
+        else if (order.treatmentInfectionReduction > 0f)
+        {
+            gameEventBus.Publish(
+                new CharacterInfectionBurdenReductionRequestedEvent(
+                    patient,
+                    order.treatmentInfectionReduction));
+        }
+
+        if (!usedExtractedBlood
+            && order.treatmentPainReduction > 0f
+            && !string.IsNullOrWhiteSpace(order.treatmentItemId))
+        {
+            patient.ApplyMoodFactor(
+                $"medical:relief:{order.treatmentItemId}",
+                "통증이 가라앉음",
+                Mathf.Clamp(order.treatmentPainReduction * 0.15f, 1f, 6f),
+                180f,
+                1);
+        }
 
         order.treatmentSupply = CharacterMedicalSupplyKind.None;
         order.treatmentSupplyConsumed = false;
+        order.treatmentSupplyDeliveryRequested = false;
+        order.treatmentItemId = string.Empty;
+        order.treatmentPotency = 1f;
+        order.treatmentInfectionReduction = 0f;
+        order.treatmentPainReduction = 0f;
         CharacterBodyHealthSnapshot snapshot = bodyHealth.GetSnapshot(patient);
         if (!snapshot.Downed)
         {
@@ -498,11 +527,7 @@ public sealed class CharacterMedicalRuntime :
         }
 
         if (order.treatmentSupply == CharacterMedicalSupplyKind.None
-            && !TryRequestTreatmentSupply(
-                order,
-                facility,
-                StockCategory.Medicine,
-                CharacterMedicalSupplyKind.Medicine)
+            && !TryRequestMedicineSupply(order, facility)
             && !TryRequestTreatmentSupply(
                 order,
                 facility,
@@ -518,14 +543,33 @@ public sealed class CharacterMedicalRuntime :
             return true;
         }
 
-        IReadOnlyDictionary<StockCategory, int> cost =
-            order.treatmentSupply == CharacterMedicalSupplyKind.Medicine
-                ? MedicineCost
-                : ExtractedBloodCost;
-        if (!itemStackRuntime.TryConsumeFacilityBuffer(
+        bool consumed;
+        if (order.treatmentSupply == CharacterMedicalSupplyKind.Medicine
+            && !string.IsNullOrWhiteSpace(order.treatmentItemId))
+        {
+            Dictionary<string, int> exactCost =
+                new Dictionary<string, int>(StringComparer.Ordinal)
+                {
+                    [order.treatmentItemId] = 1
+                };
+            consumed = itemStackRuntime.TryConsumeFacilityItemBuffer(
+                order.treatmentMaterialDestinationId,
+                exactCost,
+                out _);
+        }
+        else
+        {
+            IReadOnlyDictionary<StockCategory, int> cost =
+                order.treatmentSupply == CharacterMedicalSupplyKind.Medicine
+                    ? MedicineCost
+                    : ExtractedBloodCost;
+            consumed = itemStackRuntime.TryConsumeFacilityBuffer(
                 order.treatmentMaterialDestinationId,
                 cost,
-                out _))
+                out _);
+        }
+
+        if (!consumed)
         {
             order.status =
                 order.treatmentSupply == CharacterMedicalSupplyKind.Medicine
@@ -536,6 +580,64 @@ public sealed class CharacterMedicalRuntime :
 
         order.treatmentSupplyConsumed = true;
         return true;
+    }
+
+    private bool TryRequestMedicineSupply(
+        CharacterMedicalOrder order,
+        BuildableObject facility)
+    {
+        if (order.treatmentSupplyDeliveryRequested)
+        {
+            return order.treatmentSupply == CharacterMedicalSupplyKind.Medicine;
+        }
+
+        if (resourceCatalog == null)
+        {
+            return TryRequestTreatmentSupply(
+                order,
+                facility,
+                StockCategory.Medicine,
+                CharacterMedicalSupplyKind.Medicine);
+        }
+
+        float desiredPotency = Mathf.Lerp(
+            0.7f,
+            1.35f,
+            Mathf.InverseLerp(20f, 75f, order.requiredTreatmentWork));
+        ResourceItemDefinitionSO[] candidates = resourceCatalog.Items
+            .Where(item => item != null
+                && item.Kind == ResourceItemKind.Medicine
+                && item.SupportsInjuryTreatment)
+            .OrderBy(item => Mathf.Abs(item.TreatmentPotency - desiredPotency))
+            .ThenBy(item => item.UnitPrice)
+            .ThenBy(item => item.ItemId, StringComparer.Ordinal)
+            .ToArray();
+        foreach (ResourceItemDefinitionSO medicine in candidates)
+        {
+            if (!itemStackRuntime.TryRequestItemDelivery(
+                    medicine.ItemId,
+                    1,
+                    facility.centerPos,
+                    order.treatmentMaterialDestinationId,
+                    out int requested,
+                    out _)
+                || requested < 1)
+            {
+                continue;
+            }
+
+            order.treatmentSupply = CharacterMedicalSupplyKind.Medicine;
+            order.treatmentSupplyConsumed = false;
+            order.treatmentSupplyDeliveryRequested = true;
+            order.treatmentItemId = medicine.ItemId;
+            order.treatmentPotency = medicine.TreatmentPotency;
+            order.treatmentInfectionReduction = medicine.InfectionReduction;
+            order.treatmentPainReduction = medicine.PainReduction;
+            order.status = $"{medicine.DisplayName} 운반 대기";
+            return true;
+        }
+
+        return false;
     }
 
     private bool TryRequestTreatmentSupply(
@@ -558,6 +660,13 @@ public sealed class CharacterMedicalRuntime :
 
         order.treatmentSupply = supply;
         order.treatmentSupplyConsumed = false;
+        order.treatmentSupplyDeliveryRequested = true;
+        order.treatmentItemId = string.Empty;
+        order.treatmentPotency = supply == CharacterMedicalSupplyKind.ExtractedBlood
+            ? 0.55f
+            : 1f;
+        order.treatmentInfectionReduction = 0f;
+        order.treatmentPainReduction = 0f;
         return true;
     }
 
@@ -1035,6 +1144,13 @@ public sealed class CharacterMedicalRuntime :
             completedTreatmentWork = source.completedTreatmentWork,
             treatmentSupply = source.treatmentSupply,
             treatmentSupplyConsumed = source.treatmentSupplyConsumed,
+            treatmentSupplyDeliveryRequested =
+                source.treatmentSupplyDeliveryRequested,
+            treatmentItemId = source.treatmentItemId ?? string.Empty,
+            treatmentPotency = source.treatmentPotency,
+            treatmentInfectionReduction =
+                source.treatmentInfectionReduction,
+            treatmentPainReduction = source.treatmentPainReduction,
             treatmentMaterialDestinationId =
                 source.treatmentMaterialDestinationId ?? string.Empty,
             patientX = source.patientX,
@@ -1065,5 +1181,10 @@ public sealed class CharacterMedicalRuntime :
         order.treatmentMaterialDestinationId = string.Empty;
         order.treatmentSupply = CharacterMedicalSupplyKind.None;
         order.treatmentSupplyConsumed = false;
+        order.treatmentSupplyDeliveryRequested = false;
+        order.treatmentItemId = string.Empty;
+        order.treatmentPotency = 1f;
+        order.treatmentInfectionReduction = 0f;
+        order.treatmentPainReduction = 0f;
     }
 }

@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public interface IWorkforceReplanService
@@ -34,13 +32,17 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
 
         foreach (CharacterActor actor in characterWorld.Characters)
         {
-            AbilityWork work = actor != null ? actor.GetAbility<AbilityWork>() : null;
-            if (work == null)
+            if (!CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work))
             {
                 continue;
             }
 
             AIBrain brain = work.WorkerActor?.Brain;
+            if (brain?.IsExternallyDrivenActionActive == true)
+            {
+                continue;
+            }
+
             if (work.isWorking)
             {
                 brain?.InvalidateQueuedActionForNextDecision();
@@ -63,19 +65,24 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
         }
 
         WorkTypeId requestedWorkTypeId = requestedDefinition.WorkTypeId;
-        List<(AbilityWork work, WorkTargetCandidate candidate)> eligible =
-            new List<(AbilityWork work, WorkTargetCandidate candidate)>();
+        AbilityWork selectedWork = null;
+        WorkTargetCandidate selectedCandidate = default;
         foreach (CharacterActor actor in characterWorld.Characters)
         {
-            AbilityWork work = actor != null ? actor.GetAbility<AbilityWork>() : null;
-            AIBrain brain = actor != null ? actor.Brain : null;
-            WorkTypeId assignedWorkTypeId = work != null
-                ? work.AssignedWorkTypeId
-                : default;
-            if (work == null
+            if (!CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work)
                 || actor == null
-                || brain == null
-                || work.IsOffDuty
+                || actor.Brain == null)
+            {
+                continue;
+            }
+
+            if (actor.Brain.IsExternallyDrivenActionActive)
+            {
+                continue;
+            }
+
+            WorkTypeId assignedWorkTypeId = work.AssignedWorkTypeId;
+            if (work.IsOffDuty
                 || assignedWorkTypeId == requestedWorkTypeId
                 || !work.WorkPriorities.IsEnabled(requestedWorkTypeId))
             {
@@ -100,26 +107,31 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
                 || !work.isWorking
                 || currentPriority == WorkPriorityLevel.Off
                 || requestedPriority <= currentPriority;
-            if (canReplaceCurrent)
+            if (!canReplaceCurrent)
             {
-                eligible.Add((work, candidate));
+                continue;
+            }
+
+            if (selectedWork == null
+                || (selectedWork.isWorking && !work.isWorking)
+                || (selectedWork.isWorking == work.isWorking
+                    && candidate.Score > selectedCandidate.Score))
+            {
+                selectedWork = work;
+                selectedCandidate = candidate;
             }
         }
 
-        (AbilityWork work, WorkTargetCandidate candidate) selected = eligible
-            .OrderBy(entry => entry.work.isWorking)
-            .ThenByDescending(entry => entry.candidate.Score)
-            .FirstOrDefault();
-        if (selected.work == null)
+        if (selectedWork == null)
         {
             return;
         }
 
-        AIBrain selectedBrain = selected.work.WorkerActor.Brain;
+        AIBrain selectedBrain = selectedWork.WorkerActor.Brain;
         selectedBrain.PreferWorkActionOnNextDecision(
             requestedWorkTypeId,
             persistenceSeconds: 600f);
-        if (selected.work.isWorking)
+        if (selectedWork.isWorking)
         {
             selectedBrain.StopCurrentActionForReplan(
                 $"{requestedDefinition.DisplayName} 작업 시작");
@@ -137,16 +149,15 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
             return;
         }
 
-        List<(AbilityWork work, bool canInterrupt)> eligible =
-            new List<(AbilityWork work, bool canInterrupt)>();
+        AbilityWork selectedWork = null;
+        bool selectedCanInterrupt = false;
         foreach (CharacterActor actor in characterWorld.Characters)
         {
-            AbilityWork work = actor != null ? actor.GetAbility<AbilityWork>() : null;
-            AIBrain brain = actor != null ? actor.Brain : null;
-            if (work == null
+            if (!CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work)
                 || actor == null
-                || brain == null
+                || actor.Brain == null
                 || !actor.CanRunAi
+                || actor.Brain.IsExternallyDrivenActionActive
                 || work.IsOffDuty
                 || !work.WorkPriorities.IsEnabled(BuiltInWorkTypeIds.Haul))
             {
@@ -163,27 +174,34 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
                 || !work.isWorking
                 || currentPriority == WorkPriorityLevel.Off
                 || requestedPriority <= currentPriority;
-            eligible.Add((work, canInterrupt));
+            if (selectedWork == null
+                || (canInterrupt && !selectedCanInterrupt)
+                || (canInterrupt == selectedCanInterrupt
+                    && selectedWork.isWorking && !work.isWorking)
+                || (canInterrupt == selectedCanInterrupt
+                    && selectedWork.isWorking == work.isWorking
+                    && requestedPriority
+                        < selectedWork.WorkPriorities.GetPriority(
+                            BuiltInWorkTypeIds.Haul)))
+            {
+                selectedWork = work;
+                selectedCanInterrupt = canInterrupt;
+            }
         }
 
-        (AbilityWork work, bool canInterrupt) selected = eligible
-            .OrderByDescending(entry => entry.canInterrupt)
-            .ThenBy(entry => entry.work.isWorking)
-            .ThenBy(entry => entry.work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul))
-            .FirstOrDefault();
-        if (selected.work == null)
+        if (selectedWork == null)
         {
             return;
         }
 
-        AIBrain selectedBrain = selected.work.WorkerActor.Brain;
-        if (!selected.canInterrupt)
+        AIBrain selectedBrain = selectedWork.WorkerActor.Brain;
+        if (!selectedCanInterrupt)
         {
             selectedBrain.PreferActionOnNextDecision<AIHaul>(persistenceSeconds: 600f);
             return;
         }
 
-        if (selected.work.isWorking)
+        if (selectedWork.isWorking)
         {
             selectedBrain.StopCurrentActionForReplan("공사 자재 운반 시작");
         }

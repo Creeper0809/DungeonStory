@@ -5,6 +5,7 @@ public abstract class AIDeprivationBreakdownAction : AIActionSet
     public override bool RequiresDestination => false;
     public override bool IsContinuous => true;
     public override float MinimumDuration => 1f;
+    public override bool AllowsSurvivalEmergencyInterrupt => false;
     protected abstract CharacterBreakdownKind BreakdownKind { get; }
 
     public override bool CanStart(CharacterActor actor)

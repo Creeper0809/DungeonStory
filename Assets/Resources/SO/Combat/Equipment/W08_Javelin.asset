@@ -20,9 +20,12 @@ MonoBehaviour:
   occupiedHands: 1
   maxDurability: 100
   requiredCraftWork: 6
+  defaultMaterialId: material:wood
+  primaryMaterialAmount: 2
+  allowedMaterialFamilies: 000000000200000003000000
   craftMaterials: []
   verbs:
-  - rid: 7302563218931319410
+  - rid: 7302563231102141230
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.75
@@ -43,7 +46,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563218931319410
+    - rid: 7302563231102141230
       type: {class: RecoverableThrowVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1.1

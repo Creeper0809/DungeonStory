@@ -13,8 +13,62 @@ public sealed class CharacterDeprivationRuntime :
     ITickable,
     IDisposable
 {
+    private enum SafeDrinkTargetKind
+    {
+        None = 0,
+        ItemStack = 1,
+        Facility = 2,
+        WorldSource = 3
+    }
+
+    private enum SafeReliefApproachSearchStatus
+    {
+        Invalid = 0,
+        Pending = 1,
+        Reachable = 2
+    }
+
+    private readonly struct SafeDrinkPlan
+    {
+        public SafeDrinkPlan(
+            SafeDrinkTargetKind kind,
+            Vector2Int targetPosition,
+            Vector2Int approachPosition,
+            Queue<GridMoveStep> path,
+            string targetId = "",
+            BuildableObject facility = null)
+        {
+            Kind = kind;
+            TargetPosition = targetPosition;
+            ApproachPosition = approachPosition;
+            Path = path;
+            TargetId = targetId ?? string.Empty;
+            Facility = facility;
+        }
+
+        public SafeDrinkTargetKind Kind { get; }
+        public Vector2Int TargetPosition { get; }
+        public Vector2Int ApproachPosition { get; }
+        public Queue<GridMoveStep> Path { get; }
+        public string TargetId { get; }
+        public BuildableObject Facility { get; }
+        public bool IsValid => Kind != SafeDrinkTargetKind.None;
+    }
+
     private static readonly ProfilerMarker TickProfilerMarker =
         new ProfilerMarker("CharacterDeprivationRuntime.Tick");
+    private static readonly ProfilerMarker SafeReliefPlanProfilerMarker =
+        new ProfilerMarker("SafeRelief.Plan");
+    private static readonly ProfilerMarker SafeReliefStackProfilerMarker =
+        new ProfilerMarker("SafeRelief.StackCandidates");
+    private static readonly ProfilerMarker SafeReliefFacilityProfilerMarker =
+        new ProfilerMarker("SafeRelief.FacilityCandidates");
+    private static readonly ProfilerMarker SafeReliefApproachProfilerMarker =
+        new ProfilerMarker("SafeRelief.Approach");
+    private static readonly ProfilerMarker SafeReliefDirectPathProfilerMarker =
+        new ProfilerMarker("SafeRelief.DirectPath");
+    private static readonly ProfilerMarker SafeReliefExactPathProfilerMarker =
+        new ProfilerMarker("SafeRelief.ExactPath");
 
     private const float TickInterval = 1f;
     private const float BreakdownCheckInterval = 5f;
@@ -27,6 +81,21 @@ public sealed class CharacterDeprivationRuntime :
     private const int EmergencyPathRetryFrames = 180;
     private const int AccidentSearchRadius = 32;
     private const int BurdenKindCount = 6;
+    private const float SafeReliefNeedThreshold = 80f;
+    private const float SafeReliefRetrySeconds = 1.25f;
+    private const int MaximumSafeReliefStartsPerFrame = 2;
+    private static readonly Func<string, int> EmergencyFoodRankSelector =
+        GetEmergencyFoodRank;
+    private static readonly WaitForSeconds CannibalAttackDelay =
+        new WaitForSeconds(0.75f);
+    private static readonly WaitForSeconds CorpseSpawnDelay =
+        new WaitForSeconds(0.1f);
+    private static readonly WaitForSeconds CollapseDelay =
+        new WaitForSeconds(5f);
+    private static readonly WaitForSeconds ViolentActionDelay =
+        new WaitForSeconds(0.8f);
+    private static readonly WaitForSeconds BreakdownIdleDelay =
+        new WaitForSeconds(1.5f);
 
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IWorldItemStackRuntime itemStackRuntime;
@@ -34,27 +103,41 @@ public sealed class CharacterDeprivationRuntime :
     private readonly IWorldWaterQuery waterQuery;
     private readonly IRoomLayoutCache roomLayoutCache;
     private readonly ICharacterAiWorldRegistry worldRegistry;
+    private readonly IFacilityCandidateCache facilityCandidateCache;
     private readonly ISurvivalFoodRuntime survivalFoodRuntime;
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
     private readonly IUiClock uiClock;
     private readonly IDynamicFrameWorkBudget frameWorkBudget;
+    private readonly IDoorAccessQuery doorAccessQuery;
     private readonly IRandomStream breakdownRandom;
     private readonly Dictionary<string, CharacterDeprivationState> states =
-        new Dictionary<string, CharacterDeprivationState>(StringComparer.Ordinal);
+        new Dictionary<string, CharacterDeprivationState>(
+            512,
+            StringComparer.Ordinal);
     private readonly HashSet<string> runningBreakdownActions =
-        new HashSet<string>(StringComparer.Ordinal);
+        new HashSet<string>(128, StringComparer.Ordinal);
     private readonly HashSet<string> runningSafeReliefActions =
-        new HashSet<string>(StringComparer.Ordinal);
+        new HashSet<string>(128, StringComparer.Ordinal);
+    private readonly Dictionary<Vector2Int, string> safeReliefApproachOwners =
+        new Dictionary<Vector2Int, string>(128);
+    private readonly Dictionary<string, Vector2Int> safeReliefApproachByActor =
+        new Dictionary<string, Vector2Int>(128, StringComparer.Ordinal);
+    private readonly Dictionary<string, float> nextSafeReliefAttemptAt =
+        new Dictionary<string, float>(512, StringComparer.Ordinal);
+    private readonly List<WorldItemStockCandidate> safeDrinkStockCandidates =
+        new List<WorldItemStockCandidate>(64);
     private readonly Dictionary<string, int> alertLevels =
-        new Dictionary<string, int>(StringComparer.Ordinal);
+        new Dictionary<string, int>(512, StringComparer.Ordinal);
     private readonly Dictionary<CharacterBreakdownKind, Func<CharacterActor, IEnumerator>> actionRoutines =
         new Dictionary<CharacterBreakdownKind, Func<CharacterActor, IEnumerator>>();
-    private readonly List<CharacterActor> tickActors = new List<CharacterActor>();
+    private readonly List<CharacterActor> tickActors =
+        new List<CharacterActor>(512);
     private readonly HashSet<string> liveTickIds =
-        new HashSet<string>(StringComparer.Ordinal);
-    private readonly List<string> staleStateIds = new List<string>();
+        new HashSet<string>(512, StringComparer.Ordinal);
+    private readonly List<string> staleStateIds = new List<string>(128);
     private IDisposable infectionSubscription;
+    private IDisposable infectionReductionSubscription;
     private IDisposable mentalInstabilitySubscription;
     private IDisposable deathSubscription;
     private float nextTickAt;
@@ -64,6 +147,46 @@ public sealed class CharacterDeprivationRuntime :
     private float tickElapsed;
     private float tickNow;
     private bool tickPassActive;
+    private int pendingWarningAlerts;
+    private int pendingDangerAlerts;
+    private int safeReliefStartFrame = -1;
+    private int safeReliefStartsThisFrame;
+    private int safeReliefRequests;
+    private int safeReliefPlanFailures;
+    private int safeReliefActionsStarted;
+    private int safeReliefStoredStackPlans;
+    private int safeReliefMoveFailures;
+    private int safeReliefBreakdownMoveFailures;
+    private int safeReliefBlockedMoveFailures;
+    private int safeReliefOtherMoveFailures;
+    private int safeReliefStaleStartFailures;
+    private int safeReliefWallBlockedFailures;
+    private int safeReliefDoorDeniedFailures;
+    private int safeReliefDefenseReservationFailures;
+    private int safeReliefTraversalChangedFailures;
+    private int safeReliefArrivals;
+    private int safeReliefInteractionAttempts;
+    private int safeReliefSuccesses;
+    private int safeReliefActionsFinished;
+    private long safeReliefPlannedPathSteps;
+    private int safeReliefMaximumPlannedPathSteps;
+    private float safeReliefCompletedDurationSeconds;
+    private float safeReliefMaximumDurationSeconds;
+    private int safeReliefCancelledMoveFailures;
+    private int safeReliefMissingPathFailures;
+    private int safeReliefMissingMovementHandlerFailures;
+    private int safeReliefGridUnavailableFailures;
+    private int safeReliefInvalidSpeedFailures;
+    private int safeReliefNoFailureReasonFailures;
+    private int safeReliefActorDeadMoveFailures;
+    private int safeReliefActorMissingMoveFailures;
+    private int safeReliefCrossFloorTargetPlans;
+    private int safeReliefPathsWithVerticalTraversal;
+    private long safeReliefVerticalTraversalSteps;
+    private int desperateDrinkAttempts;
+    private int desperateDrinkStackMoveFailures;
+    private int desperateDrinkStackArrivals;
+    private int desperateDrinkStackConsumptions;
 
     public CharacterDeprivationRuntime(
         IGridSystemProvider gridSystemProvider,
@@ -72,12 +195,14 @@ public sealed class CharacterDeprivationRuntime :
         IWorldWaterQuery waterQuery,
         IRoomLayoutCache roomLayoutCache,
         ICharacterAiWorldRegistry worldRegistry,
+        IFacilityCandidateCache facilityCandidateCache,
         ISurvivalFoodRuntime survivalFoodRuntime,
         IGameEventBus gameEventBus,
         IGameClock gameClock,
         IDynamicFrameWorkBudget frameWorkBudget,
         IRandomStreamProvider randomStreamProvider,
-        IUiClock uiClock = null)
+        IUiClock uiClock = null,
+        IDoorAccessQuery doorAccessQuery = null)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
@@ -85,10 +210,13 @@ public sealed class CharacterDeprivationRuntime :
         this.waterQuery = waterQuery ?? throw new ArgumentNullException(nameof(waterQuery));
         this.roomLayoutCache = roomLayoutCache ?? throw new ArgumentNullException(nameof(roomLayoutCache));
         this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
+        this.facilityCandidateCache = facilityCandidateCache
+            ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
         this.survivalFoodRuntime = survivalFoodRuntime ?? throw new ArgumentNullException(nameof(survivalFoodRuntime));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.uiClock = uiClock;
+        this.doorAccessQuery = doorAccessQuery;
         this.frameWorkBudget = frameWorkBudget
             ?? throw new ArgumentNullException(nameof(frameWorkBudget));
         breakdownRandom = (randomStreamProvider
@@ -103,6 +231,11 @@ public sealed class CharacterDeprivationRuntime :
         lastSimulationTickAt = gameClock.Time;
         infectionSubscription = gameEventBus.Subscribe<CharacterInfectionBurdenRequestedEvent>(
             gameEvent => AddInfectionBurden(gameEvent.Actor, gameEvent.Amount));
+        infectionReductionSubscription =
+            gameEventBus.Subscribe<CharacterInfectionBurdenReductionRequestedEvent>(
+                gameEvent => ReduceInfectionBurden(
+                    gameEvent.Actor,
+                    gameEvent.Amount));
         mentalInstabilitySubscription =
             gameEventBus.Subscribe<CharacterMentalInstabilityBurdenRequestedEvent>(
                 gameEvent => AddMentalInstabilityBurden(
@@ -114,15 +247,20 @@ public sealed class CharacterDeprivationRuntime :
     public void Dispose()
     {
         infectionSubscription?.Dispose();
+        infectionReductionSubscription?.Dispose();
         mentalInstabilitySubscription?.Dispose();
         deathSubscription?.Dispose();
         infectionSubscription = null;
+        infectionReductionSubscription = null;
         mentalInstabilitySubscription = null;
         deathSubscription = null;
         actionRoutines.Clear();
         tickActors.Clear();
         liveTickIds.Clear();
         staleStateIds.Clear();
+        safeReliefApproachOwners.Clear();
+        safeReliefApproachByActor.Clear();
+        nextSafeReliefAttemptAt.Clear();
     }
 
     public void Tick()
@@ -172,6 +310,8 @@ public sealed class CharacterDeprivationRuntime :
 
             liveTickIds.Clear();
             tickActorIndex = 0;
+            pendingWarningAlerts = 0;
+            pendingDangerAlerts = 0;
             tickPassActive = true;
         }
 
@@ -213,6 +353,7 @@ public sealed class CharacterDeprivationRuntime :
             return;
         }
 
+        FlushAggregatedAlerts();
         staleStateIds.Clear();
         foreach (KeyValuePair<string, CharacterDeprivationState> pair in states)
         {
@@ -237,6 +378,27 @@ public sealed class CharacterDeprivationRuntime :
         frameWorkBudget.SetBacklog(
             DynamicFrameWorkDomain.CharacterDeprivation,
             0);
+    }
+
+    private void FlushAggregatedAlerts()
+    {
+        if (pendingDangerAlerts > 0)
+        {
+            gameEventBus.RaiseAlert(
+                $"{pendingDangerAlerts}명이 결핍으로 붕괴 위험에 빠졌습니다",
+                "건강 탭에서 가장 심한 결핍을 확인하고 음식, 물, 화장실, 휴식 시설을 확보하세요.",
+                EventAlertImportance.High,
+                "생존");
+        }
+
+        if (pendingWarningAlerts > 0)
+        {
+            gameEventBus.RaiseAlert(
+                $"{pendingWarningAlerts}명의 건강에 결핍 부담이 쌓이고 있습니다",
+                "결핍 원인을 해결하지 않으면 건강 이상과 돌발 행동으로 이어질 수 있습니다.",
+                EventAlertImportance.Medium,
+                "생존");
+        }
     }
 
     private static double ElapsedMilliseconds(long started)
@@ -338,23 +500,40 @@ public sealed class CharacterDeprivationRuntime :
             return true;
         }
 
-        BeginBreakdownAction(actor, state.breakdown.kind);
         status = GetBreakdownLabel(state.breakdown.kind);
+        actor.Brain?.BeginExternallyDrivenAction(
+            "결핍 붕괴",
+            status,
+            "붕괴 행동이 끝날 때까지 유지");
+        BeginBreakdownAction(actor, state.breakdown.kind);
+        return true;
+    }
+
+    public bool NeedsSafeEmergencyRelief(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        if (!IsEligibleHumanoid(actor)
+            || actor.Stats == null
+            || !actor.Stats.TryGetConditionValue(CharacterCondition.THIRST, out float thirst)
+            || thirst >= SafeReliefNeedThreshold
+            || HasActiveBreakdown(actor))
+        {
+            return false;
+        }
+
+        reason = $"갈증 {thirst:0}: 안전한 식수 필요";
         return true;
     }
 
     public bool TryRunSafeEmergencyRelief(CharacterActor actor, out string status)
     {
         status = string.Empty;
-        if (!IsEligibleHumanoid(actor)
-            || actor.Stats == null
-            || !actor.Stats.Stats.TryGetValue(CharacterCondition.THIRST, out float thirst)
-            || thirst >= 25f
-            || HasActiveBreakdown(actor))
+        if (!NeedsSafeEmergencyRelief(actor, out _))
         {
             return false;
         }
 
+        safeReliefRequests++;
         string id = GetPersistentId(actor);
         if (runningSafeReliefActions.Contains(id))
         {
@@ -362,9 +541,151 @@ public sealed class CharacterDeprivationRuntime :
             return true;
         }
 
-        actor.StartCoroutine(RunSafeDrink(actor, id));
+        float now = gameClock.Time;
+        if (nextSafeReliefAttemptAt.TryGetValue(id, out float nextAttempt)
+            && now < nextAttempt)
+        {
+            status = "물을 마실 자리를 기다리는 중";
+            return true;
+        }
+
+        if (!CanStartSafeReliefThisFrame())
+        {
+            status = "급수 순서를 기다리는 중";
+            return true;
+        }
+
+        if (!TryCreateSafeDrinkPlan(actor, id, out SafeDrinkPlan plan))
+        {
+            safeReliefPlanFailures++;
+            nextSafeReliefAttemptAt[id] =
+                now + GetSafeReliefRetryDelay(id);
+            status = "물을 마실 자리를 기다리는 중";
+            return true;
+        }
+
+        RecordSafeReliefStart();
+        safeReliefActionsStarted++;
+        int plannedPathSteps = plan.Path?.Count ?? 0;
+        safeReliefPlannedPathSteps += plannedPathSteps;
+        safeReliefMaximumPlannedPathSteps = Mathf.Max(
+            safeReliefMaximumPlannedPathSteps,
+            plannedPathSteps);
+        if (actor.GetNowXY().y != plan.TargetPosition.y)
+        {
+            safeReliefCrossFloorTargetPlans++;
+        }
+        if (plan.Path != null)
+        {
+            int verticalSteps = 0;
+            foreach (GridMoveStep step in plan.Path)
+            {
+                if (step.From.y != step.To.y)
+                {
+                    verticalSteps++;
+                }
+            }
+
+            if (verticalSteps > 0)
+            {
+                safeReliefPathsWithVerticalTraversal++;
+                safeReliefVerticalTraversalSteps += verticalSteps;
+            }
+        }
+        runningSafeReliefActions.Add(id);
+        if (actor.Brain != null)
+        {
+            actor.Brain.StopCurrentActionForReplan("갈증 비상 대응");
+            actor.Brain.BeginExternallyDrivenAction(
+                "식수 확보",
+                "이동 중",
+                $"목표 ({plan.TargetPosition.x}, {plan.TargetPosition.y})");
+        }
+        actor.StartCoroutine(RunSafeDrink(actor, id, plan));
         status = "갈증 때문에 식수를 찾음";
         return true;
+    }
+
+    public CharacterDeprivationDiagnosticsSnapshot GetDiagnostics()
+    {
+        return new CharacterDeprivationDiagnosticsSnapshot(
+            safeReliefRequests,
+            safeReliefPlanFailures,
+            safeReliefActionsStarted,
+            safeReliefStoredStackPlans,
+            safeReliefMoveFailures,
+            safeReliefBreakdownMoveFailures,
+            safeReliefBlockedMoveFailures,
+            safeReliefOtherMoveFailures,
+            safeReliefStaleStartFailures,
+            safeReliefWallBlockedFailures,
+            safeReliefDoorDeniedFailures,
+            safeReliefDefenseReservationFailures,
+            safeReliefTraversalChangedFailures,
+            safeReliefArrivals,
+            safeReliefInteractionAttempts,
+            safeReliefSuccesses,
+            runningSafeReliefActions.Count,
+            safeReliefActionsFinished,
+            safeReliefPlannedPathSteps,
+            safeReliefMaximumPlannedPathSteps,
+            safeReliefCompletedDurationSeconds,
+            safeReliefMaximumDurationSeconds,
+            safeReliefCancelledMoveFailures,
+            safeReliefMissingPathFailures,
+            safeReliefMissingMovementHandlerFailures,
+            safeReliefGridUnavailableFailures,
+            safeReliefInvalidSpeedFailures,
+            safeReliefNoFailureReasonFailures,
+            safeReliefActorDeadMoveFailures,
+            safeReliefActorMissingMoveFailures,
+            safeReliefCrossFloorTargetPlans,
+            safeReliefPathsWithVerticalTraversal,
+            safeReliefVerticalTraversalSteps,
+            desperateDrinkAttempts,
+            desperateDrinkStackMoveFailures,
+            desperateDrinkStackArrivals,
+            desperateDrinkStackConsumptions);
+    }
+
+    public void ResetDiagnostics()
+    {
+        safeReliefRequests = 0;
+        safeReliefPlanFailures = 0;
+        safeReliefActionsStarted = 0;
+        safeReliefStoredStackPlans = 0;
+        safeReliefMoveFailures = 0;
+        safeReliefBreakdownMoveFailures = 0;
+        safeReliefBlockedMoveFailures = 0;
+        safeReliefOtherMoveFailures = 0;
+        safeReliefStaleStartFailures = 0;
+        safeReliefWallBlockedFailures = 0;
+        safeReliefDoorDeniedFailures = 0;
+        safeReliefDefenseReservationFailures = 0;
+        safeReliefTraversalChangedFailures = 0;
+        safeReliefArrivals = 0;
+        safeReliefInteractionAttempts = 0;
+        safeReliefSuccesses = 0;
+        safeReliefActionsFinished = 0;
+        safeReliefPlannedPathSteps = 0L;
+        safeReliefMaximumPlannedPathSteps = 0;
+        safeReliefCompletedDurationSeconds = 0f;
+        safeReliefMaximumDurationSeconds = 0f;
+        safeReliefCancelledMoveFailures = 0;
+        safeReliefMissingPathFailures = 0;
+        safeReliefMissingMovementHandlerFailures = 0;
+        safeReliefGridUnavailableFailures = 0;
+        safeReliefInvalidSpeedFailures = 0;
+        safeReliefNoFailureReasonFailures = 0;
+        safeReliefActorDeadMoveFailures = 0;
+        safeReliefActorMissingMoveFailures = 0;
+        safeReliefCrossFloorTargetPlans = 0;
+        safeReliefPathsWithVerticalTraversal = 0;
+        safeReliefVerticalTraversalSteps = 0L;
+        desperateDrinkAttempts = 0;
+        desperateDrinkStackMoveFailures = 0;
+        desperateDrinkStackArrivals = 0;
+        desperateDrinkStackConsumptions = 0;
     }
 
     public void BeginBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind)
@@ -564,6 +885,13 @@ public sealed class CharacterDeprivationRuntime :
         }
 
         string sourceId = GetPersistentId(actor);
+        if (safeReliefApproachByActor.TryGetValue(
+                sourceId,
+                out Vector2Int safeApproach))
+        {
+            ReleaseSafeReliefApproach(sourceId, safeApproach);
+        }
+        nextSafeReliefAttemptAt.Remove(sourceId);
         bool alreadyExists = itemStackRuntime.GetAllStacks().Any(stack => stack != null
             && stack.ItemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId
             && string.Equals(stack.SourceCharacterId, sourceId, StringComparison.Ordinal));
@@ -671,6 +999,11 @@ public sealed class CharacterDeprivationRuntime :
             {
                 EndBreakdown(actor, state, "욕구가 충족됨", reduceCauseTo: 45f);
             }
+            return;
+        }
+
+        if (runningSafeReliefActions.Contains(state.persistentId))
+        {
             return;
         }
 
@@ -810,14 +1143,14 @@ public sealed class CharacterDeprivationRuntime :
         }
 
         alertLevels[state.persistentId] = level;
-        string name = actor.Identity?.DisplayName ?? actor.name;
-        gameEventBus.RaiseAlert(
-            level >= 2 ? $"{name}의 결핍이 위험합니다" : $"{name}의 건강 부담이 쌓입니다",
-            level >= 2
-                ? "곧 통제를 잃을 수 있습니다. 원인을 해결하거나 경비를 준비하세요."
-                : "욕구가 바닥난 채 방치되어 건강 이상이 시작됐습니다.",
-            level >= 2 ? EventAlertImportance.High : EventAlertImportance.Medium,
-            "생존");
+        if (level >= 2)
+        {
+            pendingDangerAlerts++;
+        }
+        else
+        {
+            pendingWarningAlerts++;
+        }
     }
 
     private void StartBreakdown(
@@ -864,24 +1197,142 @@ public sealed class CharacterDeprivationRuntime :
         finally
         {
             runningBreakdownActions.Remove(actorId);
-            if (actor != null && HasActiveBreakdown(actor))
-            {
-                actor.Brain?.RequestImmediateReplan(clearFailures: true);
-            }
+            actor?.Brain?.EndExternallyDrivenAction(clearFailures: true);
         }
     }
 
-    private IEnumerator RunSafeDrink(CharacterActor actor, string actorId)
+    private IEnumerator RunSafeDrink(
+        CharacterActor actor,
+        string actorId,
+        SafeDrinkPlan plan)
     {
-        runningSafeReliefActions.Add(actorId);
+        float startedAt = gameClock.Time;
         try
         {
-            yield return RunDesperateDrink(actor, allowWaste: false, safeOnly: true);
+            yield return MoveNear(
+                actor,
+                plan.ApproachPosition,
+                0,
+                plan.Path);
+            if (actor == null
+                || actor.IsDead
+                || actor.GetNowXY() != plan.ApproachPosition)
+            {
+                safeReliefMoveFailures++;
+                if (actor == null)
+                {
+                    safeReliefActorMissingMoveFailures++;
+                }
+                else if (actor.IsDead)
+                {
+                    safeReliefActorDeadMoveFailures++;
+                }
+                else if (HasActiveBreakdown(actor))
+                {
+                    safeReliefBreakdownMoveFailures++;
+                }
+                else if (actor != null
+                    && actor.TryGetAbility(out AbilityMove move)
+                    && move.LastGridMoveWasBlocked)
+                {
+                    safeReliefBlockedMoveFailures++;
+                    RecordSafeReliefBlockReason(
+                        move.LastGridMoveFailureReason);
+                }
+                else
+                {
+                    safeReliefOtherMoveFailures++;
+                    RecordSafeReliefOtherFailureReason(
+                        actor != null
+                            && actor.TryGetAbility(out AbilityMove currentMove)
+                                ? currentMove.LastGridMoveFailureReason
+                                : GridMoveFailureReason.None);
+                }
+                yield break;
+            }
+
+            safeReliefArrivals++;
+            safeReliefInteractionAttempts++;
+            bool succeeded = false;
+            switch (plan.Kind)
+            {
+                case SafeDrinkTargetKind.ItemStack:
+                    if (Manhattan(
+                            actor.GetNowXY(),
+                            plan.TargetPosition) <= 1
+                        && itemStackRuntime.TryConsumeStackQuantity(
+                            plan.TargetId,
+                            1,
+                            out _))
+                    {
+                        actor.ChangesStat(CharacterCondition.THIRST, 100f);
+                        actor.ApplyMoodFactor(
+                            "survival:clean-water",
+                            "깨끗한 물을 마심",
+                            2f,
+                            90f,
+                            1);
+                        succeeded = true;
+                    }
+                    break;
+
+                case SafeDrinkTargetKind.Facility:
+                    BuildableObject facility = plan.Facility;
+                    if (facility != null
+                        && !facility.IsGridDestroyed
+                        && Manhattan(
+                            actor.GetNowXY(),
+                            facility.centerPos) <= 1)
+                    {
+                        actor.ChangesStat(CharacterCondition.THIRST, 100f);
+                        actor.ApplyMoodFactor(
+                            "survival:well-water",
+                            "우물에서 물을 마심",
+                            1f,
+                            90f,
+                            1);
+                        succeeded = true;
+                    }
+                    break;
+
+                case SafeDrinkTargetKind.WorldSource:
+                    if (Manhattan(
+                            actor.GetNowXY(),
+                            plan.TargetPosition) <= 1
+                        && waterQuery.TryDrink(
+                            plan.TargetId,
+                            1f,
+                            out WorldWaterQuality quality,
+                            out float consumed)
+                        && consumed > 0f
+                        && quality == WorldWaterQuality.Clean)
+                    {
+                        actor.ChangesStat(CharacterCondition.THIRST, 100f);
+                        succeeded = true;
+                    }
+                    break;
+            }
+
+            if (succeeded)
+            {
+                safeReliefSuccesses++;
+            }
         }
         finally
         {
+            float duration = Mathf.Max(0f, gameClock.Time - startedAt);
+            safeReliefActionsFinished++;
+            safeReliefCompletedDurationSeconds += duration;
+            safeReliefMaximumDurationSeconds = Mathf.Max(
+                safeReliefMaximumDurationSeconds,
+                duration);
             runningSafeReliefActions.Remove(actorId);
-            actor?.Brain?.RequestImmediateReplan(clearFailures: true);
+            ReleaseSafeReliefApproach(
+                actorId,
+                plan.ApproachPosition);
+            nextSafeReliefAttemptAt[actorId] =
+                gameClock.Time + GetSafeReliefRetryDelay(actorId);
+            actor?.Brain?.EndExternallyDrivenAction(clearFailures: true);
         }
     }
 
@@ -909,35 +1360,141 @@ public sealed class CharacterDeprivationRuntime :
         RecordTaboo(actor, "통제력을 잃고 던전을 오염시켰다");
     }
 
+    private void RecordSafeReliefBlockReason(
+        GridMoveFailureReason reason)
+    {
+        switch (reason)
+        {
+            case GridMoveFailureReason.StaleStepStart:
+                safeReliefStaleStartFailures++;
+                break;
+            case GridMoveFailureReason.WallBlocked:
+                safeReliefWallBlockedFailures++;
+                break;
+            case GridMoveFailureReason.DoorDenied:
+                safeReliefDoorDeniedFailures++;
+                break;
+            case GridMoveFailureReason.DefenseReservation:
+                safeReliefDefenseReservationFailures++;
+                break;
+            case GridMoveFailureReason.TraversalChanged:
+                safeReliefTraversalChangedFailures++;
+                break;
+        }
+    }
+
+    private void RecordSafeReliefOtherFailureReason(
+        GridMoveFailureReason reason)
+    {
+        switch (reason)
+        {
+            case GridMoveFailureReason.Cancelled:
+                safeReliefCancelledMoveFailures++;
+                break;
+            case GridMoveFailureReason.MissingPath:
+                safeReliefMissingPathFailures++;
+                break;
+            case GridMoveFailureReason.MissingMovementHandler:
+                safeReliefMissingMovementHandlerFailures++;
+                break;
+            case GridMoveFailureReason.GridUnavailable:
+                safeReliefGridUnavailableFailures++;
+                break;
+            case GridMoveFailureReason.InvalidSpeed:
+                safeReliefInvalidSpeedFailures++;
+                break;
+            default:
+                safeReliefNoFailureReasonFailures++;
+                break;
+        }
+    }
+
     private IEnumerator RunDesperateDrink(CharacterActor actor, bool allowWaste, bool safeOnly = false)
     {
-        if (TryFindWaterStack(actor, safeOnly, out WorldItemStackSnapshot waterStack))
+        desperateDrinkAttempts++;
+        string actorId = GetPersistentId(actor);
+        if (gridSystemProvider.TryGetGrid(out Grid grid)
+            && TryFindReservableWaterStack(
+                grid,
+                actor,
+                actorId,
+                out WorldItemStockCandidate waterStack,
+                out Vector2Int approach,
+                out Queue<GridMoveStep> path,
+                out _,
+                countSafeReliefPlan: false))
         {
-            yield return MoveNear(actor, waterStack.Position, 0);
-            if (actor != null
-                && !actor.IsDead
-                && Manhattan(actor.GetNowXY(), waterStack.Position) == 0
-                && itemStackRuntime.TryConsumeStackQuantity(waterStack.StackId, 1, out _))
+            try
             {
-                actor.ChangesStat(CharacterCondition.THIRST, 75f);
-                actor.ApplyMoodFactor("survival:clean-water", "물을 마심", 2f, 90f, 1);
-                yield break;
+                yield return MoveNear(actor, approach, 0, path);
+                if (actor != null
+                    && !actor.IsDead
+                    && actor.GetNowXY() == approach
+                    && Manhattan(actor.GetNowXY(), waterStack.Position) <= 1)
+                {
+                    desperateDrinkStackArrivals++;
+                    if (itemStackRuntime.TryConsumeStackQuantity(
+                            waterStack.StackId,
+                            1,
+                            out _))
+                    {
+                        desperateDrinkStackConsumptions++;
+                        actor.ChangesStat(CharacterCondition.THIRST, 75f);
+                        actor.ApplyMoodFactor(
+                            "survival:clean-water",
+                            "물을 마심",
+                            2f,
+                            90f,
+                            1);
+                        EndActiveBreakdownIfRelieved(actor);
+                        yield break;
+                    }
+                }
+                else
+                {
+                    desperateDrinkStackMoveFailures++;
+                }
+            }
+            finally
+            {
+                ReleaseSafeReliefApproach(actorId, approach);
             }
         }
 
-        if (TryFindWaterFacility(actor, out BuildableObject waterFacility))
+        Vector2Int facilityApproach = default;
+        if (gridSystemProvider.TryGetGrid(out grid)
+            && TryFindReservableWaterFacility(
+                grid,
+                actor,
+                actorId,
+                out BuildableObject waterFacility,
+                out facilityApproach,
+                out Queue<GridMoveStep> facilityPath,
+                out _))
         {
-            yield return MoveNear(actor, waterFacility.centerPos, 1);
+            yield return MoveNear(
+                actor,
+                facilityApproach,
+                0,
+                facilityPath);
             if (actor != null
                 && !actor.IsDead
                 && waterFacility != null
                 && !waterFacility.IsGridDestroyed
+                && actor.GetNowXY() == facilityApproach
                 && Manhattan(actor.GetNowXY(), waterFacility.centerPos) <= 1)
             {
                 actor.ChangesStat(CharacterCondition.THIRST, 70f);
+                EndActiveBreakdownIfRelieved(actor);
+                ReleaseSafeReliefApproach(actorId, facilityApproach);
                 actor.ApplyMoodFactor("survival:well-water", "수원에서 물을 마심", 1f, 90f, 1);
                 yield break;
             }
+        }
+
+        if (safeReliefApproachByActor.ContainsKey(actorId))
+        {
+            ReleaseSafeReliefApproach(actorId, facilityApproach);
         }
 
         if (waterQuery.TryFindDrinkSource(actor.GetNowXY(), allowFoul: !safeOnly, out WorldWaterSourceSnapshot source)
@@ -952,6 +1509,7 @@ public sealed class CharacterDeprivationRuntime :
                 && consumed > 0f)
             {
                 actor.ChangesStat(CharacterCondition.THIRST, quality == WorldWaterQuality.Foul ? 45f : 65f);
+                EndActiveBreakdownIfRelieved(actor);
                 if (quality != WorldWaterQuality.Clean)
                 {
                     actor.ApplyDamage(quality == WorldWaterQuality.Foul ? 5f : 2f, "오염된 물");
@@ -973,6 +1531,7 @@ public sealed class CharacterDeprivationRuntime :
         filthQuery.AddFilth(WorldFilthType.Waste, position, 12f, id, 0.95f);
         actor.ChangesStat(CharacterCondition.EXCRETION, 70f);
         actor.ChangesStat(CharacterCondition.THIRST, 25f);
+        EndActiveBreakdownIfRelieved(actor);
         actor.ChangesStat(CharacterCondition.HYGIENE, -35f);
         actor.ApplyDamage(7f, "체액 오염 섭취");
         AddInfection(actor, 35f);
@@ -1038,15 +1597,13 @@ public sealed class CharacterDeprivationRuntime :
             {
                 actor.ApplyDamage(Mathf.Max(1f, victim.GetCharacterStat(CharacterStatType.Strength) * 0.35f), "필사적인 반격");
             }
-            yield return new WaitForSeconds(0.75f);
+            yield return CannibalAttackDelay;
         }
 
         if (victim != null && victim.IsDead)
         {
-            yield return new WaitForSeconds(0.1f);
-            WorldItemStackSnapshot corpse = itemStackRuntime.GetAllStacks().FirstOrDefault(stack => stack != null
-                && stack.ItemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId
-                && string.Equals(stack.SourceCharacterId, GetPersistentId(victim), StringComparison.Ordinal));
+            yield return CorpseSpawnDelay;
+            WorldItemStackSnapshot corpse = FindHumanoidCorpse(victim);
             if (corpse != null
                 && itemStackRuntime.TryConsumeStackQuantity(corpse.StackId, 1, out WorldItemStackSnapshot consumed))
             {
@@ -1070,7 +1627,7 @@ public sealed class CharacterDeprivationRuntime :
             actionId: "survival/collapse",
             sentiment: -0.65f,
             bubbleEligible: true));
-        yield return new WaitForSeconds(5f);
+        yield return CollapseDelay;
         if (actor != null && !actor.IsDead)
         {
             actor.ChangesStat(CharacterCondition.SLEEP, 35f);
@@ -1110,7 +1667,7 @@ public sealed class CharacterDeprivationRuntime :
                     value: 1f,
                     bubbleEligible: true));
                 ApplyWitnessMood(actor, actor.GetNowXY(), "붕괴자의 난동을 목격함", -5f);
-                yield return new WaitForSeconds(0.8f);
+                yield return ViolentActionDelay;
                 yield break;
             }
         }
@@ -1143,7 +1700,7 @@ public sealed class CharacterDeprivationRuntime :
                         sentiment: -1f,
                         bubbleEligible: true));
                     ApplyWitnessMood(actor, victim.GetNowXY(), "이성을 잃은 폭행을 목격함", -7f);
-                    yield return new WaitForSeconds(0.8f);
+                    yield return ViolentActionDelay;
                     yield break;
                 }
             }
@@ -1159,19 +1716,42 @@ public sealed class CharacterDeprivationRuntime :
                 sentiment: -0.75f,
                 bubbleEligible: true));
         }
-        yield return new WaitForSeconds(1.5f);
+        yield return BreakdownIdleDelay;
         actor.ChangesStat(CharacterCondition.FUN, 8f);
     }
 
     private bool TryFindVandalismTarget(CharacterActor actor, out BuildableObject target)
     {
-        target = worldRegistry.Buildings
-            .Where(building => building != null
-                && !building.IsGridDestroyed
-                && !building.IsDamaged
-                && !building.IsGridMovement)
-            .OrderBy(building => Manhattan(actor.GetNowXY(), building.centerPos))
-            .FirstOrDefault();
+        target = null;
+        if (actor == null)
+        {
+            return false;
+        }
+
+        Vector2Int origin = actor.GetNowXY();
+        int bestDistance = int.MaxValue;
+        IReadOnlyList<BuildableObject> buildings = worldRegistry.Buildings;
+        for (int index = 0; index < buildings.Count; index++)
+        {
+            BuildableObject candidate = buildings[index];
+            if (candidate == null
+                || candidate.IsGridDestroyed
+                || candidate.IsDamaged
+                || candidate.IsGridMovement)
+            {
+                continue;
+            }
+
+            int distance = Manhattan(origin, candidate.centerPos);
+            if (distance >= bestDistance)
+            {
+                continue;
+            }
+
+            target = candidate;
+            bestDistance = distance;
+        }
+
         return target != null;
     }
 
@@ -1182,7 +1762,11 @@ public sealed class CharacterDeprivationRuntime :
             : building != null ? building.name : "시설";
     }
 
-    private IEnumerator MoveNear(CharacterActor actor, Vector2Int target, int distance)
+    private IEnumerator MoveNear(
+        CharacterActor actor,
+        Vector2Int target,
+        int distance,
+        Queue<GridMoveStep> preparedPath = null)
     {
         if (actor == null
             || actor.IsDead
@@ -1201,6 +1785,7 @@ public sealed class CharacterDeprivationRuntime :
         IGridPathSearchBroker broker = actor.PathSearchBroker;
         if (broker == null)
         {
+            move.MarkGridMoveFailure(GridMoveFailureReason.MissingPath);
             yield break;
         }
 
@@ -1210,9 +1795,9 @@ public sealed class CharacterDeprivationRuntime :
         Vector2Int alternateAdjacent = start.x <= target.x
             ? target + Vector2Int.right
             : target + Vector2Int.left;
-        int destinationCount = distance <= 0 ? 1 : 3;
+        int destinationCount = distance <= 0 ? 1 : 2;
 
-        Queue<GridMoveStep> path = null;
+        Queue<GridMoveStep> path = preparedPath;
         GridTraversalContext traversalContext =
             GridTraversalContext.ForCharacter(actor);
         for (int destinationIndex = 0;
@@ -1220,7 +1805,7 @@ public sealed class CharacterDeprivationRuntime :
              destinationIndex++)
         {
             Vector2Int destination;
-            if (distance <= 0 || destinationIndex == 2)
+            if (distance <= 0)
             {
                 destination = target;
             }
@@ -1237,23 +1822,28 @@ public sealed class CharacterDeprivationRuntime :
                 continue;
             }
 
-            for (int attempt = 0;
-                 attempt < EmergencyPathRetryFrames;
-                 attempt++)
+            for (int attempt = 0; attempt < EmergencyPathRetryFrames; attempt++)
             {
                 if (actor == null || actor.IsDead)
                 {
                     yield break;
                 }
 
-                path = broker.GetMovePathTo(
+                GridPathRequestStatus status = broker.RequestMovePathTo(
                     grid,
                     actor.GetNowXY(),
                     destination,
+                    out path,
                     GridPathSearchPriority.Urgent,
                     traversalContext);
-                if (path != null)
+                if (status == GridPathRequestStatus.Reachable)
                 {
+                    break;
+                }
+
+                if (status == GridPathRequestStatus.Unreachable)
+                {
+                    path = null;
                     break;
                 }
 
@@ -1267,6 +1857,7 @@ public sealed class CharacterDeprivationRuntime :
         }
         if (path == null || path.Count == 0)
         {
+            move.MarkGridMoveFailure(GridMoveFailureReason.MissingPath);
             if (TryGetState(actor, out CharacterDeprivationState state))
             {
                 state.breakdown.targetId = string.Empty;
@@ -1324,49 +1915,775 @@ public sealed class CharacterDeprivationRuntime :
         return true;
     }
 
-    private bool TryFindWaterStack(CharacterActor actor, bool safeOnly, out WorldItemStackSnapshot water)
+    private bool TryCreateSafeDrinkPlan(
+        CharacterActor actor,
+        string actorId,
+        out SafeDrinkPlan plan)
     {
-        water = itemStackRuntime.GetAllStacks()
-            .Where(stack => stack != null
-                && stack.Quantity > 0
-                && !stack.Forbidden
-                && !stack.IsReserved
-                && DungeonItemCatalogSO.TryGetStockCategoryFromItemId(stack.ItemId, out StockCategory category)
-                && category == StockCategory.Water)
-            .OrderBy(stack => stack.State == WorldItemStackState.Stored ? 0 : 1)
-            .ThenBy(stack => Manhattan(actor.GetNowXY(), stack.Position))
-            .FirstOrDefault();
-        return water != null;
+        using ProfilerMarker.AutoScope profile =
+            SafeReliefPlanProfilerMarker.Auto();
+        plan = default;
+        if (actor == null
+            || string.IsNullOrWhiteSpace(actorId)
+            || !gridSystemProvider.TryGetGrid(out Grid grid))
+        {
+            return false;
+        }
+
+        if (TryFindReservableWaterFacility(
+                grid,
+                actor,
+                actorId,
+                out BuildableObject facility,
+                out Vector2Int facilityApproach,
+                out Queue<GridMoveStep> facilityPath,
+                out bool facilitySearchPending))
+        {
+            plan = new SafeDrinkPlan(
+                SafeDrinkTargetKind.Facility,
+                facility.centerPos,
+                facilityApproach,
+                facilityPath,
+                facility: facility);
+            return true;
+        }
+        if (facilitySearchPending)
+        {
+            return false;
+        }
+
+        if (TryFindReservableWaterStack(
+                grid,
+                actor,
+                actorId,
+                out WorldItemStockCandidate stack,
+                out Vector2Int stackApproach,
+                out Queue<GridMoveStep> stackPath,
+                out bool stackSearchPending))
+        {
+            plan = new SafeDrinkPlan(
+                SafeDrinkTargetKind.ItemStack,
+                stack.Position,
+                stackApproach,
+                stackPath,
+                stack.StackId);
+            return true;
+        }
+        if (stackSearchPending)
+        {
+            return false;
+        }
+
+        if (waterQuery.TryFindDrinkSource(
+                actor.GetNowXY(),
+                allowFoul: false,
+                out WorldWaterSourceSnapshot source)
+            && source.Quality == WorldWaterQuality.Clean
+            && TryFindReachableSafeReliefApproach(
+                grid,
+                actor,
+                actorId,
+                source.Position,
+                includeTarget:
+                    source.TerrainType != GridCellTerrainType.DeepWater,
+                allowPathSearch: true,
+                out Vector2Int sourceApproach,
+                out Queue<GridMoveStep> sourcePath)
+                == SafeReliefApproachSearchStatus.Reachable)
+        {
+            ReserveSafeReliefApproach(actorId, sourceApproach);
+            plan = new SafeDrinkPlan(
+                SafeDrinkTargetKind.WorldSource,
+                source.Position,
+                sourceApproach,
+                sourcePath,
+                source.SourceId);
+            return true;
+        }
+
+        return false;
     }
 
-    private bool TryFindWaterFacility(CharacterActor actor, out BuildableObject facility)
+    private bool TryFindReservableWaterStack(
+        Grid grid,
+        CharacterActor actor,
+        string actorId,
+        out WorldItemStockCandidate selected,
+        out Vector2Int selectedApproach,
+        out Queue<GridMoveStep> selectedPath,
+        out bool searchPending,
+        bool countSafeReliefPlan = true)
     {
-        facility = worldRegistry.Buildings
-            .Where(building => building != null
-                && building.gameObject.activeInHierarchy
-                && !building.IsGridDestroyed
-                && building.BuildingData?.GetAbility<BuildingWaterSourceAbility>() != null
-                && survivalFoodRuntime.HasSurvivalWorkAvailable(building, BuiltInWorkTypeIds.DrawWater))
-            .OrderBy(building => Manhattan(actor.GetNowXY(), building.centerPos))
-            .FirstOrDefault();
-        return facility != null;
+        using ProfilerMarker.AutoScope profile =
+            SafeReliefStackProfilerMarker.Auto();
+        selected = default;
+        selectedApproach = default;
+        selectedPath = null;
+        searchPending = false;
+        itemStackRuntime.CopyAvailableStockCandidates(
+            StockCategory.Water,
+            safeDrinkStockCandidates);
+
+        Vector2Int origin = actor.GetNowXY();
+        bool hasSameFloorCandidate = false;
+        for (int index = 0; index < safeDrinkStockCandidates.Count; index++)
+        {
+            WorldItemStockCandidate candidate =
+                safeDrinkStockCandidates[index];
+            if (candidate.IsValid && candidate.Position.y == origin.y)
+            {
+                hasSameFloorCandidate = true;
+                break;
+            }
+        }
+
+        for (int searchPass = 0;
+             searchPass < 2 && !selected.IsValid;
+             searchPass++)
+        {
+            bool allowPathSearch = searchPass > 0;
+            bool sameFloorHasAvailableApproach = false;
+            int previousDistance = -1;
+            int previousIndex = -1;
+            for (int rank = 0; rank < safeDrinkStockCandidates.Count; rank++)
+            {
+                int nextIndex = -1;
+                int nextDistance = int.MaxValue;
+                for (int index = 0;
+                     index < safeDrinkStockCandidates.Count;
+                     index++)
+                {
+                    WorldItemStockCandidate candidateEntry =
+                        safeDrinkStockCandidates[index];
+                    if (!candidateEntry.IsValid)
+                    {
+                        continue;
+                    }
+
+                    int distance = GetSafeReliefDistance(
+                        origin,
+                        candidateEntry.Position,
+                        grid.width);
+                    if (distance < previousDistance
+                        || distance == previousDistance
+                            && index <= previousIndex
+                        || distance > nextDistance
+                        || distance == nextDistance
+                            && nextIndex >= 0
+                            && index >= nextIndex)
+                    {
+                        continue;
+                    }
+
+                    nextIndex = index;
+                    nextDistance = distance;
+                }
+
+                if (nextIndex < 0)
+                {
+                    break;
+                }
+
+                previousDistance = nextDistance;
+                previousIndex = nextIndex;
+                WorldItemStockCandidate selectedCandidate =
+                    safeDrinkStockCandidates[nextIndex];
+                bool isSameFloor =
+                    selectedCandidate.Position.y == origin.y;
+                if (!isSameFloor
+                    && hasSameFloorCandidate
+                    && !sameFloorHasAvailableApproach)
+                {
+                    break;
+                }
+
+                if (isSameFloor
+                    && HasAvailableSafeReliefApproach(
+                        grid,
+                        actorId,
+                        origin,
+                        selectedCandidate.Position,
+                        includeTarget:
+                            selectedCandidate.State !=
+                                WorldItemStackState.Stored))
+                {
+                    sameFloorHasAvailableApproach = true;
+                }
+
+                SafeReliefApproachSearchStatus approachStatus =
+                    TryFindReachableSafeReliefApproach(
+                        grid,
+                        actor,
+                        actorId,
+                        selectedCandidate.Position,
+                        includeTarget:
+                            selectedCandidate.State !=
+                                WorldItemStackState.Stored,
+                        allowPathSearch: allowPathSearch,
+                        out Vector2Int approach,
+                        out Queue<GridMoveStep> path);
+                if (approachStatus ==
+                    SafeReliefApproachSearchStatus.Pending)
+                {
+                    searchPending = true;
+                    return false;
+                }
+
+                if (approachStatus !=
+                    SafeReliefApproachSearchStatus.Reachable)
+                {
+                    continue;
+                }
+
+                selected = selectedCandidate;
+                selectedApproach = approach;
+                selectedPath = path;
+                break;
+            }
+        }
+
+        if (!selected.IsValid)
+        {
+            return false;
+        }
+
+        ReserveSafeReliefApproach(actorId, selectedApproach);
+        if (countSafeReliefPlan
+            && selected.State == WorldItemStackState.Stored)
+        {
+            safeReliefStoredStackPlans++;
+        }
+        return true;
+    }
+
+    private bool HasAvailableSafeReliefApproach(
+        Grid grid,
+        string actorId,
+        Vector2Int origin,
+        Vector2Int target,
+        bool includeTarget)
+    {
+        for (int candidateIndex = 0; candidateIndex < 3; candidateIndex++)
+        {
+            if (candidateIndex == 0 && !includeTarget)
+            {
+                continue;
+            }
+
+            Vector2Int candidatePosition = candidateIndex switch
+            {
+                0 => target,
+                1 => target + Vector2Int.left,
+                _ => target + Vector2Int.right
+            };
+            if (!grid.IsValidGridPos(candidatePosition)
+                || (candidatePosition != origin
+                    && !grid.IsWalkable(candidatePosition))
+                || (safeReliefApproachOwners.TryGetValue(
+                        candidatePosition,
+                        out string owner)
+                    && !string.Equals(
+                        owner,
+                        actorId,
+                        StringComparison.Ordinal)))
+            {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryFindReservableWaterFacility(
+        Grid grid,
+        CharacterActor actor,
+        string actorId,
+        out BuildableObject selected,
+        out Vector2Int selectedApproach,
+        out Queue<GridMoveStep> selectedPath,
+        out bool searchPending)
+    {
+        using ProfilerMarker.AutoScope profile =
+            SafeReliefFacilityProfilerMarker.Auto();
+        selected = null;
+        selectedApproach = default;
+        selectedPath = null;
+        searchPending = false;
+        Vector2Int origin = actor.GetNowXY();
+        IReadOnlyList<BuildableObject> buildings =
+            facilityCandidateCache.GetWorkCandidates(
+                grid,
+                FacilityWorkType.DrawWater);
+        if (buildings.Count == 0
+            && facilityCandidateCache.HasPendingIndexBuild)
+        {
+            searchPending = true;
+            return false;
+        }
+
+        bool hasSameFloorCandidate = false;
+        for (int index = 0; index < buildings.Count; index++)
+        {
+            BuildableObject candidate = buildings[index];
+            if (IsUsableWaterFacility(candidate)
+                && candidate.centerPos.y == origin.y)
+            {
+                hasSameFloorCandidate = true;
+                break;
+            }
+        }
+
+        for (int searchPass = 0;
+             searchPass < 2 && selected == null;
+             searchPass++)
+        {
+            bool allowPathSearch = searchPass > 0;
+            bool sameFloorHasAvailableApproach = false;
+            int previousDistance = -1;
+            int previousIndex = -1;
+            for (int rank = 0; rank < buildings.Count; rank++)
+            {
+                int nextIndex = -1;
+                int nextDistance = int.MaxValue;
+                for (int index = 0; index < buildings.Count; index++)
+                {
+                    BuildableObject candidateEntry = buildings[index];
+                    if (!IsUsableWaterFacility(candidateEntry))
+                    {
+                        continue;
+                    }
+
+                    int distance = GetSafeReliefDistance(
+                        origin,
+                        candidateEntry.centerPos,
+                        grid.width);
+                    if (distance < previousDistance
+                        || distance == previousDistance
+                            && index <= previousIndex
+                        || distance > nextDistance
+                        || distance == nextDistance
+                            && nextIndex >= 0
+                            && index >= nextIndex)
+                    {
+                        continue;
+                    }
+
+                    nextIndex = index;
+                    nextDistance = distance;
+                }
+
+                if (nextIndex < 0)
+                {
+                    break;
+                }
+
+                previousDistance = nextDistance;
+                previousIndex = nextIndex;
+                BuildableObject selectedCandidate = buildings[nextIndex];
+                bool isSameFloor =
+                    selectedCandidate.centerPos.y == origin.y;
+                if (!isSameFloor
+                    && hasSameFloorCandidate
+                    && !sameFloorHasAvailableApproach)
+                {
+                    break;
+                }
+
+                if (isSameFloor
+                    && HasAvailableSafeReliefApproach(
+                        grid,
+                        actorId,
+                        origin,
+                        selectedCandidate.centerPos,
+                        includeTarget: false))
+                {
+                    sameFloorHasAvailableApproach = true;
+                }
+
+                SafeReliefApproachSearchStatus approachStatus =
+                    TryFindReachableSafeReliefApproach(
+                        grid,
+                        actor,
+                        actorId,
+                        selectedCandidate.centerPos,
+                        includeTarget: false,
+                        allowPathSearch: allowPathSearch,
+                        out Vector2Int approach,
+                        out Queue<GridMoveStep> path);
+                if (approachStatus ==
+                    SafeReliefApproachSearchStatus.Pending)
+                {
+                    searchPending = true;
+                    return false;
+                }
+
+                if (approachStatus !=
+                    SafeReliefApproachSearchStatus.Reachable)
+                {
+                    continue;
+                }
+
+                selected = selectedCandidate;
+                selectedApproach = approach;
+                selectedPath = path;
+                break;
+            }
+        }
+
+        if (selected == null)
+        {
+            return false;
+        }
+
+        ReserveSafeReliefApproach(actorId, selectedApproach);
+        return true;
+    }
+
+    private bool IsUsableWaterFacility(BuildableObject candidate)
+    {
+        return candidate != null
+            && candidate.gameObject.activeInHierarchy
+            && !candidate.IsGridDestroyed
+            && candidate.BuildingData?.GetAbility<BuildingWaterSourceAbility>() != null
+            && survivalFoodRuntime.HasSurvivalWorkAvailable(
+                candidate,
+                BuiltInWorkTypeIds.DrawWater);
+    }
+
+    private SafeReliefApproachSearchStatus TryFindReachableSafeReliefApproach(
+        Grid grid,
+        CharacterActor actor,
+        string actorId,
+        Vector2Int target,
+        bool includeTarget,
+        bool allowPathSearch,
+        out Vector2Int approach,
+        out Queue<GridMoveStep> path)
+    {
+        using ProfilerMarker.AutoScope profile =
+            SafeReliefApproachProfilerMarker.Auto();
+        approach = default;
+        path = null;
+        if (grid == null
+            || actor == null
+            || string.IsNullOrWhiteSpace(actorId)
+            || actor.PathSearchBroker == null)
+        {
+            return SafeReliefApproachSearchStatus.Invalid;
+        }
+
+        Vector2Int origin = actor.GetNowXY();
+        if (safeReliefApproachByActor.TryGetValue(
+                actorId,
+                out Vector2Int existing))
+        {
+            return TryPrepareSafeReliefApproach(
+                grid,
+                actor,
+                existing,
+                allowPathSearch,
+                out approach,
+                out path);
+        }
+
+        int previousDistance = -1;
+        int previousIndex = -1;
+        for (int rank = 0; rank < 3; rank++)
+        {
+            int nextIndex = -1;
+            int nextDistance = int.MaxValue;
+            for (int candidateIndex = 0; candidateIndex < 3; candidateIndex++)
+            {
+                if (candidateIndex == 0 && !includeTarget)
+                {
+                    continue;
+                }
+
+                Vector2Int candidatePosition = candidateIndex switch
+                {
+                    0 => target,
+                    1 => target + Vector2Int.left,
+                    _ => target + Vector2Int.right
+                };
+                if (!grid.IsValidGridPos(candidatePosition)
+                    || (candidatePosition != origin && !grid.IsWalkable(candidatePosition))
+                    || (safeReliefApproachOwners.TryGetValue(
+                            candidatePosition,
+                            out string owner)
+                        && !string.Equals(
+                            owner,
+                            actorId,
+                            StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+
+                int distance = Manhattan(origin, candidatePosition);
+                if (distance < previousDistance
+                    || distance == previousDistance && candidateIndex <= previousIndex
+                    || distance > nextDistance
+                    || distance == nextDistance
+                        && nextIndex >= 0
+                        && candidateIndex >= nextIndex)
+                {
+                    continue;
+                }
+
+                nextIndex = candidateIndex;
+                nextDistance = distance;
+            }
+
+            if (nextIndex < 0)
+            {
+                break;
+            }
+
+            previousDistance = nextDistance;
+            previousIndex = nextIndex;
+            Vector2Int selectedPosition = nextIndex switch
+            {
+                0 => target,
+                1 => target + Vector2Int.left,
+                _ => target + Vector2Int.right
+            };
+            SafeReliefApproachSearchStatus searchStatus =
+                TryPrepareSafeReliefApproach(
+                    grid,
+                    actor,
+                    selectedPosition,
+                    allowPathSearch,
+                    out Vector2Int preparedApproach,
+                    out Queue<GridMoveStep> preparedPath);
+            if (searchStatus == SafeReliefApproachSearchStatus.Reachable)
+            {
+                approach = preparedApproach;
+                path = preparedPath;
+                return SafeReliefApproachSearchStatus.Reachable;
+            }
+
+            if (searchStatus == SafeReliefApproachSearchStatus.Pending)
+            {
+                approach = preparedApproach;
+                path = preparedPath;
+                return SafeReliefApproachSearchStatus.Pending;
+            }
+
+        }
+
+        return SafeReliefApproachSearchStatus.Invalid;
+    }
+
+    private SafeReliefApproachSearchStatus TryPrepareSafeReliefApproach(
+        Grid grid,
+        CharacterActor actor,
+        Vector2Int destination,
+        bool allowPathSearch,
+        out Vector2Int approach,
+        out Queue<GridMoveStep> path)
+    {
+        approach = destination;
+        path = null;
+        Vector2Int origin = actor.GetNowXY();
+        if (origin == destination)
+        {
+            return SafeReliefApproachSearchStatus.Reachable;
+        }
+
+        if (!grid.IsValidGridPos(destination)
+            || !grid.IsWalkable(destination)
+            || actor.PathSearchBroker == null)
+        {
+            return SafeReliefApproachSearchStatus.Invalid;
+        }
+
+        if (TryBuildDirectHorizontalSafeReliefPath(
+                grid,
+                actor,
+                origin,
+                destination,
+                out path))
+        {
+            return SafeReliefApproachSearchStatus.Reachable;
+        }
+
+        if (!allowPathSearch)
+        {
+            return SafeReliefApproachSearchStatus.Invalid;
+        }
+
+        GridPathRequestStatus requestStatus;
+        using (SafeReliefExactPathProfilerMarker.Auto())
+        {
+            requestStatus = actor.PathSearchBroker.RequestMovePathTo(
+                grid,
+                origin,
+                destination,
+                out path,
+                GridPathSearchPriority.Urgent,
+                GridTraversalContext.ForCharacter(actor));
+        }
+        if (requestStatus == GridPathRequestStatus.Pending)
+        {
+            return SafeReliefApproachSearchStatus.Pending;
+        }
+
+        return requestStatus == GridPathRequestStatus.Reachable
+            && path != null
+            && path.Count > 0
+                ? SafeReliefApproachSearchStatus.Reachable
+                : SafeReliefApproachSearchStatus.Invalid;
+    }
+
+    private bool TryBuildDirectHorizontalSafeReliefPath(
+        Grid grid,
+        CharacterActor actor,
+        Vector2Int origin,
+        Vector2Int destination,
+        out Queue<GridMoveStep> path)
+    {
+        using ProfilerMarker.AutoScope profile =
+            SafeReliefDirectPathProfilerMarker.Auto();
+        path = null;
+        if (grid == null
+            || actor == null
+            || origin.y != destination.y
+            || origin.x == destination.x)
+        {
+            return false;
+        }
+
+        int direction = destination.x > origin.x ? 1 : -1;
+        int stepCount = Mathf.Abs(destination.x - origin.x);
+        GridTraversalContext traversalContext =
+            GridTraversalContext.ForCharacter(actor);
+        Vector2Int current = origin;
+        for (int stepIndex = 0; stepIndex < stepCount; stepIndex++)
+        {
+            Vector2Int next = new Vector2Int(
+                current.x + direction,
+                current.y);
+            if (!grid.IsValidGridPos(next)
+                || !grid.IsWalkable(next)
+                || grid.IsMovementBlockedByWall(next)
+                || (doorAccessQuery != null
+                    && !doorAccessQuery.CanTraverse(
+                        grid,
+                        next,
+                        traversalContext,
+                        out _)))
+            {
+                return false;
+            }
+
+            current = next;
+        }
+
+        Queue<GridMoveStep> directPath =
+            GridSearchScratch.RentMovePath(stepCount);
+        current = origin;
+        for (int stepIndex = 0; stepIndex < stepCount; stepIndex++)
+        {
+            Vector2Int next = new Vector2Int(
+                current.x + direction,
+                current.y);
+            directPath.Enqueue(new GridMoveStep(
+                current,
+                next,
+                grid.GetGridCell(next)?.GetTopOccupant(),
+                null,
+                GridMoveType.Walk));
+            current = next;
+        }
+
+        path = directPath;
+        return path.Count > 0;
+    }
+
+    private void ReserveSafeReliefApproach(
+        string actorId,
+        Vector2Int approach)
+    {
+        safeReliefApproachOwners[approach] = actorId;
+        safeReliefApproachByActor[actorId] = approach;
+    }
+
+    private void ReleaseSafeReliefApproach(
+        string actorId,
+        Vector2Int expectedApproach)
+    {
+        if (string.IsNullOrWhiteSpace(actorId)
+            || !safeReliefApproachByActor.TryGetValue(
+                actorId,
+                out Vector2Int approach))
+        {
+            return;
+        }
+
+        safeReliefApproachByActor.Remove(actorId);
+        if (approach == expectedApproach
+            && safeReliefApproachOwners.TryGetValue(
+                approach,
+                out string owner)
+            && string.Equals(owner, actorId, StringComparison.Ordinal))
+        {
+            safeReliefApproachOwners.Remove(approach);
+        }
+    }
+
+    private static float GetSafeReliefRetryDelay(string actorId)
+    {
+        unchecked
+        {
+            int hash = 17;
+            for (int index = 0; index < actorId.Length; index++)
+            {
+                hash = (hash * 31) + actorId[index];
+            }
+
+            int stagger = (hash & int.MaxValue) % 76;
+            return SafeReliefRetrySeconds + stagger * 0.01f;
+        }
+    }
+
+    private static int GetSafeReliefDistance(
+        Vector2Int origin,
+        Vector2Int target,
+        int gridWidth)
+    {
+        int horizontal = Mathf.Abs(origin.x - target.x);
+        int floorDistance = Mathf.Abs(origin.y - target.y);
+        return horizontal + floorDistance * Mathf.Max(1, gridWidth);
+    }
+
+    private bool CanStartSafeReliefThisFrame()
+    {
+        int frame = gameClock.FrameCount;
+        if (safeReliefStartFrame != frame)
+        {
+            safeReliefStartFrame = frame;
+            safeReliefStartsThisFrame = 0;
+        }
+
+        return safeReliefStartsThisFrame
+            < MaximumSafeReliefStartsPerFrame;
+    }
+
+    private void RecordSafeReliefStart()
+    {
+        CanStartSafeReliefThisFrame();
+        safeReliefStartsThisFrame++;
     }
 
     private bool TryFindEmergencyFood(CharacterActor actor, out WorldItemStackSnapshot food)
     {
-        food = itemStackRuntime.GetAllStacks()
-            .Where(stack => stack != null && stack.Quantity > 0 && !stack.Forbidden && !stack.IsReserved)
-            .Select(stack => new
-            {
-                Stack = stack,
-                Rank = GetEmergencyFoodRank(stack.ItemId)
-            })
-            .Where(candidate => candidate.Rank < int.MaxValue)
-            .OrderBy(candidate => candidate.Rank)
-            .ThenBy(candidate => Manhattan(actor.GetNowXY(), candidate.Stack.Position))
-            .Select(candidate => candidate.Stack)
-            .FirstOrDefault();
-        return food != null;
+        food = null;
+        return actor != null
+            && itemStackRuntime.TryFindBestAvailableStack(
+                actor.GetNowXY(),
+                EmergencyFoodRankSelector,
+                out food);
     }
 
     private static int GetEmergencyFoodRank(string itemId)
@@ -1381,23 +2698,107 @@ public sealed class CharacterDeprivationRuntime :
 
     private CharacterActor FindLivingVictim(CharacterActor attacker)
     {
-        return worldRegistry.Characters
-            .Where(candidate => IsEligibleHumanoid(candidate)
-                && candidate != attacker
-                && !candidate.IsDead)
-            .OrderBy(candidate => candidate.CurrentHealth / Mathf.Max(1f, candidate.MaxHealth))
-            .ThenBy(candidate => CountNearbyHumanoids(candidate, 3))
-            .ThenBy(candidate => attacker.SocialMemory?.GetRelationshipSentiment(candidate) ?? 0f)
-            .ThenBy(candidate => Manhattan(attacker.GetNowXY(), candidate.GetNowXY()))
-            .FirstOrDefault();
+        if (attacker == null)
+        {
+            return null;
+        }
+
+        CharacterActor best = null;
+        float bestHealthRatio = float.PositiveInfinity;
+        int bestNearbyCount = int.MaxValue;
+        float bestSentiment = float.PositiveInfinity;
+        int bestDistance = int.MaxValue;
+        Vector2Int origin = attacker.GetNowXY();
+        IReadOnlyList<CharacterActor> characters = worldRegistry.Characters;
+        for (int index = 0; index < characters.Count; index++)
+        {
+            CharacterActor candidate = characters[index];
+            if (!IsEligibleHumanoid(candidate)
+                || candidate == attacker
+                || candidate.IsDead)
+            {
+                continue;
+            }
+
+            float healthRatio =
+                candidate.CurrentHealth / Mathf.Max(1f, candidate.MaxHealth);
+            int nearbyCount = CountNearbyHumanoids(candidate, 3);
+            float sentiment =
+                attacker.SocialMemory?.GetRelationshipSentiment(candidate) ?? 0f;
+            int distance = Manhattan(origin, candidate.GetNowXY());
+            if (best != null
+                && (healthRatio > bestHealthRatio
+                    || Mathf.Approximately(healthRatio, bestHealthRatio)
+                    && (nearbyCount > bestNearbyCount
+                        || nearbyCount == bestNearbyCount
+                        && (sentiment > bestSentiment
+                            || Mathf.Approximately(sentiment, bestSentiment)
+                            && distance >= bestDistance))))
+            {
+                continue;
+            }
+
+            best = candidate;
+            bestHealthRatio = healthRatio;
+            bestNearbyCount = nearbyCount;
+            bestSentiment = sentiment;
+            bestDistance = distance;
+        }
+
+        return best;
     }
 
     private int CountNearbyHumanoids(CharacterActor center, int radius)
     {
-        return worldRegistry.Characters.Count(candidate => IsEligibleHumanoid(candidate)
-            && candidate != center
-            && !candidate.IsDead
-            && Manhattan(center.GetNowXY(), candidate.GetNowXY()) <= radius);
+        if (center == null)
+        {
+            return 0;
+        }
+
+        int count = 0;
+        Vector2Int origin = center.GetNowXY();
+        IReadOnlyList<CharacterActor> characters = worldRegistry.Characters;
+        for (int index = 0; index < characters.Count; index++)
+        {
+            CharacterActor candidate = characters[index];
+            if (IsEligibleHumanoid(candidate)
+                && candidate != center
+                && !candidate.IsDead
+                && Manhattan(origin, candidate.GetNowXY()) <= radius)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private WorldItemStackSnapshot FindHumanoidCorpse(CharacterActor victim)
+    {
+        if (victim == null)
+        {
+            return null;
+        }
+
+        string victimId = GetPersistentId(victim);
+        IReadOnlyList<WorldItemStackSnapshot> stacks =
+            itemStackRuntime.GetStacksAt(victim.GetNowXY(), includeStored: true);
+        for (int index = 0; index < stacks.Count; index++)
+        {
+            WorldItemStackSnapshot stack = stacks[index];
+            if (stack != null
+                && stack.ItemId ==
+                    DarkSurvivalItemDefinitions.HumanoidCorpseItemId
+                && string.Equals(
+                    stack.SourceCharacterId,
+                    victimId,
+                    StringComparison.Ordinal))
+            {
+                return stack;
+            }
+        }
+
+        return null;
     }
 
     private void ApplyCannibalismConsequences(CharacterActor actor, WorldItemStackSnapshot consumed)
@@ -1524,6 +2925,23 @@ public sealed class CharacterDeprivationRuntime :
         AddInfection(actor, amount);
     }
 
+    public void ReduceInfectionBurden(CharacterActor actor, float amount)
+    {
+        if (actor == null || amount <= 0f)
+        {
+            return;
+        }
+
+        CharacterDeprivationState state = EnsureState(actor);
+        state.infectionBurden = Mathf.Max(0f, state.infectionBurden - amount);
+        DeprivationBurdenSaveData contamination = GetBurden(
+            state,
+            DeprivationKind.Contamination);
+        contamination.burden = Mathf.Max(
+            0f,
+            contamination.burden - amount * 0.25f);
+    }
+
     private void AddMentalInstabilityBurden(
         CharacterActor actor,
         float amount)
@@ -1565,7 +2983,20 @@ public sealed class CharacterDeprivationRuntime :
         state.breakdown.targetId = string.Empty;
         state.breakdown.lastReplanReason = reason ?? string.Empty;
         actor?.Stats?.RemoveMoodFactor("survival:breakdown");
-        actor?.Brain?.RequestImmediateReplan(clearFailures: true);
+        actor?.Brain?.EndExternallyDrivenAction(clearFailures: true);
+    }
+
+    private void EndActiveBreakdownIfRelieved(CharacterActor actor)
+    {
+        if (actor == null
+            || !TryGetState(actor, out CharacterDeprivationState state)
+            || !state.breakdown.active
+            || !IsCauseRelieved(actor, state.breakdown.cause))
+        {
+            return;
+        }
+
+        EndBreakdown(actor, state, "욕구가 충족됨", reduceCauseTo: 45f);
     }
 
     private void DispatchAutomaticSuppression(CharacterActor breakdownActor)

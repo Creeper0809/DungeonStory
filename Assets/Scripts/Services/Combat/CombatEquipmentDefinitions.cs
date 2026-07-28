@@ -13,6 +13,10 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject
     [Range(0, 2), SerializeField] private int occupiedHands = 1;
     [Min(1f), SerializeField] private float maxDurability = 100f;
     [Min(0.1f), SerializeField] private float requiredCraftWork = 6f;
+    [SerializeField] private string defaultMaterialId = string.Empty;
+    [Min(1), SerializeField] private int primaryMaterialAmount = 1;
+    [SerializeField] private List<CombatMaterialFamily> allowedMaterialFamilies =
+        new List<CombatMaterialFamily>();
     [SerializeField] private List<CombatEquipmentCraftMaterial> craftMaterials =
         new List<CombatEquipmentCraftMaterial>();
 
@@ -24,9 +28,20 @@ public abstract class CombatEquipmentDefinitionSO : ScriptableObject
     public int OccupiedHands => Mathf.Clamp(occupiedHands, 0, 2);
     public float MaxDurability => Mathf.Max(1f, maxDurability);
     public float RequiredCraftWork => Mathf.Max(0.1f, requiredCraftWork);
+    public string DefaultMaterialId => defaultMaterialId?.Trim() ?? string.Empty;
+    public int PrimaryMaterialAmount => Mathf.Max(1, primaryMaterialAmount);
+    public IReadOnlyList<CombatMaterialFamily> AllowedMaterialFamilies =>
+        allowedMaterialFamilies ??= new List<CombatMaterialFamily>();
     public IReadOnlyList<CombatEquipmentCraftMaterial> CraftMaterials =>
         craftMaterials ??= new List<CombatEquipmentCraftMaterial>();
     public abstract CombatEquipmentKind Kind { get; }
+
+    public bool AllowsMaterial(CraftMaterialDefinitionSO material)
+    {
+        return material != null
+            && (AllowedMaterialFamilies.Count == 0
+                || AllowedMaterialFamilies.Contains(material.Family));
+    }
 }
 
 [Serializable]

@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ac9ff51e4d0a0d41af84ab1478ff26a, type: 3}
+  m_Name: material_blacksteel
+  m_EditorClassIdentifier: Assembly-CSharp::CraftMaterialDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 11006
+  materialId: material:blacksteel
+  itemId: material:blacksteel-ingot
+  displayName: "\uD751\uAC15"
+  family: 3
+  damageMultiplier: 1.2
+  penetrationDefenseMultiplier: 1.3
+  durabilityMultiplier: 1.5
+  weightMultiplier: 1.1
+  valueMultiplier: 3
+  insulation: 0.1
+  mentalResistance: 0.15
+  arcaneResistance: 0.3
+  tint: {r: 0.18, g: 0.13, b: 0.28, a: 1}
+  rareMaterial: 1
+  requiredResearchId: research:metallurgy:blacksteel

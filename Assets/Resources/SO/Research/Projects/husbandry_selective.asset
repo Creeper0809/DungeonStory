@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: husbandry_selective
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7096
+  projectId: research:husbandry:selective
+  displayName: "\uC120\uBCC4 \uC0AC\uC721"
+  description: "\uC704\uC0DD\uACFC \uD608\uD1B5\uC744 \uAD00\uB9AC\uD574 \uC548\uC815\uC801\uC778
+    \uC0B0\uCD9C\uBB3C\uC744 \uC5BB\uB294\uB2E4."
+  field: 9
+  requiredWork: 194
+  prerequisites:
+  - {fileID: 11400000, guid: 80c33ed657a2d1c4eb1266d6f8826dd2, type: 2}
+  - {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items: []
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

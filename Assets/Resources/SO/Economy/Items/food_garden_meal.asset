@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: food_garden_meal
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8059
+  itemId: food:garden-meal
+  displayName: "\uC815\uC6D0 \uC694\uB9AC"
+  description: "\uACE1\uBB3C\uACFC \uBFCC\uB9AC, \uBC84\uC12F\uC744 \uC11E\uC740
+    \uBE44\uAC74 \uACE0\uAE09\uC2DD."
+  stockCategory: 0
+  kind: 2
+  ingredientTags: 3
+  unitPrice: 12
+  unitWeight: 0.75
+  maxStack: 40
+  sprite: {fileID: 0}
+  requiredResearchId: research:cuisine:vegan
+  mealQuality: 1
+  nutrition: 46
+  mealMood: 6
+  freshnessSeconds: 420
+  preserved: 0
+  supportsInjuryTreatment: 0
+  treatmentPotency: 1
+  infectionReduction: 0
+  detoxReduction: 0
+  painReduction: 0

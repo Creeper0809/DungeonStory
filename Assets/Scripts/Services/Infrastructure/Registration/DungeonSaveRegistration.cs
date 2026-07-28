@@ -32,9 +32,25 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<WorkOrdersSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<ProductionBillsSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<ResourceStockPolicySaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<RegionalSupplyContractSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<GrandProjectSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<WasteProcessingSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<WildlifeSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<WorldResourceSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CropPlotSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<SurvivalResourcesSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterConsumablesSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<DarkSurvivalSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
@@ -53,6 +69,8 @@ public static class DungeonSaveRegistration
         builder.Register<CaptivitySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CircusSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<AnimalHusbandrySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<ExteriorActivitySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();

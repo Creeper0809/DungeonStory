@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75000297946ffe4481d69575fdbfd0a, type: 3}
+  m_Name: recipe_anesthetic
+  m_EditorClassIdentifier: Assembly-CSharp::ProductionRecipeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9088
+  recipeId: recipe:anesthetic
+  displayName: "\uB9C8\uCDE8\uC81C"
+  description: "\uB9C8\uCDE8\uC81C \uC0DD\uC0B0 \uC8FC\uBB38"
+  facilityTag: apothecary
+  workTypeId: work:craft
+  requiredResearchId: research:pharmacology:anesthesia
+  requiredWork: 16
+  inputs:
+  - itemId: resource:dreamleaf
+    amount: 2
+  - itemId: material:alcohol
+    amount: 1
+  outputs:
+  - itemId: medicine:anesthetic
+    amount: 1
+    probability: 1

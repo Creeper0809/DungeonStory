@@ -54,6 +54,13 @@ public sealed class WorkExecutionResult
 public sealed class WorkExecutionContext
 {
     private readonly Func<float, string, float, IEnumerator> executeWorkAmount;
+    private readonly Func<
+        float,
+        float,
+        string,
+        float,
+        Func<float, bool>,
+        IEnumerator> executePersistentWorkAmount;
     private readonly Func<bool> canContinue;
 
     public WorkExecutionContext(
@@ -63,7 +70,14 @@ public sealed class WorkExecutionContext
         BuildableObject target,
         WorkTypeId workTypeId,
         Func<float, string, float, IEnumerator> executeWorkAmount,
-        Func<bool> canContinue)
+        Func<bool> canContinue,
+        Func<
+            float,
+            float,
+            string,
+            float,
+            Func<float, bool>,
+            IEnumerator> executePersistentWorkAmount = null)
     {
         if (!workTypeId.IsValid)
         {
@@ -86,6 +100,7 @@ public sealed class WorkExecutionContext
             ?? throw new ArgumentNullException(nameof(executeWorkAmount));
         this.canContinue = canContinue
             ?? throw new ArgumentNullException(nameof(canContinue));
+        this.executePersistentWorkAmount = executePersistentWorkAmount;
     }
 
     public int RunId { get; }
@@ -102,6 +117,27 @@ public sealed class WorkExecutionContext
         float extraMultiplier = 1f)
     {
         return executeWorkAmount(requiredWork, label, extraMultiplier);
+    }
+
+    public IEnumerator ExecutePersistentWorkAmount(
+        float requiredWork,
+        float completedWork,
+        string label,
+        Func<float, bool> applyDelta,
+        float extraMultiplier = 1f)
+    {
+        if (executePersistentWorkAmount == null)
+        {
+            throw new InvalidOperationException(
+                "This work execution context does not support persistent progress.");
+        }
+
+        return executePersistentWorkAmount(
+            requiredWork,
+            completedWork,
+            label,
+            extraMultiplier,
+            applyDelta ?? throw new ArgumentNullException(nameof(applyDelta)));
     }
 }
 
@@ -353,6 +389,48 @@ public sealed class GuardHuntStatPolicy : CharacterStatWorkPolicy
             CharacterStatType.Attack,
             CharacterStatType.Dexterity,
             CharacterStatType.Strength)
+    {
+    }
+}
+
+public sealed class GatheringStatPolicy : CharacterStatWorkPolicy
+{
+    public GatheringStatPolicy()
+        : base(
+            new[]
+            {
+                BuiltInWorkTypeIds.Gather,
+                BuiltInWorkTypeIds.Sow,
+                BuiltInWorkTypeIds.Harvest,
+                BuiltInWorkTypeIds.Logging,
+                BuiltInWorkTypeIds.Quarry
+            },
+            CharacterStatType.Dexterity,
+            CharacterStatType.Strength,
+            CharacterStatType.Endurance)
+    {
+    }
+}
+
+public sealed class AnimalCareStatPolicy : CharacterStatWorkPolicy
+{
+    public AnimalCareStatPolicy()
+        : base(
+            new[] { BuiltInWorkTypeIds.AnimalCare },
+            CharacterStatType.Research,
+            CharacterStatType.Dexterity)
+    {
+    }
+}
+
+public sealed class GrandProjectStatPolicy : CharacterStatWorkPolicy
+{
+    public GrandProjectStatPolicy()
+        : base(
+            new[] { BuiltInWorkTypeIds.GrandProject },
+            CharacterStatType.Research,
+            CharacterStatType.Sales,
+            CharacterStatType.Endurance)
     {
     }
 }

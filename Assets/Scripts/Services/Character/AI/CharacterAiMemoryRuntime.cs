@@ -68,16 +68,15 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         string label,
         float sentiment = 0f)
     {
-        AddEntry(new CharacterAiMemoryEntry
-        {
-            branch = branch,
-            intention = intention,
-            label = string.IsNullOrWhiteSpace(label)
-                ? CharacterAiUtilityText.GetBranchLabel(branch)
-                : label,
-            sentiment = Mathf.Clamp(sentiment, -1f, 1f),
-            time = Now
-        });
+        CharacterAiMemoryEntry entry = AcquireEntry();
+        entry.branch = branch;
+        entry.intention = intention;
+        entry.label = string.IsNullOrWhiteSpace(label)
+            ? CharacterAiUtilityText.GetBranchLabel(branch)
+            : label;
+        entry.sentiment = Mathf.Clamp(sentiment, -1f, 1f);
+        entry.time = Now;
+        AddEntry(entry);
     }
 
     public void RecordFacility(
@@ -86,18 +85,21 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         string label,
         float sentiment)
     {
-        AddEntry(new CharacterAiMemoryEntry
+        CharacterAiMemoryEntry entry = AcquireEntry();
+        entry.branch = branch;
+        entry.intention = CharacterAiUtilityText.GetIntention(branch);
+        entry.facilityId = building != null ? building.id : -1;
+        entry.targetGridId = building != null ? building.GridId : -1;
+        if (TryGetBuildingGridPosition(building, out Vector2Int position))
         {
-            branch = branch,
-            intention = CharacterAiUtilityText.GetIntention(branch),
-            facilityId = building != null ? building.id : -1,
-            targetGridId = building != null ? building.GridId : -1,
-            gridX = TryGetBuildingGridPosition(building, out Vector2Int position) ? position.x : 0,
-            gridY = TryGetBuildingGridPosition(building, out position) ? position.y : 0,
-            label = label ?? string.Empty,
-            sentiment = Mathf.Clamp(sentiment, -1f, 1f),
-            time = Now
-        });
+            entry.gridX = position.x;
+            entry.gridY = position.y;
+        }
+
+        entry.label = label ?? string.Empty;
+        entry.sentiment = Mathf.Clamp(sentiment, -1f, 1f);
+        entry.time = Now;
+        AddEntry(entry);
     }
 
     public void RecordWork(
@@ -106,25 +108,28 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         bool success,
         string detail = "")
     {
-        AddEntry(new CharacterAiMemoryEntry
+        CharacterAiMemoryEntry entry = AcquireEntry();
+        entry.branch = CharacterAiBranch.Work;
+        entry.intention = workTypeId == BuiltInWorkTypeIds.Haul
+            ? CharacterAiIntentionType.Logistics
+            : workTypeId == BuiltInWorkTypeIds.Hunt
+                ? CharacterAiIntentionType.Hunt
+                : CharacterAiIntentionType.Work;
+        entry.facilityId = building != null ? building.id : -1;
+        entry.targetGridId = building != null ? building.GridId : -1;
+        entry.workTypeId = workTypeId.ToString();
+        if (TryGetBuildingGridPosition(building, out Vector2Int position))
         {
-            branch = CharacterAiBranch.Work,
-            intention = workTypeId == BuiltInWorkTypeIds.Haul
-                ? CharacterAiIntentionType.Logistics
-                : workTypeId == BuiltInWorkTypeIds.Hunt
-                    ? CharacterAiIntentionType.Hunt
-                    : CharacterAiIntentionType.Work,
-            facilityId = building != null ? building.id : -1,
-            targetGridId = building != null ? building.GridId : -1,
-            workTypeId = workTypeId.ToString(),
-            gridX = TryGetBuildingGridPosition(building, out Vector2Int position) ? position.x : 0,
-            gridY = TryGetBuildingGridPosition(building, out position) ? position.y : 0,
-            label = string.IsNullOrWhiteSpace(detail)
-                ? $"{WorkTaskCatalog.GetDisplayName(workTypeId)} {(success ? "완료" : "실패")}"
-                : detail,
-            sentiment = success ? 0.2f : -0.3f,
-            time = Now
-        });
+            entry.gridX = position.x;
+            entry.gridY = position.y;
+        }
+
+        entry.label = string.IsNullOrWhiteSpace(detail)
+            ? $"{WorkTaskCatalog.GetDisplayName(workTypeId)} {(success ? "완료" : "실패")}"
+            : detail;
+        entry.sentiment = success ? 0.2f : -0.3f;
+        entry.time = Now;
+        AddEntry(entry);
     }
 
     public void RecordFailure(
@@ -132,19 +137,18 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         string label,
         Vector2Int position)
     {
-        AddEntry(new CharacterAiMemoryEntry
-        {
-            branch = CharacterAiBranch.InterruptCheck,
-            intention = CharacterAiIntentionType.None,
-            failureKind = failureKind,
-            gridX = position.x,
-            gridY = position.y,
-            label = string.IsNullOrWhiteSpace(label)
-                ? "행동 실패"
-                : label,
-            sentiment = -0.55f,
-            time = Now
-        });
+        CharacterAiMemoryEntry entry = AcquireEntry();
+        entry.branch = CharacterAiBranch.InterruptCheck;
+        entry.intention = CharacterAiIntentionType.None;
+        entry.failureKind = failureKind;
+        entry.gridX = position.x;
+        entry.gridY = position.y;
+        entry.label = string.IsNullOrWhiteSpace(label)
+            ? "행동 실패"
+            : label;
+        entry.sentiment = -0.55f;
+        entry.time = Now;
+        AddEntry(entry);
     }
 
     public void RecordMovement(
@@ -153,19 +157,18 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         bool success,
         string label = "")
     {
-        AddEntry(new CharacterAiMemoryEntry
-        {
-            branch = CharacterAiBranch.ContinueCurrent,
-            intention = CharacterAiIntentionType.None,
-            gridX = position.x,
-            gridY = position.y,
-            movementDistance = Mathf.Max(0f, distance),
-            label = string.IsNullOrWhiteSpace(label)
-                ? (success ? "이동 완료" : "이동 막힘")
-                : label,
-            sentiment = success ? 0.02f : -0.35f,
-            time = Now
-        });
+        CharacterAiMemoryEntry entry = AcquireEntry();
+        entry.branch = CharacterAiBranch.ContinueCurrent;
+        entry.intention = CharacterAiIntentionType.None;
+        entry.gridX = position.x;
+        entry.gridY = position.y;
+        entry.movementDistance = Mathf.Max(0f, distance);
+        entry.label = string.IsNullOrWhiteSpace(label)
+            ? (success ? "이동 완료" : "이동 막힘")
+            : label;
+        entry.sentiment = success ? 0.02f : -0.35f;
+        entry.time = Now;
+        AddEntry(entry);
     }
 
     public float GetMomentumScore(CharacterAiBranch branch)
@@ -408,12 +411,41 @@ public sealed class CharacterAiMemoryRuntime : MonoBehaviour
         {
             nextPruneAt = entry.time + RecentWindowSeconds * 6f;
         }
+    }
 
-        while (recentEntries.Count > MaxEntries)
+    private CharacterAiMemoryEntry AcquireEntry()
+    {
+        recentEntries ??= new List<CharacterAiMemoryEntry>();
+        CharacterAiMemoryEntry entry;
+        if (recentEntries.Count >= MaxEntries)
         {
+            entry = recentEntries[0];
             recentEntries.RemoveAt(0);
             nextPruneAt = 0f;
         }
+        else
+        {
+            entry = new CharacterAiMemoryEntry();
+        }
+
+        ResetEntry(entry);
+        return entry;
+    }
+
+    private static void ResetEntry(CharacterAiMemoryEntry entry)
+    {
+        entry.branch = CharacterAiBranch.None;
+        entry.intention = CharacterAiIntentionType.None;
+        entry.failureKind = AIActionFailureKind.None;
+        entry.facilityId = -1;
+        entry.targetGridId = -1;
+        entry.workTypeId = string.Empty;
+        entry.gridX = 0;
+        entry.gridY = 0;
+        entry.label = string.Empty;
+        entry.movementDistance = 0f;
+        entry.sentiment = 0f;
+        entry.time = 0f;
     }
 
     private void Prune()

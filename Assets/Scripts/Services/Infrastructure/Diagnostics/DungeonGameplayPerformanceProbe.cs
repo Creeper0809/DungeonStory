@@ -38,11 +38,16 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         "OffenseReturnArrivalRuntime.Tick",
         "CharacterDeprivationRuntime.Tick",
         "WorldWaterRuntime.Tick",
+        "WildlifeCaptureRuntime.Tick",
         "WildlifeEcosystemRuntime.Tick",
         "WildlifeRuntime.Tick",
+        "AnimalHusbandryRuntime.Tick",
         "FirstRunObjectiveRuntime.Tick",
         "RoomLayoutCache.Rebuild"
     };
+    private const float MixedPopulationSchedulerP95TargetMilliseconds = 4f;
+    private const long MixedPopulationAverageGcTargetBytes = 64L * 1024L;
+    private const long MixedPopulationMemoryGrowthTargetBytes = 16L * 1024L * 1024L;
 
     private static bool bootstrapped;
     private static GameplayPerformanceOptions pendingEditorOptions;
@@ -55,8 +60,6 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         new List<SlowFrameProfile>();
     private bool originalProfilerEnabled;
     private bool rawProfilerCaptureActive;
-    private bool pendingSlowFrameCapture;
-    private float pendingSlowFrameMilliseconds;
 #endif
 
     private GameplayPerformanceOptions options;
@@ -81,6 +84,8 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
     private float[] abilityWorkSamples;
     private float[][] runtimeTickSamples;
     private long[] gcSamples;
+    private long[] monoUsedSamples;
+    private int[] rawProfilerFrameIndices;
     private int sampleCount;
     private int warningCount;
     private int errorCount;
@@ -148,7 +153,9 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         bool disableAiScheduler = false,
         bool disableCharacterPresentation = false,
         bool disableCharacterStatsUpdates = false,
-        bool captureRawProfiler = false)
+        bool captureRawProfiler = false,
+        int livestockCount = 0,
+        int normalOperationSupplyDays = 0)
     {
         if (!Application.isPlaying)
         {
@@ -177,7 +184,9 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             disableAiScheduler,
             disableCharacterPresentation,
             disableCharacterStatsUpdates,
-            captureRawProfiler);
+            captureRawProfiler,
+            livestockCount,
+            normalOperationSupplyDays);
         bootstrapped = true;
         CharacterAiPerformanceCaptureControl.BeginDetailedCapture();
         bool enableSlowTrace = profileId?.IndexOf(
@@ -192,6 +201,26 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         DungeonGameplayPerformanceProbe probe =
             host.AddComponent<DungeonGameplayPerformanceProbe>();
         probe.editorSlowTraceEnabled = enableSlowTrace;
+    }
+
+    public static void StartEditorEconomyMixedPopulationProfile()
+    {
+        StartEditorProfile(
+            profileId: "economy-100-staff-100-livestock-x5",
+            actorCount: 100,
+            facilityCount: 128,
+            gridWidth: 256,
+            gridHeight: 8,
+            activeFloors: 4,
+            warmupFrames: 900,
+            sampleSeconds: 20f,
+            reportPath:
+                "docs/implementation-reports/economy-100-staff-100-livestock-x5-latest.json",
+            screenshotPath:
+                "docs/implementation-reports/economy-100-staff-100-livestock-x5-latest.png",
+            simulationSpeed: 5f,
+            livestockCount: 100,
+            normalOperationSupplyDays: 5);
     }
 #endif
 
@@ -277,6 +306,14 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         yield return EnsureGameplayRun();
         LogProfileStage("wait-gameplay-ready");
         yield return WaitForGameplayReady();
+#if UNITY_EDITOR
+        if (options.IsEditorProfile)
+        {
+            UnpauseGameplay();
+            LogProfileStage("editor-gc-baseline");
+            yield return CaptureEditorGcBaseline();
+        }
+#endif
 
         Stopwatch setupStopwatch = Stopwatch.StartNew();
         LogProfileStage("configure-world");
@@ -300,6 +337,47 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         CaptureWorldSummary();
         LogProfileStage("capture-complete");
     }
+
+#if UNITY_EDITOR
+    private IEnumerator CaptureEditorGcBaseline()
+    {
+        const int BaselineWarmupFrames = 120;
+        const int BaselineSampleFrames = 240;
+        for (int frame = 0; frame < BaselineWarmupFrames; frame++)
+        {
+            yield return null;
+        }
+
+        ProfilerRecorder recorder = ProfilerRecorder.StartNew(
+            ProfilerCategory.Memory,
+            "GC Allocated In Frame",
+            1);
+        long totalBytes = 0;
+        int recordedFrames = 0;
+        try
+        {
+            for (int frame = 0; frame < BaselineSampleFrames; frame++)
+            {
+                yield return new WaitForEndOfFrame();
+                if (!recorder.Valid)
+                {
+                    continue;
+                }
+
+                totalBytes += Math.Max(0L, recorder.LastValue);
+                recordedFrames++;
+            }
+        }
+        finally
+        {
+            recorder.Dispose();
+        }
+
+        report.editorBaselineGcAverageBytes = recordedFrames > 0
+            ? totalBytes / (double)recordedFrames
+            : 0d;
+    }
+#endif
 
     private void OnDestroy()
     {
@@ -465,6 +543,8 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             throw new InvalidOperationException("Required gameplay runtime services are missing.");
         }
 
+        scope.Container.Resolve<IDungeonDebugModeService>().ResetTransientState();
+
         Grid grid = gridSystem.grid;
         if (options.GridWidth > grid.width || options.GridHeight > grid.height)
         {
@@ -487,9 +567,127 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         LogProfileStage($"spawn-actors:{options.ActorCount}");
         yield return SpawnStressCharacters(scope, spawner, grid);
         LogProfileStage($"spawn-actors-complete:{report.actualStressActorCount}");
+        if (options.LivestockCount > 0)
+        {
+            LogProfileStage($"spawn-livestock:{options.LivestockCount}");
+            yield return SpawnStressLivestock(scope, grid);
+            LogProfileStage(
+                $"spawn-livestock-complete:{report.actualStressLivestockCount}");
+        }
+
+        if (options.NormalOperationSupplyDays > 0)
+        {
+            SeedNormalOperationSupplies(scope);
+        }
+
         gridSystem.NotifyGridObjectChanged();
         scope.Container.Resolve<IFacilityCandidateCache>().Clear();
         yield return null;
+    }
+
+    private void SeedNormalOperationSupplies(
+        DungeonRuntimeLifetimeScope scope)
+    {
+        IWorldItemStackRuntime itemRuntime =
+            scope.Container.Resolve<IWorldItemStackRuntime>();
+        IWarehouseWorldQuery warehouseWorld =
+            scope.Container.Resolve<IWarehouseWorldQuery>();
+        int population = Mathf.Max(1, options.ActorCount);
+        int requestedPerCategory = population
+            * Mathf.Max(1, options.NormalOperationSupplyDays);
+
+        List<IWarehouseFacility> warehouses = warehouseWorld.Warehouses
+            .Where(warehouse =>
+                warehouse?.Inventory != null
+                && warehouse.HasWarehouseInventory)
+            .ToList();
+        int warehouseFoodAmount = SeedWarehouseStock(
+            itemRuntime,
+            warehouses,
+            StockCategory.Food,
+            requestedPerCategory);
+        int warehouseWaterAmount = SeedWarehouseStock(
+            itemRuntime,
+            warehouses,
+            StockCategory.Water,
+            requestedPerCategory);
+        int looseFoodAmount = 0;
+        int looseWaterAmount = 0;
+        int foodAmount = warehouseFoodAmount;
+        int waterAmount = warehouseWaterAmount;
+
+        if (foodAmount < requestedPerCategory
+            && itemRuntime.SpawnStockAtDropoff(
+                StockCategory.Food,
+                requestedPerCategory - foodAmount,
+                "성능 검증용 정상 배급",
+                out looseFoodAmount))
+        {
+            foodAmount += looseFoodAmount;
+        }
+
+        if (waterAmount < requestedPerCategory
+            && itemRuntime.SpawnStockAtDropoff(
+                StockCategory.Water,
+                requestedPerCategory - waterAmount,
+                "성능 검증용 정상 배급",
+                out looseWaterAmount))
+        {
+            waterAmount += looseWaterAmount;
+        }
+
+        report.normalOperationSupplyDays =
+            options.NormalOperationSupplyDays;
+        report.normalOperationWarehouseCount = warehouses.Count;
+        report.seededWarehouseFoodAmount = warehouseFoodAmount;
+        report.seededWarehouseWaterAmount = warehouseWaterAmount;
+        report.seededLooseFoodAmount = looseFoodAmount;
+        report.seededLooseWaterAmount = looseWaterAmount;
+        report.seededFoodAmount = foodAmount;
+        report.seededWaterAmount = waterAmount;
+        LogProfileStage(
+            $"seed-supplies:food={foodAmount};water={waterAmount};"
+            + $"warehouses={warehouses.Count};"
+            + $"warehouseFood={warehouseFoodAmount};"
+            + $"warehouseWater={warehouseWaterAmount};"
+            + $"looseFood={looseFoodAmount};"
+            + $"looseWater={looseWaterAmount};"
+            + $"days={options.NormalOperationSupplyDays}");
+
+        if (foodAmount < requestedPerCategory
+            || waterAmount < requestedPerCategory)
+        {
+            throw new InvalidOperationException(
+                "Normal-operation supplies were incomplete: "
+                + $"food={foodAmount}/{requestedPerCategory}, "
+                + $"water={waterAmount}/{requestedPerCategory}.");
+        }
+    }
+
+    private static int SeedWarehouseStock(
+        IWorldItemStackRuntime itemRuntime,
+        IReadOnlyList<IWarehouseFacility> warehouses,
+        StockCategory category,
+        int requested)
+    {
+        int spawned = 0;
+        for (int index = 0;
+             index < warehouses.Count && spawned < requested;
+             index++)
+        {
+            int remainingWarehouses = warehouses.Count - index;
+            int share = Mathf.CeilToInt(
+                (requested - spawned)
+                / (float)Mathf.Max(1, remainingWarehouses));
+            itemRuntime.SpawnStockInWarehouse(
+                warehouses[index],
+                category,
+                share,
+                out int accepted);
+            spawned += accepted;
+        }
+
+        return spawned;
     }
 
     private void ApplyDiagnosticIsolation()
@@ -611,13 +809,14 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         grid.RefreshTraversalHeuristicMetadata();
 
         IDataCatalog catalog = scope.Container.Resolve<IDataCatalog>();
-        List<BuildingSO> facilityDefinitions = catalog.GetData<BuildingSO>()
-            .Values
-            .Where(IsDenseFacilityDefinition)
-            .OrderBy(definition => definition.id)
-            .Take(12)
+        List<BuildingSO> baseFacilityDefinitions =
+            SelectDenseFacilityDefinitions(
+                catalog.GetData<BuildingSO>().Values,
+                12)
             .Select(CloneWithoutRoomRequirement)
             .ToList();
+        List<BuildingSO> facilityDefinitions =
+            BuildDenseFacilityPlacementSequence(baseFacilityDefinitions);
         BuildingSO doorDefinition = catalog.GetData<BuildingSO>()
             .Values
             .Where(definition => definition != null && definition.IsInteriorDoor)
@@ -631,7 +830,9 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
                 "No independently rendered modular facility definitions were found.");
         }
 
-        GridBuildingFactory buildingFactory = new GridBuildingFactory();
+        GridTexture gridTexture = FindSceneComponent<GridTexture>(
+            SceneManager.GetActiveScene());
+        GridBuildingFactory buildingFactory = new GridBuildingFactory(gridTexture);
         int placedDoors = 0;
         if (doorDefinition != null)
         {
@@ -661,21 +862,29 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         int placedFacilities = 0;
         int slotSequence = 0;
         int[] slotOffsets = { 2, 6, 10, 13 };
-        for (int floor = 0;
-             floor < activeFloors && placedFacilities < options.FacilityCount;
-             floor++)
+        int roomCount = Mathf.CeilToInt(grid.width / (float)options.RoomSpan);
+        int baseFacilitiesPerFloor =
+            options.FacilityCount / activeFloors;
+        int facilityFloorRemainder =
+            options.FacilityCount % activeFloors;
+        for (int floor = 0; floor < activeFloors; floor++)
         {
-            for (int roomStart = 0;
-                 roomStart < grid.width && placedFacilities < options.FacilityCount;
-                 roomStart += options.RoomSpan)
+            int floorTarget = baseFacilitiesPerFloor
+                + (floor < facilityFloorRemainder ? 1 : 0);
+            int placedOnFloor = 0;
+            for (int pass = 0;
+                 pass < slotOffsets.Length && placedOnFloor < floorTarget;
+                 pass++)
             {
-                foreach (int slotOffset in slotOffsets)
+                for (int roomOrdinal = 0;
+                     roomOrdinal < roomCount && placedOnFloor < floorTarget;
+                     roomOrdinal++)
                 {
-                    if (placedFacilities >= options.FacilityCount)
-                    {
-                        break;
-                    }
-
+                    int roomIndex =
+                        (roomOrdinal * 5 + floor * 3) % roomCount;
+                    int roomStart = roomIndex * options.RoomSpan;
+                    int slotOffset = slotOffsets[
+                        (pass + roomOrdinal + floor) % slotOffsets.Length];
                     int x = roomStart + slotOffset;
                     if (x + 1 >= Mathf.Min(grid.width, roomStart + options.RoomSpan))
                     {
@@ -694,6 +903,7 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
                             out _))
                     {
                         placedFacilities++;
+                        placedOnFloor++;
                     }
 
                     if ((slotSequence & 127) == 0)
@@ -758,8 +968,11 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         CharacterSpawner spawner,
         Grid grid)
     {
+        ICharacterSkillGenerationService skillGenerationService =
+            scope.Container.Resolve<ICharacterSkillGenerationService>();
         CharacterActor[] existing = FindSceneComponents<CharacterActor>(
             SceneManager.GetActiveScene());
+        int existingRequestsCancelled = 0;
         if (options.IsEditorProfile)
         {
             foreach (CharacterActor actor in existing)
@@ -771,8 +984,12 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
 
                 actor.SetLifecycleState(CharacterLifecycleState.Active);
                 actor.Brain?.RequestImmediateReplan(clearFailures: true);
+                skillGenerationService.CancelRequests(actor.Progression);
+                existingRequestsCancelled++;
             }
         }
+        report.preexistingSkillGenerationRequestsCancelled =
+            existingRequestsCancelled;
 
         int requestedTotal = options.ActorCount <= 0
             ? existing.Count(actor => actor != null && actor.gameObject.activeInHierarchy)
@@ -804,6 +1021,11 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         while (activeCount < requestedTotal)
         {
             GameObject actorObject = spawner.characterPool.Get();
+            if (actorObject != null && actorObject.GetComponent<AbilityWork>() == null)
+            {
+                actorObject.AddComponent<AbilityWork>();
+            }
+
             characterObjectFactory.Inject(actorObject);
             CharacterActor actor = actorObject != null
                 ? actorObject.GetComponent<CharacterActor>()
@@ -815,9 +1037,12 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             }
 
             actor.characterType = CharacterType.NPC;
+            actor.RefreshAbilityCache();
             actor.Initialize(stressDefinition);
+            skillGenerationService.CancelRequests(actor.Progression);
             actor.Identity?.SetPersistentId($"perf:{options.ProfileId}:{created:D5}");
             actor.Identity?.SetCharacterType(CharacterType.NPC);
+            actor.Brain?.UseStaffWorkActions();
             actor.transform.position = grid.GetWorldPos(GetStressActorPosition(
                 created,
                 grid,
@@ -839,6 +1064,194 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         }
 
         report.actualStressActorCount = created;
+        report.syntheticSkillGenerationRequestsCancelled = created > 0;
+    }
+
+    private IEnumerator SpawnStressLivestock(
+        DungeonRuntimeLifetimeScope scope,
+        Grid grid)
+    {
+        IDataCatalog dataCatalog = scope.Container.Resolve<IDataCatalog>();
+        IWildlifeRuntime wildlife = scope.Container.Resolve<IWildlifeRuntime>();
+        IWildlifeCaptureRuntime capture =
+            scope.Container.Resolve<IWildlifeCaptureRuntime>();
+        IAnimalHusbandryRuntime husbandry =
+            scope.Container.Resolve<IAnimalHusbandryRuntime>();
+        IWildlifeSpeciesCatalogProvider speciesCatalog =
+            scope.Container.Resolve<IWildlifeSpeciesCatalogProvider>();
+
+        BuildingSO penSource = dataCatalog.GetData<BuildingSO>()
+            .Values
+            .Where(definition => definition?.GetBeastPenAbility() != null)
+            .OrderBy(definition => definition.id)
+            .FirstOrDefault();
+        if (penSource == null)
+        {
+            throw new InvalidOperationException(
+                "The gameplay profile could not find a real livestock pen definition.");
+        }
+
+        BuildingSO penDefinition = CloneWithoutRoomRequirement(penSource);
+        penDefinition.objectName = "성능 측정 대형 우리";
+        BuildingBeastPenAbility penAbility =
+            penDefinition.GetAbility<BuildingBeastPenAbility>();
+        penAbility.capacity = Mathf.Max(
+            options.LivestockCount,
+            penAbility.capacity);
+        penAbility.baseSecurity = 100f;
+        penAbility.dailyFood = 0f;
+        penAbility.dailyWater = 0f;
+
+        GridBuildingFactory factory = new GridBuildingFactory();
+        BuildableObject pen = null;
+        foreach (GridCell cell in grid.GetCells()
+                     .Where(cell =>
+                         cell != null
+                         && cell.Position.y < options.ActiveFloors)
+                     .OrderBy(cell => cell.Position.y)
+                     .ThenBy(cell => cell.Position.x))
+        {
+            if (TryPlaceBuilding(
+                    scope,
+                    factory,
+                    grid,
+                    penDefinition,
+                    cell.Position,
+                    out pen))
+            {
+                break;
+            }
+        }
+
+        if (pen == null)
+        {
+            throw new InvalidOperationException(
+                "The gameplay profile could not place its livestock pen.");
+        }
+
+        WildlifeSpeciesDefinition species = speciesCatalog.All
+            .Where(candidate => candidate != null && candidate.CanEnterDungeon)
+            .OrderBy(candidate => candidate.SpeciesId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (species == null)
+        {
+            throw new InvalidOperationException(
+                "The gameplay profile needs at least one dungeon-capable livestock species.");
+        }
+
+        List<WildlifeActor> spawnedAnimals =
+            new List<WildlifeActor>(options.LivestockCount);
+        GridCell[] spawnCells = grid.GetCells()
+            .Where(cell =>
+                cell != null
+                && cell.Position.y < options.ActiveFloors
+                && cell.AreaType != GridCellAreaType.BlockedExterior
+                && grid.IsWalkable(cell.Position))
+            .OrderBy(cell => cell.Position.y)
+            .ThenBy(cell => cell.Position.x)
+            .ToArray();
+        if (spawnCells.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "The gameplay profile could not find a walkable livestock spawn cell.");
+        }
+
+        int spawnCursor = 0;
+        int attempts = 0;
+        int maximumAttempts = Mathf.Max(
+            options.LivestockCount * 8,
+            spawnCells.Length * 2);
+        while (spawnedAnimals.Count < options.LivestockCount
+            && attempts < maximumAttempts)
+        {
+            Vector2Int position = spawnCells[
+                spawnCursor++ % Mathf.Max(1, spawnCells.Length)].Position;
+            attempts++;
+            if (!wildlife.TrySpawnDomesticBirth(
+                    species.SpeciesId,
+                    position,
+                    out WildlifeActor actor,
+                    out _)
+                || actor == null)
+            {
+                continue;
+            }
+
+            spawnedAnimals.Add(actor);
+            if ((spawnedAnimals.Count & 15) == 0)
+            {
+                LogProfileStage(
+                    $"spawn-livestock-progress:{spawnedAnimals.Count}/"
+                    + $"{options.LivestockCount}");
+                yield return null;
+            }
+        }
+
+        if (spawnedAnimals.Count < options.LivestockCount)
+        {
+            throw new InvalidOperationException(
+                $"The gameplay profile could only spawn {spawnedAnimals.Count}/"
+                + $"{options.LivestockCount} real livestock actors.");
+        }
+
+        string penId = $"pen:{pen.id}:{pen.centerPos.x}:{pen.centerPos.y}";
+        List<CapturedWildlifeState> capturedStates = capture.Capture()
+            .Select(state => state.Clone())
+            .ToList();
+        HashSet<string> capturedIds = new HashSet<string>(
+            capturedStates.Select(state => state.wildlifeId),
+            StringComparer.Ordinal);
+        foreach (WildlifeActor actor in spawnedAnimals)
+        {
+            if (actor == null || !capturedIds.Add(actor.WildlifeId))
+            {
+                continue;
+            }
+
+            capturedStates.Add(new CapturedWildlifeState
+            {
+                wildlifeId = actor.WildlifeId,
+                speciesId = actor.SpeciesId,
+                penId = penId,
+                penPosition = actor.GridPosition,
+                capturePosition = actor.GridPosition,
+                transportState = CapturedWildlifeTransportState.Penned,
+                isTamed = true,
+                nextCareAt = Time.time + 5f,
+                lastCareStatus = "대형 우리에서 생활 중"
+            });
+        }
+
+        List<string> restoreWarnings = new List<string>();
+        DungeonAnimalHusbandrySaveData husbandrySnapshot =
+            husbandry.Capture();
+        capture.Restore(capturedStates, restoreWarnings);
+        if (restoreWarnings.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Livestock capture restore reported: "
+                + string.Join(" | ", restoreWarnings));
+        }
+
+        husbandry.Restore(husbandrySnapshot);
+        AnimalPenPolicyData policy = husbandry.GetOrCreatePenPolicy(penId);
+        policy.maximumAnimals = Mathf.Max(
+            options.LivestockCount,
+            policy.maximumAnimals);
+        policy.allowCarnivores = true;
+        policy.allowScavengers = true;
+        policy.allowRiskyMixing = true;
+        policy.adultFemaleLimit = options.LivestockCount;
+        policy.adultMaleLimit = options.LivestockCount;
+        policy.juvenileLimit = options.LivestockCount;
+        if (!husbandry.SetPenPolicy(policy, out string policyFailure))
+        {
+            throw new InvalidOperationException(
+                $"The performance livestock policy was rejected: {policyFailure}");
+        }
+
+        report.actualStressLivestockCount = spawnedAnimals.Count;
+        yield return null;
     }
 
     private void LogProfileStage(string stage)
@@ -880,6 +1293,10 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             runtimeTickSamples[markerIndex] = new float[MaximumSamples];
         }
         gcSamples = new long[MaximumSamples];
+        monoUsedSamples = new long[MaximumSamples];
+        rawProfilerFrameIndices = options.CaptureRawProfiler
+            ? new int[MaximumSamples]
+            : null;
         sampleCount = 0;
 
         mainThreadRecorder = ProfilerRecorder.StartNew(
@@ -914,6 +1331,9 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             "Assembly-CSharp.dll!::AbilityWork.Work() [Coroutine: MoveNext] [Invoke]",
             1);
 
+        ForceManagedCollection();
+        report.monoUsedBytesAfterStartCollection =
+            Profiler.GetMonoUsedSizeLong();
         report.monoUsedBytesAtStart = Profiler.GetMonoUsedSizeLong();
         report.totalAllocatedBytesAtStart = Profiler.GetTotalAllocatedMemoryLong();
         float startedAt = Time.realtimeSinceStartup;
@@ -921,15 +1341,6 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             && Time.realtimeSinceStartup - startedAt < options.SampleSeconds)
         {
             yield return new WaitForEndOfFrame();
-#if UNITY_EDITOR
-            if (options.CaptureRawProfiler
-                && pendingSlowFrameCapture
-                && slowFrameProfiles.Count < 6)
-            {
-                CaptureSlowProfilerFrame(pendingSlowFrameMilliseconds);
-                pendingSlowFrameCapture = false;
-            }
-#endif
             int index = sampleCount++;
             frameSamples[index] = Time.unscaledDeltaTime * 1000f;
             mainThreadSamples[index] = ReadRecorderMilliseconds(mainThreadRecorder);
@@ -950,13 +1361,11 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             gcSamples[index] = gcAllocationRecorder.Valid
                 ? Math.Max(0, gcAllocationRecorder.LastValue)
                 : 0;
+            monoUsedSamples[index] = Profiler.GetMonoUsedSizeLong();
 #if UNITY_EDITOR
-            if (options.CaptureRawProfiler
-                && frameSamples[index] >= 30f
-                && slowFrameProfiles.Count < 6)
+            if (rawProfilerFrameIndices != null)
             {
-                pendingSlowFrameCapture = true;
-                pendingSlowFrameMilliseconds = frameSamples[index];
+                rawProfilerFrameIndices[index] = ProfilerDriver.lastFrameIndex;
             }
 #endif
         }
@@ -965,9 +1374,58 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         report.sampleCount = sampleCount;
         report.monoUsedBytesAtEnd = Profiler.GetMonoUsedSizeLong();
         report.totalAllocatedBytesAtEnd = Profiler.GetTotalAllocatedMemoryLong();
+        ForceManagedCollection();
+        report.monoUsedBytesAfterEndCollection =
+            Profiler.GetMonoUsedSizeLong();
+#if UNITY_EDITOR
+        CaptureRecentAllocationHotspot();
+#endif
         CalculateMetrics();
         DisposeRecorders();
     }
+
+#if UNITY_EDITOR
+    private void CaptureRecentAllocationHotspot()
+    {
+        if (!options.CaptureRawProfiler
+            || rawProfilerFrameIndices == null
+            || sampleCount <= 0)
+        {
+            return;
+        }
+
+        const int RetainedProfilerFrameWindow = 180;
+        int first = Mathf.Max(0, sampleCount - RetainedProfilerFrameWindow);
+        List<int> rankedIndices = new List<int>(
+            sampleCount - first);
+        for (int index = first; index < sampleCount; index++)
+        {
+            rankedIndices.Add(index);
+        }
+
+        rankedIndices.Sort((left, right) =>
+            gcSamples[right].CompareTo(gcSamples[left]));
+        HashSet<int> capturedFrames = new HashSet<int>();
+        const int MaximumCapturedAllocationFrames = 5;
+        for (int rank = 0;
+            rank < rankedIndices.Count
+                && capturedFrames.Count < MaximumCapturedAllocationFrames;
+            rank++)
+        {
+            int sampleIndex = rankedIndices[rank];
+            int profilerFrameIndex = rawProfilerFrameIndices[sampleIndex];
+            if (profilerFrameIndex <= 0
+                || !capturedFrames.Add(profilerFrameIndex))
+            {
+                continue;
+            }
+
+            CaptureSlowProfilerFrame(
+                frameSamples[sampleIndex],
+                profilerFrameIndex);
+        }
+    }
+#endif
 
     private static ProfilerRecorder StartRecorderByName(string markerName)
     {
@@ -1021,6 +1479,47 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             };
         }
         report.gc = AllocationMetric.From(gcSamples, sampleCount);
+        report.monoUsedFirstQuarterAverageBytes = AverageWindow(
+            monoUsedSamples,
+            sampleCount,
+            0,
+            Mathf.Max(1, sampleCount / 4));
+        report.monoUsedLastQuarterAverageBytes = AverageWindow(
+            monoUsedSamples,
+            sampleCount,
+            Mathf.Max(0, sampleCount - Mathf.Max(1, sampleCount / 4)),
+            Mathf.Max(1, sampleCount / 4));
+        report.sustainedMonoGrowthBytes =
+            report.monoUsedLastQuarterAverageBytes
+            - report.monoUsedFirstQuarterAverageBytes;
+        report.retainedMonoGrowthBytes = Math.Max(
+            0L,
+            report.monoUsedBytesAfterEndCollection
+                - report.monoUsedBytesAfterStartCollection);
+        report.meetsSchedulerP95Target =
+            report.aiBudget.p95 > 0f
+            && report.aiBudget.p95
+                <= MixedPopulationSchedulerP95TargetMilliseconds;
+        report.gameplayIncrementalGcAverageBytes = Math.Max(
+            0d,
+            report.gc.averageBytes - report.editorBaselineGcAverageBytes);
+#if UNITY_EDITOR
+        report.usesEditorBaselineAdjustedGcTarget =
+            options.IsEditorProfile;
+#endif
+        double evaluatedGcAverage = report.usesEditorBaselineAdjustedGcTarget
+            ? report.gameplayIncrementalGcAverageBytes
+            : report.gc.averageBytes;
+        report.meetsAverageGcTarget =
+            evaluatedGcAverage <= MixedPopulationAverageGcTargetBytes;
+        report.meetsMemoryGrowthTarget =
+            report.retainedMonoGrowthBytes
+                <= MixedPopulationMemoryGrowthTargetBytes;
+        report.meetsMixedPopulationTarget =
+            report.meets60FpsP95
+            && report.meetsSchedulerP95Target
+            && report.meetsAverageGcTarget
+            && report.meetsMemoryGrowthTarget;
 #if UNITY_EDITOR
         report.slowFrames = slowFrameProfiles.ToArray();
 #endif
@@ -1035,6 +1534,18 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         report.meets60FpsP95 = report.frame.p95 <= 16.6667f;
         report.meets60FpsP99 = report.frame.p99 <= 16.6667f;
         report.meets60FpsEverySample = report.frame.maximum <= 16.6667f;
+        report.meetsMixedPopulationTarget =
+            report.meets60FpsP95
+            && report.meetsSchedulerP95Target
+            && report.meetsAverageGcTarget
+            && report.meetsMemoryGrowthTarget;
+    }
+
+    private static void ForceManagedCollection()
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
     }
 
 #if UNITY_EDITOR
@@ -1050,8 +1561,6 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         ProfilerDriver.enabled = true;
         rawProfilerCaptureActive = true;
         slowFrameProfiles.Clear();
-        pendingSlowFrameCapture = false;
-        pendingSlowFrameMilliseconds = 0f;
     }
 
     private void EndRawProfilerCapture()
@@ -1063,12 +1572,12 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
 
         ProfilerDriver.enabled = originalProfilerEnabled;
         rawProfilerCaptureActive = false;
-        pendingSlowFrameCapture = false;
     }
 
-    private void CaptureSlowProfilerFrame(float measuredFrameMilliseconds)
+    private void CaptureSlowProfilerFrame(
+        float measuredFrameMilliseconds,
+        int frameIndex)
     {
-        int frameIndex = ProfilerDriver.lastFrameIndex;
         using RawFrameDataView view =
             ProfilerDriver.GetRawFrameDataView(frameIndex, 0);
         if (!view.valid || view.sampleCount <= 0)
@@ -1107,13 +1616,107 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             samples.RemoveRange(24, samples.Count - 24);
         }
 
+        Dictionary<string, long> allocationBytesByPath =
+            new Dictionary<string, long>(StringComparer.Ordinal);
+        List<string> samplePath = new List<string>(32);
+        int allocationSampleIndex = 0;
+        while (allocationSampleIndex < view.sampleCount)
+        {
+            CollectAllocationSamples(
+                view,
+                ref allocationSampleIndex,
+                samplePath,
+                allocationBytesByPath);
+        }
+
+        SlowFrameAllocation[] allocations = allocationBytesByPath
+            .Select(pair => new SlowFrameAllocation
+            {
+                path = pair.Key,
+                bytes = pair.Value
+            })
+            .OrderByDescending(entry => entry.bytes)
+            .Take(24)
+            .ToArray();
+
         slowFrameProfiles.Add(new SlowFrameProfile
         {
             measuredFrameMilliseconds = measuredFrameMilliseconds,
             profilerFrameMilliseconds = view.frameTimeMs,
             profilerFrameIndex = frameIndex,
-            samples = samples.ToArray()
+            samples = samples.ToArray(),
+            allocations = allocations
         });
+    }
+
+    private static void CollectAllocationSamples(
+        RawFrameDataView view,
+        ref int sampleIndex,
+        List<string> samplePath,
+        Dictionary<string, long> allocationBytesByPath)
+    {
+        if (sampleIndex < 0 || sampleIndex >= view.sampleCount)
+        {
+            return;
+        }
+
+        int currentIndex = sampleIndex++;
+        string sampleName = view.GetSampleName(currentIndex);
+        int childCount = view.GetSampleChildrenCount(currentIndex);
+        bool isAllocation = string.Equals(
+            sampleName,
+            "GC.Alloc",
+            StringComparison.Ordinal);
+        if (isAllocation && view.GetSampleMetadataCount(currentIndex) > 0)
+        {
+            long bytes = Math.Max(
+                0L,
+                view.GetSampleMetadataAsLong(currentIndex, 0));
+            string path = BuildAllocationPath(samplePath);
+            if (allocationBytesByPath.TryGetValue(path, out long existing))
+            {
+                allocationBytesByPath[path] = existing + bytes;
+            }
+            else
+            {
+                allocationBytesByPath[path] = bytes;
+            }
+        }
+
+        bool includeInPath = !string.IsNullOrWhiteSpace(sampleName)
+            && !isAllocation
+            && !string.Equals(sampleName, "PlayerLoop", StringComparison.Ordinal)
+            && !string.Equals(sampleName, "Main Thread", StringComparison.Ordinal);
+        if (includeInPath)
+        {
+            samplePath.Add(sampleName);
+        }
+
+        for (int childIndex = 0; childIndex < childCount; childIndex++)
+        {
+            CollectAllocationSamples(
+                view,
+                ref sampleIndex,
+                samplePath,
+                allocationBytesByPath);
+        }
+
+        if (includeInPath)
+        {
+            samplePath.RemoveAt(samplePath.Count - 1);
+        }
+    }
+
+    private static string BuildAllocationPath(List<string> samplePath)
+    {
+        if (samplePath == null || samplePath.Count == 0)
+        {
+            return "<root>";
+        }
+
+        const int MaximumPathSegments = 6;
+        int first = Mathf.Max(0, samplePath.Count - MaximumPathSegments);
+        return string.Join(" > ", samplePath.Skip(first));
     }
 #endif
 
@@ -1210,10 +1813,240 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
                 presentationScheduler.RegisteredCount;
             report.presentationVisibleCharacters =
                 presentationScheduler.VisibleCount;
+            report.actualWildlifeCount = scope.Container
+                .Resolve<IWildlifeRuntime>()
+                .Wildlife
+                .Count(actor => actor != null && actor.IsAlive);
+            report.actualLivestockCount = scope.Container
+                .Resolve<IAnimalHusbandryRuntime>()
+                .Animals
+                .Count;
+            CaptureDeprivationSummary(scope, actors);
         }
         report.warningCount = warningCount;
         report.errorCount = errorCount;
         report.logMessages = capturedMessages.ToArray();
+    }
+
+    private void CaptureDeprivationSummary(
+        DungeonRuntimeLifetimeScope scope,
+        IReadOnlyList<CharacterActor> actors)
+    {
+        ICharacterDeprivationRuntime deprivationRuntime =
+            scope.Container.Resolve<ICharacterDeprivationRuntime>();
+        IWorldItemStackRuntime itemRuntime =
+            scope.Container.Resolve<IWorldItemStackRuntime>();
+        var waterCandidates = new List<WorldItemStockCandidate>();
+        itemRuntime.CopyAvailableStockCandidates(
+            StockCategory.Water,
+            waterCandidates);
+
+        float totalThirst = 0f;
+        int actorCount = 0;
+        report.minimumThirst = 100f;
+        report.maximumThirst = 0f;
+        report.actorsBelowSafeDrinkThreshold = 0;
+        report.actorsWithCriticalThirst = 0;
+        report.actorsWithThirstWarningBurden = 0;
+        report.actorsWithThirstBreakdownBurden = 0;
+        report.activeDeprivationBreakdowns = 0;
+        report.activeDesperateDrinkBreakdowns = 0;
+        CharacterDeprivationDiagnosticsSnapshot deprivationDiagnostics =
+            deprivationRuntime.GetDiagnostics();
+        report.safeReliefRequests =
+            deprivationDiagnostics.SafeReliefRequests;
+        report.safeReliefPlanFailures =
+            deprivationDiagnostics.SafeReliefPlanFailures;
+        report.safeReliefActionsStarted =
+            deprivationDiagnostics.SafeReliefActionsStarted;
+        report.safeReliefStoredStackPlans =
+            deprivationDiagnostics.SafeReliefStoredStackPlans;
+        report.safeReliefMoveFailures =
+            deprivationDiagnostics.SafeReliefMoveFailures;
+        report.safeReliefBreakdownMoveFailures =
+            deprivationDiagnostics.SafeReliefBreakdownMoveFailures;
+        report.safeReliefBlockedMoveFailures =
+            deprivationDiagnostics.SafeReliefBlockedMoveFailures;
+        report.safeReliefOtherMoveFailures =
+            deprivationDiagnostics.SafeReliefOtherMoveFailures;
+        report.safeReliefStaleStartFailures =
+            deprivationDiagnostics.SafeReliefStaleStartFailures;
+        report.safeReliefWallBlockedFailures =
+            deprivationDiagnostics.SafeReliefWallBlockedFailures;
+        report.safeReliefDoorDeniedFailures =
+            deprivationDiagnostics.SafeReliefDoorDeniedFailures;
+        report.safeReliefDefenseReservationFailures =
+            deprivationDiagnostics.SafeReliefDefenseReservationFailures;
+        report.safeReliefTraversalChangedFailures =
+            deprivationDiagnostics.SafeReliefTraversalChangedFailures;
+        report.safeReliefArrivals =
+            deprivationDiagnostics.SafeReliefArrivals;
+        report.safeReliefInteractionAttempts =
+            deprivationDiagnostics.SafeReliefInteractionAttempts;
+        report.safeReliefSuccesses =
+            deprivationDiagnostics.SafeReliefSuccesses;
+        report.safeReliefRunningActions =
+            deprivationDiagnostics.SafeReliefRunningActions;
+        report.safeReliefActionsFinished =
+            deprivationDiagnostics.SafeReliefActionsFinished;
+        report.safeReliefPlannedPathSteps =
+            deprivationDiagnostics.SafeReliefPlannedPathSteps;
+        report.safeReliefAveragePlannedPathSteps =
+            deprivationDiagnostics.SafeReliefActionsStarted > 0
+                ? (float)deprivationDiagnostics.SafeReliefPlannedPathSteps
+                    / deprivationDiagnostics.SafeReliefActionsStarted
+                : 0f;
+        report.safeReliefMaximumPlannedPathSteps =
+            deprivationDiagnostics.SafeReliefMaximumPlannedPathSteps;
+        report.safeReliefAverageDurationSeconds =
+            deprivationDiagnostics.SafeReliefActionsFinished > 0
+                ? deprivationDiagnostics.SafeReliefCompletedDurationSeconds
+                    / deprivationDiagnostics.SafeReliefActionsFinished
+                : 0f;
+        report.safeReliefMaximumDurationSeconds =
+            deprivationDiagnostics.SafeReliefMaximumDurationSeconds;
+        report.safeReliefCancelledMoveFailures =
+            deprivationDiagnostics.SafeReliefCancelledMoveFailures;
+        report.safeReliefMissingPathFailures =
+            deprivationDiagnostics.SafeReliefMissingPathFailures;
+        report.safeReliefMissingMovementHandlerFailures =
+            deprivationDiagnostics.SafeReliefMissingMovementHandlerFailures;
+        report.safeReliefGridUnavailableFailures =
+            deprivationDiagnostics.SafeReliefGridUnavailableFailures;
+        report.safeReliefInvalidSpeedFailures =
+            deprivationDiagnostics.SafeReliefInvalidSpeedFailures;
+        report.safeReliefNoFailureReasonFailures =
+            deprivationDiagnostics.SafeReliefNoFailureReasonFailures;
+        report.safeReliefActorDeadMoveFailures =
+            deprivationDiagnostics.SafeReliefActorDeadMoveFailures;
+        report.safeReliefActorMissingMoveFailures =
+            deprivationDiagnostics.SafeReliefActorMissingMoveFailures;
+        report.safeReliefCrossFloorTargetPlans =
+            deprivationDiagnostics.SafeReliefCrossFloorTargetPlans;
+        report.safeReliefPathsWithVerticalTraversal =
+            deprivationDiagnostics.SafeReliefPathsWithVerticalTraversal;
+        report.safeReliefVerticalTraversalSteps =
+            deprivationDiagnostics.SafeReliefVerticalTraversalSteps;
+        report.desperateDrinkAttempts =
+            deprivationDiagnostics.DesperateDrinkAttempts;
+        report.desperateDrinkStackMoveFailures =
+            deprivationDiagnostics.DesperateDrinkStackMoveFailures;
+        report.desperateDrinkStackArrivals =
+            deprivationDiagnostics.DesperateDrinkStackArrivals;
+        report.desperateDrinkStackConsumptions =
+            deprivationDiagnostics.DesperateDrinkStackConsumptions;
+        report.waterStockCandidateCount = waterCandidates.Count;
+        report.storedWaterCandidateCount = 0;
+        report.looseWaterCandidateCount = 0;
+        report.storedWaterQuantity = 0;
+        report.looseWaterQuantity = 0;
+        report.availableWaterQuantity = 0;
+        report.waterCandidateCountByFloor =
+            new int[Mathf.Max(1, report.gridHeight)];
+        report.waterQuantityByFloor =
+            new int[report.waterCandidateCountByFloor.Length];
+        for (int index = 0; index < waterCandidates.Count; index++)
+        {
+            WorldItemStockCandidate candidate = waterCandidates[index];
+            int quantity = Mathf.Max(0, candidate.Quantity);
+            report.availableWaterQuantity += quantity;
+            if (candidate.Position.y >= 0
+                && candidate.Position.y
+                    < report.waterCandidateCountByFloor.Length)
+            {
+                report.waterCandidateCountByFloor[candidate.Position.y]++;
+                report.waterQuantityByFloor[candidate.Position.y] += quantity;
+            }
+            if (candidate.State == WorldItemStackState.Stored)
+            {
+                report.storedWaterCandidateCount++;
+                report.storedWaterQuantity += quantity;
+            }
+            else if (candidate.State == WorldItemStackState.Loose)
+            {
+                report.looseWaterCandidateCount++;
+                report.looseWaterQuantity += quantity;
+            }
+        }
+
+        for (int index = 0; index < actors.Count; index++)
+        {
+            CharacterActor actor = actors[index];
+            if (actor != null
+                && actor.gameObject.activeInHierarchy
+                && actor.IsDead)
+            {
+                report.deadActorCount++;
+            }
+            if (actor != null && actor.IsOwner)
+            {
+                report.ownerPresent = true;
+                report.ownerAlive = !actor.IsDead;
+            }
+            if (actor == null
+                || actor.IsDead
+                || !actor.gameObject.activeInHierarchy
+                || actor.Stats == null
+                || !actor.Stats.TryGetConditionValue(
+                    CharacterCondition.THIRST,
+                    out float thirst))
+            {
+                continue;
+            }
+
+            actorCount++;
+            totalThirst += thirst;
+            report.minimumThirst = Mathf.Min(report.minimumThirst, thirst);
+            report.maximumThirst = Mathf.Max(report.maximumThirst, thirst);
+            if (thirst < 65f)
+            {
+                report.actorsBelowSafeDrinkThreshold++;
+            }
+            if (thirst < 20f)
+            {
+                report.actorsWithCriticalThirst++;
+            }
+
+            if (!deprivationRuntime.TryGetSnapshot(
+                    actor,
+                    out CharacterDeprivationSnapshot snapshot))
+            {
+                continue;
+            }
+
+            if (snapshot.Burdens != null
+                && snapshot.Burdens.TryGetValue(
+                    DeprivationKind.Thirst,
+                    out float burden))
+            {
+                if (burden >= 40f)
+                {
+                    report.actorsWithThirstWarningBurden++;
+                }
+                if (burden >= 70f)
+                {
+                    report.actorsWithThirstBreakdownBurden++;
+                }
+            }
+
+            if (snapshot.Breakdown?.active == true)
+            {
+                report.activeDeprivationBreakdowns++;
+                if (snapshot.Breakdown.kind ==
+                    CharacterBreakdownKind.DesperateDrink)
+                {
+                    report.activeDesperateDrinkBreakdowns++;
+                }
+            }
+        }
+
+        report.averageThirst = actorCount > 0
+            ? totalThirst / actorCount
+            : 0f;
+        if (actorCount == 0)
+        {
+            report.minimumThirst = 0f;
+        }
     }
 
     private void ResetAiPerformanceRecorder()
@@ -1224,6 +2057,8 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         if (scope != null && scope.Container != null)
         {
             scope.Container.Resolve<ICharacterAiPerformanceRecorder>().Reset();
+            scope.Container.Resolve<ICharacterDeprivationRuntime>()
+                .ResetDiagnostics();
         }
     }
 
@@ -1246,6 +2081,7 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             $"GAMEPLAY_PERFORMANCE_PROFILE_COMPLETE {options.ProfileId} "
             + $"valid={report.valid} p95={report.frame.p95:F3}ms "
             + $"p99={report.frame.p99:F3}ms actors={report.actualActorCount} "
+            + $"livestock={report.actualLivestockCount} "
             + $"buildings={report.actualBuildingCount} report={options.ReportPath}");
 
         yield return new WaitForSecondsRealtime(Mathf.Max(2f, options.HoldSeconds));
@@ -1275,6 +2111,7 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         report.screenWidth = Screen.width;
         report.screenHeight = Screen.height;
         report.requestedActorCount = options.ActorCount;
+        report.requestedLivestockCount = options.LivestockCount;
         report.requestedFacilityCount = options.FacilityCount;
         report.requestedGridWidth = options.GridWidth;
         report.requestedGridHeight = options.GridHeight;
@@ -1288,6 +2125,8 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         report.measurementUsesNormalNewRun = true;
         report.measurementUsesRealCharacterPrefab = true;
         report.measurementUsesRealBuildingObjects = true;
+        report.measurementUsesRealWildlifeActors = true;
+        report.measurementUsesAnimalHusbandryRuntime = true;
     }
 
     private bool ValidateReport()
@@ -1305,6 +2144,14 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             return false;
         }
 
+        if (options.LivestockCount > 0
+            && (report.actualLivestockCount < options.LivestockCount
+                || report.actualStressLivestockCount < options.LivestockCount
+                || !report.meetsMixedPopulationTarget))
+        {
+            return false;
+        }
+
         return options.FacilityCount <= 0
             || report.actualDenseFacilityCount >= options.FacilityCount;
     }
@@ -1313,8 +2160,16 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
     {
         return $"samples={sampleCount}; errors={report.errorCount}; "
             + $"actors={report.actualActorCount}/{options.ActorCount}; "
+            + $"livestock={report.actualLivestockCount}/{options.LivestockCount}; "
             + $"facilities={report.actualDenseFacilityCount}/{options.FacilityCount}; "
-            + $"grid={report.gridWidth}x{report.gridHeight}";
+            + $"grid={report.gridWidth}x{report.gridHeight}; "
+            + $"frameP95={report.frame?.p95 ?? 0f:0.###}; "
+            + $"schedulerP95={report.aiBudget?.p95 ?? 0f:0.###}; "
+            + $"avgGcBytes={report.gc?.averageBytes ?? 0d:0}; "
+            + $"baselineGcBytes={report.editorBaselineGcAverageBytes:0}; "
+            + $"incrementalGcBytes={report.gameplayIncrementalGcAverageBytes:0}; "
+            + $"sustainedMonoGrowthBytes={report.sustainedMonoGrowthBytes}; "
+            + $"retainedMonoGrowthBytes={report.retainedMonoGrowthBytes}";
     }
 
     private void UnpauseGameplay()
@@ -1360,7 +2215,8 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             || definition.IsWall
             || definition.IsDoor
             || definition.sprite == null
-            || !definition.UsesIndependentRenderer
+            || (definition.Placement.Layer != GridLayer.Building
+                && !definition.UsesIndependentRenderer)
             || definition.type == null
             || !typeof(BuildableObject).IsAssignableFrom(definition.type))
         {
@@ -1368,7 +2224,8 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         }
 
         GridBuildingPlacement placement = definition.Placement;
-        bool isFacilityLayer = placement.Layer == GridLayer.WallFixture
+        bool isFacilityLayer = placement.Layer == GridLayer.Building
+            || placement.Layer == GridLayer.WallFixture
             || placement.Layer == GridLayer.CeilingFixture
             || placement.Layer == GridLayer.FloorOverlay;
         return isFacilityLayer
@@ -1377,10 +2234,157 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             && placement.Height == 1;
     }
 
+    private static IReadOnlyList<BuildingSO> SelectDenseFacilityDefinitions(
+        IEnumerable<BuildingSO> source,
+        int requestedCount)
+    {
+        List<BuildingSO> all = (source ?? Enumerable.Empty<BuildingSO>())
+            .Where(IsDenseFacilityDefinition)
+            .OrderBy(definition => definition.id)
+            .ToList();
+        int targetCount = Mathf.Clamp(requestedCount, 0, all.Count);
+        List<BuildingSO> selected = new List<BuildingSO>(targetCount);
+
+        AddFirstDenseFacility(
+            all,
+            selected,
+            definition =>
+                definition.GetAbility<BuildingStorageAbility>() != null);
+        AddFirstDenseFacility(
+            all,
+            selected,
+            definition =>
+                definition.GetAbility<BuildingWaterSourceAbility>() != null);
+        AddFirstDenseFacility(
+            all,
+            selected,
+            definition =>
+                definition.GetAbility<BuildingCropPlotAbility>() != null);
+        AddFirstDenseFacility(
+            all,
+            selected,
+            definition =>
+                definition.GetAbility<BuildingProductionAbility>() != null);
+        AddFirstDenseFacility(
+            all,
+            selected,
+            definition =>
+                definition.GetAbility<BuildingNeedRecoveryAbility>() != null);
+        AddFirstDenseFacility(
+            all,
+            selected,
+            definition =>
+                definition.GetAbility<BuildingButcherAbility>() != null);
+
+        int sampleIndex = 0;
+        while (selected.Count < targetCount && sampleIndex < all.Count * 2)
+        {
+            int index = targetCount <= 1
+                ? 0
+                : Mathf.RoundToInt(
+                    (all.Count - 1)
+                    * (sampleIndex % targetCount)
+                    / (float)(targetCount - 1));
+            BuildingSO candidate = all[index];
+            if (!selected.Contains(candidate))
+            {
+                selected.Add(candidate);
+            }
+
+            sampleIndex++;
+        }
+
+        for (int index = 0;
+             index < all.Count && selected.Count < targetCount;
+             index++)
+        {
+            if (!selected.Contains(all[index]))
+            {
+                selected.Add(all[index]);
+            }
+        }
+
+        return selected;
+    }
+
+    private static List<BuildingSO> BuildDenseFacilityPlacementSequence(
+        IReadOnlyList<BuildingSO> source)
+    {
+        if (source == null || source.Count == 0)
+        {
+            return new List<BuildingSO>();
+        }
+
+        BuildingSO water = source.FirstOrDefault(definition =>
+            definition?.GetAbility<BuildingWaterSourceAbility>() != null);
+        BuildingSO storage = source.FirstOrDefault(definition =>
+            definition?.GetAbility<BuildingStorageAbility>() != null);
+        List<BuildingSO> remaining = source
+            .Where(definition =>
+                definition != null
+                && definition != water
+                && definition != storage)
+            .ToList();
+        if (remaining.Count == 0)
+        {
+            remaining.AddRange(source.Where(definition => definition != null));
+        }
+
+        const int SequenceLength = 16;
+        List<BuildingSO> sequence =
+            new List<BuildingSO>(SequenceLength);
+        int remainingIndex = 0;
+        for (int slot = 0; slot < SequenceLength; slot++)
+        {
+            bool waterSlot = slot == 0 || slot == 5 || slot == 10 || slot == 15;
+            bool storageSlot = slot == 4 || slot == 12;
+            if (waterSlot && water != null)
+            {
+                sequence.Add(water);
+                continue;
+            }
+
+            if (storageSlot && storage != null)
+            {
+                sequence.Add(storage);
+                continue;
+            }
+
+            sequence.Add(remaining[remainingIndex % remaining.Count]);
+            remainingIndex++;
+        }
+
+        return sequence;
+    }
+
+    private static void AddFirstDenseFacility(
+        IReadOnlyList<BuildingSO> source,
+        ICollection<BuildingSO> destination,
+        Func<BuildingSO, bool> predicate)
+    {
+        for (int index = 0; index < source.Count; index++)
+        {
+            BuildingSO candidate = source[index];
+            if (predicate(candidate) && !destination.Contains(candidate))
+            {
+                destination.Add(candidate);
+                return;
+            }
+        }
+    }
+
     private BuildingSO CloneWithoutRoomRequirement(BuildingSO source)
     {
         BuildingSO clone = CloneDefinition(source);
         clone.AbilityModules.Remove<BuildingRoomRequirementAbility>();
+        BuildingStorageAbility storage =
+            clone.GetAbility<BuildingStorageAbility>();
+        if (storage != null)
+        {
+            storage.allCategories = true;
+            storage.capacity = Mathf.Max(storage.capacity, 512);
+        }
+
         return clone;
     }
 
@@ -1420,6 +2424,15 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         scope.Container.Inject(building);
         building.SetGrid(grid);
         building.Initialization(definition, position);
+        if (building is IWarehouseFacility warehouse
+            && warehouse.HasWarehouseInventory
+            && warehouse.Inventory != null)
+        {
+            WarehouseInventorySnapshot emptyInventory =
+                warehouse.Inventory.CreateSnapshot();
+            emptyInventory.stocks.Clear();
+            warehouse.Inventory.ApplySnapshot(emptyInventory);
+        }
         if (grid.RegisterOccupant(
                 building,
                 definition.Placement.Layer,
@@ -1447,6 +2460,7 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
 
     private static void RegisterTraversalColumn(Grid grid, int x, int floorCount)
     {
+        PerformanceStairOccupant stair = new PerformanceStairOccupant();
         for (int y = 0; y < floorCount; y++)
         {
             List<GridTraversalLink> links = new List<GridTraversalLink>(2);
@@ -1454,7 +2468,7 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             {
                 links.Add(new GridTraversalLink(
                     new Vector2Int(x, y - 1),
-                    null,
+                    stair,
                     GridMoveType.Stair));
             }
 
@@ -1462,7 +2476,7 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             {
                 links.Add(new GridTraversalLink(
                     new Vector2Int(x, y + 1),
-                    null,
+                    stair,
                     GridMoveType.Stair));
             }
 
@@ -1530,6 +2544,28 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         }
 
         return result;
+    }
+
+    private static long AverageWindow(
+        long[] values,
+        int count,
+        int start,
+        int length)
+    {
+        if (values == null || count <= 0 || length <= 0)
+        {
+            return 0L;
+        }
+
+        int from = Mathf.Clamp(start, 0, count - 1);
+        int to = Mathf.Clamp(from + length, from + 1, count);
+        decimal sum = 0m;
+        for (int index = from; index < to; index++)
+        {
+            sum += Math.Max(0L, values[index]);
+        }
+
+        return (long)(sum / Mathf.Max(1, to - from));
     }
 
     private static bool HasCommandLineArgument(string argument)
@@ -1620,6 +2656,51 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         public bool IsGridMovement => false;
     }
 
+    private sealed class PerformanceStairOccupant :
+        IGridOccupant,
+        IGridMovementOccupant,
+        IGridMovementHandler,
+        IGridTraversalCostProvider
+    {
+        private static int nextId = -600000;
+        private readonly int id = nextId--;
+
+        public int GridId => id;
+        public bool IsGridDestroyed => false;
+        public bool IsGridVisitable => true;
+        public bool IsGridMovement => true;
+        public GridMoveType GridMoveType => GridMoveType.Stair;
+
+        public int GetTraversalCostUnits()
+        {
+            return DefaultGridTraversalCostPolicy.StairFallbackCost;
+        }
+
+        public IEnumerator Traverse(CharacterActor actor, GridMoveStep step)
+        {
+            if (actor == null || !step.IsValid)
+            {
+                yield break;
+            }
+
+            AbilityMove movement = actor.GetAbility<AbilityMove>();
+            if (movement == null)
+            {
+                yield break;
+            }
+
+            actor.HideForTraversal(5f);
+            try
+            {
+                yield return movement.Move2GridPosition(step.To);
+            }
+            finally
+            {
+                actor.RestoreTraversalVisibility();
+            }
+        }
+    }
+
     [Serializable]
     private sealed class GameplayPerformanceReport
     {
@@ -1639,13 +2720,85 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         public bool characterPresentationDisabled;
         public bool characterStatsUpdatesDisabled;
         public int requestedActorCount;
+        public int requestedLivestockCount;
         public int requestedFacilityCount;
         public int requestedGridWidth;
         public int requestedGridHeight;
         public int requestedActiveFloors;
         public float requestedSimulationSpeed;
+        public int normalOperationSupplyDays;
+        public int normalOperationWarehouseCount;
+        public int seededWarehouseFoodAmount;
+        public int seededWarehouseWaterAmount;
+        public int seededLooseFoodAmount;
+        public int seededLooseWaterAmount;
+        public int seededFoodAmount;
+        public int seededWaterAmount;
+        public int waterStockCandidateCount;
+        public int storedWaterCandidateCount;
+        public int looseWaterCandidateCount;
+        public int storedWaterQuantity;
+        public int looseWaterQuantity;
+        public int availableWaterQuantity;
+        public int[] waterCandidateCountByFloor;
+        public int[] waterQuantityByFloor;
+        public float minimumThirst;
+        public float averageThirst;
+        public float maximumThirst;
+        public int actorsBelowSafeDrinkThreshold;
+        public int actorsWithCriticalThirst;
+        public int actorsWithThirstWarningBurden;
+        public int actorsWithThirstBreakdownBurden;
+        public int activeDeprivationBreakdowns;
+        public int activeDesperateDrinkBreakdowns;
+        public int safeReliefRequests;
+        public int safeReliefPlanFailures;
+        public int safeReliefActionsStarted;
+        public int safeReliefStoredStackPlans;
+        public int safeReliefMoveFailures;
+        public int safeReliefBreakdownMoveFailures;
+        public int safeReliefBlockedMoveFailures;
+        public int safeReliefOtherMoveFailures;
+        public int safeReliefStaleStartFailures;
+        public int safeReliefWallBlockedFailures;
+        public int safeReliefDoorDeniedFailures;
+        public int safeReliefDefenseReservationFailures;
+        public int safeReliefTraversalChangedFailures;
+        public int safeReliefArrivals;
+        public int safeReliefInteractionAttempts;
+        public int safeReliefSuccesses;
+        public int safeReliefRunningActions;
+        public int safeReliefActionsFinished;
+        public long safeReliefPlannedPathSteps;
+        public float safeReliefAveragePlannedPathSteps;
+        public int safeReliefMaximumPlannedPathSteps;
+        public float safeReliefAverageDurationSeconds;
+        public float safeReliefMaximumDurationSeconds;
+        public int safeReliefCancelledMoveFailures;
+        public int safeReliefMissingPathFailures;
+        public int safeReliefMissingMovementHandlerFailures;
+        public int safeReliefGridUnavailableFailures;
+        public int safeReliefInvalidSpeedFailures;
+        public int safeReliefNoFailureReasonFailures;
+        public int safeReliefActorDeadMoveFailures;
+        public int safeReliefActorMissingMoveFailures;
+        public int safeReliefCrossFloorTargetPlans;
+        public int safeReliefPathsWithVerticalTraversal;
+        public long safeReliefVerticalTraversalSteps;
+        public int desperateDrinkAttempts;
+        public int desperateDrinkStackMoveFailures;
+        public int desperateDrinkStackArrivals;
+        public int desperateDrinkStackConsumptions;
         public int actualActorCount;
+        public int deadActorCount;
+        public bool ownerPresent;
+        public bool ownerAlive;
         public int actualStressActorCount;
+        public int preexistingSkillGenerationRequestsCancelled;
+        public bool syntheticSkillGenerationRequestsCancelled;
+        public int actualWildlifeCount;
+        public int actualLivestockCount;
+        public int actualStressLivestockCount;
         public int actualBuildingCount;
         public int actualDenseFacilityCount;
         public int actualDenseDoorCount;
@@ -1689,14 +2842,27 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         public int framesOver33_33Ms;
         public long monoUsedBytesAtStart;
         public long monoUsedBytesAtEnd;
+        public long monoUsedBytesAfterStartCollection;
+        public long monoUsedBytesAfterEndCollection;
         public long totalAllocatedBytesAtStart;
         public long totalAllocatedBytesAtEnd;
+        public long monoUsedFirstQuarterAverageBytes;
+        public long monoUsedLastQuarterAverageBytes;
+        public long sustainedMonoGrowthBytes;
+        public long retainedMonoGrowthBytes;
+        public double editorBaselineGcAverageBytes;
+        public double gameplayIncrementalGcAverageBytes;
         public int warningCount;
         public int errorCount;
         public bool valid;
         public bool meets60FpsP95;
         public bool meets60FpsP99;
         public bool meets60FpsEverySample;
+        public bool meetsSchedulerP95Target;
+        public bool meetsAverageGcTarget;
+        public bool meetsMemoryGrowthTarget;
+        public bool meetsMixedPopulationTarget;
+        public bool usesEditorBaselineAdjustedGcTarget;
         public bool vSyncDisabled;
         public int targetFrameRate;
         public bool measurementIncludesRendering;
@@ -1705,6 +2871,8 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         public bool measurementUsesNormalNewRun;
         public bool measurementUsesRealCharacterPrefab;
         public bool measurementUsesRealBuildingObjects;
+        public bool measurementUsesRealWildlifeActors;
+        public bool measurementUsesAnimalHusbandryRuntime;
         public string failureReason;
         public string[] logMessages;
         public FrameMetric frame;
@@ -1729,6 +2897,7 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
         public float profilerFrameMilliseconds;
         public int profilerFrameIndex;
         public SlowFrameSample[] samples;
+        public SlowFrameAllocation[] allocations;
     }
 
     [Serializable]
@@ -1743,6 +2912,13 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
     {
         public string name;
         public float milliseconds;
+    }
+
+    [Serializable]
+    private sealed class SlowFrameAllocation
+    {
+        public string path;
+        public long bytes;
     }
 
     [Serializable]
@@ -1858,10 +3034,12 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
     {
         public string ProfileId { get; private set; } = "actual-gameplay";
         public int ActorCount { get; private set; }
+        public int LivestockCount { get; private set; }
         public int FacilityCount { get; private set; }
         public int GridWidth { get; private set; } = 60;
         public int GridHeight { get; private set; } = 3;
         public int ActiveFloors { get; private set; } = 3;
+        public int NormalOperationSupplyDays { get; private set; }
         public float SimulationSpeed { get; private set; } = 1f;
         public int RoomSpan { get; private set; } = 16;
         public int WarmupFrames { get; private set; } = DefaultWarmupFrames;
@@ -1895,7 +3073,9 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
             bool disableAiScheduler,
             bool disableCharacterPresentation,
             bool disableCharacterStatsUpdates,
-            bool captureRawProfiler)
+            bool captureRawProfiler,
+            int livestockCount,
+            int normalOperationSupplyDays)
         {
             return new GameplayPerformanceOptions
             {
@@ -1903,10 +3083,15 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
                     ? "editor-gameplay"
                     : profileId,
                 ActorCount = Mathf.Clamp(actorCount, 0, 5000),
+                LivestockCount = Mathf.Clamp(livestockCount, 0, 5000),
                 FacilityCount = Mathf.Clamp(facilityCount, 0, 100000),
                 GridWidth = Mathf.Clamp(gridWidth, 1, 1024),
                 GridHeight = Mathf.Clamp(gridHeight, 1, 1024),
                 ActiveFloors = Mathf.Clamp(activeFloors, 1, Mathf.Max(1, gridHeight)),
+                NormalOperationSupplyDays = Mathf.Clamp(
+                    normalOperationSupplyDays,
+                    0,
+                    30),
                 SimulationSpeed = Mathf.Clamp(simulationSpeed, 0.1f, 5f),
                 RoomSpan = 16,
                 WarmupFrames = Mathf.Clamp(warmupFrames, 1, 3600),
@@ -1936,6 +3121,12 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
                 0,
                 0,
                 5000);
+            options.LivestockCount = ReadInt(
+                arguments,
+                "-performance-livestock",
+                0,
+                0,
+                5000);
             options.FacilityCount = ReadInt(
                 arguments,
                 "-performance-facilities",
@@ -1960,6 +3151,12 @@ public sealed class DungeonGameplayPerformanceProbe : MonoBehaviour
                 options.ActiveFloors,
                 1,
                 options.GridHeight);
+            options.NormalOperationSupplyDays = ReadInt(
+                arguments,
+                "-performance-supply-days",
+                0,
+                0,
+                30);
             options.SimulationSpeed = ReadFloat(
                 arguments,
                 "-performance-simulation-speed",

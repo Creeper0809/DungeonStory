@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: medicine_herbal_poultice
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8080
+  itemId: medicine:herbal-poultice
+  displayName: "\uC57D\uCD08 \uCC1C\uC9C8\uC57D"
+  description: "\uAC00\uBCBC\uC6B4 \uBD80\uC0C1\uC5D0 \uC4F0\uB294 \uAE30\uBCF8 \uC57D\uD488."
+  stockCategory: 5
+  kind: 3
+  ingredientTags: 1
+  unitPrice: 8
+  unitWeight: 0.2
+  maxStack: 50
+  sprite: {fileID: 0}
+  requiredResearchId: research:pharmacology:herbalism
+  mealQuality: 0
+  nutrition: 0
+  mealMood: 0
+  freshnessSeconds: 0
+  preserved: 0
+  supportsInjuryTreatment: 1
+  treatmentPotency: 0.72
+  infectionReduction: 2
+  detoxReduction: 0
+  painReduction: 4

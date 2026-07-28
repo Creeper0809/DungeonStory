@@ -103,6 +103,43 @@ public interface IFeatureSurfaceTabPresenter
     void Present(IFeatureSurfaceView view);
 }
 
+public sealed class FeatureSurfaceStepper
+{
+    public FeatureSurfaceStepper(
+        string id,
+        string label,
+        string value,
+        Action decrease,
+        Action increase)
+    {
+        Id = id ?? string.Empty;
+        Label = label ?? string.Empty;
+        Value = value ?? string.Empty;
+        Decrease = decrease;
+        Increase = increase;
+    }
+
+    public string Id { get; }
+    public string Label { get; }
+    public string Value { get; }
+    public Action Decrease { get; }
+    public Action Increase { get; }
+}
+
+public sealed class FeatureSurfaceAction
+{
+    public FeatureSurfaceAction(string id, string label, Action execute)
+    {
+        Id = id ?? string.Empty;
+        Label = label ?? string.Empty;
+        Execute = execute;
+    }
+
+    public string Id { get; }
+    public string Label { get; }
+    public Action Execute { get; }
+}
+
 public interface IFeatureSurfaceView
 {
     void AddSection(string title, string summary);
@@ -113,6 +150,13 @@ public interface IFeatureSurfaceView
         string detail,
         string buttonText,
         Action onClick,
+        float height);
+    void AddControlCard(
+        string actionName,
+        string title,
+        string detail,
+        IReadOnlyList<FeatureSurfaceStepper> steppers,
+        IReadOnlyList<FeatureSurfaceAction> actions,
         float height);
     void ShowFeedback(string message);
     void RequestRefresh();

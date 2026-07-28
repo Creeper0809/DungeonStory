@@ -197,24 +197,14 @@ public sealed class DungeonResolutionVerificationRunner : MonoBehaviour
 
     private IEnumerator EnsurePlayableRun()
     {
-        Button continueButton = FindSceneButton("ContinueLatestButton");
-        if (continueButton != null && continueButton.gameObject.activeInHierarchy && continueButton.interactable)
+        DungeonSceneNavigator navigator = new DungeonSceneNavigator();
+        if (!navigator.StartNewGameDirectForDebug(DungeonDifficulty.Normal))
         {
-            PressButton(continueButton);
-        }
-        else
-        {
-            Button startNewButton = FindSceneButton("StartNewRunButton");
-            if (startNewButton != null && startNewButton.interactable)
-            {
-                PressButton(startNewButton);
-                yield return null;
-                if (SceneManager.GetActiveScene().name == DungeonSceneNavigator.TitleSceneName
-                    && startNewButton.gameObject.activeInHierarchy)
-                {
-                    PressButton(startNewButton);
-                }
-            }
+            Check(
+                false,
+                "GAME_LAUNCH",
+                "debug new-run transition could not start");
+            yield break;
         }
 
         float sceneDeadline = Time.realtimeSinceStartup + 10f;

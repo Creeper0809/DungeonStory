@@ -230,6 +230,88 @@ public static class CombatEquipmentAssetBuilder
         serialized.FindProperty("weight").floatValue = weight;
         serialized.FindProperty("occupiedHands").intValue = hands;
         serialized.FindProperty("maxDurability").floatValue = durability;
+        SetMaterialRules(serialized, id, weight);
+    }
+
+    private static void SetMaterialRules(
+        SerializedObject serialized,
+        string equipmentId,
+        float weight)
+    {
+        (string defaultMaterial, CombatMaterialFamily[] families) = equipmentId switch
+        {
+            "weapon:dagger" or "weapon:longsword" =>
+                ("material:iron", new[]
+                {
+                    CombatMaterialFamily.Bone,
+                    CombatMaterialFamily.Metal
+                }),
+            "weapon:spear" or "weapon:javelin" =>
+                ("material:wood", new[]
+                {
+                    CombatMaterialFamily.Wood,
+                    CombatMaterialFamily.Bone,
+                    CombatMaterialFamily.Metal
+                }),
+            "weapon:mace" or "weapon:throwing-axe" =>
+                ("material:iron", new[]
+                {
+                    CombatMaterialFamily.Stone,
+                    CombatMaterialFamily.Bone,
+                    CombatMaterialFamily.Metal
+                }),
+            "weapon:shortbow" or "weapon:longbow" =>
+                ("material:wood", new[]
+                {
+                    CombatMaterialFamily.Wood,
+                    CombatMaterialFamily.Bone
+                }),
+            "armor:cloth-hood" or "armor:gambeson" =>
+                ("material:cloth", new[]
+                {
+                    CombatMaterialFamily.Textile,
+                    CombatMaterialFamily.Leather
+                }),
+            "armor:leather-cap" or "armor:leather" =>
+                ("material:leather", new[]
+                {
+                    CombatMaterialFamily.Leather
+                }),
+            "armor:mail-coif" or "armor:mail-shirt"
+                or "armor:iron-helmet" or "armor:breastplate" =>
+                ("material:iron", new[]
+                {
+                    CombatMaterialFamily.Metal
+                }),
+            "shield:wood" =>
+                ("material:wood", new[]
+                {
+                    CombatMaterialFamily.Wood,
+                    CombatMaterialFamily.Bone,
+                    CombatMaterialFamily.Metal
+                }),
+            "shield:iron" =>
+                ("material:iron", new[]
+                {
+                    CombatMaterialFamily.Wood,
+                    CombatMaterialFamily.Bone,
+                    CombatMaterialFamily.Metal
+                }),
+            _ => ("material:iron", new[] { CombatMaterialFamily.Metal })
+        };
+
+        serialized.FindProperty("defaultMaterialId").stringValue =
+            defaultMaterial;
+        serialized.FindProperty("primaryMaterialAmount").intValue =
+            Mathf.Clamp(Mathf.CeilToInt(weight * 0.75f), 1, 10);
+        SerializedProperty allowed =
+            serialized.FindProperty("allowedMaterialFamilies");
+        allowed.arraySize = families.Length;
+        for (int index = 0; index < families.Length; index++)
+        {
+            allowed.GetArrayElementAtIndex(index).enumValueIndex =
+                (int)families[index];
+        }
     }
 
     private static void SetManagedList(SerializedProperty list, CombatAttackVerb verb)

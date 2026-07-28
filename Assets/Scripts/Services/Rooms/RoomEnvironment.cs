@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Profiling;
 using UnityEngine;
 
 public enum RoomEnvironmentStatus
@@ -113,6 +114,15 @@ public interface IRoomEnvironmentQuery
 
 public sealed class RoomEnvironmentQuery : IRoomEnvironmentQuery
 {
+    private static readonly ProfilerMarker ValidationMarker =
+        new ProfilerMarker("RoomEnvironment.Query.Validation");
+    private static readonly ProfilerMarker LayoutMarker =
+        new ProfilerMarker("RoomEnvironment.Query.Layout");
+    private static readonly ProfilerMarker CacheMarker =
+        new ProfilerMarker("RoomEnvironment.Query.Cache");
+    private static readonly ProfilerMarker EvaluateMarker =
+        new ProfilerMarker("RoomEnvironment.Query.Evaluate");
+
     private sealed class CachedSnapshot
     {
         public int GridVersion = -1;
@@ -121,14 +131,14 @@ public sealed class RoomEnvironmentQuery : IRoomEnvironmentQuery
         public RoomEnvironmentSnapshot Snapshot;
     }
 
-    private const int MaxCachedFacilities = 512;
+    private const int MaxCachedRooms = 256;
 
     private readonly IRoomLayoutCache roomLayoutCache;
     private readonly IRoomEnvironmentEvaluator evaluator;
     private readonly IFacilityCandidateCache facilityCandidateCache;
     private readonly IWorldFilthQuery worldFilthQuery;
-    private readonly Dictionary<BuildableObject, CachedSnapshot> cacheByFacility =
-        new Dictionary<BuildableObject, CachedSnapshot>();
+    private readonly Dictionary<RoomInstance, CachedSnapshot> cacheByRoom =
+        new Dictionary<RoomInstance, CachedSnapshot>();
 
     public RoomEnvironmentQuery(
         IRoomLayoutCache roomLayoutCache,
@@ -148,25 +158,40 @@ public sealed class RoomEnvironmentQuery : IRoomEnvironmentQuery
     public bool TryGetSnapshot(BuildableObject facility, out RoomEnvironmentSnapshot snapshot)
     {
         snapshot = null;
-        if (facility == null
-            || facility.isDestroy
-            || facility.Grid == null
-            || !roomLayoutCache.TryGetRoom(facility, out RoomInstance room)
-            || room == null
-            || room.IsSelfContained)
+        using (ValidationMarker.Auto())
         {
-            return false;
+            if (facility == null
+                || facility.isDestroy
+                || facility.Grid == null)
+            {
+                return false;
+            }
         }
 
-        if (!cacheByFacility.TryGetValue(facility, out CachedSnapshot cache))
+        RoomInstance room;
+        using (LayoutMarker.Auto())
         {
-            if (cacheByFacility.Count >= MaxCachedFacilities)
+            if (!roomLayoutCache.TryGetRoom(facility, out room)
+                || room == null
+                || room.IsSelfContained)
             {
-                cacheByFacility.Clear();
+                return false;
             }
+        }
 
-            cache = new CachedSnapshot();
-            cacheByFacility[facility] = cache;
+        CachedSnapshot cache;
+        using (CacheMarker.Auto())
+        {
+            if (!cacheByRoom.TryGetValue(room, out cache))
+            {
+                if (cacheByRoom.Count >= MaxCachedRooms)
+                {
+                    cacheByRoom.Clear();
+                }
+
+                cache = new CachedSnapshot();
+                cacheByRoom[room] = cache;
+            }
         }
 
         int gridVersion = facility.Grid.version;
@@ -180,7 +205,10 @@ public sealed class RoomEnvironmentQuery : IRoomEnvironmentQuery
             cache.GridVersion = gridVersion;
             cache.FacilityStateVersion = stateVersion;
             cache.FilthVersion = filthVersion;
-            cache.Snapshot = evaluator.Evaluate(facility.Grid, room);
+            using (EvaluateMarker.Auto())
+            {
+                cache.Snapshot = evaluator.Evaluate(facility.Grid, room);
+            }
         }
 
         snapshot = cache.Snapshot;
@@ -278,7 +306,7 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
         }
 
         RoomEnvironmentSettingsSO settings = settingsProvider.Settings;
-        List<BuildableObject> fixtures = CollectInteriorFixtures(grid, room);
+        List<BuildableObject> fixtures = CollectInteriorFixtures(room);
         HashSet<Vector2Int> occupiedCells = CollectOccupiedCells(room, fixtures);
         List<RoomRoleContribution> contributions = BuildRoleContributions(room);
         ResolvePrimaryRole(contributions, out FacilityRole primaryRole, out bool usesMixedColor);
@@ -429,20 +457,28 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
             Mathf.Clamp(lighting, 0f, 100f));
     }
 
-    private static List<BuildableObject> CollectInteriorFixtures(Grid grid, RoomInstance room)
+    private static List<BuildableObject> CollectInteriorFixtures(RoomInstance room)
     {
-        HashSet<Vector2Int> roomCells = new HashSet<Vector2Int>(room.Cells);
-        return grid.FindAllOccupants(null)
-            .OfType<BuildableObject>()
-            .Where((fixture) => fixture != null
-                && !fixture.isDestroy
-                && fixture.BuildingData != null
-                && IsInteriorFixtureLayer(fixture.BuildingData.Placement.Layer)
-                && !RoomDetector.IsDoor(fixture)
-                && !RoomDetector.IsWall(fixture)
-                && GetBuildPositions(fixture).Any(roomCells.Contains))
-            .Distinct()
-            .ToList();
+        IReadOnlyList<BuildableObject> furniture = room.Furniture;
+        List<BuildableObject> result =
+            new List<BuildableObject>(furniture.Count);
+        for (int index = 0; index < furniture.Count; index++)
+        {
+            BuildableObject fixture = furniture[index];
+            if (fixture == null
+                || fixture.isDestroy
+                || fixture.BuildingData == null
+                || !IsInteriorFixtureLayer(fixture.BuildingData.Placement.Layer)
+                || RoomDetector.IsDoor(fixture)
+                || RoomDetector.IsWall(fixture))
+            {
+                continue;
+            }
+
+            result.Add(fixture);
+        }
+
+        return result;
     }
 
     private static bool IsInteriorFixtureLayer(GridLayer layer)
@@ -457,13 +493,25 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
         RoomInstance room,
         IReadOnlyList<BuildableObject> fixtures)
     {
-        HashSet<Vector2Int> roomCells = new HashSet<Vector2Int>(room.Cells);
         HashSet<Vector2Int> occupied = new HashSet<Vector2Int>();
-        foreach (BuildableObject fixture in fixtures)
+        for (int fixtureIndex = 0; fixtureIndex < fixtures.Count; fixtureIndex++)
         {
-            foreach (Vector2Int position in GetBuildPositions(fixture))
+            BuildableObject fixture = fixtures[fixtureIndex];
+            IReadOnlyList<Vector2Int> positions = fixture.buildPoses;
+            if (positions == null || positions.Count == 0)
             {
-                if (roomCells.Contains(position))
+                if (room.ContainsCell(fixture.centerPos))
+                {
+                    occupied.Add(fixture.centerPos);
+                }
+
+                continue;
+            }
+
+            for (int positionIndex = 0; positionIndex < positions.Count; positionIndex++)
+            {
+                Vector2Int position = positions[positionIndex];
+                if (room.ContainsCell(position))
                 {
                     occupied.Add(position);
                 }
@@ -473,24 +521,24 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
         return occupied;
     }
 
-    private static IEnumerable<Vector2Int> GetBuildPositions(BuildableObject fixture)
-    {
-        return fixture.buildPoses != null && fixture.buildPoses.Count > 0
-            ? fixture.buildPoses
-            : new[] { fixture.centerPos };
-    }
-
     private static List<RoomRoleContribution> BuildRoleContributions(RoomInstance room)
     {
         List<RoomRoleContribution> result = new List<RoomRoleContribution>();
         foreach (FacilityRoleDefinition definition in FacilityRoleCatalog.Enumerate(room.Roles))
         {
-            List<BuildableObject> fixtures = room.Furniture
-                .Where((fixture) => fixture != null
+            List<BuildableObject> fixtures = new List<BuildableObject>();
+            IReadOnlyList<BuildableObject> furniture = room.Furniture;
+            for (int index = 0; index < furniture.Count; index++)
+            {
+                BuildableObject fixture = furniture[index];
+                if (fixture != null
                     && !fixture.isDestroy
                     && fixture.SupportsFacilityRole(definition.Role))
-                .Distinct()
-                .ToList();
+                {
+                    fixtures.Add(fixture);
+                }
+            }
+
             result.Add(new RoomRoleContribution(definition.Role, fixtures));
         }
 

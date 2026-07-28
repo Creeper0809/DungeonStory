@@ -85,6 +85,7 @@ public static class PhysicalItemLogisticsPlayModeVerifier
 public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehaviour
 {
     private const string DaggerId = "weapon:dagger";
+    private const string BreastplateId = "armor:breastplate";
     private const float HaulTimeoutSeconds = 18f;
 
     private readonly List<string> report = new List<string>();
@@ -121,6 +122,10 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         itemRuntime = Resolve<IWorldItemStackRuntime>(scope);
         IWorkOrderRuntime workOrderRuntime = Resolve<IWorkOrderRuntime>(scope);
         ICombatEquipmentRuntime equipment = Resolve<ICombatEquipmentRuntime>(scope);
+        ICombatEquipmentMaintenanceRuntime equipmentMaintenance =
+            Resolve<ICombatEquipmentMaintenanceRuntime>(scope);
+        IResourceEconomyContentCatalog economyCatalog =
+            Resolve<IResourceEconomyContentCatalog>(scope);
         IOffensePreparationService preparation = Resolve<IOffensePreparationService>(scope);
         GridSystemManager gridSystem = UnityEngine.Object.FindFirstObjectByType<GridSystemManager>();
         Grid grid = gridSystem != null ? gridSystem.grid : null;
@@ -129,9 +134,20 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         Check(itemRuntime != null, "ITEM_RUNTIME_READY", "world item runtime resolved");
         Check(workOrderRuntime != null, "WORK_ORDER_RUNTIME_READY", "work order runtime resolved");
         Check(equipment != null, "EQUIPMENT_RUNTIME_READY", "common combat equipment runtime resolved");
+        Check(equipmentMaintenance != null,
+            "EQUIPMENT_MAINTENANCE_READY",
+            "equipment maintenance runtime resolved");
+        Check(economyCatalog != null, "ECONOMY_CATALOG_READY", "resource economy catalog resolved");
         Check(preparation != null, "PREPARATION_RUNTIME_READY", "offense preparation service resolved");
         Check(grid != null, "GRID_READY", "grid resolved");
-        if (scope == null || itemRuntime == null || workOrderRuntime == null || equipment == null || preparation == null || grid == null)
+        if (scope == null
+            || itemRuntime == null
+            || workOrderRuntime == null
+            || equipment == null
+            || equipmentMaintenance == null
+            || economyCatalog == null
+            || preparation == null
+            || grid == null)
         {
             Finish();
             yield break;
@@ -186,6 +202,15 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                     && warehouse.Inventory.Deposit(StockCategory.Food, 5) == 5,
                 "TEMP_WAREHOUSE_SEEDED",
                 $"food={warehouse.Inventory.GetStock(StockCategory.Food)}; general={warehouse.Inventory.GetStock(StockCategory.General)}; weapon={warehouse.Inventory.GetStock(StockCategory.Weapon)}");
+            Check(SeedStoredCraftMaterial(
+                    itemRuntime,
+                    economyCatalog,
+                    warehouse,
+                    "material:iron",
+                    6,
+                    out string materialSeedDetails),
+                "TEMP_WAREHOUSE_IRON_SEEDED",
+                materialSeedDetails);
             warehouse.Inventory.Withdraw(StockCategory.Food, 5);
 
             yield return VerifyLooseStackToWarehouse(itemRuntime, grid, hauler, warehouse, positions[2]);
@@ -199,6 +224,16 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 warehouse,
                 positions[2]);
             yield return VerifyCraftMaterialsOutputAndEquipmentDeposit(itemRuntime, equipment, hauler, warehouse, bench);
+            yield return VerifyMaterialRepairAndSalvage(
+                itemRuntime,
+                equipment,
+                equipmentMaintenance,
+                economyCatalog,
+                scope,
+                grid,
+                hauler,
+                warehouse,
+                warehouse.centerPos);
             VerifyExpeditionPacking(preparation, itemRuntime, warehouse);
             yield return VerifyCarryUi(itemRuntime, hauler);
         }
@@ -480,8 +515,11 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 && string.Equals(item.definitionId, DaggerId, StringComparison.Ordinal)
                 && !item.materialsReady);
         Check(order != null
+                && string.Equals(order.materialId, "material:iron", StringComparison.Ordinal)
                 && !string.IsNullOrWhiteSpace(order.materialDestinationId)
                 && itemRuntime.GetAllStacks().Any(stack =>
+                    string.Equals(stack.ItemId, "material:iron-ingot", StringComparison.Ordinal)
+                    &&
                     stack.HasDestinationPosition
                     && string.Equals(stack.DestinationId, order.materialDestinationId, StringComparison.Ordinal)),
             "CRAFT_MATERIAL_STACK_CREATED",
@@ -520,6 +558,16 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         Check(output != null,
             "CRAFT_OUTPUT_WORLD_STACK_CREATED",
             output != null ? $"stack={output.StackId}; pos={output.Position}" : "missing output stack");
+        Check(output != null
+                && equipment.TryGetInstanceBySourceStack(
+                    output.StackId,
+                    out CombatEquipmentInstance crafted)
+                && string.Equals(
+                    crafted.materialId,
+                    "material:iron",
+                    StringComparison.Ordinal),
+            "CRAFT_OUTPUT_RETAINED_SELECTED_MATERIAL",
+            output != null ? $"stack={output.StackId}" : "missing output stack");
 
         action = ScriptableObject.CreateInstance<AIHaul>();
         try
@@ -536,6 +584,262 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         Check(inventoryAfter == inventoryBefore + 1,
             "AI_HAUL_DEPOSITED_EQUIPMENT_TO_INVENTORY",
             $"Dagger={inventoryBefore}->{inventoryAfter}; warehouseWeapon={warehouse.Inventory.GetStock(StockCategory.Weapon)}");
+    }
+
+    private IEnumerator VerifyMaterialRepairAndSalvage(
+        IWorldItemStackRuntime itemRuntime,
+        ICombatEquipmentRuntime equipment,
+        ICombatEquipmentMaintenanceRuntime maintenance,
+        IResourceEconomyContentCatalog economyCatalog,
+        DungeonRuntimeLifetimeScope scope,
+        Grid grid,
+        CharacterActor hauler,
+        Facility warehouse,
+        Vector2Int facilityPosition)
+    {
+        BuildingSO maintenanceAsset = CreateMaintenanceAsset();
+        Facility maintenanceFacility = CreateInjectedFacility(
+            scope,
+            grid,
+            maintenanceAsset,
+            facilityPosition,
+            "QA_Material_Equipment_Maintenance");
+        try
+        {
+            Check(maintenanceFacility != null
+                    && CombatEquipmentMaintenanceFacilityUtility.IsMaintenanceFacility(
+                        maintenanceFacility),
+                "MATERIAL_REPAIR_FACILITY_READY",
+                maintenanceFacility != null
+                    ? $"pos={maintenanceFacility.centerPos}"
+                    : "missing maintenance facility");
+            if (maintenanceFacility == null
+                || !economyCatalog.TryGetMaterial(
+                    "material:blacksteel",
+                    out CraftMaterialDefinitionSO blacksteel))
+            {
+                yield break;
+            }
+
+            Check(SeedStoredCraftMaterial(
+                    itemRuntime,
+                    economyCatalog,
+                    warehouse,
+                    "material:blacksteel",
+                    8,
+                    out string seedDetails),
+                "MATERIAL_REPAIR_STOCK_SEEDED",
+                seedDetails);
+
+            CombatEquipmentInstance armor = equipment.CreateInstance(
+                BreastplateId,
+                CombatEquipmentQuality.Normal,
+                CombatEquipmentWorldState.Stored,
+                "material:blacksteel");
+            string warehouseDestinationId =
+                $"{WorldItemStackRuntime.WarehouseStorageDestinationPrefix}"
+                + $"{warehouse.GridId}:{warehouse.centerPos.x}:{warehouse.centerPos.y}";
+            bool stackSpawned = itemRuntime.SpawnUniqueItemAt(
+                DungeonItemCatalogSO.EquipmentItemId(BreastplateId),
+                warehouse.centerPos,
+                WorldItemStackState.Stored,
+                warehouseDestinationId,
+                out string armorStackId);
+            Check(stackSpawned
+                    && equipment.TryLinkToWorldStack(
+                        armor.instanceId,
+                        armorStackId,
+                        CombatEquipmentWorldState.Stored)
+                    && equipment.TryGetDerivedStats(
+                        armor.instanceId,
+                        out CombatEquipmentDerivedStats armorStats)
+                    && equipment.TryApplyDurabilityDamage(
+                        armor.instanceId,
+                        armorStats.MaxDurability * 0.6f),
+                "MATERIAL_REPAIR_ARMOR_DAMAGED",
+                $"instance={armor.instanceId}; material={armor.materialId}");
+
+            Check(maintenance.TryRequestManualRepair(
+                    armor.instanceId,
+                    out string repairMessage),
+                "MATERIAL_REPAIR_ORDER_CREATED",
+                repairMessage);
+            CombatEquipmentRepairOrder order = maintenance.Orders.FirstOrDefault(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.equipmentInstanceId,
+                    armor.instanceId,
+                    StringComparison.Ordinal));
+            Check(order != null
+                    && string.Equals(
+                        order.materialItemId,
+                        blacksteel.ItemId,
+                        StringComparison.Ordinal)
+                    && order.requiredMaterialAmount > 0,
+                "MATERIAL_REPAIR_REQUIRES_ORIGINAL_MATERIAL",
+                order != null
+                    ? $"item={order.materialItemId}; amount={order.requiredMaterialAmount}"
+                    : "missing repair order");
+            if (order == null)
+            {
+                yield break;
+            }
+
+            bool repairEquipmentDestinationReady =
+                equipment.TryGetInstance(
+                    armor.instanceId,
+                    out CombatEquipmentInstance repairInstance)
+                && itemRuntime.GetAllStacks().Any(stack =>
+                    stack != null
+                    && string.Equals(
+                        stack.StackId,
+                        repairInstance.sourceStackId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.DestinationId,
+                        order.facilityDestinationId,
+                        StringComparison.Ordinal)
+                    && stack.HasDestinationPosition
+                    && stack.DestinationPosition == maintenanceFacility.centerPos);
+            Check(repairEquipmentDestinationReady,
+                "MATERIAL_REPAIR_EQUIPMENT_DESTINATION_READY",
+                equipment.TryGetInstance(
+                    armor.instanceId,
+                    out CombatEquipmentInstance currentRepairInstance)
+                    ? $"stack={currentRepairInstance.sourceStackId}; "
+                        + DescribeStacks(itemRuntime)
+                    : "repair equipment missing");
+
+            yield return RunRepeatedHaul(
+                hauler,
+                () => IsRepairOrderReady(maintenance, order.orderId));
+            Check(IsRepairOrderReady(maintenance, order.orderId),
+                "MATERIAL_REPAIR_INPUTS_DELIVERED",
+                DescribeStacks(itemRuntime));
+
+            WorldItemStackSnapshot[] repairMaterialStacks = itemRuntime.GetAllStacks()
+                .Where(stack => stack != null
+                    && string.Equals(
+                        stack.DestinationId,
+                        order.facilityDestinationId,
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        stack.ItemId,
+                        order.materialItemId,
+                        StringComparison.Ordinal))
+                .ToArray();
+            int deliveredRepairMaterial = repairMaterialStacks
+                .Where(stack => stack.State == WorldItemStackState.FacilityBuffer)
+                .Sum(stack => stack.Quantity);
+            int totalRequestedRepairMaterial = repairMaterialStacks
+                .Sum(stack => stack.Quantity);
+            Check(
+                deliveredRepairMaterial == order.requiredMaterialAmount
+                    && totalRequestedRepairMaterial == order.requiredMaterialAmount,
+                "MATERIAL_REPAIR_NO_DUPLICATE_REQUEST",
+                $"required={order.requiredMaterialAmount}; "
+                    + $"delivered={deliveredRepairMaterial}; "
+                    + $"destinationTotal={totalRequestedRepairMaterial}; "
+                    + DescribeStacks(itemRuntime));
+
+            bool repaired = false;
+            bool repairCompleted = false;
+            string applyMessage = string.Empty;
+            int repairAttempts = Mathf.Max(1, maintenance.Orders.Count + 1);
+            for (int attempt = 0; attempt < repairAttempts; attempt++)
+            {
+                bool applied = maintenance.TryApplyRepairWork(
+                    hauler,
+                    maintenanceFacility,
+                    100f,
+                    out bool completedAttempt,
+                    out string attemptMessage);
+                applyMessage = attemptMessage;
+                repaired |= applied;
+                if (equipment.TryGetInstance(
+                        armor.instanceId,
+                        out CombatEquipmentInstance updatedArmor)
+                    && updatedArmor.durabilityRatio + 0.001f >= order.targetDurability)
+                {
+                    repairCompleted = true;
+                    break;
+                }
+
+                if (!applied && !completedAttempt)
+                {
+                    break;
+                }
+            }
+            Check(repaired
+                    && repairCompleted
+                    && equipment.TryGetInstance(
+                        armor.instanceId,
+                        out CombatEquipmentInstance repairedArmor)
+                    && string.Equals(
+                        repairedArmor.materialId,
+                        "material:blacksteel",
+                        StringComparison.Ordinal)
+                    && repairedArmor.durabilityRatio + 0.001f >= order.targetDurability,
+                "MATERIAL_REPAIR_PRESERVES_INSTANCE_AND_MATERIAL",
+                applyMessage);
+
+            Check(equipment.TrySalvage(
+                    armor.instanceId,
+                    maintenanceFacility.centerPos,
+                    out string recoveredItemId,
+                    out int recoveredAmount,
+                    out string salvageReason)
+                    && string.Equals(
+                        recoveredItemId,
+                        blacksteel.ItemId,
+                        StringComparison.Ordinal)
+                    && recoveredAmount > 0
+                    && recoveredAmount
+                        <= Mathf.FloorToInt(
+                            equipment.Definitions
+                                .First(definition =>
+                                    string.Equals(
+                                        definition.EquipmentId,
+                                        BreastplateId,
+                                        StringComparison.Ordinal))
+                                .PrimaryMaterialAmount
+                            * 0.5f)
+                    && !equipment.TryGetInstance(armor.instanceId, out _)
+                    && itemRuntime.GetAllStacks().Any(stack =>
+                        stack != null
+                        && stack.State == WorldItemStackState.Loose
+                        && string.Equals(
+                            stack.ItemId,
+                            blacksteel.ItemId,
+                            StringComparison.Ordinal)
+                        && stack.Position == maintenanceFacility.centerPos),
+                "MATERIAL_SALVAGE_RETURNS_ORIGINAL_MATERIAL",
+                $"item={recoveredItemId}; amount={recoveredAmount}; reason={salvageReason}");
+        }
+        finally
+        {
+            if (maintenanceFacility != null)
+            {
+                maintenanceFacility.DestroySelf();
+            }
+
+            Destroy(maintenanceAsset);
+        }
+    }
+
+    private static bool IsRepairOrderReady(
+        ICombatEquipmentMaintenanceRuntime maintenance,
+        string orderId)
+    {
+        return maintenance != null
+            && maintenance.Orders.Any(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.orderId,
+                    orderId,
+                    StringComparison.Ordinal)
+                && candidate.state is CombatEquipmentRepairOrderState.Ready
+                    or CombatEquipmentRepairOrderState.InProgress);
     }
 
     private void VerifyExpeditionPacking(
@@ -604,6 +908,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         float startedAt = Time.realtimeSinceStartup;
         while (Time.realtimeSinceStartup - startedAt < HaulTimeoutSeconds)
         {
+            EnsureVerificationTimeScale();
             if (completed())
             {
                 yield return null;
@@ -627,6 +932,58 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         }
 
         Check(false, "AI_HAUL_COMPLETED", DescribeHaulState(itemRuntime, hauler));
+    }
+
+    private IEnumerator RunRepeatedHaul(
+        CharacterActor hauler,
+        Func<bool> completed)
+    {
+        float startedAt = Time.realtimeSinceStartup;
+        while (!completed()
+            && Time.realtimeSinceStartup - startedAt < HaulTimeoutSeconds)
+        {
+            EnsureVerificationTimeScale();
+            AIHaul action = ScriptableObject.CreateInstance<AIHaul>();
+            try
+            {
+                if (!action.CanStart(hauler))
+                {
+                    yield return null;
+                    continue;
+                }
+
+                AbilityHaul ability = AbilityHaul.Ensure(hauler);
+                action.Execute(hauler);
+                while (!completed()
+                    && ability != null
+                    && ability.IsHauling
+                    && Time.realtimeSinceStartup - startedAt < HaulTimeoutSeconds)
+                {
+                    EnsureVerificationTimeScale();
+                    yield return null;
+                }
+            }
+            finally
+            {
+                Destroy(action);
+            }
+
+            yield return null;
+        }
+
+        Check(
+            completed(),
+            "AI_REPEATED_HAUL_COMPLETED",
+            $"elapsed={Time.realtimeSinceStartup - startedAt:0.0}s; "
+            + DescribeHaulState(itemRuntime, hauler));
+    }
+
+    private static void EnsureVerificationTimeScale()
+    {
+        if (Time.timeScale < 0.1f)
+        {
+            Time.timeScale = 8f;
+        }
     }
 
     private IEnumerator EnsurePlayableRun()
@@ -750,6 +1107,58 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         });
     }
 
+    private static BuildingSO CreateMaintenanceAsset()
+    {
+        BuildingSO asset = ScriptableObject.CreateInstance<BuildingSO>();
+        asset.id = 99122;
+        asset.objectName = "QA 장비 수리대";
+        asset.width = 1;
+        asset.height = 1;
+        asset.layer = GridLayer.Building;
+        asset.category = BuildingCategory.Production;
+        asset.unlocked = true;
+        asset.AbilityModules.Add(new BuildingEquipmentMaintenanceAbility
+        {
+            workSpeedMultiplier = 1f,
+            simultaneousRepairSlots = 1
+        });
+        return asset;
+    }
+
+    private static bool SeedStoredCraftMaterial(
+        IWorldItemStackRuntime itemRuntime,
+        IResourceEconomyContentCatalog economyCatalog,
+        Facility warehouse,
+        string materialId,
+        int amount,
+        out string details)
+    {
+        details = string.Empty;
+        if (itemRuntime == null
+            || economyCatalog == null
+            || warehouse == null
+            || !economyCatalog.TryGetMaterial(
+                materialId,
+                out CraftMaterialDefinitionSO material))
+        {
+            details = $"material missing: {materialId}";
+            return false;
+        }
+
+        string destinationId =
+            $"{WorldItemStackRuntime.WarehouseStorageDestinationPrefix}"
+            + $"{warehouse.GridId}:{warehouse.centerPos.x}:{warehouse.centerPos.y}";
+        bool spawned = itemRuntime.SpawnItemAt(
+            material.ItemId,
+            amount,
+            warehouse.centerPos,
+            WorldItemStackState.Stored,
+            destinationId,
+            out int spawnedAmount);
+        details = $"item={material.ItemId}; amount={spawnedAmount}; destination={destinationId}";
+        return spawned && spawnedAmount == amount;
+    }
+
     private static BuildingSO FindBuildingAsset(Func<BuildingSO, bool> predicate)
     {
         foreach (string guid in AssetDatabase.FindAssets("t:BuildingSO", new[] { "Assets/Resources/SO/Building" }))
@@ -820,8 +1229,14 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
     private static string DescribeHaulState(IWorldItemStackRuntime itemRuntime, CharacterActor hauler)
     {
+        AbilityHaul haul = hauler != null ? hauler.GetComponent<AbilityHaul>() : null;
         return $"actor={hauler?.name}; pos={hauler?.GetNowXY().ToString() ?? "<none>"}; "
-            + $"carry={DescribeCarry(hauler, itemRuntime)}; stacks={DescribeStacks(itemRuntime)}";
+            + $"phase={hauler?.Brain?.CurrentActionPhase ?? "<none>"}"
+            + $"/{hauler?.Brain?.CurrentActionPhaseDetail ?? "<none>"}; "
+            + $"haul={haul?.CurrentPlanSummary ?? "<none>"}; "
+            + $"unload={haul?.CurrentUnloadReason ?? "<none>"}; "
+            + $"carry={DescribeCarry(hauler, itemRuntime)}; "
+            + $"stacks={DescribeStacks(itemRuntime)}";
     }
 
     private static string DescribeCarry(CharacterActor hauler, IWorldItemStackRuntime itemRuntime)

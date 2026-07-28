@@ -24,8 +24,8 @@ MonoBehaviour:
   id: 7034
   projectId: research:arcane:resonance
   displayName: "\uBE44\uC804 \uACF5\uBA85"
-  description: "\uC758\uC2DD \uC7A5\uC2DD\uACFC \uBE44\uC804 \uC7A5\uCE58\uB97C \uD558\uB098\uC758
-    \uACF5\uBA85\uB9DD\uC73C\uB85C \uC5F0\uACB0\uD55C\uB2E4."
+  description: "\uB9C8\uB098\uC640 \uD751\uAC15\uC744 \uC4F0\uB294 \uB300\uD615 \uBE44\uC804
+    \uC0AC\uC5C5\uC744 \uD574\uAE08\uD55C\uB2E4."
   field: 3
   requiredWork: 142
   prerequisites:

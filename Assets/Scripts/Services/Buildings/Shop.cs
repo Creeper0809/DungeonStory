@@ -40,6 +40,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
     private IWorkforceReplanService workforceReplanService;
     private IFacilityCrimeRiskEvaluator crimeRiskEvaluator;
     private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
+    private IMealConsumptionRuntime mealConsumptionRuntime;
     private IRandomStream shopRandom;
     private bool stockInitialized;
     public int CurrentStock => GetStockCount();
@@ -97,7 +98,8 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         IWorkforceReplanService workforceReplanService,
         IFacilityCrimeRiskEvaluator crimeRiskEvaluator,
         IRandomStreamProvider randomStreamProvider,
-        IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null)
+        IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
+        IMealConsumptionRuntime mealConsumptionRuntime = null)
     {
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
@@ -110,6 +112,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         this.crimeRiskEvaluator = crimeRiskEvaluator
             ?? throw new ArgumentNullException(nameof(crimeRiskEvaluator));
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
+        this.mealConsumptionRuntime = mealConsumptionRuntime;
         shopRandom = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("shop-runtime");
@@ -146,6 +149,17 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         AIAction currentAction = actor != null && actor.Brain != null
             ? actor.Brain.bestAction
             : null;
+        if (Facility != null && Facility.SupportsRole(FacilityRole.Meal))
+        {
+            yield return RunPhysicalMealService(
+                actor,
+                shopable,
+                moveable,
+                currentAction);
+            EndUse(actor);
+            yield break;
+        }
+
         int howmany = shopable.GetShoppingCount();
         if (IsInternalStaffUse(actor)
             && Facility != null
@@ -317,6 +331,114 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         ReleaseShoppingSelectionBuffer(selection);
         yield return PurchaseCompleteDelay;
         EndUse(actor);
+    }
+
+    private IEnumerator RunPhysicalMealService(
+        CharacterActor actor,
+        AbilityShopping shopping,
+        AbilityMove movement,
+        AIAction currentAction)
+    {
+        actor?.Brain?.SetActionPhase("식사 자리로 이동", this);
+        yield return movement.Move2PosBySpeed(
+            GetFacilityAnchorWorldPosition(
+                FacilityAnchorPurposeIds.Use,
+                actor.transform.position),
+            0.7f,
+            currentAction);
+        yield return Linger(actor, 0.1f, currentAction);
+
+        float duration = Facility != null ? Facility.useDuration : 1f;
+        if (actor?.Stats != null)
+        {
+            duration *= actor.Stats.GetStayDurationMultiplier();
+        }
+
+        actor?.Brain?.SetActionPhase("식사 중", this, $"{duration:0.#}초");
+        if (duration > 0f)
+        {
+            yield return new WaitForSeconds(duration);
+        }
+
+        MealConsumptionResult meal = default;
+        if (mealConsumptionRuntime == null
+            || !mealConsumptionRuntime.TryConsumeMeal(
+                actor,
+                this,
+                out meal))
+        {
+            string reason = meal.FailureReason;
+            shopping.SetVisitOutcome(this, ShoppingVisitOutcome.Failed);
+            actor?.AddActivity(CharacterActivityEvent.Facility(
+                CharacterActivityKinds.FacilityUse,
+                CharacterActivityOutcomes.Failed,
+                $"{objectNameOrDefault()} 식사 실패: "
+                + (string.IsNullOrWhiteSpace(reason) ? "메뉴 없음" : reason),
+                this,
+                reasonCode: reason,
+                bubbleEligible: true));
+            yield break;
+        }
+
+        int revenue = 0;
+        if (CreatesRevenueFor(actor))
+        {
+            if (shopping.CanPayAmount(meal.UnitPrice))
+            {
+                yield return shopping.PayForService(meal.UnitPrice);
+                revenue = Mathf.Max(0, meal.UnitPrice);
+                if (revenue > 0)
+                {
+                    TryResolveGameData(requireProvider: true);
+                    if (gameData != null)
+                    {
+                        gameData.holdingMoney.Value += revenue;
+                    }
+
+                    PublishGameEvent(
+                        new FacilityRevenueEvent(actor, this, revenue));
+                    RequireFloatingNumberFeedbackService().TryShow(
+                        NumberCondition.ONEARNMONEY,
+                        transform.position + Vector3.up,
+                        revenue);
+                }
+            }
+            else
+            {
+                actor?.ApplyMoodFactor(
+                    $"meal-debt:{GetInstanceID()}",
+                    "식사 값을 치르지 못함",
+                    -5f,
+                    180f,
+                    1);
+                actor?.AddActivity(CharacterActivityEvent.Facility(
+                    CharacterActivityKinds.Social,
+                    CharacterActivityOutcomes.Damaged,
+                    $"{meal.DisplayName} 값을 치르지 못하고 쫓겨남",
+                    this,
+                    reasonCode: "meal-unaffordable",
+                    bubbleEligible: true));
+                GameEventBus.RaiseAlert(
+                    "무전취식",
+                    $"{actor?.Identity?.DisplayName ?? actor?.name}이(가) "
+                    + $"{meal.DisplayName} 값을 치르지 못했습니다.",
+                    EventAlertImportance.Low,
+                    "범죄");
+            }
+        }
+
+        roomEnvironmentExperienceService?.Apply(
+            new RoomEnvironmentExperienceEvent(
+                actor,
+                this,
+                RoomExperienceActivity.Shopping));
+        shopping.SetVisitOutcome(this, ShoppingVisitOutcome.Completed);
+        actor?.AddActivity(CharacterActivityEvent.Facility(
+            CharacterActivityKinds.FacilityUse,
+            CharacterActivityOutcomes.Completed,
+            $"{meal.DisplayName} 식사 완료",
+            this,
+            value: revenue));
     }
 
     public static bool CreatesRevenueFor(CharacterActor actor)
@@ -1023,6 +1145,58 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         }
 
         failureReason = "창고 재고 부족";
+        return false;
+    }
+
+    public bool HasRestockSupply(
+        IReadOnlyList<IWarehouseFacility> warehouses,
+        out string failureReason)
+    {
+        EnsureStockInitialized();
+        failureReason = string.Empty;
+        if (!NeedsRestock)
+        {
+            failureReason = "재고가 이미 충분합니다.";
+            return false;
+        }
+
+        if (baseStock == null
+            || baseStock.stocks == null
+            || baseStock.stocks.Count == 0)
+        {
+            failureReason = "보충할 상품 데이터가 없습니다.";
+            return false;
+        }
+
+        for (int stockIndex = 0;
+            stockIndex < baseStock.stocks.Count;
+            stockIndex++)
+        {
+            var stockTuple = baseStock.stocks[stockIndex];
+            if (stockTuple == null
+                || stockTuple.Item1 == null
+                || !IsSaleItemAllowed(stockTuple.Item1))
+            {
+                continue;
+            }
+
+            StockCategory category = stockTuple.Item1.category;
+            for (int warehouseIndex = 0;
+                warehouseIndex < (warehouses?.Count ?? 0);
+                warehouseIndex++)
+            {
+                IWarehouseFacility warehouse = warehouses[warehouseIndex];
+                if (warehouse != null
+                    && warehouse.HasWarehouseInventory
+                    && warehouse.Inventory != null
+                    && warehouse.Inventory.HasStock(category))
+                {
+                    return true;
+                }
+            }
+        }
+
+        failureReason = "창고 재고가 부족합니다.";
         return false;
     }
 

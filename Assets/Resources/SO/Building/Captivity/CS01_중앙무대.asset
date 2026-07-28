@@ -42,11 +42,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 81ce3e8fab81a91489855b8fbd6d9fa7, type: 3}
   abilityModules:
     items:
-    - rid: 7302563199433049807
-    - rid: 7302563199433049808
-    - rid: 7302563199433049809
-    - rid: 7302563199433049810
-    - rid: 7302563199433049811
+    - rid: 7302563252714865597
+    - rid: 7302563252714865598
+    - rid: 7302563252714865599
+    - rid: 7302563252714865600
+    - rid: 7302563252714865601
   width: 2
   height: 1
   layer: 5
@@ -61,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563199433049807
+    - rid: 7302563252714865597
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CS01
-    - rid: 7302563199433049808
+    - rid: 7302563252714865598
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,7 +74,7 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563199433049809
+    - rid: 7302563252714865599
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -85,11 +85,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 524288
           disabledWhenDamaged: 1
-    - rid: 7302563199433049810
+    - rid: 7302563252714865600
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563199433049811
+    - rid: 7302563252714865601
       type: {class: BuildingCircusStageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCircusStageAbility

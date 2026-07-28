@@ -42,10 +42,10 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 991521a2b16022f4c8efe221909040b0, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602363
-    - rid: 7302562995605602364
-    - rid: 7302562995605602365
-    - rid: 7302562995605602366
+    - rid: 7302563239038812988
+    - rid: 7302563239038812989
+    - rid: 7302563239038812990
+    - rid: 7302563239038812991
   width: 1
   height: 1
   layer: 1
@@ -60,12 +60,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602363
+    - rid: 7302563239038812988
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D07
-    - rid: 7302562995605602364
+    - rid: 7302563239038812989
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -73,7 +73,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602365
+    - rid: 7302563239038812990
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -87,7 +87,7 @@ MonoBehaviour:
           metrics:
           - key: SeatCount
             value: 1
-    - rid: 7302562995605602366
+    - rid: 7302563239038812991
       type: {class: BuildingSeatingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSeatingAbility

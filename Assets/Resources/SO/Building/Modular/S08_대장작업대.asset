@@ -42,12 +42,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 0d2111d66eaab3a48915941951be79bd, type: 3}
   abilityModules:
     items:
-    - rid: 7302562991791408092
-    - rid: 7302562991791408093
-    - rid: 7302562991791408095
-    - rid: 7302563133342875891
-    - rid: 7302563135951208602
-    - rid: 7302563218931319412
+    - rid: 7302563239583285256
+    - rid: 7302563239583285257
+    - rid: 7302563239583285258
+    - rid: 7302563239583285259
+    - rid: 7302563239583285260
+    - rid: 7302563239583285261
   width: 2
   height: 1
   layer: 1
@@ -62,12 +62,18 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562991791408092
+    - rid: 7302563239583285256
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: S08
-    - rid: 7302562991791408093
+    - rid: 7302563239583285257
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - forge
+    - rid: 7302563239583285258
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +81,18 @@ MonoBehaviour:
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302562991791408095
+    - rid: 7302563239583285259
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 260
+          disabledWhenDamaged: 1
+    - rid: 7302563239583285260
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -90,53 +107,30 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7302563133342875891
-      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingFacilityAbility
-        settings:
-          roles: 0
-          capacity: 1
-          useDuration: 1.5
-          requiredWorkers: 1
-          supportedWorkTypes: 260
-          disabledWhenDamaged: 1
-    - rid: 7302563135951208602
-      type: {class: BuildingEquipmentMaintenanceAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingEquipmentMaintenanceAbility
-        workSpeedMultiplier: 1
-        simultaneousRepairSlots: 1
-    - rid: 7302563218931319412
+    - rid: 7302563239583285261
       type: {class: BuildingEquipmentCraftingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEquipmentCraftingAbility
         craftableEquipmentIds:
-        - armor:breastplate
-        - armor:cloth-hood
-        - armor:endurance-mail
-        - armor:gambeson
-        - armor:iron-helmet
-        - armor:leather
-        - armor:leather-cap
-        - armor:mail-coif
-        - armor:mail-shirt
-        - armor:move-cloak
-        - armor:toughness-plate
-        - craft:ammo:arrow
-        - craft:ammo:bolt
-        - shield:iron
-        - shield:wood
-        - weapon:attack-iron
-        - weapon:crossbow
         - weapon:dagger
-        - weapon:dexterity-needle
-        - weapon:javelin
-        - weapon:longbow
         - weapon:longsword
+        - weapon:spear
         - weapon:mace
         - weapon:shortbow
-        - weapon:spear
-        - weapon:strength-maul
+        - weapon:longbow
+        - weapon:crossbow
+        - weapon:javelin
         - weapon:throwing-axe
+        - armor:cloth-hood
+        - armor:gambeson
+        - armor:leather-cap
+        - armor:leather
+        - armor:mail-coif
+        - armor:mail-shirt
+        - armor:iron-helmet
+        - armor:breastplate
+        - shield:wood
+        - shield:iron
+        - craft:ammo:arrow
+        - craft:ammo:bolt
         workUnitsPerCycle: 1

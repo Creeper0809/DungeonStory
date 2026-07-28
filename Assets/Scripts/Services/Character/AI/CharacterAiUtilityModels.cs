@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System;
 using System.Linq;
+using Unity.Profiling;
 using UnityEngine;
 
 public readonly struct CharacterAiUtilityFactor
@@ -147,6 +148,18 @@ public sealed class CharacterAiUtilityBreakdown
 
 public readonly struct CharacterAiDecisionContext
 {
+    private static readonly ProfilerMarker CaptureMarker =
+        new ProfilerMarker("CharacterAi.DecisionContext");
+    private static readonly ProfilerMarker NeedsCaptureMarker =
+        new ProfilerMarker("CharacterAi.DecisionContext.Needs");
+    private static readonly ProfilerMarker CarryCaptureMarker =
+        new ProfilerMarker("CharacterAi.DecisionContext.Carry");
+    private static readonly ProfilerMarker WorkCaptureMarker =
+        new ProfilerMarker("CharacterAi.DecisionContext.WorkProfile");
+    private static readonly ProfilerMarker VisitorCaptureMarker =
+        new ProfilerMarker("CharacterAi.DecisionContext.VisitorProfile");
+    private static readonly ProfilerMarker WorldSignalCaptureMarker =
+        new ProfilerMarker("CharacterAi.DecisionContext.WorldSignal");
     private CharacterAiDecisionContext(
         CharacterActor actor,
         CharacterAiBranch branch,
@@ -320,12 +333,18 @@ public readonly struct CharacterAiDecisionContext
         CharacterActor actor,
         CharacterAiBranch branch = CharacterAiBranch.None)
     {
+        using (CaptureMarker.Auto())
+        {
         ICharacterAiPerformanceRecorder recorder =
             actor?.Brain?.PerformanceRecorder;
         bool collectTimings = recorder?.DetailedCollectionEnabled == true;
         long stageStarted = collectTimings
             ? System.Diagnostics.Stopwatch.GetTimestamp()
             : 0L;
+        long stageAllocatedAtStart = collectTimings
+            ? GC.GetAllocatedBytesForCurrentThread()
+            : 0L;
+        NeedsCaptureMarker.Begin();
         CharacterCondition strongest = CharacterCondition.HUNGER;
         float strongestUrgency = 0f;
         if (CharacterNeedCatalog.TryGetStrongestUrgency(
@@ -355,18 +374,25 @@ public readonly struct CharacterAiDecisionContext
             expeditionStressUrgency = Mathf.Clamp01(
                 (actor.Lifecycle?.ExpeditionRecovery?.stress ?? 0f) / 100f);
         }
+        NeedsCaptureMarker.End();
         RecordCaptureStage(
             recorder,
             AiPerformanceCategory.DecisionContextNeeds,
-            ref stageStarted);
+            ref stageStarted,
+            ref stageAllocatedAtStart);
 
+        CarryCaptureMarker.Begin();
         float carryLoad = 0f;
-        CharacterCarryInventory carry = actor != null ? actor.GetComponent<CharacterCarryInventory>() : null;
+        CharacterCarryInventory carry = actor != null
+            ? actor.CarryInventory
+            : null;
         if (carry != null)
         {
             carryLoad = Mathf.Clamp01(carry.GetCurrentWeight() / Mathf.Max(1f, carry.GetBaseCarryLimit()));
         }
+        CarryCaptureMarker.End();
 
+        WorkCaptureMarker.Begin();
         float workPriority = 0f;
         float haulPriority = 0f;
         float huntPriority = 0f;
@@ -413,7 +439,9 @@ public readonly struct CharacterAiDecisionContext
             haulPriority = GetPriority01(work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Haul));
             huntPriority = GetPriority01(work.WorkPriorities.GetPriority(BuiltInWorkTypeIds.Hunt));
         }
+        WorkCaptureMarker.End();
 
+        VisitorCaptureMarker.Begin();
         AbilityShopping shopping = null;
         bool hasShoppingAbility =
             actor != null && actor.TryGetAbility(out shopping);
@@ -425,18 +453,23 @@ public readonly struct CharacterAiDecisionContext
                 out canLookAround,
                 out shouldExitDungeon);
         }
+        VisitorCaptureMarker.End();
         RecordCaptureStage(
             recorder,
             AiPerformanceCategory.DecisionContextAbilities,
-            ref stageStarted);
+            ref stageStarted,
+            ref stageAllocatedAtStart);
         CharacterAiMemoryRuntime memory = actor != null ? actor.AiMemory : null;
         float momentum = memory != null ? memory.GetMomentumScore(branch) : 0f;
+        WorldSignalCaptureMarker.Begin();
         CharacterAiWorldSignalSnapshot worldSignals = actor?.WorldSignalQuery?.Capture(actor, branch)
             ?? CharacterAiWorldSignalSnapshot.Neutral;
+        WorldSignalCaptureMarker.End();
         RecordCaptureStage(
             recorder,
             AiPerformanceCategory.DecisionContextWorldSignal,
-            ref stageStarted);
+            ref stageStarted,
+            ref stageAllocatedAtStart);
         float foodPressure = worldSignals.FoodStockPressure;
         float waterPressure = worldSignals.WaterStockPressure;
 
@@ -470,12 +503,14 @@ public readonly struct CharacterAiDecisionContext
             worldSignals.ExteriorRisk,
             momentum,
             worldSignals);
+        }
     }
 
     private static void RecordCaptureStage(
         ICharacterAiPerformanceRecorder recorder,
         AiPerformanceCategory category,
-        ref long stageStarted)
+        ref long stageStarted,
+        ref long stageAllocatedAtStart)
     {
         if (stageStarted == 0L)
         {
@@ -483,12 +518,15 @@ public readonly struct CharacterAiDecisionContext
         }
 
         long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        long allocatedNow = GC.GetAllocatedBytesForCurrentThread();
         recorder.Record(
             category,
             (now - stageStarted)
             * 1000.0
-            / System.Diagnostics.Stopwatch.Frequency);
-        stageStarted = now;
+            / System.Diagnostics.Stopwatch.Frequency,
+            Math.Max(0L, allocatedNow - stageAllocatedAtStart));
+        stageStarted = System.Diagnostics.Stopwatch.GetTimestamp();
+        stageAllocatedAtStart = GC.GetAllocatedBytesForCurrentThread();
     }
 
     public CharacterAiUtilityBreakdown CreateRoutineBreakdown(

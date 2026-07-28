@@ -188,6 +188,29 @@ public sealed class CharacterCarryInventory : MonoBehaviour
         out int acceptedQuantity,
         out string failureReason)
     {
+        return TryAddPartialStack(
+            sourceStackId,
+            itemId,
+            quantity,
+            catalogProvider,
+            settingsProvider,
+            WasteOriginKind.Unknown,
+            0f,
+            out acceptedQuantity,
+            out failureReason);
+    }
+
+    public bool TryAddPartialStack(
+        string sourceStackId,
+        string itemId,
+        int quantity,
+        IDungeonItemCatalogProvider catalogProvider,
+        IItemHaulingSettingsProvider settingsProvider,
+        WasteOriginKind wasteOrigin,
+        float contamination,
+        out int acceptedQuantity,
+        out string failureReason)
+    {
         failureReason = string.Empty;
         acceptedQuantity = GetMaxAcceptableQuantity(itemId, quantity, catalogProvider, settingsProvider);
         if (acceptedQuantity <= 0)
@@ -198,14 +221,18 @@ public sealed class CharacterCarryInventory : MonoBehaviour
 
         CharacterCarriedItemSaveData existing = carriedItems.FirstOrDefault(item => item != null
             && string.Equals(item.itemId, itemId, StringComparison.Ordinal)
-            && string.Equals(item.sourceStackId, sourceStackId, StringComparison.Ordinal));
+            && string.Equals(item.sourceStackId, sourceStackId, StringComparison.Ordinal)
+            && item.wasteOrigin == wasteOrigin
+            && Mathf.Abs(item.contamination - contamination) < 0.01f);
         if (existing == null)
         {
             carriedItems.Add(new CharacterCarriedItemSaveData
             {
                 sourceStackId = sourceStackId ?? string.Empty,
                 itemId = itemId ?? string.Empty,
-                quantity = acceptedQuantity
+                quantity = acceptedQuantity,
+                wasteOrigin = wasteOrigin,
+                contamination = Mathf.Clamp(contamination, 0f, 100f)
             });
         }
         else
@@ -305,7 +332,9 @@ public sealed class CharacterCarryInventory : MonoBehaviour
             {
                 sourceStackId = item.sourceStackId,
                 itemId = item.itemId,
-                quantity = item.quantity
+                quantity = item.quantity,
+                wasteOrigin = item.wasteOrigin,
+                contamination = item.contamination
             })
             .ToList();
         carriedItems.Clear();
@@ -322,7 +351,9 @@ public sealed class CharacterCarryInventory : MonoBehaviour
                 {
                     sourceStackId = item.sourceStackId,
                     itemId = item.itemId,
-                    quantity = Mathf.Max(0, item.quantity)
+                    quantity = Mathf.Max(0, item.quantity),
+                    wasteOrigin = item.wasteOrigin,
+                    contamination = item.contamination
                 })
                 .ToList()
         };
@@ -342,7 +373,9 @@ public sealed class CharacterCarryInventory : MonoBehaviour
             {
                 sourceStackId = item.sourceStackId ?? string.Empty,
                 itemId = item.itemId.Trim(),
-                quantity = Mathf.Max(0, item.quantity)
+                quantity = Mathf.Max(0, item.quantity),
+                wasteOrigin = item.wasteOrigin,
+                contamination = Mathf.Clamp(item.contamination, 0f, 100f)
             });
         }
     }

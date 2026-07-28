@@ -863,8 +863,22 @@ public class BlueprintResearchRuntime : MonoBehaviour
 
     public void OnTriggerEvent(FacilityShopPurchasedEvent eventType)
     {
-        if (!eventType.result.success
-            || !eventType.result.TryGetBlueprint(out FacilityBlueprintSO blueprint))
+        if (!eventType.result.success)
+        {
+            return;
+        }
+
+        if (eventType.result.TryGetBuilding(out BuildingSO building))
+        {
+            if (state.UnlockBuilding(building.id))
+            {
+                NotifyResearchAvailabilityChanged();
+            }
+
+            return;
+        }
+
+        if (!eventType.result.TryGetBlueprint(out FacilityBlueprintSO blueprint))
         {
             return;
         }

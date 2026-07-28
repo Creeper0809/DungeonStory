@@ -61,6 +61,8 @@ public sealed class CharacterMoodMemory
 
     public string Id => id;
     public float ExpiresAt => expiresAt;
+    public float TotalValue =>
+        Mathf.Clamp(valuePerStack * stacks, -25f, 25f);
 
     public CharacterMoodMemory(
         string factorId,
@@ -112,12 +114,11 @@ public sealed class CharacterMoodMemory
 
     public CharacterMoodFactorSnapshot CreateSnapshot(float now)
     {
-        float totalValue = Mathf.Clamp(valuePerStack * stacks, -25f, 25f);
         string displayLabel = stacks > 1 ? $"{label} x{stacks}" : label;
         return new CharacterMoodFactorSnapshot(
             id,
             displayLabel,
-            totalValue,
+            TotalValue,
             CharacterMoodFactorKind.Interaction,
             expiresAt - now);
     }
@@ -141,6 +142,37 @@ public static class CharacterMoodRules
         }
 
         return factors;
+    }
+
+    public static float CalculateNeedFactorTotal(
+        IReadOnlyDictionary<CharacterCondition, float> stats)
+    {
+        float total = 0f;
+        IReadOnlyList<CharacterNeedDefinition> definitions =
+            CharacterNeedCatalog.All;
+        for (int i = 0; i < definitions.Count; i++)
+        {
+            CharacterNeedDefinition definition = definitions[i];
+            if (!definition.HasTag(CharacterNeedTag.MoodInteraction))
+            {
+                continue;
+            }
+
+            float value = stats != null
+                && stats.TryGetValue(definition.Condition, out float current)
+                    ? Mathf.Clamp(current, 0f, 100f)
+                    : definition.DefaultValue;
+            if (definition.MoodProfile != null
+                && definition.MoodProfile.TryEvaluate(
+                    value,
+                    out _,
+                    out float mood))
+            {
+                total += mood;
+            }
+        }
+
+        return total;
     }
 
     public static string GetMoodLabel(float mood)

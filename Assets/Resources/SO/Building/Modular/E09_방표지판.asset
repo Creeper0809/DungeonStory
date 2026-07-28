@@ -42,10 +42,10 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: f41fc408a9df919418b30431f25eb0fd, type: 3}
   abilityModules:
     items:
-    - rid: 7302562995605602453
-    - rid: 7302562995605602454
-    - rid: 7302562995605602455
-    - rid: 7302563106683093101
+    - rid: 7302563239583285381
+    - rid: 7302563239583285382
+    - rid: 7302563239583285383
+    - rid: 7302563239583285384
   width: 1
   height: 1
   layer: 3
@@ -60,12 +60,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562995605602453
+    - rid: 7302563239583285381
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: E09
-    - rid: 7302562995605602454
+    - rid: 7302563239583285382
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -73,7 +73,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302562995605602455
+    - rid: 7302563239583285383
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -82,7 +82,7 @@ MonoBehaviour:
           tags: []
           scores: []
           metrics: []
-    - rid: 7302563106683093101
+    - rid: 7302563239583285384
       type: {class: BuildingVentilationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingVentilationAbility

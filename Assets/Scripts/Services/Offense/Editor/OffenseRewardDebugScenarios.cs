@@ -115,6 +115,8 @@ public static class OffenseRewardDebugScenarios
         return results.Count == 2
             && results.All((result) => result.success)
             && context.RewardState.RareFacilityBuildingIds.Count == 1
+            && context.RewardState.RareFacilityBuildingIds
+                .All(context.ResearchState.IsBuildingUnlocked)
             && context.RewardState.AcquiredBlueprintIds.Count == 1
             && context.ResearchState.Tasks.Count == 0;
     }

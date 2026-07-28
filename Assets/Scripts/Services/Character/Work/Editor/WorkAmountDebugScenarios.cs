@@ -410,6 +410,16 @@ public static class WorkAmountDebugScenarios
             return false;
         }
 
+        public bool SpawnStockInWarehouse(
+            IWarehouseFacility warehouse,
+            StockCategory category,
+            int amount,
+            out int spawned)
+        {
+            spawned = 0;
+            return false;
+        }
+
         public bool SpawnItemAt(
             string itemId,
             int amount,
@@ -422,11 +432,50 @@ public static class WorkAmountDebugScenarios
             return false;
         }
 
+        public bool SpawnWasteAt(
+            string itemId,
+            int amount,
+            Vector2Int position,
+            WasteOriginKind wasteOrigin,
+            float contamination,
+            out int spawned)
+        {
+            spawned = Mathf.Max(0, amount);
+            if (spawned <= 0)
+            {
+                return false;
+            }
+
+            stacks.Add(new WorldItemStackSnapshot
+            {
+                StackId = $"fake-waste:{stacks.Count + 1}",
+                ItemId = itemId ?? string.Empty,
+                Quantity = spawned,
+                State = WorldItemStackState.Loose,
+                Position = position,
+                WasteOrigin = wasteOrigin,
+                Contamination = Mathf.Clamp(contamination, 0f, 100f)
+            });
+            return true;
+        }
+
         public bool SpawnUniqueItemAt(
             string itemId,
             Vector2Int position,
             WorldItemStackState state,
             string destinationId,
+            out string stackId)
+        {
+            stackId = string.Empty;
+            return false;
+        }
+
+        public bool SpawnUniqueItemAt(
+            string itemId,
+            Vector2Int position,
+            WorldItemStackState state,
+            string destinationId,
+            Vector2Int destinationPosition,
             out string stackId)
         {
             stackId = string.Empty;
@@ -505,6 +554,40 @@ public static class WorkAmountDebugScenarios
             return true;
         }
 
+        public bool TryRequestStackDelivery(
+            string stackId,
+            int amount,
+            Vector2Int destinationPosition,
+            string destinationId,
+            out int requested,
+            out string failureReason)
+        {
+            requested = 0;
+            failureReason = "fake stack not found";
+            WorldItemStackSnapshot stack = stacks.FirstOrDefault(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.StackId,
+                    stackId,
+                    StringComparison.Ordinal));
+            if (stack == null)
+            {
+                return false;
+            }
+
+            requested = Mathf.Min(Mathf.Max(0, amount), stack.Quantity);
+            if (requested <= 0)
+            {
+                return false;
+            }
+
+            stack.DestinationId = destinationId ?? string.Empty;
+            stack.HasDestinationPosition = true;
+            stack.DestinationPosition = destinationPosition;
+            failureReason = string.Empty;
+            return true;
+        }
+
         public bool TryGetPileAt(Vector2Int position, out WorldItemPileSnapshot pile)
         {
             pile = null;
@@ -525,6 +608,31 @@ public static class WorkAmountDebugScenarios
             Array.Empty<WorldItemStackSnapshot>();
 
         public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() => stacks;
+        public bool TryFindNearestAvailableStock(
+            Vector2Int origin,
+            StockCategory category,
+            bool preferStored,
+            out WorldItemStackSnapshot stack)
+        {
+            stack = null;
+            return false;
+        }
+
+        public void CopyAvailableStockCandidates(
+            StockCategory category,
+            List<WorldItemStockCandidate> destination)
+        {
+            destination?.Clear();
+        }
+
+        public bool TryFindBestAvailableStack(
+            Vector2Int origin,
+            Func<string, int> rankSelector,
+            out WorldItemStackSnapshot stack)
+        {
+            stack = null;
+            return false;
+        }
 
         public bool HasAvailableHaulJob(CharacterActor actor) => false;
         public bool TryReserveBestHaulPlan(CharacterActor actor, out WorldItemHaulPlan plan, out string failureReason)
@@ -628,6 +736,15 @@ public static class WorkAmountDebugScenarios
             return true;
         }
 
+        public bool TryConsumeFacilityItemBuffer(
+            string destinationId,
+            IReadOnlyDictionary<string, int> costs,
+            out string failureReason)
+        {
+            failureReason = "item-specific buffers are not configured in this fixture";
+            return false;
+        }
+
         public bool TryStealLooseItem(
             CharacterActor actor,
             int searchRadius,
@@ -644,6 +761,16 @@ public static class WorkAmountDebugScenarios
         public bool SetForbidden(string stackId, bool forbidden) => false;
         public bool PrioritizeHaul(string stackId) =>
             !string.IsNullOrWhiteSpace(stackId) && PrioritizedStackIds.Add(stackId);
+        public bool TryRouteStackToDestination(
+            string stackId,
+            WorldItemStackState state,
+            string destinationId,
+            Vector2Int destinationPosition,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return false;
+        }
         public bool DeleteStack(string stackId) => false;
         public bool TryConsumeStackQuantity(
             string stackId,

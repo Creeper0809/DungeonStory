@@ -96,6 +96,9 @@ public interface IRestockableFacility : IStockedFacility
     public bool HasRestockSupply(
         IEnumerable<IWarehouseFacility> warehouses,
         out string failureReason);
+    public bool HasRestockSupply(
+        IReadOnlyList<IWarehouseFacility> warehouses,
+        out string failureReason);
 }
 
 public interface IRetailStockStateOwner

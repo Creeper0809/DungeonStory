@@ -69,6 +69,9 @@ public static class WorkTypeCatalog
         new Dictionary<string, WorkTypeDefinition>(StringComparer.Ordinal);
     private static readonly Dictionary<FacilityWorkType, WorkTypeDefinition> ByType =
         new Dictionary<FacilityWorkType, WorkTypeDefinition>();
+    private static WorkTypeDefinition[] orderedDefinitions =
+        Array.Empty<WorkTypeDefinition>();
+    private static bool orderedDefinitionsDirty = true;
     private static bool initialized;
 
     public static IReadOnlyList<WorkTypeDefinition> All
@@ -76,10 +79,16 @@ public static class WorkTypeCatalog
         get
         {
             EnsureInitialized();
-            return ById.Values
-                .OrderBy(definition => definition.SortOrder)
-                .ThenBy(definition => definition.Id, StringComparer.Ordinal)
-                .ToArray();
+            if (orderedDefinitionsDirty)
+            {
+                orderedDefinitions = ById.Values
+                    .OrderBy(definition => definition.SortOrder)
+                    .ThenBy(definition => definition.Id, StringComparer.Ordinal)
+                    .ToArray();
+                orderedDefinitionsDirty = false;
+            }
+
+            return orderedDefinitions;
         }
     }
 
@@ -126,11 +135,12 @@ public static class WorkTypeCatalog
 
         ById[definition.Id] = definition;
         ByType[definition.Type] = definition;
+        orderedDefinitionsDirty = true;
     }
 
     private static FacilityWorkType AllocateCustomType()
     {
-        for (int bit = 20; bit < 30; bit++)
+        for (int bit = 25; bit < 30; bit++)
         {
             FacilityWorkType candidate = (FacilityWorkType)(1 << bit);
             if (!ByType.ContainsKey(candidate))
@@ -179,6 +189,8 @@ public static class WorkTypeCatalog
     {
         ById.Clear();
         ByType.Clear();
+        orderedDefinitions = Array.Empty<WorkTypeDefinition>();
+        orderedDefinitionsDirty = true;
         initialized = true;
         RegisterBuiltIns();
     }
@@ -188,6 +200,8 @@ public static class WorkTypeCatalog
     {
         ById.Clear();
         ByType.Clear();
+        orderedDefinitions = Array.Empty<WorkTypeDefinition>();
+        orderedDefinitionsDirty = true;
         initialized = false;
     }
 
@@ -224,6 +238,13 @@ public static class WorkTypeCatalog
         RegisterBuiltIn(BuiltInWorkTypeIds.Refuel, FacilityWorkType.Refuel, "연료 보충", 101, WorkPriorityLevel.Priority2, "survival:fuel");
         RegisterBuiltIn(BuiltInWorkTypeIds.Warden, FacilityWorkType.Warden, "관리", 102, WorkPriorityLevel.Priority2, "captivity:warden");
         RegisterBuiltIn(BuiltInWorkTypeIds.Perform, FacilityWorkType.Perform, "공연", 103, WorkPriorityLevel.Priority2, "circus:perform");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Gather, FacilityWorkType.Gather, "채집", 110, WorkPriorityLevel.Priority2, "resource:gather");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Sow, FacilityWorkType.Sow, "파종", 111, WorkPriorityLevel.Priority2, "crop:sow");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Harvest, FacilityWorkType.Harvest, "수확", 112, WorkPriorityLevel.Priority2, "crop:harvest");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Logging, FacilityWorkType.Logging, "벌목", 113, WorkPriorityLevel.Priority2, "resource:logging");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Quarry, FacilityWorkType.Quarry, "채석", 114, WorkPriorityLevel.Priority2, "resource:quarry");
+        RegisterBuiltIn(BuiltInWorkTypeIds.AnimalCare, FacilityWorkType.AnimalCare, "동물 돌봄", 115, WorkPriorityLevel.Priority2, "husbandry:care");
+        RegisterBuiltIn(BuiltInWorkTypeIds.GrandProject, FacilityWorkType.GrandProject, "대형 사업", 116, WorkPriorityLevel.Priority2, "economy:grand-project");
     }
 
     private static void RegisterBuiltIn(

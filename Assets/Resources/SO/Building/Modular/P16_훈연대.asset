@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "P16_\uD6C8\uC5F0\uB300"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: Facility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1088
+  objectName: "\uD6C8\uC5F0\uB300"
+  sprite: {fileID: 21300000, guid: 086a22d292bbab54087fec9224902c9a, type: 3}
+  icon: {fileID: 21300000, guid: 086a22d292bbab54087fec9224902c9a, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563239038812836
+    - rid: 7302563239038812837
+    - rid: 7302563239038812838
+    - rid: 7302563239038812839
+    - rid: 7302563239038812840
+  width: 2
+  height: 1
+  layer: 1
+  category: 5
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563239038812836
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: P16
+    - rid: 7302563239038812837
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - smoker
+    - rid: 7302563239038812838
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionCost: 135
+        maintenance: 4
+        unlockPhase: 2
+        demolitionRefundRate: 0.5
+    - rid: 7302563239038812839
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 16388
+          disabledWhenDamaged: 1
+    - rid: 7302563239038812840
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - Production
+          - Preservation
+          scores:
+          - key: Production
+            value: 2
+          - key: Preservation
+            value: 2
+          metrics: []

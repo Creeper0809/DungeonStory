@@ -114,6 +114,22 @@ public class AbilityShopping : CharacterAbility
             && (IsInternalStaffUse() || stock.cost <= holdingMoney);
     }
 
+    public bool CanPayAmount(int amount)
+    {
+        return actor != null
+            && (IsInternalStaffUse()
+                || Mathf.Max(0, amount) <= holdingMoney);
+    }
+
+    public IEnumerator PayForService(int amount)
+    {
+        yield return PurchaseFeedbackDelay;
+        if (!IsInternalStaffUse())
+        {
+            holdingMoney -= Mathf.Max(0, amount);
+        }
+    }
+
     public bool CanBuyFrom(IRetailFacility shop, out string failureReason)
     {
         failureReason = string.Empty;
@@ -184,6 +200,16 @@ public class AbilityShopping : CharacterAbility
 
     public void StartSopping()
     {
+        if (!isActiveAndEnabled || !gameObject.activeInHierarchy)
+        {
+            if (actor != null && actor.Brain != null)
+            {
+                actor.Brain.isBestActionEnd = true;
+            }
+
+            return;
+        }
+
         move?.CancelActiveMovement();
         StartCoroutine(Shopping());
     }

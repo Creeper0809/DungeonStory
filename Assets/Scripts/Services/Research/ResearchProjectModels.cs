@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using VContainer;
 
 public enum ResearchBlueprintRule
 {
@@ -17,7 +18,15 @@ public enum ResearchField
     DefenseAndTactics = 2,
     RecordsAndArcane = 3,
     CaptivityAndEntertainment = 4,
-    AuthorityAndHousing = 5
+    AuthorityAndHousing = 5,
+    Agriculture = 6,
+    Forestry = 7,
+    Mining = 8,
+    Husbandry = 9,
+    Metallurgy = 10,
+    Textiles = 11,
+    Cuisine = 12,
+    Pharmacology = 13
 }
 
 public enum ResearchNodeState
@@ -77,6 +86,7 @@ public sealed class ResourceResearchProjectCatalog : IResearchProjectCatalog
     private readonly IReadOnlyDictionary<string, ResearchProjectSO> byId;
     private readonly IReadOnlyDictionary<int, ResearchProjectSO> byBlueprintId;
 
+    [Inject]
     public ResourceResearchProjectCatalog(IResourcesAssetLoader resourcesAssetLoader)
         : this(resourcesAssetLoader?.LoadAllOptional<ResearchProjectSO>(ResearchProjectSO.ResourcePath))
     {

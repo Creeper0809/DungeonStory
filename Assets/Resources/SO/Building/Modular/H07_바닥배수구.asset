@@ -42,11 +42,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 68532db1af549474fa9a803af5da545c, type: 3}
   abilityModules:
     items:
-    - rid: 7302562991791408010
-    - rid: 7302562991791408011
-    - rid: 7302562991791408012
-    - rid: 7302562991791408013
-    - rid: 7302563106683093084
+    - rid: 7302563239038813141
+    - rid: 7302563239038813142
+    - rid: 7302563239038813143
+    - rid: 7302563239038813144
+    - rid: 7302563239038813145
   width: 1
   height: 1
   layer: 5
@@ -61,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302562991791408010
+    - rid: 7302563239038813141
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: H07
-    - rid: 7302562991791408011
+    - rid: 7302563239038813142
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -74,7 +74,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302562991791408012
+    - rid: 7302563239038813143
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -86,12 +86,12 @@ MonoBehaviour:
           - key: Hygiene
             value: 3
           metrics: []
-    - rid: 7302562991791408013
+    - rid: 7302563239038813144
       type: {class: BuildingCleaningAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
-    - rid: 7302563106683093084
+    - rid: 7302563239038813145
       type: {class: BuildingVentilationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingVentilationAbility

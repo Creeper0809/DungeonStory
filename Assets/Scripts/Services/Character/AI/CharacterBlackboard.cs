@@ -384,6 +384,7 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
             || reason == CharacterAiInterruptReason.PatienceExceeded
             || reason == CharacterAiInterruptReason.MacroGoalChanged
             || reason == CharacterAiInterruptReason.MoodImpulseChanged
+            || reason == CharacterAiInterruptReason.SurvivalEmergency
             || reason == CharacterAiInterruptReason.ManualReplan
             || reason == CharacterAiInterruptReason.CurrentActionStopped;
         return hardAllowed
