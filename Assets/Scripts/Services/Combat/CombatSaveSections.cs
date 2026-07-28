@@ -13,7 +13,7 @@ public sealed class CombatEquipmentSaveSection : IDungeonSaveSection
     }
 
     public string SectionId => Id;
-    public int SectionVersion => 1;
+    public int SectionVersion => 2;
     public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
     public IReadOnlyList<string> DependsOn => new[] { PhysicalItemsSaveSection.Id };
     public string Capture() => JsonUtility.ToJson(runtime.Capture());
@@ -30,11 +30,49 @@ public sealed class CombatEquipmentSaveSection : IDungeonSaveSection
 
     private void ValidateVersion(int version)
     {
-        if (version != SectionVersion)
+        if (version < 1 || version > SectionVersion)
         {
             throw new InvalidOperationException(
                 $"Unsupported {Id} section version {version}.");
         }
+    }
+}
+
+public sealed class EquipmentEvolutionSaveSection : IDungeonSaveSection
+{
+    public const string Id = "combat.equipment-evolution";
+    private readonly IEquipmentEvolutionRuntime runtime;
+
+    public EquipmentEvolutionSaveSection(IEquipmentEvolutionRuntime runtime)
+    {
+        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+    }
+
+    public string SectionId => Id;
+    public int SectionVersion => 2;
+    public DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.LateRuntimeState;
+    public IReadOnlyList<string> DependsOn => new[]
+    {
+        CombatEquipmentSaveSection.Id,
+        PhysicalItemsSaveSection.Id,
+        ModularFacilityWorldSaveSection.Id
+    };
+    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+
+    public void Restore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        if (sectionVersion < 1 || sectionVersion > SectionVersion)
+        {
+            throw new InvalidOperationException(
+                $"Unsupported {Id} section version {sectionVersion}.");
+        }
+
+        runtime.Restore(JsonUtility.FromJson<EquipmentEvolutionSaveData>(
+            payloadJson ?? string.Empty) ?? new EquipmentEvolutionSaveData());
     }
 }
 

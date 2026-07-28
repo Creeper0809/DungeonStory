@@ -538,7 +538,7 @@ public sealed class FacilityEvolutionEngine
 public class FacilityEvolutionRuntime : MonoBehaviour
 {
     [SerializeField] private bool raiseAlertOnEvolution = true;
-    [SerializeField] private bool enableLlmProposals = true;
+    [SerializeField, HideInInspector] private bool enableLlmProposals;
 
     private IFacilityEvolutionRecipeQuery recipeQuery;
     private IRoomProfileProvider roomProfileProvider;
@@ -721,10 +721,7 @@ public class FacilityEvolutionRuntime : MonoBehaviour
 
     private IFacilityEvolutionProposalProvider CreateDefaultProposalProvider()
     {
-        IFacilityEvolutionProposalProvider ruleBased = new RuleBasedFacilityEvolutionProposalProvider();
-        return enableLlmProposals
-            ? new CachedLocalLlmFacilityEvolutionProposalProvider(ruleBased, ResolveLocalLlmRuntime)
-            : ruleBased;
+        return new RuleBasedFacilityEvolutionProposalProvider();
     }
 
     private ILocalLlmRuntime ResolveLocalLlmRuntime()

@@ -42,10 +42,10 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 2738964120cb19941b1437cebe81f51a, type: 3}
   abilityModules:
     items:
-    - rid: 7302563231102141241
-    - rid: 7302563231102141242
-    - rid: 7302563231102141243
-    - rid: 7302563231102141244
+    - rid: 7302563257777393360
+    - rid: 7302563257777393361
+    - rid: 7302563257777393362
+    - rid: 7302563257777393363
   width: 1
   height: 1
   layer: 1
@@ -60,7 +60,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563231102141241
+    - rid: 7302563257777393360
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -68,7 +68,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563231102141242
+    - rid: 7302563257777393361
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -79,7 +79,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 0
-    - rid: 7302563231102141243
+    - rid: 7302563257777393362
       type: {class: BuildingCoverAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCoverAbility
@@ -88,7 +88,7 @@ MonoBehaviour:
         facingDirection: {x: -1, y: 0}
         allowsCornerPeek: 0
         coverHitPoints: 90
-    - rid: 7302563231102141244
+    - rid: 7302563257777393363
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility

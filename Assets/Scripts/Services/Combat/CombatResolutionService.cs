@@ -37,10 +37,14 @@ public interface ICombatResolutionService
 public sealed class CombatResolutionService : ICombatResolutionService
 {
     private readonly ICombatRandomSource random;
+    private readonly IEquipmentEvolutionRuntime evolution;
 
-    public CombatResolutionService(ICombatRandomSource random)
+    public CombatResolutionService(
+        ICombatRandomSource random,
+        IEquipmentEvolutionRuntime evolution = null)
     {
         this.random = random ?? throw new ArgumentNullException(nameof(random));
+        this.evolution = evolution;
     }
 
     public CombatAttackResult Resolve(CombatAttackRequest request)
@@ -53,29 +57,29 @@ public sealed class CombatResolutionService : ICombatResolutionService
             || band == CombatRangeBand.OutOfRange
             || (!isRanged && request.Distance > 1))
         {
-            return Failure("사거리 밖");
+            return Record(request, Failure("사거리 밖"));
         }
 
         if (isRanged && !request.HasLineOfSight)
         {
-            return Failure("사선 차단");
+            return Record(request, Failure("사선 차단"));
         }
 
         if (isRanged && request.FriendlyFireRisk && !request.ForceFire)
         {
-            return Failure("아군 사격 위험");
+            return Record(request, Failure("아군 사격 위험"));
         }
 
         if (weapon.RequiresAmmo && weapon.LoadedAmmo <= 0)
         {
-            return Failure("탄약 없음");
+            return Record(request, Failure("탄약 없음"));
         }
 
         float rangeAccuracy = weapon.GetAccuracyMultiplier(band);
         float rangeDamage = weapon.GetDamageMultiplier(band);
         if (rangeAccuracy <= 0f || rangeDamage <= 0f)
         {
-            return Failure("사용할 수 없는 거리");
+            return Record(request, Failure("사용할 수 없는 거리"));
         }
 
         float hitChance = isRanged
@@ -83,9 +87,9 @@ public sealed class CombatResolutionService : ICombatResolutionService
             : CalculateMeleeHitChance(request, rangeAccuracy);
         if (random.Next01() > hitChance)
         {
-            return new CombatAttackResult(
+            return Record(request, new CombatAttackResult(
                 true, false, false, false, CombatBodyPart.Torso,
-                0f, 0f, 0f, GetSuppressionOnMiss(request, verb), 0f, string.Empty, string.Empty);
+                0f, 0f, 0f, GetSuppressionOnMiss(request, verb), 0f, string.Empty, string.Empty));
         }
 
         if (isRanged && request.Cover.Height != CombatCoverHeight.None)
@@ -99,7 +103,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
 
             if (random.Next01() < Mathf.Clamp01(blockChance))
             {
-                return new CombatAttackResult(
+                return Record(request, new CombatAttackResult(
                     true, false, true, false, CombatBodyPart.Torso,
                     verb.baseDamage,
                     0f,
@@ -109,14 +113,14 @@ public sealed class CombatResolutionService : ICombatResolutionService
                     string.Empty,
                     string.Empty,
                     coverSourceId: request.Cover.SourceId,
-                    coverDamage: Mathf.Max(0.5f, verb.baseDamage * 0.18f));
+                    coverDamage: Mathf.Max(0.5f, verb.baseDamage * 0.18f)));
             }
         }
 
         if (request.DefenderShield.IsValid
             && random.Next01() < Mathf.Clamp01(request.DefenderShield.GetBlockChance()))
         {
-            return new CombatAttackResult(
+            return Record(request, new CombatAttackResult(
                 true,
                 false,
                 false,
@@ -129,15 +133,15 @@ public sealed class CombatResolutionService : ICombatResolutionService
                 Mathf.Max(0.5f, verb.baseDamage * 0.1f),
                 request.DefenderShield.InstanceId,
                 string.Empty,
-                shieldBlocked: true);
+                shieldBlocked: true));
         }
 
         float evasionChance = CalculateEvasionChance(request, verb);
         if (random.Next01() < evasionChance)
         {
-            return new CombatAttackResult(
+            return Record(request, new CombatAttackResult(
                 true, false, false, true, CombatBodyPart.Torso,
-                verb.baseDamage, 0f, 0f, GetSuppressionOnMiss(request, verb), 0f, string.Empty, string.Empty);
+                verb.baseDamage, 0f, 0f, GetSuppressionOnMiss(request, verb), 0f, string.Empty, string.Empty));
         }
 
         CombatBodyPart bodyPart = RollBodyPart();
@@ -164,7 +168,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
             : appliedDamage * 0.12f;
         float suppression = GetSuppressionOnHit(request, verb);
 
-        return new CombatAttackResult(
+        return Record(request, new CombatAttackResult(
             true,
             true,
             false,
@@ -177,7 +181,68 @@ public sealed class CombatResolutionService : ICombatResolutionService
             durabilityDamage,
             armorInstanceId,
             string.Empty,
-            armorDurabilityHits: armorDurabilityHits);
+            armorDurabilityHits: armorDurabilityHits));
+    }
+
+    private CombatAttackResult Record(
+        CombatAttackRequest request,
+        CombatAttackResult result)
+    {
+        if (evolution == null)
+        {
+            return result;
+        }
+
+        string weaponId = request.Weapon?.InstanceId ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(weaponId))
+        {
+            string eventId = result.Hit
+                ? "combat:hit"
+                : result.Executed
+                    ? "combat:attack"
+                    : "combat:failed-attack";
+            evolution.TryRecordUsage(
+                weaponId,
+                eventId,
+                result.Hit ? 2f : 0.5f,
+                result.AppliedDamage,
+                request.AttackerId,
+                1,
+                new[]
+                {
+                    request.Weapon.IsRanged ? "ranged" : "melee",
+                    CombatRangeRules.GetBand(request.Distance).ToString()
+                });
+        }
+
+        if (result.ShieldBlocked
+            && !string.IsNullOrWhiteSpace(
+                request.DefenderShield.InstanceId))
+        {
+            evolution.TryRecordUsage(
+                request.DefenderShield.InstanceId,
+                "combat:block",
+                2f,
+                result.RawDamage,
+                request.DefenderId,
+                1,
+                new[] { "shield", "defense" });
+        }
+
+        foreach (CombatArmorDurabilityHit hit in result.ArmorDurabilityHits
+                     ?? Array.Empty<CombatArmorDurabilityHit>())
+        {
+            evolution.TryRecordUsage(
+                hit.InstanceId,
+                "combat:absorb",
+                1f,
+                hit.Damage,
+                request.DefenderId,
+                1,
+                new[] { "armor", "defense" });
+        }
+
+        return result;
     }
 
     public CombatAttackPreview Preview(CombatAttackRequest request)

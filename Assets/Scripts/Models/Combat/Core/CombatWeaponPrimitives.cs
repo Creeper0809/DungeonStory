@@ -66,7 +66,8 @@ public sealed class CombatWeaponSnapshot
         bool supportsRapid,
         bool supportsSuppressive,
         float materialDamageMultiplier = 1f,
-        float materialPenetrationMultiplier = 1f)
+        float materialPenetrationMultiplier = 1f,
+        float evolutionAccuracyMultiplier = 1f)
     {
         DefinitionId = definitionId ?? string.Empty;
         InstanceId = instanceId ?? string.Empty;
@@ -85,6 +86,8 @@ public sealed class CombatWeaponSnapshot
         MaterialDamageMultiplier = Mathf.Max(0.01f, materialDamageMultiplier);
         MaterialPenetrationMultiplier =
             Mathf.Max(0.01f, materialPenetrationMultiplier);
+        EvolutionAccuracyMultiplier =
+            Mathf.Max(0.01f, evolutionAccuracyMultiplier);
     }
 
     public string DefinitionId { get; }
@@ -103,6 +106,7 @@ public sealed class CombatWeaponSnapshot
     public bool SupportsSuppressive { get; }
     public float MaterialDamageMultiplier { get; }
     public float MaterialPenetrationMultiplier { get; }
+    public float EvolutionAccuracyMultiplier { get; }
 
     public bool IsRanged =>
         Kind == CombatEquipmentKind.RangedWeapon
@@ -114,7 +118,7 @@ public sealed class CombatWeaponSnapshot
     {
         return Ranges.FirstOrDefault(
             item => item != null && item.band == band)
-            ?.accuracyMultiplier ?? 0f;
+            ?.accuracyMultiplier * EvolutionAccuracyMultiplier ?? 0f;
     }
 
     public float GetDamageMultiplier(CombatRangeBand band)

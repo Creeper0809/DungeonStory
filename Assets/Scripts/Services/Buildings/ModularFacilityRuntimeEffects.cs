@@ -188,7 +188,8 @@ public static class ModularFacilityRuntimeEffects
         CharacterActor actor,
         BuildableObject building,
         BuildingProductionAbility ability,
-        WorkTypeId workTypeId)
+        WorkTypeId workTypeId,
+        float evolutionOutputMultiplier = 1f)
     {
         if (building == null
             || ability == null
@@ -200,7 +201,10 @@ public static class ModularFacilityRuntimeEffects
         }
 
         float outputMultiplier = CharacterSkillRuntimeEffects.GetProductionOutputMultiplier(actor);
-        int requested = Mathf.CeilToInt(Mathf.Max(0, ability.amount) * outputMultiplier)
+        int requested = Mathf.CeilToInt(
+                Mathf.Max(0, ability.amount)
+                * outputMultiplier
+                * Mathf.Max(0.05f, evolutionOutputMultiplier))
             + CharacterSkillRuntimeEffects.GetStockProductionBonus(actor);
         int amount = Produce(building, ability.outputCategory, requested);
         string moduleId = BuildingStateModuleIds.ForAbility("production", ability.AbilityId);

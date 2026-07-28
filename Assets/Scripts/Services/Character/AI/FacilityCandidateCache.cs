@@ -521,6 +521,9 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
             CombatEquipmentMaintenanceFacilityUtility.AddFallbackWorkTypes(
                 building,
                 supportedTypes);
+        supportedTypes = FacilityEvolutionWorkUtility.AddFallbackWorkTypes(
+            building,
+            supportedTypes);
         return supportedTypes;
     }
 

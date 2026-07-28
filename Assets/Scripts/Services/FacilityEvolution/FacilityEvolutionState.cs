@@ -25,6 +25,7 @@ public class FacilityEvolutionHistoryEntry
     }
 }
 
+[Serializable]
 public sealed class FacilityEvolutionStateSnapshot
 {
     public string baseFacilityId;
@@ -36,9 +37,10 @@ public sealed class FacilityEvolutionStateSnapshot
     public FacilityEvolutionValue[] lastIdentityPressures = Array.Empty<FacilityEvolutionValue>();
     public string[] dominantIdentityTags = Array.Empty<string>();
     public List<FacilityEvolutionHistoryEntry> evolutionHistory = new List<FacilityEvolutionHistoryEntry>();
+    public FacilityEvolutionState instanceEvolution = new FacilityEvolutionState();
 }
 
-public class FacilityEvolutionStateComponent : MonoBehaviour
+public class FacilityEvolutionStateComponent : MonoBehaviour, IBuildingStateModule
 {
     [SerializeField] private string baseFacilityId;
     [SerializeField] private string currentFacilityId;
@@ -50,6 +52,11 @@ public class FacilityEvolutionStateComponent : MonoBehaviour
     [SerializeField] private string[] dominantIdentityTags = Array.Empty<string>();
     [SerializeField] private List<FacilityEvolutionHistoryEntry> evolutionHistory =
         new List<FacilityEvolutionHistoryEntry>();
+    [SerializeField] private FacilityEvolutionState instanceEvolution =
+        new FacilityEvolutionState();
+
+    public string ModuleId => BuildingStateModuleIds.FacilityEvolution;
+    public int CurrentVersion => 2;
 
     public string BaseFacilityId => baseFacilityId;
     public string CurrentFacilityId => currentFacilityId;
@@ -65,6 +72,10 @@ public class FacilityEvolutionStateComponent : MonoBehaviour
             .Where((entry) => entry != null)
             .Select((entry) => entry.Clone())
             .ToArray());
+    public FacilityEvolutionState InstanceEvolution =>
+        (instanceEvolution ??= new FacilityEvolutionState()).Clone();
+    public string FacilityPersistentId =>
+        instanceEvolution?.facilityPersistentId ?? string.Empty;
 
     public FacilityEvolutionStateSnapshot CreateSnapshot()
     {
@@ -81,7 +92,9 @@ public class FacilityEvolutionStateComponent : MonoBehaviour
             evolutionHistory = evolutionHistory
                 .Where((entry) => entry != null)
                 .Select((entry) => entry.Clone())
-                .ToList()
+                .ToList(),
+            instanceEvolution = instanceEvolution?.Clone() ??
+                new FacilityEvolutionState()
         };
     }
 
@@ -120,6 +133,8 @@ public class FacilityEvolutionStateComponent : MonoBehaviour
             .Select((entry) => entry.Clone())
             .ToList()
             ?? new List<FacilityEvolutionHistoryEntry>();
+        instanceEvolution = snapshot.instanceEvolution?.Clone() ??
+            new FacilityEvolutionState();
     }
 
     public void InitializeIfNeeded(BuildableObject facility)
@@ -144,6 +159,75 @@ public class FacilityEvolutionStateComponent : MonoBehaviour
         if (lineageTags == null || lineageTags.Length == 0)
         {
             lineageTags = FacilityEvolutionUtility.GetDefaultLineageTags(facility.BuildingData).ToArray();
+        }
+
+        instanceEvolution ??= new FacilityEvolutionState();
+        if (string.IsNullOrWhiteSpace(instanceEvolution.facilityPersistentId))
+        {
+            instanceEvolution.facilityPersistentId =
+                $"facility:{Guid.NewGuid():N}";
+        }
+        instanceEvolution.generation = Mathf.Max(0, instanceEvolution.generation);
+        instanceEvolution.mastery = Mathf.Max(0f, instanceEvolution.mastery);
+        instanceEvolution.usageLedger ??= new UsageLedger();
+        instanceEvolution.evolutionNodes ??= new List<EvolutionNode>();
+        foreach (EvolutionNode node in instanceEvolution.evolutionNodes
+                     .Where(node => node != null && !node.historical))
+        {
+            node.playerVisible = true;
+        }
+        instanceEvolution.pendingCandidates ??= new List<FacilityGenerationCandidate>();
+        instanceEvolution.activeNodeIds ??= new List<string>();
+        instanceEvolution.dormantNodeIds ??= new List<string>();
+        instanceEvolution.narrativeRequests ??=
+            new List<EvolutionNarrativeRequestSnapshot>();
+    }
+
+    public void ReplaceInstanceEvolution(FacilityEvolutionState state)
+    {
+        instanceEvolution = state?.Clone() ?? new FacilityEvolutionState();
+    }
+
+    public void AddMastery(float amount)
+    {
+        instanceEvolution ??= new FacilityEvolutionState();
+        instanceEvolution.mastery = Mathf.Max(
+            0f,
+            instanceEvolution.mastery + Mathf.Max(0f, amount));
+    }
+
+    public string CaptureState()
+    {
+        return JsonUtility.ToJson(CreateSnapshot());
+    }
+
+    public bool TryRestoreState(int version, string payload, out string error)
+    {
+        error = string.Empty;
+        if (version < 1 || version > CurrentVersion)
+        {
+            error = $"Unsupported facility evolution state version {version}.";
+            return false;
+        }
+
+        try
+        {
+            FacilityEvolutionStateSnapshot snapshot =
+                JsonUtility.FromJson<FacilityEvolutionStateSnapshot>(
+                    payload ?? string.Empty);
+            if (snapshot == null)
+            {
+                error = "Facility evolution state payload was empty.";
+                return false;
+            }
+
+            ApplySnapshot(snapshot);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
         }
     }
 

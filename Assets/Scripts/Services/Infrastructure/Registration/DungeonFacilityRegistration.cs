@@ -45,6 +45,16 @@ public static class DungeonFacilityRegistration
             .As<IFacilityEvolutionRecordEventRecorder>();
         builder.Register<FacilityEvolutionStateComponentFactory>(Lifetime.Singleton)
             .As<IFacilityEvolutionStateComponentFactory>();
+        builder.Register<UsageLedgerCompactor>(Lifetime.Singleton)
+            .As<IUsageLedgerCompactor>();
+        builder.Register<EvolutionModuleRegistry>(Lifetime.Singleton)
+            .As<IEvolutionModuleRegistry>();
+        builder.Register<FacilityRelocationWorldService>(Lifetime.Singleton)
+            .As<IFacilityRelocationWorldService>();
+        builder.Register<FacilityInstanceEvolutionRuntime>(Lifetime.Singleton)
+            .As<IFacilityEvolutionRuntime>();
+        builder.Register<FacilityEvolutionModifierQuery>(Lifetime.Singleton)
+            .As<IFacilityEvolutionModifierQuery>();
         builder.Register<DataCatalogCodexReferenceCatalog>(Lifetime.Singleton)
             .As<ICodexReferenceCatalog>();
         builder.Register<CodexReferenceImporter>(Lifetime.Singleton)

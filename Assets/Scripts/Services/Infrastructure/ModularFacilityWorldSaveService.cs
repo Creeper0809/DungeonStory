@@ -23,24 +23,28 @@ public interface IModularFacilityWorldSaveService
 
 public sealed class ModularFacilityWorldSaveService : IModularFacilityWorldSaveService
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     private readonly Func<int, BuildingSO> findBuildingData;
     private readonly IGridBuildingObjectFactory objectFactory;
     private readonly IObjectResolver objectResolver;
     private readonly IGridTextureProvider gridTextureProvider;
+    private readonly IFacilityRelocationWorldService facilityRelocationWorldService;
     private IGridBuildingFactory buildingFactory;
 
     public ModularFacilityWorldSaveService(
         IBuildingDefinitionLookup buildingLookup,
         IGridBuildingObjectFactory objectFactory,
         IObjectResolver objectResolver,
-        IGridTextureProvider gridTextureProvider)
+        IGridTextureProvider gridTextureProvider,
+        IFacilityRelocationWorldService facilityRelocationWorldService)
     {
         findBuildingData = CreateBuildingLookup(buildingLookup);
         this.objectFactory = objectFactory ?? throw new ArgumentNullException(nameof(objectFactory));
         this.objectResolver = objectResolver ?? throw new ArgumentNullException(nameof(objectResolver));
         this.gridTextureProvider = gridTextureProvider ?? throw new ArgumentNullException(nameof(gridTextureProvider));
+        this.facilityRelocationWorldService = facilityRelocationWorldService
+            ?? throw new ArgumentNullException(nameof(facilityRelocationWorldService));
     }
 
     public ModularFacilityWorldSaveService(
@@ -133,8 +137,19 @@ public sealed class ModularFacilityWorldSaveService : IModularFacilityWorldSaveS
             return ModularFacilityWorldSaveMigrator.FromV1(legacy);
         }
 
-        return JsonUtility.FromJson<ModularFacilityWorldSaveData>(json)
+        ModularFacilityWorldSaveData parsed =
+            JsonUtility.FromJson<ModularFacilityWorldSaveData>(json)
             ?? new ModularFacilityWorldSaveData();
+        if (header.version == 2)
+        {
+            parsed.version = CurrentVersion;
+            parsed.migratedFromVersion = 2;
+            parsed.migrationWarnings ??= new List<string>();
+            parsed.migrationWarnings.Add(
+                $"Migrated modular facility save from version 2 to {CurrentVersion}.");
+        }
+
+        return parsed;
     }
 
     public bool TryRestoreJson(
@@ -209,11 +224,13 @@ public sealed class ModularFacilityWorldSaveService : IModularFacilityWorldSaveS
         foreach (BuildableObject building in existing)
         {
             BuildingSO data = building.BuildingData;
+            GridLayer runtimeLayer = ResolveRegisteredLayer(building);
             bool removed = grid.RemoveOccupant(
                 building,
-                data.Placement.Layer,
+                runtimeLayer,
                 building.buildPoses,
-                data.Placement.IsMovement);
+                runtimeLayer == data.Placement.Layer
+                    && data.Placement.IsMovement);
             if (!removed)
             {
                 report.AddError($"Failed to remove existing building id={building.id} at {building.centerPos}.");
@@ -271,9 +288,13 @@ public sealed class ModularFacilityWorldSaveService : IModularFacilityWorldSaveS
 
         Vector2Int center = new Vector2Int(entry.centerX, entry.centerY);
         IReadOnlyList<Vector2Int> positions = data.GetGridPosList(center);
-        if (!CanRegister(grid, data.Placement.Layer, positions))
+        GridLayer runtimeLayer = entry.hasRuntimeLayer
+            ? entry.runtimeLayer
+            : data.Placement.Layer;
+        if (!CanRegister(grid, runtimeLayer, positions))
         {
-            report.AddError($"Building id={entry.buildingId} cannot occupy {entry.layer} at {center}.");
+            report.AddError(
+                $"Building id={entry.buildingId} cannot occupy {runtimeLayer} at {center}.");
             return;
         }
 
@@ -288,9 +309,10 @@ public sealed class ModularFacilityWorldSaveService : IModularFacilityWorldSaveS
         building.Initialization(data, center);
         bool registered = grid.RegisterOccupant(
             building,
-            data.Placement.Layer,
+            runtimeLayer,
             positions,
-            data.Placement.IsMovement);
+            runtimeLayer == data.Placement.Layer
+                && data.Placement.IsMovement);
         if (!registered)
         {
             ResolveBuildingFactory().DeleteVisual(data, center);
@@ -314,7 +336,29 @@ public sealed class ModularFacilityWorldSaveService : IModularFacilityWorldSaveS
             report.AddError(error);
         }
 
+        if (entry.relocationPacked)
+        {
+            ResolveBuildingFactory().DeleteVisual(data, center);
+            facilityRelocationWorldService?.RestorePackedPresentation(building);
+        }
+
         report.restoredBuildings.Add(entry);
+    }
+
+    private static GridLayer ResolveRegisteredLayer(BuildableObject building)
+    {
+        if (building?.Grid != null
+            && building.buildPoses.Any(position =>
+                ReferenceEquals(
+                    building.Grid.GetGridCell(position)
+                        ?.GetOccupant(GridLayer.Construction),
+                    building)))
+        {
+            return GridLayer.Construction;
+        }
+
+        return building?.BuildingData?.Placement.Layer
+            ?? GridLayer.Building;
     }
 
     private IGridBuildingFactory ResolveBuildingFactory()
@@ -463,6 +507,9 @@ public sealed class ModularFacilityBuildingSaveData
     public string code;
     public string objectName;
     public GridLayer layer;
+    public bool hasRuntimeLayer;
+    public GridLayer runtimeLayer;
+    public bool relocationPacked;
     public int centerX;
     public int centerY;
     public int width;
@@ -480,6 +527,9 @@ public sealed class ModularFacilityBuildingSaveData
             code = data.GetFacilityCode(),
             objectName = data.objectName,
             layer = data.Placement.Layer,
+            hasRuntimeLayer = true,
+            runtimeLayer = ResolveRuntimeLayer(building),
+            relocationPacked = IsPackedRelocation(building),
             centerX = building.centerPos.x,
             centerY = building.centerPos.y,
             width = data.Placement.Width,
@@ -490,6 +540,37 @@ public sealed class ModularFacilityBuildingSaveData
         };
 
         return result;
+    }
+
+    private static GridLayer ResolveRuntimeLayer(BuildableObject building)
+    {
+        if (building?.Grid != null
+            && building.buildPoses.Any(position =>
+                ReferenceEquals(
+                    building.Grid.GetGridCell(position)
+                        ?.GetOccupant(GridLayer.Construction),
+                    building)))
+        {
+            return GridLayer.Construction;
+        }
+
+        return building?.BuildingData?.Placement.Layer
+            ?? GridLayer.Building;
+    }
+
+    private static bool IsPackedRelocation(BuildableObject building)
+    {
+        if (ResolveRuntimeLayer(building) != GridLayer.Construction)
+        {
+            return false;
+        }
+
+        FacilityEvolutionStateComponent component =
+            building.GetComponent<FacilityEvolutionStateComponent>();
+        FacilityRelocationOrder order =
+            component?.InstanceEvolution?.relocationOrder;
+        return order != null
+            && order.phase != FacilityRelocationPhase.Dismantling;
     }
 }
 

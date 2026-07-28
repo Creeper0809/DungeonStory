@@ -175,6 +175,13 @@ public sealed class DungeonItemCatalogSO : ScriptableObject
             return true;
         }
 
+        if (EvolutionCatalystItemDefinitions.TryGetDefinition(
+                normalized,
+                out definition))
+        {
+            return true;
+        }
+
         if (TryGetStockCategoryFromItemId(normalized, out StockCategory category))
         {
             definition = DungeonItemDefinition.FromStockCategory(category);
@@ -337,6 +344,13 @@ public sealed class ResourceDungeonItemCatalogProvider : IDungeonItemCatalogProv
         if (CaptivityItemDefinitions.TryGetDefinition(itemId, out DungeonItemDefinition captivityDefinition))
         {
             return captivityDefinition;
+        }
+
+        if (EvolutionCatalystItemDefinitions.TryGetDefinition(
+                itemId,
+                out DungeonItemDefinition evolutionDefinition))
+        {
+            return evolutionDefinition;
         }
 
         return DungeonItemCatalogSO.TryGetStockCategoryFromItemId(itemId, out StockCategory category)

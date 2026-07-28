@@ -333,15 +333,20 @@ public static class ModularFacilitySaveLoadDebugScenarios
         ModularFacilityBuildingSaveData b,
         out string details)
     {
+        bool stateModulesEqual = EqualStateModules(
+            a.stateModules,
+            b.stateModules,
+            out string moduleDetails);
         if (a.buildingId != b.buildingId
             || a.layer != b.layer
             || a.centerX != b.centerX
             || a.centerY != b.centerY
             || a.isDamaged != b.isDamaged
             || a.facilityLevel != b.facilityLevel
-            || !EqualStateModules(a.stateModules, b.stateModules))
+            || !stateModulesEqual)
         {
-            details = $"state mismatch id={a.buildingId} layer={a.layer}";
+            details =
+                $"state mismatch id={a.buildingId} layer={a.layer}; {moduleDetails}";
             return false;
         }
 
@@ -351,7 +356,8 @@ public static class ModularFacilitySaveLoadDebugScenarios
 
     private static bool EqualStateModules(
         IEnumerable<BuildingStateModuleSaveData> a,
-        IEnumerable<BuildingStateModuleSaveData> b)
+        IEnumerable<BuildingStateModuleSaveData> b,
+        out string details)
     {
         List<BuildingStateModuleSaveData> left = (a ?? Enumerable.Empty<BuildingStateModuleSaveData>())
             .OrderBy(item => item.moduleId, StringComparer.Ordinal)
@@ -359,10 +365,35 @@ public static class ModularFacilitySaveLoadDebugScenarios
         List<BuildingStateModuleSaveData> right = (b ?? Enumerable.Empty<BuildingStateModuleSaveData>())
             .OrderBy(item => item.moduleId, StringComparer.Ordinal)
             .ToList();
-        return left.Count == right.Count
-            && !left.Where((item, index) => !string.Equals(item.moduleId, right[index].moduleId, StringComparison.Ordinal)
-                || item.version != right[index].version
-                || !string.Equals(item.payload, right[index].payload, StringComparison.Ordinal)).Any();
+        if (left.Count != right.Count)
+        {
+            details = $"module count {left.Count}->{right.Count}";
+            return false;
+        }
+
+        for (int index = 0; index < left.Count; index++)
+        {
+            BuildingStateModuleSaveData before = left[index];
+            BuildingStateModuleSaveData after = right[index];
+            if (!string.Equals(
+                    before.moduleId,
+                    after.moduleId,
+                    StringComparison.Ordinal)
+                || before.version != after.version
+                || !string.Equals(
+                    before.payload,
+                    after.payload,
+                    StringComparison.Ordinal))
+            {
+                details =
+                    $"module {before.moduleId} v{before.version}->{after.moduleId} v{after.version}; "
+                    + $"payload {before.payload}->{after.payload}";
+                return false;
+            }
+        }
+
+        details = "modules equal";
+        return true;
     }
 
     private static Dictionary<string, ModularFacilityBuildingSaveData> ToBuildingMap(

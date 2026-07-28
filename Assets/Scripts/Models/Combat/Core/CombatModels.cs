@@ -190,10 +190,23 @@ public sealed class CombatEquipmentInstance
     public CombatEquipmentWorldState worldState = CombatEquipmentWorldState.Stored;
     public string ownerCharacterId = string.Empty;
     public string sourceStackId = string.Empty;
+    public EquipmentEvolutionState evolution = new EquipmentEvolutionState();
 
     public CombatEquipmentInstance Clone()
     {
-        return (CombatEquipmentInstance)MemberwiseClone();
+        return new CombatEquipmentInstance
+        {
+            instanceId = instanceId ?? string.Empty,
+            definitionId = definitionId ?? string.Empty,
+            materialId = materialId ?? string.Empty,
+            quality = quality,
+            durabilityRatio = durabilityRatio,
+            loadedAmmo = loadedAmmo,
+            worldState = worldState,
+            ownerCharacterId = ownerCharacterId ?? string.Empty,
+            sourceStackId = sourceStackId ?? string.Empty,
+            evolution = evolution?.Clone() ?? new EquipmentEvolutionState()
+        };
     }
 }
 

@@ -127,22 +127,6 @@ public class FacilityEvolutionPanel :
             "진화 후보:"
         };
 
-        FacilityEvolutionCandidate firstCandidate = candidates?
-            .FirstOrDefault((candidate) => candidate != null);
-        if (firstCandidate != null && !string.IsNullOrWhiteSpace(firstCandidate.ProposalSource))
-        {
-            lines.Add($"해석: {firstCandidate.ProposalSource}");
-            if (!string.IsNullOrWhiteSpace(firstCandidate.ProposalStatusMessage))
-            {
-                lines.Add($"상태: {firstCandidate.ProposalStatusMessage}");
-            }
-
-            if (!string.IsNullOrWhiteSpace(firstCandidate.FlavorText))
-            {
-                lines.Add($"서사: {firstCandidate.FlavorText}");
-            }
-        }
-
         if (candidates == null || candidates.Count == 0)
         {
             lines.Add("- 없음");

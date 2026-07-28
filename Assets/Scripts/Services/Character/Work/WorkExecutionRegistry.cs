@@ -477,10 +477,14 @@ public sealed class WorkStatPolicyRegistry : IWorkStatPolicyRegistry
 public sealed class WorkAmountCalculator : IWorkAmountCalculator
 {
     private readonly IWorkStatPolicyRegistry policies;
+    private readonly IFacilityEvolutionModifierQuery facilityEvolution;
 
-    public WorkAmountCalculator(IWorkStatPolicyRegistry policies)
+    public WorkAmountCalculator(
+        IWorkStatPolicyRegistry policies,
+        IFacilityEvolutionModifierQuery facilityEvolution = null)
     {
         this.policies = policies ?? throw new ArgumentNullException(nameof(policies));
+        this.facilityEvolution = facilityEvolution;
     }
 
     public float CalculateWorkPerSecond(
@@ -499,8 +503,12 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
             ? Mathf.Max(0.1f, actor.GetWorkSpeedMultiplier(definition.WorkTypeId))
             : 1f;
         float environment = 1f / Mathf.Max(0.1f, environmentDurationMultiplier);
+        float evolution = facilityEvolution?.GetWorkSpeedMultiplier(
+                target,
+                definition.WorkTypeId)
+            ?? 1f;
         return Mathf.Clamp(
-            statMultiplier * workSpeed * environment,
+            statMultiplier * workSpeed * environment * evolution,
             0.05f,
             8f);
     }

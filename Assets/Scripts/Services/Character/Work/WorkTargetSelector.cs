@@ -781,6 +781,9 @@ public sealed class WorkTargetSelector
         supportedTypes = CombatEquipmentMaintenanceFacilityUtility.AddFallbackWorkTypes(
             building,
             supportedTypes);
+        supportedTypes = FacilityEvolutionWorkUtility.AddFallbackWorkTypes(
+            building,
+            supportedTypes);
         if (supportedTypes == FacilityWorkType.None)
         {
             bestCandidate = WorkTargetCandidate.Invalid(

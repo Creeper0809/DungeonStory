@@ -186,6 +186,11 @@ public static class DungeonPresentationRegistration
             .As<IProductionBuildingPanelPresenter>();
         builder.Register<EquipmentCraftingPanelPresenter>(Lifetime.Singleton)
             .As<IEquipmentCraftingPanelPresenter>();
+        builder.Register<InstanceEvolutionPanelPresenter>(Lifetime.Singleton)
+            .As<IInstanceEvolutionPanelPresenter>();
+        builder.RegisterEntryPoint<FacilityRelocationTargetingService>(
+                Lifetime.Singleton)
+            .As<IFacilityRelocationTargetingService>();
         builder.Register<CropPlotBuildingPanelPresenter>(Lifetime.Singleton)
             .As<ICropPlotBuildingPanelPresenter>();
         builder.Register<AnimalHusbandryBuildingPanelPresenter>(

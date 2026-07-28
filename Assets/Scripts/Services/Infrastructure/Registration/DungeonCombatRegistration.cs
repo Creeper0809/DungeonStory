@@ -29,6 +29,17 @@ public static class DungeonCombatRegistration
             .AsSelf()
             .As<ICombatEquipmentRuntime>()
             .As<ICombatLoadoutRuntime>();
+        builder.Register<EquipmentEvolutionRuntime>(Lifetime.Singleton)
+            .As<IEquipmentEvolutionRuntime>()
+            .As<IAttunementRuntime>();
+        builder.RegisterEntryPoint<EvolutionHistoryNarrativeRuntime>(
+                Lifetime.Singleton)
+            .As<IEvolutionHistoryNarrativeRuntime>();
+        builder.Register<EvolutionCatalystEconomyRuntime>(Lifetime.Singleton)
+            .As<IEvolutionCatalystEconomyRuntime>();
+        builder.RegisterEntryPoint<EvolutionCatalystDropRuntime>(
+                Lifetime.Singleton)
+            .As<IEvolutionCatalystDropRuntime>();
         builder.RegisterEntryPoint<CombatEquipmentItemRuntimeConnector>(
             Lifetime.Singleton);
         builder.RegisterEntryPoint<CombatEquipmentCharacterDeathConnector>(

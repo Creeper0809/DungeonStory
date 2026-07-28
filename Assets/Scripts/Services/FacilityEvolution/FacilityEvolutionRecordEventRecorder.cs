@@ -25,15 +25,18 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
 
     private readonly IFacilityCandidateCache facilityCandidateCache;
     private readonly IFacilityEvolutionRecordComponentService recordComponentService;
+    private readonly IFacilityEvolutionRuntime instanceEvolutionRuntime;
 
     public FacilityEvolutionRecordEventRecorder(
         IFacilityCandidateCache facilityCandidateCache,
-        IFacilityEvolutionRecordComponentService recordComponentService)
+        IFacilityEvolutionRecordComponentService recordComponentService,
+        IFacilityEvolutionRuntime instanceEvolutionRuntime = null)
     {
         this.facilityCandidateCache = facilityCandidateCache
             ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
         this.recordComponentService = recordComponentService
             ?? throw new ArgumentNullException(nameof(recordComponentService));
+        this.instanceEvolutionRuntime = instanceEvolutionRuntime;
     }
 
     public void RecordVisit(FacilityVisitEvent eventType, int highTurnoverVisitStep)
@@ -101,6 +104,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             record.AddToken(FacilityEvolutionTerms.HighTurnoverService, 1);
         }
 
+        RecordInstanceUsage(
+            facility,
+            "facility.visit",
+            1f,
+            1f,
+            visitor != null ? GetVisitorId(visitor) : string.Empty,
+            "service",
+            "visit");
         MarkDynamicStateDirty();
     }
 
@@ -126,6 +137,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         }
 
         GetDayRecord(facility).revenue += eventType.revenue;
+        RecordInstanceUsage(
+            facility,
+            "facility.revenue",
+            Mathf.Max(1f, eventType.revenue * 0.02f),
+            eventType.revenue,
+            string.Empty,
+            "service",
+            "revenue");
         MarkDynamicStateDirty();
     }
 
@@ -149,6 +168,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             record.AddToken(FacilityEvolutionTerms.HighMeatConsumption, Mathf.Max(1, eventType.amount));
         }
 
+        RecordInstanceUsage(
+            facility,
+            "facility.stock-consumed",
+            Mathf.Max(0.5f, eventType.amount * 0.5f),
+            eventType.amount,
+            string.Empty,
+            "production",
+            eventType.category.ToString());
         MarkDynamicStateDirty();
     }
 
@@ -178,6 +205,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             ? $"Crime occurred at {GetFacilityName(facility)}."
             : eventType.detail);
         GetDayRecord(facility).incidents++;
+        RecordInstanceUsage(
+            facility,
+            "facility.crime",
+            2f,
+            1f,
+            string.Empty,
+            "accident",
+            "service");
         MarkDynamicStateDirty();
     }
 
@@ -197,6 +232,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
                 ? $"{GetFacilityName(facility)} failed to restock."
                 : eventType.message);
             GetDayRecord(facility).incidents++;
+            RecordInstanceUsage(
+                facility,
+                "facility.restock-failed",
+                1f,
+                1f,
+                string.Empty,
+                "accident",
+                "logistics");
             MarkDynamicStateDirty();
         }
     }
@@ -224,6 +267,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         }
 
         record.AddRecentEvent(report.FormatSummary());
+        RecordInstanceUsage(
+            facility,
+            "facility.defense-triggered",
+            Mathf.Max(2f, report.TotalDamage * 0.5f),
+            Mathf.Max(1f, report.TotalDamage),
+            string.Empty,
+            "defense",
+            "combat");
         MarkDynamicStateDirty();
     }
 
@@ -240,6 +291,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         IncrementMetric(record, FacilityEvolutionTerms.NegativeMentionCount, 1f);
         record.AddRecentEvent($"{GetFacilityName(facility)} was damaged during an invasion.");
         GetDayRecord(facility).incidents++;
+        RecordInstanceUsage(
+            facility,
+            "facility.invasion-damage",
+            1f,
+            1f,
+            string.Empty,
+            "defense",
+            "accident");
         MarkDynamicStateDirty();
     }
 
@@ -258,6 +317,14 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
             {
                 record.AddToken(FacilityEvolutionTerms.CleanServiceStreak, 1);
                 IncrementMetric(record, FacilityEvolutionTerms.PositiveMentionCount, 1f);
+                RecordInstanceUsage(
+                    day.facility,
+                    "facility.clean-service-day",
+                    2f,
+                    day.visits,
+                    string.Empty,
+                    "service",
+                    "clean");
             }
         }
 
@@ -297,6 +364,23 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
     private FacilityEvolutionRecordComponent GetOrAddRecord(BuildableObject facility)
     {
         return recordComponentService.GetOrAdd(facility);
+    }
+
+    private void RecordInstanceUsage(
+        BuildableObject facility,
+        string eventId,
+        float mastery,
+        float amount,
+        string actorId,
+        params string[] sourceTags)
+    {
+        instanceEvolutionRuntime?.RecordUsage(
+            facility,
+            eventId,
+            mastery,
+            amount,
+            actorId,
+            sourceTags);
     }
 
     private static void IncrementMetric(FacilityEvolutionRecordComponent record, string key, float delta)

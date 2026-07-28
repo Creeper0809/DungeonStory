@@ -1,7 +1,9 @@
 {
   "name": "DungeonStory.Combat",
   "rootNamespace": "DungeonStory.Combat",
-  "references": [],
+  "references": [
+    "DungeonStory.Evolution"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

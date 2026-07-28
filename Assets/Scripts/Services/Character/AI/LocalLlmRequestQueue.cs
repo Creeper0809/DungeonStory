@@ -89,6 +89,13 @@ public static class LocalLlmRequestProfiles
         "FacilityEvolution",
         16,
         logFailureWarnings: false);
+    public static readonly LocalLlmRequestProfile EvolutionHistory = new LocalLlmRequestProfile(
+        "EvolutionHistory",
+        17,
+        temperature: 0.65f,
+        queueFullBehavior: LocalLlmQueueFullBehavior.RejectQuietly,
+        logFailureWarnings: false,
+        maxOutputTokens: 384);
     public static readonly LocalLlmRequestProfile SocialRumor = new LocalLlmRequestProfile(
         "SocialRumor",
         15,
@@ -135,6 +142,16 @@ public interface ICorrelatedCharacterSkillLlmRuntime
         Action<LocalLlmResult> callback);
 
     void CancelCharacterSkillRequest(string requestKey);
+}
+
+public interface ICorrelatedEvolutionHistoryLlmRuntime
+{
+    bool GenerateEvolutionHistoryAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback);
+
+    void CancelEvolutionHistoryRequest(string requestKey);
 }
 
 public readonly struct LocalLlmResult
@@ -227,7 +244,8 @@ internal sealed class LocalLlmQueuedRequest
 public sealed class LocalLlmRequestQueue :
     SerializedMonoBehaviour,
     ILocalLlmRuntime,
-    ICorrelatedCharacterSkillLlmRuntime
+    ICorrelatedCharacterSkillLlmRuntime,
+    ICorrelatedEvolutionHistoryLlmRuntime
 {
     [SerializeField] private string endpointUrl = "http://localhost:11434/v1/chat/completions";
     [SerializeField] private string modelName = "llama3.1";
@@ -466,28 +484,30 @@ public sealed class LocalLlmRequestQueue :
 
     public void CancelCharacterSkillRequest(string requestKey)
     {
-        if (string.IsNullOrWhiteSpace(requestKey))
-        {
-            return;
-        }
+        CancelCorrelatedRequest(
+            requestKey,
+            "Character skill request was cancelled.");
+    }
 
-        LocalLlmQueuedRequest[] cancelled = queue
-            .Concat(runningRequests)
-            .Where(request => request != null
-                && string.Equals(request.CorrelationId, requestKey, StringComparison.Ordinal))
-            .Distinct()
-            .ToArray();
-        foreach (LocalLlmQueuedRequest request in cancelled)
-        {
-            queue.Remove(request);
-            request.Abort();
-            Complete(request, new LocalLlmResult(
-                LocalLlmRequestStatus.Cancelled,
-                string.Empty,
-                "Character skill request was cancelled.",
-                request.OriginalText),
-                logFailure: false);
-        }
+    public bool GenerateEvolutionHistoryAsync(
+        string requestKey,
+        string prompt,
+        Action<LocalLlmResult> callback)
+    {
+        return Enqueue(
+            LocalLlmRequestProfiles.EvolutionHistory,
+            prompt,
+            string.Empty,
+            facilityEvolutionTimeoutSeconds,
+            callback,
+            requestKey);
+    }
+
+    public void CancelEvolutionHistoryRequest(string requestKey)
+    {
+        CancelCorrelatedRequest(
+            requestKey,
+            "Evolution history request was cancelled.");
     }
 
     public bool GenerateMacroGoalAsync(string prompt, Action<LocalLlmResult> callback)
@@ -508,6 +528,35 @@ public sealed class LocalLlmRequestQueue :
     public bool GenerateFacilityEvolutionAsync(string prompt, Action<LocalLlmResult> callback)
     {
         return Enqueue(LocalLlmRequestProfiles.FacilityEvolution, prompt, string.Empty, facilityEvolutionTimeoutSeconds, callback);
+    }
+
+    private void CancelCorrelatedRequest(string requestKey, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(requestKey))
+        {
+            return;
+        }
+
+        LocalLlmQueuedRequest[] cancelled = queue
+            .Concat(runningRequests)
+            .Where(request => request != null
+                && string.Equals(
+                    request.CorrelationId,
+                    requestKey,
+                    StringComparison.Ordinal))
+            .Distinct()
+            .ToArray();
+        foreach (LocalLlmQueuedRequest request in cancelled)
+        {
+            queue.Remove(request);
+            request.Abort();
+            Complete(request, new LocalLlmResult(
+                    LocalLlmRequestStatus.Cancelled,
+                    string.Empty,
+                    reason ?? string.Empty,
+                    request.OriginalText),
+                logFailure: false);
+        }
     }
 
     public bool GenerateCharacterRecordAsync(

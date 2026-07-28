@@ -29,6 +29,14 @@ public abstract class BuildingAbilityWorkCompletedHandler<TAbility> :
 public sealed class ProductionBuildingAbilityHandler :
     BuildingAbilityWorkCompletedHandler<BuildingProductionAbility>
 {
+    private readonly IFacilityEvolutionModifierQuery evolutionModifiers;
+
+    public ProductionBuildingAbilityHandler(
+        IFacilityEvolutionModifierQuery evolutionModifiers = null)
+    {
+        this.evolutionModifiers = evolutionModifiers;
+    }
+
     protected override int Apply(
         BuildingProductionAbility ability,
         BuildingAbilityWorkContext context)
@@ -37,7 +45,10 @@ public sealed class ProductionBuildingAbilityHandler :
             context.Actor,
             context.Building,
             ability,
-            context.WorkTypeId);
+            context.WorkTypeId,
+            evolutionModifiers?.GetOutputMultiplier(
+                context.Building,
+                context.WorkTypeId) ?? 1f);
     }
 }
 

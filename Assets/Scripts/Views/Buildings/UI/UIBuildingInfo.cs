@@ -27,6 +27,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private IDoorAccessPanelPresenter doorAccessPanelPresenter;
     private ICircusBuildingPanelPresenter circusBuildingPanelPresenter;
     private IEquipmentCraftingPanelPresenter equipmentCraftingPanelPresenter;
+    private IInstanceEvolutionPanelPresenter instanceEvolutionPanelPresenter;
     private IProductionBuildingPanelPresenter productionBuildingPanelPresenter;
     private ICropPlotBuildingPanelPresenter cropPlotBuildingPanelPresenter;
     private IAnimalHusbandryBuildingPanelPresenter animalHusbandryPanelPresenter;
@@ -59,6 +60,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         IDoorAccessPanelPresenter doorAccessPanelPresenter,
         ICircusBuildingPanelPresenter circusBuildingPanelPresenter,
         IEquipmentCraftingPanelPresenter equipmentCraftingPanelPresenter,
+        IInstanceEvolutionPanelPresenter instanceEvolutionPanelPresenter,
         IProductionBuildingPanelPresenter productionBuildingPanelPresenter,
         ICropPlotBuildingPanelPresenter cropPlotBuildingPanelPresenter,
         IAnimalHusbandryBuildingPanelPresenter animalHusbandryPanelPresenter)
@@ -84,6 +86,9 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         this.equipmentCraftingPanelPresenter = equipmentCraftingPanelPresenter
             ?? throw new ArgumentNullException(
                 nameof(equipmentCraftingPanelPresenter));
+        this.instanceEvolutionPanelPresenter = instanceEvolutionPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(instanceEvolutionPanelPresenter));
         this.productionBuildingPanelPresenter = productionBuildingPanelPresenter
             ?? throw new ArgumentNullException(
                 nameof(productionBuildingPanelPresenter));
@@ -303,6 +308,14 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                 message => craftStatusMessage = message,
                 () => DisplayBuildingInfo(building));
         craftActionObjects.AddRange(equipmentCraftingObjects);
+        IReadOnlyList<GameObject> evolutionObjects =
+            instanceEvolutionPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(evolutionObjects);
         RenderMaintenanceActions(buildingData, building);
         IReadOnlyList<GameObject> productionObjects =
             productionBuildingPanelPresenter.Render(

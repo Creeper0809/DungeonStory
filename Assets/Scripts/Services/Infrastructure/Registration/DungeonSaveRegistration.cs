@@ -58,6 +58,8 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<CombatEquipmentSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<EquipmentEvolutionSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<CharacterMedicalSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<DefenseTacticalSaveSection>(Lifetime.Singleton)

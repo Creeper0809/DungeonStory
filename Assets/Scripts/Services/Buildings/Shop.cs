@@ -1239,8 +1239,14 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         FacilityAssignmentStatus workStatus = FacilityAssignmentStatus.Rejected(
             FacilityAssignmentFailureKind.UnsupportedWork,
             "지원하지 않는 작업");
+        FacilityWorkType supported =
+            FacilityEvolutionWorkUtility.AddFallbackWorkTypes(
+                this,
+                Facility != null
+                    ? Facility.supportedWorkTypes
+                    : FacilityWorkType.Operate);
         foreach (WorkTypeDefinition definition in WorkTypeCatalog.Enumerate(
-                     Facility != null ? Facility.supportedWorkTypes : FacilityWorkType.Operate))
+                     supported))
         {
             workStatus = GetWorkAssignmentStatus(definition.WorkTypeId);
             if (workStatus.IsAllowed)

@@ -131,6 +131,31 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         this.grid = grid;
     }
 
+    public void SetRuntimeGridPosition(Vector2Int position)
+    {
+        centerPos = position;
+        mutableBuildPoses.Clear();
+        if (BuildingData != null)
+        {
+            mutableBuildPoses.AddRange(
+                BuildingData.GetGridPosList(position));
+        }
+
+        if (grid != null)
+        {
+            Vector3 worldPosition = grid.GetWorldPos(position);
+            if (BuildingData != null
+                && BuildingData.Placement.HasEvenWidth)
+            {
+                worldPosition.x += 0.5f;
+            }
+
+            transform.position = worldPosition;
+        }
+
+        MarkFacilityDynamicStateDirty();
+    }
+
     public virtual void Initialization(BuildingSO buildingSO, Vector2Int buildPos)
     {
         if (buildingSO == null)
@@ -155,6 +180,13 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         facilityState.CopyFrom(null);
         runtimeStateModules.Clear();
         RegisterStateModule(new FacilityRuntimeStateModule(this));
+        FacilityEvolutionStateComponent evolutionState =
+            GetComponent<FacilityEvolutionStateComponent>();
+        if (evolutionState == null)
+        {
+            evolutionState = gameObject.AddComponent<FacilityEvolutionStateComponent>();
+        }
+        evolutionState.InitializeIfNeeded(this);
         foreach (BuildingAbility ability in buildingSO.Abilities)
         {
             if (ability is IBuildingRuntimeStateAbility stateAbility)
@@ -291,7 +323,20 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         }
 
         GridBuildingPlacement placement = BuildingData.Placement;
-        grid.RemoveOccupant(this, placement.Layer, buildPoses, placement.IsMovement);
+        GridLayer registeredLayer = placement.Layer;
+        bool disconnectPositions = placement.IsMovement;
+        for (int i = 0; i < buildPoses.Count; i++)
+        {
+            GridCell cell = grid.GetGridCell(buildPoses[i]);
+            if (ReferenceEquals(cell?.GetOccupant(GridLayer.Construction), this))
+            {
+                registeredLayer = GridLayer.Construction;
+                disconnectPositions = false;
+                break;
+            }
+        }
+
+        grid.RemoveOccupant(this, registeredLayer, buildPoses, disconnectPositions);
     }
 
     public void SetDamaged(bool value)
@@ -344,6 +389,12 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         if (isDestroy)
         {
             failureReason = "시설 파괴됨";
+            return false;
+        }
+
+        if (FacilityEvolutionWorkUtility.IsRelocating(this))
+        {
+            failureReason = "이전 작업 중";
             return false;
         }
 
@@ -593,11 +644,14 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
             && (SurvivalFacilityUtility.AddFallbackWorkTypes(this, FacilityWorkType.None) & workType) != 0;
         bool supportsEquipmentMaintenance = workType == FacilityWorkType.Repair
             && CombatEquipmentMaintenanceFacilityUtility.IsMaintenanceFacility(this);
+        bool supportsFacilityEvolution = workType == FacilityWorkType.Craft
+            && FacilityEvolutionWorkUtility.HasPendingWork(this);
         if (facilityData == null
             || (!facilityData.SupportsWork(workType)
                 && !supportsButcherFallback
                 && !supportsSurvivalFallback
-                && !supportsEquipmentMaintenance))
+                && !supportsEquipmentMaintenance
+                && !supportsFacilityEvolution))
         {
             return FacilityAssignmentStatus.Rejected(
                 FacilityAssignmentFailureKind.UnsupportedWork,
@@ -854,6 +908,12 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         if (workType == FacilityWorkType.Craft && HasPendingEquipmentCraftWork())
         {
             urgency += 55f;
+        }
+
+        if (workType == FacilityWorkType.Craft
+            && FacilityEvolutionWorkUtility.HasPendingWork(this))
+        {
+            urgency += 85f;
         }
 
         if (workType == FacilityWorkType.Clean && FacilityState.cleanliness < CleaningWorkThreshold)

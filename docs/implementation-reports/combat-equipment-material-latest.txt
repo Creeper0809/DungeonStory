@@ -2,5 +2,5 @@ DungeonStory material equipment contracts
 catalog_and_allowed_families=PASS; equipment=19; materials=12
 derived_stats=PASS; ironWeight=1.8; blacksteelDurability=150; goldValue=4
 material_policy=PASS; allowed=4; blacksteelPriority=4
-save_round_trip=PASS; instance=combat-item:d718b503900c4cada524b1790177b713; material=material:blacksteel; policies=1
+save_round_trip=PASS; instance=combat-item:789f4669fa974a739c9fe4741cd254f9; material=material:blacksteel; policies=1
 valid=True

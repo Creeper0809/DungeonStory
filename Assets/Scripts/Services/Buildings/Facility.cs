@@ -148,8 +148,14 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         FacilityAssignmentStatus workStatus = FacilityAssignmentStatus.Rejected(
             FacilityAssignmentFailureKind.UnsupportedWork,
             "지원하지 않는 작업");
+        FacilityWorkType supported =
+            FacilityEvolutionWorkUtility.AddFallbackWorkTypes(
+                this,
+                Facility != null
+                    ? Facility.supportedWorkTypes
+                    : FacilityWorkType.None);
         foreach (WorkTypeDefinition definition in WorkTypeCatalog.Enumerate(
-                     Facility != null ? Facility.supportedWorkTypes : FacilityWorkType.None))
+                     supported))
         {
             workStatus = GetWorkAssignmentStatus(definition.WorkTypeId);
             if (workStatus.IsAllowed)

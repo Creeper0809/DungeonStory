@@ -25,7 +25,7 @@ MonoBehaviour:
   allowedMaterialFamilies: 010000000200000003000000
   craftMaterials: []
   verbs:
-  - rid: 7302563231102141231
+  - rid: 7302563257777393350
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.9
@@ -43,7 +43,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563231102141231
+    - rid: 7302563257777393350
       type: {class: RecoverableThrowVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 0.9

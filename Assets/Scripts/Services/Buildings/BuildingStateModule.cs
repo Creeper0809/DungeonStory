@@ -6,6 +6,7 @@ using UnityEngine;
 public static class BuildingStateModuleIds
 {
     public const string FacilityOperation = "facility.operation";
+    public const string FacilityEvolution = "facility.evolution";
     public const string WarehouseInventory = "inventory.warehouse";
     public const string ShopStock = "inventory.shop";
 

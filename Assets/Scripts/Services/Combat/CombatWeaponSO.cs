@@ -30,7 +30,11 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
     public CombatWeaponSnapshot CreateSnapshot(
         CombatEquipmentInstance instance,
         int verbIndex = 0,
-        CraftMaterialDefinitionSO material = null)
+        CraftMaterialDefinitionSO material = null,
+        float evolutionDamageMultiplier = 1f,
+        float evolutionPenetrationMultiplier = 1f,
+        float evolutionAccuracyMultiplier = 1f,
+        float evolutionReloadMultiplier = 1f)
     {
         CombatAttackVerb verb = Verbs.Count > 0
             ? Verbs[Mathf.Clamp(verbIndex, 0, Verbs.Count - 1)]
@@ -46,11 +50,14 @@ public sealed class CombatWeaponSO : CombatEquipmentDefinitionSO
             AmmunitionItemId,
             MagazineCapacity,
             instance?.loadedAmmo ?? 0,
-            ReloadSeconds,
+            ReloadSeconds * Mathf.Max(0.05f, evolutionReloadMultiplier),
             SupportsAimed,
             SupportsRapid,
             SupportsSuppressive,
-            material?.DamageMultiplier ?? 1f,
-            material?.PenetrationDefenseMultiplier ?? 1f);
+            (material?.DamageMultiplier ?? 1f)
+                * Mathf.Max(0.05f, evolutionDamageMultiplier),
+            (material?.PenetrationDefenseMultiplier ?? 1f)
+                * Mathf.Max(0.05f, evolutionPenetrationMultiplier),
+            evolutionAccuracyMultiplier);
     }
 }
