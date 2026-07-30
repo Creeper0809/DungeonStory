@@ -236,7 +236,13 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
 
         lines.Add($"상태  {FormatWorkOrderStatus(order.Status)}");
         lines.Add($"작업  {order.CompletedWork:0.#}/{order.RequiredWork:0.#}  ·  {Mathf.RoundToInt(order.ProgressRatio * 100f)}%");
-        if (order.MaterialRequirements != null && order.MaterialRequirements.Count > 0)
+        bool hasCategoryMaterials =
+            order.MaterialRequirements != null
+            && order.MaterialRequirements.Count > 0;
+        bool hasItemMaterials =
+            order.ItemMaterialRequirements != null
+            && order.ItemMaterialRequirements.Count > 0;
+        if (hasCategoryMaterials)
         {
             foreach (KeyValuePair<StockCategory, int> pair in order.MaterialRequirements.OrderBy(pair => (int)pair.Key))
             {
@@ -247,7 +253,36 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
                 lines.Add($"재료  {StockCategoryCatalog.GetDisplayName(pair.Key)} {delivered}/{pair.Value}");
             }
         }
-        else
+
+        if (hasItemMaterials)
+        {
+            foreach (KeyValuePair<string, int> pair
+                     in order.ItemMaterialRequirements.OrderBy(
+                         pair => pair.Key,
+                         StringComparer.Ordinal))
+            {
+                int delivered = order.DeliveredItemMaterials != null
+                    && order.DeliveredItemMaterials.TryGetValue(
+                        pair.Key,
+                        out int value)
+                        ? value
+                        : 0;
+                string label = pair.Key;
+                if (FacilityInstallationKitItemIds.TryGetBuildingId(
+                        pair.Key,
+                        out int buildingId))
+                {
+                    BuildingSO kitBuilding =
+                        buildingDefinitionLookup.GetBuilding(buildingId);
+                    label =
+                        $"{kitBuilding?.objectName ?? $"시설 {buildingId}"} 설치 키트";
+                }
+
+                lines.Add($"재료  {label} {delivered}/{pair.Value}");
+            }
+        }
+
+        if (!hasCategoryMaterials && !hasItemMaterials)
         {
             lines.Add("재료  필요 없음");
         }

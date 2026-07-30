@@ -7,6 +7,9 @@ public interface IWildlifeCarcassService
 {
     IReadOnlyList<WildlifeCarcassFreshnessSaveData> CaptureFreshness();
     void RestoreFreshness(IEnumerable<WildlifeCarcassFreshnessSaveData> entries);
+    bool TryGetFreshness(
+        string stackId,
+        out float remainingFreshnessSeconds);
     void SpawnCarcass(WildlifeActor target);
     void TickFreshness(float deltaTime);
     bool TryButcherNextCarcass(
@@ -66,6 +69,25 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
         }
 
         InvalidateButcherCache();
+    }
+
+    public bool TryGetFreshness(
+        string stackId,
+        out float remainingFreshnessSeconds)
+    {
+        remainingFreshnessSeconds = 0f;
+        if (string.IsNullOrWhiteSpace(stackId)
+            || !freshnessByStackId.TryGetValue(
+                stackId.Trim(),
+                out WildlifeCarcassFreshnessSaveData freshness))
+        {
+            return false;
+        }
+
+        remainingFreshnessSeconds = Mathf.Max(
+            0f,
+            freshness.remainingFreshnessSeconds);
+        return true;
     }
 
     public void SpawnCarcass(WildlifeActor target)

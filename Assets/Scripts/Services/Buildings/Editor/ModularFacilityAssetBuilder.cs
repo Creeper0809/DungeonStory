@@ -387,6 +387,7 @@ public static class ModularFacilityAssetBuilder
         AddAbility(abilities, EnsureSecurityAbility(spec));
         AddAbility(abilities, EnsureEquipmentCraftingAbility(spec));
         AddAbility(abilities, EnsureExpeditionRecoveryAbility(spec));
+        AddAbility(abilities, EnsureMercenaryHiringAbility(spec));
         AddAbility(abilities, CreateWaterSourceAbility(spec.Code));
         AddAbility(abilities, CreateCookingAbility(spec.Code));
         AddAbility(abilities, CreatePreservationAbility(spec.Code));
@@ -399,6 +400,18 @@ public static class ModularFacilityAssetBuilder
         return abilities;
     }
 
+    private static BuildingMercenaryHiringAbility
+        EnsureMercenaryHiringAbility(FacilityPartSpec spec)
+    {
+        return string.Equals(spec.Code, "D12", StringComparison.Ordinal)
+            ? new BuildingMercenaryHiringAbility
+            {
+                rolePremium = 0,
+                minimumCandidateSatisfaction = 65f
+            }
+            : null;
+    }
+
     private static string[] GetProductionFacilityTags(string code)
     {
         return code switch
@@ -407,6 +420,7 @@ public static class ModularFacilityAssetBuilder
             "D12" or "P02" => new[] { "brewery" },
             "Q02" or "P19" => new[] { "alchemy" },
             "S08" or "P21" => new[] { "forge" },
+            "G06" => new[] { "loot-appraisal" },
             "P01" => new[] { "mill" },
             "P03" => new[] { "sawmill" },
             "P04" => new[] { "charcoal-kiln" },
@@ -496,7 +510,7 @@ public static class ModularFacilityAssetBuilder
     {
         return new BuildingEconomyAbility
         {
-            constructionCost = GetConstructionCost(spec),
+            constructionValue = GetConstructionCost(spec),
             maintenance = spec.Core ? 2 + spec.Phase : spec.Phase,
             unlockPhase = Mathf.Clamp(spec.Phase, 1, 3),
             demolitionRefundRate = 0.5f
@@ -820,6 +834,10 @@ public static class ModularFacilityAssetBuilder
     private static FacilityWorkType GetSurvivalWorkTypes(string code)
     {
         FacilityWorkType result = FacilityWorkType.None;
+        if (string.Equals(code, "G06", StringComparison.Ordinal))
+        {
+            result |= FacilityWorkType.Craft;
+        }
         if (CreateWaterSourceAbility(code) != null) result |= FacilityWorkType.DrawWater;
         if (CreateCookingAbility(code) != null) result |= FacilityWorkType.Cook;
         if (CreateMedicalAbility(code) != null) result |= FacilityWorkType.Treat;

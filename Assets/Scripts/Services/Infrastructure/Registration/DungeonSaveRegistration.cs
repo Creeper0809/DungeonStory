@@ -30,9 +30,18 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<PhysicalItemsSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<PowerInfrastructureSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<FluidInfrastructureSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<ConveyorInfrastructureSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<WorkOrdersSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<ProductionBillsSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<AutomationInfrastructureSaveSection>(
+                Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<ResourceStockPolicySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
@@ -62,6 +71,8 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<CharacterMedicalSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<SurgerySaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<DefenseTacticalSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<EquipmentMaintenanceSaveSection>(Lifetime.Singleton)
@@ -78,6 +89,8 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<OffenseSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<OffenseV17SaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<OffenseRegionSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<OffenseReturnArrivalSaveSection>(Lifetime.Singleton)
@@ -85,6 +98,8 @@ public static class DungeonSaveRegistration
         builder.Register<InvasionSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<OperatingDaySettlementSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<TreasuryEconomySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<EventAlertSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();

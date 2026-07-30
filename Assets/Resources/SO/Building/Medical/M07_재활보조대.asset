@@ -1,0 +1,161 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "M07_\uC7AC\uD65C\uBCF4\uC870\uB300"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: Facility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 9507
+  objectName: "\uC7AC\uD65C \uBCF4\uC870\uB300"
+  sprite: {fileID: 21300000, guid: 3afac5514984ad645af2220793c0bee6, type: 3}
+  icon: {fileID: 21300000, guid: 3afac5514984ad645af2220793c0bee6, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563265135771984
+    - rid: 7302563265135771985
+    - rid: 7302563265135771986
+    - rid: 7302563265135771987
+    - rid: 7302563265135771988
+    - rid: 7302563265135771989
+    - rid: 7302563265135771990
+    - rid: 7302563265135771991
+    - rid: 7302563265135771992
+    - rid: 7302563284922662936
+    - rid: 7302563284922662937
+  width: 2
+  height: 1
+  layer: 1
+  category: 6
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 1.2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563265135771984
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: M07
+    - rid: 7302563265135771985
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 0
+        constructionCost: 135
+        maintenance: 1
+        unlockPhase: 1
+        demolitionRefundRate: 0.5
+    - rid: 7302563265135771986
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 671121408
+          disabledWhenDamaged: 1
+    - rid: 7302563265135771987
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingRoomRequirementAbility
+    - rid: 7302563265135771988
+      type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingInternalStockAbility
+        capacity: 12
+        restockRequestThreshold: 3
+    - rid: 7302563265135771989
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 54
+        repairWorkRequired: 10.8
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 12
+        constructionMaterialCategory: 1
+        constructionMaterialAmount: 5
+        materialUnitsPerConstructionCost: 0.05
+    - rid: 7302563265135771990
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - medical
+          - surgery
+          - m07
+          scores: []
+          metrics: []
+    - rid: 7302563265135771991
+      type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingMedicalAbility
+        workSeconds: 1.8
+        severityReduction: 0.4
+        requiresMedicine: 1
+    - rid: 7302563265135771992
+      type: {class: BuildingRehabilitationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingRehabilitationAbility
+        adaptationSpeedMultiplier: 1.6
+        rejectionReductionPerWork: 0.12
+        primaryOperatingFacility: 1
+        runeSuture: 0
+        manaCrystalCost: 0
+    - rid: 7302563284922662936
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7302563284922662937
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:surgery
+        cleanWaterPerCycle: 0.2
+        wastewaterPerCycle: 0.2
+        minimumQuality: 0
+        allowsManualWaterFallback: 1

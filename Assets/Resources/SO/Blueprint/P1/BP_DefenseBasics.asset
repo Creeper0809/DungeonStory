@@ -30,27 +30,7 @@ MonoBehaviour:
   researchWorkRequired: 22
   targetResearchProjectId: research:defense:fortification
   unlocks:
-    items:
-    - rid: 7302563252806877211
-    - rid: 7302563252806877212
-    - rid: 7302563252806877213
-    - rid: 7302563252806877214
+    items: []
   references:
     version: 2
-    RefIds:
-    - rid: 7302563252806877211
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1046
-    - rid: 7302563252806877212
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1047
-    - rid: 7302563252806877213
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1049
-    - rid: 7302563252806877214
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1055
+    RefIds: []

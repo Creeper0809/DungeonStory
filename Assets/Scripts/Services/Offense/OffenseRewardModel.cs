@@ -47,6 +47,7 @@ public sealed class OffenseRewardGrantResult
 public interface IOffenseRewardStateView
 {
     int MoneyEarned { get; }
+    int RecoveredLootValue { get; }
     IReadOnlyDictionary<StockCategory, int> StockGrantedByCategory { get; }
     IReadOnlyCollection<int> RareFacilityBuildingIds { get; }
     IReadOnlyCollection<int> AcquiredBlueprintIds { get; }
@@ -65,6 +66,7 @@ public sealed class OffenseRewardState : IOffenseRewardStateView
     }
 
     public int MoneyEarned { get; private set; }
+    public int RecoveredLootValue => MoneyEarned;
     public IReadOnlyDictionary<StockCategory, int> StockGrantedByCategory => stockGrantedView;
     public IReadOnlyCollection<int> RareFacilityBuildingIds => rareFacilityBuildingIds.ToArray();
     public IReadOnlyCollection<int> AcquiredBlueprintIds => acquiredBlueprintIds.ToArray();

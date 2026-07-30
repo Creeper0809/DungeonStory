@@ -604,6 +604,35 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
 
 public static class RoomEnvironmentPresentation
 {
+    public static string GetRoomName(RoomEnvironmentSnapshot snapshot)
+    {
+        if (snapshot == null)
+        {
+            return "미지정 방";
+        }
+
+        if ((snapshot.Roles & FacilityRole.Medical) != 0)
+        {
+            if (snapshot.Fixtures.Any(fixture =>
+                    fixture?.BuildingData
+                        ?.GetAbility<BuildingTransplantSupportAbility>()
+                        ?.circulationSupport == true))
+            {
+                return ReplaceMedicalRoomName(snapshot.Roles, "이식실");
+            }
+
+            if (snapshot.Fixtures.Any(fixture =>
+                    fixture?.BuildingData?.GetAbility<BuildingSurgeryTableAbility>() != null
+                    || fixture?.BuildingData?.GetAbility<BuildingAnatomyTableAbility>() != null
+                    || fixture?.BuildingData?.GetAbility<BuildingArcaneSurgeryAbility>() != null))
+            {
+                return ReplaceMedicalRoomName(snapshot.Roles, "수술실");
+            }
+        }
+
+        return GetRoomName(snapshot.Roles);
+    }
+
     public static string GetRoomName(FacilityRole roles)
     {
         if (roles == FacilityRole.None)
@@ -622,6 +651,26 @@ public static class RoomEnvironmentPresentation
         return definitions.Count == 1
             ? definitions[0].RoomName
             : string.Join(" + ", definitions.Select((definition) => definition.RoomLabel));
+    }
+
+    private static string ReplaceMedicalRoomName(
+        FacilityRole roles,
+        string medicalRoomName)
+    {
+        List<FacilityRoleDefinition> definitions = FacilityRoleCatalog
+            .Enumerate(roles)
+            .ToList();
+        if (definitions.Count <= 1)
+        {
+            return medicalRoomName;
+        }
+
+        return string.Join(
+            " + ",
+            definitions.Select(definition =>
+                definition.Role == FacilityRole.Medical
+                    ? medicalRoomName
+                    : definition.RoomLabel));
     }
 
     public static string GetRoleLabel(FacilityRole role)

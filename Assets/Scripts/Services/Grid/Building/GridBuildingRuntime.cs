@@ -707,17 +707,6 @@ public class BuildingPlacementValidator
             return false;
         }
 
-        int constructionCost = buildingData.GetConstructionCost();
-        if (!DungeonDebugRuntimeRules.ShouldSkipCosts()
-            && !DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.FreeConstruction)
-            && context.GameData != null
-            && context.GameData.holdingMoney != null
-            && constructionCost > context.GameData.holdingMoney.Value)
-        {
-            errorMessage = $"건설 비용이 부족합니다. 필요 {constructionCost} / 보유 {context.GameData.holdingMoney.Value}";
-            return false;
-        }
-
         List<Vector2Int> totalBuildPos = buildingData.GetGridPosList(buildPos);
         if (!gridPlacementValidator.AreInsideHorizontalBounds(grid, totalBuildPos, 1))
         {
@@ -794,16 +783,6 @@ public class BuildingPlacementValidator
         if (buildingData == null) return;
 
         BuildingConditionContext context = CreateConditionContext();
-        int constructionCost = buildingData.GetConstructionCost();
-        if (!DungeonDebugRuntimeRules.ShouldSkipCosts()
-            && !DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.FreeConstruction)
-            && context.GameData != null
-            && context.GameData.holdingMoney != null
-            && constructionCost > 0)
-        {
-            context.GameData.holdingMoney.Value -= constructionCost;
-        }
-
         foreach (IBuildingCondition condition in buildingData.BuildConditions)
         {
             if (ShouldApplyBuildCondition(buildingData, condition))
@@ -815,14 +794,7 @@ public class BuildingPlacementValidator
 
     public void ApplyDestroySuccess(BuildingSO buildingData)
     {
-        if (buildingData == null) return;
-
-        BuildingConditionContext context = CreateConditionContext();
-        int refund = FacilityProgression.GetRefund(buildingData);
-        if (context.GameData != null && context.GameData.holdingMoney != null && refund > 0)
-        {
-            context.GameData.holdingMoney.Value += refund;
-        }
+        // Demolition recovery is represented by physical materials.
     }
 
     private BuildingConditionContext CreateConditionContext()
@@ -835,7 +807,7 @@ public class BuildingPlacementValidator
     private static bool ShouldApplyBuildCondition(BuildingSO buildingData, IBuildingCondition condition)
     {
         return condition != null
-            && !(buildingData.IsModularFacility() && condition is ConditionNeedMoney);
+            && condition is not ConditionNeedMoney;
     }
 }
 

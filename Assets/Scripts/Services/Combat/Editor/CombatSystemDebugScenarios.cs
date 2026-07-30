@@ -35,7 +35,7 @@ public static class CombatSystemDebugScenarios
         Verify("대장작업대 제작 연결", VerifyForgeRecipeBridge, failures);
         Verify("층간 사선", VerifyLineOfSight, failures);
         Verify("건설형 엄폐물", VerifyCoverAssets, failures);
-        Verify("11종 초기 스탯", VerifyInitialStats, failures);
+        Verify("12종 초기 스탯", VerifyInitialStats, failures);
         Verify("V14 생활 전투 저장", VerifyV14CombatLifecycleSave, failures);
         Verify("V14 저장 계약", VerifySaveContract, failures);
 
@@ -446,7 +446,9 @@ public static class CombatSystemDebugScenarios
                     new GameEventBus(),
                     new DynamicFrameWorkBudget(
                         new UnityGameClock(),
-                        new UnityUiClock()));
+                        new UnityUiClock()),
+                    new ResourceAnatomyProfileCatalog(
+                        Array.Empty<AnatomyProfileSO>()));
             CharacterBodyHealthSnapshot critical = new CharacterBodyHealthSnapshot(
                 CreateBodyParts(headAndTorsoRatio: 0.2f, legRatio: 1f),
                 bloodLoss: 0f,
@@ -611,15 +613,16 @@ public static class CombatSystemDebugScenarios
     private static bool VerifyInitialStats()
     {
         CharacterStatDefinition[] definitions = CharacterStatCatalog.All.ToArray();
-        if (definitions.Length != 11
+        if (definitions.Length != 12
             || definitions.All(item => item.Id != CharacterStatIds.Shooting)
-            || definitions.All(item => item.Id != CharacterStatIds.Evasion))
+            || definitions.All(item => item.Id != CharacterStatIds.Evasion)
+            || definitions.All(item => item.Id != CharacterStatIds.Medical))
         {
             return false;
         }
 
         CharacterSkillSystemSettingsSO settings = ScriptableObject.CreateInstance<CharacterSkillSystemSettingsSO>();
-        settings.initialStatTotal = 55;
+        settings.initialStatTotal = 60;
         settings.initialStatMin = 1;
         settings.initialStatMax = 10;
         CharacterStatBlock block = CharacterGrowthRules.RollInitialStats(settings, new System.Random(991));
@@ -627,7 +630,7 @@ public static class CombatSystemDebugScenarios
             .Cast<CharacterStatType>()
             .Sum(block.Get);
         UnityEngine.Object.DestroyImmediate(settings);
-        return total == 55;
+        return total == 60;
     }
 
     private static bool VerifySaveContract()

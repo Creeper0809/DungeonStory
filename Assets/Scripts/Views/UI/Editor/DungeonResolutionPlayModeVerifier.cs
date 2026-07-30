@@ -467,3 +467,14 @@ internal static class GameViewResolutionController
         return GameViewSizesType.GetProperty("currentGroup")?.GetValue(sizes);
     }
 }
+
+public static class GameViewResolutionCommandBridge
+{
+    public static void SelectDeferred(int width, int height)
+    {
+        int safeWidth = Mathf.Max(1, width);
+        int safeHeight = Mathf.Max(1, height);
+        EditorApplication.delayCall += () =>
+            GameViewResolutionController.Select(safeWidth, safeHeight);
+    }
+}

@@ -71,6 +71,8 @@ public class CharacterSummeryInfo : UIPopUp
     private Button combatRepairButton;
     private Button captivityActionButton;
     private Button dietPolicyButton;
+    private Button surgeryCommandButton;
+    private Button automaticSurgeryButton;
     private Button substanceSelectionButton;
     private Button substancePolicyButton;
     private int selectedSubstanceIndex;
@@ -79,6 +81,7 @@ public class CharacterSummeryInfo : UIPopUp
     private int pendingCandidateUnlockLevel = -1;
     private IUiPopupService popupService;
     private ICharacterSummaryRuntimeLogFactory runtimeLogFactory;
+    private ICharacterSurgeryWindowService surgeryWindowService;
     private IDungeonItemCatalogProvider itemCatalogProvider;
     private IItemHaulingSettingsProvider haulingSettingsProvider;
     private ICharacterBodyHealthRuntime bodyHealthRuntime;
@@ -104,6 +107,7 @@ public class CharacterSummeryInfo : UIPopUp
     public void Construct(
         IUiPopupService popupService,
         ICharacterSummaryRuntimeLogFactory runtimeLogFactory,
+        ICharacterSurgeryWindowService surgeryWindowService,
         IDungeonItemCatalogProvider itemCatalogProvider,
         IItemHaulingSettingsProvider haulingSettingsProvider,
         ICharacterBodyHealthRuntime bodyHealthRuntime,
@@ -127,6 +131,8 @@ public class CharacterSummeryInfo : UIPopUp
             ?? throw new ArgumentNullException(nameof(popupService));
         this.runtimeLogFactory = runtimeLogFactory
             ?? throw new ArgumentNullException(nameof(runtimeLogFactory));
+        this.surgeryWindowService = surgeryWindowService
+            ?? throw new ArgumentNullException(nameof(surgeryWindowService));
         this.itemCatalogProvider = itemCatalogProvider
             ?? throw new ArgumentNullException(nameof(itemCatalogProvider));
         this.haulingSettingsProvider = haulingSettingsProvider
@@ -345,6 +351,8 @@ public class CharacterSummeryInfo : UIPopUp
         Button generatedHealthTabButton,
         Button generatedCaptivityActionButton,
         Button generatedDietPolicyButton,
+        Button generatedSurgeryCommandButton,
+        Button generatedAutomaticSurgeryButton,
         Button generatedSubstanceSelectionButton,
         Button generatedSubstancePolicyButton)
     {
@@ -354,6 +362,8 @@ public class CharacterSummeryInfo : UIPopUp
         healthTabButton = generatedHealthTabButton;
         captivityActionButton = generatedCaptivityActionButton;
         dietPolicyButton = generatedDietPolicyButton;
+        surgeryCommandButton = generatedSurgeryCommandButton;
+        automaticSurgeryButton = generatedAutomaticSurgeryButton;
         substanceSelectionButton = generatedSubstanceSelectionButton;
         substancePolicyButton = generatedSubstancePolicyButton;
         RefreshHealthDetails();
@@ -371,6 +381,27 @@ public class CharacterSummeryInfo : UIPopUp
             ((int)current + 1)
             % Enum.GetValues(typeof(CharacterDietPolicyKind)).Length);
         consumablesRuntime.SetPolicy(actor, next);
+        RefreshHealthDetails();
+    }
+
+    public void OpenSurgeryWindow()
+    {
+        if (actor == null || surgeryWindowService == null)
+        {
+            return;
+        }
+
+        surgeryWindowService.Open(actor, UI != null ? UI.transform : transform);
+    }
+
+    public void ToggleAutomaticEmergencySurgery()
+    {
+        if (actor == null || surgeryWindowService == null)
+        {
+            return;
+        }
+
+        surgeryWindowService.ToggleAutomaticEmergency(actor);
         RefreshHealthDetails();
     }
 
@@ -1468,10 +1499,41 @@ public class CharacterSummeryInfo : UIPopUp
         }
 
         AppendCaptivityDetails(builder);
+        if (surgeryWindowService != null)
+        {
+            builder.AppendLine();
+            builder.AppendLine(surgeryWindowService.BuildHealthSummary(actor));
+        }
         AppendConsumableDetails(builder);
         healthSummaryText.text = builder.ToString().TrimEnd();
         RefreshCaptivityActionButton();
         RefreshConsumableButtons();
+        RefreshSurgeryButtons();
+    }
+
+    private void RefreshSurgeryButtons()
+    {
+        if (surgeryCommandButton != null)
+        {
+            surgeryCommandButton.interactable = actor != null;
+        }
+
+        if (automaticSurgeryButton == null)
+        {
+            return;
+        }
+
+        bool enabled = actor != null
+            && surgeryWindowService != null
+            && surgeryWindowService.IsAutomaticEmergencyEnabled(actor);
+        TMP_Text label = automaticSurgeryButton.GetComponentInChildren<TMP_Text>(true);
+        if (label != null)
+        {
+            label.text = enabled ? "응급 수술: 켬" : "응급 수술: 끔";
+        }
+
+        automaticSurgeryButton.interactable = actor != null;
+        DungeonUiTheme.StyleButton(automaticSurgeryButton, selected: enabled);
     }
 
     private void AppendConsumableDetails(StringBuilder builder)

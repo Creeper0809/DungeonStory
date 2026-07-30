@@ -28,6 +28,7 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private IGameEventBus gameEventBus;
     private IRandomStreamProvider randomStreamProvider;
     private IOffenseRegionRuntime offenseRegionRuntime;
+    private ITreasuryDefenseRuntime treasuryDefenseRuntime;
     private IDisposable invasionCandidateSubscription;
     private IDisposable invasionResolvedSubscription;
     private bool nextInvasionIsBoss;
@@ -67,7 +68,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
         IGameClock gameClock,
         IRandomStreamProvider randomStreamProvider,
         IGameEventBus gameEventBus,
-        IOffenseRegionRuntime offenseRegionRuntime)
+        IOffenseRegionRuntime offenseRegionRuntime,
+        ITreasuryDefenseRuntime treasuryDefenseRuntime)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -85,6 +87,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.offenseRegionRuntime = offenseRegionRuntime
             ?? throw new ArgumentNullException(nameof(offenseRegionRuntime));
+        this.treasuryDefenseRuntime = treasuryDefenseRuntime
+            ?? throw new ArgumentNullException(nameof(treasuryDefenseRuntime));
         SubscribeToScopedEvents();
     }
 
@@ -121,7 +125,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ResolveDefenseStatusRuntimeService(),
             gameClock,
             randomStreamProvider,
-            gameEventBus);
+            gameEventBus,
+            treasuryDefenseRuntime);
         intruder = runtime.IntruderActor;
         bool isBoss = nextInvasionIsBoss;
         InvasionIntruderSettings effectiveSettings = context.ApplyRunVariables(intruderSettings);
@@ -165,7 +170,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             entry.OutsidePosition,
             entry.DoorPosition,
             entry.GridPosition,
-            finalDefenseTarget);
+            finalDefenseTarget,
+            isBoss);
         activeIntruders.Add(runtime);
         runtime.OnFinished += OnIntruderFinished;
         nextInvasionIsBoss = false;
@@ -489,6 +495,7 @@ public class InvasionIntruderRuntime : MonoBehaviour
     private IGameEventBus gameEventBus;
     private IRandomStreamProvider randomStreamProvider;
     private IRandomStream pathRandomStream;
+    private ITreasuryDefenseRuntime treasuryDefenseRuntime;
     private IDefenseEngagementRuntime defenseEngagementRuntime;
     private InvasionIntruderPatternDefinition pattern;
     private BuildableObject currentPriorityTarget;
@@ -501,6 +508,7 @@ public class InvasionIntruderRuntime : MonoBehaviour
     private bool breachEventRaised;
     private readonly HashSet<int> damagedFacilityInstanceIds = new HashSet<int>();
     private int facilityDamageCount;
+    private bool isBoss;
 
     public CharacterActor IntruderActor => intruderActor != null ? intruderActor : GetComponent<CharacterActor>();
     public InvasionIntruderState State { get; private set; }
@@ -595,7 +603,8 @@ public class InvasionIntruderRuntime : MonoBehaviour
         IDefenseStatusRuntimeService defenseStatusRuntimeService,
         IGameClock gameClock,
         IRandomStreamProvider randomStreamProvider,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        ITreasuryDefenseRuntime treasuryDefenseRuntime = null)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -607,6 +616,7 @@ public class InvasionIntruderRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(randomStreamProvider));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.treasuryDefenseRuntime = treasuryDefenseRuntime;
     }
 
     public void ConfigureDefenseEngagement(IDefenseEngagementRuntime defenseEngagementRuntime)
@@ -622,7 +632,8 @@ public class InvasionIntruderRuntime : MonoBehaviour
         Vector3 outsidePosition,
         Vector3 entryDoorPosition,
         Vector2Int entryGridPosition,
-        Vector2Int? finalDefenseTarget = null)
+        Vector2Int? finalDefenseTarget = null,
+        bool isBoss = false)
     {
         if (routine != null)
         {
@@ -630,6 +641,7 @@ public class InvasionIntruderRuntime : MonoBehaviour
         }
 
         this.settings = settings ?? new InvasionIntruderSettings();
+        this.isBoss = isBoss;
         this.threatSnapshot = threatSnapshot;
         pattern = InvasionIntruderPatternCatalog.Resolve(this.settings.patternId);
         this.settings.patternId = pattern.id;
@@ -1138,7 +1150,11 @@ public class InvasionIntruderRuntime : MonoBehaviour
                 intruderActor,
                 step.To,
                 DefenseTriggerTiming.OnEnter,
-                ResolveDefenseStatusRuntimeService());
+                ResolveDefenseStatusRuntimeService(),
+                treasuryDefenseRuntime,
+                runtimeId,
+                threatSnapshot.threat,
+                isBoss);
             TickDefenseStatuses(settings.repathIntervalSeconds);
 
             if (intruderActor.IsDead)

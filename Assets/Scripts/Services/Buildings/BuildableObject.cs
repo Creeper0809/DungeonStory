@@ -42,6 +42,7 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
     private ICharacterAiWorldRegistry worldRegistry;
     private IWorldItemStackRuntime worldItemStackRuntime;
     private IBuildingAbilityRuntimeDispatcher abilityRuntimeDispatcher;
+    private IPaidFacilityContractRuntime paidFacilityContracts;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
     private bool registeredWithWorldRegistry;
@@ -87,6 +88,7 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
 
     protected virtual void OnDestroy()
     {
+        paidFacilityContracts?.RemoveFacility(this);
         UnregisterFromWorldRegistry();
         DetachFromGridIfStillRegistered();
     }
@@ -101,7 +103,8 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         ICharacterAiWorldRegistry worldRegistry = null,
         IWorldItemStackRuntime worldItemStackRuntime = null,
         IBuildingAbilityRuntimeDispatcher abilityRuntimeDispatcher = null,
-        IGameClock gameClock = null)
+        IGameClock gameClock = null,
+        IPaidFacilityContractRuntime paidFacilityContracts = null)
     {
         this.blueprintResearchWorkService = blueprintResearchWorkService
             ?? throw new ArgumentNullException(nameof(blueprintResearchWorkService));
@@ -116,6 +119,7 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         this.worldItemStackRuntime = worldItemStackRuntime;
         this.abilityRuntimeDispatcher = abilityRuntimeDispatcher;
         this.gameClock = gameClock;
+        this.paidFacilityContracts = paidFacilityContracts;
         RegisterWithWorldRegistryIfReady();
     }
 
@@ -200,6 +204,7 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         mutableBuildPoses.AddRange(placement.GetGridPosList(buildPos));
         ModularFacilityRuntimeEffects.ConfigureVisual(this);
         RegisterWithWorldRegistryIfReady();
+        paidFacilityContracts?.SynchronizeFacility(this);
     }
 
     public virtual Vector3 GetMovementWorldPosition(Vector2Int gridPosition)
@@ -432,12 +437,28 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
             return false;
         }
 
+        if (paidFacilityContracts != null
+            && !paidFacilityContracts.CanBeginUse(
+                this,
+                out failureReason))
+        {
+            return false;
+        }
+
         return true;
     }
 
     public bool TryBeginUse(CharacterActor visitor, out string failureReason)
     {
         if (!CanVisit(visitor, out failureReason))
+        {
+            return false;
+        }
+
+        if (paidFacilityContracts != null
+            && !paidFacilityContracts.TryChargeUse(
+                this,
+                out failureReason))
         {
             return false;
         }
@@ -646,12 +667,18 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
             && CombatEquipmentMaintenanceFacilityUtility.IsMaintenanceFacility(this);
         bool supportsFacilityEvolution = workType == FacilityWorkType.Craft
             && FacilityEvolutionWorkUtility.HasPendingWork(this);
+        bool supportsRuntimeCapability =
+            WorkTypeCatalog.TryGet(workType, out WorkTypeDefinition runtimeWork)
+            && RuntimeWorkCapabilityUtility.Supports(
+                this,
+                runtimeWork.WorkTypeId);
         if (facilityData == null
             || (!facilityData.SupportsWork(workType)
                 && !supportsButcherFallback
                 && !supportsSurvivalFallback
                 && !supportsEquipmentMaintenance
-                && !supportsFacilityEvolution))
+                && !supportsFacilityEvolution
+                && !supportsRuntimeCapability))
         {
             return FacilityAssignmentStatus.Rejected(
                 FacilityAssignmentFailureKind.UnsupportedWork,

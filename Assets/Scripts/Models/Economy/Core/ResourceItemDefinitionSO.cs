@@ -12,6 +12,7 @@ public sealed class ResourceItemDefinitionSO : DataScriptableObject
     [SerializeField] private ResourceItemKind kind;
     [SerializeField] private ResourceIngredientTag ingredientTags;
     [Min(0), SerializeField] private int unitPrice = 1;
+    [Range(0f, 1f), SerializeField] private float marketSaleRate = 0.6f;
     [Min(0.01f), SerializeField] private float unitWeight = 1f;
     [Min(1), SerializeField] private int maxStack = 75;
     [SerializeField] private Sprite sprite;
@@ -34,6 +35,8 @@ public sealed class ResourceItemDefinitionSO : DataScriptableObject
     public ResourceItemKind Kind => kind;
     public ResourceIngredientTag IngredientTags => ingredientTags;
     public int UnitPrice => Mathf.Max(0, unitPrice);
+    public float MarketSaleRate => Mathf.Clamp01(marketSaleRate);
+    public bool CanSellToMarket => UnitPrice > 0 && MarketSaleRate > 0f;
     public float UnitWeight => Mathf.Max(0.01f, unitWeight);
     public int MaxStack => Mathf.Max(1, maxStack);
     public Sprite Sprite => sprite;
@@ -115,6 +118,11 @@ public sealed class ResourceItemDefinitionSO : DataScriptableObject
         infectionReduction = Mathf.Max(0f, infection);
         detoxReduction = Mathf.Max(0f, detox);
         painReduction = Mathf.Max(0f, pain);
+    }
+
+    public void ConfigureMarketSaleRate(float saleRate)
+    {
+        marketSaleRate = Mathf.Clamp01(saleRate);
     }
 #endif
 }

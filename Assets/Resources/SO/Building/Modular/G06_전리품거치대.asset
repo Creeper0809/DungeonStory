@@ -43,9 +43,15 @@ MonoBehaviour:
   abilityModules:
     items:
     - rid: 7302563239583285311
+    - rid: 7302563239583285315
+    - rid: 7302563239583285316
     - rid: 7302563239583285312
     - rid: 7302563239583285313
     - rid: 7302563239583285314
+    - rid: 7302563284524205043
+    - rid: 7302563284524205044
+    - rid: 7302563284524205045
+    - rid: 7302563284524205046
   width: 1
   height: 1
   layer: 3
@@ -69,6 +75,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 110
         maintenance: 3
         unlockPhase: 3
@@ -97,3 +104,52 @@ MonoBehaviour:
         abilityId: BuildingSecurityAbility
         maxAlarmCharges: 3
         chargesPerGuardWork: 1
+    - rid: 7302563239583285315
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - loot-appraisal
+    - rid: 7302563239583285316
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 0
+          useDuration: 0
+          requiredWorkers: 1
+          supportedWorkTypes: 256
+          disabledWhenDamaged: 1
+    - rid: 7302563284524205043
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 7302563284524205044
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 7302563284524205045
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 7302563284524205046
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4

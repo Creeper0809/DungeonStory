@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: P1_TreasuryBoltThrower
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes:
+    ReferencedUnityObjects: []
+    SerializedBytesString:
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name:
+      Entry: 1
+      Data: DefenseFacility, Assembly-CSharp
+    - Name:
+      Entry: 8
+      Data:
+    - Name: tiles
+      Entry: 6
+      Data:
+    - Name: OnBuildCondition
+      Entry: 6
+      Data:
+  id: 9961
+  objectName: "금고각인 쇠뇌대"
+  sprite: {fileID: 21300000, guid: c957472a2987036e7a0aff8fa49118db, type: 3}
+  icon: {fileID: 21300000, guid: c957472a2987036e7a0aff8fa49118db, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563299610000001
+    - rid: 7302563299610000002
+    - rid: 7302563299610000003
+    - rid: 7302563299610000004
+    - rid: 7302563299610000005
+    - rid: 7302563299610000006
+    - rid: 7302563299610000007
+    - rid: 7302563299610000008
+    - rid: 7302563299610000009
+  width: 2
+  height: 1
+  layer: 5
+  category: 3
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563299610000001
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: T01
+    - rid: 7302563299610000002
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - defense
+        - treasury-defense
+    - rid: 7302563299610000003
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionCost: 420
+        maintenance: 0
+        unlockPhase: 3
+        demolitionRefundRate: 0.5
+    - rid: 7302563299610000004
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 0
+          useDuration: 0
+          requiredWorkers: 0
+          supportedWorkTypes: 4
+          disabledWhenDamaged: 1
+    - rid: 7302563299610000005
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 180
+        repairWorkRequired: 42
+        cleanWorkRequired: 12
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterialCategory: 1
+        constructionMaterialAmount: 18
+        materialUnitsPerConstructionCost: 0.05
+    - rid: 7302563299610000006
+      type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingDefenseAbility
+        settings:
+          enabled: 1
+          concept: 4
+          triggerTimings: 5
+          targetRule: 0
+          cooldownSeconds: 4.5
+          periodicIntervalSeconds: 0
+          range: 0
+          star: 3
+          combatLogText: "금고각인 쇠뇌대"
+          effectAssets:
+          - {fileID: 11400000, guid: 407e6b9a195d1d073a19d6992833929d, type: 2}
+          - {fileID: 11400000, guid: 98b2e784b5bdf2ff49582d949fe00032, type: 2}
+    - rid: 7302563299610000007
+      type: {class: BuildingTreasuryPoweredDefenseAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingTreasuryPoweredDefenseAbility
+        shotCost: 30
+        defaultMinimumThreat: 0
+        defaultInvasionBudget: 300
+        defaultBossOnly: 0
+    - rid: 7302563299610000008
+      type: {class: BuildingOverclockableAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingOverclockableAbility
+        allowControlled: 1
+        allowAggressive: 1
+        allowCritical: 1
+    - rid: 7302563299610000009
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - defense
+          - treasury
+          - precision
+          scores: []
+          metrics: []

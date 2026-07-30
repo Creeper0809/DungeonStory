@@ -313,6 +313,55 @@ public sealed class CharacterMedicalRuntime :
         return facility != null && !facility.isDestroy;
     }
 
+    public bool TryAssignSpecificTreatmentFacility(
+        string orderId,
+        BuildableObject facility,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        CharacterMedicalOrder order = orders.FirstOrDefault(candidate =>
+            candidate != null
+            && candidate.IsActive
+            && string.Equals(candidate.orderId, orderId, StringComparison.Ordinal));
+        if (order == null)
+        {
+            failureReason = "활성 의료 주문을 찾을 수 없습니다.";
+            return false;
+        }
+
+        bool isSurgicalFacility = facility?.BuildingData?.Abilities?
+            .OfType<ISurgicalFacilityAbility>()
+            .Any(ability => ability.IsPrimaryOperatingFacility) == true;
+        if (facility == null
+            || facility.isDestroy
+            || facility.IsDamaged
+            || facility.BuildingData?.GetAbility<BuildingMedicalAbility>() == null
+                && !isSurgicalFacility)
+        {
+            failureReason = "환자를 수용할 수 있는 의료 시설이 아닙니다.";
+            return false;
+        }
+
+        string facilityId = GetFacilityId(facility);
+        if (treatmentFacilityReservations.TryGetValue(
+                facilityId,
+                out string reservedPatient)
+            && !string.Equals(
+                reservedPatient,
+                order.patientId,
+                StringComparison.Ordinal))
+        {
+            failureReason = "다른 환자가 해당 의료 시설을 예약했습니다.";
+            return false;
+        }
+
+        ReleaseFacilityReservation(order);
+        order.treatmentFacilityId = facilityId;
+        order.BedPosition = facility.centerPos;
+        treatmentFacilityReservations[facilityId] = order.patientId;
+        return true;
+    }
+
     public float AdvanceStabilization(string orderId, CharacterActor rescuer, float work)
     {
         if (!TryGetReservedOrder(orderId, rescuer, out CharacterMedicalOrder order)
@@ -929,6 +978,9 @@ public sealed class CharacterMedicalRuntime :
             .Where(building => building != null
                 && !building.isDestroy
                 && (building.BuildingData?.GetAbility<BuildingMedicalAbility>() != null
+                    || building.BuildingData?.Abilities?
+                        .OfType<ISurgicalFacilityAbility>()
+                        .Any(ability => ability.IsPrimaryOperatingFacility) == true
                     || building.SupportsFacilityRole(FacilityRole.Rest)));
     }
 

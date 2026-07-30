@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: industry_filters
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7164
+  projectId: research:industry:filters
+  displayName: "\uBB3C\uB958 \uD544\uD130"
+  description: "\uD488\uBAA9, \uC7AC\uC9C8, \uD488\uC9C8\uACFC \uC2E0\uC120\uB3C4\uB85C
+    \uC6B4\uC1A1 \uACBD\uB85C\uB97C \uBD84\uB9AC\uD55C\uB2E4."
+  field: 15
+  requiredWork: 172
+  prerequisites:
+  - {fileID: 11400000, guid: 957f0a8d21cf1c543b3497f4e0be1385, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563278452687348
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563278452687348
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9848

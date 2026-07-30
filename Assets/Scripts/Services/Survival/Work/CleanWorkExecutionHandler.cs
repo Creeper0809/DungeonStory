@@ -25,5 +25,6 @@ public sealed class CleanWorkExecutionHandler : IWorkExecutionHandler
         }
 
         filthTarget?.CompleteCleaning(requiredWork);
+        result.CompletionEffectsAlreadyApplied = filthTarget != null;
     }
 }

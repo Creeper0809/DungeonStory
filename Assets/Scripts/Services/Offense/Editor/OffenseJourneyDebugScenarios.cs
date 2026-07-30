@@ -460,6 +460,16 @@ public static class OffenseJourneyDebugScenarios
             result = null;
             return false;
         }
+        public bool TryExecutePlannedCommand(
+            string actorPersistentId,
+            string targetPersistentId,
+            string abilityId,
+            out OffenseBattleCommandResult result)
+        {
+            result = null;
+            return false;
+        }
+        public bool FinalizePlannedTurn() => false;
         public bool TryGetActor(string persistentId, out CharacterActor actor)
         {
             actor = null;

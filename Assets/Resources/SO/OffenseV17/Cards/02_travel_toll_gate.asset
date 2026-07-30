@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 02_travel_toll_gate
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170301
+  cardId: travel_toll_gate
+  stage: 0
+  title: "\uC784\uC2DC \uD1B5\uD589\uC138"
+  situation: "\uBB34\uC7A5\uD55C \uC9D5\uC218\uB300\uAC00 \uB3C4\uB85C\uB97C \uB9C9\uACE0
+    \uD1B5\uD589\uB8CC\uB97C \uC694\uAD6C\uD569\uB2C8\uB2E4."
+  requiredWorldTags: []
+  choices:
+  - choiceId: left
+    label: "\uAE08\uC744 \uC9C0\uBD88\uD55C\uB2E4"
+    description: "\uBD84\uC7C1 \uC5C6\uC774 \uAE38\uC744 \uD1B5\uACFC\uD569\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uACE8\uB4DC \uAC10\uC18C"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258820
+  - choiceId: right
+    label: "\uC232\uAE38\uB85C \uBE44\uD0A8\uB2E4"
+    description: "\uC2DC\uAC04\uACFC \uBCF4\uAE09\uC744 \uB354 \uC368\uC11C \uAC10\uC2DC\uB97C
+      \uD53C\uD569\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uBCF4\uAE09 \uAC10\uC18C"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258821
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258820
+      type: {class: OffenseGoldDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: -125
+    - rid: 7302563269269258821
+      type: {class: OffenseSupplyDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        supplyType: 0
+        amount: -1

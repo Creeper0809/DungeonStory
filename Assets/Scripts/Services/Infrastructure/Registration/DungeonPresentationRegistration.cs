@@ -64,6 +64,9 @@ public static class DungeonPresentationRegistration
             .As<IP0FeatureSurfacePanelFactory>();
         builder.Register<ResearchTreeWindowFactory>(Lifetime.Singleton)
             .As<IResearchTreeWindowFactory>();
+        builder.Register<CharacterSurgeryWindowService>(Lifetime.Singleton)
+            .As<ICharacterSurgeryWindowService>()
+            .As<ISurgeryPlanningWindowService>();
 
         builder.Register<BuildingFeatureQueryService>(Lifetime.Singleton)
             .As<IBuildingFeatureQueryService>();
@@ -110,6 +113,8 @@ public static class DungeonPresentationRegistration
         builder.Register<CodexFeatureCommandService>(Lifetime.Singleton)
             .As<ICodexFeatureCommandService>();
         builder.Register<CodexFeatureSurfacePresenter>(Lifetime.Singleton)
+            .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<IndustrialFeatureSurfacePresenter>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenter>();
         builder.Register<FeatureSurfaceTabPresenterRegistry>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenterRegistry>();
@@ -174,6 +179,8 @@ public static class DungeonPresentationRegistration
             .As<IUITabContentPresenter>();
         builder.Register<CodexTabContentPresenter>(Lifetime.Singleton)
             .As<IUITabContentPresenter>();
+        builder.Register<IndustrialTabContentPresenter>(Lifetime.Singleton)
+            .As<IUITabContentPresenter>();
         builder.Register<UITabContentTextProvider>(Lifetime.Singleton)
             .As<IUITabContentTextProvider>();
         builder.Register<UiPopupService>(Lifetime.Singleton)
@@ -196,7 +203,17 @@ public static class DungeonPresentationRegistration
         builder.Register<AnimalHusbandryBuildingPanelPresenter>(
                 Lifetime.Singleton)
             .As<IAnimalHusbandryBuildingPanelPresenter>();
+        builder.Register<SurgeryBuildingPanelPresenter>(Lifetime.Singleton)
+            .As<ISurgeryBuildingPanelPresenter>();
+        builder.Register<PaidFacilityBuildingPanelPresenter>(
+                Lifetime.Singleton)
+            .As<IPaidFacilityBuildingPanelPresenter>();
+        builder.Register<TreasuryDefenseBuildingPanelPresenter>(
+                Lifetime.Singleton)
+            .As<ITreasuryDefenseBuildingPanelPresenter>();
         builder.RegisterEntryPoint<CropPlotVisualPresenter>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<TreasuryResourceHudController>(
+            Lifetime.Singleton);
 
         builder.RegisterComponentOnNewGameObject<ItemPileInfoPanel>(
                 Lifetime.Singleton,

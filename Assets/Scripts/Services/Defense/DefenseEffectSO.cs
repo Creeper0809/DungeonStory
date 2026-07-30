@@ -18,18 +18,21 @@ public sealed class DefenseEffectContext
         CharacterActor target,
         DefenseStatusRuntime statusRuntime,
         DefenseActivationReport report,
-        DefenseFacilityData defense)
+        DefenseFacilityData defense,
+        float effectMultiplier = 1f)
     {
         Target = target ?? throw new ArgumentNullException(nameof(target));
         StatusRuntime = statusRuntime ?? throw new ArgumentNullException(nameof(statusRuntime));
         Report = report ?? throw new ArgumentNullException(nameof(report));
         Defense = defense ?? throw new ArgumentNullException(nameof(defense));
+        EffectMultiplier = Mathf.Clamp(effectMultiplier, 0.1f, 2f);
     }
 
     public CharacterActor Target { get; }
     public DefenseStatusRuntime StatusRuntime { get; }
     public DefenseActivationReport Report { get; }
     public DefenseFacilityData Defense { get; }
+    public float EffectMultiplier { get; }
 
     public void ApplyDamage(float amount, string reason)
     {
@@ -38,14 +41,20 @@ public sealed class DefenseEffectContext
             return;
         }
 
-        float finalDamage = amount * StatusRuntime.GetIncomingDamageMultiplier();
+        float finalDamage = amount
+            * EffectMultiplier
+            * StatusRuntime.GetIncomingDamageMultiplier();
         Target.ApplyDamage(finalDamage, reason);
         Report.AddDamage(finalDamage);
     }
 
     public int ApplyStatus(DefenseStatusKind kind, float value, float duration, int stacks)
     {
-        return StatusRuntime.ApplyStatus(kind, value, duration, stacks);
+        return StatusRuntime.ApplyStatus(
+            kind,
+            value * EffectMultiplier,
+            duration * EffectMultiplier,
+            stacks);
     }
 
     public void ClearStatus(DefenseStatusKind kind)
@@ -55,7 +64,7 @@ public sealed class DefenseEffectContext
 
     public void AddMovementDelay(float seconds)
     {
-        Report.AddMovementDelay(seconds);
+        Report.AddMovementDelay(seconds * EffectMultiplier);
     }
 
     public void AddEffectTag(string tag)

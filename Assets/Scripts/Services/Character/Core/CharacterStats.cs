@@ -49,6 +49,7 @@ public class CharacterStats : SerializedMonoBehaviour
     private ICharacterPhysicalCapacityQuery physicalCapacityQuery;
     private ICharacterDeprivationRuntime deprivationRuntime;
     private ICharacterSubstanceRuntime substanceRuntime;
+    private ISurgicalAugmentationQuery surgicalAugmentation;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
     private float nextNeedDecayAt = float.PositiveInfinity;
@@ -124,7 +125,8 @@ public class CharacterStats : SerializedMonoBehaviour
         ICharacterPhysicalCapacityQuery physicalCapacityQuery = null,
         ICharacterDeprivationRuntime deprivationRuntime = null,
         IGameEventBus gameEventBus = null,
-        ICharacterSubstanceRuntime substanceRuntime = null)
+        ICharacterSubstanceRuntime substanceRuntime = null,
+        ISurgicalAugmentationQuery surgicalAugmentation = null)
     {
         this.staffDiscontentRuntimeService = staffDiscontentRuntimeService
             ?? throw new ArgumentNullException(nameof(staffDiscontentRuntimeService));
@@ -138,6 +140,7 @@ public class CharacterStats : SerializedMonoBehaviour
         this.deprivationRuntime = deprivationRuntime;
         this.gameEventBus = gameEventBus;
         this.substanceRuntime = substanceRuntime;
+        this.surgicalAugmentation = surgicalAugmentation;
 
         if (actor != null)
         {
@@ -364,16 +367,32 @@ public class CharacterStats : SerializedMonoBehaviour
 
     public int GetCharacterStat(CharacterStatType statType)
     {
-        return actor != null && actor.Progression != null
+        int baseValue = actor != null && actor.Progression != null
             ? actor.Progression.GetFinalStat(statType)
             : identity != null && identity.Profile != null ? identity.Profile.GetStat(statType) : 5;
+        return Mathf.Max(
+            0,
+            baseValue + (surgicalAugmentation?.GetStatBonus(
+                identity?.PersistentId,
+                statType) ?? 0));
     }
 
     public int GetCharacterStat(string statId)
     {
-        return actor != null && actor.Progression != null
+        int baseValue = actor != null && actor.Progression != null
             ? actor.Progression.GetFinalStat(statId)
             : identity != null && identity.Profile != null ? identity.Profile.GetStat(statId) : 0;
+        if (CharacterStatCatalog.TryGet(
+                statId,
+                out CharacterStatDefinition definition)
+            && definition.LegacyType.HasValue)
+        {
+            baseValue += surgicalAugmentation?.GetStatBonus(
+                identity?.PersistentId,
+                definition.LegacyType.Value) ?? 0;
+        }
+
+        return Mathf.Max(0, baseValue);
     }
 
     public float GetMoveSpeed()

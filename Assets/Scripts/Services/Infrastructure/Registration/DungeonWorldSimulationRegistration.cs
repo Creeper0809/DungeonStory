@@ -82,6 +82,33 @@ public static class DungeonWorldSimulationRegistration
             .As<IWorldFilthQuery>();
         builder.RegisterEntryPoint<WorldWaterRuntime>(Lifetime.Singleton)
             .As<IWorldWaterQuery>();
+        builder.Register<IndustrialInfrastructureTopologyRuntime>(
+                Lifetime.Singleton)
+            .As<IIndustrialInfrastructureTopologyRuntime>();
+        builder.Register<AutomationPowerDemandRegistry>(Lifetime.Singleton)
+            .AsSelf();
+        builder.RegisterEntryPoint<ElectricalNetworkRuntime>(
+                Lifetime.Singleton)
+            .As<IElectricalNetworkRuntime>()
+            .As<IPowerPriorityCommandService>();
+        builder.RegisterEntryPoint<FluidNetworkRuntime>(Lifetime.Singleton)
+            .As<IWaterNetworkRuntime>()
+            .As<IWastewaterNetworkRuntime>()
+            .As<IPlumbingCommandService>();
+        builder.Register<WaterFixtureUseRuntime>(Lifetime.Singleton)
+            .As<IWaterFixtureUseRuntime>();
+        builder.Register<ProcessFluidUseRuntime>(Lifetime.Singleton)
+            .As<IProcessFluidUseRuntime>();
+        builder.Register<ConveyorItemGateway>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<ConveyorRuntime>(Lifetime.Singleton)
+            .As<IConveyorRuntime>()
+            .As<IConveyorCommandService>()
+            .As<IConveyorRoutingService>();
+        builder.RegisterEntryPoint<AutomationRuntime>(Lifetime.Singleton)
+            .As<IAutomationRuntime>();
+        builder.RegisterEntryPoint<IndustrialInfrastructureOverlayPresenter>(
+                Lifetime.Singleton)
+            .As<IIndustrialInfrastructureOverlayService>();
         if (SampleSceneRationRuntime.SupportsScene(scopeScene.name))
         {
             builder.RegisterEntryPoint<SampleSceneRationRuntime>(

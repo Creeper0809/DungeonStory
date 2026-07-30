@@ -16,6 +16,7 @@ public static class CharacterStatIds
     public const string Endurance = "stat:endurance";
     public const string Shooting = "stat:shooting";
     public const string Evasion = "stat:evasion";
+    public const string Medical = "stat:medical";
 }
 
 public sealed class CharacterStatDefinition
@@ -155,6 +156,7 @@ public static class CharacterStatCatalog
         RegisterBuiltIn(CharacterStatIds.Dexterity, "민첩", 90, CharacterStatType.Dexterity);
         RegisterBuiltIn(CharacterStatIds.Cleaning, "청소", 100, CharacterStatType.Cleaning);
         RegisterBuiltIn(CharacterStatIds.Endurance, "지구력", 110, CharacterStatType.Endurance);
+        RegisterBuiltIn(CharacterStatIds.Medical, "의료", 120, CharacterStatType.Medical);
     }
 
     private static void RegisterBuiltIn(

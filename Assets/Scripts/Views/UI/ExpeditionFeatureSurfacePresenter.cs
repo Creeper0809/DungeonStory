@@ -228,7 +228,7 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
                 && arrival.stage is not OffenseReturnArrivalStage.Secured
                 and not OffenseReturnArrivalStage.Escaped)
             .Sum(arrival => Mathf.Max(0, arrival.requestedAmount));
-        return $"누적 자금 {state.MoneyEarned}"
+        return $"회수 전리품 추정가 {state.RecoveredLootValue}"
             + $" / 영입 후보 {recruitCandidates}"
             + $" / 수용 포로 {prisoners}"
             + $" / 귀환 동물 {arrivingAnimals}";

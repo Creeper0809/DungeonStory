@@ -46,6 +46,18 @@ public static class DungeonWorkRegistration
             .As<IWorkExecutionHandler>()
             .As<IWorkCandidateProvider>()
             .As<IWorkUrgencyProvider>();
+        builder.Register<SurgeryWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>()
+            .As<IWorkUrgencyProvider>();
+        builder.Register<ThreatMitigationWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>()
+            .As<IWorkUrgencyProvider>();
+        builder.Register<PlumbingWorkExecutionHandler>(Lifetime.Singleton)
+            .As<IWorkExecutionHandler>()
+            .As<IWorkCandidateProvider>()
+            .As<IWorkUrgencyProvider>();
         builder.Register<WorkExecutionHandlerRegistry>(Lifetime.Singleton)
             .As<IWorkExecutionHandlerRegistry>()
             .As<IWorkPolicyRegistry>();
@@ -93,6 +105,8 @@ public static class DungeonWorkRegistration
             .As<IWorkStatPolicy>();
         builder.Register<TreatmentStatPolicy>(Lifetime.Singleton)
             .As<IWorkStatPolicy>();
+        builder.Register<SurgeryStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
         builder.Register<GuardHuntStatPolicy>(Lifetime.Singleton)
             .As<IWorkStatPolicy>();
         builder.Register<GatheringStatPolicy>(Lifetime.Singleton)
@@ -100,6 +114,10 @@ public static class DungeonWorkRegistration
         builder.Register<AnimalCareStatPolicy>(Lifetime.Singleton)
             .As<IWorkStatPolicy>();
         builder.Register<GrandProjectStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
+        builder.Register<ThreatMitigationStatPolicy>(Lifetime.Singleton)
+            .As<IWorkStatPolicy>();
+        builder.Register<PlumbingStatPolicy>(Lifetime.Singleton)
             .As<IWorkStatPolicy>();
     }
 }

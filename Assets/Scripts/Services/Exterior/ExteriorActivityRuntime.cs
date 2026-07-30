@@ -63,6 +63,7 @@ public interface IExpeditionDepartureService
     bool TryBeginDeparture(
         OffenseExpeditionRun expedition,
         IReadOnlyList<CharacterActor> members,
+        Func<bool> departureReady,
         Action completed,
         out string message);
 }
@@ -861,6 +862,7 @@ public sealed class ExteriorActivityRuntime :
     public bool TryBeginDeparture(
         OffenseExpeditionRun expedition,
         IReadOnlyList<CharacterActor> members,
+        Func<bool> departureReady,
         Action completed,
         out string message)
     {
@@ -878,7 +880,13 @@ public sealed class ExteriorActivityRuntime :
         }
 
         EnsureRuntimeObjects();
-        coroutineHost.StartCoroutine(DepartureRoutine(expedition, members, staging, entryPoint, completed));
+        coroutineHost.StartCoroutine(DepartureRoutine(
+            expedition,
+            members,
+            staging,
+            entryPoint,
+            departureReady,
+            completed));
         message = "expedition-departure-started";
         return true;
     }
@@ -1286,8 +1294,14 @@ public sealed class ExteriorActivityRuntime :
         IReadOnlyList<CharacterActor> members,
         ExteriorZoneMarker staging,
         WorldGridEntryPoint entryPoint,
+        Func<bool> departureReady,
         Action completed)
     {
+        while (departureReady != null && !departureReady())
+        {
+            yield return null;
+        }
+
         foreach (CharacterActor member in members)
         {
             if (member == null || member.IsDead)

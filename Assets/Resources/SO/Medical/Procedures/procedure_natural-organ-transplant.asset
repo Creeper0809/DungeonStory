@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
+  m_Name: procedure_natural-organ-transplant
+  m_EditorClassIdentifier: Assembly-CSharp::SurgicalProcedureSO
+  procedureId: procedure:natural-organ-transplant
+  displayName: "\uC7A5\uAE30 \uC774\uC2DD"
+  description: "\uACB0\uC190\uB418\uAC70\uB098 \uC190\uC0C1\uB41C \uAE30\uAD00\uC744
+    \uBCF4\uC874 \uC7A5\uAE30\uB85C \uAD50\uCCB4\uD55C\uB2E4."
+  kind: 6
+  targetNodeId: 
+  requiredResearchId: research:medical:xenotransplant
+  requiredFacilityTags: 280
+  requiredWork: 58
+  difficultyPenalty: 0.2
+  baseInfectionRisk: 0.14
+  baseBleedingRisk: 0.22
+  requiresAnesthesia: 1
+  requiresRestraintForUnwilling: 1
+  allowsLivingSubject: 1
+  allowsCorpseSubject: 0
+  allowsWildlife: 0
+  materials:
+  - itemId: stock-item:5
+    quantity: 2
+    optional: 0
+  - itemId: medicine:immunosuppressant
+    quantity: 1
+    optional: 0
+  effects:
+  - rid: 7302563265135772103
+  - rid: 7302563265135772104
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563265135772103
+      type: {class: InstallSurgicalPartEffect, ns: , asm: Assembly-CSharp}
+      data:
+        effectId: InstallSurgicalPartEffect
+        partKind: 0
+        efficiency: 1
+    - rid: 7302563265135772104
+      type: {class: ApplySurgicalBurdenEffect, ns: , asm: Assembly-CSharp}
+      data:
+        effectId: ApplySurgicalBurdenEffect
+        rejection: 8
+        mutation: 0
+        infection: 4

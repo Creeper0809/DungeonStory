@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 42_loot_hidden_cellar
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170341
+  cardId: loot_hidden_cellar
+  stage: 5
+  title: "\uBC14\uB2E5 \uC544\uB798 \uC800\uC7A5\uACE0"
+  situation: "\uBE48 \uC120\uBC18 \uC544\uB798\uC5D0\uC11C \uCC2C \uACF5\uAE30\uAC00
+    \uC62C\uB77C\uC624\uB294 \uD2C8\uC774 \uBCF4\uC785\uB2C8\uB2E4."
+  requiredWorldTags: []
+  choices:
+  - choiceId: left
+    label: "\uC9C0\uD558\uB97C \uD655\uC778\uD55C\uB2E4"
+    description: "\uCD94\uAC00 \uC704\uD5D8\uC744 \uAC10\uC218\uD558\uACE0 \uC228\uC740
+      \uC800\uC7A5\uACE0\uB85C \uB0B4\uB824\uAC11\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uC804\uB9AC\uD488 \uD06C\uAC8C \uC99D\uAC00\xB7\uC804\uD22C
+      \uC704\uD5D8"
+    severity: 2
+    mayStartCombat: 1
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258841
+    - rid: 7302563269269258842
+  - choiceId: right
+    label: "\uC785\uAD6C\uB9CC \uD45C\uC2DC\uD55C\uB2E4"
+    description: "\uB2E4\uC74C \uC791\uC804\uC744 \uC704\uD574 \uC704\uCE58\uB9CC
+      \uB0A8\uAE30\uACE0 \uADC0\uD658\uD569\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uC815\uBCF4 \uC99D\uAC00"
+    severity: 0
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258843
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258841
+      type: {class: OffenseLootDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 1
+        amount: 10
+    - rid: 7302563269269258842
+      type: {class: OffenseCombatDecisionEffect, ns: , asm: Assembly-CSharp}
+      data: 
+    - rid: 7302563269269258843
+      type: {class: OffenseReconDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        revealCount: 1

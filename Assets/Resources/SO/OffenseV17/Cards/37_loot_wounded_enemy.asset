@@ -1,0 +1,71 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 37_loot_wounded_enemy
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170336
+  cardId: loot_wounded_enemy
+  stage: 5
+  title: "\uC0B4\uC544 \uC788\uB294 \uC218\uBE44\uBCD1"
+  situation: "\uBB34\uB108\uC9C4 \uBCBD \uC544\uB798\uC5D0\uC11C \uC218\uBE44\uBCD1
+    \uD558\uB098\uAC00 \uC758\uC2DD\uC744 \uB418\uCC3E\uACE0 \uC788\uC2B5\uB2C8\uB2E4."
+  requiredWorldTags: []
+  choices:
+  - choiceId: left
+    label: "\uD3EC\uB85C\uB85C \uB370\uB824\uAC04\uB2E4"
+    description: "\uCE58\uB8CC\uD488\uACFC \uC6B4\uBC18 \uC5EC\uB825\uC744 \uC368\uC11C
+      \uC0DD\uD3EC\uD569\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uC57D\uD488 \uAC10\uC18C\xB7\uD3EC\uB85C \uD68D\uB4DD"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258886
+  - choiceId: right
+    label: "\uC815\uBCF4\uB9CC \uBB3B\uB294\uB2E4"
+    description: "\uC9E7\uAC8C \uC2EC\uBB38\uD558\uACE0 \uCD94\uACA9 \uC804\uC5D0
+      \uC790\uB9AC\uB97C \uB739\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uC815\uBCF4 \uC99D\uAC00"
+    severity: 0
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258887
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258886
+      type: {class: OffenseSupplyDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        supplyType: 1
+        amount: -1
+    - rid: 7302563269269258887
+      type: {class: OffenseReconDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        revealCount: 1

@@ -182,6 +182,18 @@ public sealed class DungeonItemCatalogSO : ScriptableObject
             return true;
         }
 
+        if (SurgeryItemDefinitions.TryGetDefinition(normalized, out definition))
+        {
+            return true;
+        }
+
+        if (IndustrialItemDefinitions.TryGetDefinition(
+                normalized,
+                out definition))
+        {
+            return true;
+        }
+
         if (TryGetStockCategoryFromItemId(normalized, out StockCategory category))
         {
             definition = DungeonItemDefinition.FromStockCategory(category);
@@ -321,6 +333,28 @@ public sealed class ResourceDungeonItemCatalogProvider : IDungeonItemCatalogProv
             return blueprintDefinition;
         }
 
+        if (FacilityInstallationKitItemIds.TryGetBuildingId(
+                itemId,
+                out int kitBuildingId))
+        {
+            BuildingSO building =
+                facilityShopCatalog?.FindBuildingById(kitBuildingId);
+            string buildingName = building != null
+                ? FacilityShopService.GetBuildingName(building)
+                : $"시설 {kitBuildingId}";
+            return new DungeonItemDefinition(
+                FacilityInstallationKitItemIds.ForBuilding(kitBuildingId),
+                $"{buildingName} 설치 키트",
+                "외부 시장에서 조달한 시설 부품 묶음. 공사 현장까지 직접 운반해야 한다.",
+                StockCategory.General,
+                building != null
+                    ? Mathf.Max(1, building.GetConstructionValue())
+                    : 1,
+                null,
+                8f,
+                1);
+        }
+
         if (Catalog != null)
         {
             return Catalog.GetDefinitionOrDefault(itemId);
@@ -351,6 +385,13 @@ public sealed class ResourceDungeonItemCatalogProvider : IDungeonItemCatalogProv
                 out DungeonItemDefinition evolutionDefinition))
         {
             return evolutionDefinition;
+        }
+
+        if (SurgeryItemDefinitions.TryGetDefinition(
+                itemId,
+                out DungeonItemDefinition surgeryDefinition))
+        {
+            return surgeryDefinition;
         }
 
         return DungeonItemCatalogSO.TryGetStockCategoryFromItemId(itemId, out StockCategory category)

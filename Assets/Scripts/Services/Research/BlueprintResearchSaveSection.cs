@@ -262,6 +262,18 @@ public sealed class BlueprintResearchSaveSection :
                     out ResearchProjectSO completedProject))
             {
                 runtime.State.Projects.RestoreCompleted(projectId);
+                foreach (BlueprintBuildingUnlock unlock in
+                         completedProject.Unlocks.OfType<BlueprintBuildingUnlock>())
+                {
+                    runtime.State.RestoreUnlockedBuildingId(unlock.buildingId);
+                }
+
+                foreach (BlueprintRecipeUnlock unlock in
+                         completedProject.Unlocks.OfType<BlueprintRecipeUnlock>())
+                {
+                    runtime.State.UnlockRecipe(unlock.recipeId);
+                }
+
                 if (completedProject.Blueprint != null)
                 {
                     runtime.State.RestoreCompletedBlueprintId(

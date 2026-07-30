@@ -152,7 +152,7 @@ public static class InvasionThreatValueCalculator
             return 0f;
         }
 
-        float constructionValue = building.GetConstructionCost() / 100f;
+        float constructionValue = building.GetConstructionValue() / 100f;
         float maintenanceValue = building.GetMaintenanceCost() / 100f;
         float operationalValue = 0f;
 

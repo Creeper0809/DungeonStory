@@ -177,13 +177,16 @@ public class DefenseFacility : Facility
 {
     private float nextTriggerTime;
     private DungeonStory.Foundation.IGameEventBus gameEventBus;
+    private IWorldThreatModifierQuery worldThreatModifiers;
 
     [VContainer.Inject]
     public void ConstructDefenseFacilityEventBus(
-        DungeonStory.Foundation.IGameEventBus gameEventBus)
+        DungeonStory.Foundation.IGameEventBus gameEventBus,
+        IWorldThreatModifierQuery worldThreatModifiers = null)
     {
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.worldThreatModifiers = worldThreatModifiers;
     }
 
     public DefenseFacilityData Defense => BuildingData != null ? BuildingData.Defense : null;
@@ -229,7 +232,8 @@ public class DefenseFacility : Facility
     public DefenseActivationReport Trigger(
         CharacterActor intruder,
         DefenseTriggerTiming timing,
-        IDefenseStatusRuntimeService statusRuntimeService)
+        IDefenseStatusRuntimeService statusRuntimeService,
+        float paidPerformanceMultiplier = 1f)
     {
         if (intruder == null || !CanTrigger(timing, out _))
         {
@@ -238,7 +242,14 @@ public class DefenseFacility : Facility
 
         DefenseActivationReport report = new DefenseActivationReport(this, intruder, timing);
         nextTriggerTime = GameTime + Mathf.Max(0f, Defense.cooldownSeconds);
-        DefenseEffectResolver.ApplyEffects(this, intruder, report, statusRuntimeService);
+        DefenseEffectResolver.ApplyEffects(
+            this,
+            intruder,
+            report,
+            statusRuntimeService,
+            (worldThreatModifiers?.GetMultiplier(
+                OffenseThreatModifierKind.AutomatedDefense) ?? 1f)
+                * Mathf.Max(0f, paidPerformanceMultiplier));
         intruder.AddActivity(CharacterActivityEvent.Facility(
             CharacterActivityKinds.Combat,
             CharacterActivityOutcomes.Damaged,
@@ -266,7 +277,11 @@ public static class DefenseFacilityResolver
         CharacterActor intruder,
         Vector2Int position,
         DefenseTriggerTiming timing,
-        IDefenseStatusRuntimeService statusRuntimeService)
+        IDefenseStatusRuntimeService statusRuntimeService,
+        ITreasuryDefenseRuntime treasuryDefenseRuntime = null,
+        string invasionId = "",
+        float threat = 0f,
+        bool isBoss = false)
     {
         if (statusRuntimeService == null)
         {
@@ -290,9 +305,47 @@ public static class DefenseFacilityResolver
             .Distinct();
         foreach (DefenseFacility defense in defenses)
         {
-            DefenseActivationReport report = defense.Trigger(intruder, timing, statusRuntimeService);
+            BuildingTreasuryPoweredDefenseAbility paidAbility =
+                defense.BuildingData?
+                    .GetAbility<BuildingTreasuryPoweredDefenseAbility>();
+            TreasuryDefenseAuthorization authorization =
+                new TreasuryDefenseAuthorization(
+                    true,
+                    false,
+                    1f,
+                    0,
+                    string.Empty);
+            if (paidAbility != null)
+            {
+                if (treasuryDefenseRuntime == null)
+                {
+                    continue;
+                }
+
+                authorization = treasuryDefenseRuntime.AuthorizeShot(
+                    defense,
+                    intruder,
+                    invasionId,
+                    threat,
+                    isBoss);
+                if (!authorization.Authorized)
+                {
+                    continue;
+                }
+            }
+
+            DefenseActivationReport report = defense.Trigger(
+                intruder,
+                timing,
+                statusRuntimeService,
+                authorization.EffectMultiplier);
             if (report != null)
             {
+                if (authorization.Malfunctioned)
+                {
+                    report.AddEffectTag("오작동");
+                }
+
                 reports.Add(report);
             }
         }
@@ -308,7 +361,8 @@ public static class DefenseEffectResolver
         DefenseFacility facility,
         CharacterActor target,
         DefenseActivationReport report,
-        IDefenseStatusRuntimeService statusRuntimeService)
+        IDefenseStatusRuntimeService statusRuntimeService,
+        float effectMultiplier = 1f)
     {
         if (facility == null || target == null || report == null || facility.Defense == null)
         {
@@ -323,7 +377,12 @@ public static class DefenseEffectResolver
         DefenseFacilityData defense = facility.Defense;
         DefenseStatusRuntime statusRuntime = statusRuntimeService.GetOrAdd(target)
             ?? throw new InvalidOperationException($"{nameof(IDefenseStatusRuntimeService)} could not provide {nameof(DefenseStatusRuntime)}.");
-        DefenseEffectContext context = new DefenseEffectContext(target, statusRuntime, report, defense);
+        DefenseEffectContext context = new DefenseEffectContext(
+            target,
+            statusRuntime,
+            report,
+            defense,
+            effectMultiplier);
         foreach (DefenseEffectSO effectAsset in defense.effectAssets ?? Array.Empty<DefenseEffectSO>())
         {
             if (effectAsset != null)

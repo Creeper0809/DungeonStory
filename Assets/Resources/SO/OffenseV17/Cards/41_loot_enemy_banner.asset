@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 41_loot_enemy_banner
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170340
+  cardId: loot_enemy_banner
+  stage: 5
+  title: "\uC9C0\uD718 \uAE43\uBC1C"
+  situation: "\uC4F0\uB7EC\uC9C4 \uC9C0\uD718\uAD00 \uACC1\uC5D0 \uC9C0\uC5ED \uBB38\uC7A5\uC774
+    \uC0C8\uACA8\uC9C4 \uAE43\uBC1C\uC774 \uB0A8\uC558\uC2B5\uB2C8\uB2E4."
+  requiredWorldTags: []
+  choices:
+  - choiceId: left
+    label: "\uC804\uB9AC\uD488\uC73C\uB85C \uAC74\uB2E4"
+    description: "\uB358\uC804\uC758 \uC0AC\uAE30\uB97C \uB192\uC77C \uC99D\uD45C\uB85C
+      \uAC00\uC838\uAC11\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uAE30\uBD84 \uBCF4\uC0C1\xB7\uC801\uC7AC \uC99D\uAC00"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258787
+  - choiceId: right
+    label: "\uCC9C\uC744 \uC798\uB77C \uC4F4\uB2E4"
+    description: "\uBD80\uC0C1\uC790\uC640 \uC7A5\uBE44\uB97C \uBB36\uB294 \uC7AC\uB8CC\uB85C
+      \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uBD80\uC0C1 \uD68C\uBCF5\xB7\uC804\uB9AC\uD488 \uAC10\uC18C"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258788
+    - rid: 7302563269269258789
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258787
+      type: {class: OffenseStressDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: -12
+    - rid: 7302563269269258788
+      type: {class: OffenseLootDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 1
+        amount: -2
+    - rid: 7302563269269258789
+      type: {class: OffenseInjuryDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        maxHealthRatio: -0.1
+        nonLethal: 1

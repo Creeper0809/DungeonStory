@@ -90,7 +90,7 @@ public sealed class RoomEnvironmentExperienceService : IRoomEnvironmentExperienc
         float impressionMood = settings.GetImpressivenessMood(snapshot.Impressiveness);
         float cleanlinessMood = settings.GetCleanlinessMood(snapshot.Cleanliness);
         string roomKey = $"{facility.Grid.GetHashCode()}:{room.Bounds.xMin}:{room.Bounds.yMin}";
-        string roomName = RoomEnvironmentPresentation.GetRoomName(snapshot.Roles);
+        string roomName = RoomEnvironmentPresentation.GetRoomName(snapshot);
         string action = GetActionLabel(eventType, facility);
 
         if (!Mathf.Approximately(impressionMood, 0f))

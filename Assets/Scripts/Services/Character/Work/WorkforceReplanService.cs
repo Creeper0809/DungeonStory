@@ -16,11 +16,15 @@ public interface IWorkforceReplanService
 public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
 {
     private readonly ICharacterWorldQuery characterWorld;
+    private readonly IFacilityCandidateCache facilityCandidateCache;
 
-    public DungeonWorkforceReplanService(ICharacterWorldQuery characterWorld)
+    public DungeonWorkforceReplanService(
+        ICharacterWorldQuery characterWorld,
+        IFacilityCandidateCache facilityCandidateCache = null)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.facilityCandidateCache = facilityCandidateCache;
     }
 
     public void RequestIdleWorkersToReplan(bool clearFailures = true)
@@ -65,13 +69,15 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
         }
 
         WorkTypeId requestedWorkTypeId = requestedDefinition.WorkTypeId;
+        facilityCandidateCache?.MarkDynamicStateDirty();
         AbilityWork selectedWork = null;
         WorkTargetCandidate selectedCandidate = default;
         foreach (CharacterActor actor in characterWorld.Characters)
         {
             if (!CharacterWorkRoleUtility.TryGetWork(actor, out AbilityWork work)
                 || actor == null
-                || actor.Brain == null)
+                || actor.Brain == null
+                || !actor.CanRunAi)
             {
                 continue;
             }
@@ -83,8 +89,12 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
 
             WorkTypeId assignedWorkTypeId = work.AssignedWorkTypeId;
             if (work.IsOffDuty
-                || assignedWorkTypeId == requestedWorkTypeId
                 || !work.WorkPriorities.IsEnabled(requestedWorkTypeId))
+            {
+                continue;
+            }
+
+            if (assignedWorkTypeId == requestedWorkTypeId && work.isWorking)
             {
                 continue;
             }
@@ -195,9 +205,19 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
         }
 
         AIBrain selectedBrain = selectedWork.WorkerActor.Brain;
+        if (!selectedBrain.PreferActionOnNextDecision<AIHaul>(
+                persistenceSeconds: 600f))
+        {
+            selectedBrain.UseStaffWorkActions();
+            if (!selectedBrain.PreferActionOnNextDecision<AIHaul>(
+                    persistenceSeconds: 600f))
+            {
+                return;
+            }
+        }
+
         if (!selectedCanInterrupt)
         {
-            selectedBrain.PreferActionOnNextDecision<AIHaul>(persistenceSeconds: 600f);
             return;
         }
 
@@ -206,6 +226,6 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
             selectedBrain.StopCurrentActionForReplan("공사 자재 운반 시작");
         }
 
-        selectedBrain.RequestImmediateReplanForAction<AIHaul>(clearFailures);
+        selectedBrain.RequestImmediateReplan(clearFailures);
     }
 }

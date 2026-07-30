@@ -25,7 +25,7 @@ MonoBehaviour:
   allowedMaterialFamilies: 0200000003000000
   craftMaterials: []
   verbs:
-  - rid: 7302563257777393343
+  - rid: 7302563265135771921
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 1
@@ -40,7 +40,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563257777393343
+    - rid: 7302563265135771921
       type: {class: MeleeStrikeVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1.05

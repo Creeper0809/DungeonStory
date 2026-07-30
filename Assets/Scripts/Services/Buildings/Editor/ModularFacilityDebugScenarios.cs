@@ -295,7 +295,8 @@ public static class ModularFacilityDebugScenarios
         }
 
         File.WriteAllLines(ContractReportPath, rows);
-        Require(rows.Count == 74, $"Expected report header plus 73 contracts, found {rows.Count} rows.");
+        Require(rows.Count == assets.Length + 1,
+            $"Expected report header plus {assets.Length} contracts, found {rows.Count} rows.");
     }
 
     private static void VerifyProgressionEconomy()
@@ -351,22 +352,25 @@ public static class ModularFacilityDebugScenarios
                 $"placed={lockedPlaced}; money={lockedMoney}->{gameData.holdingMoney.Value}; reason={lockedReason}");
 
             gameData.day.Value = 7;
-            int phase3Cost = phase3.GetConstructionCost();
-            gameData.holdingMoney.Value = Mathf.Max(0, phase3Cost - 1);
+            gameData.holdingMoney.Value = 0;
             Grid poorGrid = CreateSupportedGrid(20);
             GridBuildingPlacementService poorService = CreateEconomyPlacementService(poorGrid, phase3, gameData);
             int poorMoney = gameData.holdingMoney.Value;
             bool poorPlaced = poorService.TryPlaceBuilding(phase3, new Vector2Int(6, 0), out string poorReason);
-            RecordEconomyCase(rows, failures, "insufficient_funds_rejected_without_charge",
-                !poorPlaced
-                && poorGrid.GetGridCell(new Vector2Int(6, 0)).GetOccupant(phase3.layer) == null
-                && gameData.holdingMoney.Value == poorMoney
-                && poorReason.Contains(phase3Cost.ToString(), StringComparison.Ordinal),
+            BuildableObject poorBuilding = poorGrid.GetGridCell(new Vector2Int(6, 0))
+                .GetOccupant(phase3.layer) as BuildableObject;
+            RecordEconomyCase(rows, failures, "zero_gold_does_not_block_construction",
+                poorPlaced
+                && poorBuilding != null
+                && gameData.holdingMoney.Value == poorMoney,
                 $"placed={poorPlaced}; money={poorMoney}->{gameData.holdingMoney.Value}; reason={poorReason}");
+            if (poorBuilding != null)
+            {
+                poorService.TryDestroyBuilding(poorBuilding, out _, out _);
+            }
 
             gameData.day.Value = 4;
-            int phase2Cost = phase2.GetConstructionCost();
-            gameData.holdingMoney.Value = phase2Cost;
+            gameData.holdingMoney.Value = 17;
             Grid successGrid = CreateSupportedGrid(20);
             GridBuildingPlacementService successService = CreateEconomyPlacementService(successGrid, phase2, gameData);
             Vector2Int successCell = new Vector2Int(8, 0);
@@ -375,19 +379,18 @@ public static class ModularFacilityDebugScenarios
             int afterFirstBuild = gameData.holdingMoney.Value;
             bool duplicatePlaced = successService.TryPlaceBuilding(phase2, successCell, out _);
             int afterFailedDuplicate = gameData.holdingMoney.Value;
-            RecordEconomyCase(rows, failures, "successful_build_charges_once",
+            RecordEconomyCase(rows, failures, "successful_build_preserves_gold",
                 placed
                 && placedBuilding != null
-                && afterFirstBuild == 0
+                && afterFirstBuild == 17
                 && !duplicatePlaced
-                && afterFailedDuplicate == 0,
-                $"placed={placed}; reason={placementReason}; money={phase2Cost}->{afterFirstBuild}->{afterFailedDuplicate}");
+                && afterFailedDuplicate == 17,
+                $"placed={placed}; reason={placementReason}; money=17->{afterFirstBuild}->{afterFailedDuplicate}");
 
-            int expectedRefund = FacilityProgression.GetRefund(phase2);
             bool destroyed = successService.TryDestroyBuilding(placedBuilding, out _, out string destroyReason);
-            RecordEconomyCase(rows, failures, "demolition_refund_is_floored_once",
-                destroyed && gameData.holdingMoney.Value == expectedRefund,
-                $"destroyed={destroyed}; reason={destroyReason}; refund={gameData.holdingMoney.Value}/{expectedRefund}");
+            RecordEconomyCase(rows, failures, "demolition_does_not_change_gold",
+                destroyed && gameData.holdingMoney.Value == 17,
+                $"destroyed={destroyed}; reason={destroyReason}; money={gameData.holdingMoney.Value}");
 
             BuildingSO modularCompatibility = CreateEconomyBuilding(
                 -8101,
@@ -408,8 +411,8 @@ public static class ModularFacilityDebugScenarios
                 out string modularReason);
             BuildableObject modularBuilding = modularGrid.GetGridCell(new Vector2Int(4, 0))
                 .GetOccupant(GridLayer.Building) as BuildableObject;
-            RecordEconomyCase(rows, failures, "modular_legacy_money_condition_not_double_charged",
-                modularPlaced && modularBuilding != null && gameData.holdingMoney.Value == 0,
+            RecordEconomyCase(rows, failures, "modular_legacy_money_condition_is_ignored",
+                modularPlaced && modularBuilding != null && gameData.holdingMoney.Value == 40,
                 $"placed={modularPlaced}; reason={modularReason}; money=40->{gameData.holdingMoney.Value}");
             if (modularBuilding != null)
             {
@@ -432,19 +435,13 @@ public static class ModularFacilityDebugScenarios
                 legacyCompatibility,
                 new Vector2Int(4, 0),
                 out _);
-            gameData.holdingMoney.Value = 25;
-            bool legacyPlaced = legacyService.TryPlaceBuilding(
-                legacyCompatibility,
-                new Vector2Int(4, 0),
-                out string legacyReason);
             BuildableObject legacyBuilding = legacyGrid.GetGridCell(new Vector2Int(4, 0))
                 .GetOccupant(GridLayer.Building) as BuildableObject;
-            RecordEconomyCase(rows, failures, "legacy_money_condition_remains_compatible",
-                !legacyPoorPlaced
-                && legacyPlaced
+            RecordEconomyCase(rows, failures, "legacy_money_condition_no_longer_charges",
+                legacyPoorPlaced
                 && legacyBuilding != null
-                && gameData.holdingMoney.Value == 0,
-                $"poorPlaced={legacyPoorPlaced}; placed={legacyPlaced}; reason={legacyReason}; money=25->{gameData.holdingMoney.Value}");
+                && gameData.holdingMoney.Value == 24,
+                $"placed={legacyPoorPlaced}; money=24->{gameData.holdingMoney.Value}");
             if (legacyBuilding != null)
             {
                 legacyService.TryDestroyBuilding(legacyBuilding, out _, out _);
@@ -616,9 +613,16 @@ public static class ModularFacilityDebugScenarios
                 .FirstOrDefault(candidate => candidate != null && candidate.ContainsPart(hearth));
             Require(room != null && room.IsUsable, "Operational fixture did not form a usable room.");
 
-            Require(ModularFacilityRuntimeEffects.ApplyWorkCompleted(null, hearth, BuiltInWorkTypeIds.Operate) == 4,
+            BuildingCookingAbility hearthCooking =
+                hearth.BuildingData.GetAbility<BuildingCookingAbility>();
+            int expectedMeals = Mathf.Max(1, hearthCooking?.cookedMeals ?? 0);
+            Require(hearthCooking != null
+                    && ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                        null,
+                        hearth,
+                        BuiltInWorkTypeIds.Cook) == expectedMeals,
                 "Meal production did not return the configured output.");
-            Require(foodShelf.Inventory.GetStock(StockCategory.Food) == 4,
+            Require(foodShelf.Inventory.GetStock(StockCategory.Food) == expectedMeals,
                 "Meal production did not enter food storage.");
             Require(forge.SupportsWork(BuiltInWorkTypeIds.Craft)
                     && !forge.SupportsWork(BuiltInWorkTypeIds.Operate)
@@ -680,6 +684,7 @@ public static class ModularFacilityDebugScenarios
             GameObject actorObject = new GameObject("Modular Operational Outcome Actor");
             cleanup.Add(actorObject);
             CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
             actor.stats = new Dictionary<CharacterCondition, float>
             {
                 { CharacterCondition.SLEEP, 0f },
@@ -1063,18 +1068,33 @@ public static class ModularFacilityDebugScenarios
             .OrderBy((asset) => asset.id)
             .ToArray();
 
-        Require(assets.Length == 73, $"Expected 73 modular BuildingSO assets, found {assets.Length}.");
-        Require(assets.Select((asset) => asset.id).Distinct().Count() == 73, "Modular building ids must be unique.");
+        string[] codes = ModularFacilityAssetBuilder.GetCatalogCodes().ToArray();
+        Require(assets.Length == codes.Length,
+            $"Expected {codes.Length} modular BuildingSO assets, found {assets.Length}.");
+        Require(assets.Select((asset) => asset.id).Distinct().Count() == assets.Length,
+            "Modular building ids must be unique.");
         Require(assets.First().id == ModularFacilityAssetBuilder.FirstBuildingId, "Unexpected first modular building id.");
-        Require(assets.Last().id == ModularFacilityAssetBuilder.FirstBuildingId + 72, "Unexpected last modular building id.");
+        Require(assets.Last().id == ModularFacilityAssetBuilder.FirstBuildingId + assets.Length - 1,
+            "Unexpected last modular building id.");
         Require(assets.All((asset) => asset.sprite != null && asset.icon != null), "Every modular facility needs a sprite and icon.");
         Require(assets.All((asset) => asset.type != null && typeof(BuildableObject).IsAssignableFrom(asset.type)), "Every modular facility needs a buildable runtime type.");
-        Require(assets.All((asset) => asset.unlocked), "All produced modular parts must be visible for the current verification build.");
+        HashSet<int> researchUnlocks = AssetDatabase.FindAssets(
+                "t:ResearchProjectSO",
+                new[] { "Assets/Resources/SO/Research" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
+            .Where(project => project != null)
+            .SelectMany(project => project.Unlocks.OfType<BlueprintBuildingUnlock>())
+            .Select(unlock => unlock.buildingId)
+            .ToHashSet();
+        Require(assets.Where(asset => !asset.unlocked).All(asset => researchUnlocks.Contains(asset.id)),
+            "Every locked modular facility needs a research project unlock.");
         Require(assets.All((asset) => asset.Facility == null || !asset.IsSelfContainedRoom()),
             "Modular facilities cannot claim self-contained rooms.");
 
-        string[] codes = ModularFacilityAssetBuilder.GetCatalogCodes().ToArray();
-        Require(codes.Length == 73 && codes.Distinct(StringComparer.Ordinal).Count() == 73, "Catalog codes must contain 73 unique values.");
+        Require(codes.Length > 0
+                && codes.Distinct(StringComparer.Ordinal).Count() == codes.Length,
+            "Catalog codes must contain unique values.");
     }
 
     private static void VerifyIndependentGridSlots()
@@ -1151,7 +1171,8 @@ public static class ModularFacilityDebugScenarios
                 cursor += Mathf.Max(1, asset.width) + 2;
             }
 
-            Require(created.Count == 73, $"Expected 73 runtime instances, created {created.Count}.");
+            Require(created.Count == assets.Length,
+                $"Expected {assets.Length} runtime instances, created {created.Count}.");
             Facility warehouse = created.FirstOrDefault((item) => item != null && item.id == 1050) as Facility;
             Require(warehouse != null && warehouse.HasWarehouseInventory,
                 "L01 did not create its warehouse inventory.");
@@ -1609,7 +1630,11 @@ public static class ModularFacilityDebugScenarios
             BlueprintResearchWorkService,
             WorldInfoClickSelector,
             FacilityCandidateCache,
-            RoomFacilityPolicy);
+            RoomFacilityPolicy,
+            worldRegistry: CharacterAiEditorTestDependencies.WorldRegistry,
+            abilityRuntimeDispatcher:
+                CharacterAiEditorTestDependencies.BuildingAbilityRuntimeDispatcher,
+            gameClock: CharacterAiEditorTestDependencies.GameClock);
         building.ConstructBuildableObjectEventBus(
             CharacterAiEditorTestDependencies.GameEvents);
         building.SetGrid(grid);

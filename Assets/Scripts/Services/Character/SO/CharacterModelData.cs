@@ -66,6 +66,14 @@ public class CharacterStatBlock
         return total;
     }
 
+    public bool Contains(string statId)
+    {
+        return !string.IsNullOrWhiteSpace(statId)
+            && entries != null
+            && entries.Any(entry => entry != null
+                && string.Equals(entry.statId, statId, StringComparison.Ordinal));
+    }
+
     public void Set(CharacterStatType type, int value)
     {
         Set(CharacterStatCatalog.GetRequired(type).Id, value);

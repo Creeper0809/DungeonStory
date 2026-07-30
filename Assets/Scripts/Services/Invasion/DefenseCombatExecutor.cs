@@ -69,13 +69,15 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
     private readonly ICharacterBodyHealthRuntime bodyHealth;
     private readonly ICombatCoverQuery coverQuery;
     private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly IWorldThreatModifierQuery worldThreatModifiers;
 
     public DefenseCombatExecutor(
         ICombatResolutionService combatResolution,
         ICombatEquipmentRuntime combatEquipment,
         ICharacterBodyHealthRuntime bodyHealth,
         ICombatCoverQuery coverQuery,
-        IWorldItemStackRuntime itemStackRuntime)
+        IWorldItemStackRuntime itemStackRuntime,
+        IWorldThreatModifierQuery worldThreatModifiers = null)
     {
         this.combatResolution = combatResolution
             ?? throw new ArgumentNullException(nameof(combatResolution));
@@ -87,6 +89,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             ?? throw new ArgumentNullException(nameof(coverQuery));
         this.itemStackRuntime = itemStackRuntime
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
+        this.worldThreatModifiers = worldThreatModifiers;
     }
 
     public CharacterCombatLoadoutProfile GetActiveProfile(CharacterActor actor)
@@ -350,6 +353,11 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
                 engagement.State == DefenseEngagementState.Engaged,
             attackerSuppression: attackerBody.Suppression,
             defenderSuppression: defenderBody.Suppression,
+            lightMultiplier:
+                (worldThreatModifiers?.GetMultiplier(
+                    OffenseThreatModifierKind.Lighting) ?? 1f)
+                * (worldThreatModifiers?.GetMultiplier(
+                    OffenseThreatModifierKind.Accuracy) ?? 1f),
             attackPowerMultiplier: attacker.GetCombatPowerMultiplier(),
             defenderArmor: combatEquipment.GetArmor(defenderId),
             defenderShield: combatEquipment.GetShield(defenderId)));

@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7003332b9a48cca4495a866cb7b5d17d, type: 3}
+  m_Name: fixed_rival-dungeon
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseSiteArchetypeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170110
+  siteTypeId: fixed:rival-dungeon
+  displayName: "\uACBD\uC7C1 \uB358\uC804 \uC804\uCD08\uAD8C"
+  description: "\uC624\uB7AB\uB3D9\uC548 \uB358\uC804 \uC8FC\uBCC0\uC744 \uC555\uBC15\uD574
+    \uC628 \uACBD\uC7C1 \uC138\uB825\uC758 \uC911\uC2EC \uAD8C\uC5ED\uC785\uB2C8\uB2E4."
+  factionId: human
+  pressureAxis: 3
+  pressureAmount: 20
+  minimumStrength: 5
+  maximumStrength: 5
+  minimumLifetimeDays: 2
+  maximumLifetimeDays: 7
+  hiddenUntilDiscovered: 1
+  canMove: 0
+  dynamicSpawnEligible: 0
+  rewards:
+  - grantSpec:
+      rid: 7302563269269258802
+    displayLabel: "\uACBD\uC7C1 \uB358\uC804 \uBB34\uAE30"
+    baseAmount: 8
+    amountPerStrength: 2
+  - grantSpec:
+      rid: 7302563269269258803
+    displayLabel: "\uACBD\uC7C1 \uB358\uC804 \uD0C4\uC57D"
+    baseAmount: 24
+    amountPerStrength: 6
+  - grantSpec:
+      rid: 7302563269269258804
+    displayLabel: "\uC9C0\uC5ED \uC804\uB7B5 \uC555\uB825"
+    baseAmount: 1
+    amountPerStrength: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258802
+      type: {class: OffenseStockRewardSpec, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 2
+    - rid: 7302563269269258803
+      type: {class: OffenseStockRewardSpec, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 7
+    - rid: 7302563269269258804
+      type: {class: OffenseRegionalPressureRewardSpec, ns: , asm: Assembly-CSharp}
+      data: 

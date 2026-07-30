@@ -19,6 +19,12 @@ public interface IOffenseBattleRuntime
         string abilityId,
         out OffenseBattleCommandResult result);
     bool TryExecuteCommand(OffenseBattleCommand command, out OffenseBattleCommandResult result);
+    bool TryExecutePlannedCommand(
+        string actorId,
+        string targetId,
+        string abilityId,
+        out OffenseBattleCommandResult result);
+    bool FinalizePlannedTurn();
     bool TryGetActor(string persistentId, out CharacterActor actor);
     OffenseBattlePersistenceState CapturePersistentState();
     bool TryRestoreBattle(
@@ -108,7 +114,7 @@ public sealed class OffenseBattleRuntime :
         foreach (OffenseExpeditionMemberState member in expedition.MemberStates
             .Where(member => member?.Actor != null)
             .OrderBy(member => member.Formation)
-            .Take(3))
+            .Take(5))
         {
             CharacterActor actor = member.Actor;
             string persistentId = characterSaveService.GetOrAssignPersistentId(actor);
@@ -196,6 +202,51 @@ public sealed class OffenseBattleRuntime :
         return true;
     }
 
+    public bool TryExecutePlannedCommand(
+        string actorId,
+        string targetId,
+        string abilityId,
+        out OffenseBattleCommandResult result)
+    {
+        if (Session == null)
+        {
+            result = new OffenseBattleCommandResult(
+                false,
+                "진행 중인 오펜스 전투가 없습니다.");
+            return false;
+        }
+
+        OffenseBattleActionType actionType = string.IsNullOrWhiteSpace(abilityId)
+            || string.Equals(abilityId, "basic", StringComparison.Ordinal)
+                ? OffenseBattleActionType.BasicAttack
+                : OffenseBattleActionType.Ability;
+        OffenseBattleCommand command = new OffenseBattleCommand(
+            Session.LastProcessedCommandId + 1,
+            actorId,
+            actionType,
+            targetId,
+            actionType == OffenseBattleActionType.Ability ? abilityId : string.Empty);
+        bool accepted = Session.TryExecutePlannedCommand(command, out result);
+        if (!accepted)
+        {
+            return false;
+        }
+
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    public bool FinalizePlannedTurn()
+    {
+        if (Session == null)
+        {
+            return false;
+        }
+
+        StateChanged?.Invoke();
+        return RaiseCompletionIfNeeded();
+    }
+
     public bool TryGetActor(string persistentId, out CharacterActor actor)
     {
         actor = null;
@@ -232,7 +283,7 @@ public sealed class OffenseBattleRuntime :
         foreach (OffenseExpeditionMemberState member in expedition.MemberStates
             .Where(member => member?.Actor != null)
             .OrderBy(member => member.Formation)
-            .Take(3))
+            .Take(5))
         {
             CharacterActor actor = member.Actor;
             string persistentId = characterSaveService.GetOrAssignPersistentId(actor);

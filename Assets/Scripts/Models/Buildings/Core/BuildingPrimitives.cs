@@ -27,7 +27,8 @@ public enum FacilityRole
     Hygiene = 1 << 8,
     Administration = 1 << 9,
     Security = 1 << 10,
-    Entertainment = 1 << 11
+    Entertainment = 1 << 11,
+    Medical = 1 << 12
 }
 
 [Flags]
@@ -60,7 +61,10 @@ public enum FacilityWorkType
     Logging = 1 << 23,
     Quarry = 1 << 24,
     AnimalCare = 1 << 25,
-    GrandProject = 1 << 26
+    GrandProject = 1 << 26,
+    Surgery = 1 << 27,
+    ThreatMitigation = 1 << 28,
+    Plumbing = 1 << 29
 }
 
 public enum StockCategory

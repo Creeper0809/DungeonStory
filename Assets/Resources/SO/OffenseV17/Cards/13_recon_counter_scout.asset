@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 13_recon_counter_scout
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170312
+  cardId: recon_counter_scout
+  stage: 1
+  title: "\uB9DE\uC740\uD3B8 \uB9DD\uC6D0\uACBD"
+  situation: "\uAD00\uCC30\uD558\uB358 \uB2A5\uC120 \uBC18\uB300\uD3B8\uC5D0\uC11C
+    \uB80C\uC988\uAC00 \uBC88\uCA4D\uC785\uB2C8\uB2E4."
+  requiredWorldTags: []
+  choices:
+  - choiceId: left
+    label: "\uC815\uCC30\uBCD1\uC744 \uCAD3\uB294\uB2E4"
+    description: "\uC815\uBCF4\uAC00 \uC0C8\uAE30 \uC804\uC5D0 \uCD94\uACA9\uD574
+      \uC785\uC744 \uB9C9\uC2B5\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uC804\uD22C \uC704\uD5D8"
+    severity: 2
+    mayStartCombat: 1
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258790
+  - choiceId: right
+    label: "\uAC70\uC9D3 \uD754\uC801\uC744 \uB0A8\uAE34\uB2E4"
+    description: "\uB2E4\uB978 \uBC29\uD5A5\uC73C\uB85C \uC774\uB3D9\uD55C \uAC83\uCC98\uB7FC
+      \uD754\uC801\uC744 \uAFB8\uBC09\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uB178\uCD9C \uAC10\uC18C"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258791
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258790
+      type: {class: OffenseCombatDecisionEffect, ns: , asm: Assembly-CSharp}
+      data: 
+    - rid: 7302563269269258791
+      type: {class: OffenseExposureDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: -14

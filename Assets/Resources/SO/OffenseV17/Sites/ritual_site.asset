@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7003332b9a48cca4495a866cb7b5d17d, type: 3}
+  m_Name: ritual_site
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseSiteArchetypeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170109
+  siteTypeId: ritual_site
+  displayName: "\uC758\uC2DD \uC7A5\uC18C"
+  description: "\uC9C0\uC5ED \uC804\uCCB4\uC5D0 \uC601\uD5A5\uC744 \uC8FC\uB294 \uC758\uC2DD\uC774
+    \uC900\uBE44\uB418\uACE0 \uC788\uC2B5\uB2C8\uB2E4."
+  factionId: sealed
+  pressureAxis: 4
+  pressureAmount: 20
+  minimumStrength: 3
+  maximumStrength: 7
+  minimumLifetimeDays: 2
+  maximumLifetimeDays: 7
+  hiddenUntilDiscovered: 1
+  canMove: 0
+  dynamicSpawnEligible: 1
+  rewards:
+  - grantSpec:
+      rid: 7302563269269258880
+    displayLabel: "\uC758\uC2DD \uB9C8\uB098"
+    baseAmount: 8
+    amountPerStrength: 4
+  - grantSpec:
+      rid: 7302563269269258881
+    displayLabel: "\uC758\uC2DD \uAE30\uB85D"
+    baseAmount: 5
+    amountPerStrength: 2
+  - grantSpec:
+      rid: 7302563269269258882
+    displayLabel: "\uC9C0\uC5ED \uC804\uB7B5 \uC555\uB825"
+    baseAmount: 1
+    amountPerStrength: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258880
+      type: {class: OffenseStockRewardSpec, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 3
+    - rid: 7302563269269258881
+      type: {class: OffenseStockRewardSpec, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 9
+    - rid: 7302563269269258882
+      type: {class: OffenseRegionalPressureRewardSpec, ns: , asm: Assembly-CSharp}
+      data: 

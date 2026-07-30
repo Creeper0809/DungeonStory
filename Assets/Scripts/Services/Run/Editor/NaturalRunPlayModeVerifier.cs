@@ -2149,7 +2149,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             {
                 placedDefenses.Add(defense);
                 installedDefenseCount++;
-                installedDefenseCost += defenseData.GetConstructionCost();
+                installedDefenseCost += defenseData.GetConstructionValue();
             }
         }
 
@@ -2157,9 +2157,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         Check(installedDefenseCount == strategy.DefenseBuildingIds.Count,
             "STRATEGY_DEFENSE_POINTER_TOTAL",
             $"placed={installedDefenseCount}/{strategy.DefenseBuildingIds.Count}");
-        Check(charged == installedDefenseCost && installedDefenseCost > 0,
-            "STRATEGY_DEFENSE_COST",
-            $"money={moneyBeforeLayout}->{gameData.holdingMoney.Value}; expected={installedDefenseCost}; charged={charged}");
+        Check(charged == 0 && installedDefenseCost > 0,
+            "STRATEGY_DEFENSE_GOLD_UNCHANGED",
+            $"money={moneyBeforeLayout}->{gameData.holdingMoney.Value}; constructionValue={installedDefenseCost}; charged={charged}");
         Check(placedDefenses.All(defense => defense != null
                 && defense.BuildingData.layer == GridLayer.FloorOverlay
                 && defense.buildPoses.All(grid.IsWalkable)
@@ -2246,8 +2246,14 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         yield return null;
         TMP_Text label = item.GetComponentsInChildren<TMP_Text>(true)
             .FirstOrDefault(text => text != null && text.name == "Label");
-        Check(label != null && label.text.Contains($"{defenseData.GetConstructionCost()}G", StringComparison.Ordinal),
-            "STRATEGY_DEFENSE_VISIBLE_COST_" + defenseData.id,
+        bool materialLabelVisible = label != null
+            && defenseData.GetConstructionMaterials()
+                .Where(pair => pair.Value > 0)
+                .All(pair => label.text.Contains(
+                    pair.Value.ToString(),
+                    StringComparison.Ordinal));
+        Check(materialLabelVisible,
+            "STRATEGY_DEFENSE_VISIBLE_MATERIALS_" + defenseData.id,
             label != null ? label.text.Replace('\n', ' ') : "label missing");
         yield return Click(item.GetComponent<Button>(), $"select defense {defenseData.objectName}");
         Check(controller.GridSystem.Mode == GridMode.Build
@@ -2343,9 +2349,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             placed != null
                 ? $"id={placed.id}; layer={defenseData.layer}; footprint={footprintRegistered}"
                 : "placement missing");
-        Check(gameData.holdingMoney.Value == moneyBefore - defenseData.GetConstructionCost(),
-            "STRATEGY_DEFENSE_CHARGED_" + defenseData.id,
-            $"money={moneyBefore}->{gameData.holdingMoney.Value}; cost={defenseData.GetConstructionCost()}");
+        Check(gameData.holdingMoney.Value == moneyBefore,
+            "STRATEGY_DEFENSE_GOLD_UNCHANGED_" + defenseData.id,
+            $"money={moneyBefore}->{gameData.holdingMoney.Value}; constructionValue={defenseData.GetConstructionValue()}");
         onPlaced?.Invoke(placed);
     }
 

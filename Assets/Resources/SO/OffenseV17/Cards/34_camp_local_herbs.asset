@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 34_camp_local_herbs
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170333
+  cardId: camp_local_herbs
+  stage: 4
+  title: "\uD478\uB978 \uC57D\uCD08"
+  situation: "\uC2B5\uC9C0 \uAC00\uC7A5\uC790\uB9AC\uC5D0\uC11C \uC0C1\uCC98 \uC5F4\uC744
+    \uB0AE\uCD94\uB294 \uC57D\uCD08\uAC00 \uC790\uB78D\uB2C8\uB2E4."
+  requiredWorldTags: []
+  choices:
+  - choiceId: left
+    label: "\uC57D\uCD08\uB97C \uB2EC\uC778\uB2E4"
+    description: "\uBB3C\uACFC \uC2DC\uAC04\uC744 \uC368\uC11C \uAC00\uBCBC\uC6B4
+      \uC0C1\uCC98\uB97C \uB3CC\uBD05\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uBB3C \uAC10\uC18C\xB7\uBD80\uC0C1 \uD68C\uBCF5"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258838
+    - rid: 7302563269269258839
+  - choiceId: right
+    label: "\uD45C\uBCF8\uC744 \uCC59\uAE34\uB2E4"
+    description: "\uB358\uC804\uC5D0\uC11C \uBD84\uC11D\uD560 \uC218 \uC788\uB3C4\uB85D
+      \uBFCC\uB9AC\uC9F8 \uAC00\uC838\uAC11\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uC804\uB9AC\uD488 \uC99D\uAC00"
+    severity: 0
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258840
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258838
+      type: {class: OffenseSupplyDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        supplyType: 0
+        amount: -1
+    - rid: 7302563269269258839
+      type: {class: OffenseInjuryDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        maxHealthRatio: -0.1
+        nonLethal: 1
+    - rid: 7302563269269258840
+      type: {class: OffenseLootDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 1
+        amount: 3

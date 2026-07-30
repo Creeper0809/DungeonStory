@@ -45,6 +45,8 @@ public static class GridCellAreaRules
                 || layer == GridLayer.CeilingFixture
                 || layer == GridLayer.FloorOverlay
                 || layer == GridLayer.Filth
+                || layer == GridLayer.Utility
+                || layer == GridLayer.Conveyor
                 || layer == GridLayer.DownedCharacter;
         }
 
@@ -58,6 +60,8 @@ public static class GridCellAreaRules
             || layer == GridLayer.Item
             || layer == GridLayer.Construction
             || layer == GridLayer.Filth
+            || layer == GridLayer.Utility
+            || layer == GridLayer.Conveyor
             || layer == GridLayer.DownedCharacter;
     }
 
@@ -79,6 +83,14 @@ public static class GridCellAreaRules
         }
 
         if (buildingData.Placement.Layer == GridLayer.Hallway)
+        {
+            return areaType == GridCellAreaType.Entrance
+                || areaType == GridCellAreaType.DropZone
+                || areaType == GridCellAreaType.ExteriorPath;
+        }
+
+        if (buildingData.Placement.Layer == GridLayer.Utility
+            || buildingData.Placement.Layer == GridLayer.Conveyor)
         {
             return areaType == GridCellAreaType.Entrance
                 || areaType == GridCellAreaType.DropZone
@@ -1004,7 +1016,12 @@ public class Grid
         foreach (Vector2Int tempPos in targetPositions)
         {
             GridCell cell = GetGridCell(tempPos);
-            if (cell == null || !cell.CanOccupy(layer)) return false;
+            if (cell == null
+                || !cell.CanOccupy(layer)
+                || cell.ContainsOccupant(layer, occupant))
+            {
+                return false;
+            }
         }
 
         foreach (Vector2Int tempPos in targetPositions)
@@ -1038,14 +1055,39 @@ public class Grid
 
         bool changed = false;
         bool structuralChange = disconnectPositions || IsStructuralLayer(layer);
+        List<IGridOccupant> removedOccupants =
+            layer == GridLayer.Utility
+                ? new List<IGridOccupant>(3)
+                : null;
         foreach (Vector2Int tempPos in targetPositions)
         {
             GridCell cell = GetGridCell(tempPos);
-            IGridOccupant removedOccupant = cell.GetOccupant(layer);
-            structuralChange |= removedOccupant != null && removedOccupant.IsGridMovement;
+            removedOccupants?.Clear();
+            if (removedOccupants != null)
+            {
+                cell.FillOccupantsInLayer(layer, removedOccupants);
+            }
+
+            IGridOccupant removedOccupant = removedOccupants == null
+                ? cell.GetOccupant(layer)
+                : null;
+            structuralChange |= removedOccupant != null
+                && removedOccupant.IsGridMovement;
+            if (removedOccupants != null)
+            {
+                structuralChange |= removedOccupants.Any(
+                    occupant => occupant != null && occupant.IsGridMovement);
+            }
             changed = changed || cell.HasOccupantInLayer(layer) || (disconnectPositions && cell.TraversalLinks.Any());
             cell.RemoveOccupantByLayer(layer);
             RemoveOccupantReferences(removedOccupant, 1);
+            if (removedOccupants != null)
+            {
+                foreach (IGridOccupant utilityOccupant in removedOccupants)
+                {
+                    RemoveOccupantReferences(utilityOccupant, 1);
+                }
+            }
             if (disconnectPositions)
             {
                 cell.SetTraversalLinks(null);
@@ -1097,12 +1139,11 @@ public class Grid
         foreach (Vector2Int position in targetPositions)
         {
             GridCell cell = GetGridCell(position);
-            if (!ReferenceEquals(cell.GetOccupant(layer), expectedOccupant))
+            if (!cell.RemoveOccupant(layer, expectedOccupant))
             {
                 continue;
             }
 
-            cell.RemoveOccupantByLayer(layer);
             RemoveOccupantReferences(expectedOccupant, 1);
             if (disconnectPositions)
             {

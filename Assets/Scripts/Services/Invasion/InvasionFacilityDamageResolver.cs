@@ -93,12 +93,12 @@ public static class InvasionFacilityDamageResolver
 
         target = preference == InvasionIntruderTargetPreference.ValuableFacility
             ? candidates
-                .OrderByDescending(candidate => candidate.GetConstructionCost())
+                .OrderByDescending(candidate => candidate.GetConstructionValue())
                 .ThenBy(candidate => searchResult.GetMoveCostTo(candidate))
                 .FirstOrDefault()
             : candidates
                 .OrderBy(candidate => searchResult.GetMoveCostTo(candidate))
-                .ThenByDescending(candidate => candidate.GetConstructionCost())
+                .ThenByDescending(candidate => candidate.GetConstructionValue())
                 .FirstOrDefault();
         return target != null;
     }

@@ -11,6 +11,32 @@ public static class FacilityShopOfferTypeIds
     public const string Blueprint = "facility-shop.offer.blueprint";
 }
 
+public static class FacilityInstallationKitItemIds
+{
+    public const string Prefix = "facility-kit:";
+
+    public static string ForBuilding(int buildingId)
+    {
+        return buildingId >= 0 ? $"{Prefix}{buildingId}" : string.Empty;
+    }
+
+    public static string ForBuilding(BuildingSO building)
+    {
+        return building != null ? ForBuilding(building.id) : string.Empty;
+    }
+
+    public static bool TryGetBuildingId(string itemId, out int buildingId)
+    {
+        buildingId = -1;
+        string normalized = itemId?.Trim() ?? string.Empty;
+        return normalized.StartsWith(Prefix, StringComparison.Ordinal)
+            && int.TryParse(
+                normalized.Substring(Prefix.Length),
+                out buildingId)
+            && buildingId >= 0;
+    }
+}
+
 public enum FacilityShopRarity
 {
     Common,
@@ -631,6 +657,8 @@ public class DailyFacilityShopRuntime : MonoBehaviour
     private IRunVariableRuntimeReader runVariableReader;
     private IMetaProgressionRuntimeReader metaProgressionReader;
     private IGameEventBus gameEventBus;
+    private IAutoProcurementRuntime autoProcurement;
+    private IEconomyTransactionLedger transactionLedger;
     private IDisposable runStartVariablesSubscription;
     private IDisposable operatingDayEndedSubscription;
 
@@ -652,7 +680,9 @@ public class DailyFacilityShopRuntime : MonoBehaviour
         IFacilityShopCatalog facilityShopCatalog,
         IRunVariableRuntimeReader runVariableReader,
         IMetaProgressionRuntimeReader metaProgressionReader,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IAutoProcurementRuntime autoProcurement = null,
+        IEconomyTransactionLedger transactionLedger = null)
     {
         this.facilityShopCatalog = facilityShopCatalog
             ?? throw new ArgumentNullException(nameof(facilityShopCatalog));
@@ -662,6 +692,8 @@ public class DailyFacilityShopRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(metaProgressionReader));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.autoProcurement = autoProcurement;
+        this.transactionLedger = transactionLedger;
         SubscribeToScopedEvents();
     }
 
@@ -700,6 +732,10 @@ public class DailyFacilityShopRuntime : MonoBehaviour
             currentOfferDay,
             EventPayloadSnapshot.Copy(currentDailyOffers),
             EventPayloadSnapshot.Copy(basicPurchaseOffers));
+        autoProcurement?.ProcessShopRefresh(
+            currentOfferDay,
+            CurrentDailyOffers,
+            this);
 
         if (raiseAlert)
         {
@@ -722,6 +758,23 @@ public class DailyFacilityShopRuntime : MonoBehaviour
 
     public bool TryPurchaseDailyOffer(int index, GameData gameData, out FacilityShopPurchaseResult result)
     {
+        return TryPurchaseDailyOffer(
+            index,
+            gameData,
+            CreatePurchaseContext(
+                currentDailyOffers,
+                index,
+                "daily-shop",
+                "일일 상점 구매"),
+            out result);
+    }
+
+    public bool TryPurchaseDailyOffer(
+        int index,
+        GameData gameData,
+        EconomyTransactionContext transactionContext,
+        out FacilityShopPurchaseResult result)
+    {
         if (index < 0 || index >= currentDailyOffers.Count)
         {
             result = new FacilityShopPurchaseResult(false, null, 0, "선택한 상품이 없습니다");
@@ -729,15 +782,32 @@ public class DailyFacilityShopRuntime : MonoBehaviour
             return false;
         }
 
-        return FacilityShopService.TryPurchaseOffer(
+        return ExecutePurchase(
             gameData,
             currentDailyOffers[index],
-            unlockState,
-            out result,
-            PublishPurchase);
+            transactionContext,
+            out result);
     }
 
     public bool TryPurchaseBasicOffer(int index, GameData gameData, out FacilityShopPurchaseResult result)
+    {
+        IReadOnlyList<FacilityShopOffer> offers = CurrentBasicPurchaseOffers;
+        return TryPurchaseBasicOffer(
+            index,
+            gameData,
+            CreatePurchaseContext(
+                offers,
+                index,
+                "basic-shop",
+                "기본 시설 구매"),
+            out result);
+    }
+
+    public bool TryPurchaseBasicOffer(
+        int index,
+        GameData gameData,
+        EconomyTransactionContext transactionContext,
+        out FacilityShopPurchaseResult result)
     {
         IReadOnlyList<FacilityShopOffer> offers = CurrentBasicPurchaseOffers;
         if (index < 0 || index >= offers.Count)
@@ -747,12 +817,58 @@ public class DailyFacilityShopRuntime : MonoBehaviour
             return false;
         }
 
-        return FacilityShopService.TryPurchaseOffer(
+        return ExecutePurchase(
             gameData,
             offers[index],
-            unlockState,
-            out result,
-            PublishPurchase);
+            transactionContext,
+            out result);
+    }
+
+    private bool ExecutePurchase(
+        GameData gameData,
+        FacilityShopOffer offer,
+        EconomyTransactionContext transactionContext,
+        out FacilityShopPurchaseResult result)
+    {
+        if (transactionLedger == null)
+        {
+            return FacilityShopService.TryPurchaseOffer(
+                gameData,
+                offer,
+                unlockState,
+                out result,
+                PublishPurchase);
+        }
+
+        using (transactionLedger.Begin(transactionContext))
+        {
+            return FacilityShopService.TryPurchaseOffer(
+                gameData,
+                offer,
+                unlockState,
+                out result,
+                PublishPurchase);
+        }
+    }
+
+    private static EconomyTransactionContext CreatePurchaseContext(
+        IReadOnlyList<FacilityShopOffer> offers,
+        int index,
+        string sourceId,
+        string description)
+    {
+        FacilityShopOffer offer =
+            index >= 0 && index < (offers?.Count ?? 0)
+                ? offers[index]
+                : null;
+        string targetId = offer == null
+            ? string.Empty
+            : $"{offer.OfferTypeId}:{offer.DataId}";
+        return new EconomyTransactionContext(
+            EconomyTransactionKind.ShopPurchase,
+            sourceId,
+            targetId,
+            description);
     }
 
     private void PublishPurchase(FacilityShopPurchaseResult result)

@@ -115,7 +115,7 @@ public sealed class CharacterSkillSystemSettingsSO : ScriptableObject
 {
     [Header("Growth")]
     [Min(1)] public int maxLevel = 50;
-    [Min(1)] public int initialStatTotal = 55;
+    [Min(1)] public int initialStatTotal = 60;
     [Min(1)] public int initialStatMin = 1;
     [Min(1)] public int initialStatMax = 10;
     [Min(1)] public int levelGrowthStatCap = 30;

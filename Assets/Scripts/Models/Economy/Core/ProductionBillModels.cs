@@ -26,6 +26,7 @@ public sealed class ProductionBillSaveData
     public int minimumReserve;
     public bool suspended;
     public bool materialsConsumed;
+    public bool processFluidConsumed;
     public float completedWork;
     public string reservedWorkerId = string.Empty;
     public string materialDestinationId = string.Empty;
@@ -59,6 +60,7 @@ public sealed class ProductionBillSnapshot
     public float RequiredWork { get; set; }
     public float CompletedWork { get; set; }
     public bool MaterialsConsumed { get; set; }
+    public bool ProcessFluidConsumed { get; set; }
     public string ReservedWorkerId { get; set; } = string.Empty;
     public string MaterialDestinationId { get; set; } = string.Empty;
     public string BlockedReason { get; set; } = string.Empty;
@@ -132,4 +134,35 @@ public interface IProductionBillRuntime
         out string message);
     DungeonProductionBillSaveData Capture();
     void Restore(DungeonProductionBillSaveData snapshot);
+}
+
+public readonly struct ProductionOutputContext
+{
+    public ProductionOutputContext(
+        ProductionRecipeSO recipe,
+        BuildableObject facility,
+        CharacterActor worker,
+        string itemId,
+        int amount)
+    {
+        Recipe = recipe;
+        Facility = facility;
+        Worker = worker;
+        ItemId = itemId ?? string.Empty;
+        Amount = Mathf.Max(1, amount);
+    }
+
+    public ProductionRecipeSO Recipe { get; }
+    public BuildableObject Facility { get; }
+    public CharacterActor Worker { get; }
+    public string ItemId { get; }
+    public int Amount { get; }
+}
+
+public interface IProductionOutputHandler
+{
+    bool CanHandle(string itemId);
+    bool TryProduce(
+        ProductionOutputContext context,
+        out string failureReason);
 }

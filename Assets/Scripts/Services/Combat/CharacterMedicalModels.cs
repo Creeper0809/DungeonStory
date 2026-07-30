@@ -126,6 +126,10 @@ public interface ICharacterMedicalRuntime
     bool TryGetOrder(string orderId, out CharacterMedicalOrder order);
     bool TryGetPatient(CharacterMedicalOrder order, out CharacterActor patient);
     bool TryGetTreatmentFacility(CharacterMedicalOrder order, out BuildableObject facility);
+    bool TryAssignSpecificTreatmentFacility(
+        string orderId,
+        BuildableObject facility,
+        out string failureReason);
     float AdvanceStabilization(string orderId, CharacterActor rescuer, float work);
     bool TryBeginCarrying(string orderId, CharacterActor rescuer, out string failureReason);
     bool TryPlaceAtTreatmentDestination(
@@ -183,7 +187,8 @@ public sealed class CharacterPhysicalCapacityQuery :
             relevantCapacity = Mathf.Min(snapshot.Manipulation, snapshot.Mobility);
         }
         else if (workTypeId == BuiltInWorkTypeIds.Research
-            || workTypeId == BuiltInWorkTypeIds.Treat)
+            || workTypeId == BuiltInWorkTypeIds.Treat
+            || workTypeId == BuiltInWorkTypeIds.Surgery)
         {
             relevantCapacity = Mathf.Min(snapshot.Consciousness, snapshot.Manipulation);
         }

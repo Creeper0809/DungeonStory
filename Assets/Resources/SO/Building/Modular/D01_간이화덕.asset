@@ -52,6 +52,11 @@ MonoBehaviour:
     - rid: 7302563239038812967
     - rid: 7302563239038812968
     - rid: 7302563239038812969
+    - rid: 7302563284524205036
+    - rid: 7302563284524205037
+    - rid: 7302563284524205038
+    - rid: 7302563284524205039
+    - rid: 7302563284524205040
   width: 1
   height: 1
   layer: 1
@@ -75,6 +80,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 95
         maintenance: 3
         unlockPhase: 1
@@ -88,7 +94,7 @@ MonoBehaviour:
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 81933
+          supportedWorkTypes: 536952845
           disabledWhenDamaged: 1
     - rid: 7302563239038812963
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
@@ -146,3 +152,45 @@ MonoBehaviour:
         roomTemperatureOffset: 4
         coldProtection: 6
         heatProtection: 1
+    - rid: 7302563284524205036
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 7302563284524205037
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 7302563284524205038
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4
+    - rid: 7302563284524205039
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 7
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 7302563284524205040
+      type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProcessFluidAbility
+        workTypeIds:
+        - work:cook
+        cleanWaterPerCycle: 0.25
+        wastewaterPerCycle: 0.25
+        minimumQuality: 0
+        allowsManualWaterFallback: 1

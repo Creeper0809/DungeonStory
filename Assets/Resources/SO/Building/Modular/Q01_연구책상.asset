@@ -71,6 +71,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 110
         maintenance: 3
         unlockPhase: 1

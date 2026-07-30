@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -148,8 +149,14 @@ public sealed class GridConstructButtonFactory : IGridConstructButtonFactory
         tmpKoreanFontService.Apply(label);
         int unlockPhase = buildingData.GetUnlockPhase();
         string unlockText = unlockPhase > 1 ? $"P{unlockPhase} / 연구" : "P1";
+        string materialText = string.Join(
+            ", ",
+            buildingData.GetConstructionMaterials()
+                .Where(pair => pair.Value > 0)
+                .Select(pair =>
+                    $"{StockCategoryCatalog.GetDisplayName(pair.Key)} {pair.Value}"));
         label.text = buildingData.GetAbility<BuildingEconomyAbility>() != null
-            ? $"{buildingData.objectName}\n{buildingData.GetConstructionCost()}G - {unlockText}"
+            ? $"{buildingData.objectName}\n{materialText} - {unlockText}"
             : buildingData.objectName;
         label.color = Color.white;
         label.fontStyle = FontStyles.Bold;

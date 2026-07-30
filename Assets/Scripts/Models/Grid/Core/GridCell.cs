@@ -12,17 +12,20 @@ public class GridCell
         GridLayer.Character,
         GridLayer.DownedCharacter,
         GridLayer.Wildlife,
-            GridLayer.Item,
-            GridLayer.Construction,
-            GridLayer.Filth,
-            GridLayer.Building,
+        GridLayer.Item,
+        GridLayer.Construction,
+        GridLayer.Conveyor,
+        GridLayer.Utility,
+        GridLayer.Filth,
+        GridLayer.Building,
         GridLayer.WallFixture,
         GridLayer.CeilingFixture,
-            GridLayer.FloorOverlay,
-            GridLayer.Hallway
+        GridLayer.FloorOverlay,
+        GridLayer.Hallway
     };
 
     private Dictionary<GridLayer, IGridOccupant> occupants;
+    private List<IGridOccupant> utilityOccupants;
     private List<GridTraversalLink> traversalLinks;
     private IReadOnlyList<GridTraversalLink> traversalLinksView;
     private bool isBuildable;
@@ -47,17 +50,36 @@ public class GridCell
     }
     public IGridOccupant GetOccupant(GridLayer layer = GridLayer.Building)
     {
+        if (layer == GridLayer.Utility)
+        {
+            return utilityOccupants != null && utilityOccupants.Count > 0
+                ? utilityOccupants[utilityOccupants.Count - 1]
+                : null;
+        }
+
         return occupants != null && occupants.TryGetValue(layer, out IGridOccupant occupant)
             ? occupant
             : null;
     }
     public IGridOccupant GetTopOccupant()
     {
-        if (occupants == null || occupants.Count == 0) return null;
+        if ((occupants == null || occupants.Count == 0)
+            && (utilityOccupants == null || utilityOccupants.Count == 0))
+        {
+            return null;
+        }
 
         foreach (GridLayer layer in SelectionPriority)
         {
-            if (occupants.TryGetValue(layer, out IGridOccupant occupant))
+            if (layer == GridLayer.Utility
+                && utilityOccupants != null
+                && utilityOccupants.Count > 0)
+            {
+                return utilityOccupants[utilityOccupants.Count - 1];
+            }
+
+            if (occupants != null
+                && occupants.TryGetValue(layer, out IGridOccupant occupant))
             {
                 return occupant;
             }
@@ -102,6 +124,12 @@ public class GridCell
     }
     public void RemoveOccupantByLayer(GridLayer layer)
     {
+        if (layer == GridLayer.Utility)
+        {
+            utilityOccupants = null;
+            return;
+        }
+
         if (occupants == null || !occupants.Remove(layer)) return;
         if (occupants.Count == 0)
         {
@@ -121,14 +149,42 @@ public class GridCell
             return;
         }
 
-        if (occupants == null)
+        if (occupants != null)
+        {
+            foreach (IGridOccupant building in occupants.Values)
+            {
+                result.Add(building);
+            }
+        }
+
+        if (utilityOccupants != null)
+        {
+            result.AddRange(utilityOccupants);
+        }
+    }
+
+    public void FillOccupantsInLayer(
+        GridLayer layer,
+        List<IGridOccupant> result)
+    {
+        if (result == null)
         {
             return;
         }
 
-        foreach (IGridOccupant building in occupants.Values)
+        if (layer == GridLayer.Utility)
         {
-            result.Add(building);
+            if (utilityOccupants != null)
+            {
+                result.AddRange(utilityOccupants);
+            }
+            return;
+        }
+
+        IGridOccupant occupant = GetOccupant(layer);
+        if (occupant != null)
+        {
+            result.Add(occupant);
         }
     }
     public bool ContainsOccupant(IGridOccupant occupant)
@@ -138,25 +194,62 @@ public class GridCell
             return false;
         }
 
-        if (occupants == null)
+        if (occupants != null)
+        {
+            foreach (IGridOccupant candidate in occupants.Values)
+            {
+                if (candidate == occupant)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return utilityOccupants != null
+            && utilityOccupants.Contains(occupant);
+    }
+
+    public bool ContainsOccupant(
+        GridLayer layer,
+        IGridOccupant occupant)
+    {
+        if (occupant == null)
         {
             return false;
         }
 
-        foreach (IGridOccupant candidate in occupants.Values)
+        return layer == GridLayer.Utility
+            ? utilityOccupants != null
+                && utilityOccupants.Contains(occupant)
+            : ReferenceEquals(GetOccupant(layer), occupant);
+    }
+
+    public bool RemoveOccupant(
+        GridLayer layer,
+        IGridOccupant occupant)
+    {
+        if (!ContainsOccupant(layer, occupant))
         {
-            if (candidate == occupant)
-            {
-                return true;
-            }
+            return false;
         }
 
-        return false;
+        if (layer == GridLayer.Utility)
+        {
+            utilityOccupants.Remove(occupant);
+            if (utilityOccupants.Count == 0)
+            {
+                utilityOccupants = null;
+            }
+            return true;
+        }
+
+        RemoveOccupantByLayer(layer);
+        return true;
     }
     public bool CanOccupy(GridLayer layer = GridLayer.Building)
     {
         return GridCellAreaRules.AllowsLayer(AreaType, layer)
-            && !HasOccupantInLayer(layer)
+            && (layer == GridLayer.Utility || !HasOccupantInLayer(layer))
             && isBuildable;
     }
 
@@ -197,11 +290,17 @@ public class GridCell
     }
     public bool HasOccupantInLayer(GridLayer layer = GridLayer.Building)
     {
+        if (layer == GridLayer.Utility)
+        {
+            return utilityOccupants != null && utilityOccupants.Count > 0;
+        }
+
         return occupants != null && occupants.ContainsKey(layer);
     }
     public bool HasOccupant()
     {
-        return occupants != null && occupants.Count > 0;
+        return occupants != null && occupants.Count > 0
+            || utilityOccupants != null && utilityOccupants.Count > 0;
     }
     public bool HasPlacementSupport()
     {
@@ -211,6 +310,18 @@ public class GridCell
     public bool TrySetOccupant(GridLayer layer, IGridOccupant occupant)
     {
         if (occupant == null || !CanOccupy(layer)) return false;
+
+        if (layer == GridLayer.Utility)
+        {
+            utilityOccupants ??= new List<IGridOccupant>(3);
+            if (utilityOccupants.Contains(occupant))
+            {
+                return false;
+            }
+
+            utilityOccupants.Add(occupant);
+            return true;
+        }
 
         occupants ??= new Dictionary<GridLayer, IGridOccupant>();
         occupants.Add(layer, occupant);

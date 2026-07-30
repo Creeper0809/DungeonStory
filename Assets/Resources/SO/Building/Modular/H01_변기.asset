@@ -49,6 +49,8 @@ MonoBehaviour:
     - rid: 7302563239038812845
     - rid: 7302563239038812846
     - rid: 7302563239038812847
+    - rid: 7302563284524204895
+    - rid: 7302563284524204896
   width: 1
   height: 1
   layer: 1
@@ -72,6 +74,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 95
         maintenance: 3
         unlockPhase: 1
@@ -85,7 +88,7 @@ MonoBehaviour:
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 12
+          supportedWorkTypes: 536870924
           disabledWhenDamaged: 1
     - rid: 7302563239038812844
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
@@ -119,3 +122,20 @@ MonoBehaviour:
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
+    - rid: 7302563284524204895
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7302563284524204896
+      type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWaterFixtureAbility
+        cleanWaterPerUse: 0.25
+        wastewaterPerUse: 0.25
+        minimumQuality: 0
+        allowsManualWaterFallback: 1
+        allowsDryFallback: 1
+        manualWasteItemId: resource:manure

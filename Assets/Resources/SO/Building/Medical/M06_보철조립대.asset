@@ -1,0 +1,177 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "M06_\uBCF4\uCCA0\uC870\uB9BD\uB300"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: Facility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 9506
+  objectName: "\uBCF4\uCCA0 \uC870\uB9BD\uB300"
+  sprite: {fileID: 21300000, guid: ff5b7fd323cb3a844bbb43a4b4070758, type: 3}
+  icon: {fileID: 21300000, guid: ff5b7fd323cb3a844bbb43a4b4070758, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563265135771994
+    - rid: 7302563265135771995
+    - rid: 7302563265135771996
+    - rid: 7302563265135771997
+    - rid: 7302563265135771998
+    - rid: 7302563265135771999
+    - rid: 7302563265135772000
+    - rid: 7302563265135772001
+    - rid: 7302563265135772002
+    - rid: 7302563284922662950
+    - rid: 7302563284922662951
+    - rid: 7302563284922662952
+    - rid: 7302563284922662953
+  width: 2
+  height: 1
+  layer: 1
+  category: 6
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 1.2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563265135771994
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: M06
+    - rid: 7302563265135771995
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 0
+        constructionCost: 165
+        maintenance: 1
+        unlockPhase: 1
+        demolitionRefundRate: 0.5
+    - rid: 7302563265135771996
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 256
+          disabledWhenDamaged: 1
+    - rid: 7302563265135771997
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingRoomRequirementAbility
+    - rid: 7302563265135771998
+      type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingInternalStockAbility
+        capacity: 12
+        restockRequestThreshold: 3
+    - rid: 7302563265135771999
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 64
+        repairWorkRequired: 12.8
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 12
+        constructionMaterialCategory: 1
+        constructionMaterialAmount: 6
+        materialUnitsPerConstructionCost: 0.05
+    - rid: 7302563265135772000
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - medical
+          - surgery
+          - m06
+          scores: []
+          metrics: []
+    - rid: 7302563265135772001
+      type: {class: BuildingProstheticAssemblyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProstheticAssemblyAbility
+        assemblySpeedMultiplier: 1.1
+        qualityBonus: 0.06
+        outputCapacity: 3
+    - rid: 7302563265135772002
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - medical
+        - surgery
+        - m06
+    - rid: 7302563284922662950
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 25
+        normallyOpen: 1
+    - rid: 7302563284922662951
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 5
+        priority: 4
+        minimumSupplyFraction: 0.75
+    - rid: 7302563284922662952
+      type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAutomationAbility
+        maximumMode: 2
+        assistedPowerDemand: 2
+        automaticPowerDemand: 5
+        assistedWorkMultiplier: 1.35
+        automaticWorkPerSecond: 1
+        automaticQualityCap: 0.75
+        maintenancePerGameHour: 1
+    - rid: 7302563284922662953
+      type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingConveyorPortAbility
+        mode: 2
+        destinationId: 
+        capacity: 4

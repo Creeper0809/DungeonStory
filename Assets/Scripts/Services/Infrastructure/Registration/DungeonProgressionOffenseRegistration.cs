@@ -61,6 +61,50 @@ public static class DungeonProgressionOffenseRegistration
             .As<IOffenseExpeditionMemberQuery>();
         builder.Register<OffenseRegionRuntime>(Lifetime.Singleton)
             .As<IOffenseRegionRuntime>();
+        builder.Register<DataCatalogOffenseV17ContentCatalog>(Lifetime.Singleton)
+            .As<IOffenseV17ContentCatalog>();
+        builder.RegisterEntryPoint<OffenseHexWorldSimulation>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IOffenseWorldSimulation>()
+            .As<IWorldThreatModifierQuery>();
+        builder.Register<OffenseReturnSafetyRuntime>(Lifetime.Singleton)
+            .As<IOffenseReturnSafetyRuntime>();
+        builder.RegisterEntryPoint<OffenseUrgentMitigationRuntime>(
+                Lifetime.Singleton)
+            .AsSelf()
+            .As<IOffenseUrgentMitigationRuntime>();
+        builder.Register<OffenseTravelRuntime>(Lifetime.Singleton)
+            .As<IOffenseTravelRuntime>();
+        builder.RegisterEntryPoint<OffenseTravelTicker>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<OffenseThreatGameplayBridge>(
+            Lifetime.Singleton);
+        builder.Register<OffenseDecisionRuntime>(Lifetime.Singleton)
+            .As<IOffenseDecisionRuntime>();
+        builder.Register<OffenseSupplyDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseGoldDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseStressDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseExposureDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseInjuryDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseLootDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseReconDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseTimeDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseEquipmentWearDecisionEffectHandler>(
+                Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseForcedMoveDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseCombatDecisionEffectHandler>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectHandler>();
+        builder.Register<OffenseDecisionEffectExecutor>(Lifetime.Singleton)
+            .As<IOffenseDecisionEffectExecutor>();
         builder.RegisterEntryPoint<KnowledgeResidueProcessingRuntime>(
                 Lifetime.Singleton)
             .As<IKnowledgeResidueProcessingRuntime>();
@@ -70,6 +114,12 @@ public static class DungeonProgressionOffenseRegistration
             .As<IOffensePreparationService>();
         builder.RegisterEntryPoint<OffenseBattleRuntime>(Lifetime.Singleton)
             .As<IOffenseBattleRuntime>();
+        builder.Register<OffenseCommandResolutionAdapter>(Lifetime.Singleton)
+            .As<IOffenseCommandResolutionAdapter>();
+        builder.Register<OffenseBattleDirector>(Lifetime.Singleton)
+            .As<IOffenseBattleDirector>();
+        builder.Register<CombatCardPresentationService>(Lifetime.Singleton)
+            .As<ICombatCardPresentationService>();
         builder.Register<DataCatalogOffenseRewardCatalog>(Lifetime.Singleton)
             .As<IOffenseRewardCatalog>();
         builder.Register<OffenseRewardSelector>(Lifetime.Singleton)

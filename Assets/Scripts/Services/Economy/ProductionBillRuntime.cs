@@ -16,6 +16,7 @@ internal sealed class ProductionBillRecord
     public int minimumReserve;
     public bool suspended;
     public bool materialsConsumed;
+    public bool processFluidConsumed;
     public float completedWork;
     public string reservedWorkerId = string.Empty;
     public string materialDestinationId = string.Empty;
@@ -34,6 +35,8 @@ public sealed class ProductionBillRuntime : IProductionBillRuntime
     private readonly IBlueprintResearchRuntimeProvider researchProvider;
     private readonly IWorkforceReplanService workforceReplanService;
     private readonly IGrandProjectBenefitQuery grandProjectBenefits;
+    private readonly IProcessFluidUseRuntime processFluids;
+    private readonly IReadOnlyList<IProductionOutputHandler> outputHandlers;
     private readonly IRandomStream random;
     private readonly List<ProductionBillRecord> bills =
         new List<ProductionBillRecord>();
@@ -45,7 +48,9 @@ public sealed class ProductionBillRuntime : IProductionBillRuntime
         IRandomStreamProvider randomStreamProvider,
         IBlueprintResearchRuntimeProvider researchProvider = null,
         IWorkforceReplanService workforceReplanService = null,
-        IGrandProjectBenefitQuery grandProjectBenefits = null)
+        IGrandProjectBenefitQuery grandProjectBenefits = null,
+        IReadOnlyList<IProductionOutputHandler> outputHandlers = null,
+        IProcessFluidUseRuntime processFluids = null)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
@@ -55,6 +60,8 @@ public sealed class ProductionBillRuntime : IProductionBillRuntime
         this.researchProvider = researchProvider;
         this.workforceReplanService = workforceReplanService;
         this.grandProjectBenefits = grandProjectBenefits;
+        this.outputHandlers = outputHandlers ?? Array.Empty<IProductionOutputHandler>();
+        this.processFluids = processFluids;
     }
 
     public int Version { get; private set; }
@@ -255,6 +262,17 @@ public sealed class ProductionBillRuntime : IProductionBillRuntime
         }
 
         record.materialsConsumed = true;
+        if (!record.processFluidConsumed
+            && processFluids != null
+            && !processFluids.TryConsumeCycle(
+                facility,
+                workTypeId,
+                out failureReason))
+        {
+            return false;
+        }
+
+        record.processFluidConsumed = true;
         record.reservedWorkerId = worker?.Identity?.PersistentId ?? string.Empty;
         Touch(default, requestWorker: false);
         bill = ToSnapshot(record, facility);
@@ -314,15 +332,39 @@ public sealed class ProductionBillRuntime : IProductionBillRuntime
                 output.Amount,
                 grandProjectBenefits?.GetProductionOutputMultiplier(
                     recipe.FacilityTag) ?? 1f);
-            items.SpawnOutput(
+            ProductionOutputContext outputContext = new ProductionOutputContext(
+                recipe,
+                facility,
+                worker,
                 output.ItemId,
-                outputAmount,
-                facility.centerPos);
+                outputAmount);
+            IProductionOutputHandler handler = outputHandlers.FirstOrDefault(
+                candidate => candidate != null
+                    && candidate.CanHandle(output.ItemId));
+            if (handler != null)
+            {
+                if (!handler.TryProduce(outputContext, out string outputFailure))
+                {
+                    message = string.IsNullOrWhiteSpace(outputFailure)
+                        ? $"{recipe.DisplayName} 결과물 생성 실패"
+                        : outputFailure;
+                    record.reservedWorkerId = string.Empty;
+                    return false;
+                }
+            }
+            else
+            {
+                items.SpawnOutput(
+                    output.ItemId,
+                    outputAmount,
+                    facility.centerPos);
+            }
         }
 
         cycleCompleted = true;
         record.completedWork = 0f;
         record.materialsConsumed = false;
+        record.processFluidConsumed = false;
         record.reservedWorkerId = string.Empty;
         if (record.mode == ProductionOrderMode.RepeatCount)
         {
@@ -390,6 +432,7 @@ public sealed class ProductionBillRuntime : IProductionBillRuntime
                 minimumReserve = Mathf.Max(0, saved.minimumReserve),
                 suspended = saved.suspended,
                 materialsConsumed = saved.materialsConsumed,
+                processFluidConsumed = saved.processFluidConsumed,
                 completedWork = Mathf.Max(0f, saved.completedWork),
                 reservedWorkerId = string.Empty,
                 materialDestinationId = string.IsNullOrWhiteSpace(saved.materialDestinationId)
@@ -627,6 +670,7 @@ public sealed class ProductionBillRuntime : IProductionBillRuntime
             RequiredWork = recipe?.RequiredWork ?? 0f,
             CompletedWork = record.completedWork,
             MaterialsConsumed = record.materialsConsumed,
+            ProcessFluidConsumed = record.processFluidConsumed,
             ReservedWorkerId = record.reservedWorkerId,
             MaterialDestinationId = record.materialDestinationId,
             BlockedReason = blockedReason,
@@ -650,6 +694,7 @@ public sealed class ProductionBillRuntime : IProductionBillRuntime
             minimumReserve = record.minimumReserve,
             suspended = record.suspended,
             materialsConsumed = record.materialsConsumed,
+            processFluidConsumed = record.processFluidConsumed,
             completedWork = record.completedWork,
             reservedWorkerId = record.reservedWorkerId,
             materialDestinationId = record.materialDestinationId,

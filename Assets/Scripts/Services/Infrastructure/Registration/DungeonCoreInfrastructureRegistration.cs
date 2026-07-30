@@ -36,6 +36,25 @@ public static class DungeonCoreInfrastructureRegistration
             .As<IBuildingSummaryFormatter>();
         builder.Register<GameManagerGameDataProvider>(Lifetime.Singleton)
             .As<IGameDataProvider>();
+        builder.RegisterEntryPoint<EconomyTransactionLedgerRuntime>(
+                Lifetime.Singleton)
+            .As<IEconomyTransactionLedger>();
+        builder.Register<GameMoneyRuntime>(Lifetime.Singleton)
+            .As<IGameMoneyRuntime>();
+        builder.Register<EmploymentContractRuntime>(Lifetime.Singleton)
+            .As<IEmploymentContractRuntime>();
+        builder.Register<PaidFacilityContractRuntime>(Lifetime.Singleton)
+            .As<IPaidFacilityContractRuntime>();
+        builder.Register<AutoProcurementRuntime>(Lifetime.Singleton)
+            .As<IAutoProcurementRuntime>();
+        builder.RegisterEntryPoint<EquipmentOverclockRuntime>(
+                Lifetime.Singleton)
+            .As<IEquipmentOverclockRuntime>()
+            .As<IFacilityOverclockRuntime>();
+        builder.Register<ReforgePrecisionService>(Lifetime.Singleton)
+            .As<IReforgePrecisionService>();
+        builder.Register<TreasuryDefenseRuntime>(Lifetime.Singleton)
+            .As<ITreasuryDefenseRuntime>();
         builder.Register<GameManagerFloatingNumberFeedbackService>(Lifetime.Singleton)
             .As<IFloatingNumberFeedbackService>();
         builder.Register<UnityPlayerInputReader>(Lifetime.Singleton)

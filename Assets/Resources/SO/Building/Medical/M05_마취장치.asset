@@ -1,0 +1,140 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "M05_\uB9C8\uCDE8\uC7A5\uCE58"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: Facility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 9505
+  objectName: "\uB9C8\uCDE8 \uC7A5\uCE58"
+  sprite: {fileID: 21300000, guid: 67a7c5b44e608904cb4efdea24132be7, type: 3}
+  icon: {fileID: 21300000, guid: 67a7c5b44e608904cb4efdea24132be7, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563265135772036
+    - rid: 7302563265135772037
+    - rid: 7302563265135772038
+    - rid: 7302563265135772039
+    - rid: 7302563265135772040
+    - rid: 7302563265135772041
+    - rid: 7302563265135772042
+    - rid: 7302563265135772043
+    - rid: 7302563265135772044
+  width: 1
+  height: 1
+  layer: 1
+  category: 6
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 1.2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563265135772036
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: M05
+    - rid: 7302563265135772037
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionCost: 125
+        maintenance: 2
+        unlockPhase: 1
+        demolitionRefundRate: 0.5
+    - rid: 7302563265135772038
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 4096
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 65536
+          disabledWhenDamaged: 1
+    - rid: 7302563265135772039
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingRoomRequirementAbility
+    - rid: 7302563265135772040
+      type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingInternalStockAbility
+        capacity: 12
+        restockRequestThreshold: 3
+    - rid: 7302563265135772041
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 42
+        repairWorkRequired: 8.400001
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 12
+        constructionMaterialCategory: 1
+        constructionMaterialAmount: 5
+        materialUnitsPerConstructionCost: 0.05
+    - rid: 7302563265135772042
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - medical
+          - surgery
+          - m05
+          scores: []
+          metrics: []
+    - rid: 7302563265135772043
+      type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFuelConsumerAbility
+        fuelPerRefuel: 1
+        workSeconds: 1
+        warmth: 0
+        lightSafety: 2
+    - rid: 7302563265135772044
+      type: {class: BuildingAnesthesiaAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAnesthesiaAbility
+        stabilityBonus: 0.35
+        anesthesiaItemId: medicine:anesthetic
+        anesthesiaCost: 1

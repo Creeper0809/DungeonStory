@@ -30,12 +30,7 @@ MonoBehaviour:
   researchWorkRequired: 50
   targetResearchProjectId: research:defense:tactical-command
   unlocks:
-    items:
-    - rid: 7302563252806877227
+    items: []
   references:
     version: 2
-    RefIds:
-    - rid: 7302563252806877227
-      type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        recipeId: recipe_fortress_banner_2
+    RefIds: []

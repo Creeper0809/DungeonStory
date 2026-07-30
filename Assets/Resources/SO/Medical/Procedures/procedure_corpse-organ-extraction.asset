@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
+  m_Name: procedure_corpse-organ-extraction
+  m_EditorClassIdentifier: Assembly-CSharp::SurgicalProcedureSO
+  procedureId: procedure:corpse-organ-extraction
+  displayName: "\uC0AC\uCCB4 \uC7A5\uAE30 \uC801\uCD9C"
+  description: "\uC2E0\uC120\uD55C \uC0AC\uCCB4\uC5D0\uC11C \uC190\uC0C1\uB418\uC9C0
+    \uC54A\uC740 \uAE30\uAD00\uC744 \uBD84\uB9AC\uD55C\uB2E4."
+  kind: 5
+  targetNodeId: 
+  requiredResearchId: research:medical:anatomy
+  requiredFacilityTags: 2
+  requiredWork: 26
+  difficultyPenalty: 0.08
+  baseInfectionRisk: 0
+  baseBleedingRisk: 0
+  requiresAnesthesia: 0
+  requiresRestraintForUnwilling: 0
+  allowsLivingSubject: 0
+  allowsCorpseSubject: 1
+  allowsWildlife: 1
+  materials:
+  - itemId: medicine:disinfectant
+    quantity: 1
+    optional: 0
+  effects:
+  - rid: 7302563265135772010
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563265135772010
+      type: {class: RemoveSurgicalNodeEffect, ns: , asm: Assembly-CSharp}
+      data:
+        effectId: RemoveSurgicalNodeEffect
+        createExtractedPart: 1

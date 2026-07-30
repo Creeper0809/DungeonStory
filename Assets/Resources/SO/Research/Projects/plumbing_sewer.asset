@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: plumbing_sewer
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7195
+  projectId: research:plumbing:sewer
+  displayName: "\uD558\uC218 \uBC30\uAD00"
+  description: "\uD3D0\uC218 \uC800\uC7A5\uACFC \uC5ED\uB958 \uBC29\uC9C0\uB97C \uC704\uD55C
+    \uBCC4\uB3C4 \uD558\uC218\uB9DD\uC744 \uAD6C\uCD95\uD55C\uB2E4."
+  field: 16
+  requiredWork: 174
+  prerequisites:
+  - {fileID: 11400000, guid: d4e36e9f373046a49a2f87700bef9551, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563278452687338
+    - rid: 7302563278452687339
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563278452687338
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9818
+    - rid: 7302563278452687339
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9803

@@ -235,9 +235,10 @@ public static class WorkTypeCatalog
         RegisterBuiltIn(BuiltInWorkTypeIds.DrawWater, FacilityWorkType.DrawWater, "급수", 98, WorkPriorityLevel.Priority2, "survival:water");
         RegisterBuiltIn(BuiltInWorkTypeIds.Cook, FacilityWorkType.Cook, "조리", 99, WorkPriorityLevel.Priority2, "survival:cook");
         RegisterBuiltIn(BuiltInWorkTypeIds.Treat, FacilityWorkType.Treat, "치료", 100, WorkPriorityLevel.Priority2, "survival:treat");
-        RegisterBuiltIn(BuiltInWorkTypeIds.Refuel, FacilityWorkType.Refuel, "연료 보충", 101, WorkPriorityLevel.Priority2, "survival:fuel");
-        RegisterBuiltIn(BuiltInWorkTypeIds.Warden, FacilityWorkType.Warden, "관리", 102, WorkPriorityLevel.Priority2, "captivity:warden");
-        RegisterBuiltIn(BuiltInWorkTypeIds.Perform, FacilityWorkType.Perform, "공연", 103, WorkPriorityLevel.Priority2, "circus:perform");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Surgery, FacilityWorkType.Surgery, "수술", 101, WorkPriorityLevel.Priority1, "medical:surgery");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Refuel, FacilityWorkType.Refuel, "연료 보충", 102, WorkPriorityLevel.Priority2, "survival:fuel");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Warden, FacilityWorkType.Warden, "관리", 103, WorkPriorityLevel.Priority2, "captivity:warden");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Perform, FacilityWorkType.Perform, "공연", 104, WorkPriorityLevel.Priority2, "circus:perform");
         RegisterBuiltIn(BuiltInWorkTypeIds.Gather, FacilityWorkType.Gather, "채집", 110, WorkPriorityLevel.Priority2, "resource:gather");
         RegisterBuiltIn(BuiltInWorkTypeIds.Sow, FacilityWorkType.Sow, "파종", 111, WorkPriorityLevel.Priority2, "crop:sow");
         RegisterBuiltIn(BuiltInWorkTypeIds.Harvest, FacilityWorkType.Harvest, "수확", 112, WorkPriorityLevel.Priority2, "crop:harvest");
@@ -245,6 +246,8 @@ public static class WorkTypeCatalog
         RegisterBuiltIn(BuiltInWorkTypeIds.Quarry, FacilityWorkType.Quarry, "채석", 114, WorkPriorityLevel.Priority2, "resource:quarry");
         RegisterBuiltIn(BuiltInWorkTypeIds.AnimalCare, FacilityWorkType.AnimalCare, "동물 돌봄", 115, WorkPriorityLevel.Priority2, "husbandry:care");
         RegisterBuiltIn(BuiltInWorkTypeIds.GrandProject, FacilityWorkType.GrandProject, "대형 사업", 116, WorkPriorityLevel.Priority2, "economy:grand-project");
+        RegisterBuiltIn(BuiltInWorkTypeIds.ThreatMitigation, FacilityWorkType.ThreatMitigation, "위협 완화", 117, WorkPriorityLevel.Priority1, "offense:threat-mitigation");
+        RegisterBuiltIn(BuiltInWorkTypeIds.Plumbing, FacilityWorkType.Plumbing, "배관", 118, WorkPriorityLevel.Priority2, "infrastructure:plumbing");
     }
 
     private static void RegisterBuiltIn(

@@ -7,11 +7,13 @@ using VContainer;
 
 public static class OffenseRewardGrantHandlers
 {
-    public static IReadOnlyList<IOffenseRewardGrantHandler> CreateDefaults()
+    public static IReadOnlyList<IOffenseRewardGrantHandler> CreateDefaults(
+        IWorldItemStackRuntime itemStackRuntime = null,
+        IWorldDropZoneQuery dropZoneQuery = null)
     {
         return Array.AsReadOnly<IOffenseRewardGrantHandler>(new IOffenseRewardGrantHandler[]
         {
-            new OffenseMoneyRewardGrantHandler(),
+            new OffenseMoneyRewardGrantHandler(itemStackRuntime, dropZoneQuery),
             new OffenseStockRewardGrantHandler(),
             new OffenseRareFacilityRewardGrantHandler(),
             new OffenseBlueprintRewardGrantHandler(),
@@ -121,8 +123,25 @@ public abstract class OffenseRewardGrantHandler<TSpec> : IOffenseRewardGrantHand
         IOffenseRewardSelector selector);
 }
 
+public static class OffenseLootItemIds
+{
+    public const string UnappraisedLoot = "offense:unappraised-loot";
+    public const string AppraisedValuables = "offense:appraised-valuables";
+}
+
 public sealed class OffenseMoneyRewardGrantHandler : OffenseRewardGrantHandler<OffenseMoneyRewardSpec>
 {
+    private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly IWorldDropZoneQuery dropZoneQuery;
+
+    public OffenseMoneyRewardGrantHandler(
+        IWorldItemStackRuntime itemStackRuntime = null,
+        IWorldDropZoneQuery dropZoneQuery = null)
+    {
+        this.itemStackRuntime = itemStackRuntime;
+        this.dropZoneQuery = dropZoneQuery;
+    }
+
     public override string RewardTypeId => OffenseRewardTypeIds.Money;
 
     protected override OffenseRewardGrantResult GrantTyped(
@@ -137,14 +156,39 @@ public sealed class OffenseMoneyRewardGrantHandler : OffenseRewardGrantHandler<O
             return OffenseRewardGrantResultFactory.Fail(reward, "보상 금액이 없습니다");
         }
 
-        if (context.gameData?.holdingMoney == null)
+        if (itemStackRuntime == null || dropZoneQuery == null)
         {
-            return OffenseRewardGrantResultFactory.Fail(reward, "자금 데이터가 없습니다");
+            return OffenseRewardGrantResultFactory.Fail(
+                reward,
+                "전리품 하차 시스템을 사용할 수 없습니다");
         }
 
-        context.gameData.holdingMoney.Value += amount;
+        if (!dropZoneQuery.TryGetExpeditionLootDropoff(out Vector2Int dropoff))
+        {
+            return OffenseRewardGrantResultFactory.Fail(
+                reward,
+                "전리품을 내릴 하차장이 없습니다");
+        }
+
+        if (!itemStackRuntime.SpawnItemAt(
+                OffenseLootItemIds.UnappraisedLoot,
+                amount,
+                dropoff,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out int spawned)
+            || spawned != amount)
+        {
+            return OffenseRewardGrantResultFactory.Fail(
+                reward,
+                "미감정 전리품 하차에 실패했습니다");
+        }
+
         context.rewardState?.RecordMoney(amount);
-        return OffenseRewardGrantResultFactory.Success(reward, amount, "자금 입금");
+        return OffenseRewardGrantResultFactory.Success(
+            reward,
+            amount,
+            "미감정 전리품 하차");
     }
 }
 

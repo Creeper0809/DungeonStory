@@ -602,7 +602,7 @@ internal sealed class RoomInspectionView : IDisposable
 
         PanelObject.SetActive(true);
         roleSwatch.color = roomColor;
-        titleText.text = RoomEnvironmentPresentation.GetRoomName(snapshot.Roles);
+        titleText.text = RoomEnvironmentPresentation.GetRoomName(snapshot);
         statusText.text = RoomEnvironmentPresentation.GetStatusLabel(snapshot.Status);
         statusText.color = snapshot.Status switch
         {

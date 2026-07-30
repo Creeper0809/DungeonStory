@@ -15,6 +15,7 @@ public sealed class WildlifeInfoPanel : UIPopUp
     private IWildlifeCaptureRuntime captureRuntime;
     private IAnimalHusbandryRuntime husbandryRuntime;
     private ICharacterAiWorldRegistry worldRegistry;
+    private ISurgeryPlanningWindowService surgeryWindowService;
     private GameObject uiRoot;
     private TMP_Text titleText;
     private TMP_Text bodyText;
@@ -37,7 +38,8 @@ public sealed class WildlifeInfoPanel : UIPopUp
         IWildlifeHuntCommandService huntCommandService,
         IWildlifeCaptureRuntime captureRuntime,
         IAnimalHusbandryRuntime husbandryRuntime,
-        ICharacterAiWorldRegistry worldRegistry)
+        ICharacterAiWorldRegistry worldRegistry,
+        ISurgeryPlanningWindowService surgeryWindowService)
     {
         this.popupService = popupService ?? throw new ArgumentNullException(nameof(popupService));
         this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
@@ -51,6 +53,8 @@ public sealed class WildlifeInfoPanel : UIPopUp
             ?? throw new ArgumentNullException(nameof(husbandryRuntime));
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
+        this.surgeryWindowService = surgeryWindowService
+            ?? throw new ArgumentNullException(nameof(surgeryWindowService));
     }
 
     [Inject]
@@ -221,17 +225,19 @@ public sealed class WildlifeInfoPanel : UIPopUp
         });
         CreateBottomButton(parent, 3, "생포·방생", ToggleCapture);
         CreateBottomButton(parent, 4, "도축 지정", ToggleSlaughter);
+        CreateBottomButton(parent, 5, "수술 계획", OpenSurgery);
     }
 
     private void CreateBottomButton(Transform parent, int index, string label, Action action)
     {
         Button button = CreateButton("Action_" + index, parent, label, action);
         RectTransform rect = button.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(index / 5f, 0f);
-        rect.anchorMax = new Vector2((index + 1) / 5f, 0f);
+        const float buttonCount = 6f;
+        rect.anchorMin = new Vector2(index / buttonCount, 0f);
+        rect.anchorMax = new Vector2((index + 1) / buttonCount, 0f);
         rect.pivot = new Vector2(0.5f, 0f);
         rect.offsetMin = new Vector2(index == 0 ? 18f : 8f, 22f);
-        rect.offsetMax = new Vector2(index == 4 ? -18f : -8f, 66f);
+        rect.offsetMax = new Vector2(index == 5 ? -18f : -8f, 66f);
     }
 
     private void Render()
@@ -339,6 +345,23 @@ public sealed class WildlifeInfoPanel : UIPopUp
                     : "도축 작업으로 지정했습니다."
                 : failureReason;
         Render();
+    }
+
+    private void OpenSurgery()
+    {
+        if (current == null)
+        {
+            return;
+        }
+
+        if (!captureRuntime.IsCaptured(current.WildlifeId))
+        {
+            actionMessage = "수술하려면 먼저 동물을 생포해 우리에 수용해야 합니다.";
+            Render();
+            return;
+        }
+
+        surgeryWindowService.Open(current, transform);
     }
 
     private string FormatHusbandryState(string wildlifeId)

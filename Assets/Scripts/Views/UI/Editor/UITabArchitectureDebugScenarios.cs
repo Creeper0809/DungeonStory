@@ -67,7 +67,7 @@ public static class UITabArchitectureDebugScenarios
 
     private static void VerifyCatalogContract()
     {
-        Require(UITabCatalog.All.Count == 10, "Expected ten top-level tab definitions.");
+        Require(UITabCatalog.All.Count == 11, "Expected eleven top-level tab definitions.");
         Require(UITabCatalog.All.Select((definition) => definition.Id).Distinct().Count() == UITabCatalog.All.Count,
             "Top-level tab IDs are not unique.");
         Require(UITabCatalog.All.Select((definition) => definition.Order).Distinct().Count() == UITabCatalog.All.Count,
@@ -133,7 +133,8 @@ public static class UITabArchitectureDebugScenarios
             new ScenarioFeaturePresenter(TabId.Defense),
             new ScenarioFeaturePresenter(TabId.Expedition),
             new ScenarioFeaturePresenter(TabId.Research),
-            new ScenarioFeaturePresenter(TabId.Codex)
+            new ScenarioFeaturePresenter(TabId.Codex),
+            new ScenarioFeaturePresenter(TabId.Industry)
         };
         FeatureSurfaceTabPresenterRegistry registry = new FeatureSurfaceTabPresenterRegistry(complete);
         foreach (UITabDefinition definition in UITabCatalog.All

@@ -26,6 +26,8 @@ public static class DungeonGameSaveDebugScenarios
         IDungeonGameSaveService saveService = scope.Container.Resolve<IDungeonGameSaveService>();
         IGameDataProvider gameDataProvider = scope.Container.Resolve<IGameDataProvider>();
         IBlueprintResearchRuntimeProvider researchProvider = scope.Container.Resolve<IBlueprintResearchRuntimeProvider>();
+        IResearchProjectCatalog researchProjectCatalog =
+            scope.Container.Resolve<IResearchProjectCatalog>();
         IDailyFacilityShopRuntimeProvider shopProvider = scope.Container.Resolve<IDailyFacilityShopRuntimeProvider>();
         IRunVariableRuntimeProvider runProvider = scope.Container.Resolve<IRunVariableRuntimeProvider>();
         IMetaProgressionRuntimeProvider metaProvider = scope.Container.Resolve<IMetaProgressionRuntimeProvider>();
@@ -91,16 +93,19 @@ public static class DungeonGameSaveDebugScenarios
 
             const string RecipeMarker = "qa:save-round-trip";
             research.State.UnlockRecipe(RecipeMarker);
-            FacilityBlueprintSO migratedRecipeBlueprint = catalog.Blueprints
-                .FirstOrDefault(blueprint => blueprint != null && blueprint.id == 6191);
-            Require(migratedRecipeBlueprint != null, "Rare recipe migration blueprint is missing.");
-            research.State.RestoreCompletedBlueprintId(migratedRecipeBlueprint.id);
-            string migratedRecipeId = migratedRecipeBlueprint.Unlocks
+            ResearchProjectSO migratedRecipeProject = researchProjectCatalog.Projects
+                .FirstOrDefault(project => project != null
+                    && project.Unlocks.OfType<BlueprintRecipeUnlock>().Any());
+            Require(migratedRecipeProject != null,
+                "A research project with a recipe reward is missing.");
+            research.State.Projects.Complete(migratedRecipeProject.ProjectId);
+            string migratedRecipeId = migratedRecipeProject.Unlocks
                 .OfType<BlueprintRecipeUnlock>()
                 .Select(unlock => unlock.recipeId)
                 .FirstOrDefault();
             Require(!string.IsNullOrWhiteSpace(migratedRecipeId),
-                "Rare recipe migration blueprint has no current recipe reward.");
+                "The completed research project has no current recipe reward.");
+            research.State.UnlockRecipe(migratedRecipeId);
             BuildingSO researchUnlockBuilding = catalog.Buildings.FirstOrDefault(candidate => candidate != null
                 && candidate.IsModularFacility()
                 && candidate.GetUnlockPhase() > 1);
@@ -476,7 +481,7 @@ public static class DungeonGameSaveDebugScenarios
             DungeonSaveSectionPayload.Write(
                 parsed,
                 BlueprintResearchSaveSection.Id,
-                1,
+                3,
                 DungeonSaveRestorePhase.RuntimeState,
                 parsedResearch);
             int savedCharacterCount = parsedCharacters.actors?.Count ?? 0;
@@ -571,7 +576,7 @@ public static class DungeonGameSaveDebugScenarios
             Require(gameData.holdingMoney.Value == markerMoney, "Money did not round-trip.");
             Require(research.State.UnlockedRecipeIds.Contains(RecipeMarker), "Research state did not round-trip.");
             Require(research.State.UnlockedRecipeIds.Contains(migratedRecipeId),
-                "Completed blueprint did not restore its current recipe reward.");
+                "Completed research project did not restore its current recipe reward.");
             Require(research.State.IsBuildingUnlocked(researchUnlockBuilding.id),
                 "Research construction unlock did not round-trip.");
             Require(shop.UnlockState.BasicPurchaseBuildingIds.Contains(building.id), "Shop state did not round-trip.");
@@ -726,7 +731,7 @@ public static class DungeonGameSaveDebugScenarios
                     && status.Stacks == 2),
                 "Active invasion intruder did not round-trip with health and defense statuses.");
             Require(report.Warnings.Count == 0,
-                "V4 restore emitted warnings: " + string.Join(" | ", report.Warnings));
+                "V16 restore emitted warnings: " + string.Join(" | ", report.Warnings));
 
             DungeonGameSaveData legacyWithoutDoctrine = saveService.FromJson(json);
             DungeonRunVariableSaveData legacyRunVariables =

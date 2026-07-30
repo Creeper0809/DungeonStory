@@ -53,6 +53,7 @@ public class AbilityWork : CharacterAbility
     private IWorkExecutionHandlerRegistry workExecutionHandlerRegistry;
     private IWorkPolicyRegistry workPolicyRegistry;
     private IWorkOrderRuntime workOrderRuntime;
+    private IPaidFacilityContractRuntime paidFacilityContracts;
     private IWorkAmountCalculator workAmountCalculator;
     private ICaptiveLaborQuery captiveLaborQuery;
     private IGameClock gameClock;
@@ -209,7 +210,8 @@ public class AbilityWork : CharacterAbility
         ICaptiveLaborQuery captiveLaborQuery = null,
         IGameClock gameClock = null,
         IDefenseEngagementRuntime defenseEngagementRuntime = null,
-        IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null)
+        IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
+        IPaidFacilityContractRuntime paidFacilityContracts = null)
     {
         this.blueprintResearchWorkService = blueprintResearchWorkService
             ?? throw new ArgumentNullException(nameof(blueprintResearchWorkService));
@@ -231,6 +233,7 @@ public class AbilityWork : CharacterAbility
         this.gameClock = gameClock;
         this.defenseEngagementRuntime = defenseEngagementRuntime;
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
+        this.paidFacilityContracts = paidFacilityContracts;
         targetSelector = null;
         taskExecutor = null;
         commandHandler = null;
@@ -864,7 +867,8 @@ public class AbilityWork : CharacterAbility
             workOrderRuntime,
             workAmountCalculator,
             gameClock,
-            roomEnvironmentExperienceService);
+            roomEnvironmentExperienceService,
+            paidFacilityContracts);
         dutyController ??= new WorkDutyController(this);
         commandHandler ??= new WorkCommandHandler(this, targetSelector, defenseEngagementRuntime);
     }

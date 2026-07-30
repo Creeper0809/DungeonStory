@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
+  m_Name: procedure_organ-repair
+  m_EditorClassIdentifier: Assembly-CSharp::SurgicalProcedureSO
+  procedureId: procedure:organ-repair
+  displayName: "\uC7A5\uAE30 \uBD09\uD569"
+  description: "\uC190\uC0C1\uB41C \uAE30\uAD00\uC744 \uC808\uAC1C\uD574 \uC9C1\uC811
+    \uBCF5\uC6D0\uD55C\uB2E4."
+  kind: 3
+  targetNodeId: 
+  requiredResearchId: research:medical:surgery
+  requiredFacilityTags: 28
+  requiredWork: 34
+  difficultyPenalty: 0.14
+  baseInfectionRisk: 0.1
+  baseBleedingRisk: 0.14
+  requiresAnesthesia: 1
+  requiresRestraintForUnwilling: 1
+  allowsLivingSubject: 1
+  allowsCorpseSubject: 0
+  allowsWildlife: 1
+  materials:
+  - itemId: stock-item:5
+    quantity: 2
+    optional: 0
+  - itemId: medicine:disinfectant
+    quantity: 1
+    optional: 0
+  effects:
+  - rid: 7302563265135771983
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563265135771983
+      type: {class: HealSurgicalNodeEffect, ns: , asm: Assembly-CSharp}
+      data:
+        effectId: HealSurgicalNodeEffect
+        health: 24
+        infectionReduction: 20

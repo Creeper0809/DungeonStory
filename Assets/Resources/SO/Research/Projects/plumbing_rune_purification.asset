@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: plumbing_rune_purification
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7198
+  projectId: research:plumbing:rune-purification
+  displayName: "\uB8EC \uC815\uD654 \uC21C\uD658"
+  description: "\uB9C8\uB098\uC640 \uB8EC\uC73C\uB85C \uD3D0\uC218 \uC190\uC2E4\uC744
+    \uC904\uC778 \uACE0\uD6A8\uC728 \uC21C\uD658\uB9DD\uC744 \uB9CC\uB4E0\uB2E4."
+  field: 16
+  requiredWork: 304
+  prerequisites:
+  - {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
+  - {fileID: 11400000, guid: 1a6b6f4e88b9d684cb6300fb35b05a7a, type: 2}
+  - {fileID: 11400000, guid: 2b9e3ae10f111c442a6bc0906d3f5072, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563278452687349
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563278452687349
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9822

@@ -23,6 +23,8 @@ public static class DungeonCombatRegistration
             .As<ICombatCoverQuery>();
         builder.Register<CombatFiringSolutionService>(Lifetime.Singleton)
             .As<ICombatFiringSolutionService>();
+        builder.Register<ResourceAnatomyProfileCatalog>(Lifetime.Singleton)
+            .As<IAnatomyProfileCatalog>();
         builder.Register<ResourceCombatEquipmentCatalog>(Lifetime.Singleton)
             .As<ICombatEquipmentCatalog>();
         builder.Register<CombatEquipmentRuntime>(Lifetime.Singleton)
@@ -49,11 +51,49 @@ public static class DungeonCombatRegistration
             .As<ICombatEquipmentMaintenanceRuntime>();
         builder.RegisterEntryPoint<CharacterBodyHealthRuntime>(
                 Lifetime.Singleton)
-            .As<ICharacterBodyHealthRuntime>();
+            .As<ICharacterBodyHealthRuntime>()
+            .As<IAnatomyHealthRuntime>();
+        builder.RegisterEntryPoint<WildlifeAnatomyHealthRuntime>(
+                Lifetime.Singleton)
+            .As<IWildlifeAnatomyHealthRuntime>();
+        builder.RegisterEntryPoint<SurgicalPatientTransportRuntime>(
+                Lifetime.Singleton)
+            .As<ISurgicalPatientTransportRuntime>();
         builder.Register<CharacterPhysicalCapacityQuery>(Lifetime.Singleton)
             .As<ICharacterPhysicalCapacityQuery>();
         builder.RegisterEntryPoint<CharacterMedicalRuntime>(Lifetime.Singleton)
             .As<ICharacterMedicalRuntime>();
+        builder.Register<ResourceSurgicalProcedureCatalog>(Lifetime.Singleton)
+            .As<ISurgicalProcedureCatalog>();
+        builder.Register<SurgicalFacilityQuery>(Lifetime.Singleton)
+            .As<ISurgicalFacilityQuery>();
+        builder.Register<SurgeryRiskEvaluator>(Lifetime.Singleton)
+            .As<ISurgeryRiskEvaluator>();
+        builder.Register<SurgeryPolicyRuntime>(Lifetime.Singleton)
+            .As<ISurgeryPolicyRuntime>();
+        builder.Register<SurgeryExtractionLedger>(Lifetime.Singleton)
+            .As<ISurgeryExtractionLedger>();
+        builder.RegisterEntryPoint<SurgicalCorpseFreshnessRuntime>(
+                Lifetime.Singleton)
+            .As<ISurgicalCorpseFreshnessRuntime>();
+        builder.RegisterEntryPoint<SurgicalPartRuntime>(Lifetime.Singleton)
+            .As<ISurgicalPartRuntime>()
+            .As<ISurgicalAugmentationQuery>();
+        builder.Register<SurgicalPartProductionOutputHandler>(Lifetime.Singleton)
+            .As<IProductionOutputHandler>();
+        builder.Register<HealSurgicalNodeEffectHandler>(Lifetime.Singleton)
+            .As<ISurgicalProcedureEffectHandler>();
+        builder.Register<RemoveSurgicalNodeEffectHandler>(Lifetime.Singleton)
+            .As<ISurgicalProcedureEffectHandler>();
+        builder.Register<InstallSurgicalPartEffectHandler>(Lifetime.Singleton)
+            .As<ISurgicalProcedureEffectHandler>();
+        builder.Register<ApplySurgicalBurdenEffectHandler>(Lifetime.Singleton)
+            .As<ISurgicalProcedureEffectHandler>();
+        builder.Register<ReduceSurgicalBurdenEffectHandler>(Lifetime.Singleton)
+            .As<ISurgicalProcedureEffectHandler>();
+        builder.RegisterEntryPoint<SurgeryRuntime>(Lifetime.Singleton)
+            .As<ISurgeryRuntime>()
+            .As<ISurgeryCommandService>();
         builder.RegisterEntryPoint<DefenseTacticalCoordinator>(
                 Lifetime.Singleton)
             .As<IDefenseTacticalCoordinator>();

@@ -1,0 +1,107 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "I08_\uC0C1\uC218_\uD0F1\uD06C"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: BuildableObject, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 9817
+  objectName: "\uC0C1\uC218 \uD0F1\uD06C"
+  sprite: {fileID: 21300000, guid: a2cdaf639ef974541beaa0d56ca8603a, type: 3}
+  icon: {fileID: 21300000, guid: a2cdaf639ef974541beaa0d56ca8603a, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563284524204923
+    - rid: 7302563284524204924
+    - rid: 7302563284524204925
+    - rid: 7302563284524204926
+    - rid: 7302563284524204927
+  width: 2
+  height: 1
+  layer: 1
+  category: 7
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563284524204923
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: I08
+    - rid: 7302563284524204924
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 130
+        constructionCost: 0
+        maintenance: 0
+        unlockPhase: 3
+        demolitionRefundRate: 0.5
+    - rid: 7302563284524204925
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 48
+        repairWorkRequired: 12
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterialCategory: 1
+        constructionMaterialAmount: 4
+        materialUnitsPerConstructionCost: 0.05
+    - rid: 7302563284524204926
+      type: {class: BuildingWaterStorageAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWaterStorageAbility
+        channels: 2
+        cleanWaterCapacity: 120
+        wastewaterCapacity: 0
+    - rid: 7302563284524204927
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 1
+          useDuration: 1
+          requiredWorkers: 0
+          supportedWorkTypes: 4
+          disabledWhenDamaged: 1

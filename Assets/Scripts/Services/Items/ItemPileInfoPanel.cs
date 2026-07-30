@@ -15,6 +15,8 @@ public sealed class ItemPileInfoPanel : UIPopUp
     private IResourceEconomyContentCatalog resourceCatalog;
     private IUiPopupService popupService;
     private ITmpKoreanFontService fontService;
+    private ISurgeryPlanningWindowService surgeryWindowService;
+    private ISurgicalCorpseFreshnessRuntime corpseFreshness;
 
     private GameObject uiRoot;
     private RectTransform contentRoot;
@@ -31,7 +33,9 @@ public sealed class ItemPileInfoPanel : UIPopUp
         ISurvivalFoodRuntime survivalFoodRuntime,
         IResourceEconomyContentCatalog resourceCatalog,
         IUiPopupService popupService,
-        ITmpKoreanFontService fontService)
+        ITmpKoreanFontService fontService,
+        ISurgeryPlanningWindowService surgeryWindowService,
+        ISurgicalCorpseFreshnessRuntime corpseFreshness)
     {
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.survivalFoodRuntime = survivalFoodRuntime ?? throw new ArgumentNullException(nameof(survivalFoodRuntime));
@@ -39,6 +43,10 @@ public sealed class ItemPileInfoPanel : UIPopUp
             ?? throw new ArgumentNullException(nameof(resourceCatalog));
         this.popupService = popupService ?? throw new ArgumentNullException(nameof(popupService));
         this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
+        this.surgeryWindowService = surgeryWindowService
+            ?? throw new ArgumentNullException(nameof(surgeryWindowService));
+        this.corpseFreshness = corpseFreshness
+            ?? throw new ArgumentNullException(nameof(corpseFreshness));
     }
 
     [Inject]
@@ -244,6 +252,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
             + FormatResourceConsumableLine(stack)
             + FormatSurvivalStatusLine(stack)
             + FormatWasteMetadata(stack)
+            + FormatCorpseFreshnessLine(stack)
             + FormatCorpseMetadata(stack)
             + $"위치 ({stack.Position.x}, {stack.Position.y})\n"
             + $"예약자 {FormatEmpty(stack.ReservedByPersistentId)}\n"
@@ -252,11 +261,27 @@ public sealed class ItemPileInfoPanel : UIPopUp
 
         CreateDetailActionRow(stack);
         CreateEmergencyButcheryAction(stack);
+        CreateCorpseSurgeryAction(stack);
     }
 
-    private static string FormatCorpseMetadata(WorldItemStackSnapshot stack)
+    private string FormatCorpseMetadata(WorldItemStackSnapshot stack)
     {
-        if (stack == null || !string.Equals(stack.ItemId, DarkSurvivalItemDefinitions.HumanoidCorpseItemId, StringComparison.Ordinal))
+        if (stack == null
+            || !string.Equals(
+                    stack.ItemId,
+                    DarkSurvivalItemDefinitions.HumanoidCorpseItemId,
+                    StringComparison.Ordinal)
+                && !WildlifeItemDefinitions.TryGetSpeciesIdFromCarcass(
+                    stack.ItemId,
+                    out _))
+        {
+            return string.Empty;
+        }
+
+        if (!string.Equals(
+                stack.ItemId,
+                DarkSurvivalItemDefinitions.HumanoidCorpseItemId,
+                StringComparison.Ordinal))
         {
             return string.Empty;
         }
@@ -266,6 +291,30 @@ public sealed class ItemPileInfoPanel : UIPopUp
         string deathReason = string.IsNullOrWhiteSpace(stack.SourceDeathReason) ? "사인 불명" : stack.SourceDeathReason;
         return $"원래 이름 {sourceName}\n종족 {species}\n사망 원인 {deathReason}\n"
             + $"비상 도축 {(stack.EmergencyButcheryAllowed ? "허용" : "금지")}\n";
+    }
+
+    private string FormatCorpseFreshnessLine(WorldItemStackSnapshot stack)
+    {
+        if (stack == null
+            || !string.Equals(
+                    stack.ItemId,
+                    DarkSurvivalItemDefinitions.HumanoidCorpseItemId,
+                    StringComparison.Ordinal)
+                && !WildlifeItemDefinitions.TryGetSpeciesIdFromCarcass(
+                    stack.ItemId,
+                    out _))
+        {
+            return string.Empty;
+        }
+
+        return corpseFreshness.TryGetFreshness(
+            stack.StackId,
+            out float remaining,
+            out bool isFresh)
+                ? isFresh
+                    ? $"신선도 {remaining / 180f:0.0}일 남음\n"
+                    : "신선도 부패함 · 장기 적출 불가\n"
+                : "신선도 기록 없음 · 장기 적출 불가\n";
     }
 
     private static string FormatWasteMetadata(WorldItemStackSnapshot stack)
@@ -308,6 +357,33 @@ public sealed class ItemPileInfoPanel : UIPopUp
         rect.pivot = new Vector2(0.5f, 0f);
         rect.offsetMin = new Vector2(0f, 52f);
         rect.offsetMax = new Vector2(0f, 96f);
+    }
+
+    private void CreateCorpseSurgeryAction(WorldItemStackSnapshot stack)
+    {
+        if (stack == null
+            || !string.Equals(
+                    stack.ItemId,
+                    DarkSurvivalItemDefinitions.HumanoidCorpseItemId,
+                    StringComparison.Ordinal)
+                && !WildlifeItemDefinitions.TryGetSpeciesIdFromCarcass(
+                    stack.ItemId,
+                    out _))
+        {
+            return;
+        }
+
+        Button button = CreateButton(
+            "CorpseSurgeryAction",
+            contentRoot,
+            "해부·적출 계획",
+            () => surgeryWindowService.Open(stack, transform));
+        RectTransform rect = button.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0f, 0f);
+        rect.anchorMax = new Vector2(1f, 0f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.offsetMin = new Vector2(0f, 100f);
+        rect.offsetMax = new Vector2(0f, 144f);
     }
 
     private void CreateStackRow(WorldItemStackSnapshot stack, float top)

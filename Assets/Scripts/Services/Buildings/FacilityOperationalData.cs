@@ -108,12 +108,6 @@ public static class FacilityProgression
 
     public static int GetRefund(BuildingSO building)
     {
-        if (building == null)
-        {
-            return 0;
-        }
-
-        return Mathf.Max(0, Mathf.FloorToInt(
-            building.GetConstructionCost() * building.GetDemolitionRefundRate()));
+        return 0;
     }
 }

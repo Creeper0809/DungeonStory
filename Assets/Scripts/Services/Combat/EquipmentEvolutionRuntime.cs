@@ -47,6 +47,11 @@ public interface IEquipmentEvolutionRuntime
         string stabilizerItemId,
         out EvolutionReforgeOrder order,
         out string failureReason);
+    bool TryConfigurePrecision(
+        string orderId,
+        ReforgePrecisionSelection selection,
+        int goldCost,
+        out string failureReason);
     bool ApplyReforgeWork(
         string orderId,
         float workUnits,
@@ -492,6 +497,51 @@ public sealed class EquipmentEvolutionRuntime :
             order.destinationId,
             new Vector2Int(order.destinationX, order.destinationY));
         completedNode = node.Clone();
+        return true;
+    }
+
+    public bool TryConfigurePrecision(
+        string orderId,
+        ReforgePrecisionSelection selection,
+        int goldCost,
+        out string failureReason)
+    {
+        EvolutionReforgeOrder order = orders.FirstOrDefault(entry =>
+            entry != null
+            && string.Equals(
+                entry.orderId,
+                orderId?.Trim(),
+                StringComparison.Ordinal));
+        if (order == null
+            || order.state is EvolutionReforgeOrderState.Completed
+                or EvolutionReforgeOrderState.Cancelled
+                or EvolutionReforgeOrderState.InProgress)
+        {
+            failureReason = "정밀 설정을 적용할 재단조 주문이 없습니다.";
+            return false;
+        }
+
+        selection ??= new ReforgePrecisionSelection();
+        if (selection.SelectedCount > 2)
+        {
+            failureReason = "유료 정밀 서비스는 최대 두 개까지 선택할 수 있습니다.";
+            return false;
+        }
+
+        order.preciseCalibration = selection.preciseCalibration;
+        order.burdenSuppression = selection.burdenSuppression;
+        order.externalTechnicalSupport =
+            selection.externalTechnicalSupport;
+        order.suppressedBurdenEffectId =
+            selection.suppressedBurdenEffectId?.Trim() ?? string.Empty;
+        order.precisionGoldCost = Mathf.Max(0, goldCost);
+        order.resultVariance = selection.preciseCalibration ? 0.04f : 0.12f;
+        if (selection.externalTechnicalSupport)
+        {
+            order.requiredWork = Mathf.Max(0.1f, order.requiredWork * 0.75f);
+        }
+
+        failureReason = string.Empty;
         return true;
     }
 
@@ -1120,10 +1170,12 @@ public sealed class EquipmentEvolutionRuntime :
             + Mathf.Min(0.75f, Mathf.Max(0, order.catalystPotency - 1) * 0.08f);
         potencyScale *= GetCatalystFamilyPotencyScale(
             order.catalystFamily);
-        float rollScale = Mathf.Lerp(
-            0.75f,
-            1.5f,
-            (float)random.NextDouble());
+        float variance = Mathf.Clamp(order.resultVariance, 0.01f, 0.5f);
+        float rollScale = 1f
+            + Mathf.Lerp(
+                -variance,
+                variance,
+                (float)random.NextDouble());
         bool stabilized = order.stabilizerAmount > 0;
         bool risky = !stabilized
             && (order.catalystFamily.IndexOf(
@@ -1132,6 +1184,15 @@ public sealed class EquipmentEvolutionRuntime :
                 || order.catalystFamily.IndexOf(
                     "arcane",
                     StringComparison.OrdinalIgnoreCase) >= 0);
+        if (order.burdenSuppression
+            && (string.IsNullOrWhiteSpace(order.suppressedBurdenEffectId)
+                || string.Equals(
+                    order.suppressedBurdenEffectId,
+                    "equipment:risky",
+                    StringComparison.Ordinal)))
+        {
+            risky = false;
+        }
         string parentNodeId = state.evolutionNodes
             .Where(node => node != null && !node.historical)
             .OrderByDescending(node => node.generation)

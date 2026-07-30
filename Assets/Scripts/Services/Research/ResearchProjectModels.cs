@@ -26,7 +26,10 @@ public enum ResearchField
     Metallurgy = 10,
     Textiles = 11,
     Cuisine = 12,
-    Pharmacology = 13
+    Pharmacology = 13,
+    SurgeryAndTransplant = 14,
+    IndustryAndAutomation = 15,
+    WaterAndSanitation = 16
 }
 
 public enum ResearchNodeState

@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 19_negotiation_gate_captain
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170318
+  cardId: negotiation_gate_captain
+  stage: 2
+  title: "\uBB38\uC9C0\uAE30 \uB300\uC7A5"
+  situation: "\uBB38\uC9C0\uAE30 \uB300\uC7A5\uC774 \uD1B5\uACFC\uB97C \uD5C8\uB77D\uD558\uB294
+    \uB300\uC2E0 \uC791\uC740 \uBD80\uD0C1\uC744 \uC694\uAD6C\uD569\uB2C8\uB2E4."
+  requiredWorldTags: []
+  choices:
+  - choiceId: left
+    label: "\uB1CC\uBB3C\uC744 \uAC74\uB128\uB2E4"
+    description: "\uACE8\uB4DC\uB85C \uBE60\uB974\uACE0 \uC870\uC6A9\uD55C \uD1B5\uD589\uC744
+      \uC0BD\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uACE8\uB4DC \uAC10\uC18C\xB7\uB178\uCD9C \uAC10\uC18C"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258873
+    - rid: 7302563269269258874
+  - choiceId: right
+    label: "\uBD80\uD0C1\uC744 \uB4E4\uC5B4\uC900\uB2E4"
+    description: "\uC606\uAE38\uC758 \uC704\uD5D8 \uC694\uC18C\uB97C \uCC98\uB9AC\uD558\uACE0
+      \uD1B5\uACFC\uD569\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uC2DC\uAC04 \uAC10\uC18C\xB7\uBD80\uC0C1 \uC704\uD5D8"
+    severity: 2
+    mayStartCombat: 0
+    mayCauseInjury: 1
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258875
+    - rid: 7302563269269258876
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258873
+      type: {class: OffenseGoldDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: -125
+    - rid: 7302563269269258874
+      type: {class: OffenseExposureDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: -14
+    - rid: 7302563269269258875
+      type: {class: OffenseTimeDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        elapsedHours: 2
+    - rid: 7302563269269258876
+      type: {class: OffenseInjuryDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        maxHealthRatio: 0.115
+        nonLethal: 1

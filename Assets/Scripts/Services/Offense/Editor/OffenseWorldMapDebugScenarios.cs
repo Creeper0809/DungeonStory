@@ -28,6 +28,7 @@ public static class OffenseWorldMapDebugScenarios
         RunScenario("원정 대상 선택 이벤트", VerifyTargetSelectionEvent, errors);
         RunScenario("오펜스 캠페인 선행 목표 잠금", VerifyCampaignPrerequisiteChain, errors);
         RunScenario("최종 오펜스 진실 공개", VerifyTerminalTruthReveal, errors);
+        RunScenario("V17 진실 귀환 승리 연결", VerifyV17TruthReveal, errors);
         RunScenario("월드맵 읽기 경계", VerifyReadOnlyWorldMapBoundary, errors);
         RunScenario("월드맵 패널 생성", VerifyPanelCreation, errors);
 
@@ -200,6 +201,26 @@ public static class OffenseWorldMapDebugScenarios
             && scenario.Runtime.State.CompletedTargetCount == route.Count
             && truthListener.Count == 1
             && truthListener.TruthText.Contains("지상의 왕국");
+    }
+
+    private static bool VerifyV17TruthReveal()
+    {
+        using ScenarioRuntime scenario = new ScenarioRuntime();
+        using CountingTruthListener truthListener =
+            new CountingTruthListener(scenario.GameEvents);
+        bool revealed = scenario.Runtime.TryRecordV17TruthReveal(
+            OffenseWorldMapService.TruthTargetId,
+            out string message);
+        bool repeated = scenario.Runtime.TryRecordV17TruthReveal(
+            OffenseWorldMapService.TruthTargetId,
+            out _);
+
+        return revealed
+            && repeated
+            && message.Contains("진실")
+            && scenario.Runtime.State.TruthRevealed
+            && scenario.Runtime.State.CompletedTargetCount == 1
+            && truthListener.Count == 1;
     }
 
     private static bool HasSpecificBlueprint(

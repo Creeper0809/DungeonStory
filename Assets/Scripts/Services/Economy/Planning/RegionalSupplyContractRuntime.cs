@@ -29,6 +29,7 @@ public sealed class RegionalSupplyContractRuntime :
     private readonly IBlueprintResearchRuntimeProvider researchProvider;
     private readonly IGrandProjectBenefitQuery projectBenefits;
     private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameMoneyRuntime money;
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
     private readonly IWorkforceReplanService workforce;
@@ -48,6 +49,7 @@ public sealed class RegionalSupplyContractRuntime :
         IWorldDropZoneQuery dropZones,
         ICharacterWorldQuery characterWorld,
         IGameDataProvider gameDataProvider,
+        IGameMoneyRuntime money,
         IGameEventBus gameEventBus,
         IGameClock gameClock,
         IBlueprintResearchRuntimeProvider researchProvider = null,
@@ -63,6 +65,7 @@ public sealed class RegionalSupplyContractRuntime :
             ?? throw new ArgumentNullException(nameof(characterWorld));
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
@@ -524,11 +527,14 @@ public sealed class RegionalSupplyContractRuntime :
 
     private void AddMoney(int amount)
     {
-        if (amount > 0
-            && gameDataProvider.TryGetGameData(out GameData data)
-            && data?.holdingMoney != null)
+        if (amount > 0)
         {
-            data.holdingMoney.Value += amount;
+            money.Add(
+                amount,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.ContractIncome,
+                    "regional-supply",
+                    description: "지역 공급 계약"));
         }
     }
 

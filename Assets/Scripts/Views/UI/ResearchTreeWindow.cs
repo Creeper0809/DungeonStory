@@ -972,6 +972,7 @@ public sealed class ResearchTreeWindow : MonoBehaviour
             ResearchField.Textiles => "직물",
             ResearchField.Cuisine => "요리",
             ResearchField.Pharmacology => "약리",
+            ResearchField.SurgeryAndTransplant => "외과·이식",
             _ => "기타"
         };
     }

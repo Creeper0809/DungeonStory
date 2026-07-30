@@ -1,0 +1,127 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "I13_\uB8EC_\uC815\uD654_\uC2DC\uC124"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: BuildableObject, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 9822
+  objectName: "\uB8EC \uC815\uD654 \uC2DC\uC124"
+  sprite: {fileID: 21300000, guid: 0a825f541da8578479c170fb055e3c37, type: 3}
+  icon: {fileID: 21300000, guid: 0a825f541da8578479c170fb055e3c37, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563284524204954
+    - rid: 7302563284524204955
+    - rid: 7302563284524204956
+    - rid: 7302563284524204957
+    - rid: 7302563284524204958
+    - rid: 7302563284524204959
+    - rid: 7302563284524204960
+  width: 3
+  height: 1
+  layer: 1
+  category: 7
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563284524204954
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: I13
+    - rid: 7302563284524204955
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 165
+        constructionCost: 0
+        maintenance: 0
+        unlockPhase: 3
+        demolitionRefundRate: 0.5
+    - rid: 7302563284524204956
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 60
+        repairWorkRequired: 12
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterialCategory: 1
+        constructionMaterialAmount: 5
+        materialUnitsPerConstructionCost: 0.05
+    - rid: 7302563284524204957
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 7
+        maxThroughput: 100
+        normallyOpen: 1
+    - rid: 7302563284524204958
+      type: {class: BuildingWastewaterProcessorAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWastewaterProcessorAbility
+        wastewaterInput: 10
+        waterOutput: 9
+        outputQuality: 0
+        requiresPower: 1
+        sludgeItemId: industrial:sludge
+        sludgeAmount: 1
+        secondsPerBatch: 8
+    - rid: 7302563284524204959
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 4
+        priority: 3
+        minimumSupplyFraction: 1
+    - rid: 7302563284524204960
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 1
+          useDuration: 1
+          requiredWorkers: 0
+          supportedWorkTypes: 536870916
+          disabledWhenDamaged: 1

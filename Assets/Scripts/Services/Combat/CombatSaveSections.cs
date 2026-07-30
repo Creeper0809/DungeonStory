@@ -13,7 +13,7 @@ public sealed class CombatEquipmentSaveSection : IDungeonSaveSection
     }
 
     public string SectionId => Id;
-    public int SectionVersion => 2;
+    public int SectionVersion => 3;
     public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
     public IReadOnlyList<string> DependsOn => new[] { PhysicalItemsSaveSection.Id };
     public string Capture() => JsonUtility.ToJson(runtime.Capture());
@@ -49,7 +49,7 @@ public sealed class EquipmentEvolutionSaveSection : IDungeonSaveSection
     }
 
     public string SectionId => Id;
-    public int SectionVersion => 2;
+    public int SectionVersion => 3;
     public DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
     public IReadOnlyList<string> DependsOn => new[]
@@ -87,7 +87,7 @@ public sealed class CharacterBodyHealthSaveSection : IDungeonSaveSection
     }
 
     public string SectionId => Id;
-    public int SectionVersion => 1;
+    public int SectionVersion => 2;
     public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
     public IReadOnlyList<string> DependsOn => new[] { CharacterWorldSaveSection.Id };
     public string Capture() => JsonUtility.ToJson(runtime.Capture());
@@ -104,7 +104,7 @@ public sealed class CharacterBodyHealthSaveSection : IDungeonSaveSection
 
     private void ValidateVersion(int version)
     {
-        if (version != SectionVersion)
+        if (version < 1 || version > SectionVersion)
         {
             throw new InvalidOperationException(
                 $"Unsupported {Id} section version {version}.");
@@ -123,7 +123,7 @@ public sealed class CharacterMedicalSaveSection : IDungeonSaveSection
     }
 
     public string SectionId => Id;
-    public int SectionVersion => 1;
+    public int SectionVersion => 2;
     public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
     public IReadOnlyList<string> DependsOn => new[]
     {
@@ -160,6 +160,54 @@ public sealed class CharacterMedicalSaveSection : IDungeonSaveSection
         DungeonGameRestoreReport report,
         IEnumerable<string> warnings)
     {
+        foreach (string warning in warnings)
+        {
+            report.AddWarning(warning);
+        }
+    }
+}
+
+public sealed class SurgerySaveSection : IDungeonSaveSection
+{
+    public const string Id = "medical.surgery";
+    private readonly ISurgeryRuntime runtime;
+
+    public SurgerySaveSection(ISurgeryRuntime runtime)
+    {
+        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+    }
+
+    public string SectionId => Id;
+    public int SectionVersion => 2;
+    public DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.LateRuntimeState;
+    public IReadOnlyList<string> DependsOn => new[]
+    {
+        CharacterBodyHealthSaveSection.Id,
+        CharacterMedicalSaveSection.Id,
+        PhysicalItemsSaveSection.Id,
+        ModularFacilityWorldSaveSection.Id,
+        WildlifeSaveSection.Id
+    };
+    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+
+    public void Restore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        if (sectionVersion != SectionVersion)
+        {
+            throw new InvalidOperationException(
+                $"Unsupported {Id} section version {sectionVersion}.");
+        }
+
+        List<string> warnings = new List<string>();
+        runtime.Restore(
+            JsonUtility.FromJson<DungeonSurgerySaveData>(
+                payloadJson ?? string.Empty)
+            ?? new DungeonSurgerySaveData(),
+            warnings);
         foreach (string warning in warnings)
         {
             report.AddWarning(warning);

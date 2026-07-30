@@ -66,6 +66,7 @@ public static class OffenseRewardDebugScenarios
         using ScenarioContext context = new ScenarioContext(100);
         int warehouseFoodBefore = context.Warehouse.Inventory.GetStock(StockCategory.Food);
         int physicalFoodBefore = GetPhysicalStock(StockCategory.Food);
+        int physicalLootBefore = GetPhysicalItem(OffenseLootItemIds.UnappraisedLoot);
         IReadOnlyList<OffenseRewardGrantResult> results = CreateGrantService().GrantRewards(
             new[]
             {
@@ -78,11 +79,14 @@ public static class OffenseRewardDebugScenarios
             context.CreateRewardContext());
         int warehouseFoodDelta = context.Warehouse.Inventory.GetStock(StockCategory.Food) - warehouseFoodBefore;
         int physicalFoodDelta = GetPhysicalStock(StockCategory.Food) - physicalFoodBefore;
+        int physicalLootDelta =
+            GetPhysicalItem(OffenseLootItemIds.UnappraisedLoot) - physicalLootBefore;
 
         bool valid = results.Count == 5
             && results.All((result) => result.success)
-            && context.GameData.holdingMoney.Value == 180
+            && context.GameData.holdingMoney.Value == 100
             && warehouseFoodDelta + physicalFoodDelta == 40
+            && physicalLootDelta == 80
             && context.RewardState.MoneyEarned == 80
             && context.ReturnArrivals.PrisonerCount == 1
             && context.ReturnArrivals.WildlifeCount == 1;
@@ -93,6 +97,7 @@ public static class OffenseRewardDebugScenarios
                 $"success={results.Count(result => result.success)}, " +
                 $"money={context.GameData.holdingMoney.Value}, " +
                 $"warehouseFoodDelta={warehouseFoodDelta}, physicalFoodDelta={physicalFoodDelta}, " +
+                $"physicalLootDelta={physicalLootDelta}, " +
                 $"moneyState={context.RewardState.MoneyEarned}, " +
                 $"prisoners={context.ReturnArrivals.PrisonerCount}, " +
                 $"wildlife={context.ReturnArrivals.WildlifeCount}");
@@ -199,6 +204,7 @@ public static class OffenseRewardDebugScenarios
 
         int warehouseFoodBefore = scenario.Context.Warehouse.Inventory.GetStock(StockCategory.Food);
         int physicalFoodBefore = GetPhysicalStock(StockCategory.Food);
+        int physicalLootBefore = GetPhysicalItem(OffenseLootItemIds.UnappraisedLoot);
 
         bool started = scenario.Expedition.Runtime.TryStartExpedition(
             "food_farm",
@@ -211,6 +217,8 @@ public static class OffenseRewardDebugScenarios
         bool completed = result != null && !scenario.Battle.HasActiveBattle;
         int warehouseFoodDelta = scenario.Context.Warehouse.Inventory.GetStock(StockCategory.Food) - warehouseFoodBefore;
         int physicalFoodDelta = GetPhysicalStock(StockCategory.Food) - physicalFoodBefore;
+        int physicalLootDelta =
+            GetPhysicalItem(OffenseLootItemIds.UnappraisedLoot) - physicalLootBefore;
         OffenseStrategicPressureSnapshot pressure =
             scenario.Reward.Regions.GetFactionPressure(OffenseRegionRuntime.HumanFactionId);
 
@@ -224,8 +232,9 @@ public static class OffenseRewardDebugScenarios
             && rewardEvents.Count == 1
             && object.ReferenceEquals(rewardEvents.LastEvent.expeditionResult, result)
             && rewardEvents.LastEvent.grantResults.Count == result.grantedRewards.Count
-            && scenario.Context.GameData.holdingMoney.Value == 80
+            && scenario.Context.GameData.holdingMoney.Value == 0
             && warehouseFoodDelta + physicalFoodDelta == 40
+            && physicalLootDelta == 80
             && scenario.Reward.Runtime.State.MoneyEarned == 80
             && Mathf.Approximately(pressure.Logistics, 15f)
             && worker.CurrentHealth < worker.MaxHealth
@@ -239,6 +248,7 @@ public static class OffenseRewardDebugScenarios
                 $"result={(result == null ? "null" : result.success.ToString())}, grants={result?.grantedRewards.Count ?? -1}, " +
                 $"eventCount={rewardEvents.Count}, money={scenario.Context.GameData.holdingMoney.Value}, " +
                 $"foodWarehouseDelta={warehouseFoodDelta}, foodPhysicalDelta={physicalFoodDelta}, " +
+                $"physicalLootDelta={physicalLootDelta}, " +
                 $"logisticsPressure={pressure.Logistics:0.##}, " +
                 $"health={worker.CurrentHealth:0.##}/{worker.MaxHealth:0.##}");
         }
@@ -322,9 +332,12 @@ public static class OffenseRewardDebugScenarios
 
     private static IOffenseRewardGrantService CreateGrantService()
     {
+        TryResolvePhysicalItemServices(
+            out IWorldItemStackRuntime itemRuntime,
+            out IWorldDropZoneQuery dropZoneQuery);
         return new OffenseRewardGrantService(
             new OffenseRewardSelector(new EditorOffenseRewardCatalog()),
-            OffenseRewardGrantHandlers.CreateDefaults());
+            OffenseRewardGrantHandlers.CreateDefaults(itemRuntime, dropZoneQuery));
     }
 
     private static int GetPhysicalStock(StockCategory category)
@@ -342,6 +355,35 @@ public static class OffenseRewardDebugScenarios
             .Where(stack => stack != null
                 && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal))
             .Sum(stack => stack.Quantity);
+    }
+
+    private static int GetPhysicalItem(string itemId)
+    {
+        TryResolvePhysicalItemServices(
+            out IWorldItemStackRuntime itemRuntime,
+            out _);
+        return itemRuntime?.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal))
+            .Sum(stack => stack.Quantity) ?? 0;
+    }
+
+    private static bool TryResolvePhysicalItemServices(
+        out IWorldItemStackRuntime itemRuntime,
+        out IWorldDropZoneQuery dropZoneQuery)
+    {
+        DungeonRuntimeLifetimeScope scope = Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>(
+            FindObjectsInactive.Include);
+        if (scope == null || scope.Container == null)
+        {
+            itemRuntime = null;
+            dropZoneQuery = null;
+            return false;
+        }
+
+        itemRuntime = scope.Container.Resolve<IWorldItemStackRuntime>();
+        dropZoneQuery = scope.Container.Resolve<IWorldDropZoneQuery>();
+        return itemRuntime != null && dropZoneQuery != null;
     }
 
     private static GameData CreateGameData(int holdingMoney)

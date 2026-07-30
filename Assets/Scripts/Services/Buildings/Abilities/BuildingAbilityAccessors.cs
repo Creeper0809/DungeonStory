@@ -12,12 +12,21 @@ public static class BuildingAbilityAccessors
 
     public static int GetConstructionCost(this BuildingSO building)
     {
+        return building.GetConstructionValue();
+    }
+
+    public static int GetConstructionValue(this BuildingSO building)
+    {
         BuildingEconomyAbility ability = building != null
             ? building.GetAbility<BuildingEconomyAbility>()
             : null;
         if (ability != null)
         {
-            return Mathf.Max(0, ability.constructionCost);
+            return Mathf.Max(
+                0,
+                ability.constructionValue > 0
+                    ? ability.constructionValue
+                    : ability.constructionCost);
         }
 
         return 0;
@@ -324,8 +333,11 @@ public static class BuildingAbilityAccessors
         int width = Mathf.Max(1, placement.Width);
         int height = Mathf.Max(1, placement.Height);
         int cells = Mathf.Max(1, width * height);
-        int cost = building.GetConstructionCost();
-        return GetDefaultRequiredWork(definition.Type, cells, cost);
+        int constructionValue = building.GetConstructionValue();
+        return GetDefaultRequiredWork(
+            definition.Type,
+            cells,
+            constructionValue);
     }
 
     private static float GetDefaultRequiredWork(FacilityWorkType workType, int cells, int cost)
@@ -352,7 +364,9 @@ public static class BuildingAbilityAccessors
         Dictionary<StockCategory, int> result = new Dictionary<StockCategory, int>();
         if (building != null)
         {
-            int amount = Mathf.Max(1, Mathf.CeilToInt(building.GetConstructionCost() * 0.05f));
+            int amount = Mathf.Max(
+                1,
+                Mathf.CeilToInt(building.GetConstructionValue() * 0.05f));
             result[StockCategory.General] = amount;
         }
 
@@ -417,7 +431,12 @@ public static class BuildingAbilityAccessors
 
     public static int GetConstructionCost(this BuildableObject building)
     {
-        return building?.BuildingData.GetConstructionCost() ?? 0;
+        return building?.BuildingData.GetConstructionValue() ?? 0;
+    }
+
+    public static int GetConstructionValue(this BuildableObject building)
+    {
+        return building?.BuildingData.GetConstructionValue() ?? 0;
     }
 
     public static int GetStorageCapacity(this BuildableObject building)

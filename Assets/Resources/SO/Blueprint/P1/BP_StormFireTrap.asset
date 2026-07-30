@@ -30,12 +30,7 @@ MonoBehaviour:
   researchWorkRequired: 60
   targetResearchProjectId: research:arcane:resonance
   unlocks:
-    items:
-    - rid: 7302563252806877232
+    items: []
   references:
     version: 2
-    RefIds:
-    - rid: 7302563252806877232
-      type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        recipeId: recipe_arcane_ritual_2
+    RefIds: []

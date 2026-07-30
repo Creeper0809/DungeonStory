@@ -26,6 +26,7 @@ public static class ResearchProjectAssetBuilder
     public static void Rebuild()
     {
         EnsureFolders();
+        IndustrialInfrastructureAssetBuilder.EnsureAssets();
         Dictionary<int, FacilityBlueprintSO> blueprints = AssetDatabase
             .FindAssets("t:FacilityBlueprintSO", new[] { "Assets/Resources/SO/Blueprint" })
             .Select(AssetDatabase.GUIDToAssetPath)
@@ -122,7 +123,13 @@ public static class ResearchProjectAssetBuilder
             return;
         }
 
-        string[] facilityCodes = researchId switch
+        IReadOnlyDictionary<string, string[]> industrialUnlocks =
+            IndustrialInfrastructureAssetBuilder.GetResearchUnlockCodes();
+        string[] facilityCodes = industrialUnlocks.TryGetValue(
+            researchId,
+            out string[] industrialCodes)
+                ? industrialCodes
+                : researchId switch
         {
             "research:cuisine:milling" => new[] { "P01" },
             "research:cuisine:fermentation" => new[] { "P02" },
@@ -149,6 +156,14 @@ public static class ResearchProjectAssetBuilder
             "research:agriculture:field" => new[] { "P23" },
             "research:agriculture:indoor" => new[] { "P24" },
             "research:survival:sanitation" => new[] { "P25" },
+            "research:survival:medical" => new[] { "M01" },
+            "research:medical:anatomy" => new[] { "M02" },
+            "research:medical:surgery" => new[] { "M03", "M04", "M05" },
+            "research:medical:prosthetics" => new[] { "M06", "M07" },
+            "research:medical:organ-preservation" => new[] { "M08" },
+            "research:medical:xenotransplant" => new[] { "M09", "M10", "M11" },
+            "research:medical:aberrant-augmentation" => new[] { "M12", "M13" },
+            "research:defense:tactical-command" => new[] { "T01" },
             _ => Array.Empty<string>()
         };
         if (facilityCodes.Length == 0)
@@ -159,7 +174,7 @@ public static class ResearchProjectAssetBuilder
         Dictionary<string, BuildingSO> buildingsByCode = AssetDatabase
             .FindAssets(
                 "t:BuildingSO",
-                new[] { "Assets/Resources/SO/Building/Modular" })
+                new[] { "Assets/Resources/SO/Building" })
             .Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
             .Where(building => building != null)
@@ -349,7 +364,59 @@ public static class ResearchProjectAssetBuilder
             S("research:pharmacology:distillation", 7133, "증류", "알코올과 연금 용매로 유효 성분을 농축한다.", ResearchField.Pharmacology, 86, prerequisites: new[] { "research:pharmacology:antiseptic", "research:arcane:alchemy" }),
             S("research:pharmacology:anesthesia", 7134, "진통·마취", "몽엽으로 통증과 의식을 안전하게 조절한다.", ResearchField.Pharmacology, 118, prerequisites: new[] { "research:pharmacology:distillation" }),
             S("research:pharmacology:stimulants", 7135, "각성제", "혈엽과 마나로 전투·작업 촉진제를 만든다.", ResearchField.Pharmacology, 154, prerequisites: new[] { "research:pharmacology:anesthesia" }),
-            S("research:pharmacology:advanced", 7136, "고급 약리", "의료와 연금 지식을 결합해 고급 약품과 해독제를 만든다.", ResearchField.Pharmacology, 204, prerequisites: new[] { "research:pharmacology:stimulants", "research:survival:medical", "research:arcane:alchemy" })
+            S("research:pharmacology:advanced", 7136, "고급 약리", "의료와 연금 지식을 결합해 고급 약품과 해독제를 만든다.", ResearchField.Pharmacology, 204, prerequisites: new[] { "research:pharmacology:stimulants", "research:survival:medical", "research:arcane:alchemy" }),
+
+            S("research:medical:anatomy", 7141, "해부학", "인간형과 동물의 기관 구조를 기록해 치료와 적출의 기준을 세운다.", ResearchField.SurgeryAndTransplant, 96, prerequisites: new[] { "research:survival:medical", "research:arcane:records" }),
+            S("research:medical:surgery", 7142, "외과술", "마취, 절개와 봉합을 표준화해 생체 수술을 가능하게 한다.", ResearchField.SurgeryAndTransplant, 138, prerequisites: new[] { "research:medical:anatomy", "research:pharmacology:anesthesia" }),
+            S("research:medical:prosthetics", 7143, "보철 공학", "결손된 팔다리와 감각 기관을 금속과 목재 보철로 대체한다.", ResearchField.SurgeryAndTransplant, 174, prerequisites: new[] { "research:medical:surgery", "research:metallurgy:iron" }),
+            S("research:medical:organ-preservation", 7144, "장기 보존", "적출 기관의 기증자 기록과 신선도를 유지하는 저온 보관법을 확립한다.", ResearchField.SurgeryAndTransplant, 188, prerequisites: new[] { "research:medical:surgery", "research:survival:preservation", "research:pharmacology:antiseptic" }),
+            S("research:medical:xenotransplant", 7145, "이종 이식", "다른 종의 기관을 순환계에 연결하고 거부 반응을 통제한다.", ResearchField.SurgeryAndTransplant, 238, prerequisites: new[] { "research:medical:organ-preservation", "research:husbandry:selective", "research:pharmacology:advanced" }),
+            S("research:medical:aberrant-augmentation", 7146, "이형 개조", "비전 기관과 룬 봉합으로 생명의 원형을 의도적으로 다시 쓴다.", ResearchField.SurgeryAndTransplant, 310, prerequisites: new[] { "research:medical:xenotransplant", "research:arcane:resonance", "research:metallurgy:blacksteel" }),
+
+            S("research:industry:steam-power", 7151, "증기 동력", "목재와 석탄을 태워 생산 설비를 움직일 축 동력을 만든다.", ResearchField.IndustryAndAutomation, 72, prerequisites: new[] { "research:forestry:charcoal", "research:metallurgy:iron" }),
+            S("research:industry:distribution", 7152, "배전", "전선과 회로 구역으로 발전원과 소비 시설을 연결한다.", ResearchField.IndustryAndAutomation, 94, prerequisites: new[] { "research:industry:steam-power" }),
+            S("research:industry:breakers", 7153, "차단과 보호", "과부하 회로를 분리하고 고장을 국소화한다.", ResearchField.IndustryAndAutomation, 116, prerequisites: new[] { "research:industry:distribution" }),
+            S("research:industry:storage", 7154, "축전", "남는 전력을 저장해 정전과 수요 급증에 대비한다.", ResearchField.IndustryAndAutomation, 142, prerequisites: new[] { "research:industry:breakers" }),
+            S("research:industry:waterwheel", 7155, "수차 발전", "외부 수원을 이용해 연료 없는 완만한 전력을 생산한다.", ResearchField.IndustryAndAutomation, 154, prerequisites: new[] { "research:industry:distribution", "research:agriculture:irrigation" }),
+            S("research:industry:transformers", 7156, "변압과 회로 구역", "대규모 배전망을 우선순위 회로로 나누어 운용한다.", ResearchField.IndustryAndAutomation, 178, prerequisites: new[] { "research:industry:storage" }),
+            S("research:industry:mana-power", 7157, "마나 발전", "마나 결정을 안정된 전력으로 변환한다.", ResearchField.IndustryAndAutomation, 218, prerequisites: new[] { "research:industry:transformers", "research:arcane:advanced" }),
+            S("research:industry:rune-grid", 7158, "룬 전력망", "룬 안정기로 고밀도 전력망의 손실과 과부하를 줄인다.", ResearchField.IndustryAndAutomation, 274, prerequisites: new[] { "research:industry:mana-power", "research:arcane:resonance" }),
+
+            S("research:industry:conveyor", 7161, "컨베이어", "전동 벨트로 물리 아이템을 정해진 방향으로 운송한다.", ResearchField.IndustryAndAutomation, 108, prerequisites: new[] { "research:industry:distribution", "research:commerce:logistics" }),
+            S("research:industry:ports", 7162, "입출력 포트", "시설 버퍼와 컨베이어 사이에서 아이템을 보존한 채 인계한다.", ResearchField.IndustryAndAutomation, 128, prerequisites: new[] { "research:industry:conveyor" }),
+            S("research:industry:junctions", 7163, "분배와 합류", "한 물류선을 여러 목적지로 나누고 다시 합친다.", ResearchField.IndustryAndAutomation, 150, prerequisites: new[] { "research:industry:ports" }),
+            S("research:industry:filters", 7164, "물류 필터", "품목, 재질, 품질과 신선도로 운송 경로를 분리한다.", ResearchField.IndustryAndAutomation, 172, prerequisites: new[] { "research:industry:junctions" }),
+            S("research:industry:priority-gates", 7165, "우선순위 게이트", "중요 생산선에 먼저 공간을 내주고 저순위 흐름을 대기시킨다.", ResearchField.IndustryAndAutomation, 194, prerequisites: new[] { "research:industry:filters" }),
+            S("research:industry:lifts", 7166, "층간 물류 리프트", "층 사이에서도 고유 아이템의 메타데이터를 유지해 운송한다.", ResearchField.IndustryAndAutomation, 224, prerequisites: new[] { "research:industry:priority-gates", "research:metallurgy:steel" }),
+            S("research:industry:overflow", 7167, "오버플로 배출", "교착된 물류를 예비 창고나 바닥 스택으로 안전하게 배출한다.", ResearchField.IndustryAndAutomation, 242, prerequisites: new[] { "research:industry:filters" }),
+            S("research:industry:high-speed-belts", 7168, "고속 물류망", "강철 구동부와 회로 제어로 벨트 처리량을 높인다.", ResearchField.IndustryAndAutomation, 288, prerequisites: new[] { "research:industry:lifts", "research:industry:overflow" }),
+
+            S("research:industry:powered-tools", 7171, "전동 공구", "전력을 사용해 작업자의 생산 작업량을 보조한다.", ResearchField.IndustryAndAutomation, 112, prerequisites: new[] { "research:industry:distribution", "research:metallurgy:iron" }),
+            S("research:industry:assisted-processing", 7172, "동력 보조 가공", "기존 생산 시설에 전동 모듈을 부착해 작업 속도를 높인다.", ResearchField.IndustryAndAutomation, 138, prerequisites: new[] { "research:industry:powered-tools" }),
+            S("research:industry:automatic-bills", 7173, "자동 생산 주문", "공급과 출력이 확보된 반복 주문을 무인으로 진행한다.", ResearchField.IndustryAndAutomation, 168, prerequisites: new[] { "research:industry:assisted-processing", "research:industry:ports" }),
+            S("research:industry:stock-sensors", 7174, "재고 감지기", "목표 재고와 시설 버퍼를 읽어 과잉 생산을 멈춘다.", ResearchField.IndustryAndAutomation, 192, prerequisites: new[] { "research:industry:automatic-bills", "research:commerce:logistics" }),
+            S("research:industry:maintenance", 7175, "예방 정비", "오염과 마모가 고장으로 번지기 전에 정비 주문을 만든다.", ResearchField.IndustryAndAutomation, 214, prerequisites: new[] { "research:industry:stock-sensors", "research:industry:breakers" }),
+            S("research:industry:precision", 7176, "정밀 자동화", "자동 생산의 품질 편차와 재료 손실을 줄인다.", ResearchField.IndustryAndAutomation, 246, prerequisites: new[] { "research:industry:maintenance", "research:metallurgy:advanced" }),
+            S("research:industry:automatic-sanitation", 7177, "자동 위생 관리", "펌프와 배수구를 제어해 세척과 오수 처리를 자동화한다.", ResearchField.IndustryAndAutomation, 260, prerequisites: new[] { "research:industry:maintenance", "research:plumbing:sewer" }),
+            S("research:industry:rune-automation", 7178, "룬 자동화", "룬 제어반으로 복잡한 생산선의 작업과 유지보수를 보조한다.", ResearchField.IndustryAndAutomation, 324, prerequisites: new[] { "research:industry:precision", "research:industry:rune-grid" }),
+
+            S("research:industry:factory-layout", 7181, "공장 배치", "입출력 포트, 작업 위치와 정비 통로를 표준화한다.", ResearchField.IndustryAndAutomation, 118, prerequisites: new[] { "research:industry:powered-tools", "research:commerce:logistics" }),
+            S("research:industry:electric-smelting", 7182, "전기 제련", "용광로와 제강로의 열을 전력으로 안정화한다.", ResearchField.IndustryAndAutomation, 154, prerequisites: new[] { "research:industry:factory-layout", "research:metallurgy:steel" }),
+            S("research:industry:industrial-cooling", 7183, "산업 냉각", "재이용수로 과열과 자동화 고장을 낮춘다.", ResearchField.IndustryAndAutomation, 182, prerequisites: new[] { "research:industry:electric-smelting", "research:plumbing:reuse" }),
+            S("research:industry:electric-lighting", 7184, "산업 조명", "작업 구역의 명중·속도·안전 저하를 전기 조명으로 완화한다.", ResearchField.IndustryAndAutomation, 164, prerequisites: new[] { "research:industry:distribution", "research:defense:watch" }),
+            S("research:industry:line-balancing", 7185, "생산선 균형", "병목과 대기 원인을 분석해 분배 비율을 조정한다.", ResearchField.IndustryAndAutomation, 218, prerequisites: new[] { "research:industry:stock-sensors", "research:industry:junctions" }),
+            S("research:industry:defense-supply", 7186, "방어 보급 자동화", "탄약과 연료를 방어 시설 버퍼까지 자동 공급한다.", ResearchField.IndustryAndAutomation, 252, prerequisites: new[] { "research:industry:line-balancing", "research:defense:tactical-command" }),
+            S("research:industry:safety", 7187, "산업 안전", "누전, 누수, 역류와 기계 사고를 감지하고 회로를 격리한다.", ResearchField.IndustryAndAutomation, 276, prerequisites: new[] { "research:industry:maintenance", "research:plumbing:sewer" }),
+            S("research:industry:dark-foundry", 7188, "심연 공장", "흑강과 마나를 대가로 고밀도 자동 생산을 운용한다.", ResearchField.IndustryAndAutomation, 360, prerequisites: new[] { "research:industry:rune-automation", "research:metallurgy:blacksteel", "research:medical:aberrant-augmentation" }),
+
+            S("research:plumbing:basics", 7191, "배관 기초", "상수와 하수를 분리해 벽과 바닥 아래로 연결한다.", ResearchField.WaterAndSanitation, 72, prerequisites: new[] { "research:survival:sanitation", "research:metallurgy:iron" }),
+            S("research:plumbing:storage-valves", 7192, "저수와 밸브", "수질별 저장 탱크와 구역 차단 밸브를 운용한다.", ResearchField.WaterAndSanitation, 98, prerequisites: new[] { "research:plumbing:basics" }),
+            S("research:plumbing:pumped-water", 7193, "전동 급수", "펌프와 전력으로 수원을 던전 내부 상수망에 공급한다.", ResearchField.WaterAndSanitation, 126, prerequisites: new[] { "research:plumbing:storage-valves", "research:industry:distribution" }),
+            S("research:plumbing:flush-sanitation", 7194, "수세 위생", "변기, 세면대, 목욕과 샤워를 상수망에 연결한다.", ResearchField.WaterAndSanitation, 152, prerequisites: new[] { "research:plumbing:pumped-water", "research:survival:support" }),
+            S("research:plumbing:sewer", 7195, "하수 배관", "폐수 저장과 역류 방지를 위한 별도 하수망을 구축한다.", ResearchField.WaterAndSanitation, 174, prerequisites: new[] { "research:plumbing:flush-sanitation" }),
+            S("research:plumbing:settling", 7196, "오수 침전", "폐수에서 재이용수와 슬러지를 분리한다.", ResearchField.WaterAndSanitation, 204, prerequisites: new[] { "research:plumbing:sewer", "research:agriculture:compost" }),
+            S("research:plumbing:reuse", 7197, "정수와 재이용", "침전수와 소독제를 사용해 깨끗한 물로 되돌린다.", ResearchField.WaterAndSanitation, 242, prerequisites: new[] { "research:plumbing:settling", "research:pharmacology:distillation" }),
+            S("research:plumbing:rune-purification", 7198, "룬 정화 순환", "마나와 룬으로 폐수 손실을 줄인 고효율 순환망을 만든다.", ResearchField.WaterAndSanitation, 304, prerequisites: new[] { "research:plumbing:reuse", "research:arcane:resonance", "research:industry:rune-grid" })
         };
     }
 

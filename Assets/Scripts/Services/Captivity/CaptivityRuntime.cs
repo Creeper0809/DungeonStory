@@ -27,7 +27,7 @@ public sealed class CaptivityRuntime :
     private readonly IGridSystemProvider gridProvider;
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly IRoomLayoutCache roomLayoutCache;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameMoneyRuntime money;
     private readonly IDoorAccessQuery doorAccessQuery;
     private readonly IDoorAccessCommandService doorAccessCommands;
     private readonly IDoorAccessSubjectRegistry doorSubjectRegistry;
@@ -54,7 +54,7 @@ public sealed class CaptivityRuntime :
         IGridSystemProvider gridProvider,
         IGridPathSearchBroker pathSearchBroker,
         IRoomLayoutCache roomLayoutCache,
-        IGameDataProvider gameDataProvider,
+        IGameMoneyRuntime money,
         IDoorAccessQuery doorAccessQuery,
         IDoorAccessCommandService doorAccessCommands,
         IDoorAccessSubjectRegistry doorSubjectRegistry,
@@ -77,8 +77,7 @@ public sealed class CaptivityRuntime :
             ?? throw new ArgumentNullException(nameof(pathSearchBroker));
         this.roomLayoutCache = roomLayoutCache
             ?? throw new ArgumentNullException(nameof(roomLayoutCache));
-        this.gameDataProvider = gameDataProvider
-            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.doorAccessQuery = doorAccessQuery
             ?? throw new ArgumentNullException(nameof(doorAccessQuery));
         this.doorAccessCommands = doorAccessCommands
@@ -930,18 +929,17 @@ public bool IsWorkAllowed(
             return false;
         }
 
-        if (!gameDataProvider.TryGetGameData(out GameData gameData)
-            || gameData.holdingMoney == null)
-        {
-            failureReason = "게임 자금 정보를 찾을 수 없습니다.";
-            return false;
-        }
-
         paidAmount = state.RansomValue;
         state.status = CaptivityStatus.Ransom;
         state.retaliationPressure = ClampStat(
             state.retaliationPressure + state.grudge * 0.35f);
-        gameData.holdingMoney.Value += paidAmount;
+        money.Add(
+            paidAmount,
+            new EconomyTransactionContext(
+                EconomyTransactionKind.RansomIncome,
+                state.captiveId,
+                actor.Identity?.PersistentId ?? state.captiveId,
+                "포로 몸값"));
         ReleaseCaptive(
             state,
             actor,

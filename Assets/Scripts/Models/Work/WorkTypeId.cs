@@ -55,6 +55,7 @@ public static class BuiltInWorkTypeIds
     public static readonly WorkTypeId DrawWater = new WorkTypeId("work:draw-water");
     public static readonly WorkTypeId Cook = new WorkTypeId("work:cook");
     public static readonly WorkTypeId Treat = new WorkTypeId("work:treat");
+    public static readonly WorkTypeId Surgery = new WorkTypeId("work:surgery");
     public static readonly WorkTypeId Refuel = new WorkTypeId("work:refuel");
     public static readonly WorkTypeId Warden = new WorkTypeId("work:warden");
     public static readonly WorkTypeId Perform = new WorkTypeId("work:perform");
@@ -66,4 +67,8 @@ public static class BuiltInWorkTypeIds
     public static readonly WorkTypeId AnimalCare = new WorkTypeId("work:animal-care");
     public static readonly WorkTypeId GrandProject =
         new WorkTypeId("work:grand-project");
+    public static readonly WorkTypeId ThreatMitigation =
+        new WorkTypeId("work:threat-mitigation");
+    public static readonly WorkTypeId Plumbing =
+        new WorkTypeId("work:plumbing");
 }

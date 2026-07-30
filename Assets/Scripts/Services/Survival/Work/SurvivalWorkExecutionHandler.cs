@@ -18,15 +18,18 @@ public sealed class SurvivalWorkExecutionHandler :
 
     private readonly ISurvivalFoodRuntime survivalRuntime;
     private readonly IProductionBillRuntime productionBills;
+    private readonly IProcessFluidUseRuntime processFluids;
     private readonly IReadOnlyDictionary<WorkTypeId, Func<BuildableObject, float>> workAmounts;
 
     public SurvivalWorkExecutionHandler(
         ISurvivalFoodRuntime survivalRuntime,
-        IProductionBillRuntime productionBills = null)
+        IProductionBillRuntime productionBills = null,
+        IProcessFluidUseRuntime processFluids = null)
     {
         this.survivalRuntime = survivalRuntime
             ?? throw new ArgumentNullException(nameof(survivalRuntime));
         this.productionBills = productionBills;
+        this.processFluids = processFluids;
         workAmounts = new Dictionary<WorkTypeId, Func<BuildableObject, float>>
         {
             [BuiltInWorkTypeIds.DrawWater] = target =>
@@ -103,6 +106,17 @@ public sealed class SurvivalWorkExecutionHandler :
                 });
             result.CompletedSuccessfully = applied && completed;
             result.CompletionEffectsAlreadyApplied = completed;
+            yield break;
+        }
+
+        if (context.WorkTypeId == BuiltInWorkTypeIds.Cook
+            && processFluids != null
+            && !processFluids.TryConsumeCycle(
+                context.Target,
+                context.WorkTypeId,
+                out _))
+        {
+            result.CompletedSuccessfully = false;
             yield break;
         }
 

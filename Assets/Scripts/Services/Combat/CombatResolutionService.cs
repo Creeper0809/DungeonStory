@@ -38,19 +38,30 @@ public sealed class CombatResolutionService : ICombatResolutionService
 {
     private readonly ICombatRandomSource random;
     private readonly IEquipmentEvolutionRuntime evolution;
+    private readonly IEquipmentOverclockRuntime overclock;
 
     public CombatResolutionService(
         ICombatRandomSource random,
-        IEquipmentEvolutionRuntime evolution = null)
+        IEquipmentEvolutionRuntime evolution = null,
+        IEquipmentOverclockRuntime overclock = null)
     {
         this.random = random ?? throw new ArgumentNullException(nameof(random));
         this.evolution = evolution;
+        this.overclock = overclock;
     }
 
     public CombatAttackResult Resolve(CombatAttackRequest request)
     {
         CombatWeaponSnapshot weapon = request.Weapon ?? CombatWeaponSnapshot.CreateUnarmed();
         CombatAttackVerb verb = weapon.Verb ?? CombatWeaponSnapshot.CreateUnarmed().Verb;
+        if (!string.IsNullOrWhiteSpace(weapon.InstanceId)
+            && overclock?.TryRollActionMalfunction(
+                OverclockTargetKind.Equipment,
+                weapon.InstanceId) == true)
+        {
+            return Record(request, Failure("오버클럭 오작동"));
+        }
+
         CombatRangeBand band = CombatRangeRules.GetBand(request.Distance);
         bool isRanged = weapon.IsRanged;
         if (request.Distance > weapon.MaximumRange
@@ -429,7 +440,7 @@ public sealed class CombatResolutionService : ICombatResolutionService
             0.35f);
     }
 
-    private static float CalculateRawDamage(
+    private float CalculateRawDamage(
         CombatAttackRequest request,
         CombatWeaponSnapshot weapon,
         CombatAttackVerb verb,
@@ -439,10 +450,17 @@ public sealed class CombatResolutionService : ICombatResolutionService
         float statDamage = weapon.IsRanged
             ? request.Attacker.Shooting * 0.45f + request.Attacker.Dexterity * 0.15f
             : request.Attacker.Melee * 0.75f + request.Attacker.Strength * 0.45f;
+        float overclockMultiplier = string.IsNullOrWhiteSpace(
+                weapon.InstanceId)
+            ? 1f
+            : overclock?.GetPerformanceMultiplier(
+                OverclockTargetKind.Equipment,
+                weapon.InstanceId) ?? 1f;
         return Mathf.Max(1f, (verb.baseDamage + statDamage)
             * rangeDamage
             * quality
             * weapon.MaterialDamageMultiplier
+            * overclockMultiplier
             * Mathf.Max(0.01f, request.Attacker.HealthMultiplier)
             * Mathf.Max(0.01f, request.AttackPowerMultiplier));
     }

@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cb1545c617046a479f6260685aafe1a, type: 3}
+  m_Name: 04_travel_black_rain
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseDecisionCardSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170303
+  cardId: travel_black_rain
+  stage: 0
+  title: "\uAC80\uC740 \uBE44"
+  situation: "\uBA39\uAD6C\uB984\uC5D0\uC11C \uAE30\uB984 \uB0C4\uC0C8\uAC00 \uB098\uB294
+    \uBE57\uBC29\uC6B8\uC774 \uB5A8\uC5B4\uC9C0\uAE30 \uC2DC\uC791\uD569\uB2C8\uB2E4."
+  requiredWorldTags: []
+  choices:
+  - choiceId: left
+    label: "\uCC9C\uB9C9\uC744 \uCE5C\uB2E4"
+    description: "\uBCF4\uAE09\uC744 \uBCF4\uD638\uD558\uBA70 \uBE44\uAC00 \uC7A6\uC544\uB4E4\uAE30\uB97C
+      \uAE30\uB2E4\uB9BD\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uD53C\uB85C \uC99D\uAC00"
+    severity: 1
+    mayStartCombat: 0
+    mayCauseInjury: 0
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258747
+  - choiceId: right
+    label: "\uD589\uAD70\uC744 \uACC4\uC18D\uD55C\uB2E4"
+    description: "\uC2DC\uAC04\uC744 \uC544\uB07C\uC9C0\uB9CC \uC7A5\uBE44\uC640
+      \uBAB8\uC774 \uC816\uC2B5\uB2C8\uB2E4."
+    requiredTag: 
+    transformedLabel: 
+    transformedDescription: 
+    directionLabel: "\uC7A5\uBE44 \uC190\uC0C1 \uC704\uD5D8"
+    severity: 2
+    mayStartCombat: 0
+    mayCauseInjury: 1
+    mayMoveExpedition: 0
+    effects:
+    - rid: 7302563269269258748
+    - rid: 7302563269269258749
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258747
+      type: {class: OffenseStressDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        amount: 10
+    - rid: 7302563269269258748
+      type: {class: OffenseEquipmentWearDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        durabilityDamage: 13
+    - rid: 7302563269269258749
+      type: {class: OffenseInjuryDecisionEffect, ns: , asm: Assembly-CSharp}
+      data:
+        maxHealthRatio: 0.115
+        nonLethal: 1

@@ -153,11 +153,9 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
             completedTargets = worldMap.State.CompletedTargetCount;
         }
 
-        int minimumLevel = GetCampaignRecruitMinimumLevel(completedTargets);
-        if (record != null && record.VisitCount >= 3 && completedTargets >= 3)
-        {
-            minimumLevel = Mathf.Min(CharacterProgression.MaxLevel, minimumLevel + 2);
-        }
+        int minimumLevel = EstimateCampaignRecruitLevel(
+            record,
+            completedTargets);
 
         if (!progression.EnsureMinimumLevel(
                 minimumLevel,
@@ -180,6 +178,36 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
             3 => 44,
             _ => CharacterProgression.MaxLevel
         };
+    }
+
+    public static int EstimateCampaignRecruitLevel(
+        RegularCustomerRecord record,
+        IOffenseWorldMapRuntimeProvider worldMapProvider)
+    {
+        int completedTargets = 0;
+        if (worldMapProvider != null
+            && worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap)
+            && worldMap?.State != null)
+        {
+            completedTargets = worldMap.State.CompletedTargetCount;
+        }
+
+        return EstimateCampaignRecruitLevel(record, completedTargets);
+    }
+
+    private static int EstimateCampaignRecruitLevel(
+        RegularCustomerRecord record,
+        int completedTargets)
+    {
+        int minimumLevel = GetCampaignRecruitMinimumLevel(completedTargets);
+        if (record != null && record.VisitCount >= 3 && completedTargets >= 3)
+        {
+            minimumLevel = Mathf.Min(
+                CharacterProgression.MaxLevel,
+                minimumLevel + 2);
+        }
+
+        return minimumLevel;
     }
 
     private static bool MatchesRecord(CharacterActor actor, RegularCustomerRecord record)

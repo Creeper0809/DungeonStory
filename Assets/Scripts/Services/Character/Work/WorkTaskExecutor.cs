@@ -17,6 +17,7 @@ public sealed class WorkTaskExecutor
     private readonly IWorkAmountCalculator workAmountCalculator;
     private readonly IGameClock gameClock;
     private readonly IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
+    private readonly IPaidFacilityContractRuntime paidFacilityContracts;
 
     public WorkTaskExecutor(
         AbilityWork work,
@@ -25,7 +26,8 @@ public sealed class WorkTaskExecutor
         IWorkOrderRuntime workOrderRuntime = null,
         IWorkAmountCalculator workAmountCalculator = null,
         IGameClock gameClock = null,
-        IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null)
+        IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
+        IPaidFacilityContractRuntime paidFacilityContracts = null)
     {
         this.work = work;
         this.targetSelector = targetSelector;
@@ -34,6 +36,7 @@ public sealed class WorkTaskExecutor
         this.workAmountCalculator = workAmountCalculator;
         this.gameClock = gameClock ?? new UnityGameClock();
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
+        this.paidFacilityContracts = paidFacilityContracts;
     }
 
     public IEnumerator Work(int runId)
@@ -100,6 +103,38 @@ public sealed class WorkTaskExecutor
                 ? resolvedWorkDefinition
                 : null;
             WorkTypeId workTypeId = workDefinition?.WorkTypeId ?? default;
+            string paidOrderKey =
+                $"work:{workTypeId.Value}:{actor?.Identity?.PersistentId}:{runId}";
+            if (workOrderRuntime != null
+                && workTypeId.IsValid
+                && workOrderRuntime.TryGetOrderFor(
+                    assignedTarget,
+                    workTypeId,
+                    out WorkOrderProgressState paidOrder))
+            {
+                paidOrderKey = paidOrder.WorkOrderId;
+            }
+
+            if (paidFacilityContracts != null
+                && !paidFacilityContracts.TryChargeOrder(
+                    assignedTarget,
+                    paidOrderKey,
+                    out string paidFailureReason))
+            {
+                actor?.AddActivity(CharacterActivityEvent.Work(
+                    workType,
+                    CharacterActivityOutcomes.Blocked,
+                    $"{workDefinition?.DisplayName ?? "작업"} 중단: {paidFailureReason}",
+                    assignedTarget,
+                    reasonCode: "paid-facility-order",
+                    bubbleEligible: true));
+                facility.DeallocateWorker(actor);
+                work.isWorking = false;
+                EndAiAction(actor, currentAction);
+                work.ClearActiveWorkRoutine(runId);
+                yield break;
+            }
+
             CharacterSkillRuntimeEffects.BeginWork(
                 actor,
                 assignedTarget,

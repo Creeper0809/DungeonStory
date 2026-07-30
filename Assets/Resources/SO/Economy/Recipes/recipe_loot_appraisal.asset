@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75000297946ffe4481d69575fdbfd0a, type: 3}
+  m_Name: recipe_loot_appraisal
+  m_EditorClassIdentifier: Assembly-CSharp::ProductionRecipeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9126
+  recipeId: recipe:loot-appraisal
+  displayName: "\uC6D0\uC815 \uC804\uB9AC\uD488 \uAC10\uC815"
+  description: "\uD558\uCC28\uC7A5\uC5D0\uC11C \uC6B4\uBC18\uD55C \uC804\uB9AC\uD488\uC758 \uCD9C\uCC98\uC640 \uAC00\uCE58\uB97C \uD655\uC778\uD55C\uB2E4."
+  facilityTag: loot-appraisal
+  workTypeId: work:craft
+  requiredResearchId: 
+  requiredWork: 8
+  inputs:
+  - itemId: offense:unappraised-loot
+    amount: 10
+  outputs:
+  - itemId: offense:appraised-valuables
+    amount: 10
+    probability: 1

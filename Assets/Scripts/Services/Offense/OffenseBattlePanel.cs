@@ -959,14 +959,18 @@ public sealed class OffenseBattleUiController : IStartable, IDisposable
 {
     private readonly IOffenseBattleRuntime battleRuntime;
     private readonly IOffenseBattlePanelFactory panelFactory;
+    private readonly IOffenseExpeditionRuntimeProvider expeditionProvider;
     private OffenseBattlePanel panel;
 
     public OffenseBattleUiController(
         IOffenseBattleRuntime battleRuntime,
-        IOffenseBattlePanelFactory panelFactory)
+        IOffenseBattlePanelFactory panelFactory,
+        IOffenseExpeditionRuntimeProvider expeditionProvider)
     {
         this.battleRuntime = battleRuntime ?? throw new ArgumentNullException(nameof(battleRuntime));
         this.panelFactory = panelFactory ?? throw new ArgumentNullException(nameof(panelFactory));
+        this.expeditionProvider = expeditionProvider
+            ?? throw new ArgumentNullException(nameof(expeditionProvider));
     }
 
     public void Start()
@@ -988,8 +992,29 @@ public sealed class OffenseBattleUiController : IStartable, IDisposable
             return;
         }
 
+        if (UsesV17CommandSurface(battleRuntime.Session.ExpeditionId))
+        {
+            if (panel != null)
+            {
+                panel.HideAll();
+            }
+
+            return;
+        }
+
         panel ??= panelFactory.Create();
         panel.Bind(battleRuntime);
         panel.Refresh();
+    }
+
+    private bool UsesV17CommandSurface(string expeditionId)
+    {
+        return !string.IsNullOrWhiteSpace(expeditionId)
+            && expeditionProvider.TryGetRuntime(
+                out OffenseExpeditionRuntime expeditionRuntime)
+            && expeditionRuntime.ActiveExpeditions.Any(expedition =>
+                expedition != null
+                && expedition.ExpeditionId == expeditionId
+                && expedition.UsesV17WorldTravel);
     }
 }

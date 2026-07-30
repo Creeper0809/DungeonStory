@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: industry_automatic_bills
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7173
+  projectId: research:industry:automatic-bills
+  displayName: "\uC790\uB3D9 \uC0DD\uC0B0 \uC8FC\uBB38"
+  description: "\uACF5\uAE09\uACFC \uCD9C\uB825\uC774 \uD655\uBCF4\uB41C \uBC18\uBCF5
+    \uC8FC\uBB38\uC744 \uBB34\uC778\uC73C\uB85C \uC9C4\uD589\uD55C\uB2E4."
+  field: 15
+  requiredWork: 168
+  prerequisites:
+  - {fileID: 11400000, guid: c34ef262e09f44d4e84bf04c8ca5153f, type: 2}
+  - {fileID: 11400000, guid: edaf98ccfa45c53459e9b78c28f5cd45, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563278452687352
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563278452687352
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9860

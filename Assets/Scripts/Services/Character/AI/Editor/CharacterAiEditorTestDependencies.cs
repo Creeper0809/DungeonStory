@@ -64,6 +64,7 @@ internal static class CharacterAiEditorTestDependencies
         new BuildingAbilityRuntimeDispatcher(
             new IBuildingAbilityWorkCompletedHandler[]
             {
+                new EditorSurvivalBuildingAbilityHandler(),
                 new ProductionBuildingAbilityHandler(),
                 new CleaningBuildingAbilityHandler(),
                 new SecurityBuildingAbilityHandler(),
@@ -73,6 +74,47 @@ internal static class CharacterAiEditorTestDependencies
                 new ExteriorMaintenanceBuildingAbilityHandler()
             },
             Array.Empty<IBuildingWorkCompletionFallbackHandler>());
+    internal static IBuildingAbilityRuntimeDispatcher BuildingAbilityRuntimeDispatcher =>
+        BuildingAbilities;
+
+    private sealed class EditorSurvivalBuildingAbilityHandler :
+        IBuildingAbilityWorkCompletedHandler
+    {
+        private static readonly Type[] Types =
+        {
+            typeof(BuildingWaterSourceAbility),
+            typeof(BuildingCookingAbility),
+            typeof(BuildingMedicalAbility),
+            typeof(BuildingFuelConsumerAbility)
+        };
+
+        public IReadOnlyCollection<Type> AbilityTypes => Types;
+
+        public int Apply(
+            BuildingAbility ability,
+            BuildingAbilityWorkContext context)
+        {
+            if (ability is BuildingWaterSourceAbility water
+                && context.WorkTypeId == BuiltInWorkTypeIds.DrawWater)
+            {
+                return ModularFacilityRuntimeEffects.Produce(
+                    context.Building,
+                    StockCategory.Water,
+                    Mathf.Max(1, water.waterPerWork));
+            }
+
+            if (ability is BuildingCookingAbility cooking
+                && context.WorkTypeId == BuiltInWorkTypeIds.Cook)
+            {
+                return ModularFacilityRuntimeEffects.Produce(
+                    context.Building,
+                    StockCategory.Food,
+                    Mathf.Max(1, cooking.cookedMeals));
+            }
+
+            return 0;
+        }
+    }
     private static readonly IShopStockCatalog ShopStock =
         new AssetDatabaseShopStockCatalog();
     private static readonly IGridSystemProvider GridSystem =

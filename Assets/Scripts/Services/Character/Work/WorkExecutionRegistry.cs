@@ -375,9 +375,35 @@ public sealed class TreatmentStatPolicy : CharacterStatWorkPolicy
     public TreatmentStatPolicy()
         : base(
             new[] { BuiltInWorkTypeIds.Treat },
-            CharacterStatType.Research,
+            CharacterStatType.Medical,
             CharacterStatType.Dexterity)
     {
+    }
+}
+
+public sealed class SurgeryStatPolicy : IWorkStatPolicy
+{
+    private static readonly WorkTypeId[] WorkTypes =
+    {
+        BuiltInWorkTypeIds.Surgery
+    };
+
+    public IReadOnlyCollection<WorkTypeId> WorkTypeIds => WorkTypes;
+
+    public float GetWorkSpeedMultiplier(
+        CharacterActor actor,
+        BuildableObject target)
+    {
+        if (actor == null)
+        {
+            return 1f;
+        }
+
+        float weightedSkill =
+            actor.GetCharacterStat(CharacterStatType.Medical) * 0.65f
+            + actor.GetCharacterStat(CharacterStatType.Dexterity) * 0.25f
+            + actor.GetCharacterStat(CharacterStatType.Research) * 0.10f;
+        return Mathf.Clamp(0.55f + weightedSkill * 0.09f, 0.45f, 2.5f);
     }
 }
 
@@ -435,6 +461,30 @@ public sealed class GrandProjectStatPolicy : CharacterStatWorkPolicy
     }
 }
 
+public sealed class ThreatMitigationStatPolicy : CharacterStatWorkPolicy
+{
+    public ThreatMitigationStatPolicy()
+        : base(
+            new[] { BuiltInWorkTypeIds.ThreatMitigation },
+            CharacterStatType.Research,
+            CharacterStatType.Endurance,
+            CharacterStatType.Dexterity)
+    {
+    }
+}
+
+public sealed class PlumbingStatPolicy : CharacterStatWorkPolicy
+{
+    public PlumbingStatPolicy()
+        : base(
+            new[] { BuiltInWorkTypeIds.Plumbing },
+            CharacterStatType.Dexterity,
+            CharacterStatType.Strength,
+            CharacterStatType.Research)
+    {
+    }
+}
+
 public sealed class WorkStatPolicyRegistry : IWorkStatPolicyRegistry
 {
     private readonly Dictionary<WorkTypeId, IWorkStatPolicy> policies;
@@ -478,13 +528,16 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
 {
     private readonly IWorkStatPolicyRegistry policies;
     private readonly IFacilityEvolutionModifierQuery facilityEvolution;
+    private readonly IAutomationRuntime automation;
 
     public WorkAmountCalculator(
         IWorkStatPolicyRegistry policies,
-        IFacilityEvolutionModifierQuery facilityEvolution = null)
+        IFacilityEvolutionModifierQuery facilityEvolution = null,
+        IAutomationRuntime automation = null)
     {
         this.policies = policies ?? throw new ArgumentNullException(nameof(policies));
         this.facilityEvolution = facilityEvolution;
+        this.automation = automation;
     }
 
     public float CalculateWorkPerSecond(
@@ -507,8 +560,14 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
                 target,
                 definition.WorkTypeId)
             ?? 1f;
+        float poweredAssist = automation?.GetWorkSpeedMultiplier(target)
+            ?? 1f;
         return Mathf.Clamp(
-            statMultiplier * workSpeed * environment * evolution,
+            statMultiplier
+            * workSpeed
+            * environment
+            * evolution
+            * poweredAssist,
             0.05f,
             8f);
     }

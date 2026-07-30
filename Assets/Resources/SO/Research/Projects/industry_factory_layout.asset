@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: industry_factory_layout
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7181
+  projectId: research:industry:factory-layout
+  displayName: "\uACF5\uC7A5 \uBC30\uCE58"
+  description: "\uC785\uCD9C\uB825 \uD3EC\uD2B8, \uC791\uC5C5 \uC704\uCE58\uC640
+    \uC815\uBE44 \uD1B5\uB85C\uB97C \uD45C\uC900\uD654\uD55C\uB2E4."
+  field: 15
+  requiredWork: 118
+  prerequisites:
+  - {fileID: 11400000, guid: b3b38e91925a91943b4303ee3edc9533, type: 2}
+  - {fileID: 11400000, guid: 267e6f558200e604ba61f34e665242b2, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items: []
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

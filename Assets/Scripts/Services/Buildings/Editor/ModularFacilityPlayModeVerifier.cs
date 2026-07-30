@@ -277,8 +277,7 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
             yield break;
         }
 
-        int phase2Cost = phase2.GetConstructionCost();
-        int poorMoney = Mathf.Max(0, phase2Cost - 1);
+        int poorMoney = 0;
         gameData.holdingMoney.Value = poorMoney;
         yield return null;
         yield return null;
@@ -292,8 +291,8 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
         bool blockedTint = ghostRenderer != null
             && ghostRenderer.color.r > ghostRenderer.color.g + 0.1f
             && ghostRenderer.color.r > ghostRenderer.color.b + 0.1f;
-        Check(!controller.IsBuildableAt(position) && blockedTint,
-            "ECONOMY_POOR_GHOST_BLOCKED",
+        Check(controller.IsBuildableAt(position) && !blockedTint,
+            "ECONOMY_ZERO_GOLD_GHOST_BUILDABLE",
             ghostRenderer != null
                 ? $"buildable={controller.IsBuildableAt(position)}; color={ghostRenderer.color}"
                 : "ghost renderer missing");
@@ -303,37 +302,34 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
         yield return null;
         yield return null;
         BuildableObject poorOccupant = grid.GetGridCell(position)?.GetOccupant(phase2.layer) as BuildableObject;
-        string noticeText = GetActiveNoticeText();
-        Check(poorOccupant == null
+        Check(poorOccupant != null
                 && gameData.holdingMoney.Value == beforePoorClick
-                && controller.GridSystem.Mode == GridMode.Build
-                && controller.SelectedBuilding == phase2,
-            "ECONOMY_POOR_PLACEMENT_REJECTED",
+                && poorOccupant.id == phase2.id,
+            "ECONOMY_ZERO_GOLD_PLACEMENT_ALLOWED",
             $"occupant={poorOccupant?.id}; money={beforePoorClick}->{gameData.holdingMoney.Value}; "
             + $"mode={controller.GridSystem.Mode}; selected={controller.SelectedBuilding?.id}");
-        Check(noticeText.Contains(phase2Cost.ToString(), StringComparison.Ordinal)
-                && noticeText.Contains(poorMoney.ToString(), StringComparison.Ordinal),
-            "ECONOMY_POOR_NOTICE",
-            noticeText);
         yield return CaptureScreen(ModularFacilityPlayModeVerifier.EconomyCapturePath, "ECONOMY_SCREEN_CAPTURE");
 
+        if (poorOccupant != null)
+        {
+            yield return DemolishPlacedPartThroughPointer(phase2, position);
+        }
         controller.SetGridModeNone();
-        gameData.holdingMoney.Value = phase2Cost + 10;
+        gameData.holdingMoney.Value = 10;
         yield return SelectPartThroughUi(phase2, phase2.category, captureCatalog: false);
         int beforeSuccessfulBuild = gameData.holdingMoney.Value;
         yield return PlaceSelectedPart(phase2, position);
         BuildableObject placed = grid.GetGridCell(position)?.GetOccupant(phase2.layer) as BuildableObject;
         Check(placed != null && placed.id == phase2.id && gameData.holdingMoney.Value == 10,
-            "ECONOMY_EXACT_DEDUCTION",
-            $"money={beforeSuccessfulBuild}->{gameData.holdingMoney.Value}; cost={phase2Cost}");
+            "ECONOMY_BUILD_GOLD_UNCHANGED",
+            $"money={beforeSuccessfulBuild}->{gameData.holdingMoney.Value}");
 
         int beforeRefund = gameData.holdingMoney.Value;
         yield return DemolishPlacedPartThroughPointer(phase2, position);
-        int expectedRefund = FacilityProgression.GetRefund(phase2);
         Check(grid.GetGridCell(position)?.GetOccupant(phase2.layer) == null
-                && gameData.holdingMoney.Value == beforeRefund + expectedRefund,
-            "ECONOMY_EXACT_POINTER_REFUND",
-            $"money={beforeRefund}->{gameData.holdingMoney.Value}; refund={expectedRefund}");
+                && gameData.holdingMoney.Value == beforeRefund,
+            "ECONOMY_DEMOLITION_GOLD_UNCHANGED",
+            $"money={beforeRefund}->{gameData.holdingMoney.Value}");
 
         controller.SetGridModeNone();
         gameData.day.Value = 7;
@@ -392,7 +388,11 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
             ? item.transform.Find("Label")?.GetComponent<TMP_Text>()
             : null;
         bool valid = label != null
-            && label.text.Contains(part.GetConstructionCost().ToString(), StringComparison.Ordinal)
+            && part.GetConstructionMaterials()
+                .Where(pair => pair.Value > 0)
+                .All(pair => label.text.Contains(
+                    pair.Value.ToString(),
+                    StringComparison.Ordinal))
             && label.text.Contains($"P{part.GetUnlockPhase()}", StringComparison.Ordinal);
         Check(valid,
             "ECONOMY_LABEL_" + suffix,
@@ -857,10 +857,9 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
             }
 
             placed++;
-            int expectedAfterPlacement = beforePlacementMoney - part.GetConstructionCost();
-            Check(gameData.holdingMoney.Value == expectedAfterPlacement,
-                "EXHAUSTIVE_COST_" + part.id,
-                $"money={beforePlacementMoney}->{gameData.holdingMoney.Value}; cost={part.GetConstructionCost()}");
+            Check(gameData.holdingMoney.Value == beforePlacementMoney,
+                "EXHAUSTIVE_GOLD_UNCHANGED_" + part.id,
+                $"money={beforePlacementMoney}->{gameData.holdingMoney.Value}");
             Check(instance.BuildingData != null
                     && instance.BuildingData.GetFacilityCode() == part.GetFacilityCode()
                     && instance.buildPoses.SequenceEqual(part.GetGridPosList(position)),
@@ -885,10 +884,9 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
                 demolished++;
             }
 
-            int refund = FacilityProgression.GetRefund(part);
-            Check(gameData.holdingMoney.Value == beforeDemolitionMoney + refund,
-                "EXHAUSTIVE_REFUND_" + part.id,
-                $"money={beforeDemolitionMoney}->{gameData.holdingMoney.Value}; refund={refund}");
+            Check(gameData.holdingMoney.Value == beforeDemolitionMoney,
+                "EXHAUSTIVE_DEMOLITION_GOLD_UNCHANGED_" + part.id,
+                $"money={beforeDemolitionMoney}->{gameData.holdingMoney.Value}");
         }
 
         Check(placed == 73, "EXHAUSTIVE_PLACED_TOTAL", $"placed={placed}/73");

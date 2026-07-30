@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: industry_conveyor
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7161
+  projectId: research:industry:conveyor
+  displayName: "\uCEE8\uBCA0\uC774\uC5B4"
+  description: "\uC804\uB3D9 \uBCA8\uD2B8\uB85C \uBB3C\uB9AC \uC544\uC774\uD15C\uC744
+    \uC815\uD574\uC9C4 \uBC29\uD5A5\uC73C\uB85C \uC6B4\uC1A1\uD55C\uB2E4."
+  field: 15
+  requiredWork: 108
+  prerequisites:
+  - {fileID: 11400000, guid: b3b38e91925a91943b4303ee3edc9533, type: 2}
+  - {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563278452687334
+    - rid: 7302563278452687335
+    - rid: 7302563278452687336
+    - rid: 7302563278452687337
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563278452687334
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9843
+    - rid: 7302563278452687335
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9841
+    - rid: 7302563278452687336
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9840
+    - rid: 7302563278452687337
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9842

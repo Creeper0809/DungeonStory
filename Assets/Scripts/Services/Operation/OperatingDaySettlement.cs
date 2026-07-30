@@ -464,6 +464,9 @@ public class OperatingDaySettlementRuntime : MonoBehaviour
     private IRunVariableRuntimeReader runVariableReader;
     private IGameDataProvider gameDataProvider;
     private IGameEventBus gameEventBus;
+    private IEmploymentContractRuntime employmentContracts;
+    private IPaidFacilityContractRuntime paidFacilityContracts;
+    private IGameMoneyRuntime moneyRuntime;
     private IDisposable stockSupplySubscription;
     private IDisposable facilityVisitSubscription;
     private IDisposable facilityRevenueSubscription;
@@ -500,7 +503,7 @@ public class OperatingDaySettlementRuntime : MonoBehaviour
     public int OutstandingDebt => outstandingDebt;
     public int ConsecutiveShortfallDays => consecutiveShortfallDays;
     public bool EmergencyFundingUsed => emergencyFundingUsed;
-    public bool CanTakeEmergencyFunding => !emergencyFundingUsed;
+    public bool CanTakeEmergencyFunding => false;
     public OperatingCostForecast CurrentOperatingCostForecast => BuildOperatingCostForecast();
 
     public OperatingDaySettlementPersistenceState CapturePersistentState()
@@ -578,7 +581,10 @@ public class OperatingDaySettlementRuntime : MonoBehaviour
         IFacilityShopCatalog facilityShopCatalog,
         IRunVariableRuntimeReader runVariableReader,
         IGameDataProvider gameDataProvider,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IEmploymentContractRuntime employmentContracts = null,
+        IGameMoneyRuntime moneyRuntime = null,
+        IPaidFacilityContractRuntime paidFacilityContracts = null)
     {
         this.buildingQuery = buildingQuery
             ?? throw new ArgumentNullException(nameof(buildingQuery));
@@ -592,6 +598,9 @@ public class OperatingDaySettlementRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.employmentContracts = employmentContracts;
+        this.moneyRuntime = moneyRuntime;
+        this.paidFacilityContracts = paidFacilityContracts;
         SubscribeToScopedEvents();
     }
 
@@ -603,7 +612,8 @@ public class OperatingDaySettlementRuntime : MonoBehaviour
 
     public void OnTriggerEvent(OperatingDayEndedEvent eventType)
     {
-        OperatingCostSettlement operatingCosts = SettleOperatingCosts();
+        OperatingCostSettlement operatingCosts =
+            SettleOperatingCosts(Mathf.Max(1, eventType.day));
         latestReport = BuildReport(Mathf.Max(1, eventType.day), operatingCosts);
         reportHistory.Insert(0, latestReport);
         if (reportHistory.Count > MaxReportHistory)
@@ -617,26 +627,8 @@ public class OperatingDaySettlementRuntime : MonoBehaviour
 
     public bool TryTakeEmergencyFunding(out string message)
     {
-        if (emergencyFundingUsed)
-        {
-            message = "긴급 융자는 이번 런에서 이미 사용했습니다.";
-            return false;
-        }
-
-        if (!TryGetGameData(out GameData gameData))
-        {
-            message = "현재 자금 정보를 찾지 못했습니다.";
-            return false;
-        }
-
-        int funding = Mathf.Max(0, economySettings?.emergencyFundingAmount ?? 0);
-        int debt = Mathf.Max(funding, economySettings?.emergencyFundingDebt ?? funding);
-        gameData.holdingMoney.Value += funding;
-        outstandingDebt += debt;
-        emergencyFundingUsed = true;
-        message = $"긴급 자금 {funding}을 확보했습니다. 상환할 미납금 {debt}이 추가됩니다.";
-        gameEventBus.RaiseAlert("긴급 융자", message, EventAlertImportance.Medium, "운영");
-        return true;
+        message = "자동 긴급 지원금은 더 이상 제공되지 않습니다.";
+        return false;
     }
 
     public void OnTriggerEvent(FacilityVisitEvent eventType)
@@ -900,25 +892,65 @@ public class OperatingDaySettlementRuntime : MonoBehaviour
 
     private OperatingCostForecast BuildOperatingCostForecast()
     {
-        IReadOnlyList<BuildableObject> buildings = RequireBuildingQuery().Buildings;
-        IReadOnlyList<CharacterActor> characters = RequireCharacterQuery().Characters;
-        BuildingReportData buildingData = BuildBuildingSnapshot(buildings);
-        StaffReportData staffData = BuildStaffSnapshot(characters);
-        int payroll = DungeonEconomyCalculator.CalculatePayroll(
-            staffData.Summary.staffCount,
-            staffData.Summary.workingCount,
-            economySettings);
-        int money = TryGetGameData(out GameData gameData)
-            ? gameData.holdingMoney.Value
-            : 0;
+        int payroll = employmentContracts?.ForecastCost(1) ?? 0;
+        int paidFacilityContractsCost =
+            paidFacilityContracts?.ForecastCost(1) ?? 0;
+        int money = moneyRuntime?.Balance ?? 0;
         return new OperatingCostForecast(
             money,
-            buildingData.MaintenanceCost,
+            paidFacilityContractsCost,
             payroll,
-            outstandingDebt);
+            0);
     }
 
-    private OperatingCostSettlement SettleOperatingCosts()
+    private OperatingCostSettlement SettleOperatingCosts(int day)
+    {
+        int openingBalance = moneyRuntime?.Balance ?? 0;
+        int previousDebt = Mathf.Max(0, outstandingDebt);
+        EmploymentDailySettlement employment =
+            employmentContracts?.SettleDay(day)
+            ?? new EmploymentDailySettlement { day = day };
+        int paidFacilityContractsDue =
+            paidFacilityContracts?.ForecastCost(1) ?? 0;
+        int paidFacilityContractsPaid =
+            paidFacilityContracts?.SettleDay(day) ?? 0;
+        int employmentDue = employment.employeeWagesDue
+            + employment.mercenaryFeesDue;
+        int currentEmploymentDue = Mathf.Max(
+            0,
+            employmentDue - previousDebt);
+        int totalPaid = paidFacilityContractsPaid
+            + employment.employeeWagesPaid
+            + employment.mercenaryFeesPaid;
+        outstandingDebt = Mathf.Max(0, employment.unpaidEmployeeWages);
+        consecutiveShortfallDays = outstandingDebt > 0
+            ? consecutiveShortfallDays + 1
+            : 0;
+
+        OperatingCostForecast forecast = new OperatingCostForecast(
+            openingBalance,
+            paidFacilityContractsDue,
+            currentEmploymentDue,
+            previousDebt);
+        OperatingCostSettlement settlement = new OperatingCostSettlement(
+            forecast,
+            totalPaid,
+            moneyRuntime?.Balance ?? 0,
+            outstandingDebt,
+            consecutiveShortfallDays);
+        if (outstandingDebt > 0)
+        {
+            gameEventBus.RaiseAlert(
+                "임금 체불",
+                $"직원 임금 {outstandingDebt}골드가 체불되었습니다.",
+                EventAlertImportance.High,
+                "경영");
+        }
+
+        return settlement;
+    }
+
+    private OperatingCostSettlement SettleLegacyOperatingCosts()
     {
         OperatingCostForecast forecast = BuildOperatingCostForecast();
         if (!TryGetGameData(out GameData gameData))

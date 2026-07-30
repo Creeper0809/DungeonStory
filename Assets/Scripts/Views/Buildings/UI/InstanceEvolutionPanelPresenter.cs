@@ -27,6 +27,8 @@ public sealed class InstanceEvolutionPanelPresenter :
     private readonly ICombatEquipmentRuntime equipment;
     private readonly IWorldItemStackRuntime worldItems;
     private readonly IFacilityRelocationTargetingService relocationTargeting;
+    private readonly IReforgePrecisionService precisionReforge;
+    private readonly IEquipmentOverclockRuntime overclock;
 
     private readonly Dictionary<string, string> selectedCatalystByFacility =
         new Dictionary<string, string>(StringComparer.Ordinal);
@@ -34,6 +36,10 @@ public sealed class InstanceEvolutionPanelPresenter :
         new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly HashSet<string> stabilizerEnabledFacilities =
         new HashSet<string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, ReforgePrecisionSelection>
+        precisionByEquipment =
+            new Dictionary<string, ReforgePrecisionSelection>(
+                StringComparer.Ordinal);
 
     public InstanceEvolutionPanelPresenter(
         IFacilityEvolutionRuntime facilityEvolution,
@@ -42,7 +48,9 @@ public sealed class InstanceEvolutionPanelPresenter :
         IEvolutionModuleRegistry modules,
         ICombatEquipmentRuntime equipment,
         IWorldItemStackRuntime worldItems,
-        IFacilityRelocationTargetingService relocationTargeting)
+        IFacilityRelocationTargetingService relocationTargeting,
+        IReforgePrecisionService precisionReforge,
+        IEquipmentOverclockRuntime overclock)
     {
         this.facilityEvolution = facilityEvolution
             ?? throw new ArgumentNullException(nameof(facilityEvolution));
@@ -58,6 +66,10 @@ public sealed class InstanceEvolutionPanelPresenter :
             ?? throw new ArgumentNullException(nameof(worldItems));
         this.relocationTargeting = relocationTargeting
             ?? throw new ArgumentNullException(nameof(relocationTargeting));
+        this.precisionReforge = precisionReforge
+            ?? throw new ArgumentNullException(nameof(precisionReforge));
+        this.overclock = overclock
+            ?? throw new ArgumentNullException(nameof(overclock));
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -105,6 +117,14 @@ public sealed class InstanceEvolutionPanelPresenter :
                 ? DungeonUiTheme.Good
                 : DungeonUiTheme.TextSecondary,
             28f,
+            created);
+        RenderFacilityOverclock(
+            parent,
+            building,
+            facilityState.facilityPersistentId,
+            font,
+            showFeedback,
+            refresh,
             created);
 
         RenderFacilityOrders(
@@ -558,6 +578,13 @@ public sealed class InstanceEvolutionPanelPresenter :
             DungeonUiTheme.TextPrimary,
             48f,
             created);
+        RenderEquipmentOverclock(
+            parent,
+            instance,
+            font,
+            showFeedback,
+            refresh,
+            created);
 
         bool hasStabilizer = worldItems.GetAllStacks().Any(stack =>
             stack != null
@@ -624,6 +651,17 @@ public sealed class InstanceEvolutionPanelPresenter :
                 catalystReady
                     ? DungeonUiTheme.TextPrimary
                     : DungeonUiTheme.Warning);
+            ReforgePrecisionSelection precision =
+                GetPrecisionSelection(instance.instanceId);
+            RenderPrecisionOptions(
+                parent,
+                instance,
+                preview,
+                precision,
+                font,
+                showFeedback,
+                refresh,
+                created);
             AddButton(
                 reforgeRow.transform,
                 "재단조",
@@ -632,13 +670,14 @@ public sealed class InstanceEvolutionPanelPresenter :
                 catalystReady,
                 () =>
                 {
-                    bool queued = equipmentEvolution.TryQueueReforge(
+                    bool queued = precisionReforge.TryQueuePrecisionReforge(
                         instance.instanceId,
                         building,
                         selectedCatalyst,
                         stabilizerEnabled
                             ? StabilizerItemId
                             : string.Empty,
+                        precision,
                         out _,
                         out string message);
                     string feedback = queued
@@ -722,6 +761,301 @@ public sealed class InstanceEvolutionPanelPresenter :
                 },
                 72f);
         }
+    }
+
+    private void RenderFacilityOverclock(
+        Transform parent,
+        BuildableObject building,
+        string facilityPersistentId,
+        TMP_FontAsset font,
+        Action<string> showFeedback,
+        Action refresh,
+        ICollection<GameObject> created)
+    {
+        if (building?.BuildingData?
+                .GetAbility<BuildingOverclockableAbility>() == null
+            && building?.BuildingData?
+                .GetAbility<BuildingTreasuryPoweredDefenseAbility>() == null)
+        {
+            return;
+        }
+
+        OverclockState active = overclock.States.FirstOrDefault(state =>
+            state != null
+            && state.targetKind == OverclockTargetKind.Facility
+            && string.Equals(
+                state.targetId,
+                facilityPersistentId,
+                StringComparison.Ordinal)
+            && state.Active);
+        AddText(
+            parent,
+            active != null
+                ? $"시설 오버클럭 {FormatOverclockTier(active.tier)} · "
+                  + $"{active.remainingGameSeconds / 7.5f:0.#}시간 남음 · "
+                  + $"과부하 {active.overload:0}"
+                : "시설 오버클럭 · 24시간 · 연장/환불 불가",
+            font,
+            14f,
+            active != null
+                ? DungeonUiTheme.Warning
+                : DungeonUiTheme.TextSecondary,
+            28f,
+            created);
+        if (active != null)
+        {
+            return;
+        }
+
+        AddOverclockButtons(
+            parent,
+            font,
+            tier => overclock.TryActivateFacility(
+                building,
+                tier,
+                out string reason)
+                ? $"시설 {FormatOverclockTier(tier)} 오버클럭을 시작했습니다."
+                : reason,
+            showFeedback,
+            refresh,
+            created,
+            "Facility");
+    }
+
+    private void RenderEquipmentOverclock(
+        Transform parent,
+        CombatEquipmentInstance instance,
+        TMP_FontAsset font,
+        Action<string> showFeedback,
+        Action refresh,
+        ICollection<GameObject> created)
+    {
+        OverclockState active = overclock.States.FirstOrDefault(state =>
+            state != null
+            && state.targetKind == OverclockTargetKind.Equipment
+            && string.Equals(
+                state.targetId,
+                instance.instanceId,
+                StringComparison.Ordinal)
+            && state.Active);
+        AddText(
+            parent,
+            active != null
+                ? $"장비 오버클럭 {FormatOverclockTier(active.tier)} · "
+                  + $"{active.remainingGameSeconds / 7.5f:0.#}시간 남음 · "
+                  + $"과부하 {active.overload:0}"
+                : $"장비 오버클럭 · 현재 과부하 "
+                  + $"{overclock.GetOverload(OverclockTargetKind.Equipment, instance.instanceId):0}",
+            font,
+            14f,
+            active != null
+                ? DungeonUiTheme.Warning
+                : DungeonUiTheme.TextSecondary,
+            28f,
+            created);
+        if (active != null)
+        {
+            return;
+        }
+
+        AddOverclockButtons(
+            parent,
+            font,
+            tier => overclock.TryActivateEquipment(
+                instance.instanceId,
+                tier,
+                out string reason)
+                ? $"장비 {FormatOverclockTier(tier)} 오버클럭을 시작했습니다."
+                : reason,
+            showFeedback,
+            refresh,
+            created,
+            "Equipment");
+    }
+
+    private static void AddOverclockButtons(
+        Transform parent,
+        TMP_FontAsset font,
+        Func<OverclockTier, string> activate,
+        Action<string> showFeedback,
+        Action refresh,
+        ICollection<GameObject> created,
+        string prefix)
+    {
+        GameObject row = CreateRow(
+            parent,
+            $"{prefix}OverclockOptions",
+            44f);
+        created.Add(row);
+        AddButton(
+            row.transform,
+            "통제 +10%",
+            font,
+            false,
+            true,
+            () =>
+            {
+                showFeedback?.Invoke(activate(OverclockTier.Controlled));
+                refresh?.Invoke();
+            },
+            112f);
+        AddButton(
+            row.transform,
+            "공격적 +20%",
+            font,
+            false,
+            true,
+            () =>
+            {
+                showFeedback?.Invoke(activate(OverclockTier.Aggressive));
+                refresh?.Invoke();
+            },
+            126f);
+        AddButton(
+            row.transform,
+            "임계 +35%",
+            font,
+            false,
+            true,
+            () =>
+            {
+                showFeedback?.Invoke(activate(OverclockTier.Critical));
+                refresh?.Invoke();
+            },
+            112f);
+    }
+
+    private void RenderPrecisionOptions(
+        Transform parent,
+        CombatEquipmentInstance instance,
+        EquipmentReforgePreview preview,
+        ReforgePrecisionSelection selection,
+        TMP_FontAsset font,
+        Action<string> showFeedback,
+        Action refresh,
+        ICollection<GameObject> created)
+    {
+        AddText(
+            parent,
+            $"유료 정밀 서비스 {selection.SelectedCount}/2 · 재료와 촉매는 그대로 필요",
+            font,
+            14f,
+            DungeonUiTheme.TextSecondary,
+            26f,
+            created);
+        GameObject row = CreateRow(
+            parent,
+            "ReforgePrecisionOptions",
+            44f);
+        created.Add(row);
+        AddButton(
+            row.transform,
+            "정밀 교정",
+            font,
+            selection.preciseCalibration,
+            true,
+            () => TogglePrecision(
+                selection,
+                ReforgePrecisionOption.PreciseCalibration,
+                preview,
+                showFeedback,
+                refresh),
+            112f);
+        AddButton(
+            row.transform,
+            "부담 억제",
+            font,
+            selection.burdenSuppression,
+            preview.PossibleBurdenIds.Count > 0,
+            () => TogglePrecision(
+                selection,
+                ReforgePrecisionOption.BurdenSuppression,
+                preview,
+                showFeedback,
+                refresh),
+            112f);
+        AddButton(
+            row.transform,
+            "외부 지원",
+            font,
+            selection.externalTechnicalSupport,
+            true,
+            () => TogglePrecision(
+                selection,
+                ReforgePrecisionOption.ExternalTechnicalSupport,
+                preview,
+                showFeedback,
+                refresh),
+            112f);
+    }
+
+    private static void TogglePrecision(
+        ReforgePrecisionSelection selection,
+        ReforgePrecisionOption option,
+        EquipmentReforgePreview preview,
+        Action<string> showFeedback,
+        Action refresh)
+    {
+        bool currentlyEnabled = option switch
+        {
+            ReforgePrecisionOption.PreciseCalibration =>
+                selection.preciseCalibration,
+            ReforgePrecisionOption.BurdenSuppression =>
+                selection.burdenSuppression,
+            ReforgePrecisionOption.ExternalTechnicalSupport =>
+                selection.externalTechnicalSupport,
+            _ => false
+        };
+        if (!currentlyEnabled && selection.SelectedCount >= 2)
+        {
+            showFeedback?.Invoke("유료 정밀 서비스는 최대 두 개까지 선택할 수 있습니다.");
+            return;
+        }
+
+        switch (option)
+        {
+            case ReforgePrecisionOption.PreciseCalibration:
+                selection.preciseCalibration = !currentlyEnabled;
+                break;
+            case ReforgePrecisionOption.BurdenSuppression:
+                selection.burdenSuppression = !currentlyEnabled;
+                selection.suppressedBurdenEffectId =
+                    selection.burdenSuppression
+                        ? preview.PossibleBurdenIds.FirstOrDefault()
+                          ?? string.Empty
+                        : string.Empty;
+                break;
+            case ReforgePrecisionOption.ExternalTechnicalSupport:
+                selection.externalTechnicalSupport = !currentlyEnabled;
+                break;
+        }
+
+        refresh?.Invoke();
+    }
+
+    private ReforgePrecisionSelection GetPrecisionSelection(
+        string equipmentInstanceId)
+    {
+        if (!precisionByEquipment.TryGetValue(
+                equipmentInstanceId,
+                out ReforgePrecisionSelection selection))
+        {
+            selection = new ReforgePrecisionSelection();
+            precisionByEquipment[equipmentInstanceId] = selection;
+        }
+
+        return selection;
+    }
+
+    private static string FormatOverclockTier(OverclockTier tier)
+    {
+        return tier switch
+        {
+            OverclockTier.Controlled => "통제",
+            OverclockTier.Aggressive => "공격적",
+            OverclockTier.Critical => "임계",
+            _ => "없음"
+        };
     }
 
     private void RenderCatalystSelector(

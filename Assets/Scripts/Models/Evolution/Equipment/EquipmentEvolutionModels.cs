@@ -131,6 +131,12 @@ public sealed class EvolutionReforgeOrder
     public EquipmentEvolutionDirection lockedDirection;
     public bool materialsConsumed;
     public bool equipmentDelivered;
+    public bool preciseCalibration;
+    public bool burdenSuppression;
+    public bool externalTechnicalSupport;
+    public string suppressedBurdenEffectId = string.Empty;
+    public int precisionGoldCost;
+    [Range(0.01f, 0.5f)] public float resultVariance = 0.12f;
 
     public float ProgressRatio => requiredWork <= 0f
         ? 0f
@@ -168,7 +174,14 @@ public sealed class EvolutionReforgeOrder
             lockedHistoryHash = lockedHistoryHash ?? string.Empty,
             lockedDirection = lockedDirection,
             materialsConsumed = materialsConsumed,
-            equipmentDelivered = equipmentDelivered
+            equipmentDelivered = equipmentDelivered,
+            preciseCalibration = preciseCalibration,
+            burdenSuppression = burdenSuppression,
+            externalTechnicalSupport = externalTechnicalSupport,
+            suppressedBurdenEffectId =
+                suppressedBurdenEffectId ?? string.Empty,
+            precisionGoldCost = Mathf.Max(0, precisionGoldCost),
+            resultVariance = Mathf.Clamp(resultVariance, 0.01f, 0.5f)
         };
     }
 }

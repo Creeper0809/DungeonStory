@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7003332b9a48cca4495a866cb7b5d17d, type: 3}
+  m_Name: fixed_truth-core
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseSiteArchetypeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170111
+  siteTypeId: fixed:truth-core
+  displayName: "\uBD09\uC778 \uAE30\uB85D \uC2EC\uC7A5\uBD80"
+  description: "\uBAA8\uB4E0 \uC6D0\uC815 \uAE30\uB85D\uC774 \uAC00\uB9AC\uD0A4\uB294
+    \uBD09\uC778 \uC9C0\uB300\uC758 \uC2EC\uC7A5\uBD80\uC785\uB2C8\uB2E4."
+  factionId: human
+  pressureAxis: 0
+  pressureAmount: 0
+  minimumStrength: 8
+  maximumStrength: 8
+  minimumLifetimeDays: 2
+  maximumLifetimeDays: 7
+  hiddenUntilDiscovered: 1
+  canMove: 0
+  dynamicSpawnEligible: 0
+  rewards:
+  - grantSpec:
+      rid: 7302563269269258847
+    displayLabel: "\uC9C4\uC2E4\uC758 \uAE30\uB85D"
+    baseAmount: 24
+    amountPerStrength: 4
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258847
+      type: {class: OffenseStockRewardSpec, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 9

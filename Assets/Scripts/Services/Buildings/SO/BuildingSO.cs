@@ -326,7 +326,9 @@ public class BuildingSO : DataScriptableObject
     public bool IsEvenWidth => Placement.HasEvenWidth;
     public bool UsesIndependentRenderer => layer == GridLayer.WallFixture
         || layer == GridLayer.CeilingFixture
-        || layer == GridLayer.FloorOverlay;
+        || layer == GridLayer.FloorOverlay
+        || layer == GridLayer.Utility
+        || layer == GridLayer.Conveyor;
     public FacilityAnchorData FacilityAnchors => facilityAnchors ??= new FacilityAnchorData();
     public BuildingAbilityCollection AbilityModules =>
         abilityModules ??= new BuildingAbilityCollection();

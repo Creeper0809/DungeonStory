@@ -292,7 +292,7 @@ public sealed class ExpeditionTabContentPresenter : IUITabContentPresenter
         }
 
         builder.AppendLine($"진행 중 원정: {summary.ActiveExpeditions}");
-        builder.AppendLine($"누적 원정 자금: {summary.MoneyEarned}");
+        builder.AppendLine($"회수 전리품 추정가: {summary.MoneyEarned}");
         builder.AppendLine($"포로/후보: {summary.PrisonerCount}/{summary.RecruitCandidateCount}");
         builder.AppendLine();
         builder.AppendLine("원정 탭에 들어갈 핵심");

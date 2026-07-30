@@ -36,7 +36,7 @@ public static class CharacterStatDebugScenarios
     private static void VerifyBuiltInCatalog()
     {
         CharacterStatCatalog.ResetToBuiltIns();
-        Require(CharacterStatCatalog.All.Count == 11, "Expected eleven built-in character stat definitions.");
+        Require(CharacterStatCatalog.All.Count == 12, "Expected twelve built-in character stat definitions.");
         foreach (CharacterStatType type in Enum.GetValues(typeof(CharacterStatType)))
         {
             CharacterStatDefinition definition = CharacterStatCatalog.GetRequired(type);

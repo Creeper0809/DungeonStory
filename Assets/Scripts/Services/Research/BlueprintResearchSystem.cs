@@ -875,6 +875,30 @@ public class BlueprintResearchRuntime : MonoBehaviour
                 NotifyResearchAvailabilityChanged();
             }
 
+            if (itemStackRuntime == null
+                || worldDropZoneQuery == null
+                || !worldDropZoneQuery.TryGetDeliveryDropoff(
+                    out Vector2Int kitDropoff)
+                || !itemStackRuntime.SpawnUniqueItemAt(
+                    FacilityInstallationKitItemIds.ForBuilding(building),
+                    kitDropoff,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out _))
+            {
+                gameEventBus.RaiseAlert(
+                    "시설 키트 배송 지연",
+                    $"{FacilityShopService.GetBuildingName(building)} 설치 키트를 하차장에 놓지 못했습니다.",
+                    EventAlertImportance.High,
+                    "상점");
+                return;
+            }
+
+            gameEventBus.RaiseAlert(
+                "시설 키트 도착",
+                $"{FacilityShopService.GetBuildingName(building)} 설치 키트가 하차장에 도착했습니다.",
+                EventAlertImportance.Low,
+                "상점");
             return;
         }
 

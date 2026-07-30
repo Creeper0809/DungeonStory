@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7003332b9a48cca4495a866cb7b5d17d, type: 3}
+  m_Name: ruin
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseSiteArchetypeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170106
+  siteTypeId: ruin
+  displayName: "\uBC84\uB824\uC9C4 \uD3D0\uD5C8"
+  description: "\uBB3C\uC790\uC640 \uC624\uB798\uB41C \uAE30\uB85D\uC774 \uB0A8\uC544
+    \uC788\uC744 \uC218 \uC788\uB294 \uD3D0\uD5C8\uC785\uB2C8\uB2E4."
+  factionId: sealed
+  pressureAxis: 0
+  pressureAmount: 0
+  minimumStrength: 1
+  maximumStrength: 4
+  minimumLifetimeDays: 2
+  maximumLifetimeDays: 7
+  hiddenUntilDiscovered: 1
+  canMove: 0
+  dynamicSpawnEligible: 1
+  rewards:
+  - grantSpec:
+      rid: 7302563269269258764
+    displayLabel: "\uD3D0\uD5C8\uC758 \uC794\uC7AC"
+    baseAmount: 8
+    amountPerStrength: 5
+  - grantSpec:
+      rid: 7302563269269258765
+    displayLabel: "\uD68C\uC218\uD55C \uC124\uACC4\uB3C4"
+    baseAmount: 0
+    amountPerStrength: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258764
+      type: {class: OffenseStockRewardSpec, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 1
+    - rid: 7302563269269258765
+      type: {class: OffenseAnyBlueprintRewardSpec, ns: , asm: Assembly-CSharp}
+      data: 

@@ -51,6 +51,8 @@ MonoBehaviour:
     - rid: 7302563239038812957
     - rid: 7302563239038812958
     - rid: 7302563239038812959
+    - rid: 7302563284524205034
+    - rid: 7302563284524205035
   width: 1
   height: 1
   layer: 1
@@ -74,6 +76,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 95
         maintenance: 3
         unlockPhase: 1
@@ -87,7 +90,7 @@ MonoBehaviour:
           capacity: 1
           useDuration: 1.5
           requiredWorkers: 1
-          supportedWorkTypes: 8204
+          supportedWorkTypes: 536879116
           disabledWhenDamaged: 1
     - rid: 7302563239038812954
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
@@ -134,3 +137,20 @@ MonoBehaviour:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 10
         smokeRiskReduction: 4
+    - rid: 7302563284524205034
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 6
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7302563284524205035
+      type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWaterFixtureAbility
+        cleanWaterPerUse: 0.15
+        wastewaterPerUse: 0.15
+        minimumQuality: 0
+        allowsManualWaterFallback: 1
+        allowsDryFallback: 0
+        manualWasteItemId: industrial:sludge

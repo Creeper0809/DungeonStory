@@ -242,6 +242,47 @@ public class OffenseWorldMapRuntime : MonoBehaviour
         return true;
     }
 
+    public bool TryRecordV17TruthReveal(
+        string targetId,
+        out string message)
+    {
+        EnsureInitialized();
+        OffenseTargetDefinition target = targets.FirstOrDefault(candidate =>
+            candidate != null
+            && candidate.revealsTruth
+            && string.Equals(
+                candidate.id,
+                targetId,
+                StringComparison.Ordinal));
+        if (target == null)
+        {
+            message = "V17 최종 목표와 연결된 진실 목표가 없습니다.";
+            return false;
+        }
+
+        if (state.TruthRevealed)
+        {
+            message = "이미 던전의 진실을 밝혔습니다.";
+            return true;
+        }
+
+        state.AddKnownTarget(target.id);
+        state.MarkTargetCompleted(target.id);
+        state.RevealTruth(target.id);
+        RaiseChanged();
+        gameEventBus.RaiseAlert(
+            OffenseWorldMapService.TruthTitle,
+            target.truthText,
+            EventAlertImportance.High,
+            "오펜스");
+        gameEventBus.Publish(new OffenseTruthRevealedEvent(
+            target.id,
+            OffenseWorldMapService.TruthTitle,
+            target.truthText));
+        message = "최종 오펜스를 마치고 던전의 진실을 밝혔습니다.";
+        return true;
+    }
+
     public OffenseWorldMapPanel ShowWorldMap()
     {
         EnsureInitialized();
@@ -289,7 +330,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour
     }
 }
 
-public class OffenseWorldMapPanel : MonoBehaviour
+public partial class OffenseWorldMapPanel : MonoBehaviour
 {
     private OffenseWorldMapRuntime runtime;
     private TMP_Text headerText;
@@ -317,6 +358,11 @@ public class OffenseWorldMapPanel : MonoBehaviour
         }
 
         EnsureView();
+        if (CanRenderV17())
+        {
+            RenderV17();
+            return;
+        }
         headerText.text = $"월드맵 / 정찰 Lv.{runtime.State.ReconLevel} / 범위 {runtime.CurrentScanRange:0.#}";
         ClearButtons();
 

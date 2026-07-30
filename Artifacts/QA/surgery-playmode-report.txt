@@ -1,0 +1,35 @@
+[PASS] SCOPE_READY gameplay LifetimeScope resolved
+[PASS] SURGERY_RUNTIME_READY runtime and commands resolved
+[PASS] SURGERY_CATALOG_READY catalog and facility query resolved
+[PASS] SURGERY_GRID_READY room cache and grid resolved
+[PASS] SURGERY_WORLD_READY research and character query resolved
+[PASS] SURGERY_DATA_READY anatomy and item runtime resolved
+[PASS] SURGERY_UI_READY surgery planning window resolved
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Sion:-3773062:staff:54069062:01:active=True,Cain:-3773174:staff:54069062:02:active=True; diagnostics=prepared-1:name=Sion;go=-3773034;id=staff:54069062:01;active=False || prepared-2:name=Cain;go=-3773146;id=staff:54069062:02;active=False || scan:name=Sion;go=-3773034;id=staff:54069062:01;active=False;retained=True || scan:name=Cain;go=-3773146;id=staff:54069062:02;active=False;retained=True || scan:name=Sion;go=-3773034;id=staff:54069062:01;active=True;retained=True || scan:name=Cain;go=-3773146;id=staff:54069062:02;active=True;retained=True || retained:name=Sion;go=-3773034;id=staff:54069062:01;active=True || retained:name=Cain;go=-3773146;id=staff:54069062:02;active=True
+[PASS] RUN_READY owner=Ruka
+[PASS] SURGERY_ACTORS_READY doctor=Sion; patient=Cain
+[PASS] EMERGENCY_TABLE_ASSET M01 asset loaded
+[PASS] SUTURE_PROCEDURE procedure:emergency-suture
+[PASS] MEDICAL_ROOM_PLACEMENT table=(28, 2); supply=(32, 2); rooms=14
+[PASS] EMERGENCY_TABLE_REGISTERED position=(28, 2)
+[PASS] EMERGENCY_TABLE_AVAILABLE closed medical room recognized
+[PASS] PATIENT_INJURED 16->0
+[PASS] MEDICINE_SPAWNED item=stock-item:5; amount=2; position=(32, 2)
+[PASS] SURGERY_CANVAS_READY FacilityRelocationTargeting
+[PASS] SURGERY_WINDOW_OPENED planning window visible
+[PASS] SURGERY_POINTER_TARGETS_READY procedure=True; node=True; schedule=True
+[PASS] SURGERY_SCHEDULED_BY_POINTER order=surgery:1; procedure=procedure:emergency-suture; target=sensory-gel
+[PASS] SURGERY_PROCEDURE_SELECTED procedure:emergency-suture
+[PASS] SURGERY_NODE_SELECTED sensory-gel
+[INFO] SURGERY_HAUL_DIAGNOSTICS timeScale=8; delta=0.0191; actors=[Slime Regular:pos=(0, 0):world=(0.00, 0.00, 0.00):canAi=False:paused=False:duty=:haul=:assigned=:action=none:phase=:moveBlocked=:moveFailure=:haulStage=대기:haulBeat=0:haulPath=:moveSpeed=0.929:carried=:preview=True:plan=1스택 · 24kg:route=pickup=(16, 0)/stand=(16, 0)/delivery=(24, 0)/drop=(24, 0)/path=Reachable:16 || Reward Visitor A:pos=(0, 0):world=(0.00, 0.00, 0.00):canAi=False:paused=False:duty=:haul=:assigned=:action=none:phase=:moveBlocked=:moveFailure=:haulStage=대기:haulBeat=0:haulPath=:moveSpeed=0.929:carried=:preview=True:plan=1스택 · 24kg:route=pickup=(16, 0)/stand=(16, 0)/delivery=(24, 0)/drop=(24, 0)/path=Reachable:16 || Snapshot Customer:pos=(0, 0):world=(0.00, 0.00, 0.00):canAi=False:paused=False:duty=:haul=:assigned=:action=none:phase=:moveBlocked=:moveFailure=:haulStage=대기:haulBeat=0:haulPath=:moveSpeed=0.888:carried=:preview=True:plan=1스택 · 24kg:route=pickup=(16, 0)/stand=(16, 0)/delivery=(24, 0)/drop=(24, 0)/path=Reachable:16 || Orc Regular:pos=(0, 0):world=(0.00, 0.00, 0.00):canAi=False:paused=False:duty=:haul=:assigned=:action=none:phase=:moveBlocked=:moveFailure=:haulStage=대기:haulBeat=0:haulPath=:moveSpeed=0.929:carried=:preview=True:plan=1스택 · 24kg:route=pickup=(16, 0)/stand=(16, 0)/delivery=(24, 0)/drop=(24, 0)/path=Reachable:16 || Low Mood Customer:pos=(0, 0):world=(0.00, 0.00, 0.00):canAi=False:paused=False:duty=:haul=:assigned=:action=none:phase=:moveBlocked=:moveFailure=:haulStage=대기:haulBeat=0:haulPath=:moveSpeed=0.929:carried=:preview=True:plan=1스택 · 24kg:route=pickup=(16, 0)/stand=(16, 0)/delivery=(24, 0)/drop=(24, 0)/path=Reachable:16 || Ruka:pos=(6, 0):world=(-5.33, 0.00, 0.00):canAi=True:paused=False:duty=OnDuty:haul=Priority2:assigned=work:repair:action=AIWork:phase=이동:moveBlocked=False:moveFailure=None:haulStage=배송 입고:haulBeat=17:haulPath=(16, 0)->(17, 0):Walk:none>(17, 0)->(18, 0):Walk:none>(18, 0)->(19, 0):Walk:none>(19, 0)->(20, 0):Walk:none>(20, 0)->(20, 1):Stair:Stair>(20, 1)->(21, 1):Walk:none>(21, 1)->(22, 1):Walk:none>(22, 1)->(23, 1):Walk:none>(23, 1)->(24, 1):Walk:none>(24, 1)->(25, 1):Walk:none>(25, 1)->(26, 1):Walk:none>(26, 1)->(27, 1):Walk:none>(27, 1)->(28, 1):Walk:none>(28, 1)->(29, 1):Walk:none>(29, 1)->(30, 1):Walk:none>(30, 1)->(30, 2):Stair:Stair>(30, 2)->(29, 2):Walk:none>(29, 2)->(28, 2):Walk:none:moveSpeed=1.426:carried=:preview=True:plan=1스택 · 24kg:route=pickup=(16, 0)/stand=(16, 0)/delivery=(24, 0)/drop=(24, 0)/path=Reachable:10 || Sion:pos=(28, 2):world=(-27.35, 6.00, 0.00):canAi=True:paused=False:duty=OnDuty:haul=Priority2:assigned=:action=none:phase=재계획:moveBlocked=False:moveFailure=None:haulStage=중단:haulBeat=0:haulPath=:moveSpeed=1.2:carried=:preview=True:plan=1스택 · 24kg:route=pickup=(16, 0)/stand=(16, 0)/delivery=(24, 0)/drop=(24, 0)/path=Reachable:18 || Cain:pos=(27, 1):world=(-26.50, 3.00, 0.00):canAi=True:paused=False:duty=OnDuty:haul=Priority2:assigned=work:guard:action=none:phase=수술 회복 완료:moveBlocked=False:moveFailure=None:haulStage=중단:haulBeat=0:haulPath=:moveSpeed=1.032:carried=:preview=True:plan=1스택 · 24kg:route=pickup=(16, 0)/stand=(16, 0)/delivery=(24, 0)/drop=(24, 0)/path=Reachable:12 || 돌파형 침입자:pos=(20, 0):world=(-19.42, 0.00, 0.00):canAi=True:paused=False:duty=:haul=:assigned=:action=AIShopping:phase=이동:moveBlocked=False:moveFailure=None:haulStage=대기:haulBeat=0:haulPath=:moveSpeed=1.143:carried=:preview=True:plan=1스택 · 24kg:route=pickup=(16, 0)/stand=(16, 0)/delivery=(24, 0)/drop=(24, 0)/path=Reachable:4]; stacks=[stack:00000012:stock-item:5x2:state=FacilityBuffer:pos=(28, 2):destPos=(28, 2):reserved=:source=]
+[PASS] SURGERY_COMPLETED_BY_WORK_AI state=Completed; status=수술 후 회복 완료; elapsed=25.1s
+[PASS] SURGERY_MATERIAL_FLOW requested=True; consumed=True; medicine=6->4
+[PASS] SURGERY_PHYSICAL_MEDICINE_CONSUMED 6->4
+[PASS] SURGERY_WORK_ACCUMULATED 12/12
+[PASS] SURGERY_STAGES_OBSERVED PatientWaiting,MaterialsWaiting,Anesthetizing,Incision,Procedure,Suturing,Recovering,Completed
+[PASS] SURGERY_PATIENT_RECOVERED 0->8
+[PASS] SURGERY_SCREEN_CAPTURE_NONBLANK Artifacts/QA/surgery-playmode.png; bytes=613597
+[PASS] SURGERY_WINDOW_POINTER_CLOSE close button consumed the pointer event
+capturedErrors=0; <none>
+capturedWarnings=0; <none>
+RESULT=PASS; failures=0; <none>

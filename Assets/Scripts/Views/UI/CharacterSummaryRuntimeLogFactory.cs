@@ -48,6 +48,8 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
                 || generated.Find("Content/HealthContent/HealthContentViewport/HealthSummaryText") == null
                 || generated.Find("Content/HealthContent/HealthCommandRow/CaptivityCommand") == null
                 || generated.Find("Content/HealthContent/HealthCommandRow/DietPolicy") == null
+                || generated.Find("Content/HealthContent/HealthCommandRow/SurgeryCommand") == null
+                || generated.Find("Content/HealthContent/HealthCommandRow/AutomaticSurgery") == null
                 || generated.Find("Content/HealthContent/SubstanceCommandRow/SubstanceSelection") == null
                 || generated.Find("Content/HealthContent/SubstanceCommandRow/SubstancePolicy") == null
                 || generated.Find("Content/CombatContent/CombatContentViewport/CombatSummaryText") == null
@@ -201,8 +203,18 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             "DietPolicy",
             healthCommandRow,
             "식단: 자유식");
+        Button surgeryCommand = CreateButton(
+            "SurgeryCommand",
+            healthCommandRow,
+            "수술 예약");
+        Button automaticSurgery = CreateButton(
+            "AutomaticSurgery",
+            healthCommandRow,
+            "응급 수술: 켬");
         captivityCommand.onClick.AddListener(owner.ExecuteCaptivityAction);
         dietPolicy.onClick.AddListener(owner.CycleDietPolicy);
+        surgeryCommand.onClick.AddListener(owner.OpenSurgeryWindow);
+        automaticSurgery.onClick.AddListener(owner.ToggleAutomaticEmergencySurgery);
 
         RectTransform substanceCommandRow = CreateRect(
             "SubstanceCommandRow",
@@ -430,6 +442,8 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             healthTabButton,
             captivityCommand,
             dietPolicy,
+            surgeryCommand,
+            automaticSurgery,
             substanceSelection,
             substancePolicy);
         owner.BindGeneratedCombat(
@@ -496,6 +510,8 @@ public sealed class CharacterSummaryRuntimeLogFactory : ICharacterSummaryRuntime
             generated.Find("TabBar/HealthTab")?.GetComponent<Button>(),
             generated.Find("Content/HealthContent/HealthCommandRow/CaptivityCommand")?.GetComponent<Button>(),
             generated.Find("Content/HealthContent/HealthCommandRow/DietPolicy")?.GetComponent<Button>(),
+            generated.Find("Content/HealthContent/HealthCommandRow/SurgeryCommand")?.GetComponent<Button>(),
+            generated.Find("Content/HealthContent/HealthCommandRow/AutomaticSurgery")?.GetComponent<Button>(),
             generated.Find("Content/HealthContent/SubstanceCommandRow/SubstanceSelection")?.GetComponent<Button>(),
             generated.Find("Content/HealthContent/SubstanceCommandRow/SubstancePolicy")?.GetComponent<Button>());
         owner.BindGeneratedCombat(

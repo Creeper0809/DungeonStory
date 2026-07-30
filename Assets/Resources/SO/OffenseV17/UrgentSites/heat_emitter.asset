@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9e6da5c74e20e54282793c35d186af0, type: 3}
+  m_Name: heat_emitter
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseUrgentSiteDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170200
+  urgentSiteId: heat_emitter
+  displayName: "\uC5F4\uAE30 \uBC29\uCD9C\uD0D1"
+  description: "\uB358\uC804 \uC8FC\uBCC0\uC758 \uACF5\uAE30\uB97C \uB2EC\uAD88 \uB0C9\uAC01\uACFC
+    \uC5F0\uB8CC \uBD80\uB2F4\uC744 \uB192\uC785\uB2C8\uB2E4."
+  modifierKind: 0
+  maximumStrength: 1
+  maximumMitigation: 0.6
+  mitigationWorkTypeId: work:operate
+  mitigationItemId: stock-item:Fuel
+  mitigationItemAmount: 3
+  mitigationWork: 24

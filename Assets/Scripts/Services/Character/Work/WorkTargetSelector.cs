@@ -65,6 +65,7 @@ public sealed class WorkTargetSelector
     {
         public IReadOnlyList<BuildableObject> Source;
         public int CandidateIndexVersion;
+        public int DynamicStateVersion;
         public int GridVersion;
         public int BuildingVersion;
         public int WorkOrderVersion;
@@ -428,6 +429,7 @@ public sealed class WorkTargetSelector
             facilityCache.GetWorkCandidates(activeGrid, requestedWorkType);
         int frame = work.GameClock.FrameCount;
         int candidateIndexVersion = facilityCache.CandidateIndexVersion;
+        int dynamicStateVersion = facilityCache.DynamicStateVersion;
         int gridVersion = activeGrid.StructuralVersion;
         int buildingVersion = actor.WorldRegistry?.BuildingVersion ?? -1;
         int workOrderVersion =
@@ -437,6 +439,7 @@ public sealed class WorkTargetSelector
                 requestedWorkType,
                 out IncrementalCandidateScan scan)
             || scan.CandidateIndexVersion != candidateIndexVersion
+            || scan.DynamicStateVersion != dynamicStateVersion
             || scan.GridVersion != gridVersion
             || scan.BuildingVersion != buildingVersion
             || scan.WorkOrderVersion != workOrderVersion
@@ -448,6 +451,7 @@ public sealed class WorkTargetSelector
             {
                 Source = source,
                 CandidateIndexVersion = candidateIndexVersion,
+                DynamicStateVersion = dynamicStateVersion,
                 GridVersion = gridVersion,
                 BuildingVersion = buildingVersion,
                 WorkOrderVersion = workOrderVersion,
@@ -782,6 +786,9 @@ public sealed class WorkTargetSelector
             building,
             supportedTypes);
         supportedTypes = FacilityEvolutionWorkUtility.AddFallbackWorkTypes(
+            building,
+            supportedTypes);
+        supportedTypes = RuntimeWorkCapabilityUtility.AddFallbackWorkTypes(
             building,
             supportedTypes);
         if (supportedTypes == FacilityWorkType.None)

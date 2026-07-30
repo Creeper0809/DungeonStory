@@ -27,6 +27,14 @@ public class OffenseExpeditionRuntime : MonoBehaviour
     private IExpeditionReturnService returnService;
     private IOffenseReturnArrivalRuntime returnArrivalRuntime;
     private IGameEventBus gameEventBus;
+    private IOffenseWorldSimulation v17World;
+    private IOffenseTravelRuntime v17Travel;
+    private IOffenseDecisionRuntime v17Decisions;
+    private IOffenseDecisionEffectExecutor v17DecisionEffects;
+    private IOffenseReturnSafetyRuntime v17ReturnSafety;
+    private IOffenseBattleDirector v17BattleDirector;
+    private IOffenseV17ContentCatalog v17Content;
+    private IGameMoneyRuntime gameMoney;
 
     public IReadOnlyList<OffenseExpeditionRun> ActiveExpeditions =>
         activeExpeditionsView ??= activeExpeditions.AsReadOnly();
@@ -93,6 +101,14 @@ public class OffenseExpeditionRuntime : MonoBehaviour
         IOffensePreparationService preparationService,
         ICombatEquipmentRuntime equipmentRuntime,
         IGameEventBus gameEventBus,
+        IOffenseWorldSimulation v17World,
+        IOffenseTravelRuntime v17Travel,
+        IOffenseDecisionRuntime v17Decisions,
+        IOffenseDecisionEffectExecutor v17DecisionEffects,
+        IOffenseReturnSafetyRuntime v17ReturnSafety,
+        IOffenseBattleDirector v17BattleDirector,
+        IOffenseV17ContentCatalog v17Content,
+        IGameMoneyRuntime gameMoney,
         IExpeditionDepartureService departureService = null,
         IExpeditionReturnService returnService = null,
         IOffenseReturnArrivalRuntime returnArrivalRuntime = null,
@@ -114,6 +130,18 @@ public class OffenseExpeditionRuntime : MonoBehaviour
         this.returnService = returnService;
         this.returnArrivalRuntime = returnArrivalRuntime;
         this.equipmentPickupRuntime = equipmentPickupRuntime;
+        this.v17DecisionEffects = v17DecisionEffects
+            ?? throw new ArgumentNullException(nameof(v17DecisionEffects));
+        this.v17Content = v17Content
+            ?? throw new ArgumentNullException(nameof(v17Content));
+        this.gameMoney = gameMoney
+            ?? throw new ArgumentNullException(nameof(gameMoney));
+        BindV17Runtime(
+            v17World,
+            v17Travel,
+            v17Decisions,
+            v17ReturnSafety,
+            v17BattleDirector);
     }
 
     private void OnDestroy()
@@ -122,6 +150,40 @@ public class OffenseExpeditionRuntime : MonoBehaviour
         {
             battleRuntime.BattleCompleted -= OnBattleCompleted;
         }
+
+        if (v17Travel != null)
+        {
+            v17Travel.StepCompleted -= OnV17TravelStepCompleted;
+            v17Travel.DecisionRequired -= OnV17DecisionRequired;
+            v17Travel.SiteReached -= OnV17SiteReached;
+        }
+    }
+
+    private void BindV17Runtime(
+        IOffenseWorldSimulation world,
+        IOffenseTravelRuntime travel,
+        IOffenseDecisionRuntime decisions,
+        IOffenseReturnSafetyRuntime returnSafety,
+        IOffenseBattleDirector battleDirector)
+    {
+        if (v17Travel != null)
+        {
+            v17Travel.StepCompleted -= OnV17TravelStepCompleted;
+            v17Travel.DecisionRequired -= OnV17DecisionRequired;
+            v17Travel.SiteReached -= OnV17SiteReached;
+        }
+
+        v17World = world ?? throw new ArgumentNullException(nameof(world));
+        v17Travel = travel ?? throw new ArgumentNullException(nameof(travel));
+        v17Decisions = decisions
+            ?? throw new ArgumentNullException(nameof(decisions));
+        v17ReturnSafety = returnSafety
+            ?? throw new ArgumentNullException(nameof(returnSafety));
+        v17BattleDirector = battleDirector
+            ?? throw new ArgumentNullException(nameof(battleDirector));
+        v17Travel.StepCompleted += OnV17TravelStepCompleted;
+        v17Travel.DecisionRequired += OnV17DecisionRequired;
+        v17Travel.SiteReached += OnV17SiteReached;
     }
 
     public IReadOnlyList<CharacterActor> GetAvailableMemberActors()
@@ -280,23 +342,36 @@ public class OffenseExpeditionRuntime : MonoBehaviour
         out string message)
     {
         expedition = null;
-        if (!ResolveWorldMapProvider().TryGetRuntime(out OffenseWorldMapRuntime worldMap))
+        message = string.Empty;
+        ResolveWorldMapProvider().TryGetRuntime(
+            out OffenseWorldMapRuntime worldMap);
+        OffenseTargetDefinition target = worldMap != null
+            ? OffenseWorldMapService.FindKnownTarget(
+                worldMap.State,
+                worldMap.TargetDefinitions,
+                targetId)
+            : null;
+        bool isV17Site = TryCreateV17Target(
+            targetId,
+            out OffenseTargetDefinition v17Target,
+            out OffenseHexCoord v17Destination);
+        if (target == null && isV17Site)
         {
-            message = "월드맵이 초기화되지 않았습니다";
-            return false;
+            target = v17Target;
         }
 
-        OffenseTargetDefinition target = OffenseWorldMapService.FindKnownTarget(
-            worldMap.State,
-            worldMap.TargetDefinitions,
-            targetId);
         if (target == null)
         {
             message = "발견되지 않은 원정 대상입니다";
             return false;
         }
 
-        if (!OffenseWorldMapService.CanAttemptTarget(worldMap.State, target, out message))
+        if (!isV17Site
+            && (worldMap == null
+                || !OffenseWorldMapService.CanAttemptTarget(
+                    worldMap.State,
+                    target,
+                    out message)))
         {
             return false;
         }
@@ -329,9 +404,9 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             return false;
         }
 
-        if (party.Count > 3)
+        if (party.Count > 5)
         {
-            message = $"원정대는 최대 3명까지 참가할 수 있습니다. ({party.Count}/3)";
+            message = $"원정대는 최대 5명까지 참가할 수 있습니다. ({party.Count}/5)";
             return false;
         }
 
@@ -373,26 +448,108 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             OffenseRouteGenerator.Create(target),
             supplies,
             preparation);
+        if (isV17Site)
+        {
+            expedition.BeginV17Travel(target.id);
+            if (!TryPrepareV17Travel(
+                    expedition,
+                    v17Destination,
+                    pauseUntilDepartureCompletes: departureService != null,
+                    out message))
+            {
+                preparationService?.ReturnSupplies(supplies, expeditionId);
+                expedition = null;
+                return false;
+            }
+        }
+
+        int allocatedFieldFunds = 0;
+        if (isV17Site && preparation.FieldFunds > 0)
+        {
+            allocatedFieldFunds = preparation.FieldFunds;
+            if (!gameMoney.TrySpend(
+                    allocatedFieldFunds,
+                    new EconomyTransactionContext(
+                        EconomyTransactionKind.ExpeditionFieldFundAllocation,
+                        expeditionId,
+                        target.id,
+                        "원정 현장 자금 배정"),
+                    out message))
+            {
+                preparationService?.ReturnSupplies(supplies, expeditionId);
+                v17Travel?.TryRemove(expeditionId);
+                expedition = null;
+                return false;
+            }
+        }
+
         if (departureService != null)
         {
+            OffenseExpeditionRun createdExpedition = expedition;
             if (!departureService.TryBeginDeparture(
-                    expedition,
+                    createdExpedition,
                     party,
-                    () => StateChanged?.Invoke(),
+                    () => preparationService == null
+                        || preparationService.IsPackageReady(expeditionId),
+                    () =>
+                    {
+                        if (preparationService != null
+                            && !preparationService.TryConsumePackedSupplies(
+                                expeditionId,
+                                out string packingMessage))
+                        {
+                            gameEventBus.RaiseAlert(
+                                "출정 보급 오류",
+                                packingMessage,
+                                EventAlertImportance.High,
+                                "expedition");
+                            return;
+                        }
+
+                        if (isV17Site)
+                        {
+                            v17Travel?.TryResumeAfterBattle(createdExpedition.ExpeditionId);
+                        }
+
+                        createdExpedition.MarkDepartureCompleted();
+                        StateChanged?.Invoke();
+                    },
                     out string departureMessage))
             {
                 preparationService?.ReturnSupplies(supplies, expeditionId);
+                if (isV17Site)
+                {
+                    v17Travel?.TryRemove(expeditionId);
+                }
+                RefundFieldFunds(expeditionId, allocatedFieldFunds);
                 message = departureMessage;
                 expedition = null;
                 return false;
             }
 
-            preparationService?.ConsumePackedSupplies(expeditionId);
             activeExpeditions.Add(expedition);
-            message = $"{target.title} 출정 집결 중";
+            OffenseSupplyPackingSnapshot packing =
+                preparationService?.GetPackingSnapshot(expeditionId) ?? default;
+            message = packing.IsInTransit
+                ? $"{target.title} 보급 운반 중 ({packing.Delivered}/{packing.Required})"
+                : $"{target.title} 출정 집결 중";
             gameEventBus.RaiseAlert("출정 집결", message, EventAlertImportance.Medium, "expedition");
             StateChanged?.Invoke();
             return true;
+        }
+
+        if (supplies.TotalCount > 0)
+        {
+            preparationService?.ReturnSupplies(supplies, expeditionId);
+            if (isV17Site)
+            {
+                v17Travel?.TryRemove(expeditionId);
+            }
+            RefundFieldFunds(expeditionId, allocatedFieldFunds);
+
+            message = "물리 출정 집결 서비스가 없어 보급 원정을 시작할 수 없습니다.";
+            expedition = null;
+            return false;
         }
 
         List<CharacterActor> departedMembers = new List<CharacterActor>();
@@ -406,6 +563,7 @@ public class OffenseExpeditionRuntime : MonoBehaviour
                 }
 
                 preparationService?.ReturnSupplies(supplies, expeditionId);
+                RefundFieldFunds(expeditionId, allocatedFieldFunds);
                 message = $"{member.name}: 원정 상태로 전환할 수 없습니다.";
                 expedition = null;
                 return false;
@@ -414,8 +572,12 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             departedMembers.Add(member);
         }
 
-        preparationService?.ConsumePackedSupplies(expeditionId);
         activeExpeditions.Add(expedition);
+        expedition.MarkDepartureCompleted();
+        if (isV17Site)
+        {
+            v17Travel?.TryResumeAfterBattle(expeditionId);
+        }
         message = $"{target.title} 원정 출발: 경로를 선택하세요.";
         gameEventBus.RaiseAlert("원정 출발", message, EventAlertImportance.Medium, "오펜스");
         StateChanged?.Invoke();
@@ -551,6 +713,531 @@ public class OffenseExpeditionRuntime : MonoBehaviour
         StateChanged?.Invoke();
     }
 
+    public void ResumeRestoredV17State()
+    {
+        foreach (OffenseExpeditionRun expedition in activeExpeditions
+                     .Where(run => run != null && run.UsesV17WorldTravel))
+        {
+            if (expedition.DepartureCompleted)
+            {
+                if (expedition.Phase is OffenseExpeditionPhase.Traveling
+                    or OffenseExpeditionPhase.Returning)
+                {
+                    v17Travel?.TryResumeAfterBattle(expedition.ExpeditionId);
+                }
+
+                continue;
+            }
+
+            if (departureService == null)
+            {
+                gameEventBus?.RaiseAlert(
+                    "출정 복원 실패",
+                    "출정 집결 서비스를 찾을 수 없어 원정대가 대기합니다.",
+                    EventAlertImportance.High,
+                    "expedition");
+                continue;
+            }
+
+            OffenseExpeditionRun restoredExpedition = expedition;
+            if (!departureService.TryBeginDeparture(
+                    restoredExpedition,
+                    restoredExpedition.MemberActors,
+                    () => preparationService == null
+                        || preparationService.IsPackageReady(
+                            restoredExpedition.ExpeditionId),
+                    () =>
+                    {
+                        if (preparationService != null
+                            && !preparationService.TryConsumePackedSupplies(
+                                restoredExpedition.ExpeditionId,
+                                out string packingMessage))
+                        {
+                            gameEventBus?.RaiseAlert(
+                                "출정 보급 오류",
+                                packingMessage,
+                                EventAlertImportance.High,
+                                "expedition");
+                            return;
+                        }
+
+                        restoredExpedition.MarkDepartureCompleted();
+                        v17Travel?.TryResumeAfterBattle(
+                            restoredExpedition.ExpeditionId);
+                        StateChanged?.Invoke();
+                    },
+                    out string departureMessage))
+            {
+                gameEventBus?.RaiseAlert(
+                    "출정 복원 실패",
+                    departureMessage,
+                    EventAlertImportance.High,
+                    "expedition");
+            }
+        }
+    }
+
+    public bool TryResolveV17Decision(
+        string expeditionId,
+        string choiceId,
+        out string message)
+    {
+        OffenseExpeditionRun expedition = FindActiveExpedition(expeditionId);
+        if (expedition == null
+            || !expedition.UsesV17WorldTravel
+            || v17Decisions == null
+            || v17Travel == null)
+        {
+            message = "해결할 원정 사건이 없습니다.";
+            return false;
+        }
+
+        if (!v17Decisions.TryGetActiveChoice(
+                expeditionId,
+                choiceId,
+                out OffenseDecisionChoiceDefinition choice,
+                out int deterministicRoll,
+                out message))
+        {
+            return false;
+        }
+
+        OffenseDecisionEffectContext effectContext =
+            new OffenseDecisionEffectContext(
+                expedition,
+                v17Travel,
+                v17World,
+                gameMoney,
+                deterministicRoll,
+                equipmentRuntime);
+        IReadOnlyList<OffenseDecisionEffectDefinition> effects =
+            choice.effects != null
+                ? choice.effects
+                : Array.Empty<OffenseDecisionEffectDefinition>();
+        if (!v17DecisionEffects.CanExecute(
+                effects,
+                effectContext,
+                out message))
+        {
+            return false;
+        }
+
+        v17DecisionEffects.Execute(effects, effectContext);
+        if (!v17Decisions.TryResolve(
+                expeditionId,
+                choiceId,
+                out _,
+                out message))
+        {
+            throw new InvalidOperationException(
+                $"Decision state changed while resolving '{expeditionId}:{choiceId}'.");
+        }
+
+        v17Travel.TryResumeAfterDecision(expeditionId);
+        expedition.SetV17DecisionPaused(false);
+        if (effectContext.ForcesMovement)
+        {
+            v17Travel.TryAdvanceOneStep(
+                expeditionId,
+                forcedMovement: true,
+                out _,
+                out _);
+        }
+
+        if (effectContext.StartsCombat
+            && v17ReturnSafety.CanGenerateForcedCombat(
+                expeditionId,
+                averageHealthRatio: GetAverageHealthRatio(expedition),
+                hasDownedMember: expedition.MemberStates.Any(member =>
+                    member?.Actor != null
+                    && member.Actor.Lifecycle?.CurrentState
+                        == CharacterLifecycleState.Downed),
+                hasUsableWeaponForEveryActiveMember: true))
+        {
+            if (!TryBeginV17Battle(
+                    expedition,
+                    objectiveBattle: false,
+                    out message))
+            {
+                v17Travel.TryResumeAfterBattle(expeditionId);
+                return false;
+            }
+        }
+
+        string summary = effectContext.Results.Count > 0
+            ? string.Join(" · ", effectContext.Results)
+            : choice.directionLabel;
+        message = string.IsNullOrWhiteSpace(summary)
+            ? "선택 결과가 원정에 반영되었습니다."
+            : summary;
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    public bool TryRedirectV17Expedition(
+        string expeditionId,
+        OffenseHexCoord destination,
+        string siteId,
+        bool startsSiteAttack,
+        out string message)
+    {
+        OffenseExpeditionRun expedition = FindActiveExpedition(expeditionId);
+        if (expedition == null
+            || !expedition.UsesV17WorldTravel
+            || v17Travel == null)
+        {
+            message = "이동할 원정대를 찾을 수 없습니다.";
+            return false;
+        }
+
+        OffenseTargetDefinition redirectedTarget = null;
+        if (startsSiteAttack
+            && (!TryCreateV17Target(
+                    siteId,
+                    out redirectedTarget,
+                    out OffenseHexCoord siteCoord)
+                || siteCoord != destination))
+        {
+            message = "공격할 거점이 없거나 위치가 변경되었습니다.";
+            return false;
+        }
+
+        if (!v17Travel.TrySetDestination(
+                expedition.ExpeditionId,
+                destination,
+                startsSiteAttack ? siteId : string.Empty,
+                OffenseTravelProfile.Default,
+                startsSiteAttack,
+                out message))
+        {
+            return false;
+        }
+
+        if (startsSiteAttack
+            && !string.Equals(
+                expedition.V17SiteId,
+                siteId,
+                StringComparison.Ordinal)
+            && !expedition.RetargetV17Objective(redirectedTarget))
+        {
+            message = "현재 원정 상태에서는 새 거점을 공격할 수 없습니다.";
+            return false;
+        }
+
+        StateChanged?.Invoke();
+        message = startsSiteAttack
+            ? "새 거점 공격을 시작했습니다. 남은 안전 이동은 해제됩니다."
+            : "이동 경로를 변경했습니다.";
+        return true;
+    }
+
+    private bool TryCreateV17Target(
+        string siteId,
+        out OffenseTargetDefinition target,
+        out OffenseHexCoord destination)
+    {
+        target = null;
+        destination = default;
+        if (v17World == null || string.IsNullOrWhiteSpace(siteId))
+        {
+            return false;
+        }
+
+        if (v17World.TryGetSite(
+                siteId,
+                out OffenseWorldSiteStateData site)
+            && site != null
+            && site.IsActive
+            && site.state != OffenseWorldSiteState.Hidden)
+        {
+            destination = site.Coord;
+            target = new OffenseTargetDefinition
+            {
+                id = site.siteId,
+                title = site.displayName,
+                description = "육각 월드맵에서 발견한 작전 거점입니다.",
+                kind = site.fixedBoss
+                    ? OffenseTargetKind.RivalDungeon
+                    : OffenseTargetKind.HumanOutpost,
+                regionId = site.regionId,
+                regionDisplayName = site.regionId,
+                factionId = site.factionId,
+                strategicPressureAxis = site.pressureAxis,
+                strategicPressureAmount = site.pressureAmount,
+                campaignOrder = Mathf.Clamp(site.strength, 1, 6),
+                revealsTruth = string.Equals(
+                    site.archetypeId,
+                    "truth_core",
+                    StringComparison.Ordinal),
+                distance = v17World.GetMinimumStepDistance(
+                    v17World.DungeonCoord,
+                    site.Coord),
+                danger = Mathf.Max(1f, site.strength * 10f),
+                durationSeconds = 90f + site.strength * 20f,
+                requiredMembers = Mathf.Clamp((site.strength + 1) / 2, 1, 5),
+                requiredPower = site.strength * 12f,
+                rewards = CreateV17SiteRewards(site)
+            };
+            return true;
+        }
+
+        if (v17World.TryGetUrgentSite(
+                siteId,
+                out OffenseUrgentSiteStateData urgent)
+            && urgent != null
+            && urgent.IsActive)
+        {
+            destination = urgent.Coord;
+            target = new OffenseTargetDefinition
+            {
+                id = urgent.siteId,
+                title = urgent.displayName,
+                description = "던전에 직접 악영향을 주는 긴급 거점입니다.",
+                kind = OffenseTargetKind.SpecialEvent,
+                regionId = "urgent",
+                regionDisplayName = "긴급 위협",
+                factionId = "hostile",
+                campaignOrder = Mathf.Clamp(
+                    (int)urgent.stage + 1,
+                    1,
+                    6),
+                distance = v17World.GetMinimumStepDistance(
+                    v17World.DungeonCoord,
+                    urgent.Coord),
+                danger = 15f + (int)urgent.stage * 12f,
+                durationSeconds = 80f,
+                requiredMembers = Mathf.Clamp(
+                    2 + (int)urgent.stage / 2,
+                    1,
+                    5),
+                requiredPower = 18f + (int)urgent.stage * 10f,
+                rewards = Array.Empty<OffenseRewardPreview>()
+            };
+            return true;
+        }
+
+        return false;
+    }
+
+    private OffenseRewardPreview[] CreateV17SiteRewards(
+        OffenseWorldSiteStateData site)
+    {
+        if (site == null || v17Content?.SiteArchetypes == null)
+        {
+            return Array.Empty<OffenseRewardPreview>();
+        }
+
+        OffenseSiteArchetypeSO archetype = v17Content.SiteArchetypes
+            .FirstOrDefault(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.siteTypeId,
+                    site.archetypeId,
+                    StringComparison.Ordinal));
+        if (archetype?.rewards == null)
+        {
+            return Array.Empty<OffenseRewardPreview>();
+        }
+
+        return archetype.rewards
+            .Where(reward => reward != null && reward.IsConfigured)
+            .Select(reward => reward.CreatePreview(site.strength))
+            .Where(preview => preview != null && preview.IsConfigured)
+            .ToArray();
+    }
+
+    private bool TryPrepareV17Travel(
+        OffenseExpeditionRun expedition,
+        OffenseHexCoord destination,
+        bool pauseUntilDepartureCompletes,
+        out string message)
+    {
+        message = string.Empty;
+        if (v17Travel == null
+            || !v17Travel.TryCreateExpedition(expedition.ExpeditionId, out message))
+        {
+            return false;
+        }
+
+        if (!v17Travel.TrySetDestination(
+                expedition.ExpeditionId,
+                destination,
+                expedition.V17SiteId,
+                OffenseTravelProfile.Default,
+                startsSiteAttack: true,
+                out message))
+        {
+            v17Travel.TryRemove(expedition.ExpeditionId);
+            return false;
+        }
+
+        if (pauseUntilDepartureCompletes)
+        {
+            v17Travel.TryPauseForBattle(expedition.ExpeditionId);
+        }
+
+        return true;
+    }
+
+    private void OnV17TravelStepCompleted(
+        string expeditionId,
+        OffenseTravelStepResult step)
+    {
+        OffenseExpeditionRun expedition = FindActiveExpedition(expeditionId);
+        if (expedition == null || !expedition.UsesV17WorldTravel)
+        {
+            return;
+        }
+
+        if (step.Arrived
+            && step.Position == v17World.DungeonCoord
+            && expedition.V17ObjectiveCompleted)
+        {
+            v17Travel.TryRemove(expeditionId);
+            CompleteExpedition(
+                expedition,
+                success: true,
+                "원정대가 전리품과 부상을 안고 던전으로 돌아왔습니다.");
+            return;
+        }
+
+        StateChanged?.Invoke();
+    }
+
+    private void OnV17DecisionRequired(string expeditionId)
+    {
+        OffenseExpeditionRun expedition = FindActiveExpedition(expeditionId);
+        if (expedition == null || !expedition.UsesV17WorldTravel)
+        {
+            v17Travel?.TryResumeAfterDecision(expeditionId);
+            return;
+        }
+
+        expedition.SetV17DecisionPaused(true);
+        if (!v17Decisions.TryGetActiveDecision(expeditionId, out _)
+            && v17Travel.TryGetState(
+                expeditionId,
+                out OffenseTravelStateData travel))
+        {
+            OffenseReturnSafetySnapshot safety =
+                v17ReturnSafety.Get(expeditionId);
+            bool hasDowned = expedition.MemberStates.Any(member =>
+                member?.Actor?.Lifecycle?.CurrentState
+                    == CharacterLifecycleState.Downed);
+            v17Decisions.TryCreateDecision(
+                new OffenseDecisionContext
+                {
+                    expeditionId = expeditionId,
+                    sequence = travel.eventSequence,
+                    stage = expedition.V17ObjectiveCompleted
+                        ? OffenseDecisionStage.Return
+                        : OffenseDecisionStage.Travel,
+                    protectedMovement = safety.IsProtected,
+                    forceNonCombat = v17ReturnSafety.MustUseNonCombatCard(
+                        expeditionId),
+                    canGenerateForcedCombat =
+                        v17ReturnSafety.CanGenerateForcedCombat(
+                            expeditionId,
+                            GetAverageHealthRatio(expedition),
+                            hasDowned,
+                            hasUsableWeaponForEveryActiveMember: true)
+                },
+                out _,
+                out _);
+        }
+
+        gameEventBus.RaiseAlert(
+            "원정 사건",
+            "원정대의 선택이 필요합니다.",
+            EventAlertImportance.Medium,
+            "오펜스");
+        StateChanged?.Invoke();
+    }
+
+    private void OnV17SiteReached(string expeditionId, string siteId)
+    {
+        OffenseExpeditionRun expedition = FindActiveExpedition(expeditionId);
+        if (expedition == null
+            || !expedition.UsesV17WorldTravel
+            || !string.Equals(
+                expedition.V17SiteId,
+                siteId,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        TryBeginV17Battle(
+            expedition,
+            objectiveBattle: true,
+            out string message);
+        if (!string.IsNullOrWhiteSpace(message))
+        {
+            gameEventBus.RaiseAlert(
+                "거점 교전",
+                message,
+                EventAlertImportance.High,
+                "오펜스");
+        }
+    }
+
+    private bool TryBeginV17Battle(
+        OffenseExpeditionRun expedition,
+        bool objectiveBattle,
+        out string message)
+    {
+        if (expedition == null
+            || !expedition.BeginV17Battle(objectiveBattle))
+        {
+            message = "원정 전투 상태로 전환할 수 없습니다.";
+            return false;
+        }
+
+        v17Travel.TryPauseForBattle(expedition.ExpeditionId);
+        if (!battleRuntime.TryStartBattle(expedition, out message))
+        {
+            expedition.CompleteV17Battle(victory: false);
+            return false;
+        }
+
+        v17BattleDirector.Clear();
+        IReadOnlyList<OffenseBattleMemberDeckSeed> members =
+            OffenseV17BattleSetupFactory.CreateMemberDecks(
+                battleRuntime.Session);
+        IReadOnlyList<OffenseEnemyIntentStateData> intents =
+            OffenseV17BattleSetupFactory.CreateEnemyIntents(
+                battleRuntime.Session);
+        if (!v17BattleDirector.TryStartBattle(
+                battleRuntime.Session.BattleId,
+                members,
+                intents,
+                expedition.ExpeditionId.GetHashCode(),
+                out message)
+            || !v17BattleDirector.TryDrawTurn(out message))
+        {
+            battleRuntime.ClearCompletedBattle();
+            expedition.CompleteV17Battle(victory: false);
+            return false;
+        }
+
+        message = objectiveBattle
+            ? $"{expedition.Target.title}의 수비대와 교전합니다."
+            : "이동 중 적대 세력과 마주쳤습니다.";
+        StateChanged?.Invoke();
+        return true;
+    }
+
+    private static float GetAverageHealthRatio(
+        OffenseExpeditionRun expedition)
+    {
+        float[] ratios = expedition?.MemberStates
+            .Select(member => member?.Actor)
+            .Where(actor => actor != null && !actor.IsDead)
+            .Select(actor => actor.CurrentHealth / Mathf.Max(1f, actor.MaxHealth))
+            .ToArray() ?? Array.Empty<float>();
+        return ratios.Length > 0 ? ratios.Average() : 0f;
+    }
+
     private void OnBattleCompleted(OffenseBattleSession session)
     {
         if (session == null)
@@ -630,7 +1317,76 @@ public class OffenseExpeditionRuntime : MonoBehaviour
         {
             expedition.Retreat(out string retreatMessage);
             battleRuntime.ClearCompletedBattle();
+            v17BattleDirector?.Clear();
+            v17Travel?.TryRemove(expedition.ExpeditionId);
             CompleteExpedition(expedition, success: false, retreatMessage);
+            return;
+        }
+
+        if (expedition.UsesV17WorldTravel)
+        {
+            bool objectiveBattle = expedition.V17ObjectiveBattleActive;
+            expedition.CompleteV17Battle(victory);
+            battleRuntime.ClearCompletedBattle();
+            v17BattleDirector?.Clear();
+            if (!victory)
+            {
+                v17Travel?.TryRemove(expedition.ExpeditionId);
+                CompleteExpedition(
+                    expedition,
+                    success: false,
+                    "원정대가 교전에서 무너졌습니다.");
+                return;
+            }
+
+            v17Travel.TryResumeAfterBattle(expedition.ExpeditionId);
+            if (!objectiveBattle)
+            {
+                StateChanged?.Invoke();
+                return;
+            }
+
+            if (!v17World.TryResolveSite(expedition.V17SiteId))
+            {
+                v17World.TryDestroyUrgentSite(expedition.V17SiteId);
+            }
+
+            if (!v17Travel.TryGetState(
+                    expedition.ExpeditionId,
+                    out OffenseTravelStateData travel))
+            {
+                CompleteExpedition(
+                    expedition,
+                    success: false,
+                    "원정 이동 상태를 복구하지 못했습니다.");
+                return;
+            }
+
+            int granted = v17ReturnSafety.GrantForObjective(
+                expedition.ExpeditionId,
+                travel.CurrentCoord,
+                v17World.DungeonCoord);
+            if (!v17Travel.TrySetDestination(
+                    expedition.ExpeditionId,
+                    travel.CurrentCoord,
+                    string.Empty,
+                    OffenseTravelProfile.Default,
+                    startsSiteAttack: false,
+                    out string holdReason))
+            {
+                CompleteExpedition(
+                    expedition,
+                    success: false,
+                    holdReason);
+                return;
+            }
+
+            gameEventBus.RaiseAlert(
+                "목표 파괴",
+                $"{expedition.Target.title} 격파. 안전 이동 {granted}칸이 지급되었습니다. 다음 목적지를 선택하세요.",
+                EventAlertImportance.High,
+                "오펜스");
+            StateChanged?.Invoke();
             return;
         }
 
@@ -693,6 +1449,22 @@ public class OffenseExpeditionRuntime : MonoBehaviour
         }
     }
 
+    private void RefundFieldFunds(string expeditionId, int amount)
+    {
+        int refund = Mathf.Max(0, amount);
+        if (refund <= 0 || gameMoney == null)
+        {
+            return;
+        }
+
+        gameMoney.Add(
+            refund,
+            new EconomyTransactionContext(
+                EconomyTransactionKind.ExpeditionFieldFundReturn,
+                expeditionId,
+                description: "출정 취소 현장 자금 반환"));
+    }
+
     public static int CalculateNodeExperience(OffenseRouteNode node, int stage)
     {
         int normalizedStage = Mathf.Clamp(stage, 1, 6);
@@ -732,10 +1504,73 @@ public class OffenseExpeditionRuntime : MonoBehaviour
     {
         if (expedition == null) return;
 
+        v17Travel?.TryRemove(expedition.ExpeditionId);
         returnArrivalRuntime?.BeginExpeditionReturn(expedition.ExpeditionId);
         activeExpeditions.Remove(expedition);
-        preparationService?.ReturnSupplies(expedition.Supplies, expedition.ExpeditionId);
-        preparationService?.DepositLoot(expedition.CarriedStock);
+        bool hasSurvivor = expedition.MemberStates.Any(member =>
+            member?.Actor != null && !member.Actor.IsDead);
+        int returningAnimations = 0;
+        bool returnRegistrationSealed = false;
+        bool returnResolved = false;
+        OffenseExpeditionResult pendingResult = null;
+
+        void ResolveReturnIfReady()
+        {
+            if (returnResolved
+                || !returnRegistrationSealed
+                || returningAnimations > 0
+                || pendingResult == null)
+            {
+                return;
+            }
+
+            returnResolved = true;
+            if (!hasSurvivor)
+            {
+                preparationService?.AbandonPackedSupplies(
+                    expedition.ExpeditionId);
+            }
+            else
+            {
+                preparationService?.ReturnSupplies(
+                    expedition.Supplies,
+                    expedition.ExpeditionId);
+                preparationService?.DepositLoot(expedition.CarriedStock);
+                int returningFunds = expedition.TakeReturningFieldFunds();
+                if (returningFunds > 0)
+                {
+                    gameMoney.Add(
+                        returningFunds,
+                        new EconomyTransactionContext(
+                            EconomyTransactionKind.ExpeditionFieldFundReturn,
+                            expedition.ExpeditionId,
+                            description: "원정 현장 자금 반환"));
+                }
+                gameEventBus.RaiseAlert(
+                    "원정 물자 도착",
+                    "생존자들이 남은 보급과 전리품을 하차장에 내려놓았습니다.",
+                    EventAlertImportance.Low,
+                    "오펜스");
+            }
+
+            pendingResult = FinalizeBattleExpedition(
+                expedition,
+                pendingResult);
+            returnArrivalRuntime?.SealExpeditionReturn(
+                expedition.ExpeditionId);
+            StateChanged?.Invoke();
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                gameEventBus.RaiseAlert(
+                    success ? "원정 완수" : "원정 종료",
+                    message,
+                    success
+                        ? EventAlertImportance.Medium
+                        : EventAlertImportance.High,
+                    "오펜스");
+            }
+        }
+
         List<OffenseExpeditionMemberSnapshot> members = new List<OffenseExpeditionMemberSnapshot>();
         foreach (OffenseExpeditionMemberState member in expedition.MemberStates)
         {
@@ -746,6 +1581,7 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             bool returnAnimated = false;
             if (survived && returnService != null)
             {
+                returningAnimations++;
                 returnArrivalRuntime?.RegisterReturningMember(expedition.ExpeditionId);
                 returnAnimated = returnService.TryBeginReturn(
                     actor,
@@ -754,11 +1590,18 @@ public class OffenseExpeditionRuntime : MonoBehaviour
                     {
                         returnArrivalRuntime?.CompleteReturningMember(
                             expedition.ExpeditionId);
+                        returningAnimations = Mathf.Max(
+                            0,
+                            returningAnimations - 1);
+                        ResolveReturnIfReady();
                         StateChanged?.Invoke();
                     },
                     out _);
                 if (!returnAnimated)
                 {
+                    returningAnimations = Mathf.Max(
+                        0,
+                        returningAnimations - 1);
                     returnArrivalRuntime?.CompleteReturningMember(
                         expedition.ExpeditionId);
                 }
@@ -785,7 +1628,7 @@ public class OffenseExpeditionRuntime : MonoBehaviour
                 member.TotalDamageTaken));
         }
 
-        OffenseExpeditionResult result = new OffenseExpeditionResult(
+        pendingResult = new OffenseExpeditionResult(
             expedition.ExpeditionId,
             expedition.Target.id,
             expedition.Target.title,
@@ -801,17 +1644,8 @@ public class OffenseExpeditionRuntime : MonoBehaviour
                     .Select(reward => reward.ToSummaryText())
                     .ToArray() ?? Array.Empty<string>()
                 : Array.Empty<string>());
-        FinalizeBattleExpedition(expedition, result);
-        returnArrivalRuntime?.SealExpeditionReturn(expedition.ExpeditionId);
-        StateChanged?.Invoke();
-        if (!string.IsNullOrWhiteSpace(message))
-        {
-            gameEventBus.RaiseAlert(
-                success ? "원정 완수" : "원정 종료",
-                message,
-                success ? EventAlertImportance.Medium : EventAlertImportance.High,
-                "오펜스");
-        }
+        returnRegistrationSealed = true;
+        ResolveReturnIfReady();
     }
 
     private static string GetActorName(CharacterActor actor)
@@ -852,15 +1686,38 @@ public class OffenseExpeditionRuntime : MonoBehaviour
             resultHistory.RemoveRange(MaxResultHistory, resultHistory.Count - MaxResultHistory);
         }
 
-        if (result.success)
+        if (result.success
+            && (!expedition.UsesV17WorldTravel
+                || expedition.Target.revealsTruth))
         {
             if (!ResolveWorldMapProvider().TryGetRuntime(out OffenseWorldMapRuntime worldMap))
             {
                 Debug.LogWarning("Successful battle could not update the offense campaign because the world map is missing.");
             }
-            else if (!worldMap.TryRecordSuccessfulExpedition(result.targetId, out _, out string campaignMessage))
+            else
             {
-                Debug.LogWarning($"Successful battle did not advance the offense campaign: {campaignMessage}");
+                bool recorded;
+                string campaignMessage;
+                if (expedition.UsesV17WorldTravel)
+                {
+                    recorded = worldMap.TryRecordV17TruthReveal(
+                        result.targetId,
+                        out campaignMessage);
+                }
+                else
+                {
+                    recorded = worldMap.TryRecordSuccessfulExpedition(
+                        result.targetId,
+                        out _,
+                        out campaignMessage);
+                }
+
+                if (!recorded)
+                {
+                    Debug.LogWarning(
+                        "Successful battle did not advance the offense "
+                        + $"campaign: {campaignMessage}");
+                }
             }
         }
 

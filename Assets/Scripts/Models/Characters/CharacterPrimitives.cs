@@ -29,7 +29,8 @@ public enum CharacterStatType
     Cleaning = 7,
     Endurance = 8,
     Shooting = 9,
-    Evasion = 10
+    Evasion = 10,
+    Medical = 11
 }
 
 public enum CharacterCondition

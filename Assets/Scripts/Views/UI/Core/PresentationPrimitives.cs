@@ -15,7 +15,8 @@ public enum TabId
     Defense = 6,
     Expedition = 7,
     Research = 8,
-    Codex = 9
+    Codex = 9,
+    Industry = 10
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -67,7 +68,8 @@ public static class UITabCatalog
             new UITabDefinition(TabId.Defense, 6, "방어", "침공/방어", UITabSurfaceKind.Feature),
             new UITabDefinition(TabId.Expedition, 7, "원정", "원정", UITabSurfaceKind.Feature),
             new UITabDefinition(TabId.Research, 8, "연구", "연구 트리", UITabSurfaceKind.ResearchTree),
-            new UITabDefinition(TabId.Codex, 9, "도감", "도감/기록", UITabSurfaceKind.Feature)
+            new UITabDefinition(TabId.Codex, 9, "도감", "도감/기록", UITabSurfaceKind.Feature),
+            new UITabDefinition(TabId.Industry, 10, "산업", "전력·상하수도·자동화", UITabSurfaceKind.Feature)
         });
 
     private static readonly IReadOnlyDictionary<TabId, UITabDefinition> ById =

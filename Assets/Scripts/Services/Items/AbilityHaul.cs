@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public sealed class AbilityHaul : MonoBehaviour
@@ -15,6 +16,9 @@ public sealed class AbilityHaul : MonoBehaviour
     private WorldItemHaulPlan activePlan;
     private WorldItemHaulPlanUnloadReason unloadReason;
     private bool lastMoveSucceeded;
+    private string executionStage = "대기";
+    private int routineHeartbeat;
+    private string activePathDebug = string.Empty;
     private IWorldItemStackRuntime ItemRuntime => actor?.WorldItemStackRuntime;
 
     public bool IsHauling => haulingRoutine != null;
@@ -22,6 +26,33 @@ public sealed class AbilityHaul : MonoBehaviour
         ? activePlan.Summary
         : "운반 계획 없음";
     public string CurrentUnloadReason => ToDisplayText(unloadReason);
+    public string CurrentExecutionStage => executionStage;
+    public int RoutineHeartbeat => routineHeartbeat;
+    public string ActivePathDebug => activePathDebug;
+
+    public int GetInTransitQuantity(string destinationId, string itemId)
+    {
+        if (activePlan == null
+            || actor == null
+            || string.IsNullOrWhiteSpace(destinationId)
+            || string.IsNullOrWhiteSpace(itemId)
+            || !string.Equals(
+                activePlan.PrimaryDestinationId,
+                destinationId,
+                System.StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        CharacterCarryInventory carry = actor.CarryInventory;
+        return carry?.Items
+            .Where(item => item != null
+                && string.Equals(
+                    item.itemId,
+                    itemId,
+                    System.StringComparison.Ordinal))
+            .Sum(item => Mathf.Max(0, item.quantity)) ?? 0;
+    }
 
     private void Awake()
     {
@@ -90,6 +121,9 @@ public sealed class AbilityHaul : MonoBehaviour
 
         activePlan = reservedPlan;
         unloadReason = WorldItemHaulPlanUnloadReason.None;
+        executionStage = "운반 시작";
+        routineHeartbeat = 0;
+        activePathDebug = string.Empty;
         haulingRoutine = StartCoroutine(HaulRoutine(activePlan));
     }
 
@@ -104,10 +138,14 @@ public sealed class AbilityHaul : MonoBehaviour
         ReleaseActivePlanReservations();
         activePlan = null;
         unloadReason = WorldItemHaulPlanUnloadReason.Interrupted;
+        executionStage = "중단";
+        activePathDebug = string.Empty;
     }
 
     private IEnumerator HaulRoutine(WorldItemHaulPlan plan)
     {
+        routineHeartbeat++;
+        executionStage = "계획 확인";
         IWorldItemStackRuntime itemRuntime = ItemRuntime;
         CharacterCarryInventory carry = actor != null
             ? actor.CarryInventory
@@ -144,10 +182,14 @@ public sealed class AbilityHaul : MonoBehaviour
             bool pickupReached = IsActorAt(pickup.PickupStandPosition);
             if (!pickupReached)
             {
+                executionStage = "픽업 이동 요청";
+                routineHeartbeat++;
                 yield return MoveTo(
                     grid,
                     pickup.PickupStandPosition,
                     expectedAction);
+                executionStage = "픽업 이동 반환";
+                routineHeartbeat++;
                 pickupReached = lastMoveSucceeded;
             }
 
@@ -176,6 +218,8 @@ public sealed class AbilityHaul : MonoBehaviour
             }
 
             pickedStackCount++;
+            executionStage = "픽업 완료";
+            routineHeartbeat++;
             yield return null;
             if (pickedUp < pickup.Reservation.Quantity
                 || carry.GetLoadRatio(
@@ -214,10 +258,14 @@ public sealed class AbilityHaul : MonoBehaviour
             bool deliveryReached = IsActorAt(delivery.DeliveryPosition);
             if (!deliveryReached)
             {
+                executionStage = "배송 이동 요청";
+                routineHeartbeat++;
                 yield return MoveTo(
                     grid,
                     delivery.DeliveryPosition,
                     expectedAction);
+                executionStage = "배송 이동 반환";
+                routineHeartbeat++;
                 deliveryReached = lastMoveSucceeded;
             }
 
@@ -232,6 +280,8 @@ public sealed class AbilityHaul : MonoBehaviour
             }
 
             actor.Brain?.SetActionPhase("물품 내려놓는 중", null, delivery.DeliveryPosition.ToString());
+            executionStage = "배송 입고";
+            routineHeartbeat++;
             string depositReason;
             bool deposited;
             if (delivery.DestinationKind == WorldItemHaulDestinationKind.FacilityBuffer)
@@ -274,6 +324,8 @@ public sealed class AbilityHaul : MonoBehaviour
         AIAction expectedAction)
     {
         lastMoveSucceeded = false;
+        executionStage = "경로 준비";
+        routineHeartbeat++;
         if (grid == null || actor == null)
         {
             yield break;
@@ -304,6 +356,8 @@ public sealed class AbilityHaul : MonoBehaviour
             }
 
             Queue<GridMoveStep> path = null;
+            executionStage = $"경로 요청 {movementAttempt + 1}";
+            routineHeartbeat++;
             for (int frame = 0; frame < MaximumPathResolveFrames; frame++)
             {
                 if (IsActionCancelled(expectedAction))
@@ -320,6 +374,9 @@ public sealed class AbilityHaul : MonoBehaviour
                     traversalContext);
                 if (status == GridPathRequestStatus.Reachable)
                 {
+                    activePathDebug = DescribePath(path);
+                    executionStage = $"경로 준비 완료 {path?.Count ?? 0}단계";
+                    routineHeartbeat++;
                     break;
                 }
 
@@ -341,6 +398,7 @@ public sealed class AbilityHaul : MonoBehaviour
                 }
 
                 yield return null;
+                routineHeartbeat++;
             }
 
             if (path == null)
@@ -352,7 +410,11 @@ public sealed class AbilityHaul : MonoBehaviour
                 yield break;
             }
 
+            executionStage = $"경로 이동 중 {path.Count}단계";
+            routineHeartbeat++;
             yield return move.MoveByPath(path, expectedAction);
+            executionStage = "경로 이동 반환";
+            routineHeartbeat++;
             if (IsActorAt(target)
                 && !IsActionCancelled(expectedAction))
             {
@@ -379,6 +441,18 @@ public sealed class AbilityHaul : MonoBehaviour
             ? actor.Brain.bestAction
             : null;
         return current?.actionset is AIHaul ? current : null;
+    }
+
+    private static string DescribePath(IEnumerable<GridMoveStep> path)
+    {
+        return path == null
+            ? "none"
+            : string.Join(
+                ">",
+                path.Where(step => step.IsValid)
+                    .Select(step =>
+                        $"{step.From}->{step.To}:{step.MoveType}:"
+                        + $"{step.MovementOccupant?.GetType().Name ?? "none"}"));
     }
 
     private bool TryGetGrid(out Grid grid)

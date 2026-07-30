@@ -42,6 +42,15 @@ public class AbilityMove : CharacterAbility
 
     public bool LastGridMoveWasBlocked { get; private set; }
     public GridMoveFailureReason LastGridMoveFailureReason { get; private set; }
+    public bool IsSystemMoveInProgress =>
+        activeActionMovementRoutine != null
+        && activeSystemMoveDestination.HasValue;
+
+    public bool IsSystemMoveInProgressTo(Vector2Int destination)
+    {
+        return IsSystemMoveInProgress
+            && activeSystemMoveDestination.Value == destination;
+    }
 
     public void MarkGridMoveFailure(GridMoveFailureReason reason)
     {
@@ -205,7 +214,7 @@ public class AbilityMove : CharacterAbility
                     grid.GetGridCell(destination)
                         ?.TerrainMoveSpeedMultiplier ?? 1f);
                 float distance = Vector3.Distance(startPosition, endPosition);
-                float totalSpeed = moveSpeed * terrainSpeedMultiplier;
+                float totalSpeed = GetCurrentMoveSpeed() * terrainSpeedMultiplier;
                 if (totalSpeed <= 0f)
                 {
                     LastGridMoveFailureReason =
@@ -1215,7 +1224,7 @@ public class AbilityMove : CharacterAbility
             actor?.Flip(CharacterFacing.LEFT);
         }
         float distance = Vector3.Distance(startPos, endPos);
-        float totalSpeed = moveSpeed * multifly;
+        float totalSpeed = GetCurrentMoveSpeed() * multifly;
         if (totalSpeed <= 0f)
         {
             LastGridMoveFailureReason =
@@ -1327,6 +1336,15 @@ public class AbilityMove : CharacterAbility
         transform.position = blockedFallbackPosition;
         SetGridMoveBlocked(GridMoveFailureReason.TraversalChanged);
         return true;
+    }
+
+    private float GetCurrentMoveSpeed()
+    {
+        return Mathf.Max(
+            0.1f,
+            actor != null
+                ? actor.GetMoveSpeed()
+                : moveSpeed);
     }
 
     private bool TryGetWalkStepBlockReason(

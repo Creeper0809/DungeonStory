@@ -407,7 +407,8 @@ public enum WorldFilthType
     Waste = 0,
     Blood = 1,
     Rot = 2,
-    Stain = 3
+    Stain = 3,
+    Sewage = 4
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

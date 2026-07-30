@@ -61,6 +61,7 @@ public class InvasionThreatRuntime : MonoBehaviour
     private IMetaProgressionRuntimeReader metaProgressionReader;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
+    private IWorldThreatModifierQuery worldThreatModifiers;
     private IDisposable invasionStartedSubscription;
     private IDisposable invasionResolvedSubscription;
     private IDisposable operatingDayStartedSubscription;
@@ -123,7 +124,8 @@ public class InvasionThreatRuntime : MonoBehaviour
         IMetaProgressionRuntimeReader metaProgressionReader,
         IGameClock gameClock,
         IGameEventBus gameEventBus,
-        IRandomStreamProvider randomStreamProvider)
+        IRandomStreamProvider randomStreamProvider,
+        IWorldThreatModifierQuery worldThreatModifiers = null)
     {
         this.worldSampler = worldSampler
             ?? throw new ArgumentNullException(nameof(worldSampler));
@@ -135,6 +137,7 @@ public class InvasionThreatRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.worldThreatModifiers = worldThreatModifiers;
         randomStream = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("invasion-threat");
@@ -440,7 +443,9 @@ public class InvasionThreatRuntime : MonoBehaviour
     private float GetWarningThresholdMultiplier()
     {
         return RequireRunVariableReader().GetWarningThresholdMultiplier()
-            * RequireMetaProgressionReader().GetInvasionWarningThresholdMultiplier();
+            * RequireMetaProgressionReader().GetInvasionWarningThresholdMultiplier()
+            * (worldThreatModifiers?.GetMultiplier(
+                OffenseThreatModifierKind.InvasionWarning) ?? 1f);
     }
 
     private IRunVariableRuntimeReader RequireRunVariableReader()

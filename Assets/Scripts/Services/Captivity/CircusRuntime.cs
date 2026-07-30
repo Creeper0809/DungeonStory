@@ -22,7 +22,7 @@ public sealed class CircusRuntime :
     private readonly ICharacterAiWorldRegistry world;
     private readonly IGridSystemProvider gridProvider;
     private readonly IRoomLayoutCache rooms;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameMoneyRuntime money;
     private readonly ICharacterBodyHealthRuntime bodyHealth;
     private readonly ICombatResolutionService combat;
     private readonly ICombatEquipmentRuntime equipment;
@@ -52,7 +52,7 @@ public sealed class CircusRuntime :
         ICharacterAiWorldRegistry world,
         IGridSystemProvider gridProvider,
         IRoomLayoutCache rooms,
-        IGameDataProvider gameDataProvider,
+        IGameMoneyRuntime money,
         ICharacterBodyHealthRuntime bodyHealth,
         ICombatResolutionService combat,
         ICombatEquipmentRuntime equipment,
@@ -72,8 +72,7 @@ public sealed class CircusRuntime :
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
         this.rooms = rooms ?? throw new ArgumentNullException(nameof(rooms));
-        this.gameDataProvider = gameDataProvider
-            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
         this.combat = combat ?? throw new ArgumentNullException(nameof(combat));
         this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
@@ -528,10 +527,15 @@ public sealed class CircusRuntime :
             0,
             order.audienceIds.Count
             * (order.ticketPrice + order.venueFlatRevenuePerAudience));
-        if (gameDataProvider.TryGetGameData(out GameData data)
-            && data.holdingMoney != null)
+        if (order.revenue > 0)
         {
-            data.holdingMoney.Value += order.revenue;
+            money.Add(
+                order.revenue,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.CircusIncome,
+                    order.stageId,
+                    order.orderId,
+                    $"{program.Definition.displayName} 공연 수입"));
         }
 
         foreach (string captiveId in order.performerIds)

@@ -31,42 +31,7 @@ MonoBehaviour:
   researchWorkRequired: 20
   targetResearchProjectId: research:survival:support
   unlocks:
-    items:
-    - rid: 7302563252806877215
-    - rid: 7302563252806877216
-    - rid: 7302563252806877217
-    - rid: 7302563252806877218
-    - rid: 7302563252806877219
-    - rid: 7302563252806877220
-    - rid: 7302563252806877221
+    items: []
   references:
     version: 2
-    RefIds:
-    - rid: 7302563252806877215
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1021
-    - rid: 7302563252806877216
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1022
-    - rid: 7302563252806877217
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1024
-    - rid: 7302563252806877218
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1025
-    - rid: 7302563252806877219
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1060
-    - rid: 7302563252806877220
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1063
-    - rid: 7302563252806877221
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1054
+    RefIds: []

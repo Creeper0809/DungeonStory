@@ -987,6 +987,48 @@ public sealed class OffenseBattleSession
         return true;
     }
 
+    public bool TryExecutePlannedCommand(
+        OffenseBattleCommand command,
+        out OffenseBattleCommandResult result)
+    {
+        if (command == null)
+        {
+            result = new OffenseBattleCommandResult(false, "명령이 없습니다.");
+            return false;
+        }
+
+        if (IsComplete)
+        {
+            result = new OffenseBattleCommandResult(false, "이미 끝난 전투입니다.");
+            return false;
+        }
+
+        if (command.CommandId <= LastProcessedCommandId)
+        {
+            result = new OffenseBattleCommandResult(false, "이미 처리한 명령입니다.");
+            return false;
+        }
+
+        OffenseBattleCombatant actor = FindCombatant(command.ActorId);
+        if (actor == null || !actor.CanTakeTurn)
+        {
+            result = new OffenseBattleCommandResult(
+                false,
+                "행동 가능한 전투원이 아닙니다.");
+            return false;
+        }
+
+        if (!TryResolveCommand(actor, command, out result))
+        {
+            return false;
+        }
+
+        LastProcessedCommandId = command.CommandId;
+        Outcome = ResolveOutcome();
+        FinalizeRecoverableEquipment();
+        return true;
+    }
+
     public OffenseBattleCommand CreateEnemyCommand(long commandId)
     {
         OffenseBattleCombatant actor = CurrentActor;
@@ -1689,11 +1731,11 @@ public sealed class OffenseBattleSession
                 && !combatant.IsDowned)
             .OrderBy(combatant => combatant.Formation)
             .ThenBy(combatant => combatant.PersistentId, StringComparer.Ordinal)
-            .Take(3)
             .ToArray();
         for (int index = 0; index < survivors.Length; index++)
         {
-            survivors[index].RestoreFormation((OffenseFormationSlot)index);
+            survivors[index].RestoreFormation(
+                (OffenseFormationSlot)Mathf.Clamp(index / 2, 0, 2));
         }
     }
 

@@ -9,6 +9,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     private WarehouseInventory warehouseInventory;
     private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
     private IMealConsumptionRuntime mealConsumptionRuntime;
+    private IWaterFixtureUseRuntime waterFixtureUseRuntime;
 
     public WarehouseInventory Inventory => warehouseInventory;
     public bool HasWarehouseInventory => warehouseInventory != null;
@@ -16,10 +17,12 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     [Inject]
     public void ConstructFacility(
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService,
-        IMealConsumptionRuntime mealConsumptionRuntime = null)
+        IMealConsumptionRuntime mealConsumptionRuntime = null,
+        IWaterFixtureUseRuntime waterFixtureUseRuntime = null)
     {
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
         this.mealConsumptionRuntime = mealConsumptionRuntime;
+        this.waterFixtureUseRuntime = waterFixtureUseRuntime;
     }
 
     public override void Initialization(BuildingSO buildingSO, Vector2Int buildPos)
@@ -58,6 +61,36 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
 
     public IEnumerator Interact(CharacterActor actor)
     {
+        if (!CanVisit(actor, out string visitFailure))
+        {
+            actor?.AddActivity(CharacterActivityEvent.Facility(
+                CharacterActivityKinds.FacilityUse,
+                CharacterActivityOutcomes.Failed,
+                $"{objectNameOrDefault()} 이용 실패: {visitFailure}",
+                this,
+                reasonCode: visitFailure,
+                bubbleEligible: true));
+            yield break;
+        }
+
+        WaterFixtureUseTicket fixtureUseTicket = default;
+        if (waterFixtureUseRuntime != null
+            && BuildingData?.GetAbility<BuildingWaterFixtureAbility>() != null
+            && !waterFixtureUseRuntime.TryBeginUse(
+                this,
+                out fixtureUseTicket,
+                out string plumbingFailure))
+        {
+            actor?.AddActivity(CharacterActivityEvent.Facility(
+                CharacterActivityKinds.FacilityUse,
+                CharacterActivityOutcomes.Failed,
+                $"{objectNameOrDefault()} 이용 실패: {plumbingFailure}",
+                this,
+                reasonCode: plumbingFailure,
+                bubbleEligible: true));
+            yield break;
+        }
+
         if (!TryBeginUse(actor, out string failureReason))
         {
             actor?.AddActivity(CharacterActivityEvent.Facility(
@@ -125,6 +158,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             ApplyConfiguredUseRecovery(actor);
         }
 
+        waterFixtureUseRuntime?.CompleteUse(this, fixtureUseTicket);
         ModularFacilityRuntimeEffects.ApplyUseCompleted(actor, this);
         roomEnvironmentExperienceService?.Apply(new RoomEnvironmentExperienceEvent(
             actor,

@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: industry_rune_grid
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7158
+  projectId: research:industry:rune-grid
+  displayName: "\uB8EC \uC804\uB825\uB9DD"
+  description: "\uB8EC \uC548\uC815\uAE30\uB85C \uACE0\uBC00\uB3C4 \uC804\uB825\uB9DD\uC758
+    \uC190\uC2E4\uACFC \uACFC\uBD80\uD558\uB97C \uC904\uC778\uB2E4."
+  field: 15
+  requiredWork: 274
+  prerequisites:
+  - {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
+  - {fileID: 11400000, guid: 4b3074860ed56d9429b554e903f0d8e7, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items: []
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

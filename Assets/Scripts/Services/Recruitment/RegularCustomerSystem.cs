@@ -578,6 +578,11 @@ public class RegularCustomerRuntime : MonoBehaviour
     private IRecruitedCharacterActivationService characterActivationService;
     private ICharacterPopulationService characterPopulationService;
     private IGameEventBus gameEventBus;
+    private IEmploymentContractRuntime employmentContracts;
+    private IBuildingWorldQuery buildingWorld;
+    private IGameDataProvider gameDataProvider;
+    private IGameMoneyRuntime money;
+    private IOffenseWorldMapRuntimeProvider offenseWorldMapProvider;
     private IDisposable offenseRewardSubscription;
     private IDisposable facilityVisitSubscription;
 
@@ -593,13 +598,23 @@ public class RegularCustomerRuntime : MonoBehaviour
     public void ConstructRecruitmentRuntime(
         IRecruitedCharacterActivationService characterActivationService,
         IGameEventBus gameEventBus,
-        ICharacterPopulationService characterPopulationService = null)
+        ICharacterPopulationService characterPopulationService = null,
+        IEmploymentContractRuntime employmentContracts = null,
+        IBuildingWorldQuery buildingWorld = null,
+        IGameDataProvider gameDataProvider = null,
+        IGameMoneyRuntime money = null,
+        IOffenseWorldMapRuntimeProvider offenseWorldMapProvider = null)
     {
         this.characterActivationService = characterActivationService
             ?? throw new ArgumentNullException(nameof(characterActivationService));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.characterPopulationService = characterPopulationService;
+        this.employmentContracts = employmentContracts;
+        this.buildingWorld = buildingWorld;
+        this.gameDataProvider = gameDataProvider;
+        this.money = money;
+        this.offenseWorldMapProvider = offenseWorldMapProvider;
         SubscribeToScopedEvents();
     }
 
@@ -672,6 +687,149 @@ public class RegularCustomerRuntime : MonoBehaviour
             EventAlertImportance.Medium,
             "영입");
         return true;
+    }
+
+    public int GetMercenaryQuote(string customerId)
+    {
+        if (!state.TryGetRecord(
+                customerId,
+                out RegularCustomerRecord candidate)
+            || candidate == null
+            || candidate.IsRecruited
+            || !TryGetMercenaryHiringAbility(
+                candidate,
+                out BuildingMercenaryHiringAbility ability)
+            || employmentContracts == null)
+        {
+            return 0;
+        }
+
+        int expectedLevel =
+            RecruitedCharacterActivationService.EstimateCampaignRecruitLevel(
+                candidate,
+                offenseWorldMapProvider);
+        return employmentContracts.QuoteMercenaryDailyCost(
+            candidate.CustomerId,
+            expectedLevel,
+            ability.rolePremium);
+    }
+
+    public bool TryHireMercenary(
+        string customerId,
+        out RegularCustomerRecruitResult result,
+        out int firstDailyFee)
+    {
+        firstDailyFee = 0;
+        if (!state.TryGetRecord(
+                customerId,
+                out RegularCustomerRecord candidate)
+            || candidate == null
+            || candidate.IsRecruited
+            || !candidate.IsRecruitCandidate)
+        {
+            result = new RegularCustomerRecruitResult(
+                false,
+                candidate,
+                "용병 계약 후보가 아닙니다.");
+            return false;
+        }
+
+        if (!TryGetMercenaryHiringAbility(
+                candidate,
+                out BuildingMercenaryHiringAbility ability))
+        {
+            result = new RegularCustomerRecruitResult(
+                false,
+                candidate,
+                "용병을 고용할 수 있는 주점 시설이 필요합니다.");
+            return false;
+        }
+
+        if (employmentContracts == null
+            || money == null
+            || gameDataProvider == null)
+        {
+            result = new RegularCustomerRecruitResult(
+                false,
+                candidate,
+                "용병 계약 서비스가 연결되지 않았습니다.");
+            return false;
+        }
+
+        firstDailyFee = GetMercenaryQuote(customerId);
+        if (firstDailyFee <= 0 || !money.CanSpend(firstDailyFee))
+        {
+            result = new RegularCustomerRecruitResult(
+                false,
+                candidate,
+                $"첫 일급 {firstDailyFee:N0}골드가 필요합니다.");
+            return false;
+        }
+
+        IRecruitedCharacterActivationService activationService =
+            ResolveCharacterActivationService();
+        string activationMessage =
+            "용병 후보를 직원으로 배치할 수 없습니다.";
+        if (activationService == null
+            || !activationService.TryActivate(
+                candidate,
+                out CharacterActor actor,
+                out activationMessage))
+        {
+            result = new RegularCustomerRecruitResult(
+                false,
+                candidate,
+                activationMessage);
+            return false;
+        }
+
+        int day = gameDataProvider.TryGetGameData(out GameData gameData)
+            && gameData?.day != null
+            ? Mathf.Max(1, gameData.day.Value)
+            : 1;
+        if (!employmentContracts.TryHireMercenary(
+                actor,
+                ability.rolePremium,
+                day,
+                out string failureReason))
+        {
+            result = new RegularCustomerRecruitResult(
+                false,
+                candidate,
+                failureReason);
+            return false;
+        }
+
+        if (!state.TryRecruit(customerId, out result))
+        {
+            return false;
+        }
+
+        Recruited?.Invoke(new RegularCustomerRecruitEventSnapshot(result));
+        gameEventBus.RaiseAlert(
+            "용병 계약",
+            $"{result.Record.DisplayName}과 용병 계약을 맺었습니다."
+            + $"\n첫 일급 {firstDailyFee:N0}골드 지급",
+            EventAlertImportance.Medium,
+            "고용");
+        return true;
+    }
+
+    private bool TryGetMercenaryHiringAbility(
+        RegularCustomerRecord candidate,
+        out BuildingMercenaryHiringAbility ability)
+    {
+        ability = buildingWorld?.Buildings?
+            .Where(building => building != null && !building.isDestroy)
+            .Select(building => building.BuildingData?
+                .GetAbility<BuildingMercenaryHiringAbility>())
+            .Where(module => module != null
+                && candidate != null
+                && candidate.AverageSatisfaction
+                    >= module.minimumCandidateSatisfaction)
+            .OrderBy(module => module.rolePremium)
+            .FirstOrDefault();
+        return ability != null;
     }
 
     private IRecruitedCharacterActivationService ResolveCharacterActivationService()

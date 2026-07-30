@@ -32,6 +32,11 @@ public interface IDungeonSaveSection
     void Restore(string payloadJson, int sectionVersion, DungeonGameRestoreReport report);
 }
 
+public interface IOptionalDungeonSaveSection
+{
+    void RestoreMissing(DungeonGameRestoreReport report);
+}
+
 public interface IDungeonSaveSectionRegistry
 {
     IReadOnlyList<IDungeonSaveSection> OrderedSections { get; }
@@ -135,6 +140,12 @@ public sealed class DungeonSaveSectionRegistry : IDungeonSaveSectionRegistry
         {
             if (!savedById.TryGetValue(section.SectionId, out DungeonSaveSectionEnvelope envelope))
             {
+                if (section is IOptionalDungeonSaveSection optional)
+                {
+                    optional.RestoreMissing(report);
+                    continue;
+                }
+
                 report.AddError($"V16 save is missing required section '{section.SectionId}'.");
                 continue;
             }

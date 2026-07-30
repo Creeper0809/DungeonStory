@@ -66,6 +66,14 @@ public sealed class DungeonOffenseExpeditionRunSaveData
     public float medicineHealRatio;
     public int scouting;
     public List<string> preparationSources = new List<string>();
+    public bool usesV17WorldTravel;
+    public string v17SiteId = string.Empty;
+    public bool v17ObjectiveCompleted;
+    public bool v17ObjectiveBattleActive;
+    public bool departureCompleted;
+    public OffenseTargetDefinition v17Target;
+    public int fieldFunds;
+    public bool fieldFundsReturned;
 }
 
 [Serializable]
@@ -266,24 +274,48 @@ public sealed class OffenseSaveService : IOffenseSaveService
         foreach (DungeonOffenseExpeditionRunSaveData savedRun in source.activeExpeditions
             ?? new List<DungeonOffenseExpeditionRunSaveData>())
         {
-            if (savedRun == null || !targets.TryGetValue(savedRun.targetId, out OffenseTargetDefinition target))
+            if (savedRun == null)
             {
-                report.AddWarning($"Offense target '{savedRun?.targetId}' no longer exists; its active expedition was skipped.");
                 continue;
             }
 
-            if (worldMap.State.TruthRevealed || worldMap.State.IsTargetCompleted(target.id))
+            bool isV17 = savedRun.usesV17WorldTravel
+                || !string.IsNullOrWhiteSpace(savedRun.v17SiteId);
+            OffenseTargetDefinition target = isV17
+                ? savedRun.v17Target?.CreateRuntimeCopy()
+                : targets.TryGetValue(
+                    savedRun.targetId,
+                    out OffenseTargetDefinition legacyTarget)
+                    ? legacyTarget
+                    : null;
+            if (target == null || !target.IsValid)
+            {
+                report.AddWarning(
+                    $"Offense target '{savedRun.targetId}' no longer exists; "
+                    + "its active expedition was skipped.");
+                continue;
+            }
+
+            if (!isV17
+                && (worldMap.State.TruthRevealed
+                    || worldMap.State.IsTargetCompleted(target.id)))
             {
                 report.AddWarning($"Expedition '{savedRun.expeditionId}' targeted an already completed campaign objective and was skipped.");
                 continue;
             }
 
             List<CharacterActor> members = new List<CharacterActor>();
+            bool departureCompleted = !isV17
+                || savedRun.journeyVersion < 2
+                || savedRun.departureCompleted;
             foreach (string persistentId in savedRun.memberPersistentIds ?? new List<string>())
             {
                 if (characterSaveService.TryGetRestoredActor(persistentId, out CharacterActor actor))
                 {
-                    actor.BeginExpedition();
+                    if (departureCompleted)
+                    {
+                        actor.BeginExpedition();
+                    }
                     members.Add(actor);
                 }
                 else
@@ -313,7 +345,8 @@ public sealed class OffenseSaveService : IOffenseSaveService
                     savedRun.campStressRecovery,
                     savedRun.medicineHealRatio,
                     savedRun.scouting,
-                    savedRun.preparationSources ?? new List<string>());
+                    savedRun.preparationSources ?? new List<string>(),
+                    savedRun.fieldFunds);
             OffenseExpeditionRun restoredRun = new OffenseExpeditionRun(
                 savedRun.expeditionId,
                 target,
@@ -348,6 +381,20 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 light,
                 completedNodes,
                 carriedStock);
+            restoredRun.RestoreFieldFunds(
+                savedRun.fieldFunds,
+                savedRun.fieldFundsReturned);
+            if (isV17)
+            {
+                restoredRun.RestoreV17JourneyState(
+                    string.IsNullOrWhiteSpace(savedRun.v17SiteId)
+                        ? target.id
+                        : savedRun.v17SiteId,
+                    savedRun.v17ObjectiveCompleted,
+                    savedRun.v17ObjectiveBattleActive,
+                    phase);
+                restoredRun.RestoreDepartureState(departureCompleted);
+            }
 
             Dictionary<string, DungeonOffenseExpeditionMemberStateSaveData> memberStateById =
                 (savedRun.memberStates ?? new List<DungeonOffenseExpeditionMemberStateSaveData>())
@@ -413,6 +460,13 @@ public sealed class OffenseSaveService : IOffenseSaveService
         expeditionRuntime.RestorePersistentState(restoredRuns, history);
         if (restoredBattleRun != null)
         {
+            if (restoredBattleRun.UsesV17WorldTravel)
+            {
+                report.RecordRestoredExpeditions(
+                    expeditionRuntime.ActiveExpeditions.Count);
+                return;
+            }
+
             bool requiresBattle = restoredBattleRun.Phase == OffenseExpeditionPhase.InBattle;
             string battleMessage = "경로 상태 복원";
             bool restored = true;
@@ -453,7 +507,7 @@ public sealed class OffenseSaveService : IOffenseSaveService
     {
         return new DungeonOffenseExpeditionRunSaveData
         {
-            journeyVersion = 1,
+            journeyVersion = 2,
             expeditionId = expedition.ExpeditionId,
             targetId = expedition.Target.id,
             totalPower = expedition.TotalPower,
@@ -501,7 +555,17 @@ public sealed class OffenseSaveService : IOffenseSaveService
             campStressRecovery = expedition.Preparation.CampStressRecovery,
             medicineHealRatio = expedition.Preparation.MedicineHealRatio,
             scouting = expedition.Preparation.Scouting,
-            preparationSources = expedition.Preparation.SourceSummaries.ToList()
+            preparationSources = expedition.Preparation.SourceSummaries.ToList(),
+            usesV17WorldTravel = expedition.UsesV17WorldTravel,
+            v17SiteId = expedition.V17SiteId,
+            v17ObjectiveCompleted = expedition.V17ObjectiveCompleted,
+            v17ObjectiveBattleActive = expedition.V17ObjectiveBattleActive,
+            departureCompleted = expedition.DepartureCompleted,
+            v17Target = expedition.UsesV17WorldTravel
+                ? expedition.Target.CreateRuntimeCopy()
+                : null,
+            fieldFunds = expedition.FieldFunds,
+            fieldFundsReturned = expedition.FieldFundsReturned
         };
     }
 

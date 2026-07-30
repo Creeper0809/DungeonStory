@@ -18,7 +18,7 @@ public sealed class ResourceStockPolicyRuntime :
     private readonly IProductionBillRuntime productionBills;
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IWorldDropZoneQuery dropZones;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameMoneyRuntime money;
     private readonly IGameClock gameClock;
     private readonly IWorkforceReplanService workforce;
     private readonly Dictionary<string, ResourceStockPolicyData> byItemId =
@@ -33,7 +33,7 @@ public sealed class ResourceStockPolicyRuntime :
         IProductionBillRuntime productionBills,
         IBuildingWorldQuery buildingWorld,
         IWorldDropZoneQuery dropZones,
-        IGameDataProvider gameDataProvider,
+        IGameMoneyRuntime money,
         IGameClock gameClock,
         IWorkforceReplanService workforce = null)
     {
@@ -46,8 +46,7 @@ public sealed class ResourceStockPolicyRuntime :
             ?? throw new ArgumentNullException(nameof(buildingWorld));
         this.dropZones = dropZones
             ?? throw new ArgumentNullException(nameof(dropZones));
-        this.gameDataProvider = gameDataProvider
-            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.workforce = workforce;
     }
@@ -230,6 +229,14 @@ public sealed class ResourceStockPolicyRuntime :
 
     private void EvaluateSale(ResourceStockPolicyData policy, int surplus)
     {
+        ResourceItemDefinitionSO resourceItem = null;
+        if (catalog.TryGetItem(policy.itemId, out resourceItem)
+            && !resourceItem.CanSellToMarket)
+        {
+            SetStatus(policy, "판매 전에 감정 또는 가공이 필요합니다.");
+            return;
+        }
+
         string destinationId = SellDestinationPrefix + policy.itemId;
         int delivered = CountAtDestination(
             policy.itemId,
@@ -245,13 +252,14 @@ public sealed class ResourceStockPolicyRuntime :
                     },
                     out string consumeReason))
             {
-                int unitPrice = catalog.TryGetItem(
-                        policy.itemId,
-                        out ResourceItemDefinitionSO item)
-                    ? item.UnitPrice
+                int unitPrice = resourceItem != null
+                    ? resourceItem.UnitPrice
                     : 1;
+                float saleRate = resourceItem != null
+                    ? resourceItem.MarketSaleRate
+                    : 0.6f;
                 int proceeds = Mathf.Max(1, Mathf.RoundToInt(
-                    delivered * unitPrice * 0.6f));
+                    delivered * unitPrice * saleRate));
                 AddMoney(proceeds);
                 SetStatus(policy, $"초과 재고 {delivered}개 판매 · {proceeds} 골드");
                 Version++;
@@ -426,11 +434,14 @@ public sealed class ResourceStockPolicyRuntime :
 
     private void AddMoney(int amount)
     {
-        if (amount > 0
-            && gameDataProvider.TryGetGameData(out GameData data)
-            && data?.holdingMoney != null)
+        if (amount > 0)
         {
-            data.holdingMoney.Value += amount;
+            money.Add(
+                amount,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.SaleIncome,
+                    "stock-policy",
+                    description: "초과 재고 판매"));
         }
     }
 

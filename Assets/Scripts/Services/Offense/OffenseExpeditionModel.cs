@@ -209,10 +209,10 @@ public sealed class OffenseExpeditionRun
             ?? new List<CharacterActor>();
         membersView = this.members.AsReadOnly();
         memberStates = this.members
-            .Take(3)
+            .Take(5)
             .Select((member, index) => new OffenseExpeditionMemberState(
                 member,
-                (OffenseFormationSlot)Mathf.Clamp(index, 0, 2)))
+                (OffenseFormationSlot)Mathf.Clamp(index / 2, 0, 2)))
             .ToList();
         memberStatesView = memberStates.AsReadOnly();
         TotalPower = Mathf.Max(0f, totalPower);
@@ -221,6 +221,7 @@ public sealed class OffenseExpeditionRun
         Route = route ?? OffenseRouteGenerator.Create(target);
         Supplies = supplies ?? new OffenseSupplyLoadout();
         Preparation = preparation ?? new OffenseExpeditionPreparation();
+        FieldFunds = Preparation.FieldFunds;
         Light = Preparation.StartingLight;
         CurrentNodeId = Route.EntranceNodeId;
         completedNodeIds.Add(Route.EntranceNodeId);
@@ -229,7 +230,7 @@ public sealed class OffenseExpeditionRun
     }
 
     public string ExpeditionId { get; }
-    public OffenseTargetDefinition Target { get; }
+    public OffenseTargetDefinition Target { get; private set; }
     public IReadOnlyList<CharacterActor> MemberActors => membersView;
     public IReadOnlyList<OffenseExpeditionMemberState> MemberStates => memberStatesView;
     public float TotalPower { get; }
@@ -246,6 +247,13 @@ public sealed class OffenseExpeditionRun
     public bool IsComplete => Phase is OffenseExpeditionPhase.Completed
         or OffenseExpeditionPhase.Retreated
         or OffenseExpeditionPhase.Defeated;
+    public bool UsesV17WorldTravel => !string.IsNullOrWhiteSpace(V17SiteId);
+    public string V17SiteId { get; private set; } = string.Empty;
+    public bool V17ObjectiveCompleted { get; private set; }
+    public bool V17ObjectiveBattleActive { get; private set; }
+    public bool DepartureCompleted { get; private set; }
+    public int FieldFunds { get; private set; }
+    public bool FieldFundsReturned { get; private set; }
     public OffenseRouteNode CurrentNode => Route.TryGetNode(CurrentNodeId, out OffenseRouteNode node)
         ? node
         : null;
@@ -469,6 +477,245 @@ public sealed class OffenseExpeditionRun
             : OffenseExpeditionPhase.ChoosingRoute;
     }
 
+    public void BeginV17Travel(string siteId)
+    {
+        V17SiteId = siteId ?? string.Empty;
+        V17ObjectiveCompleted = false;
+        V17ObjectiveBattleActive = false;
+        Phase = OffenseExpeditionPhase.Traveling;
+    }
+
+    public void MarkDepartureCompleted()
+    {
+        DepartureCompleted = true;
+    }
+
+    public bool RetargetV17Objective(OffenseTargetDefinition target)
+    {
+        if (target == null
+            || !target.IsValid
+            || !UsesV17WorldTravel
+            || Phase is OffenseExpeditionPhase.InBattle
+                or OffenseExpeditionPhase.AwaitingDecision
+                or OffenseExpeditionPhase.Completed
+                or OffenseExpeditionPhase.Defeated
+                or OffenseExpeditionPhase.Retreated)
+        {
+            return false;
+        }
+
+        Target = target;
+        V17SiteId = target.id;
+        V17ObjectiveCompleted = false;
+        V17ObjectiveBattleActive = false;
+        Phase = OffenseExpeditionPhase.Traveling;
+        return true;
+    }
+
+    public void AdjustStress(float amount)
+    {
+        if (amount >= 0f)
+        {
+            ApplyStressToSurvivors(amount);
+        }
+        else
+        {
+            RecoverStressForSurvivors(-amount);
+        }
+    }
+
+    public bool ApplyEventInjury(
+        float maxHealthRatio,
+        int deterministicRoll,
+        bool nonLethal)
+    {
+        CharacterActor[] candidates = memberStates
+            .Where(member => member.IsAlive && member.Actor != null)
+            .Select(member => member.Actor)
+            .OrderBy(actor => actor.Identity?.PersistentId ?? actor.name)
+            .ToArray();
+        if (candidates.Length == 0)
+        {
+            return false;
+        }
+
+        int index = (int)((uint)deterministicRoll % (uint)candidates.Length);
+        CharacterActor victim = candidates[index];
+        float damage = victim.MaxHealth * Mathf.Clamp(maxHealthRatio, 0f, 0.95f);
+        if (nonLethal)
+        {
+            damage = Mathf.Min(damage, Mathf.Max(0f, victim.CurrentHealth - 1f));
+        }
+
+        if (damage <= 0f)
+        {
+            return false;
+        }
+
+        victim.ApplyDamage(damage, "원정 사건 부상");
+        OffenseExpeditionMemberState member = memberStates.FirstOrDefault(
+            state => state.Actor == victim);
+        member?.RecordDamage(damage);
+        return true;
+    }
+
+    public bool HealMostInjured(float maxHealthRatio)
+    {
+        CharacterActor actor = memberStates
+            .Where(member => member.IsAlive && member.Actor != null)
+            .Select(member => member.Actor)
+            .OrderBy(candidate =>
+                candidate.CurrentHealth / Mathf.Max(1f, candidate.MaxHealth))
+            .ThenBy(candidate =>
+                candidate.Identity?.PersistentId ?? candidate.name)
+            .FirstOrDefault();
+        if (actor == null)
+        {
+            return false;
+        }
+
+        actor.Heal(actor.MaxHealth * Mathf.Clamp01(maxHealthRatio));
+        return true;
+    }
+
+    public int GetCarriedStock(StockCategory category)
+    {
+        return carriedStock.TryGetValue(category, out int amount)
+            ? amount
+            : 0;
+    }
+
+    public void AddCarriedLoot(StockCategory category, int amount)
+    {
+        AddCarriedStock(category, amount);
+    }
+
+    public bool TryRemoveCarriedLoot(StockCategory category, int amount)
+    {
+        int removal = Mathf.Max(0, amount);
+        if (removal == 0)
+        {
+            return true;
+        }
+
+        int current = GetCarriedStock(category);
+        if (current < removal)
+        {
+            return false;
+        }
+
+        int remaining = current - removal;
+        if (remaining > 0)
+        {
+            carriedStock[category] = remaining;
+        }
+        else
+        {
+            carriedStock.Remove(category);
+        }
+
+        return true;
+    }
+
+    public bool CanSpendFieldFunds(int amount)
+    {
+        return FieldFunds >= Mathf.Max(0, amount);
+    }
+
+    public bool TrySpendFieldFunds(int amount)
+    {
+        int cost = Mathf.Max(0, amount);
+        if (FieldFunds < cost)
+        {
+            return false;
+        }
+
+        FieldFunds -= cost;
+        return true;
+    }
+
+    public void AddFieldFunds(int amount)
+    {
+        FieldFunds += Mathf.Max(0, amount);
+    }
+
+    public int TakeReturningFieldFunds()
+    {
+        if (FieldFundsReturned)
+        {
+            return 0;
+        }
+
+        FieldFundsReturned = true;
+        int returning = Mathf.Max(0, FieldFunds);
+        FieldFunds = 0;
+        return returning;
+    }
+
+    public void RestoreFieldFunds(int amount, bool returned)
+    {
+        FieldFunds = Mathf.Max(0, amount);
+        FieldFundsReturned = returned;
+    }
+
+    public bool BeginV17Battle(bool objectiveBattle = true)
+    {
+        if (!UsesV17WorldTravel
+            || Phase is OffenseExpeditionPhase.Completed
+                or OffenseExpeditionPhase.Defeated
+                or OffenseExpeditionPhase.Retreated)
+        {
+            return false;
+        }
+
+        V17ObjectiveBattleActive = objectiveBattle;
+        Phase = OffenseExpeditionPhase.InBattle;
+        return true;
+    }
+
+    public void CompleteV17Battle(bool victory)
+    {
+        if (!UsesV17WorldTravel || Phase != OffenseExpeditionPhase.InBattle)
+        {
+            return;
+        }
+
+        if (!victory)
+        {
+            V17ObjectiveBattleActive = false;
+            Phase = OffenseExpeditionPhase.Defeated;
+            return;
+        }
+
+        if (V17ObjectiveBattleActive)
+        {
+            V17ObjectiveCompleted = true;
+            Phase = OffenseExpeditionPhase.Returning;
+        }
+        else
+        {
+            Phase = V17ObjectiveCompleted
+                ? OffenseExpeditionPhase.Returning
+                : OffenseExpeditionPhase.Traveling;
+        }
+
+        V17ObjectiveBattleActive = false;
+    }
+
+    public void SetV17DecisionPaused(bool paused)
+    {
+        if (!UsesV17WorldTravel || IsComplete || Phase == OffenseExpeditionPhase.InBattle)
+        {
+            return;
+        }
+
+        Phase = paused
+            ? OffenseExpeditionPhase.AwaitingDecision
+            : V17ObjectiveCompleted
+                ? OffenseExpeditionPhase.Returning
+                : OffenseExpeditionPhase.Traveling;
+    }
+
     public bool Retreat(out string message)
     {
         if (IsComplete)
@@ -514,6 +761,29 @@ public sealed class OffenseExpeditionRun
         {
             if (pair.Value > 0) carriedStock[pair.Key] = pair.Value;
         }
+    }
+
+    public void RestoreV17JourneyState(
+        string siteId,
+        bool objectiveCompleted,
+        bool objectiveBattleActive,
+        OffenseExpeditionPhase phase)
+    {
+        if (string.IsNullOrWhiteSpace(siteId))
+        {
+            return;
+        }
+
+        V17SiteId = siteId;
+        V17ObjectiveCompleted = objectiveCompleted;
+        V17ObjectiveBattleActive = objectiveBattleActive
+            && phase == OffenseExpeditionPhase.InBattle;
+        Phase = phase;
+    }
+
+    public void RestoreDepartureState(bool completed)
+    {
+        DepartureCompleted = completed;
     }
 
     private void CompleteCurrentNode()

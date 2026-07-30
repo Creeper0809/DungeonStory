@@ -173,6 +173,7 @@ public static class FacilityRoleCatalog
         RegisterBuiltIn("role:administration", FacilityRole.Administration, "집무", "사장실", 100, new Color(0.74f, 0.57f, 0.32f, 1f), "Administration");
         RegisterBuiltIn("role:security", FacilityRole.Security, "경비", "경비실", 110, new Color(0.67f, 0.33f, 0.31f, 1f), "Security");
         RegisterBuiltIn("role:entertainment", FacilityRole.Entertainment, "흥행", "서커스장", 120, new Color(0.72f, 0.29f, 0.42f, 1f), "Entertainment");
+        RegisterBuiltIn("role:medical", FacilityRole.Medical, "의료", "의무실", 130, new Color(0.40f, 0.69f, 0.64f, 1f), "Medical");
     }
 
     private static void RegisterBuiltIn(

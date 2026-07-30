@@ -26,6 +26,7 @@ public sealed class SurvivalFoodRuntime :
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
     private readonly IResourceEconomyContentCatalog resourceCatalog;
+    private readonly IWorldThreatModifierQuery worldThreatModifiers;
     private IDisposable operatingDayStartedSubscription;
     private IDisposable stockConsumedSubscription;
     private IDisposable physicalMealConsumedSubscription;
@@ -52,7 +53,8 @@ public sealed class SurvivalFoodRuntime :
         ICharacterAiWorldRegistry worldRegistry = null,
         IWorldItemStackRuntime itemStackRuntime = null,
         IGameClock gameClock = null,
-        IResourceEconomyContentCatalog resourceCatalog = null)
+        IResourceEconomyContentCatalog resourceCatalog = null,
+        IWorldThreatModifierQuery worldThreatModifiers = null)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.speciesCatalog = speciesCatalog ?? throw new ArgumentNullException(nameof(speciesCatalog));
@@ -60,6 +62,7 @@ public sealed class SurvivalFoodRuntime :
         this.itemStackRuntime = itemStackRuntime;
         this.gameClock = gameClock;
         this.resourceCatalog = resourceCatalog;
+        this.worldThreatModifiers = worldThreatModifiers;
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
     }
@@ -73,10 +76,10 @@ public sealed class SurvivalFoodRuntime :
     {
         return new SurvivalEnvironmentSnapshot(
             state.currentWeather,
-            state.outdoorTemperature,
+            GetEffectiveOutdoorTemperature(),
             state.exteriorNightDanger,
-            state.sanitationRisk,
-            state.diseaseRisk);
+            GetEffectiveSanitationRisk(),
+            GetEffectiveDiseaseRisk());
     }
 
     public int TryConsumeStoredStock(StockCategory category, int amount)
@@ -476,7 +479,8 @@ public sealed class SurvivalFoodRuntime :
             .ToList();
 
         SurvivalHealthSaveData primary = activeEntries.FirstOrDefault();
-        float temperatureComfort = GetTemperatureComfort01(state.outdoorTemperature);
+        float temperatureComfort =
+            GetTemperatureComfort01(GetEffectiveOutdoorTemperature());
         status = new SurvivalCharacterStatus(
             hasStatus: primary != null || state.consecutiveWaterShortageDays > 0 || state.consecutiveFoodShortageDays > 0,
             primaryState: primary?.state ?? SurvivalHealthState.Healthy,
@@ -979,6 +983,9 @@ public sealed class SurvivalFoodRuntime :
         {
             need += 1;
         }
+        need = Mathf.CeilToInt(
+            need * GetThreatMultiplier(
+                OffenseThreatModifierKind.FuelConsumption));
 
         int consumed = WithdrawStock(StockCategory.Fuel, need);
         state.lastConsumedFuel = consumed;
@@ -1002,13 +1009,15 @@ public sealed class SurvivalFoodRuntime :
         state.sanitationRisk = Mathf.Clamp(
             (rotStacks * 12f)
             + (state.lastMissingWater * 8f)
-            - cachedVentilationBonus,
+            - cachedVentilationBonus
+            + GetThreatStrength(OffenseThreatModifierKind.Sanitation) * 45f,
             0f,
             100f);
         state.diseaseRisk = Mathf.Clamp(
             (state.sanitationRisk * 0.55f)
             + (state.consecutiveFoodShortageDays * 7f)
-            + (state.consecutiveWaterShortageDays * 12f),
+            + (state.consecutiveWaterShortageDays * 12f)
+            + GetThreatStrength(OffenseThreatModifierKind.Disease) * 40f,
             0f,
             100f);
         float weatherDanger = state.currentWeather switch
@@ -1026,6 +1035,40 @@ public sealed class SurvivalFoodRuntime :
             - cachedLightSafety,
             0f,
             100f);
+    }
+
+    private float GetEffectiveOutdoorTemperature()
+    {
+        return state.outdoorTemperature
+            + GetThreatStrength(OffenseThreatModifierKind.Temperature) * 14f;
+    }
+
+    private float GetEffectiveSanitationRisk()
+    {
+        return Mathf.Clamp(
+            state.sanitationRisk
+            + GetThreatStrength(OffenseThreatModifierKind.Sanitation) * 45f,
+            0f,
+            100f);
+    }
+
+    private float GetEffectiveDiseaseRisk()
+    {
+        return Mathf.Clamp(
+            state.diseaseRisk
+            + GetThreatStrength(OffenseThreatModifierKind.Disease) * 40f,
+            0f,
+            100f);
+    }
+
+    private float GetThreatStrength(OffenseThreatModifierKind kind)
+    {
+        return worldThreatModifiers?.GetModifier(kind).EffectiveStrength ?? 0f;
+    }
+
+    private float GetThreatMultiplier(OffenseThreatModifierKind kind)
+    {
+        return worldThreatModifiers?.GetMultiplier(kind) ?? 1f;
     }
 
     private void RefreshBuildingRiskContributionsIfNeeded()

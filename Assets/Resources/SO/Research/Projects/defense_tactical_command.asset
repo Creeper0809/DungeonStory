@@ -35,6 +35,8 @@ MonoBehaviour:
   unlocks:
     items:
     - rid: 7302563220868825640
+    - rid: 7302563220868825699
+    - rid: 7302563278452687345
   icon: {fileID: 0}
   references:
     version: 2
@@ -43,3 +45,11 @@ MonoBehaviour:
       type: {class: BlueprintRecipeUnlock, ns: , asm: Assembly-CSharp}
       data:
         recipeId: recipe_fortress_banner_2
+    - rid: 7302563220868825699
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9961
+    - rid: 7302563278452687345
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1040

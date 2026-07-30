@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using VContainer;
 
 public interface IOffensePanelFactory
@@ -32,13 +33,13 @@ public sealed class OffensePanelFactory : IOffensePanelFactory
         GameObject canvasObject = OffensePanelUiFactory.CreateOverlayCanvas(
             "OffenseWorldMapCanvas",
             420,
-            new Vector2(1280f, 720f));
+            new Vector2(1600f, 900f));
         GameObject panelObject = OffensePanelUiFactory.CreatePanel(
             canvasObject.transform,
             "OffenseWorldMapPanel",
-            new Vector2(0.12f, 0.12f),
-            new Vector2(0.88f, 0.88f),
-            new Color(0.035f, 0.04f, 0.05f, 0.94f));
+            new Vector2(0.02f, 0.08f),
+            new Vector2(0.98f, 0.92f),
+            new Color(0.025f, 0.03f, 0.04f, 0.98f));
 
         GameObject header = OffensePanelUiFactory.CreateText(panelObject.transform, "OffenseWorldMapHeader", 25f, TextAlignmentOptions.Left, tmpKoreanFontService);
         RectTransform headerRect = header.GetComponent<RectTransform>();
@@ -48,28 +49,116 @@ public sealed class OffensePanelFactory : IOffensePanelFactory
         headerRect.offsetMin = new Vector2(24f, -66f);
         headerRect.offsetMax = new Vector2(-24f, -18f);
 
+        GameObject buttonViewportObject = new GameObject(
+            "OffenseWorldMapActionViewport",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(RectMask2D),
+            typeof(ScrollRect));
+        buttonViewportObject.transform.SetParent(panelObject.transform, false);
+        RectTransform buttonViewportRect =
+            buttonViewportObject.GetComponent<RectTransform>();
+        buttonViewportRect.anchorMin = new Vector2(0.73f, 0.34f);
+        buttonViewportRect.anchorMax = new Vector2(1f, 0.9f);
+        buttonViewportRect.offsetMin = new Vector2(12f, 12f);
+        buttonViewportRect.offsetMax = new Vector2(-20f, -10f);
+        buttonViewportObject.GetComponent<Image>().color =
+            new Color(0.045f, 0.052f, 0.06f, 0.92f);
+
         GameObject buttonRootObject = OffensePanelUiFactory.CreateVerticalRoot(
-            panelObject.transform,
+            buttonViewportObject.transform,
             "OffenseWorldMapTargets",
-            new Vector2(0f, 0f),
-            new Vector2(0.36f, 0.86f),
-            new Vector2(24f, 24f),
-            new Vector2(-12f, -24f),
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(8f, 0f),
+            new Vector2(-8f, 0f),
             8f);
+        RectTransform buttonRootRect =
+            buttonRootObject.GetComponent<RectTransform>();
+        buttonRootRect.pivot = new Vector2(0.5f, 1f);
+        buttonRootRect.anchoredPosition = Vector2.zero;
+        ContentSizeFitter buttonContentFitter =
+            buttonRootObject.AddComponent<ContentSizeFitter>();
+        buttonContentFitter.verticalFit =
+            ContentSizeFitter.FitMode.PreferredSize;
+
+        ScrollRect buttonScrollRect =
+            buttonViewportObject.GetComponent<ScrollRect>();
+        buttonScrollRect.viewport = buttonViewportRect;
+        buttonScrollRect.content = buttonRootRect;
+        buttonScrollRect.horizontal = false;
+        buttonScrollRect.vertical = true;
+        buttonScrollRect.movementType = ScrollRect.MovementType.Clamped;
+        buttonScrollRect.inertia = true;
+        buttonScrollRect.decelerationRate = 0.12f;
 
         GameObject detail = OffensePanelUiFactory.CreateText(panelObject.transform, "OffenseWorldMapDetail", 20f, TextAlignmentOptions.TopLeft, tmpKoreanFontService);
         RectTransform detailRect = detail.GetComponent<RectTransform>();
-        detailRect.anchorMin = new Vector2(0.38f, 0f);
-        detailRect.anchorMax = new Vector2(1f, 0.86f);
-        detailRect.offsetMin = new Vector2(12f, 24f);
-        detailRect.offsetMax = new Vector2(-24f, -24f);
+        detailRect.anchorMin = new Vector2(0.73f, 0f);
+        detailRect.anchorMax = new Vector2(1f, 0.32f);
+        detailRect.offsetMin = new Vector2(12f, 14f);
+        detailRect.offsetMax = new Vector2(-20f, -8f);
+
+        GameObject viewportObject = new GameObject(
+            "OffenseV17MapViewport",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(RectMask2D),
+            typeof(ScrollRect),
+            typeof(OffenseV17MapInput));
+        viewportObject.transform.SetParent(panelObject.transform, false);
+        RectTransform viewportRect = viewportObject.GetComponent<RectTransform>();
+        viewportRect.anchorMin = new Vector2(0f, 0f);
+        viewportRect.anchorMax = new Vector2(0.72f, 0.9f);
+        viewportRect.offsetMin = new Vector2(20f, 16f);
+        viewportRect.offsetMax = new Vector2(-8f, -10f);
+        viewportObject.GetComponent<Image>().color =
+            new Color(0.045f, 0.055f, 0.065f, 1f);
+
+        GameObject mapContentObject = new GameObject(
+            "OffenseV17MapContent",
+            typeof(RectTransform));
+        mapContentObject.transform.SetParent(viewportObject.transform, false);
+        RectTransform mapContentRect =
+            mapContentObject.GetComponent<RectTransform>();
+        mapContentRect.anchorMin = new Vector2(0.5f, 0.5f);
+        mapContentRect.anchorMax = new Vector2(0.5f, 0.5f);
+        mapContentRect.pivot = new Vector2(0.5f, 0.5f);
+        mapContentRect.sizeDelta = new Vector2(1040f, 720f);
+
+        ScrollRect scrollRect = viewportObject.GetComponent<ScrollRect>();
+        scrollRect.content = mapContentRect;
+        scrollRect.viewport = viewportRect;
+        scrollRect.horizontal = true;
+        scrollRect.vertical = true;
+        scrollRect.movementType = ScrollRect.MovementType.Clamped;
+        scrollRect.inertia = true;
+        scrollRect.decelerationRate = 0.12f;
+        viewportObject.GetComponent<OffenseV17MapInput>()
+            .Bind(mapContentRect);
+
+        CombatCardClashPresenter clashPresenter =
+            panelObject.AddComponent<CombatCardClashPresenter>();
+        clashPresenter.Bind(
+            panelObject.GetComponent<RectTransform>(),
+            tmpKoreanFontService);
 
         OffenseWorldMapPanel panel = panelObject.AddComponent<OffenseWorldMapPanel>();
         panel.BindGeneratedView(
             header.GetComponent<TMP_Text>(),
             detail.GetComponent<TMP_Text>(),
             buttonRootObject.GetComponent<RectTransform>());
+        OffenseWorldMapResponsiveLayout responsiveLayout =
+            panelObject.AddComponent<OffenseWorldMapResponsiveLayout>();
+        responsiveLayout.Bind(
+            headerRect,
+            viewportRect,
+            mapContentRect,
+            buttonViewportRect,
+            detailRect);
+        panel.BindV17GeneratedView(mapContentRect, responsiveLayout);
         objectResolver.Inject(panel);
+        objectResolver.Inject(clashPresenter);
         runtimeReferences.RegisterWorldMapPanel(panel);
         return panel;
     }

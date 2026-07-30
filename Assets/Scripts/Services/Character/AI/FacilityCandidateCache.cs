@@ -524,6 +524,9 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
         supportedTypes = FacilityEvolutionWorkUtility.AddFallbackWorkTypes(
             building,
             supportedTypes);
+        supportedTypes = RuntimeWorkCapabilityUtility.AddFallbackWorkTypes(
+            building,
+            supportedTypes);
         return supportedTypes;
     }
 

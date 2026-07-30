@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7003332b9a48cca4495a866cb7b5d17d, type: 3}
+  m_Name: prisoner_convoy
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseSiteArchetypeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170108
+  siteTypeId: prisoner_convoy
+  displayName: "\uD3EC\uB85C \uC218\uC1A1\uB300"
+  description: "\uBD99\uC7A1\uD78C \uC774\uB4E4\uACFC \uACBD\uBE44\uAC00 \uC774\uB3D9\uD558\uB294
+    \uC218\uC1A1\uB300\uC785\uB2C8\uB2E4."
+  factionId: human
+  pressureAxis: 3
+  pressureAmount: 14
+  minimumStrength: 2
+  maximumStrength: 5
+  minimumLifetimeDays: 2
+  maximumLifetimeDays: 5
+  hiddenUntilDiscovered: 1
+  canMove: 1
+  dynamicSpawnEligible: 1
+  rewards:
+  - grantSpec:
+      rid: 7302563269269258781
+    displayLabel: "\uAD6C\uCD9C\uD55C \uD3EC\uB85C"
+    baseAmount: 1
+    amountPerStrength: 0
+  - grantSpec:
+      rid: 7302563269269258782
+    displayLabel: "\uC9C0\uC5ED \uC804\uB7B5 \uC555\uB825"
+    baseAmount: 1
+    amountPerStrength: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258781
+      type: {class: OffensePrisonerRewardSpec, ns: , asm: Assembly-CSharp}
+      data: 
+    - rid: 7302563269269258782
+      type: {class: OffenseRegionalPressureRewardSpec, ns: , asm: Assembly-CSharp}
+      data: 

@@ -21,7 +21,9 @@ public sealed class CharacterBodyPartHealthState
 public sealed class CharacterBodyHealthState
 {
     public string characterId = string.Empty;
+    public string anatomyProfileId = string.Empty;
     public List<CharacterBodyPartHealthState> parts = new List<CharacterBodyPartHealthState>();
+    public List<AnatomyNodeHealthState> anatomyNodes = new List<AnatomyNodeHealthState>();
     [Range(0f, 100f)] public float bloodLoss;
     [Range(0f, 100f)] public float suppression;
     public bool downed;
@@ -81,6 +83,7 @@ public interface ICharacterBodyHealthRuntime
 
 public sealed class CharacterBodyHealthRuntime :
     ICharacterBodyHealthRuntime,
+    IAnatomyHealthRuntime,
     ITickable
 {
     private static readonly ProfilerMarker TickProfilerMarker =
@@ -110,6 +113,7 @@ public sealed class CharacterBodyHealthRuntime :
     private readonly IGameClock gameClock;
     private readonly IGameEventBus gameEventBus;
     private readonly IDynamicFrameWorkBudget frameWorkBudget;
+    private readonly IAnatomyProfileCatalog anatomyProfiles;
     private readonly Dictionary<string, CharacterBodyHealthState> states =
         new Dictionary<string, CharacterBodyHealthState>(StringComparer.Ordinal);
     private readonly Dictionary<string, CharacterActor> trackedActors =
@@ -124,13 +128,16 @@ public sealed class CharacterBodyHealthRuntime :
         ICharacterAiWorldRegistry worldRegistry,
         IGameClock gameClock,
         IGameEventBus gameEventBus,
-        IDynamicFrameWorkBudget frameWorkBudget)
+        IDynamicFrameWorkBudget frameWorkBudget,
+        IAnatomyProfileCatalog anatomyProfiles)
     {
         this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.frameWorkBudget = frameWorkBudget
             ?? throw new ArgumentNullException(nameof(frameWorkBudget));
+        this.anatomyProfiles = anatomyProfiles
+            ?? throw new ArgumentNullException(nameof(anatomyProfiles));
     }
 
     public void Tick()
@@ -200,13 +207,7 @@ public sealed class CharacterBodyHealthRuntime :
                 : now;
             float delta = Mathf.Max(0f, now - previousTick);
             lastTickAt[id] = now;
-            float bleeding = 0f;
-            for (int i = 0; i < state.parts.Count; i++)
-            {
-                bleeding += Mathf.Max(
-                    0f,
-                    state.parts[i].bleedingPerSecond);
-            }
+            float bleeding = GetStateBleeding(state);
 
             if (bleeding > 0f)
             {
@@ -218,6 +219,7 @@ public sealed class CharacterBodyHealthRuntime :
                 }
             }
 
+            TickAnatomyComplications(actor, state, delta);
             state.suppression = Mathf.Max(0f, state.suppression - 5f * delta);
             bool wasDowned = state.downed;
             UpdateDowned(state);
@@ -280,6 +282,11 @@ public sealed class CharacterBodyHealthRuntime :
         CharacterBodyPartHealthState part = state.parts.First(item => item.bodyPart == result.BodyPart);
         part.currentHealth = Mathf.Max(0f, part.currentHealth - result.AppliedDamage);
         part.bleedingPerSecond += result.Bleeding * 0.01f;
+        ApplyLegacyDamageToAnatomy(
+            state,
+            result.BodyPart,
+            result.AppliedDamage,
+            result.Bleeding * 0.01f);
         state.lastDamageReason = reason ?? string.Empty;
         target.ApplyBodyDamage(result.AppliedDamage, reason);
 
@@ -308,6 +315,7 @@ public sealed class CharacterBodyHealthRuntime :
         CharacterBodyHealthState state = GetOrCreate(target);
         state.parts = snapshot.Parts.Select(ClonePart).ToList();
         EnsureParts(state);
+        SyncAnatomySurfaceNodesFromLegacy(state);
         state.bloodLoss = Mathf.Clamp(snapshot.BloodLoss, 0f, 100f);
         state.suppression = Mathf.Clamp(snapshot.Suppression, 0f, 100f);
         state.lastDamageReason = reason ?? string.Empty;
@@ -355,6 +363,7 @@ public sealed class CharacterBodyHealthRuntime :
             }
         }
 
+        SyncAnatomySurfaceNodesFromLegacy(state);
         state.bloodLoss = Mathf.Max(0f, state.bloodLoss - amount * 0.5f);
         target.Heal(amount);
         bool wasDowned = state.downed;
@@ -370,7 +379,7 @@ public sealed class CharacterBodyHealthRuntime :
         }
 
         CharacterBodyHealthState state = GetOrCreate(target);
-        return state.parts.Sum(part => Mathf.Max(0f, part.bleedingPerSecond));
+        return GetStateBleeding(state);
     }
 
     public float GetMissingPartHealth(CharacterActor target)
@@ -381,7 +390,14 @@ public sealed class CharacterBodyHealthRuntime :
         }
 
         CharacterBodyHealthState state = GetOrCreate(target);
-        return state.parts.Sum(part => Mathf.Max(0f, part.maxHealth - part.currentHealth));
+        if (state.anatomyNodes != null && state.anatomyNodes.Count > 0)
+        {
+            return state.anatomyNodes.Sum(node =>
+                Mathf.Max(0f, node.maxHealth - node.currentHealth));
+        }
+
+        return state.parts.Sum(part =>
+            Mathf.Max(0f, part.maxHealth - part.currentHealth));
     }
 
     public bool Stabilize(CharacterActor target)
@@ -401,6 +417,17 @@ public sealed class CharacterBodyHealthRuntime :
             }
 
             part.bleedingPerSecond = 0f;
+            changed = true;
+        }
+
+        foreach (AnatomyNodeHealthState node in state.anatomyNodes)
+        {
+            if (node.bleedingPerSecond <= 0f)
+            {
+                continue;
+            }
+
+            node.bleedingPerSecond = 0f;
             changed = true;
         }
 
@@ -435,6 +462,7 @@ public sealed class CharacterBodyHealthRuntime :
             }
         }
 
+        SyncAnatomySurfaceNodesFromLegacy(state);
         float previousBloodLoss = state.bloodLoss;
         state.bloodLoss = Mathf.Max(0f, state.bloodLoss - Mathf.Max(0f, bloodLossReduction));
         if (restoredTotal > 0f)
@@ -474,6 +502,7 @@ public sealed class CharacterBodyHealthRuntime :
 
             CharacterBodyHealthState restored = CloneState(source);
             EnsureParts(restored);
+            EnsureAnatomy(restored, ResolveProfile(restored.anatomyProfileId));
             UpdateDowned(restored);
             states.Add(restored.characterId, restored);
         }
@@ -503,7 +532,10 @@ public sealed class CharacterBodyHealthRuntime :
             lastTickAt[id] = gameClock.Time;
         }
 
-        return GetOrCreate(id);
+        CharacterBodyHealthState state = GetOrCreate(id);
+        AnatomyProfileDefinition profile = anatomyProfiles.GetForSpecies(actor?.SpeciesTag);
+        EnsureAnatomy(state, profile);
+        return state;
     }
 
     private CharacterBodyHealthState GetOrCreate(string characterId)
@@ -511,6 +543,7 @@ public sealed class CharacterBodyHealthRuntime :
         if (states.TryGetValue(characterId, out CharacterBodyHealthState state))
         {
             EnsureParts(state);
+            EnsureAnatomy(state, ResolveProfile(state.anatomyProfileId));
             return state;
         }
 
@@ -519,8 +552,360 @@ public sealed class CharacterBodyHealthRuntime :
             characterId = characterId
         };
         EnsureParts(state);
+        EnsureAnatomy(state, anatomyProfiles.GetDefaultHumanoid());
         states.Add(characterId, state);
         return state;
+    }
+
+    public AnatomyHealthSnapshot GetAnatomySnapshot(CharacterActor actor)
+    {
+        return actor == null
+            ? EmptyAnatomySnapshot()
+            : BuildAnatomySnapshot(GetOrCreate(actor));
+    }
+
+    public AnatomyHealthSnapshot GetAnatomySnapshot(string characterId)
+    {
+        if (string.IsNullOrWhiteSpace(characterId)
+            || !states.TryGetValue(characterId, out CharacterBodyHealthState state))
+        {
+            return EmptyAnatomySnapshot();
+        }
+
+        EnsureAnatomy(state, ResolveProfile(state.anatomyProfileId));
+        return BuildAnatomySnapshot(state);
+    }
+
+    public bool TryDamageNode(
+        CharacterActor actor,
+        string nodeId,
+        float damage,
+        float bleeding,
+        string reason)
+    {
+        if (actor == null || actor.IsDead || damage <= 0f)
+        {
+            return false;
+        }
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
+        if (node == null || node.missing)
+        {
+            return false;
+        }
+
+        node.currentHealth = Mathf.Max(0f, node.currentHealth - damage);
+        node.bleedingPerSecond += Mathf.Max(0f, bleeding);
+        state.lastDamageReason = reason ?? string.Empty;
+        actor.ApplyBodyDamage(damage, reason);
+        SyncLegacySurfaceNode(state, node.nodeId);
+        KillForDestroyedVitalNode(actor, state, node.nodeId);
+        bool wasDowned = state.downed;
+        UpdateDowned(state);
+        SyncLifecycle(actor, state, wasDowned);
+        return true;
+    }
+
+    public bool TryHealNode(
+        CharacterActor actor,
+        string nodeId,
+        float health,
+        float infectionReduction)
+    {
+        if (actor == null || actor.IsDead)
+        {
+            return false;
+        }
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
+        if (node == null || node.missing)
+        {
+            return false;
+        }
+
+        float previousHealth = node.currentHealth;
+        float previousInfection = node.infection;
+        node.currentHealth = Mathf.Min(
+            node.maxHealth,
+            node.currentHealth + Mathf.Max(0f, health));
+        node.infection = Mathf.Max(
+            0f,
+            node.infection - Mathf.Max(0f, infectionReduction));
+        SyncLegacySurfaceNode(state, node.nodeId);
+        float restored = node.currentHealth - previousHealth;
+        if (restored > 0f)
+        {
+            actor.Heal(restored);
+        }
+
+        bool wasDowned = state.downed;
+        UpdateDowned(state);
+        SyncLifecycle(actor, state, wasDowned);
+        return restored > 0f || node.infection < previousInfection;
+    }
+
+    public bool TryRemoveNode(
+        CharacterActor actor,
+        string nodeId,
+        out AnatomyNodeHealthState removedNode,
+        out string failureReason)
+    {
+        removedNode = null;
+        failureReason = string.Empty;
+        if (actor == null || actor.IsDead)
+        {
+            failureReason = "수술 대상이 유효하지 않습니다.";
+            return false;
+        }
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        AnatomyProfileDefinition profile = ResolveProfile(state.anatomyProfileId);
+        if (!profile.TryGetNode(nodeId, out AnatomyNodeDefinition definition))
+        {
+            failureReason = "해당 신체 부위를 찾을 수 없습니다.";
+            return false;
+        }
+
+        AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
+        if (node == null || node.missing)
+        {
+            failureReason = "이미 결손된 부위입니다.";
+            return false;
+        }
+
+        if (!definition.Removable)
+        {
+            failureReason = "제거할 수 없는 신체 부위입니다.";
+            return false;
+        }
+
+        removedNode = CloneAnatomyNode(node);
+        node.missing = true;
+        node.currentHealth = 0f;
+        node.bleedingPerSecond = Mathf.Max(node.bleedingPerSecond, 0.35f);
+        node.installedPartId = string.Empty;
+        node.installedPartEfficiency = 0f;
+        SyncLegacySurfaceNode(state, node.nodeId);
+        KillForDestroyedVitalNode(actor, state, node.nodeId);
+        bool wasDowned = state.downed;
+        UpdateDowned(state);
+        SyncLifecycle(actor, state, wasDowned);
+        return true;
+    }
+
+    public bool TryInstallPart(
+        CharacterActor actor,
+        string nodeId,
+        string partInstanceId,
+        SurgicalPartKind partKind,
+        float efficiency,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (actor == null || actor.IsDead)
+        {
+            failureReason = "수술 대상이 유효하지 않습니다.";
+            return false;
+        }
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
+        if (node == null)
+        {
+            failureReason = "해당 신체 부위를 찾을 수 없습니다.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(partInstanceId))
+        {
+            failureReason = "설치할 장기 또는 보철 인스턴스가 없습니다.";
+            return false;
+        }
+
+        node.missing = false;
+        node.installedPartId = partInstanceId.Trim();
+        node.installedPartKind = partKind;
+        node.installedPartEfficiency = Mathf.Clamp(efficiency, 0.1f, 1.5f);
+        node.currentHealth = Mathf.Max(node.currentHealth, node.maxHealth * 0.35f);
+        node.bleedingPerSecond = Mathf.Min(node.bleedingPerSecond, 0.05f);
+        SyncLegacySurfaceNode(state, node.nodeId);
+        bool wasDowned = state.downed;
+        UpdateDowned(state);
+        SyncLifecycle(actor, state, wasDowned);
+        return true;
+    }
+
+    public bool TryReplaceNodePart(
+        CharacterActor actor,
+        string nodeId,
+        string partInstanceId,
+        SurgicalPartKind partKind,
+        float efficiency,
+        out AnatomyNodeHealthState replacedNode,
+        out string failureReason)
+    {
+        replacedNode = null;
+        failureReason = string.Empty;
+        if (actor == null || actor.IsDead)
+        {
+            failureReason = "수술 대상이 유효하지 않습니다.";
+            return false;
+        }
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
+        if (node == null)
+        {
+            failureReason = "해당 신체 부위를 찾을 수 없습니다.";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(partInstanceId))
+        {
+            failureReason = "교체할 장기 또는 보철 인스턴스가 없습니다.";
+            return false;
+        }
+
+        replacedNode = CloneAnatomyNode(node);
+        node.missing = false;
+        node.installedPartId = partInstanceId.Trim();
+        node.installedPartKind = partKind;
+        node.installedPartEfficiency = Mathf.Clamp(efficiency, 0.1f, 1.5f);
+        node.currentHealth = Mathf.Max(node.maxHealth * 0.35f, 1f);
+        node.bleedingPerSecond = Mathf.Min(node.bleedingPerSecond, 0.05f);
+        SyncLegacySurfaceNode(state, node.nodeId);
+        bool wasDowned = state.downed;
+        UpdateDowned(state);
+        SyncLifecycle(actor, state, wasDowned);
+        return true;
+    }
+
+    public bool TryAddNodeBurden(
+        CharacterActor actor,
+        string nodeId,
+        float rejection,
+        float mutation,
+        float infection,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (actor == null || actor.IsDead)
+        {
+            failureReason = "수술 대상이 유효하지 않습니다.";
+            return false;
+        }
+
+        CharacterBodyHealthState state = GetOrCreate(actor);
+        AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
+        if (node == null || node.missing)
+        {
+            failureReason = "부담을 적용할 신체 부위를 찾을 수 없습니다.";
+            return false;
+        }
+
+        node.rejectionBurden = Mathf.Clamp(
+            node.rejectionBurden + Mathf.Max(0f, rejection),
+            0f,
+            100f);
+        node.mutationBurden = Mathf.Clamp(
+            node.mutationBurden + Mathf.Max(0f, mutation),
+            0f,
+            100f);
+        node.infection = Mathf.Clamp(
+            node.infection + Mathf.Max(0f, infection),
+            0f,
+            100f);
+        return true;
+    }
+
+    public bool TryReduceNodeBurden(
+        CharacterActor actor,
+        string nodeId,
+        float rejection,
+        float mutation,
+        float infection,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (actor == null || actor.IsDead)
+        {
+            failureReason = "수술 대상이 유효하지 않습니다.";
+            return false;
+        }
+
+        AnatomyNodeHealthState node = FindAnatomyNode(
+            GetOrCreate(actor),
+            nodeId);
+        if (node == null || node.missing)
+        {
+            failureReason = "부담을 줄일 신체 부위를 찾을 수 없습니다.";
+            return false;
+        }
+
+        node.rejectionBurden = Mathf.Max(
+            0f,
+            node.rejectionBurden - Mathf.Max(0f, rejection));
+        node.mutationBurden = Mathf.Max(
+            0f,
+            node.mutationBurden - Mathf.Max(0f, mutation));
+        node.infection = Mathf.Max(
+            0f,
+            node.infection - Mathf.Max(0f, infection));
+        return true;
+    }
+
+    private void TickAnatomyComplications(
+        CharacterActor actor,
+        CharacterBodyHealthState state,
+        float deltaTime)
+    {
+        if (actor == null
+            || actor.IsDead
+            || deltaTime <= 0f
+            || state?.anatomyNodes == null)
+        {
+            return;
+        }
+
+        AnatomyProfileDefinition profile = ResolveProfile(
+            state.anatomyProfileId);
+        foreach (AnatomyNodeHealthState node in state.anatomyNodes)
+        {
+            if (node == null || node.missing)
+            {
+                continue;
+            }
+
+            float infectionDamage =
+                Mathf.Clamp01((node.infection - 40f) / 60f)
+                * 0.055f
+                * deltaTime;
+            float rejectionDamage =
+                Mathf.Clamp01((node.rejectionBurden - 35f) / 65f)
+                * 0.04f
+                * deltaTime;
+            float damage = infectionDamage + rejectionDamage;
+            if (damage <= 0f)
+            {
+                continue;
+            }
+
+            node.currentHealth = Mathf.Max(
+                0f,
+                node.currentHealth - damage);
+            actor.ApplyBodyDamage(damage * 0.35f, "수술 후 합병증");
+            if (node.currentHealth <= 0f
+                && profile.TryGetNode(
+                    node.nodeId,
+                    out AnatomyNodeDefinition definition)
+                && definition.Vital)
+            {
+                actor.Die($"{definition.DisplayName} 기능 상실");
+                return;
+            }
+        }
     }
 
     private CharacterActor ResolveActor(string characterId)
@@ -585,7 +970,7 @@ public sealed class CharacterBodyHealthRuntime :
         part.bleedingPerSecond = Mathf.Max(0f, part.bleedingPerSecond);
     }
 
-    private static CharacterBodyHealthSnapshot BuildSnapshot(CharacterBodyHealthState state)
+    private CharacterBodyHealthSnapshot BuildSnapshot(CharacterBodyHealthState state)
     {
         CharacterBodyPartHealthState head = state.parts.First(part => part.bodyPart == CombatBodyPart.Head);
         CharacterBodyPartHealthState torso = state.parts.First(part => part.bodyPart == CombatBodyPart.Torso);
@@ -593,10 +978,11 @@ public sealed class CharacterBodyHealthRuntime :
         CharacterBodyPartHealthState rightArm = state.parts.First(part => part.bodyPart == CombatBodyPart.RightArm);
         CharacterBodyPartHealthState leftLeg = state.parts.First(part => part.bodyPart == CombatBodyPart.LeftLeg);
         CharacterBodyPartHealthState rightLeg = state.parts.First(part => part.bodyPart == CombatBodyPart.RightLeg);
-        float consciousness = Mathf.Min(head.HealthRatio, torso.HealthRatio)
-            * Mathf.Lerp(1f, 0.2f, state.bloodLoss / 100f);
-        float manipulation = (leftArm.HealthRatio + rightArm.HealthRatio) * 0.5f;
-        float mobility = (leftLeg.HealthRatio + rightLeg.HealthRatio) * 0.5f;
+        GetPhysicalCapacity(
+            state,
+            out float consciousness,
+            out float manipulation,
+            out float mobility);
         return new CharacterBodyHealthSnapshot(
             state.parts.Select(ClonePart).ToArray(),
             state.bloodLoss,
@@ -607,7 +993,7 @@ public sealed class CharacterBodyHealthRuntime :
             state.downed);
     }
 
-    private static void UpdateDowned(CharacterBodyHealthState state)
+    private void UpdateDowned(CharacterBodyHealthState state)
     {
         GetPhysicalCapacity(
             state,
@@ -625,7 +1011,36 @@ public sealed class CharacterBodyHealthRuntime :
         state.downed = consciousness < 0.25f || mobility < 0.2f;
     }
 
-    private static void GetPhysicalCapacity(
+    private void GetPhysicalCapacity(
+        CharacterBodyHealthState state,
+        out float consciousness,
+        out float manipulation,
+        out float mobility)
+    {
+        if (state.anatomyNodes != null && state.anatomyNodes.Count > 0)
+        {
+            AnatomyHealthSnapshot anatomy = BuildAnatomySnapshot(state);
+            GetLegacySurfaceCapacity(
+                state,
+                out float surfaceConsciousness,
+                out float surfaceManipulation,
+                out float surfaceMobility);
+            consciousness = Mathf.Min(anatomy.Consciousness, surfaceConsciousness)
+                * Mathf.Lerp(1f, 0.2f, state.bloodLoss / 100f);
+            manipulation = Mathf.Min(anatomy.Manipulation, surfaceManipulation);
+            mobility = Mathf.Min(anatomy.Mobility, surfaceMobility);
+            return;
+        }
+
+        GetLegacySurfaceCapacity(
+            state,
+            out consciousness,
+            out manipulation,
+            out mobility);
+        consciousness *= Mathf.Lerp(1f, 0.2f, state.bloodLoss / 100f);
+    }
+
+    private static void GetLegacySurfaceCapacity(
         CharacterBodyHealthState state,
         out float consciousness,
         out float manipulation,
@@ -665,12 +1080,11 @@ public sealed class CharacterBodyHealthRuntime :
                     break;
                 case CombatBodyPart.RightLeg:
                     rightLeg = part.HealthRatio;
-                    break;
+                break;
             }
         }
 
-        consciousness = Mathf.Min(head, torso)
-            * Mathf.Lerp(1f, 0.2f, state.bloodLoss / 100f);
+        consciousness = Mathf.Min(head, torso);
         manipulation = (leftArm + rightArm) * 0.5f;
         mobility = (leftLeg + rightLeg) * 0.5f;
     }
@@ -720,7 +1134,10 @@ public sealed class CharacterBodyHealthRuntime :
         return new CharacterBodyHealthState
         {
             characterId = source.characterId ?? string.Empty,
+            anatomyProfileId = source.anatomyProfileId ?? string.Empty,
             parts = source.parts?.Select(ClonePart).ToList() ?? new List<CharacterBodyPartHealthState>(),
+            anatomyNodes = source.anatomyNodes?.Select(CloneAnatomyNode).ToList()
+                ?? new List<AnatomyNodeHealthState>(),
             bloodLoss = Mathf.Clamp(source.bloodLoss, 0f, 100f),
             suppression = Mathf.Clamp(source.suppression, 0f, 100f),
             downed = source.downed,
@@ -737,6 +1154,360 @@ public sealed class CharacterBodyHealthRuntime :
             currentHealth = source.currentHealth,
             bleedingPerSecond = source.bleedingPerSecond
         };
+    }
+
+    private AnatomyProfileDefinition ResolveProfile(string profileId)
+    {
+        return anatomyProfiles.TryGet(profileId, out AnatomyProfileDefinition profile)
+            ? profile
+            : anatomyProfiles.GetDefaultHumanoid();
+    }
+
+    private static void EnsureAnatomy(
+        CharacterBodyHealthState state,
+        AnatomyProfileDefinition profile)
+    {
+        if (state == null || profile == null)
+        {
+            return;
+        }
+
+        state.anatomyProfileId = profile.ProfileId;
+        state.anatomyNodes ??= new List<AnatomyNodeHealthState>();
+        foreach (AnatomyNodeDefinition definition in profile.Nodes)
+        {
+            AnatomyNodeHealthState node = state.anatomyNodes.FirstOrDefault(
+                candidate => string.Equals(
+                    candidate.nodeId,
+                    definition.NodeId,
+                    StringComparison.Ordinal));
+            if (node == null)
+            {
+                node = new AnatomyNodeHealthState
+                {
+                    nodeId = definition.NodeId,
+                    maxHealth = definition.MaxHealth,
+                    currentHealth = definition.MaxHealth,
+                    installedPartKind = SurgicalPartKind.NaturalOrgan,
+                    installedPartEfficiency = 1f
+                };
+                state.anatomyNodes.Add(node);
+            }
+
+            node.maxHealth = Mathf.Max(1f, node.maxHealth);
+            node.currentHealth = Mathf.Clamp(node.currentHealth, 0f, node.maxHealth);
+            node.bleedingPerSecond = Mathf.Max(0f, node.bleedingPerSecond);
+            node.infection = Mathf.Clamp(node.infection, 0f, 100f);
+            node.installedPartEfficiency = Mathf.Max(0f, node.installedPartEfficiency);
+        }
+
+        state.anatomyNodes.RemoveAll(node =>
+            node == null || !profile.TryGetNode(node.nodeId, out _));
+        SyncAnatomySurfaceNodesFromLegacy(state);
+    }
+
+    private AnatomyHealthSnapshot BuildAnatomySnapshot(CharacterBodyHealthState state)
+    {
+        AnatomyProfileDefinition profile = ResolveProfile(state.anatomyProfileId);
+        EnsureAnatomy(state, profile);
+        float consciousness = CalculateFunctionEfficiency(
+            state,
+            profile,
+            AnatomyFunction.Consciousness,
+            defaultValue: 1f);
+        float sight = CalculateFunctionEfficiency(
+            state,
+            profile,
+            AnatomyFunction.Sight,
+            defaultValue: 1f);
+        float breathing = CalculateFunctionEfficiency(
+            state,
+            profile,
+            AnatomyFunction.Breathing,
+            defaultValue: 1f);
+        float digestion = CalculateFunctionEfficiency(
+            state,
+            profile,
+            AnatomyFunction.Digestion,
+            defaultValue: 1f);
+        float filtration = CalculateFunctionEfficiency(
+            state,
+            profile,
+            AnatomyFunction.Filtration,
+            defaultValue: 1f);
+        float manipulation = CalculateFunctionEfficiency(
+            state,
+            profile,
+            AnatomyFunction.Manipulation,
+            defaultValue: 1f);
+        float mobility = CalculateFunctionEfficiency(
+            state,
+            profile,
+            AnatomyFunction.Mobility,
+            defaultValue: 1f);
+        float core = CalculateFunctionEfficiency(
+            state,
+            profile,
+            AnatomyFunction.Core,
+            defaultValue: 1f);
+        consciousness = Mathf.Min(consciousness, core);
+        breathing = Mathf.Min(breathing, core);
+        digestion = Mathf.Min(digestion, core);
+        filtration = Mathf.Min(filtration, core);
+        return new AnatomyHealthSnapshot(
+            profile.ProfileId,
+            state.anatomyNodes.Select(CloneAnatomyNode).ToArray(),
+            consciousness,
+            sight,
+            breathing,
+            digestion,
+            filtration,
+            manipulation,
+            mobility);
+    }
+
+    private static float CalculateFunctionEfficiency(
+        CharacterBodyHealthState state,
+        AnatomyProfileDefinition profile,
+        AnatomyFunction function,
+        float defaultValue)
+    {
+        float weightedTotal = 0f;
+        float totalWeight = 0f;
+        foreach (AnatomyNodeDefinition definition in profile.Nodes)
+        {
+            if ((definition.Functions & function) == 0)
+            {
+                continue;
+            }
+
+            AnatomyNodeHealthState node = FindAnatomyNode(state, definition.NodeId);
+            float weight = Mathf.Max(0.01f, definition.CapacityWeight);
+            weightedTotal += (node?.EffectiveEfficiency ?? 0f) * weight;
+            totalWeight += weight;
+        }
+
+        return totalWeight > 0f
+            ? Mathf.Clamp01(weightedTotal / totalWeight)
+            : Mathf.Clamp01(defaultValue);
+    }
+
+    private static float GetStateBleeding(CharacterBodyHealthState state)
+    {
+        if (state.anatomyNodes != null && state.anatomyNodes.Count > 0)
+        {
+            return state.anatomyNodes.Sum(node =>
+                Mathf.Max(0f, node.bleedingPerSecond));
+        }
+
+        return state.parts.Sum(part =>
+            Mathf.Max(0f, part.bleedingPerSecond));
+    }
+
+    private void ApplyLegacyDamageToAnatomy(
+        CharacterBodyHealthState state,
+        CombatBodyPart bodyPart,
+        float damage,
+        float bleeding)
+    {
+        AnatomyProfileDefinition profile = ResolveProfile(state.anatomyProfileId);
+        AnatomyNodeDefinition definition = profile.Nodes.FirstOrDefault(node =>
+            node.MapsToLegacyBodyPart && node.LegacyBodyPart == bodyPart);
+        if (definition == null)
+        {
+            return;
+        }
+
+        AnatomyNodeHealthState node = FindAnatomyNode(state, definition.NodeId);
+        if (node == null)
+        {
+            return;
+        }
+
+        node.currentHealth = Mathf.Max(0f, node.currentHealth - damage);
+        node.bleedingPerSecond += Mathf.Max(0f, bleeding);
+    }
+
+    private static void SyncAnatomySurfaceNodesFromLegacy(CharacterBodyHealthState state)
+    {
+        if (state?.anatomyNodes == null || state.anatomyNodes.Count == 0)
+        {
+            return;
+        }
+
+        foreach (CharacterBodyPartHealthState legacy in state.parts)
+        {
+            string nodeId = GetSurfaceNodeId(state.anatomyProfileId, legacy.bodyPart);
+            AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
+            if (node == null || node.missing)
+            {
+                continue;
+            }
+
+            node.currentHealth = node.maxHealth * legacy.HealthRatio;
+            node.bleedingPerSecond = legacy.bleedingPerSecond;
+        }
+    }
+
+    private static void SyncLegacySurfaceNode(
+        CharacterBodyHealthState state,
+        string nodeId)
+    {
+        AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
+        if (node == null)
+        {
+            return;
+        }
+
+        CombatBodyPart? bodyPart = GetLegacyBodyPart(state.anatomyProfileId, nodeId);
+        if (!bodyPart.HasValue)
+        {
+            return;
+        }
+
+        CharacterBodyPartHealthState legacy = state.parts.FirstOrDefault(
+            part => part.bodyPart == bodyPart.Value);
+        if (legacy == null)
+        {
+            return;
+        }
+
+        legacy.currentHealth = legacy.maxHealth * node.HealthRatio;
+        legacy.bleedingPerSecond = node.bleedingPerSecond;
+    }
+
+    private void KillForDestroyedVitalNode(
+        CharacterActor actor,
+        CharacterBodyHealthState state,
+        string nodeId)
+    {
+        AnatomyProfileDefinition profile = ResolveProfile(state.anatomyProfileId);
+        if (!profile.TryGetNode(nodeId, out AnatomyNodeDefinition definition)
+            || !definition.Vital)
+        {
+            return;
+        }
+
+        AnatomyNodeHealthState node = FindAnatomyNode(state, nodeId);
+        if (node != null && (node.missing || node.currentHealth <= 0f) && !actor.IsDead)
+        {
+            actor.Die($"{definition.DisplayName} 기능 상실");
+        }
+    }
+
+    private static AnatomyNodeHealthState FindAnatomyNode(
+        CharacterBodyHealthState state,
+        string nodeId)
+    {
+        return state?.anatomyNodes?.FirstOrDefault(node =>
+            node != null && string.Equals(
+                node.nodeId,
+                nodeId?.Trim(),
+                StringComparison.Ordinal));
+    }
+
+    private static string GetSurfaceNodeId(
+        string profileId,
+        CombatBodyPart bodyPart)
+    {
+        if (string.Equals(profileId, "anatomy:slime", StringComparison.Ordinal))
+        {
+            return bodyPart == CombatBodyPart.Head ? "core" : "membrane";
+        }
+
+        if (string.Equals(profileId, "anatomy:quadruped", StringComparison.Ordinal))
+        {
+            return bodyPart switch
+            {
+                CombatBodyPart.Head => "head",
+                CombatBodyPart.Torso => "torso",
+                CombatBodyPart.LeftLeg => "forelegs",
+                CombatBodyPart.RightLeg => "hindlegs",
+                _ => "torso"
+            };
+        }
+
+        return bodyPart switch
+        {
+            CombatBodyPart.Head => "head",
+            CombatBodyPart.Torso => "torso",
+            CombatBodyPart.LeftArm => "arm:left",
+            CombatBodyPart.RightArm => "arm:right",
+            CombatBodyPart.LeftLeg => "leg:left",
+            CombatBodyPart.RightLeg => "leg:right",
+            _ => "torso"
+        };
+    }
+
+    private static CombatBodyPart? GetLegacyBodyPart(
+        string profileId,
+        string nodeId)
+    {
+        if (string.Equals(profileId, "anatomy:slime", StringComparison.Ordinal))
+        {
+            return nodeId == "membrane" ? CombatBodyPart.Torso : null;
+        }
+
+        if (string.Equals(profileId, "anatomy:quadruped", StringComparison.Ordinal))
+        {
+            return nodeId switch
+            {
+                "head" => CombatBodyPart.Head,
+                "torso" => CombatBodyPart.Torso,
+                "forelegs" => CombatBodyPart.LeftLeg,
+                "hindlegs" => CombatBodyPart.RightLeg,
+                _ => null
+            };
+        }
+
+        return nodeId switch
+        {
+            "head" => CombatBodyPart.Head,
+            "torso" => CombatBodyPart.Torso,
+            "arm:left" => CombatBodyPart.LeftArm,
+            "arm:right" => CombatBodyPart.RightArm,
+            "leg:left" => CombatBodyPart.LeftLeg,
+            "leg:right" => CombatBodyPart.RightLeg,
+            _ => null
+        };
+    }
+
+    private static AnatomyNodeHealthState CloneAnatomyNode(
+        AnatomyNodeHealthState source)
+    {
+        if (source == null)
+        {
+            return null;
+        }
+
+        return new AnatomyNodeHealthState
+        {
+            nodeId = source.nodeId ?? string.Empty,
+            maxHealth = source.maxHealth,
+            currentHealth = source.currentHealth,
+            bleedingPerSecond = source.bleedingPerSecond,
+            infection = source.infection,
+            missing = source.missing,
+            installedPartId = source.installedPartId ?? string.Empty,
+            installedPartKind = source.installedPartKind,
+            installedPartEfficiency = source.installedPartEfficiency,
+            rejectionBurden = source.rejectionBurden,
+            mutationBurden = source.mutationBurden
+        };
+    }
+
+    private static AnatomyHealthSnapshot EmptyAnatomySnapshot()
+    {
+        return new AnatomyHealthSnapshot(
+            string.Empty,
+            Array.Empty<AnatomyNodeHealthState>(),
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f,
+            1f);
     }
 
     private static CharacterBodyHealthSnapshot EmptySnapshot()

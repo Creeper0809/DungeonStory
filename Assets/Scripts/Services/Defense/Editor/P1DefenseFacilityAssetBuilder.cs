@@ -23,6 +23,7 @@ public static class P1DefenseFacilityAssetBuilder
         EnsureSpriteImport("Assets/Images/Placeholders/Defense/defense_lightning.png");
         EnsureSpriteImport("Assets/Images/Placeholders/Defense/defense_ice.png");
         EnsureSpriteImport("Assets/Images/Placeholders/Defense/defense_guard_room.png");
+        EnsureSpriteImport("Assets/Images/Placeholders/Items/item_weapon.png");
 
         System.IO.Directory.CreateDirectory(BuildingFolder);
         System.IO.Directory.CreateDirectory(EffectFolder);
@@ -66,6 +67,7 @@ public static class P1DefenseFacilityAssetBuilder
             building.AbilityModules.Add(economy);
         }
 
+        economy.constructionValue = spec.constructionCost;
         economy.constructionCost = spec.constructionCost;
         economy.maintenance = spec.maintenance;
         economy.unlockPhase = 1;
@@ -96,6 +98,28 @@ public static class P1DefenseFacilityAssetBuilder
             combatLogText = spec.displayName,
             effectAssets = effectAssets
         };
+        if (spec.treasuryPowered)
+        {
+            BuildingTreasuryPoweredDefenseAbility treasuryAbility =
+                building.GetAbility<BuildingTreasuryPoweredDefenseAbility>();
+            if (treasuryAbility == null)
+            {
+                treasuryAbility =
+                    new BuildingTreasuryPoweredDefenseAbility();
+                building.AbilityModules.Add(treasuryAbility);
+            }
+
+            treasuryAbility.shotCost = 30;
+            treasuryAbility.defaultInvasionBudget = 300;
+            treasuryAbility.defaultMinimumThreat = 0;
+            treasuryAbility.defaultBossOnly = false;
+            if (building.GetAbility<BuildingOverclockableAbility>() == null)
+            {
+                building.AbilityModules.Add(
+                    new BuildingOverclockableAbility());
+            }
+        }
+
         building.unlocked = true;
         EditorUtility.SetDirty(building);
     }
@@ -110,6 +134,31 @@ public static class P1DefenseFacilityAssetBuilder
     {
         return new[]
         {
+            new DefenseAssetSpec(
+                "P1_TreasuryCrossbow",
+                36,
+                "금고각인 쇠뇌대",
+                "Assets/Images/Placeholders/Items/item_weapon.png",
+                2,
+                GridLayer.FloorOverlay,
+                240,
+                0,
+                DefenseAttackConcept.Physical,
+                DefenseTriggerTiming.OnEnter | DefenseTriggerTiming.Cooldown,
+                DefenseTargetRule.EnteringIntruder,
+                2.5f,
+                0f,
+                FacilityWorkType.Repair,
+                0,
+                new[]
+                {
+                    Effect<DefenseDamageEffectSO>(
+                        34f,
+                        0f,
+                        1,
+                        "고관통")
+                },
+                treasuryPowered: true),
             new DefenseAssetSpec(
                 "P1_SpikeTrap",
                 30,
@@ -271,7 +320,8 @@ public static class P1DefenseFacilityAssetBuilder
             float period,
             FacilityWorkType workTypes,
             int requiredWorkers,
-            DefenseEffectAssetSpec[] effectSpecs)
+            DefenseEffectAssetSpec[] effectSpecs,
+            bool treasuryPowered = false)
         {
             this.assetName = assetName;
             this.id = id;
@@ -289,6 +339,7 @@ public static class P1DefenseFacilityAssetBuilder
             this.workTypes = workTypes;
             this.requiredWorkers = requiredWorkers;
             this.effectSpecs = effectSpecs ?? Array.Empty<DefenseEffectAssetSpec>();
+            this.treasuryPowered = treasuryPowered;
         }
 
         public readonly string assetName;
@@ -307,5 +358,6 @@ public static class P1DefenseFacilityAssetBuilder
         internal readonly FacilityWorkType workTypes;
         public readonly int requiredWorkers;
         public readonly DefenseEffectAssetSpec[] effectSpecs;
+        public readonly bool treasuryPowered;
     }
 }

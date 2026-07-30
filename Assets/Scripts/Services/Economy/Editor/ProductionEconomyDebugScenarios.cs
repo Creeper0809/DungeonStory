@@ -27,7 +27,7 @@ public static class ProductionEconomyDebugScenarios
         BuildingSO[] buildings = AssetDatabase
             .FindAssets(
                 "t:BuildingSO",
-                new[] { "Assets/Resources/SO/Building/Modular" })
+                new[] { "Assets/Resources/SO/Building" })
             .Select(AssetDatabase.GUIDToAssetPath)
             .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
             .Where(building => building != null)
@@ -66,7 +66,7 @@ public static class ProductionEconomyDebugScenarios
             .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
             .Where(project => project != null)
             .ToArray();
-        Require(projects.Length == 72, $"research projects={projects.Length}");
+        Require(projects.Length == 78, $"research projects={projects.Length}");
 
         HashSet<int> stationIds = stations.Select(station => station.id).ToHashSet();
         int unlockedStationCount = projects
@@ -98,11 +98,7 @@ public static class ProductionEconomyDebugScenarios
 
         HashSet<string> stationTags = stations
             .SelectMany(station => station.GetSemanticTags())
-            .Concat(buildings
-                .Where(building =>
-                    (building.GetAbility<BuildingFacilityPartAbility>()?.code
-                        ?? string.Empty) is "D03" or "D12" or "Q02" or "S08")
-                .SelectMany(building => building.GetSemanticTags()))
+            .Concat(buildings.SelectMany(building => building.GetSemanticTags()))
             .ToHashSet(StringComparer.Ordinal);
         string[] missingTags = catalog.Recipes
             .Where(recipe => recipe.RecipeId.StartsWith(

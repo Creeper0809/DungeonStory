@@ -12,7 +12,9 @@ public enum GridLayer
     Wildlife = 7,
     Construction = 8,
     Filth = 9,
-    DownedCharacter = 10
+    DownedCharacter = 10,
+    Utility = 11,
+    Conveyor = 12
 }
 
 public enum GridCellAreaType

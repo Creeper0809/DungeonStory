@@ -629,6 +629,7 @@ public sealed class CharacterProgression : MonoBehaviour
         narrativeLedger = snapshot.NarrativeLedger?.Clone() ?? new CharacterNarrativeLedger();
         InvalidateEffectiveRuntimeProfile();
         GrowthState.EnsureCollections();
+        EnsureMedicalStat();
         initializedDataInstanceId = actor?.Identity?.Data != null
             ? actor.Identity.Data.GetInstanceID()
             : 0;
@@ -669,6 +670,7 @@ public sealed class CharacterProgression : MonoBehaviour
         GrowthState.origin = origin?.Trim() ?? string.Empty;
         GrowthState.traitIds = traitIds?.Distinct().Take(3).ToList() ?? new List<int>();
         GrowthState.initialBaseStats = CharacterSkillModelUtility.CopyStats(initialStats);
+        EnsureMedicalStat();
         GrowthState.levelGrowthStats = new CharacterStatBlock();
         GrowthState.potentialGrade = potential;
         GrowthState.generationSeed = generationSeed;
@@ -731,10 +733,27 @@ public sealed class CharacterProgression : MonoBehaviour
                 .Take(3)
                 .ToList() ?? new List<int>();
             GrowthState.autoChooseDrafts = actor.Identity.CharacterType == CharacterType.Customer;
+            EnsureMedicalStat();
             InvalidateEffectiveRuntimeProfile();
         }
 
         RebuildLegacySkillViews();
+    }
+
+    private void EnsureMedicalStat()
+    {
+        GrowthState.initialBaseStats ??= new CharacterStatBlock();
+        if (GrowthState.initialBaseStats.Contains(CharacterStatIds.Medical))
+        {
+            return;
+        }
+
+        int migratedValue = Mathf.RoundToInt(
+            GrowthState.initialBaseStats.Get(CharacterStatType.Research) * 0.6f
+            + GrowthState.initialBaseStats.Get(CharacterStatType.Dexterity) * 0.4f);
+        GrowthState.initialBaseStats.Set(
+            CharacterStatType.Medical,
+            Mathf.Clamp(migratedValue, 1, 10));
     }
 
     private void EnsureUnlockedDrafts()

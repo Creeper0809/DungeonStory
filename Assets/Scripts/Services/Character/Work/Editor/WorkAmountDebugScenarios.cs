@@ -23,6 +23,10 @@ public static class WorkAmountDebugScenarios
         RunScenario("save V14 carries work orders", VerifySaveV12CarriesWorkOrders, errors);
         RunScenario("configured work amount fallback", VerifyConfiguredWorkAmountFallback, errors);
         RunScenario("construction order lifecycle", VerifyConstructionOrderLifecycle, errors);
+        RunScenario(
+            "purchased facility kit delivery",
+            VerifyPurchasedFacilityKitDelivery,
+            errors);
         RunScenario("construction cancellation refunds materials", VerifyConstructionCancellationRefund, errors);
         RunScenario("orphan construction auto-recovers materials", VerifyOrphanConstructionRecovery, errors);
 
@@ -71,8 +75,7 @@ public static class WorkAmountDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonWorkOrderSaveData>(
                 save,
                 WorkOrdersSaveSection.Id);
-        return DungeonGameSaveData.CurrentVersion == 16
-            && save.version == DungeonGameSaveData.CurrentVersion
+        return save.version == DungeonGameSaveData.CurrentVersion
             && workOrders.version == DungeonWorkOrderSaveData.CurrentVersion;
     }
 
@@ -258,6 +261,88 @@ public static class WorkAmountDebugScenarios
         }
     }
 
+    private static bool VerifyPurchasedFacilityKitDelivery()
+    {
+        BuildingSO building = CreateTestBuilding(
+            91006,
+            "설치 키트 테스트 시설",
+            1,
+            1,
+            5f,
+            4);
+        GameObject siteObject =
+            new GameObject("WorkAmountInstallationKitSite");
+        ConstructionSite site =
+            siteObject.AddComponent<ConstructionSite>();
+        FakeWorldItemStackRuntime itemRuntime =
+            new FakeWorldItemStackRuntime();
+        string kitItemId =
+            FacilityInstallationKitItemIds.ForBuilding(building);
+        itemRuntime.AddAvailableItem(kitItemId, 1);
+        WorkOrderRuntime runtime = new WorkOrderRuntime(
+            new NoGridProvider(),
+            itemRuntime,
+            new SingleBuildingLookup(building),
+            new TrackingWorkforceReplanService(),
+            new DungeonStory.Foundation.UnityGameClock());
+        try
+        {
+            site.Initialization(building, new Vector2Int(4, 0));
+            if (!runtime.TryCreateConstructionOrder(
+                    site,
+                    building,
+                    site.centerPos,
+                    out _,
+                    out _)
+                || !runtime.TryGetOrderFor(
+                    site,
+                    BuiltInWorkTypeIds.Construct,
+                    out WorkOrderProgressState order)
+                || order.MaterialRequirements.Count != 0
+                || !order.ItemMaterialRequirements.TryGetValue(
+                    kitItemId,
+                    out int required)
+                || required != 1
+                || !itemRuntime.RequestedItems.TryGetValue(
+                    kitItemId,
+                    out int requested)
+                || requested != 1)
+            {
+                return false;
+            }
+
+            itemRuntime.AddFacilityItemBuffer(
+                order.MaterialDestinationId,
+                kitItemId,
+                1);
+            bool ready = runtime.RefreshMaterialsReady(site)
+                && runtime.TryGetOrderFor(
+                    site,
+                    BuiltInWorkTypeIds.Construct,
+                    out order)
+                && order.Status == WorkOrderStatus.Ready
+                && order.DeliveredItemMaterials.TryGetValue(
+                    kitItemId,
+                    out int delivered)
+                && delivered == 1;
+            DungeonWorkOrderSaveData save = runtime.Capture();
+            return ready
+                && save.version == DungeonWorkOrderSaveData.CurrentVersion
+                && save.orders.Count == 1
+                && save.orders[0].itemMaterials.Count == 1
+                && string.Equals(
+                    save.orders[0].itemMaterials[0].itemId,
+                    kitItemId,
+                    StringComparison.Ordinal)
+                && save.orders[0].itemMaterials[0].delivered == 1;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(siteObject);
+            UnityEngine.Object.DestroyImmediate(building);
+        }
+    }
+
     private static bool VerifyOrphanConstructionRecovery()
     {
         BuildingSO building = CreateTestBuilding(
@@ -375,10 +460,15 @@ public static class WorkAmountDebugScenarios
     {
         private readonly Dictionary<string, Dictionary<StockCategory, int>> buffers =
             new Dictionary<string, Dictionary<StockCategory, int>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, Dictionary<string, int>> itemBuffers =
+            new Dictionary<string, Dictionary<string, int>>(
+                StringComparer.Ordinal);
         private readonly List<WorldItemStackSnapshot> stacks =
             new List<WorldItemStackSnapshot>();
 
         public readonly Dictionary<StockCategory, int> Requested = new Dictionary<StockCategory, int>();
+        public readonly Dictionary<string, int> RequestedItems =
+            new Dictionary<string, int>(StringComparer.Ordinal);
         public readonly HashSet<string> PrioritizedStackIds =
             new HashSet<string>(StringComparer.Ordinal);
         public int ReleasedQuantity { get; private set; }
@@ -539,6 +629,12 @@ public static class WorkAmountDebugScenarios
                 return false;
             }
 
+            RequestedItems[itemId ?? string.Empty] =
+                RequestedItems.TryGetValue(
+                    itemId ?? string.Empty,
+                    out int current)
+                    ? current + requested
+                    : requested;
             stacks.Add(new WorldItemStackSnapshot
             {
                 StackId = $"fake-request:{stacks.Count + 1}",
@@ -741,8 +837,34 @@ public static class WorkAmountDebugScenarios
             IReadOnlyDictionary<string, int> costs,
             out string failureReason)
         {
-            failureReason = "item-specific buffers are not configured in this fixture";
-            return false;
+            failureReason = string.Empty;
+            string normalizedDestination = destinationId ?? string.Empty;
+            if (!itemBuffers.TryGetValue(
+                    normalizedDestination,
+                    out Dictionary<string, int> byItem))
+            {
+                failureReason = "item buffer missing";
+                return false;
+            }
+
+            foreach (KeyValuePair<string, int> pair
+                     in costs ?? new Dictionary<string, int>())
+            {
+                if (!byItem.TryGetValue(pair.Key, out int available)
+                    || available < pair.Value)
+                {
+                    failureReason = "item buffer shortage";
+                    return false;
+                }
+            }
+
+            foreach (KeyValuePair<string, int> pair
+                     in costs ?? new Dictionary<string, int>())
+            {
+                byItem[pair.Key] -= pair.Value;
+            }
+
+            return true;
         }
 
         public bool TryStealLooseItem(
@@ -811,6 +933,41 @@ public static class WorkAmountDebugScenarios
             }
 
             byCategory[category] = byCategory.TryGetValue(category, out int current)
+                ? current + amount
+                : amount;
+        }
+
+        public void AddAvailableItem(string itemId, int amount)
+        {
+            stacks.Add(new WorldItemStackSnapshot
+            {
+                StackId = $"fake-item:{stacks.Count + 1}",
+                ItemId = itemId ?? string.Empty,
+                StockCategory = StockCategory.General,
+                Quantity = Mathf.Max(0, amount),
+                State = WorldItemStackState.Loose,
+                Position = Vector2Int.zero
+            });
+        }
+
+        public void AddFacilityItemBuffer(
+            string destinationId,
+            string itemId,
+            int amount)
+        {
+            string normalizedDestination = destinationId ?? string.Empty;
+            if (!itemBuffers.TryGetValue(
+                    normalizedDestination,
+                    out Dictionary<string, int> byItem))
+            {
+                byItem = new Dictionary<string, int>(StringComparer.Ordinal);
+                itemBuffers[normalizedDestination] = byItem;
+            }
+
+            string normalizedItemId = itemId ?? string.Empty;
+            byItem[normalizedItemId] = byItem.TryGetValue(
+                normalizedItemId,
+                out int current)
                 ? current + amount
                 : amount;
         }

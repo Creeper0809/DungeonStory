@@ -30,32 +30,7 @@ MonoBehaviour:
   researchWorkRequired: 18
   targetResearchProjectId: research:commerce:expansion
   unlocks:
-    items:
-    - rid: 7302563252806877222
-    - rid: 7302563252806877223
-    - rid: 7302563252806877224
-    - rid: 7302563252806877225
-    - rid: 7302563252806877226
+    items: []
   references:
     version: 2
-    RefIds:
-    - rid: 7302563252806877222
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1005
-    - rid: 7302563252806877223
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1007
-    - rid: 7302563252806877224
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1010
-    - rid: 7302563252806877225
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1011
-    - rid: 7302563252806877226
-      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
-      data:
-        buildingId: 1019
+    RefIds: []

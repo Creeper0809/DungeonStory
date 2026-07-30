@@ -13,7 +13,10 @@ public enum OffenseExpeditionPhase
     InBattle,
     Completed,
     Retreated,
-    Defeated
+    Defeated,
+    Traveling,
+    AwaitingDecision,
+    Returning
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -219,7 +222,8 @@ public sealed class OffenseExpeditionPreparation
         float campStressRecovery = 12f,
         float medicineHealRatio = 0.25f,
         int scouting = 0,
-        IEnumerable<string> sourceSummaries = null)
+        IEnumerable<string> sourceSummaries = null,
+        int fieldFunds = 0)
     {
         SupplyCapacity = Mathf.Max(0, supplyCapacity);
         StartingLight = Mathf.Clamp(startingLight, 0f, 100f);
@@ -227,6 +231,7 @@ public sealed class OffenseExpeditionPreparation
         CampStressRecovery = Mathf.Max(0f, campStressRecovery);
         MedicineHealRatio = Mathf.Clamp01(medicineHealRatio);
         Scouting = Mathf.Max(0, scouting);
+        FieldFunds = Mathf.Max(0, fieldFunds);
         SourceSummaries = Array.AsReadOnly(
             (sourceSummaries ?? Array.Empty<string>()).ToArray());
     }
@@ -237,6 +242,7 @@ public sealed class OffenseExpeditionPreparation
     public float CampStressRecovery { get; }
     public float MedicineHealRatio { get; }
     public int Scouting { get; }
+    public int FieldFunds { get; }
     public IReadOnlyList<string> SourceSummaries { get; }
 }
 

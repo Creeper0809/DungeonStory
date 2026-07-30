@@ -50,6 +50,7 @@ MonoBehaviour:
     - rid: 7302563239583285343
     - rid: 7302563239583285344
     - rid: 7302563239583285345
+    - rid: 7302563239583285346
   width: 1
   height: 1
   layer: 1
@@ -131,3 +132,9 @@ MonoBehaviour:
         capacity: 1
         contributesStockCategory: 1
         stockCategory: 0
+    - rid: 7302563239583285346
+      type: {class: BuildingMercenaryHiringAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingMercenaryHiringAbility
+        rolePremium: 0
+        minimumCandidateSatisfaction: 65

@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7003332b9a48cca4495a866cb7b5d17d, type: 3}
+  m_Name: caravan
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseSiteArchetypeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170101
+  siteTypeId: caravan
+  displayName: "\uC774\uB3D9 \uC0C1\uB2E8"
+  description: "\uB3C4\uB85C\uB97C \uB530\uB77C \uBB3C\uC790\uC640 \uC815\uBCF4\uB97C
+    \uC62E\uAE30\uB294 \uC0C1\uB2E8\uC785\uB2C8\uB2E4."
+  factionId: human
+  pressureAxis: 1
+  pressureAmount: 10
+  minimumStrength: 1
+  maximumStrength: 3
+  minimumLifetimeDays: 2
+  maximumLifetimeDays: 5
+  hiddenUntilDiscovered: 1
+  canMove: 1
+  dynamicSpawnEligible: 1
+  rewards:
+  - grantSpec:
+      rid: 7302563269269258738
+    displayLabel: "\uC555\uC218\uD55C \uC790\uAE08"
+    baseAmount: 140
+    amountPerStrength: 60
+  - grantSpec:
+      rid: 7302563269269258739
+    displayLabel: "\uC0C1\uB2E8 \uBB3C\uC790"
+    baseAmount: 8
+    amountPerStrength: 3
+  - grantSpec:
+      rid: 7302563269269258740
+    displayLabel: "\uC9C0\uC5ED \uC804\uB7B5 \uC555\uB825"
+    baseAmount: 1
+    amountPerStrength: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258738
+      type: {class: OffenseMoneyRewardSpec, ns: , asm: Assembly-CSharp}
+      data: 
+    - rid: 7302563269269258739
+      type: {class: OffenseStockRewardSpec, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 1
+    - rid: 7302563269269258740
+      type: {class: OffenseRegionalPressureRewardSpec, ns: , asm: Assembly-CSharp}
+      data: 

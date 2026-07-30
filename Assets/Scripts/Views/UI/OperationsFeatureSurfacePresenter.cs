@@ -7,8 +7,6 @@ public sealed class OperationsFeatureSurfaceModel
 {
     public string DaySummary { get; set; } = string.Empty;
     public string SettlementSummary { get; set; } = string.Empty;
-    public string LatestSettlementSummary { get; set; } = string.Empty;
-    public bool CanTakeEmergencyFunding { get; set; }
     public IReadOnlyList<OperationsRecruitmentRow> Recruitment { get; set; }
         = Array.Empty<OperationsRecruitmentRow>();
     public string RecruitmentSummary { get; set; } = string.Empty;
@@ -47,6 +45,8 @@ public sealed class OperationsRecruitmentRow
     public string Name { get; set; } = string.Empty;
     public string Detail { get; set; } = string.Empty;
     public bool CanRecruit { get; set; }
+    public bool CanHireMercenary { get; set; }
+    public int MercenaryFirstDailyFee { get; set; }
     public bool IsRecruited { get; set; }
 }
 
@@ -129,8 +129,8 @@ public interface IOperationsFeatureQueryService
 
 public interface IOperationsFeatureCommandService
 {
-    OperationsFeatureCommandResult TakeEmergencyFunding();
     OperationsFeatureCommandResult Recruit(string customerId);
+    OperationsFeatureCommandResult HireMercenary(string customerId);
     OperationsFeatureCommandResult PurchaseMetaUpgrade(string upgradeId);
     OperationsFeatureCommandResult ToggleMaintenanceAutomaticRepair(string policyId);
     OperationsFeatureCommandResult StepMaintenanceSendAt(string policyId);
@@ -225,8 +225,6 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
                 ? $"Day {summary.Day} / {summary.Hour}:00 / 자금 {summary.HoldingMoney}"
                 : "운영 시계를 불러오지 못했습니다.",
             SettlementSummary = CreateSettlementSummary(settlement),
-            LatestSettlementSummary = CreateLatestSettlementSummary(settlement),
-            CanTakeEmergencyFunding = settlement != null && settlement.CanTakeEmergencyFunding,
             Recruitment = CreateRecruitmentRows(out string recruitmentSummary),
             RecruitmentSummary = recruitmentSummary,
             SurvivalSummary = CreateSurvivalSummary(out IReadOnlyList<OperationsStatusRow> survivalRows),
@@ -338,19 +336,6 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
             + $" = {forecast.TotalDue} / {paymentState}";
     }
 
-    private static string CreateLatestSettlementSummary(
-        OperatingDaySettlementRuntime settlement)
-    {
-        OperatingDayReport report = settlement?.LatestReport;
-        return report != null
-            ? $"최근 Day {report.day}"
-                + $" / 매출 {report.totalRevenue}"
-                + $" / 운영비 {report.paidOperatingCost}/{report.totalOperatingCost}"
-                + $" / 미납 {report.unpaidOperatingCost}"
-                + $" / 사건 {report.incidents?.Count ?? 0}"
-            : "아직 완료된 일일 정산이 없습니다.";
-    }
-
     private IReadOnlyList<OperationsRecruitmentRow> CreateRecruitmentRows(
         out string summary)
     {
@@ -372,17 +357,29 @@ public sealed class OperationsFeatureQueryService : IOperationsFeatureQueryServi
         summary = $"기록 {runtime.State.Records.Count}명"
             + $" / 후보 {runtime.State.Records.Count(record => record.Status == RegularCustomerStatus.RecruitCandidate)}명"
             + $" / 영입 완료 {runtime.State.RecruitedCharacters.Count}명";
-        return records.Select(record => new OperationsRecruitmentRow
+        return records.Select(record =>
         {
-            CustomerId = record.CustomerId,
-            Name = record.DisplayName,
-            Detail = $"{record.SpeciesTag}"
-                + $" / 방문 {record.VisitCount}회"
-                + $" / 만족도 {record.AverageSatisfaction:0.#}"
-                + $" / {record.Status}"
-                + $" / 역할 {RegularCustomerService.FormatCapabilities(record.RecruitCapabilities)}",
-            CanRecruit = record.Status == RegularCustomerStatus.RecruitCandidate,
-            IsRecruited = record.IsRecruited
+            int mercenaryQuote =
+                runtime.GetMercenaryQuote(record.CustomerId);
+            return new OperationsRecruitmentRow
+            {
+                CustomerId = record.CustomerId,
+                Name = record.DisplayName,
+                Detail = $"{record.SpeciesTag}"
+                    + $" / 방문 {record.VisitCount}회"
+                    + $" / 만족도 {record.AverageSatisfaction:0.#}"
+                    + $" / {record.Status}"
+                    + $" / 역할 {RegularCustomerService.FormatCapabilities(record.RecruitCapabilities)}",
+                CanRecruit =
+                    record.Status
+                    == RegularCustomerStatus.RecruitCandidate,
+                CanHireMercenary =
+                    record.Status
+                    == RegularCustomerStatus.RecruitCandidate
+                    && mercenaryQuote > 0,
+                MercenaryFirstDailyFee = mercenaryQuote,
+                IsRecruited = record.IsRecruited
+            };
         }).ToArray();
     }
 
@@ -714,17 +711,6 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
             ?? throw new ArgumentNullException(nameof(wasteProcessing));
     }
 
-    public OperationsFeatureCommandResult TakeEmergencyFunding()
-    {
-        if (!settlementProvider.TryGetRuntime(out OperatingDaySettlementRuntime settlement))
-        {
-            return Missing("정산");
-        }
-
-        bool succeeded = settlement.TryTakeEmergencyFunding(out string message);
-        return new OperationsFeatureCommandResult(succeeded, message);
-    }
-
     public OperationsFeatureCommandResult Recruit(string customerId)
     {
         if (!regularCustomerProvider.TryGetRuntime(out RegularCustomerRuntime runtime))
@@ -741,6 +727,26 @@ public sealed class OperationsFeatureCommandService : IOperationsFeatureCommandS
                 ? $"영입 성공: {result.Record.DisplayName}"
                     + $" / 역할 {RegularCustomerService.FormatCapabilities(result.Capabilities)}"
                 : $"영입 불가: {result.Message}");
+    }
+
+    public OperationsFeatureCommandResult HireMercenary(string customerId)
+    {
+        if (!regularCustomerProvider.TryGetRuntime(
+                out RegularCustomerRuntime runtime))
+        {
+            return Missing("용병 계약");
+        }
+
+        bool succeeded = runtime.TryHireMercenary(
+            customerId,
+            out RegularCustomerRecruitResult result,
+            out int firstDailyFee);
+        return new OperationsFeatureCommandResult(
+            succeeded,
+            succeeded
+                ? $"용병 계약: {result.Record.DisplayName}"
+                    + $" / 선불 {firstDailyFee:N0}골드"
+                : $"계약 불가: {result.Message}");
     }
 
     public OperationsFeatureCommandResult PurchaseMetaUpgrade(string upgradeId)
@@ -1023,13 +1029,6 @@ public sealed class OperationsFeatureSurfacePresenter : IFeatureSurfaceTabPresen
 
         view.AddSection("운영 정산", model.DaySummary);
         view.AddLabel(model.SettlementSummary, 18f, 52f);
-        view.AddDataCard(
-            "P0Action_OperationEmergencyFunding",
-            model.CanTakeEmergencyFunding ? "긴급 융자" : "긴급 융자 사용됨",
-            model.LatestSettlementSummary,
-            model.CanTakeEmergencyFunding ? "실행" : "상태",
-            () => Execute(view, commands.TakeEmergencyFunding),
-            CompactCardHeight);
 
         AddRecruitment(view, model);
         captivitySection.Present(view);
@@ -1133,6 +1132,20 @@ public sealed class OperationsFeatureSurfacePresenter : IFeatureSurfaceTabPresen
                         : "상태 확인",
                 () => Execute(view, () => commands.Recruit(captured.CustomerId)),
                 CompactCardHeight);
+            if (captured.CanHireMercenary)
+            {
+                view.AddDataCard(
+                    $"TreasuryAction_HireMercenary_{captured.CustomerId}",
+                    $"{captured.Name} 용병 계약",
+                    $"고용 당일 첫 일급을 선불로 지급합니다."
+                    + $" 이후 매일 {captured.MercenaryFirstDailyFee:N0}골드 안팎을 갱신합니다.",
+                    $"{captured.MercenaryFirstDailyFee:N0}골드",
+                    () => Execute(
+                        view,
+                        () => commands.HireMercenary(
+                            captured.CustomerId)),
+                    CompactCardHeight);
+            }
         }
     }
 

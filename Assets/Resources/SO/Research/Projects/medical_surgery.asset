@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: medical_surgery
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7142
+  projectId: research:medical:surgery
+  displayName: "\uC678\uACFC\uC220"
+  description: "\uB9C8\uCDE8, \uC808\uAC1C\uC640 \uBD09\uD569\uC744 \uD45C\uC900\uD654\uD574
+    \uC0DD\uCCB4 \uC218\uC220\uC744 \uAC00\uB2A5\uD558\uAC8C \uD55C\uB2E4."
+  field: 14
+  requiredWork: 138
+  prerequisites:
+  - {fileID: 11400000, guid: db52b6c4042583d41a582bd0c7d9d6a3, type: 2}
+  - {fileID: 11400000, guid: 5d24ff7a48d2e42439661cde8f81fdae, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563257777393513
+    - rid: 7302563257777393514
+    - rid: 7302563257777393515
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563257777393513
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9503
+    - rid: 7302563257777393514
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9504
+    - rid: 7302563257777393515
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9505

@@ -1,0 +1,193 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
+  m_Name: anatomy_quadruped
+  m_EditorClassIdentifier: Assembly-CSharp::AnatomyProfileSO
+  profileId: anatomy:quadruped
+  displayName: "\uC0AC\uC871 \uB3D9\uBB3C"
+  anatomyFamily: quadruped
+  speciesIds:
+  - cave_rat
+  - shadow_hare
+  - moss_boar
+  - rune_deer
+  - shadow_wolf
+  - ash_goat
+  nodes:
+  - nodeId: head
+    displayName: "\uBA38\uB9AC"
+    parentNodeId: 
+    kind: 0
+    functions: 6
+    maxHealth: 15
+    capacityWeight: 0.35
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 1
+  - nodeId: brain
+    displayName: "\uB1CC"
+    parentNodeId: head
+    kind: 1
+    functions: 2
+    maxHealth: 9
+    capacityWeight: 0.65
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: eye:left
+    displayName: "\uC67C\uCABD \uB208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 5
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: eyes
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: eye:right
+    displayName: "\uC624\uB978\uCABD \uB208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 5
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: eyes
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: torso
+    displayName: "\uBAB8\uD1B5"
+    parentNodeId: 
+    kind: 4
+    functions: 1
+    maxHealth: 38
+    capacityWeight: 1
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 1
+    mapsToLegacyBodyPart: 1
+  - nodeId: heart
+    displayName: "\uC2EC\uC7A5"
+    parentNodeId: torso
+    kind: 1
+    functions: 1
+    maxHealth: 12
+    capacityWeight: 1
+    vital: 1
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: lung:left
+    displayName: "\uC67C\uCABD \uD3D0"
+    parentNodeId: torso
+    kind: 1
+    functions: 8
+    maxHealth: 10
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: lungs
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: lung:right
+    displayName: "\uC624\uB978\uCABD \uD3D0"
+    parentNodeId: torso
+    kind: 1
+    functions: 8
+    maxHealth: 10
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: lungs
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: liver
+    displayName: "\uAC04"
+    parentNodeId: torso
+    kind: 1
+    functions: 48
+    maxHealth: 13
+    capacityWeight: 0.6
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: kidney:left
+    displayName: "\uC67C\uCABD \uC2E0\uC7A5"
+    parentNodeId: torso
+    kind: 1
+    functions: 32
+    maxHealth: 8
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: kidneys
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: kidney:right
+    displayName: "\uC624\uB978\uCABD \uC2E0\uC7A5"
+    parentNodeId: torso
+    kind: 1
+    functions: 32
+    maxHealth: 8
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: kidneys
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: stomach
+    displayName: "\uC704"
+    parentNodeId: torso
+    kind: 1
+    functions: 16
+    maxHealth: 12
+    capacityWeight: 0.4
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: forelegs
+    displayName: "\uC55E\uB2E4\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 20
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 4
+    mapsToLegacyBodyPart: 1
+  - nodeId: hindlegs
+    displayName: "\uB4B7\uB2E4\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 22
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 5
+    mapsToLegacyBodyPart: 1

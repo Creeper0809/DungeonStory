@@ -35,6 +35,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
     private StockInfo baseStock;
     private GameData gameData;
     private IGameDataProvider gameDataProvider;
+    private IGameMoneyRuntime moneyRuntime;
     private IShopStockCatalog stockCatalog;
     private IFloatingNumberFeedbackService floatingNumberFeedbackService;
     private IWorkforceReplanService workforceReplanService;
@@ -93,16 +94,19 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
     [Inject]
     public void ConstructShop(
         IGameDataProvider gameDataProvider,
+        IGameMoneyRuntime moneyRuntime,
         IShopStockCatalog stockCatalog,
         IFloatingNumberFeedbackService floatingNumberFeedbackService,
         IWorkforceReplanService workforceReplanService,
         IFacilityCrimeRiskEvaluator crimeRiskEvaluator,
-        IRandomStreamProvider randomStreamProvider,
+        IRandomStreamProvider randomStreamProvider = null,
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
         IMealConsumptionRuntime mealConsumptionRuntime = null)
     {
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.moneyRuntime = moneyRuntime
+            ?? throw new ArgumentNullException(nameof(moneyRuntime));
         this.stockCatalog = stockCatalog
             ?? throw new ArgumentNullException(nameof(stockCatalog));
         this.floatingNumberFeedbackService = floatingNumberFeedbackService
@@ -114,11 +118,33 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
         this.mealConsumptionRuntime = mealConsumptionRuntime;
         shopRandom = (randomStreamProvider
-            ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
+            ?? new RandomStreamProvider(GetInstanceID()))
             .Get("shop-runtime");
 
         TryResolveGameData(requireProvider: true);
         TryInitializeStock(requireCatalog: false);
+    }
+
+    public void ConstructShop(
+        IGameDataProvider gameDataProvider,
+        IShopStockCatalog stockCatalog,
+        IFloatingNumberFeedbackService floatingNumberFeedbackService,
+        IWorkforceReplanService workforceReplanService,
+        IFacilityCrimeRiskEvaluator crimeRiskEvaluator,
+        IRandomStreamProvider randomStreamProvider,
+        IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
+        IMealConsumptionRuntime mealConsumptionRuntime = null)
+    {
+        ConstructShop(
+            gameDataProvider,
+            new LegacyShopMoneyRuntime(gameDataProvider),
+            stockCatalog,
+            floatingNumberFeedbackService,
+            workforceReplanService,
+            crimeRiskEvaluator,
+            randomStreamProvider,
+            roomEnvironmentExperienceService,
+            mealConsumptionRuntime);
     }
 
     public IEnumerator Interact(CharacterActor actor)
@@ -303,9 +329,15 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
 
         TryResolveGameData(requireProvider: true);
 
-        if (createsRevenue && usedMoney > 0 && gameData != null)
+        if (createsRevenue && usedMoney > 0)
         {
-            gameData.holdingMoney.Value += usedMoney;
+            moneyRuntime.Add(
+                usedMoney,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.GuestServiceIncome,
+                    ResolveFacilityPersistentId(),
+                    actor?.Identity?.PersistentId ?? string.Empty,
+                    "손님 물품 판매"));
         }
 
         if (createsRevenue && usedMoney > 0)
@@ -389,11 +421,13 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
                 revenue = Mathf.Max(0, meal.UnitPrice);
                 if (revenue > 0)
                 {
-                    TryResolveGameData(requireProvider: true);
-                    if (gameData != null)
-                    {
-                        gameData.holdingMoney.Value += revenue;
-                    }
+                    moneyRuntime.Add(
+                        revenue,
+                        new EconomyTransactionContext(
+                            EconomyTransactionKind.GuestServiceIncome,
+                            ResolveFacilityPersistentId(),
+                            actor?.Identity?.PersistentId ?? string.Empty,
+                            "손님 식사 매출"));
 
                     PublishGameEvent(
                         new FacilityRevenueEvent(actor, this, revenue));
@@ -1614,6 +1648,17 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             : name;
     }
 
+    private string ResolveFacilityPersistentId()
+    {
+        FacilityEvolutionStateComponent evolutionState =
+            GetComponent<FacilityEvolutionStateComponent>();
+        string persistentId =
+            evolutionState?.FacilityPersistentId?.Trim() ?? string.Empty;
+        return persistentId.Length > 0
+            ? persistentId
+            : $"shop:{GetInstanceID()}";
+    }
+
     private bool TryInitializeStock(bool requireCatalog)
     {
         if (stockInitialized)
@@ -1645,6 +1690,76 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
 
         FillStock();
         return true;
+    }
+
+    private sealed class LegacyShopMoneyRuntime : IGameMoneyRuntime
+    {
+        private readonly IGameDataProvider gameDataProvider;
+
+        public LegacyShopMoneyRuntime(IGameDataProvider gameDataProvider)
+        {
+            this.gameDataProvider = gameDataProvider
+                ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        }
+
+        public int Balance => TryGetMoneyData(out Data<int> money)
+            ? Mathf.Max(0, money.Value)
+            : 0;
+
+        public bool CanSpend(int amount)
+        {
+            return Balance >= Mathf.Max(0, amount);
+        }
+
+        public bool TrySpend(int amount, out string reason)
+        {
+            int cost = Mathf.Max(0, amount);
+            if (!TryGetMoneyData(out Data<int> money) || money.Value < cost)
+            {
+                reason = "골드가 부족합니다.";
+                return false;
+            }
+
+            money.Value -= cost;
+            reason = string.Empty;
+            return true;
+        }
+
+        public bool TrySpend(
+            int amount,
+            EconomyTransactionContext context,
+            out string reason)
+        {
+            return TrySpend(amount, out reason);
+        }
+
+        public void Add(int amount)
+        {
+            if (TryGetMoneyData(out Data<int> money))
+            {
+                money.Value += Mathf.Max(0, amount);
+            }
+        }
+
+        public void Add(
+            int amount,
+            EconomyTransactionContext context)
+        {
+            Add(amount);
+        }
+
+        private bool TryGetMoneyData(out Data<int> money)
+        {
+            money = null;
+            if (!gameDataProvider.TryGetGameData(out GameData gameData)
+                || gameData == null)
+            {
+                return false;
+            }
+
+            money = gameData.holdingMoney;
+            return money != null;
+        }
     }
 
     private void EnsureStockInitialized()

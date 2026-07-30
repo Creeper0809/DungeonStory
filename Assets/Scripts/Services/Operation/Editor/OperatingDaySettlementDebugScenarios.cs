@@ -32,7 +32,10 @@ public static class OperatingDaySettlementDebugScenarios
         RunScenario("정산 상세 텍스트", VerifyReportDetailText, errors);
         RunScenario("operating report snapshot isolation", VerifyReportSnapshotIsolation, errors);
         RunScenario("운영비 계산과 부분 납부", VerifyOperatingCostCalculator, errors);
-        RunScenario("긴급 융자와 연속 체불 결과", VerifyEmergencyFundingAndShortfallConsequences, errors);
+        RunScenario(
+            "긴급 지원금 제거와 연속 체불 결과",
+            VerifyEmergencyFundingAndShortfallConsequences,
+            errors);
 
         if (errors.Count > 0)
         {
@@ -248,13 +251,17 @@ public static class OperatingDaySettlementDebugScenarios
             FixedWorldQuery worldQuery = new FixedWorldQuery(
                 new[] { staff },
                 new[] { facility });
+            FixedArrearsEmploymentRuntime employment =
+                new FixedArrearsEmploymentRuntime(100);
             runtime.Construct(
                 worldQuery,
                 worldQuery,
                 new EmptyFacilityShopCatalog(),
                 new NeutralRunVariableReader(),
                 new FixedGameDataProvider(gameData),
-                new DungeonStory.Foundation.GameEventBus());
+                new DungeonStory.Foundation.GameEventBus(),
+                employment,
+                new FixedMoneyRuntime(0));
 
             bool firstFunding = runtime.TryTakeEmergencyFunding(out _);
             bool secondFunding = runtime.TryTakeEmergencyFunding(out _);
@@ -273,27 +280,29 @@ public static class OperatingDaySettlementDebugScenarios
             int wageFactorCount = mood.Factors.Count(factor => factor.Id == "economy:unpaid-wages");
             OperatingDaySettlementPersistenceState persisted = runtime.CapturePersistentState();
 
-            return firstFunding
+            return !firstFunding
                 && !secondFunding
-                && moneyAfterFunding == 1000
-                && debtAfterFunding == 1200
+                && moneyAfterFunding == 0
+                && debtAfterFunding == 0
                 && firstReport != null
-                && firstReport.maintenanceCost == 60
-                && firstReport.payrollCost >= 35
-                && firstReport.previousDebt == 1200
-                && firstReport.paidOperatingCost == 1000
+                && firstReport.maintenanceCost == 0
+                && firstReport.payrollCost == 100
+                && firstReport.previousDebt == 0
+                && firstReport.paidOperatingCost == 0
                 && firstDebt == firstReport.unpaidOperatingCost
-                && firstDebt > 0
+                && firstDebt == 100
                 && secondReport != null
                 && secondReport.previousDebt == firstDebt
+                && secondReport.payrollCost == 100
                 && secondReport.paidOperatingCost == 0
                 && secondReport.unpaidOperatingCost == secondReport.totalOperatingCost
+                && secondReport.unpaidOperatingCost == 200
                 && secondReport.consecutiveShortfallDays == 2
-                && facility.IsDamaged
-                && wageFactorCount == 1
+                && !facility.IsDamaged
+                && wageFactorCount == 0
                 && persisted.OutstandingDebt == secondReport.unpaidOperatingCost
                 && persisted.ConsecutiveShortfallDays == 2
-                && persisted.EmergencyFundingUsed;
+                && !persisted.EmergencyFundingUsed;
         }
         finally
         {
@@ -336,6 +345,133 @@ public static class OperatingDaySettlementDebugScenarios
         initialStats[CharacterCondition.SLEEP] = sleep;
         character.stats = initialStats;
         return character;
+    }
+
+    private sealed class FixedArrearsEmploymentRuntime :
+        IEmploymentContractRuntime
+    {
+        private readonly int dailyWage;
+        private int arrears;
+
+        public FixedArrearsEmploymentRuntime(int dailyWage)
+        {
+            this.dailyWage = Mathf.Max(0, dailyWage);
+        }
+
+        public IReadOnlyList<EmployeeWageState> WageStates =>
+            System.Array.Empty<EmployeeWageState>();
+        public IReadOnlyList<MercenaryContract> MercenaryContracts =>
+            System.Array.Empty<MercenaryContract>();
+
+        public int ForecastCost(int days)
+        {
+            return dailyWage * Mathf.Max(0, days) + arrears;
+        }
+
+        public int GetDailyCost(string characterId)
+        {
+            return dailyWage;
+        }
+
+        public int QuoteMercenaryDailyCost(
+            string characterId,
+            int level,
+            int rolePremium)
+        {
+            return dailyWage;
+        }
+
+        public EmploymentDailySettlement SettleDay(int day)
+        {
+            int due = dailyWage + arrears;
+            arrears = due;
+            return new EmploymentDailySettlement
+            {
+                day = Mathf.Max(1, day),
+                employeeWagesDue = due,
+                unpaidEmployeeWages = due
+            };
+        }
+
+        public bool TryHireMercenary(
+            CharacterActor actor,
+            int rolePremium,
+            int day,
+            out string failureReason)
+        {
+            failureReason = "not used";
+            return false;
+        }
+
+        public bool SetEmployeeRolePremium(
+            string characterId,
+            int premium,
+            out string failureReason)
+        {
+            failureReason = "not used";
+            return false;
+        }
+
+        public EmploymentContractSaveData Capture()
+        {
+            return new EmploymentContractSaveData();
+        }
+
+        public void Restore(EmploymentContractSaveData saveData)
+        {
+            arrears = 0;
+        }
+    }
+
+    private sealed class FixedMoneyRuntime : IGameMoneyRuntime
+    {
+        private int balance;
+
+        public FixedMoneyRuntime(int balance)
+        {
+            this.balance = Mathf.Max(0, balance);
+        }
+
+        public int Balance => balance;
+        public bool CanSpend(int amount) =>
+            balance >= Mathf.Max(0, amount);
+
+        public bool TrySpend(int amount, out string reason)
+        {
+            return TrySpend(
+                amount,
+                default,
+                out reason);
+        }
+
+        public bool TrySpend(
+            int amount,
+            EconomyTransactionContext context,
+            out string reason)
+        {
+            int cost = Mathf.Max(0, amount);
+            if (balance < cost)
+            {
+                reason = "insufficient funds";
+                return false;
+            }
+
+            balance -= cost;
+            reason = string.Empty;
+            return true;
+        }
+
+        public void Add(int amount)
+        {
+            balance += Mathf.Max(0, amount);
+        }
+
+        public void Add(
+            int amount,
+            EconomyTransactionContext context)
+        {
+            Add(amount);
+        }
     }
 
     private static BuildableObject CreateBuilding(string objectName, bool damaged, int maintenance)

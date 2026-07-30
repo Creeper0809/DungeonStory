@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7003332b9a48cca4495a866cb7b5d17d, type: 3}
+  m_Name: quarry
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseSiteArchetypeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170103
+  siteTypeId: quarry
+  displayName: "\uC9D5\uBC1C \uCC44\uC11D\uC7A5"
+  description: "\uC131\uBCBD\uACFC \uACF5\uC131 \uC7A5\uBE44 \uC7AC\uB8CC\uB97C \uCE90\uB0B4\uB294
+    \uCC44\uC11D\uC7A5\uC785\uB2C8\uB2E4."
+  factionId: human
+  pressureAxis: 2
+  pressureAmount: 12
+  minimumStrength: 1
+  maximumStrength: 4
+  minimumLifetimeDays: 2
+  maximumLifetimeDays: 7
+  hiddenUntilDiscovered: 1
+  canMove: 0
+  dynamicSpawnEligible: 1
+  rewards:
+  - grantSpec:
+      rid: 7302563269269258888
+    displayLabel: "\uCC44\uC11D \uC790\uC7AC"
+    baseAmount: 14
+    amountPerStrength: 6
+  - grantSpec:
+      rid: 7302563269269258889
+    displayLabel: "\uC9C0\uC5ED \uC804\uB7B5 \uC555\uB825"
+    baseAmount: 1
+    amountPerStrength: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563269269258888
+      type: {class: OffenseStockRewardSpec, ns: , asm: Assembly-CSharp}
+      data:
+        stockCategory: 1
+    - rid: 7302563269269258889
+      type: {class: OffenseRegionalPressureRewardSpec, ns: , asm: Assembly-CSharp}
+      data: 

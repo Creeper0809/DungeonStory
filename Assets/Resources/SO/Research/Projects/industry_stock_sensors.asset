@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: industry_stock_sensors
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7174
+  projectId: research:industry:stock-sensors
+  displayName: "\uC7AC\uACE0 \uAC10\uC9C0\uAE30"
+  description: "\uBAA9\uD45C \uC7AC\uACE0\uC640 \uC2DC\uC124 \uBC84\uD37C\uB97C \uC77D\uC5B4
+    \uACFC\uC789 \uC0DD\uC0B0\uC744 \uBA48\uCD98\uB2E4."
+  field: 15
+  requiredWork: 192
+  prerequisites:
+  - {fileID: 11400000, guid: b3b38e91925a91943b4303ee3edc9533, type: 2}
+  - {fileID: 11400000, guid: 745852d5424766d4da7f0a89af942c14, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items: []
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

@@ -31,6 +31,11 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private IProductionBuildingPanelPresenter productionBuildingPanelPresenter;
     private ICropPlotBuildingPanelPresenter cropPlotBuildingPanelPresenter;
     private IAnimalHusbandryBuildingPanelPresenter animalHusbandryPanelPresenter;
+    private ISurgeryBuildingPanelPresenter surgeryBuildingPanelPresenter;
+    private IPaidFacilityBuildingPanelPresenter
+        paidFacilityBuildingPanelPresenter;
+    private ITreasuryDefenseBuildingPanelPresenter
+        treasuryDefenseBuildingPanelPresenter;
     private IDisposable infoFeedSubscription;
     private bool initialized;
     private readonly List<GameObject> craftActionObjects = new List<GameObject>();
@@ -63,7 +68,12 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         IInstanceEvolutionPanelPresenter instanceEvolutionPanelPresenter,
         IProductionBuildingPanelPresenter productionBuildingPanelPresenter,
         ICropPlotBuildingPanelPresenter cropPlotBuildingPanelPresenter,
-        IAnimalHusbandryBuildingPanelPresenter animalHusbandryPanelPresenter)
+        IAnimalHusbandryBuildingPanelPresenter animalHusbandryPanelPresenter,
+        ISurgeryBuildingPanelPresenter surgeryBuildingPanelPresenter,
+        IPaidFacilityBuildingPanelPresenter
+            paidFacilityBuildingPanelPresenter,
+        ITreasuryDefenseBuildingPanelPresenter
+            treasuryDefenseBuildingPanelPresenter)
     {
         this.buildingDefinitionLookup = buildingDefinitionLookup
             ?? throw new ArgumentNullException(nameof(buildingDefinitionLookup));
@@ -98,6 +108,17 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         this.animalHusbandryPanelPresenter = animalHusbandryPanelPresenter
             ?? throw new ArgumentNullException(
                 nameof(animalHusbandryPanelPresenter));
+        this.surgeryBuildingPanelPresenter = surgeryBuildingPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(surgeryBuildingPanelPresenter));
+        this.paidFacilityBuildingPanelPresenter =
+            paidFacilityBuildingPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(paidFacilityBuildingPanelPresenter));
+        this.treasuryDefenseBuildingPanelPresenter =
+            treasuryDefenseBuildingPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(treasuryDefenseBuildingPanelPresenter));
     }
 
     [Inject]
@@ -341,6 +362,30 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                 message => craftStatusMessage = message,
                 () => DisplayBuildingInfo(building));
         craftActionObjects.AddRange(husbandryObjects);
+        IReadOnlyList<GameObject> surgeryObjects =
+            surgeryBuildingPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(surgeryObjects);
+        IReadOnlyList<GameObject> paidFacilityObjects =
+            paidFacilityBuildingPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(paidFacilityObjects);
+        IReadOnlyList<GameObject> treasuryDefenseObjects =
+            treasuryDefenseBuildingPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(treasuryDefenseObjects);
         if (building is Door door)
         {
             IReadOnlyList<GameObject> doorObjects = doorAccessPanelPresenter.Render(

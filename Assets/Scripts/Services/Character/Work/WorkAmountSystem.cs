@@ -26,6 +26,14 @@ public sealed class WorkOrderMaterialSaveData
 }
 
 [Serializable]
+public sealed class WorkOrderItemMaterialSaveData
+{
+    public string itemId = string.Empty;
+    public int required;
+    public int delivered;
+}
+
+[Serializable]
 public sealed class WorkOrderSaveData
 {
     public string workOrderId = string.Empty;
@@ -39,12 +47,14 @@ public sealed class WorkOrderSaveData
     public string reservedWorkerPersistentId = string.Empty;
     public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
     public List<WorkOrderMaterialSaveData> materials = new List<WorkOrderMaterialSaveData>();
+    public List<WorkOrderItemMaterialSaveData> itemMaterials =
+        new List<WorkOrderItemMaterialSaveData>();
 }
 
 [Serializable]
 public sealed class DungeonWorkOrderSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
     public int nextOrderSequence = 1;
@@ -64,6 +74,8 @@ public sealed class WorkOrderProgressState
     public WorkOrderStatus Status { get; set; }
     public IReadOnlyDictionary<StockCategory, int> MaterialRequirements { get; set; }
     public IReadOnlyDictionary<StockCategory, int> DeliveredMaterials { get; set; }
+    public IReadOnlyDictionary<string, int> ItemMaterialRequirements { get; set; }
+    public IReadOnlyDictionary<string, int> DeliveredItemMaterials { get; set; }
     public float ProgressRatio => RequiredWork <= 0f ? 1f : Mathf.Clamp01(CompletedWork / RequiredWork);
 }
 
@@ -94,6 +106,10 @@ internal sealed class WorkOrderRecord
     public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
     public readonly Dictionary<StockCategory, int> requiredMaterials = new Dictionary<StockCategory, int>();
     public readonly Dictionary<StockCategory, int> deliveredMaterials = new Dictionary<StockCategory, int>();
+    public readonly Dictionary<string, int> requiredItemMaterials =
+        new Dictionary<string, int>(StringComparer.Ordinal);
+    public readonly Dictionary<string, int> deliveredItemMaterials =
+        new Dictionary<string, int>(StringComparer.Ordinal);
 }
 
 public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
@@ -204,7 +220,8 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
         BumpWorkOrderCandidates();
 
         snapshot ??= new DungeonWorkOrderSaveData();
-        if (snapshot.version != DungeonWorkOrderSaveData.CurrentVersion)
+        if (snapshot.version < 1
+            || snapshot.version > DungeonWorkOrderSaveData.CurrentVersion)
         {
             report?.AddWarning($"Unsupported work order snapshot version {snapshot.version}; work orders were discarded.");
             nextOrderSequence = 1;
@@ -266,16 +283,28 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             status = WorkOrderStatus.WaitingForMaterials
         };
 
-        foreach (KeyValuePair<StockCategory, int> pair in building.GetConstructionMaterials())
+        string installationKitItemId =
+            FacilityInstallationKitItemIds.ForBuilding(building);
+        if (HasAvailableInstallationKit(installationKitItemId))
         {
-            if (pair.Value > 0)
+            order.requiredItemMaterials[installationKitItemId] = 1;
+            order.deliveredItemMaterials[installationKitItemId] = 0;
+        }
+        else
+        {
+            foreach (KeyValuePair<StockCategory, int> pair
+                     in building.GetConstructionMaterials())
             {
-                order.requiredMaterials[pair.Key] = pair.Value;
-                order.deliveredMaterials[pair.Key] = 0;
+                if (pair.Value > 0)
+                {
+                    order.requiredMaterials[pair.Key] = pair.Value;
+                    order.deliveredMaterials[pair.Key] = 0;
+                }
             }
         }
 
-        if (order.requiredMaterials.Count == 0)
+        if (order.requiredMaterials.Count == 0
+            && order.requiredItemMaterials.Count == 0)
         {
             order.status = WorkOrderStatus.Ready;
         }
@@ -294,6 +323,11 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             foreach (StockCategory category in order.requiredMaterials.Keys.ToArray())
             {
                 order.deliveredMaterials[category] = order.requiredMaterials[category];
+            }
+            foreach (string itemId in order.requiredItemMaterials.Keys.ToArray())
+            {
+                order.deliveredItemMaterials[itemId] =
+                    order.requiredItemMaterials[itemId];
             }
             order.status = WorkOrderStatus.Ready;
             CompleteOrder(order, site, out _, out failureReason);
@@ -585,13 +619,15 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
     private bool EnsureMaterialsReady(WorkOrderRecord order, out string failureReason)
     {
         failureReason = string.Empty;
-        if (order.requiredMaterials.Count == 0)
+        if (order.requiredMaterials.Count == 0
+            && order.requiredItemMaterials.Count == 0)
         {
             order.status = WorkOrderStatus.Ready;
             return true;
         }
 
-        Dictionary<StockCategory, int> missing = new Dictionary<StockCategory, int>();
+        Dictionary<StockCategory, int> missing =
+            new Dictionary<StockCategory, int>();
         foreach (KeyValuePair<StockCategory, int> pair in order.requiredMaterials)
         {
             order.deliveredMaterials.TryGetValue(pair.Key, out int delivered);
@@ -602,26 +638,62 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             }
         }
 
-        if (missing.Count == 0)
+        Dictionary<string, int> missingItems =
+            new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, int> pair in order.requiredItemMaterials)
         {
-            order.status = WorkOrderStatus.Ready;
-            return true;
+            order.deliveredItemMaterials.TryGetValue(
+                pair.Key,
+                out int delivered);
+            int remaining = pair.Value - delivered;
+            if (remaining > 0)
+            {
+                missingItems[pair.Key] = remaining;
+            }
         }
 
-        if (!itemStackRuntime.TryConsumeFacilityBuffer(
-                order.materialDestinationId,
-                missing,
-                out failureReason))
+        if (missing.Count > 0)
         {
-            order.status = WorkOrderStatus.WaitingForMaterials;
-            return false;
+            if (!itemStackRuntime.TryConsumeFacilityBuffer(
+                    order.materialDestinationId,
+                    missing,
+                    out failureReason))
+            {
+                order.status = WorkOrderStatus.WaitingForMaterials;
+                return false;
+            }
+
+            foreach (KeyValuePair<StockCategory, int> pair in missing)
+            {
+                order.deliveredMaterials[pair.Key] =
+                    order.deliveredMaterials.TryGetValue(
+                        pair.Key,
+                        out int current)
+                        ? current + pair.Value
+                        : pair.Value;
+            }
         }
 
-        foreach (KeyValuePair<StockCategory, int> pair in missing)
+        if (missingItems.Count > 0)
         {
-            order.deliveredMaterials[pair.Key] = order.deliveredMaterials.TryGetValue(pair.Key, out int current)
-                ? current + pair.Value
-                : pair.Value;
+            if (!itemStackRuntime.TryConsumeFacilityItemBuffer(
+                    order.materialDestinationId,
+                    missingItems,
+                    out failureReason))
+            {
+                order.status = WorkOrderStatus.WaitingForMaterials;
+                return false;
+            }
+
+            foreach (KeyValuePair<string, int> pair in missingItems)
+            {
+                order.deliveredItemMaterials[pair.Key] =
+                    order.deliveredItemMaterials.TryGetValue(
+                        pair.Key,
+                        out int current)
+                        ? current + pair.Value
+                        : pair.Value;
+            }
         }
 
         order.status = WorkOrderStatus.Ready;
@@ -631,7 +703,9 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
 
     private void RequestMissingMaterials(WorkOrderRecord order)
     {
-        if (order == null || order.requiredMaterials.Count == 0)
+        if (order == null
+            || (order.requiredMaterials.Count == 0
+                && order.requiredItemMaterials.Count == 0))
         {
             return;
         }
@@ -650,6 +724,32 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             }
 
             itemStackRuntime.TryRequestFacilityDelivery(
+                pair.Key,
+                remaining,
+                order.position,
+                order.materialDestinationId,
+                out int requested,
+                out _);
+            requestedAny |= requested > 0;
+        }
+
+        foreach (KeyValuePair<string, int> pair in order.requiredItemMaterials)
+        {
+            int delivered = order.deliveredItemMaterials.TryGetValue(
+                pair.Key,
+                out int currentDelivered)
+                ? currentDelivered
+                : 0;
+            int pending = CountPendingDestinationItem(order, pair.Key);
+            int remaining = Mathf.Max(
+                0,
+                pair.Value - delivered - pending);
+            if (remaining <= 0)
+            {
+                continue;
+            }
+
+            itemStackRuntime.TryRequestItemDelivery(
                 pair.Key,
                 remaining,
                 order.position,
@@ -689,6 +789,46 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
                     || (stack.State == WorldItemStackState.Stored
                         && !string.IsNullOrWhiteSpace(stack.SourceStorageDestinationId))))
             .Sum(stack => stack.Quantity);
+    }
+
+    private int CountPendingDestinationItem(
+        WorkOrderRecord order,
+        string itemId)
+    {
+        return itemStackRuntime.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(
+                    stack.DestinationId,
+                    order.materialDestinationId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    stack.ItemId,
+                    itemId,
+                    StringComparison.Ordinal)
+                && (stack.State == WorldItemStackState.Loose
+                    || stack.State == WorldItemStackState.FacilityBuffer
+                    || (stack.State == WorldItemStackState.Stored
+                        && !string.IsNullOrWhiteSpace(
+                            stack.SourceStorageDestinationId))))
+            .Sum(stack => stack.Quantity);
+    }
+
+    private bool HasAvailableInstallationKit(string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            return false;
+        }
+
+        return itemStackRuntime.GetAllStacks().Any(stack =>
+            stack != null
+            && stack.Quantity > 0
+            && !stack.Forbidden
+            && string.IsNullOrWhiteSpace(stack.ReservedByPersistentId)
+            && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
+            && ((stack.State == WorldItemStackState.Loose
+                    && string.IsNullOrWhiteSpace(stack.DestinationId))
+                || stack.State == WorldItemStackState.Stored));
     }
 
     private void RestoreConstructionSite(WorkOrderRecord order, DungeonGameRestoreReport report)
@@ -830,6 +970,19 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
                     required = pair.Value,
                     delivered = order.deliveredMaterials.TryGetValue(pair.Key, out int delivered) ? delivered : 0
                 })
+                .ToList(),
+            itemMaterials = order.requiredItemMaterials
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => new WorkOrderItemMaterialSaveData
+                {
+                    itemId = pair.Key,
+                    required = pair.Value,
+                    delivered = order.deliveredItemMaterials.TryGetValue(
+                        pair.Key,
+                        out int delivered)
+                        ? delivered
+                        : 0
+                })
                 .ToList()
         };
     }
@@ -877,6 +1030,23 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             order.deliveredMaterials[material.category] = Mathf.Clamp(material.delivered, 0, material.required);
         }
 
+        foreach (WorkOrderItemMaterialSaveData material
+                 in source.itemMaterials
+                    ?? new List<WorkOrderItemMaterialSaveData>())
+        {
+            string itemId = material?.itemId?.Trim() ?? string.Empty;
+            if (itemId.Length == 0 || material.required <= 0)
+            {
+                continue;
+            }
+
+            order.requiredItemMaterials[itemId] = material.required;
+            order.deliveredItemMaterials[itemId] = Mathf.Clamp(
+                material.delivered,
+                0,
+                material.required);
+        }
+
         return order;
     }
 
@@ -894,7 +1064,13 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             ReservedWorkerPersistentId = order.reservedWorkerPersistentId,
             Status = order.status,
             MaterialRequirements = new Dictionary<StockCategory, int>(order.requiredMaterials),
-            DeliveredMaterials = new Dictionary<StockCategory, int>(order.deliveredMaterials)
+            DeliveredMaterials = new Dictionary<StockCategory, int>(order.deliveredMaterials),
+            ItemMaterialRequirements = new Dictionary<string, int>(
+                order.requiredItemMaterials,
+                StringComparer.Ordinal),
+            DeliveredItemMaterials = new Dictionary<string, int>(
+                order.deliveredItemMaterials,
+                StringComparer.Ordinal)
         };
     }
 }

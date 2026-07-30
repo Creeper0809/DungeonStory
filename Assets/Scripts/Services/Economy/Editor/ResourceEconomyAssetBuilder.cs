@@ -7,8 +7,8 @@ using UnityEngine;
 
 public static class ResourceEconomyAssetBuilder
 {
-    public const int ExpectedItemCount = 101;
-    public const int ExpectedRecipeCount = 126;
+    public const int ExpectedItemCount = 103;
+    public const int ExpectedRecipeCount = 130;
     public const int ExpectedCropCount = 8;
     public const int ExpectedMaterialCount = 12;
     public const int ExpectedSubstanceCount = 7;
@@ -152,7 +152,6 @@ public static class ResourceEconomyAssetBuilder
             I("craft:stone-ornament", "석조 장식", "방의 미관과 대형 사업에 쓰는 석조물.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, 12, 1.6f, 30, "research:mining:stonecutting"),
             I("craft:ritual-reagent", "혈액 의식재", "피와 독소를 안정화한 금기 의식 재료.", StockCategory.Biological, ResourceItemKind.FinishedGood, ResourceIngredientTag.Blood | ResourceIngredientTag.Forbidden, 24, 0.25f, 30, "research:control:blood-show"),
             I("craft:fang-poison", "송곳니 독액", "관통 무기와 사냥에 바르는 독액.", StockCategory.Biological, ResourceItemKind.FinishedGood, ResourceIngredientTag.Forbidden, 20, 0.12f, 30, "research:arcane:alchemy"),
-
             Med("medicine:herbal-poultice", "약초 찜질약", "가벼운 부상에 쓰는 기본 약품.", ResourceIngredientTag.Plant, 8, 0.2f, 50, "research:pharmacology:herbalism", true, 0.72f, 2f, 0f, 4f),
             Med("medicine:antiseptic", "소독제", "감염 위험을 낮추는 외용 약품.", ResourceIngredientTag.Plant, 12, 0.18f, 50, "research:pharmacology:antiseptic", true, 0.82f, 16f, 0f, 2f),
             Med("medicine:standard", "표준 약품", "치료 효율과 회복 속도를 높이는 약품.", ResourceIngredientTag.Plant | ResourceIngredientTag.Fungus, 20, 0.16f, 40, "research:pharmacology:distillation", true, 1f, 8f, 2f, 8f),
@@ -175,7 +174,9 @@ public static class ResourceEconomyAssetBuilder
             I("ammo:bolt-bone", "뼈촉 볼트", "가벼운 연습용 석궁 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 2, 0.1f, 100, "research:defense:ranged-positions"),
             I("ammo:bolt-iron", "철촉 볼트", "표준 석궁 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 4, 0.11f, 100, "research:metallurgy:iron"),
             I("ammo:bolt-steel", "강철촉 볼트", "중장갑을 겨냥한 고관통 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Mineral, 6, 0.105f, 100, "research:metallurgy:steel"),
-            I("ammo:bolt-rune", "룬촉 볼트", "비전 저항을 꿰뚫는 룬 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Arcane, 10, 0.1f, 75, "research:arcane:advanced")
+            I("ammo:bolt-rune", "룬촉 볼트", "비전 저항을 꿰뚫는 룬 볼트.", StockCategory.Ammunition, ResourceItemKind.Ammunition, ResourceIngredientTag.Wood | ResourceIngredientTag.Arcane, 10, 0.1f, 75, "research:arcane:advanced"),
+            I("offense:unappraised-loot", "미감정 전리품", "원정에서 회수한 봉인 상자와 귀중품. 전리품거치대에서 감정해야 판매할 수 있다.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.None, 0, 0.05f, 100, string.Empty, 0f),
+            I("offense:appraised-valuables", "감정된 귀중품", "출처와 가치를 확인한 원정 귀중품. 판매 정책으로 금고 자금화할 수 있다.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.None, 1, 0.05f, 100, string.Empty, 1f)
         };
 
         return specs.Select((spec, index) =>
@@ -194,6 +195,7 @@ public static class ResourceEconomyAssetBuilder
                 spec.Weight,
                 spec.MaxStack,
                 spec.ResearchId);
+            asset.ConfigureMarketSaleRate(spec.MarketSaleRate);
             if (spec.HasMealData)
             {
                 asset.ConfigureMeal(
@@ -352,7 +354,8 @@ public static class ResourceEconomyAssetBuilder
             Sink("sink:iron-equipment", "철 장비", "forge", "research:metallurgy:iron", A("material:iron-ingot", 1)),
             Sink("sink:steel-equipment", "강철 장비", "forge", "research:metallurgy:steel", A("material:steel-ingot", 1)),
             Sink("sink:gold-equipment", "금 장비", "forge", "research:metallurgy:precious", A("material:gold-ingot", 1)),
-            Sink("sink:blacksteel-equipment", "흑강 장비", "forge", "research:metallurgy:blacksteel", A("material:blacksteel-ingot", 1))
+            Sink("sink:blacksteel-equipment", "흑강 장비", "forge", "research:metallurgy:blacksteel", A("material:blacksteel-ingot", 1)),
+            R("recipe:loot-appraisal", "원정 전리품 감정", "loot-appraisal", "work:craft", string.Empty, 8, A("offense:unappraised-loot", 10), O("offense:appraised-valuables", 10))
         };
 
         return specs.Select((spec, index) =>
@@ -555,9 +558,21 @@ public static class ResourceEconomyAssetBuilder
         int price,
         float weight,
         int maxStack,
-        string researchId)
+        string researchId,
+        float marketSaleRate = 0.6f)
     {
-        return new ItemSpec(id, name, description, category, kind, tags, price, weight, maxStack, researchId);
+        return new ItemSpec(
+            id,
+            name,
+            description,
+            category,
+            kind,
+            tags,
+            price,
+            weight,
+            maxStack,
+            researchId,
+            marketSaleRate: marketSaleRate);
     }
 
     private static ItemSpec M(
@@ -792,7 +807,8 @@ public static class ResourceEconomyAssetBuilder
             float treatmentPotency = 1f,
             float infectionReduction = 0f,
             float detoxReduction = 0f,
-            float painReduction = 0f)
+            float painReduction = 0f,
+            float marketSaleRate = 0.6f)
         {
             Id = id; Name = name; Description = description; Category = category; Kind = kind;
             Tags = tags; Price = price; Weight = weight; MaxStack = maxStack; ResearchId = researchId;
@@ -804,6 +820,7 @@ public static class ResourceEconomyAssetBuilder
             InfectionReduction = infectionReduction;
             DetoxReduction = detoxReduction;
             PainReduction = painReduction;
+            MarketSaleRate = Mathf.Clamp01(marketSaleRate);
         }
         public string Id { get; }
         public string Name { get; }
@@ -827,6 +844,7 @@ public static class ResourceEconomyAssetBuilder
         public float InfectionReduction { get; }
         public float DetoxReduction { get; }
         public float PainReduction { get; }
+        public float MarketSaleRate { get; }
     }
 
     private sealed class RecipeSpec
