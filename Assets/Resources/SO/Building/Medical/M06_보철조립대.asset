@@ -42,19 +42,19 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: ff5b7fd323cb3a844bbb43a4b4070758, type: 3}
   abilityModules:
     items:
-    - rid: 7302563265135771994
-    - rid: 7302563265135771995
-    - rid: 7302563265135771996
-    - rid: 7302563265135771997
-    - rid: 7302563265135771998
-    - rid: 7302563265135771999
-    - rid: 7302563265135772000
-    - rid: 7302563265135772001
-    - rid: 7302563265135772002
-    - rid: 7302563284922662950
-    - rid: 7302563284922662951
-    - rid: 7302563284922662952
-    - rid: 7302563284922662953
+    - rid: 7302563313663345444
+    - rid: 7302563313663345445
+    - rid: 7302563313663345446
+    - rid: 7302563313663345447
+    - rid: 7302563313663345448
+    - rid: 7302563313663345449
+    - rid: 7302563313663345450
+    - rid: 7302563313663345451
+    - rid: 7302563313663345452
+    - rid: 7302563313672519797
+    - rid: 7302563313672519798
+    - rid: 7302563313672519799
+    - rid: 7302563313672519800
   width: 2
   height: 1
   layer: 1
@@ -69,12 +69,20 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563265135771994
+    - rid: 7302563313663345444
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M06
-    - rid: 7302563265135771995
+    - rid: 7302563313663345445
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - medical
+        - surgery
+        - m06
+    - rid: 7302563313663345446
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -83,7 +91,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563265135771996
+    - rid: 7302563313663345447
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -94,17 +102,17 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 256
           disabledWhenDamaged: 1
-    - rid: 7302563265135771997
+    - rid: 7302563313663345448
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563265135771998
+    - rid: 7302563313663345449
       type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
-    - rid: 7302563265135771999
+    - rid: 7302563313663345450
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -116,7 +124,7 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 6
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563265135772000
+    - rid: 7302563313663345451
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -128,36 +136,28 @@ MonoBehaviour:
           - m06
           scores: []
           metrics: []
-    - rid: 7302563265135772001
+    - rid: 7302563313663345452
       type: {class: BuildingProstheticAssemblyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProstheticAssemblyAbility
         assemblySpeedMultiplier: 1.1
         qualityBonus: 0.06
         outputCapacity: 3
-    - rid: 7302563265135772002
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingSemanticTagsAbility
-        tags:
-        - medical
-        - surgery
-        - m06
-    - rid: 7302563284922662950
+    - rid: 7302563313672519797
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284922662951
+    - rid: 7302563313672519798
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284922662952
+    - rid: 7302563313672519799
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -168,7 +168,7 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284922662953
+    - rid: 7302563313672519800
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility

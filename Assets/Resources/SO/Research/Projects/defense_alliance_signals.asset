@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: defense_alliance_signals
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7206
+  projectId: research:defense:alliance-signals
+  displayName: "\uB3D9\uB9F9 \uC2E0\uD638\uD559"
+  description: "\uB3D9\uB9F9 \uC9C0\uC6D0\uAD70\uC758 \uC811\uADFC \uACBD\uB85C\uC640
+    \uBC29\uC5B4\uC2DC\uC124 \uD5C8\uC6A9 \uBAA9\uB85D\uC744 \uACF5\uC720\uD558\uB294
+    \uC2E0\uD638 \uCCB4\uACC4\uB97C \uB9CC\uB4E0\uB2E4."
+  field: 2
+  requiredWork: 296
+  prerequisites:
+  - {fileID: 11400000, guid: bf20f6e0daefa5f45b490d5a4555869d, type: 2}
+  - {fileID: 11400000, guid: a24581a41b78d0344aaf0472e0db52c6, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items: []
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

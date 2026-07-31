@@ -24,12 +24,15 @@ MonoBehaviour:
   id: 7126
   projectId: research:cuisine:lavish
   displayName: "\uD638\uD654\xB7\uBCF4\uC874\uC2DD"
-  description: "\uC138 \uC7AC\uB8CC\uAD70\uACFC \uBCF4\uC874 \uAE30\uC220\uB85C \uC7A5\uAE30
-    \uC800\uC7A5 \uAC00\uB2A5\uD55C \uD638\uD654\uC2DD\uC744 \uB9CC\uB4E0\uB2E4."
+  description: "\uC138\uCC99\xB7\uC81C\uBE75\xB7\uBC1C\uD6A8\xB7\uBCF4\uC874 \uC124\uBE44\uB97C
+    \uBAA8\uB450 \uD65C\uC6A9\uD574 \uD638\uD654\uC2DD\uACFC \uBCF4\uC874\uC2DD\uC744
+    \uB9CC\uB4E0\uB2E4."
   field: 12
   requiredWork: 186
   prerequisites:
+  - {fileID: 11400000, guid: 4ab25e7b549727647902fa1512f46642, type: 2}
   - {fileID: 11400000, guid: aa7c653b442a12b44b0581cfac9b62bd, type: 2}
+  - {fileID: 11400000, guid: 2576ffdcd1c76fd4997ed554e22668c8, type: 2}
   - {fileID: 11400000, guid: 969470a77353b3d45a9026b935c6c7bd, type: 2}
   blueprintRule: 0
   blueprint: {fileID: 0}

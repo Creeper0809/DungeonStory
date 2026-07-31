@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8098
+  id: 8103
   itemId: ammo:bolt-iron
   displayName: "\uCCA0\uCD09 \uBCFC\uD2B8"
   description: "\uD45C\uC900 \uC11D\uAD81 \uBCFC\uD2B8."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 7
   ingredientTags: 768
   unitPrice: 4
+  marketSaleRate: 0.6
   unitWeight: 0.11
   maxStack: 100
   sprite: {fileID: 0}

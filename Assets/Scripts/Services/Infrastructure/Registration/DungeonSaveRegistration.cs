@@ -40,8 +40,18 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<ProductionBillsSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<ServiceRoomsSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<AutomationInfrastructureSaveSection>(
                 Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<EnvironmentalFieldSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<CharacterEnvironmentSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<SpeciesRuntimeSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<ExternalInfluenceSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<ResourceStockPolicySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
@@ -75,6 +85,8 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<DefenseTacticalSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<DefenseFacilitySaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<EquipmentMaintenanceSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<CharacterCombatCommandSaveSection>(Lifetime.Singleton)
@@ -92,6 +104,8 @@ public static class DungeonSaveRegistration
         builder.Register<OffenseV17SaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<OffenseRegionSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
+        builder.Register<FactionSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<OffenseReturnArrivalSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();

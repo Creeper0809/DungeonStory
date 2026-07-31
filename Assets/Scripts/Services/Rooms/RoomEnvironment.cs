@@ -47,7 +47,8 @@ public sealed class RoomEnvironmentSnapshot
         float shelter = 50f,
         float temperature = 50f,
         float ventilation = 50f,
-        float lighting = 50f)
+        float lighting = 50f,
+        float temperatureC = float.NaN)
     {
         Grid = grid;
         Room = room;
@@ -69,6 +70,9 @@ public sealed class RoomEnvironmentSnapshot
         Temperature = Mathf.Clamp(temperature, 0f, 100f);
         Ventilation = Mathf.Clamp(ventilation, 0f, 100f);
         Lighting = Mathf.Clamp(lighting, 0f, 100f);
+        TemperatureC = float.IsNaN(temperatureC)
+            ? Mathf.Lerp(-10f, 40f, Temperature / 100f)
+            : temperatureC;
     }
 
     public Grid Grid { get; }
@@ -91,6 +95,7 @@ public sealed class RoomEnvironmentSnapshot
     public float Temperature { get; }
     public float Ventilation { get; }
     public float Lighting { get; }
+    public float TemperatureC { get; }
     public int Area => Room?.Cells.Count ?? 0;
     public int FreeCells => Mathf.Max(0, Area - OccupiedCells);
     public int DoorCount => Room?.Doors.Count ?? 0;
@@ -278,12 +283,14 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
     private readonly IFacilityEvolutionRecordProvider recordProvider;
     private readonly IWorldFilthQuery worldFilthQuery;
     private readonly ISurvivalFoodRuntime survivalFoodRuntime;
+    private readonly IEnvironmentalFieldRuntime environmentalField;
 
     public RoomEnvironmentEvaluator(
         IRoomEnvironmentSettingsProvider settingsProvider,
         IFacilityEvolutionRecordProvider recordProvider,
         IWorldFilthQuery worldFilthQuery = null,
-        ISurvivalFoodRuntime survivalFoodRuntime = null)
+        ISurvivalFoodRuntime survivalFoodRuntime = null,
+        IEnvironmentalFieldRuntime environmentalField = null)
     {
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
@@ -291,6 +298,7 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
             ?? throw new ArgumentNullException(nameof(recordProvider));
         this.worldFilthQuery = worldFilthQuery;
         this.survivalFoodRuntime = survivalFoodRuntime;
+        this.environmentalField = environmentalField;
     }
 
     public RoomEnvironmentSnapshot Evaluate(Grid grid, RoomInstance room)
@@ -428,11 +436,23 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
             SurvivalWeatherType.Storm => 10f,
             _ => 0f
         };
+        float temperatureC = survival.OutdoorTemperature;
         float temperature = 70f + temperatureSupport - weatherTemperaturePenalty;
         float ventilation = 55f + ventilationSupport
             - Mathf.Max(0f, occupiedRatio - 0.65f) * 35f
             - worldFilthPenalty * 0.25f;
         float lighting = 35f + lightingSupport;
+        if (environmentalField != null
+            && environmentalField.TryGetAverage(
+                room.Cells,
+                out EnvironmentalCellSnapshot physicalEnvironment))
+        {
+            temperatureC = physicalEnvironment.TemperatureC;
+            temperature = 100f
+                - Mathf.Abs(physicalEnvironment.TemperatureC - 22f) * 5f;
+            ventilation = physicalEnvironment.AirQuality;
+            lighting = physicalEnvironment.LightLevel;
+        }
 
         return new RoomEnvironmentSnapshot(
             grid,
@@ -454,7 +474,8 @@ public sealed class RoomEnvironmentEvaluator : IRoomEnvironmentEvaluator
             Mathf.Clamp(shelter, 0f, 100f),
             Mathf.Clamp(temperature, 0f, 100f),
             Mathf.Clamp(ventilation, 0f, 100f),
-            Mathf.Clamp(lighting, 0f, 100f));
+            Mathf.Clamp(lighting, 0f, 100f),
+            temperatureC);
     }
 
     private static List<BuildableObject> CollectInteriorFixtures(RoomInstance room)

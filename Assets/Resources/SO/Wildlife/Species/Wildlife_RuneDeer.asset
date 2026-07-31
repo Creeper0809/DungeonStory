@@ -27,8 +27,25 @@ MonoBehaviour:
   herdSize: 1
   canEnterDungeon: 0
   carcassWeight: 22
+  diet: 0
+  preferredHabitats:
+  territoryRadius: 6
+  dailyFoodNeed: 1
+  dailyWaterNeed: 1
+  restPreference: 0.45
+  predationDrive: 0
+  fleePreference: 0.55
   butcherYields:
-  - itemId: stock-item:0
+  - itemId: resource:meat
     amount: 6
-  - itemId: wild:rune_dust
+  - itemId: resource:rune-dust
     amount: 2
+  domesticable: 1
+  tamingDifficulty: 0.45
+  adultAgeDays: 4
+  maximumAgeDays: 40
+  gestationDays: 4
+  laysEggs: 0
+  bodySize: 1
+  manureIntervalDays: 2
+  husbandryProducts: []

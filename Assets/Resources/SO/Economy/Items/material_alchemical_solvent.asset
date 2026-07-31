@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8049
+  id: 8050
   itemId: material:alchemical-solvent
   displayName: "\uC5F0\uAE08 \uC6A9\uB9E4"
   description: "\uC57D\uD6A8 \uC131\uBD84\uACFC \uB9C8\uB098\uB97C \uC548\uC815\uC801\uC73C\uB85C
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 1024
   unitPrice: 12
+  marketSaleRate: 0.6
   unitWeight: 0.3
   maxStack: 50
   sprite: {fileID: 0}

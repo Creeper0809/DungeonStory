@@ -1,0 +1,174 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
+  m_Name: Species_Demon
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 5
+  speciesTag: Demon
+  displayName: "\uB370\uBAAC"
+  ownerSelectionPolicy: 1
+  homeFactionId: faction:dungeon:demon
+  anatomyProfileId: anatomy:humanoid
+  needs:
+    hungerRateMultiplier: 1
+    thirstRateMultiplier: 0.9
+    sleepRateMultiplier: 1
+    hygieneRateMultiplier: 1
+    socialNeedMultiplier: 0.8
+    chargeRateMultiplier: 1
+    integrityWearMultiplier: 1
+    diet: 2
+    metabolism: 0
+    treatment: 0
+  environment:
+    comfortMinimum: 20
+    comfortMaximum: 34
+    safeMinimum: 10
+    safeMaximum: 46
+    lethalMinimum: -2
+    lethalMaximum: 56
+    comfortableAirMinimum: 60
+    comfortableLightMinimum: 40
+    comfortableLightMaximum: 100
+    airborneExposureMultiplier: 1
+    visualStrainMultiplier: 1
+    preferredHumidity: 0.5
+    drynessSensitivity: 1
+  relationTags:
+  - "\uD654\uC5FC"
+  - "\uB9C8\uB825"
+  - "\uACE0\uAE09"
+  defenseAffinityTags:
+  - "\uD654\uC5FC"
+  - "\uBC88\uAC1C"
+  - "\uACF5\uD3EC"
+  strongWorkTypeIds:
+  - work:research
+  - work:guard
+  weakWorkTypeIds:
+  - work:clean
+  - work:animal-care
+  shortDescription: "\uC7BF\uBD88 \uACC4\uC57D\uC815 \uCD9C\uC2E0 \xB7 \uB9C8\uB098\uC2E4\xB7\uACE0\uAE09
+    \uAC1D\uC2E4\xB7\uC5F0\uAD6C\uC2E4 \uC120\uD638"
+  description: "\uB370\uBAAC\uC740(\uB294) \uC7BF\uBD88 \uACC4\uC57D\uC815\uC744
+    \uB300\uD45C\uD558\uB294 \uC885\uC871\uC774\uB2E4. \uC190\uB2D8\xB7\uBAA8\uC9D1
+    \uC9C1\uC6D0\xB7\uC0C1\uC778\xB7\uD3EC\uB85C\xB7\uB3D9\uB9F9 \uC9C0\uC6D0\uAD70\uC73C\uB85C
+    \uB4F1\uC7A5\uD55C\uB2E4."
+  preferredFacilityLabels:
+  - "\uB9C8\uB098\uC2E4"
+  - "\uACE0\uAE09 \uAC1D\uC2E4"
+  - "\uC5F0\uAD6C\uC2E4"
+  dislikedEnvironmentLabels:
+  - "\uC800\uC628 \uCC3D\uACE0"
+  - "\uC800\uAC00 \uC219\uC18C"
+  - "\uB2E8\uC21C \uBC30\uC2DD\uC18C"
+  stayDurationMultiplier: 1
+  crimeRiskMultiplier: 1
+  incidentType: 0
+  incident:
+    incidentId: species-incident:demon-contract-curse
+    displayName: "\uACC4\uC57D \uC800\uC8FC"
+    description: "\uB300\uC6B0\uAC00 \uACC4\uC57D \uAE30\uB300\uC5D0 \uBABB \uBBF8\uCE58\uBA74
+      \uC9C0\uC815 \uC11C\uBE44\uC2A4\uC2E4\uC5D0 \uC800\uC8FC \uBD80\uB2F4\uACFC
+      \uC720\uC9C0\uBE44\uB97C \uB0A8\uAE34\uB2E4."
+    mitigatingRoles: 544
+    triggerTags:
+    - discontent
+    - species-specific
+  incidentName: "\uACC4\uC57D \uC800\uC8FC"
+  incidentDescription: "\uB300\uC6B0\uAC00 \uACC4\uC57D \uAE30\uB300\uC5D0 \uBABB
+    \uBBF8\uCE58\uBA74 \uC9C0\uC815 \uC11C\uBE44\uC2A4\uC2E4\uC5D0 \uC800\uC8FC \uBD80\uB2F4\uACFC
+    \uC720\uC9C0\uBE44\uB97C \uB0A8\uAE34\uB2E4."
+  incidentMitigatingRoles: 544
+  statBonus:
+    entries:
+    - statId: stat:attack
+      value: 3
+    - statId: stat:shooting
+      value: 0
+    - statId: stat:evasion
+      value: 0
+    - statId: stat:sales
+      value: 2
+    - statId: stat:research
+      value: 3
+    - statId: stat:move-speed
+      value: 0
+    - statId: stat:strength
+      value: 0
+    - statId: stat:toughness
+      value: 1
+    - statId: stat:dexterity
+      value: 0
+    - statId: stat:cleaning
+      value: 0
+    - statId: stat:endurance
+      value: 0
+    - statId: stat:medical
+      value: 0
+  modifiers:
+    consumptionMultiplier: 1
+    spendingMultiplier: 1.6
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1.05
+    researchSpeedMultiplier: 1
+    combatPowerMultiplier: 1.15
+    moveSpeedMultiplier: 1
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 48
+    dislikedWorkTypes: 33554440
+  combatPassive:
+    passiveId: species-passive:demon
+    displayName: "\uC9C0\uC625\uC758 \uAD8C\uC704"
+    description: "\uB9C8\uB825 \uC0DD\uC0B0\uACFC \uACF5\uD3EC \uD1B5\uC81C\uC758
+      \uD6A8\uC728\uC774 \uB192\uB2E4."
+    mechanicTags:
+    - "\uB9C8\uB825"
+    - "\uC704\uC555"
+  combatAbilities:
+    abilities:
+    - rid: 7302563310531248885
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563310531248885
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+      data:
+        id: species-active:demon
+        displayName: "\uC7BF\uBD88 \uACC4\uC57D"
+        description: "\uAC15\uD55C \uD654\uC5FC \uD53C\uD574\uC640 \uCDE8\uC57D \uD45C\uC2DD\uC744
+          \uB0A8\uAE34\uB2E4."
+        cooldownTurns: 2
+        targetRule: 2
+        usableFrom: 7
+        targetPositions: 7
+        effects:
+        - rid: 7302563310531248886
+    - rid: 7302563310531248886
+      type: {class: OffenseDamageEffect, ns: , asm: Assembly-CSharp}
+      data:
+        basicDamageMultiplier: 1.4
+        flatDamage: 4
+        hitCount: 1

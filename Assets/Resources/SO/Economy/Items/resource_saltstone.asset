@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 0
   ingredientTags: 512
   unitPrice: 5
+  marketSaleRate: 0.6
   unitWeight: 0.5
   maxStack: 60
   sprite: {fileID: 0}

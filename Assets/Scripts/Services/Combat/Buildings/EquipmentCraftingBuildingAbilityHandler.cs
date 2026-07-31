@@ -12,15 +12,18 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
 
     private readonly ICombatEquipmentRuntime combatRuntime;
     private readonly ICombatEquipmentCatalog combatCatalog;
+    private readonly ICharacterEnvironmentStatusQuery environmentStatus;
 
     public EquipmentCraftingBuildingAbilityHandler(
         ICombatEquipmentRuntime combatRuntime,
-        ICombatEquipmentCatalog combatCatalog)
+        ICombatEquipmentCatalog combatCatalog,
+        ICharacterEnvironmentStatusQuery environmentStatus = null)
     {
         this.combatRuntime = combatRuntime
             ?? throw new ArgumentNullException(nameof(combatRuntime));
         this.combatCatalog = combatCatalog
             ?? throw new ArgumentNullException(nameof(combatCatalog));
+        this.environmentStatus = environmentStatus;
     }
 
     public IReadOnlyCollection<Type> AbilityTypes => Types;
@@ -140,7 +143,7 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         return false;
     }
 
-    private static CombatEquipmentQuality ResolveCraftedQuality(
+    private CombatEquipmentQuality ResolveCraftedQuality(
         CharacterActor actor,
         BuildableObject building)
     {
@@ -151,13 +154,28 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
         int score = dexterity
             + research
             + Mathf.Max(1, building?.FacilityLevel ?? 1) * 2;
-        if (score <= 8) return CombatEquipmentQuality.Awful;
-        if (score <= 12) return CombatEquipmentQuality.Poor;
-        if (score <= 18) return CombatEquipmentQuality.Normal;
-        if (score <= 23) return CombatEquipmentQuality.Good;
-        if (score <= 28) return CombatEquipmentQuality.Excellent;
-        if (score <= 34) return CombatEquipmentQuality.Masterwork;
-        return CombatEquipmentQuality.Legendary;
+        CombatEquipmentQuality quality = score switch
+        {
+            <= 8 => CombatEquipmentQuality.Awful,
+            <= 12 => CombatEquipmentQuality.Poor,
+            <= 18 => CombatEquipmentQuality.Normal,
+            <= 23 => CombatEquipmentQuality.Good,
+            <= 28 => CombatEquipmentQuality.Excellent,
+            <= 34 => CombatEquipmentQuality.Masterwork,
+            _ => CombatEquipmentQuality.Legendary
+        };
+        string characterId = actor?.Identity?.PersistentId;
+        EnvironmentalExposureBand band =
+            (EnvironmentalExposureBand)Mathf.Max(
+                (int)(environmentStatus?.GetPhysiologicalBand(characterId)
+                    ?? EnvironmentalExposureBand.Stable),
+                (int)(environmentStatus?.GetVisualBand(characterId)
+                    ?? EnvironmentalExposureBand.Stable));
+        return band >= EnvironmentalExposureBand.Impaired
+            ? (CombatEquipmentQuality)Mathf.Max(
+                (int)CombatEquipmentQuality.Awful,
+                (int)quality - 1)
+            : quality;
     }
 
     private static string GetBuildingName(BuildableObject building)

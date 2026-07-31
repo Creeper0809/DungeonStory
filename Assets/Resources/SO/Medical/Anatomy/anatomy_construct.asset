@@ -1,0 +1,116 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
+  m_Name: anatomy_construct
+  m_EditorClassIdentifier: Assembly-CSharp::AnatomyProfileSO
+  profileId: anatomy:construct
+  displayName: "\uACE8\uB818 \uAE30\uACC4 \uAD6C\uC870"
+  anatomyFamily: construct
+  speciesIds:
+  - Golem
+  nodes:
+  - nodeId: head
+    displayName: "\uAC10\uC751\uC11D \uBA38\uB9AC"
+    parentNodeId: 
+    kind: 0
+    functions: 4
+    maxHealth: 28
+    capacityWeight: 1
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 1
+  - nodeId: sensor-core
+    displayName: "\uAC10\uC751 \uD575"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 18
+    capacityWeight: 1
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: torso
+    displayName: "\uC8FC\uC870 \uBAB8\uCCB4"
+    parentNodeId: 
+    kind: 4
+    functions: 3
+    maxHealth: 70
+    capacityWeight: 1
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 1
+    mapsToLegacyBodyPart: 1
+  - nodeId: power-core
+    displayName: "\uB3D9\uB825\uD575"
+    parentNodeId: torso
+    kind: 4
+    functions: 3
+    maxHealth: 24
+    capacityWeight: 1
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: arm:left
+    displayName: "\uC67C\uCABD \uC791\uC5C5\uD314"
+    parentNodeId: torso
+    kind: 3
+    functions: 64
+    maxHealth: 38
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: arms
+    legacyBodyPart: 2
+    mapsToLegacyBodyPart: 1
+  - nodeId: arm:right
+    displayName: "\uC624\uB978\uCABD \uC791\uC5C5\uD314"
+    parentNodeId: torso
+    kind: 3
+    functions: 64
+    maxHealth: 38
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: arms
+    legacyBodyPart: 3
+    mapsToLegacyBodyPart: 1
+  - nodeId: leg:left
+    displayName: "\uC67C\uCABD \uC9C0\uC9C0\uAC01"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 44
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 4
+    mapsToLegacyBodyPart: 1
+  - nodeId: leg:right
+    displayName: "\uC624\uB978\uCABD \uC9C0\uC9C0\uAC01"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 44
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 5
+    mapsToLegacyBodyPart: 1

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8074
+  id: 8075
   itemId: craft:resin-balm
   displayName: "\uC218\uC561 \uC5F0\uACE0"
   description: "\uD53C\uBD80 \uC190\uC0C1\uACFC \uBC29\uC5B4\uAD6C \uB9C8\uCC30\uC744
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 3
   ingredientTags: 65
   unitPrice: 10
+  marketSaleRate: 0.6
   unitWeight: 0.15
   maxStack: 40
   sprite: {fileID: 0}

@@ -8,6 +8,16 @@ using UnityEngine;
 public static class ModularFacilityAssetBuilder
 {
     public const int FirstBuildingId = 1000;
+    private static readonly IReadOnlyDictionary<string, int> EnvironmentBuildingIds =
+        new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["L08"] = 1500,
+            ["E10"] = 1501,
+            ["E11"] = 1502,
+            ["E12"] = 1503,
+            ["E13"] = 1504,
+            ["E14"] = 1505
+        };
     private const string SpriteFolder = "Assets/Images/ModularFacilities";
     private const string BuildingFolder = "Assets/Resources/SO/Building/Modular";
     private const string StockFolder = "Assets/Resources/SO/Stock/Modular";
@@ -81,6 +91,37 @@ public static class ModularFacilityAssetBuilder
         PatchSurvivalFacilityAbilities();
     }
 
+    [MenuItem("DungeonStory/Content/Build Environment Facilities")]
+    public static void BuildEnvironmentFacilities()
+    {
+        FacilityPartSpec[] specs = CreateSpecs();
+        HashSet<string> environmentCodes = new HashSet<string>(
+            new[] { "L08", "E10", "E11", "E12", "E13", "E14" },
+            StringComparer.Ordinal);
+        EnsureFolder(SpriteFolder);
+        EnsureFolder(BuildingFolder);
+        for (int index = 0; index < specs.Length; index++)
+        {
+            FacilityPartSpec spec = specs[index];
+            if (!environmentCodes.Contains(spec.Code))
+            {
+                continue;
+            }
+
+            string spritePath = $"{SpriteFolder}/{spec.Code}.png";
+            WriteSprite(spec, spritePath);
+            ConfigureSpriteImport(spritePath);
+            EnsureBuildingAsset(
+                spec,
+                ResolveBuildingId(specs, index),
+                spritePath);
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("Built six environmental facility assets.");
+    }
+
     public static void PatchCombatEquipmentAssets()
     {
         EnsureFolder("Assets/Resources/Config");
@@ -144,9 +185,9 @@ public static class ModularFacilityAssetBuilder
     public static void BuildAll()
     {
         FacilityPartSpec[] specs = CreateSpecs();
-        if (specs.Length != 98)
+        if (specs.Length != 104)
         {
-            throw new InvalidOperationException($"Modular facility catalog must contain 98 parts, found {specs.Length}.");
+            throw new InvalidOperationException($"Modular facility catalog must contain 104 parts, found {specs.Length}.");
         }
 
         EnsureFolder(SpriteFolder);
@@ -156,7 +197,7 @@ public static class ModularFacilityAssetBuilder
         for (int index = 0; index < specs.Length; index++)
         {
             FacilityPartSpec spec = specs[index];
-            int buildingId = FirstBuildingId + index;
+            int buildingId = ResolveBuildingId(specs, index);
             string spritePath = $"{SpriteFolder}/{spec.Code}.png";
             WriteSprite(spec, spritePath);
             ConfigureSpriteImport(spritePath);
@@ -165,12 +206,43 @@ public static class ModularFacilityAssetBuilder
         }
 
         NormalizeAbilityLists();
-        EnsureShopStock(FirstBuildingId + Array.FindIndex(specs, (spec) => spec.Code == "S01"));
+        ServiceRoomContentAssetBuilder.EnsureAssets();
+        int shopIndex = Array.FindIndex(
+            specs,
+            spec => spec.Code == "S01");
+        EnsureShopStock(ResolveBuildingId(specs, shopIndex));
 
         HideLegacyRoomAssets();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
         Debug.Log($"Built {specs.Length} modular facility sprites and BuildingSO assets.");
+    }
+
+    private static int ResolveBuildingId(
+        IReadOnlyList<FacilityPartSpec> specs,
+        int index)
+    {
+        if (index < 0 || index >= specs.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
+        FacilityPartSpec spec = specs[index];
+        if (EnvironmentBuildingIds.TryGetValue(spec.Code, out int dedicatedId))
+        {
+            return dedicatedId;
+        }
+
+        int insertedEnvironmentParts = 0;
+        for (int candidate = 0; candidate < index; candidate++)
+        {
+            if (EnvironmentBuildingIds.ContainsKey(specs[candidate].Code))
+            {
+                insertedEnvironmentParts++;
+            }
+        }
+
+        return FirstBuildingId + index - insertedEnvironmentParts;
     }
 
     private static void NormalizeAbilityLists()
@@ -338,7 +410,7 @@ public static class ModularFacilityAssetBuilder
         building.movementAnchorOffset = Vector2.zero;
         building.movementTravelTime = 2f;
         building.ReplaceAbilities(CreateAbilities(spec));
-        building.unlocked = !IsResearchProductionStation(spec.Code);
+        building.unlocked = !IsResearchLockedFacility(spec.Code);
         EditorUtility.SetDirty(building);
     }
 
@@ -347,6 +419,17 @@ public static class ModularFacilityAssetBuilder
         return !string.IsNullOrWhiteSpace(code)
             && code.StartsWith("P", StringComparison.Ordinal)
             && code.Length == 3;
+    }
+
+    private static bool IsResearchLockedFacility(string code)
+    {
+        return IsResearchProductionStation(code)
+            || code is "L08"
+                or "E10"
+                or "E11"
+                or "E12"
+                or "E13"
+                or "E14";
     }
 
     private static BuildingAbilityCollection CreateAbilities(FacilityPartSpec spec)
@@ -358,6 +441,7 @@ public static class ModularFacilityAssetBuilder
         AddAbility(abilities, productionTags.Length > 0
             ? new BuildingSemanticTagsAbility { tags = productionTags }
             : null);
+        AddAbility(abilities, CreateProductionWorkstationAbility(spec.Code));
         AddAbility(abilities, EnsureEconomyAbility(spec));
         AddAbility(abilities, spec.Core || hasSurvivalWork
             ? new BuildingFacilityAbility { settings = CreateFacilityData(spec) }
@@ -395,9 +479,58 @@ public static class ModularFacilityAssetBuilder
         AddAbility(abilities, CreateFuelConsumerAbility(spec.Code));
         AddAbility(abilities, CreateTemperatureAbility(spec.Code));
         AddAbility(abilities, CreateVentilationAbility(spec.Code));
+        AddAbility(abilities, CreateEnvironmentThermalAbility(spec.Code));
+        AddAbility(abilities, CreateEnvironmentAirAbility(spec.Code));
+        AddAbility(abilities, CreateEnvironmentDuctAbility(spec.Code));
+        AddAbility(abilities, CreateProtectiveEquipmentLockerAbility(spec.Code));
+        AddAbility(abilities, CreateEnvironmentPowerConnectionAbility(spec.Code));
+        AddAbility(abilities, CreateEnvironmentPowerConsumerAbility(spec.Code));
         AddAbility(abilities, CreateCropPlotAbility(spec.Code));
 
         return abilities;
+    }
+
+    private static BuildingProductionWorkstationAbility
+        CreateProductionWorkstationAbility(string code)
+    {
+        string tag = code switch
+        {
+            "D03" => "workstation:kitchen-basic",
+            "D12" => "workstation:tavern-brewery",
+            "Q02" => "workstation:alchemy-basic",
+            "S08" => "workstation:forge-basic",
+            "P01" => "workstation:mill",
+            "P02" => "workstation:brewery",
+            "P03" => "workstation:sawmill",
+            "P04" => "workstation:charcoal-kiln",
+            "P05" => "workstation:stonecutter",
+            "P06" => "workstation:ore-sorter",
+            "P07" => "workstation:furnace",
+            "P08" => "workstation:steelworks",
+            "P09" => "workstation:jeweler",
+            "P10" => "workstation:arcane-forge",
+            "P11" => "workstation:loom",
+            "P12" => "workstation:tannery",
+            "P13" => "workstation:composter",
+            "P14" => "workstation:distillery",
+            "P15" => "workstation:cookbench",
+            "P16" => "workstation:smoker",
+            "P17" => "workstation:feedbench",
+            "P18" => "workstation:apothecary",
+            "P19" => "workstation:alchemy",
+            "P20" => "workstation:arcane-loom",
+            "P21" => "workstation:forge",
+            "P22" => "workstation:quarry",
+            "P23" => "workstation:crop-plot",
+            "P24" => "workstation:hydroponics",
+            _ => string.Empty
+        };
+        return string.IsNullOrWhiteSpace(tag)
+            ? null
+            : new BuildingProductionWorkstationAbility
+            {
+                workstationTag = tag
+            };
     }
 
     private static BuildingMercenaryHiringAbility
@@ -815,6 +948,135 @@ public static class ModularFacilityAssetBuilder
         };
     }
 
+    private static BuildingThermalEmitterAbility
+        CreateEnvironmentThermalAbility(string code)
+    {
+        return code switch
+        {
+            "E10" => new BuildingThermalEmitterAbility
+            {
+                mode = ThermalEmitterMode.Cool,
+                targetTemperatureC = 8f,
+                playerConfigurable = true,
+                minimumTargetTemperatureC = 2f,
+                maximumTargetTemperatureC = 8f,
+                degreesPerSecond = 3f,
+                radius = 3,
+                requiresPower = true,
+                exhaustOffset = Vector2Int.right,
+                exhaustHeatMultiplier = 1.15f
+            },
+            "E11" => new BuildingThermalEmitterAbility
+            {
+                mode = ThermalEmitterMode.Thermostat,
+                targetTemperatureC = 22f,
+                playerConfigurable = true,
+                minimumTargetTemperatureC = 2f,
+                maximumTargetTemperatureC = 30f,
+                degreesPerSecond = 2.5f,
+                radius = 4,
+                requiresPower = true
+            },
+            _ => null
+        };
+    }
+
+    private static BuildingAirExchangeAbility
+        CreateEnvironmentAirAbility(string code)
+    {
+        return code switch
+        {
+            "E11" => new BuildingAirExchangeAbility
+            {
+                targetAirQuality = 100f,
+                qualityPerSecond = 6f,
+                radius = 4,
+                requiresPower = true
+            },
+            "E13" => new BuildingAirExchangeAbility
+            {
+                targetAirQuality = 100f,
+                qualityPerSecond = 8f,
+                radius = 3,
+                requiresPower = true
+            },
+            "E14" => new BuildingAirExchangeAbility
+            {
+                targetAirQuality = 100f,
+                qualityPerSecond = 12f,
+                radius = 4,
+                requiresPower = true
+            },
+            _ => null
+        };
+    }
+
+    private static BuildingAirDuctAbility
+        CreateEnvironmentDuctAbility(string code)
+    {
+        return code is "E12" or "E13" or "E14"
+            ? new BuildingAirDuctAbility { exchangeRate = 0.65f }
+            : null;
+    }
+
+    private static BuildingProtectiveEquipmentLockerAbility
+        CreateProtectiveEquipmentLockerAbility(string code)
+    {
+        return code == "L08"
+            ? new BuildingProtectiveEquipmentLockerAbility
+            {
+                capacity = 4,
+                serviceRadius = 12
+            }
+            : null;
+    }
+
+    private static BuildingUtilityConnectionAbility
+        CreateEnvironmentPowerConnectionAbility(string code)
+    {
+        return code is "E10" or "E11" or "E13" or "E14"
+            ? new BuildingUtilityConnectionAbility
+            {
+                channels = UtilityChannel.Power,
+                maxThroughput = 20f,
+                normallyOpen = true
+            }
+            : null;
+    }
+
+    private static BuildingPowerConsumerAbility
+        CreateEnvironmentPowerConsumerAbility(string code)
+    {
+        return code switch
+        {
+            "E10" => new BuildingPowerConsumerAbility
+            {
+                demandPerSecond = 8f,
+                priority = PowerPriority.Essential,
+                minimumSupplyFraction = 0.75f
+            },
+            "E11" => new BuildingPowerConsumerAbility
+            {
+                demandPerSecond = 10f,
+                priority = PowerPriority.Essential,
+                minimumSupplyFraction = 0.75f
+            },
+            "E13" => new BuildingPowerConsumerAbility
+            {
+                demandPerSecond = 3f,
+                priority = PowerPriority.Essential,
+                minimumSupplyFraction = 0.5f
+            },
+            "E14" => new BuildingPowerConsumerAbility
+            {
+                demandPerSecond = 5f,
+                priority = PowerPriority.Essential,
+                minimumSupplyFraction = 0.5f
+            },
+            _ => null
+        };
+    }
+
     private static FacilityData CreateFacilityData(FacilityPartSpec spec)
     {
         FacilityWorkType workTypes = spec.WorkTypes | GetSurvivalWorkTypes(spec.Code);
@@ -1221,6 +1483,7 @@ public static class ModularFacilityAssetBuilder
             Support("L05", "식재료저장함", 1, GridLayer.Building, BuildingCategory.Production, VisualForm.Crates, Traits(FacilityEvolutionTerms.Logistics, "Cooking"), phase: 2),
             Support("L06", "무기로커", 1, GridLayer.Building, BuildingCategory.Production, VisualForm.Cabinet, Traits(FacilityEvolutionTerms.Logistics, FacilityEvolutionTerms.Combat, FacilityEvolutionTerms.Security), phase: 2),
             Support("L07", "마력보관함", 1, GridLayer.Building, BuildingCategory.Production, VisualForm.Cabinet, Traits(FacilityEvolutionTerms.Logistics, FacilityEvolutionTerms.Mana), phase: 2),
+            Support("L08", "보호장비보관함", 1, GridLayer.Building, BuildingCategory.Production, VisualForm.Cabinet, Traits(FacilityEvolutionTerms.Logistics, FacilityEvolutionTerms.Storage, FacilityEvolutionTerms.Security), phase: 2),
 
             Core("H01", "변기", 1, GridLayer.Building, BuildingCategory.Special, FacilityRole.Toilet, FacilityWorkType.Clean | FacilityWorkType.Repair, VisualForm.Toilet, Traits("Sanitation")),
             Support("H02", "화장실칸막이", 1, GridLayer.Building, BuildingCategory.Special, VisualForm.Partition, Traits("Toilet", FacilityEvolutionTerms.Luxury)),
@@ -1239,6 +1502,11 @@ public static class ModularFacilityAssetBuilder
             Support("E07", "촛대", 1, GridLayer.Building, BuildingCategory.Resource, VisualForm.Candlestick, Traits(FacilityEvolutionTerms.Quiet, FacilityEvolutionTerms.Luxury)),
             Support("E08", "해골피장식", 1, GridLayer.WallFixture, BuildingCategory.Resource, VisualForm.Skull, Traits(FacilityEvolutionTerms.Brutal, FacilityEvolutionTerms.Fear), phase: 3),
             Support("E09", "방표지판", 1, GridLayer.WallFixture, BuildingCategory.Resource, VisualForm.Sign, Array.Empty<string>(), contributesToRoom: false, phase: 2),
+            Core("E10", "냉각기", 2, GridLayer.Building, BuildingCategory.Resource, FacilityRole.Logistics, FacilityWorkType.Repair, VisualForm.Workbench, Traits(FacilityEvolutionTerms.Logistics, "Cooling"), phase: 2),
+            Core("E11", "공조기", 2, GridLayer.Building, BuildingCategory.Resource, FacilityRole.None, FacilityWorkType.Repair, VisualForm.Workbench, Traits(FacilityEvolutionTerms.Hygiene, "Climate"), phase: 3),
+            Support("E12", "환기덕트", 1, GridLayer.WallFixture, BuildingCategory.Resource, VisualForm.WallRack, Traits("Ventilation"), contributesToRoom: false, phase: 2),
+            Support("E13", "송풍구", 1, GridLayer.WallFixture, BuildingCategory.Resource, VisualForm.WallRack, Traits(FacilityEvolutionTerms.Hygiene, "Ventilation"), phase: 2),
+            Support("E14", "배기팬", 1, GridLayer.WallFixture, BuildingCategory.Resource, VisualForm.WallRack, Traits(FacilityEvolutionTerms.Hygiene, "Ventilation"), phase: 2),
 
             Core("P01", "제분소", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Workbench, Traits("Production", "Grain"), phase: 1),
             Core("P02", "양조장", 2, GridLayer.Building, BuildingCategory.Production, FacilityRole.None, FacilityWorkType.Craft | FacilityWorkType.Repair, VisualForm.Barrels, Traits("Production", "Fermentation"), phase: 2),

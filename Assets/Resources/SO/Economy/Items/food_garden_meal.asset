@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8059
+  id: 8060
   itemId: food:garden-meal
   displayName: "\uC815\uC6D0 \uC694\uB9AC"
   description: "\uACE1\uBB3C\uACFC \uBFCC\uB9AC, \uBC84\uC12F\uC744 \uC11E\uC740
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 3
   unitPrice: 12
+  marketSaleRate: 0.6
   unitWeight: 0.75
   maxStack: 40
   sprite: {fileID: 0}

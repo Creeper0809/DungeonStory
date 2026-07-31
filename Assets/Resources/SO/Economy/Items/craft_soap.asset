@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8072
+  id: 8073
   itemId: craft:soap
   displayName: "\uBE44\uB204"
   description: "\uC704\uC0DD \uC791\uC5C5\uACFC \uBAA9\uC695\uC5D0 \uC4F0\uB294 \uC18C\uBAA8\uD488."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 8
   ingredientTags: 64
   unitPrice: 7
+  marketSaleRate: 0.6
   unitWeight: 0.25
   maxStack: 50
   sprite: {fileID: 0}

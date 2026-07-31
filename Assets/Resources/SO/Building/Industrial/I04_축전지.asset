@@ -42,11 +42,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: ab6e8ba1770ca824a9d756f6d45470dc, type: 3}
   abilityModules:
     items:
-    - rid: 7302563284524204985
-    - rid: 7302563284524204986
-    - rid: 7302563284524204987
-    - rid: 7302563284524204988
-    - rid: 7302563284524204989
+    - rid: 7302563313663345663
+    - rid: 7302563313672519680
+    - rid: 7302563313672519681
+    - rid: 7302563313672519682
+    - rid: 7302563313672519683
   width: 2
   height: 1
   layer: 1
@@ -61,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563284524204985
+    - rid: 7302563313663345663
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I04
-    - rid: 7302563284524204986
+    - rid: 7302563313672519680
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +75,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563284524204987
+    - rid: 7302563313672519681
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -87,14 +87,14 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 4
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563284524204988
+    - rid: 7302563313672519682
       type: {class: BuildingPowerStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerStorageAbility
         capacity: 240
         transferPerSecond: 30
         efficiency: 0.92
-    - rid: 7302563284524204989
+    - rid: 7302563313672519683
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

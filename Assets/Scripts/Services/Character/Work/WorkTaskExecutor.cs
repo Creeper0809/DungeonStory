@@ -18,6 +18,11 @@ public sealed class WorkTaskExecutor
     private readonly IGameClock gameClock;
     private readonly IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
     private readonly IPaidFacilityContractRuntime paidFacilityContracts;
+    private readonly ICharacterEnvironmentRuntime characterEnvironmentRuntime;
+    private readonly IEnvironmentalWorkwearRuntime environmentalWorkwearRuntime;
+    private readonly IEnvironmentWorkPolicy environmentWorkPolicy;
+    private float nextEnvironmentRecheckAt;
+    private bool environmentInterrupted;
 
     public WorkTaskExecutor(
         AbilityWork work,
@@ -27,7 +32,10 @@ public sealed class WorkTaskExecutor
         IWorkAmountCalculator workAmountCalculator = null,
         IGameClock gameClock = null,
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
-        IPaidFacilityContractRuntime paidFacilityContracts = null)
+        IPaidFacilityContractRuntime paidFacilityContracts = null,
+        ICharacterEnvironmentRuntime characterEnvironmentRuntime = null,
+        IEnvironmentalWorkwearRuntime environmentalWorkwearRuntime = null,
+        IEnvironmentWorkPolicy environmentWorkPolicy = null)
     {
         this.work = work;
         this.targetSelector = targetSelector;
@@ -37,6 +45,9 @@ public sealed class WorkTaskExecutor
         this.gameClock = gameClock ?? new UnityGameClock();
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
         this.paidFacilityContracts = paidFacilityContracts;
+        this.characterEnvironmentRuntime = characterEnvironmentRuntime;
+        this.environmentalWorkwearRuntime = environmentalWorkwearRuntime;
+        this.environmentWorkPolicy = environmentWorkPolicy;
     }
 
     public IEnumerator Work(int runId)
@@ -66,6 +77,8 @@ public sealed class WorkTaskExecutor
         }
 
         work.isWorking = true;
+        environmentInterrupted = false;
+        nextEnvironmentRecheckAt = gameClock.Time + 1f;
         if (work.AssignedWorkType == FacilityWorkType.Restock)
         {
             yield return ExecuteRestockHaulWork(runId, currentAction, move, grid);
@@ -140,6 +153,9 @@ public sealed class WorkTaskExecutor
                 assignedTarget,
                 workTypeId,
                 $"work:{runId}:{assignedTarget.GetInstanceID()}:started");
+            characterEnvironmentRuntime?.SetWorkContext(
+                actor?.Identity?.PersistentId,
+                ResolveEnvironmentWorkKind(workTypeId));
             WorkDebugLog.LogStarted(actor);
             bool completedImmediately = false;
             bool completedSuccessfully = true;
@@ -675,6 +691,26 @@ public sealed class WorkTaskExecutor
             && order.Status != WorkOrderStatus.Completed
             && order.Status != WorkOrderStatus.Cancelled)
         {
+            float remainingSeconds = Mathf.Max(
+                0f,
+                order.RequiredWork - order.CompletedWork)
+                / Mathf.Max(
+                    0.05f,
+                    CalculateWorkPerSecond(
+                        actor,
+                        target,
+                        workTypeId,
+                        durationMultiplier));
+            if (ShouldInterruptForEnvironment(
+                    actor,
+                    target,
+                    workTypeId,
+                    remainingSeconds))
+            {
+                onCompleted?.Invoke(false, false);
+                yield break;
+            }
+
             if (order.Status == WorkOrderStatus.WaitingForMaterials)
             {
                 actor?.AddActivity(CharacterActivityEvent.Work(
@@ -778,6 +814,24 @@ public sealed class WorkTaskExecutor
             && CanContinueTimedWork(runId, actor)
             && work.isWorking)
         {
+            float remainingSeconds =
+                Mathf.Max(0f, requiredWork - completedWork)
+                / Mathf.Max(
+                    0.05f,
+                    CalculateWorkPerSecond(
+                        actor,
+                        target,
+                        workTypeId,
+                        durationMultiplier));
+            if (ShouldInterruptForEnvironment(
+                    actor,
+                    target,
+                    workTypeId,
+                    remainingSeconds))
+            {
+                yield break;
+            }
+
             float tickDeltaTime = gameClock.DeltaTime > 0f
                 ? gameClock.DeltaTime
                 : 1f / 60f;
@@ -850,6 +904,24 @@ public sealed class WorkTaskExecutor
             && CanContinueTimedWork(runId, actor)
             && work.isWorking)
         {
+            float remainingSeconds =
+                Mathf.Max(0f, requiredWork - completedWork)
+                / Mathf.Max(
+                    0.05f,
+                    CalculateWorkPerSecond(
+                        actor,
+                        target,
+                        workTypeId,
+                        durationMultiplier));
+            if (ShouldInterruptForEnvironment(
+                    actor,
+                    target,
+                    workTypeId,
+                    remainingSeconds))
+            {
+                yield break;
+            }
+
             float tickDeltaTime = gameClock.DeltaTime > 0f
                 ? gameClock.DeltaTime
                 : 1f / 60f;
@@ -886,6 +958,104 @@ public sealed class WorkTaskExecutor
 
             yield return null;
         }
+    }
+
+    private bool ShouldInterruptForEnvironment(
+        CharacterActor actor,
+        BuildableObject target,
+        WorkTypeId workTypeId,
+        float remainingSeconds)
+    {
+        if (environmentWorkPolicy == null
+            || characterEnvironmentRuntime == null
+            || actor == null
+            || gameClock.Time < nextEnvironmentRecheckAt)
+        {
+            return false;
+        }
+
+        nextEnvironmentRecheckAt = gameClock.Time + 1f;
+        EnvironmentalWorkKind workKind =
+            ResolveEnvironmentWorkKind(workTypeId);
+        if (workKind is EnvironmentalWorkKind.EmergencySurgery
+            or EnvironmentalWorkKind.Defense
+            or EnvironmentalWorkKind.Safety)
+        {
+            return false;
+        }
+
+        WorkEnvironmentAssessment assessment =
+            environmentWorkPolicy.RecheckActive(
+                actor,
+                actor.GetNowXY(),
+                remainingSeconds,
+                workKind,
+                forced: false);
+        EnvironmentalExposureBand actualBand =
+            (EnvironmentalExposureBand)Mathf.Max(
+                (int)characterEnvironmentRuntime.GetPhysiologicalBand(
+                    actor.Identity?.PersistentId),
+                (int)characterEnvironmentRuntime.GetVisualBand(
+                    actor.Identity?.PersistentId));
+        bool evacuate = assessment.Projection.HasLethalChannel
+            || actualBand >= EnvironmentalExposureBand.Critical;
+        bool reassign = actualBand >= EnvironmentalExposureBand.Impaired;
+        if (!evacuate && !reassign)
+        {
+            return false;
+        }
+
+        string reason;
+        if (evacuate)
+        {
+            Grid grid = work.WorkGridResolver.ResolveActiveGrid(work, null);
+            if (environmentWorkPolicy.TryFindEvacuationCell(
+                    actor,
+                    grid,
+                    out Vector2Int safeCell,
+                    out bool fullySafe,
+                    out string evacuationWarning)
+                && work.WorkerMove != null)
+            {
+                work.WorkerMove.TryStartSystemMove(
+                    safeCell,
+                    DoorAccessOverrideKind.None,
+                    out string moveMessage);
+                reason = fullySafe
+                    ? $"환경 위험으로 작업 중단, ({safeCell.x},{safeCell.y}) 대피"
+                    : $"{evacuationWarning} {moveMessage}";
+            }
+            else
+            {
+                reason = string.IsNullOrWhiteSpace(evacuationWarning)
+                    ? "안전한 대피 경로 없음"
+                    : evacuationWarning;
+            }
+        }
+        else
+        {
+            reason =
+                $"환경 노출 {actualBand}: 진행률을 보존하고 안전한 인력 재배정을 요청합니다.";
+        }
+
+        actor.Brain?.SetActionPhase(reason, target);
+        actor.AddActivity(CharacterActivityEvent.Work(
+            work.AssignedWorkType,
+            CharacterActivityOutcomes.Blocked,
+            reason,
+            target,
+            reasonCode: evacuate
+                ? "environment-evacuation"
+                : "environment-reassignment",
+            bubbleEligible: true));
+        environmentInterrupted = true;
+        work.isWorking = false;
+        if (actor.Brain != null)
+        {
+            actor.Brain.isBestActionEnd = true;
+        }
+
+        return true;
     }
 
     private float CalculateWorkPerSecond(
@@ -941,6 +1111,9 @@ public sealed class WorkTaskExecutor
     private void FinishWorkRun(CharacterActor actor, AIAction currentAction)
     {
         CharacterSkillRuntimeEffects.EndWork(actor);
+        characterEnvironmentRuntime?.ClearWorkContext(
+            actor?.Identity?.PersistentId);
+        ReturnEnvironmentalWorkwear(actor);
         bool wasPriorityTarget = work.assignedShop == work.PriorityWorkTarget;
         currentAction?.ReleaseReservation(actor);
         work.AssignWork(null, FacilityWorkType.None);
@@ -988,6 +1161,12 @@ public sealed class WorkTaskExecutor
     private void AbortWorkRun(int runId, CharacterActor actor, AIAction currentAction)
     {
         CharacterSkillRuntimeEffects.EndWork(actor);
+        characterEnvironmentRuntime?.ClearWorkContext(
+            actor?.Identity?.PersistentId);
+        if (!environmentInterrupted)
+        {
+            ReturnEnvironmentalWorkwear(actor);
+        }
         currentAction?.ReleaseReservation(actor);
         work.isWorking = false;
         if (work.IsActiveWorkRun(runId))
@@ -996,6 +1175,40 @@ public sealed class WorkTaskExecutor
         }
 
         work.ClearActiveWorkRoutine(runId);
+    }
+
+    private void ReturnEnvironmentalWorkwear(CharacterActor actor)
+    {
+        string characterId = actor?.Identity?.PersistentId;
+        if (string.IsNullOrWhiteSpace(characterId)
+            || environmentalWorkwearRuntime == null
+            || !environmentalWorkwearRuntime.TryGetEquipped(
+                characterId,
+                out _))
+        {
+            return;
+        }
+
+        if (!environmentalWorkwearRuntime.TryUnequip(
+            characterId,
+            out string failureReason))
+        {
+            Debug.LogWarning(
+                $"[환경 작업복] {characterId} 자동 반납 실패: "
+                + failureReason);
+        }
+    }
+
+    private static EnvironmentalWorkKind ResolveEnvironmentWorkKind(
+        WorkTypeId workTypeId)
+    {
+        string id = workTypeId.Value ?? string.Empty;
+        return id.IndexOf("research", StringComparison.OrdinalIgnoreCase) >= 0
+            || id.IndexOf("craft", StringComparison.OrdinalIgnoreCase) >= 0
+            || id.IndexOf("medical", StringComparison.OrdinalIgnoreCase) >= 0
+            || id.IndexOf("treat", StringComparison.OrdinalIgnoreCase) >= 0
+                ? EnvironmentalWorkKind.Precision
+                : EnvironmentalWorkKind.General;
     }
 
     private static bool TryGetExteriorWorkSeconds(

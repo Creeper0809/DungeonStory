@@ -9,7 +9,19 @@ public enum ProductionBillStatus
     InProgress = 2,
     Suspended = 3,
     Completed = 4,
-    Cancelled = 5
+    Cancelled = 5,
+    WaitingForSupports = 6,
+    WaitingForUtilities = 7,
+    Processing = 8,
+    WaitingForFinishing = 9
+}
+
+public enum ProductionBatchStage
+{
+    None = 0,
+    Preparing = 1,
+    Processing = 2,
+    Finishing = 3
 }
 
 [Serializable]
@@ -28,6 +40,13 @@ public sealed class ProductionBillSaveData
     public bool materialsConsumed;
     public bool processFluidConsumed;
     public float completedWork;
+    public ProductionBatchStage batchStage;
+    public float remainingProcessingHours;
+    public float batchIntegrity = 100f;
+    public float utilityOutageHours;
+    public float temperatureOutageHours;
+    public string occupiedSupportNodeId = string.Empty;
+    public string blockedReason = string.Empty;
     public string reservedWorkerId = string.Empty;
     public string materialDestinationId = string.Empty;
     public List<string> allowedMaterialIds = new List<string>();
@@ -37,7 +56,7 @@ public sealed class ProductionBillSaveData
 [Serializable]
 public sealed class DungeonProductionBillSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
     public int nextBillSequence = 1;
@@ -61,6 +80,12 @@ public sealed class ProductionBillSnapshot
     public float CompletedWork { get; set; }
     public bool MaterialsConsumed { get; set; }
     public bool ProcessFluidConsumed { get; set; }
+    public ProductionBatchStage BatchStage { get; set; }
+    public float RemainingProcessingHours { get; set; }
+    public float BatchIntegrity { get; set; } = 100f;
+    public float UtilityOutageHours { get; set; }
+    public float TemperatureOutageHours { get; set; }
+    public string OccupiedSupportNodeId { get; set; } = string.Empty;
     public string ReservedWorkerId { get; set; } = string.Empty;
     public string MaterialDestinationId { get; set; } = string.Empty;
     public string BlockedReason { get; set; } = string.Empty;
@@ -72,6 +97,8 @@ public sealed class ProductionBillSnapshot
     public float ProgressRatio => RequiredWork <= 0f
         ? 0f
         : Mathf.Clamp01(CompletedWork / RequiredWork);
+
+    public float ProcessingProgressRatio { get; set; }
 }
 
 public sealed class ProductionBillCommandResult
@@ -143,13 +170,15 @@ public readonly struct ProductionOutputContext
         BuildableObject facility,
         CharacterActor worker,
         string itemId,
-        int amount)
+        int amount,
+        float qualityModifier = 0f)
     {
         Recipe = recipe;
         Facility = facility;
         Worker = worker;
         ItemId = itemId ?? string.Empty;
         Amount = Mathf.Max(1, amount);
+        QualityModifier = qualityModifier;
     }
 
     public ProductionRecipeSO Recipe { get; }
@@ -157,6 +186,7 @@ public readonly struct ProductionOutputContext
     public CharacterActor Worker { get; }
     public string ItemId { get; }
     public int Amount { get; }
+    public float QualityModifier { get; }
 }
 
 public interface IProductionOutputHandler

@@ -1,0 +1,125 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: DefenseMaintenanceBench
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: DefenseFacility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1803
+  objectName: "\uD568\uC815 \uC815\uBE44\uB300"
+  sprite: {fileID: 21300000, guid: 01db5f714be6fe488b5fc39cab46891c, type: 3}
+  icon: {fileID: 21300000, guid: 01db5f714be6fe488b5fc39cab46891c, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563312817144280
+    - rid: 7302563312817144283
+    - rid: 7302563313672520163
+    - rid: 7302563313672520164
+  width: 2
+  height: 1
+  layer: 1
+  category: 3
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563312817144280
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 155
+        constructionCost: 155
+        maintenance: 3
+        unlockPhase: 1
+        demolitionRefundRate: 0.5
+    - rid: 7302563312817144283
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: DF04
+    - rid: 7302563313672520163
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 0
+          useDuration: 0
+          requiredWorkers: 1
+          supportedWorkTypes: 4
+          disabledWhenDamaged: 1
+    - rid: 7302563313672520164
+      type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingDefenseAbility
+        settings:
+          enabled: 1
+          concept: 6
+          triggerTimings: 0
+          targetRule: 3
+          cooldownSeconds: 0
+          periodicIntervalSeconds: 0
+          range: 0
+          star: 1
+          combatLogText: "\uD568\uC815 \uC815\uBE44\uB300"
+          effectAssets: []
+          supplyKind: 0
+          supplyItemId: 
+          supplyCategory: 1
+          supplyCapacity: 0
+          supplyPerActivation: 0
+          initialSupply: 0
+          requiresPower: 0
+          powerDemand: 0
+          conditionLossPerActivation: 0
+          baseJamChance: 0.01
+          baseMisfireChance: 0.005
+          facilityFamilyId: defense:maintenance
+          affinityTags:
+          - defense:repair
+          - species:kobold
+          - species:golem
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0

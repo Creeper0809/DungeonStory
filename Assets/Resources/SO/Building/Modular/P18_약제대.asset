@@ -47,10 +47,11 @@ MonoBehaviour:
     - rid: 7302563239038812985
     - rid: 7302563239038812986
     - rid: 7302563239038812987
-    - rid: 7302563284922662919
-    - rid: 7302563284922662920
-    - rid: 7302563284922662921
-    - rid: 7302563284922662922
+    - rid: 7302563313672519766
+    - rid: 7302563313672519767
+    - rid: 7302563313672519768
+    - rid: 7302563313672519769
+    - rid: 7302563313672519970
   width: 2
   height: 1
   layer: 1
@@ -111,21 +112,21 @@ MonoBehaviour:
           - key: Medicine
             value: 2
           metrics: []
-    - rid: 7302563284922662919
+    - rid: 7302563313672519766
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284922662920
+    - rid: 7302563313672519767
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284922662921
+    - rid: 7302563313672519768
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -136,10 +137,15 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284922662922
+    - rid: 7302563313672519769
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
+    - rid: 7302563313672519970
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:apothecary

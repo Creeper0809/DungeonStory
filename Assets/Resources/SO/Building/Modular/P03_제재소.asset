@@ -47,10 +47,11 @@ MonoBehaviour:
     - rid: 7302563239038812864
     - rid: 7302563239038812865
     - rid: 7302563239038812866
-    - rid: 7302563284524204918
-    - rid: 7302563284524204919
-    - rid: 7302563284524204920
-    - rid: 7302563284524204921
+    - rid: 7302563313663345601
+    - rid: 7302563313663345602
+    - rid: 7302563313663345603
+    - rid: 7302563313663345604
+    - rid: 7302563313672519935
   width: 3
   height: 1
   layer: 1
@@ -111,21 +112,21 @@ MonoBehaviour:
           - key: Wood
             value: 2
           metrics: []
-    - rid: 7302563284524204918
+    - rid: 7302563313663345601
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284524204919
+    - rid: 7302563313663345602
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284524204920
+    - rid: 7302563313663345603
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -136,10 +137,15 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284524204921
+    - rid: 7302563313663345604
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
+    - rid: 7302563313672519935
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:sawmill

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8062
+  id: 8063
   itemId: food:roasted-meat
   displayName: "\uACE0\uAE30\uAD6C\uC774"
   description: "\uAC04\uB2E8\uD788 \uAD6C\uC6B4 \uC721\uC2DD \uB2E8\uC21C\uC2DD."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 16
   unitPrice: 9
+  marketSaleRate: 0.6
   unitWeight: 0.75
   maxStack: 40
   sprite: {fileID: 0}

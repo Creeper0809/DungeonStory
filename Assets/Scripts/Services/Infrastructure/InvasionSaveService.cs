@@ -18,6 +18,7 @@ public sealed class DungeonInvasionSaveData
     public DefenseResponsePolicySaveSnapshot responsePolicies = new DefenseResponsePolicySaveSnapshot();
     public DefenseEngagementSaveSnapshot engagements = new DefenseEngagementSaveSnapshot();
     public OwnerEvacuationSaveSnapshot ownerEvacuation = new OwnerEvacuationSaveSnapshot();
+    public InvasionCampaignSaveData campaign = new InvasionCampaignSaveData();
 }
 
 [Serializable]
@@ -96,6 +97,8 @@ public sealed class InvasionSaveService : IInvasionSaveService
     private readonly IDefenseResponsePolicyRuntime responsePolicyRuntime;
     private readonly IDefenseEngagementRuntime engagementRuntime;
     private readonly IInvasionOwnerEvacuationService ownerEvacuationService;
+    private readonly IInvasionCampaignRuntime campaignRuntime;
+    private readonly IOffenseRegionRuntime offenseRegions;
 
     public InvasionSaveService(
         IInvasionThreatRuntimeProvider threatProvider,
@@ -103,7 +106,9 @@ public sealed class InvasionSaveService : IInvasionSaveService
         IGridSystemProvider gridProvider,
         IDefenseResponsePolicyRuntime responsePolicyRuntime,
         IDefenseEngagementRuntime engagementRuntime,
-        IInvasionOwnerEvacuationService ownerEvacuationService)
+        IInvasionOwnerEvacuationService ownerEvacuationService,
+        IInvasionCampaignRuntime campaignRuntime,
+        IOffenseRegionRuntime offenseRegions)
     {
         this.threatProvider = threatProvider
             ?? throw new ArgumentNullException(nameof(threatProvider));
@@ -117,6 +122,10 @@ public sealed class InvasionSaveService : IInvasionSaveService
             ?? throw new ArgumentNullException(nameof(engagementRuntime));
         this.ownerEvacuationService = ownerEvacuationService
             ?? throw new ArgumentNullException(nameof(ownerEvacuationService));
+        this.campaignRuntime = campaignRuntime
+            ?? throw new ArgumentNullException(nameof(campaignRuntime));
+        this.offenseRegions = offenseRegions
+            ?? throw new ArgumentNullException(nameof(offenseRegions));
     }
 
     public DungeonInvasionSaveData Capture()
@@ -153,6 +162,7 @@ public sealed class InvasionSaveService : IInvasionSaveService
         result.responsePolicies = responsePolicyRuntime.Capture();
         result.engagements = engagementRuntime.Capture();
         result.ownerEvacuation = ownerEvacuationService.Capture();
+        result.campaign = campaignRuntime.Capture();
 
         return result;
     }
@@ -165,6 +175,18 @@ public sealed class InvasionSaveService : IInvasionSaveService
         }
 
         source ??= new DungeonInvasionSaveData();
+        if (source.campaign != null
+            && source.campaign.branches != null
+            && source.campaign.branches.Count > 0)
+        {
+            campaignRuntime.Restore(source.campaign);
+        }
+        else
+        {
+            campaignRuntime.RestoreFromLegacyPressure(offenseRegions);
+            report.AddWarning(
+                "Invasion V1 regional pressure migrated to five human campaign branches.");
+        }
         DungeonInvasionThreatSaveData threat = source.threat ?? new DungeonInvasionThreatSaveData();
         if (threatProvider.TryGetRuntime(out InvasionThreatRuntime threatRuntime))
         {

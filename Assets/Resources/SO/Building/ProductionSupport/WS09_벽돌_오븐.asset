@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "WS09_\uBCBD\uB3CC_\uC624\uBE10"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: BuildableObject, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1608
+  objectName: "\uBCBD\uB3CC \uC624\uBE10"
+  sprite: {fileID: 0}
+  icon: {fileID: 0}
+  abilityModules:
+    items:
+    - rid: 7302563313672519951
+    - rid: 7302563313672519952
+    - rid: 7302563313672519953
+    - rid: 7302563313672519954
+  width: 1
+  height: 1
+  layer: 1
+  category: 5
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563313672519951
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: WS09
+    - rid: 7302563313672519952
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - production-support
+        - support:oven
+    - rid: 7302563313672519953
+      type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionSupportAbility
+        supportId: production-support:ws09
+        featureTags:
+        - support:oven
+        compatibleWorkstationTags:
+        - workstation:cookbench
+        kind: 0
+        batchCapacity: 1
+        requiresPower: 0
+        cleanWaterPerCycle: 0
+        wastewaterPerCycle: 0
+        allowsManualWaterFallback: 0
+        requiresFuel: 1
+        fuelItemId: resource:log
+        fuelPerCycle: 1
+        workSpeedMultiplier: 1
+        outputMultiplier: 1
+        qualityModifier: 0
+    - rid: 7302563313672519954
+      type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFuelConsumerAbility
+        fuelPerRefuel: 1
+        workSeconds: 0.8
+        warmth: 8
+        lightSafety: 4

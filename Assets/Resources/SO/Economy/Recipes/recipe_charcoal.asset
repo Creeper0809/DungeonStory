@@ -26,9 +26,22 @@ MonoBehaviour:
   displayName: "\uC22F \uAD7D\uAE30"
   description: "\uC22F \uAD7D\uAE30 \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: charcoal-kiln
+  workstationTag: workstation:charcoal-kiln
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:craft
   requiredResearchId: research:forestry:charcoal
   requiredWork: 12
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:log
     amount: 3

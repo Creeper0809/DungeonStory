@@ -1,0 +1,173 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
+  m_Name: Species_Harpy
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8
+  speciesTag: Harpy
+  displayName: "\uD558\uD53C"
+  ownerSelectionPolicy: 1
+  homeFactionId: faction:dungeon:harpy
+  anatomyProfileId: anatomy:avian
+  needs:
+    hungerRateMultiplier: 1.1
+    thirstRateMultiplier: 1
+    sleepRateMultiplier: 1
+    hygieneRateMultiplier: 1
+    socialNeedMultiplier: 1.15
+    chargeRateMultiplier: 1
+    integrityWearMultiplier: 1
+    diet: 2
+    metabolism: 0
+    treatment: 0
+  environment:
+    comfortMinimum: 7
+    comfortMaximum: 25
+    safeMinimum: -5
+    safeMaximum: 36
+    lethalMinimum: -15
+    lethalMaximum: 44
+    comfortableAirMinimum: 80
+    comfortableLightMinimum: 40
+    comfortableLightMaximum: 100
+    airborneExposureMultiplier: 1
+    visualStrainMultiplier: 1
+    preferredHumidity: 0.5
+    drynessSensitivity: 1
+  relationTags:
+  - "\uC57C\uC678"
+  - "\uCCAD\uC815"
+  - "\uAC1C\uBC29"
+  defenseAffinityTags:
+  - "\uACBD\uBCF4"
+  - "\uC6D0\uAC70\uB9AC"
+  - "\uC678\uBD80-\uC5C4\uD638"
+  strongWorkTypeIds:
+  - work:guard
+  - work:reception
+  - work:hunt
+  weakWorkTypeIds:
+  - work:construct
+  - work:quarry
+  shortDescription: "\uD3ED\uD48D \uB465\uC9C0 \uCD9C\uC2E0 \xB7 \uC804\uB9DD\uB300\xB7\uC811\uC218\uC2E4\xB7\uC57C\uC678
+    \uD734\uC2DD\uCC98 \uC120\uD638"
+  description: "\uD558\uD53C\uC740(\uB294) \uD3ED\uD48D \uB465\uC9C0\uC744 \uB300\uD45C\uD558\uB294
+    \uC885\uC871\uC774\uB2E4. \uC190\uB2D8\xB7\uBAA8\uC9D1 \uC9C1\uC6D0\xB7\uC0C1\uC778\xB7\uD3EC\uB85C\xB7\uB3D9\uB9F9
+    \uC9C0\uC6D0\uAD70\uC73C\uB85C \uB4F1\uC7A5\uD55C\uB2E4."
+  preferredFacilityLabels:
+  - "\uC804\uB9DD\uB300"
+  - "\uC811\uC218\uC2E4"
+  - "\uC57C\uC678 \uD734\uC2DD\uCC98"
+  dislikedEnvironmentLabels:
+  - "\uC624\uC5FC \uACF5\uAE30"
+  - "\uB0AE\uC740 \uCC9C\uC7A5"
+  - "\uD63C\uC7A1 \uD1B5\uB85C"
+  stayDurationMultiplier: 1
+  crimeRiskMultiplier: 1
+  incidentType: 0
+  incident:
+    incidentId: species-incident:harpy-gale-commotion
+    displayName: "\uB3CC\uD48D \uC18C\uB3D9"
+    description: "\uBD88\uB9CC\uC774 \uD3ED\uBC1C\uD558\uBA74 loose stack\uC744 \uC0AD\uC81C\uD558\uC9C0
+      \uC54A\uACE0 \uC778\uC811 \uD1B5\uD589 \uC140\uB85C \uD769\uD2B8\uB9B0\uB2E4."
+    mitigatingRoles: 68
+    triggerTags:
+    - discontent
+    - species-specific
+  incidentName: "\uB3CC\uD48D \uC18C\uB3D9"
+  incidentDescription: "\uBD88\uB9CC\uC774 \uD3ED\uBC1C\uD558\uBA74 loose stack\uC744
+    \uC0AD\uC81C\uD558\uC9C0 \uC54A\uACE0 \uC778\uC811 \uD1B5\uD589 \uC140\uB85C
+    \uD769\uD2B8\uB9B0\uB2E4."
+  incidentMitigatingRoles: 68
+  statBonus:
+    entries:
+    - statId: stat:attack
+      value: 1
+    - statId: stat:shooting
+      value: 0
+    - statId: stat:evasion
+      value: 0
+    - statId: stat:sales
+      value: 1
+    - statId: stat:research
+      value: 0
+    - statId: stat:move-speed
+      value: 0
+    - statId: stat:strength
+      value: 0
+    - statId: stat:toughness
+      value: -1
+    - statId: stat:dexterity
+      value: 3
+    - statId: stat:cleaning
+      value: 0
+    - statId: stat:endurance
+      value: 0
+    - statId: stat:medical
+      value: 0
+  modifiers:
+    consumptionMultiplier: 1.1
+    spendingMultiplier: 1
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1.05
+    researchSpeedMultiplier: 1
+    combatPowerMultiplier: 1
+    moveSpeedMultiplier: 1.12
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 3104
+    dislikedWorkTypes: 16908288
+  combatPassive:
+    passiveId: species-passive:harpy
+    displayName: "\uACE0\uC9C0 \uC2DC\uC57C"
+    description: "\uC815\uCC30\xB7\uACBD\uBCF4\xB7\uC6D0\uAC70\uB9AC \uC5C4\uD638\uC758
+      \uC2DD\uBCC4 \uBC94\uC704\uAC00 \uB113\uB2E4."
+    mechanicTags:
+    - "\uC815\uCC30"
+    - "\uC6D0\uAC70\uB9AC"
+  combatAbilities:
+    abilities:
+    - rid: 7302563310531248883
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563310531248883
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+      data:
+        id: species-active:harpy
+        displayName: "\uD3ED\uD48D \uC0AC\uACA9"
+        description: "\uC6D0\uAC70\uB9AC \uACF5\uACA9 \uB4A4 \uC801\uC758 \uB2E4\uC74C
+          \uD589\uB3D9\uC744 \uB2A6\uCD98\uB2E4."
+        cooldownTurns: 2
+        targetRule: 2
+        usableFrom: 7
+        targetPositions: 7
+        effects:
+        - rid: 7302563310531248884
+    - rid: 7302563310531248884
+      type: {class: OffenseDamageEffect, ns: , asm: Assembly-CSharp}
+      data:
+        basicDamageMultiplier: 1.1
+        flatDamage: 3
+        hitCount: 1

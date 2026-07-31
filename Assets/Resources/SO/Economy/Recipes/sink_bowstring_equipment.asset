@@ -21,14 +21,27 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9109
+  id: 9113
   recipeId: sink:bowstring-equipment
   displayName: "\uD65C \uC81C\uC791"
   description: "\uD65C \uC81C\uC791 \uC18C\uBE44"
   facilityTag: forge
+  workstationTag: workstation:forge
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:operate
   requiredResearchId: research:defense:ranged-positions
   requiredWork: 4
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:bowstring
     amount: 1

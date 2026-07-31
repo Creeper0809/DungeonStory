@@ -27,9 +27,22 @@ MonoBehaviour:
   description: "\uC815\uBC00 \uAE08\uC18D \uBD80\uD488\uACFC \uB9C8\uB098 \uACB0\uC815\uC744
     \uACB0\uD569\uD574 \uACE0\uC720 \uC778\uACF5 \uC548\uAD6C\uB97C \uB9CC\uB4E0\uB2E4."
   facilityTag: m06
+  workstationTag: 
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:craft
   requiredResearchId: research:medical:prosthetics
   requiredWork: 52
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:steel-ingot
     amount: 1

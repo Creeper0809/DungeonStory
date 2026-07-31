@@ -23,6 +23,12 @@ public static class DungeonCharacterRegistration
             .As<IRunVariableRuntimeReader>();
         builder.Register<ResourceRunCharacterCatalog>(Lifetime.Singleton)
             .As<IRunCharacterCatalog>();
+        builder.Register<ResourceCharacterSpeciesCatalog>(Lifetime.Singleton)
+            .As<ICharacterSpeciesCatalog>();
+        builder.Register<SpeciesIncidentHandlerRegistry>(Lifetime.Singleton)
+            .As<ISpeciesIncidentHandlerRegistry>();
+        builder.RegisterEntryPoint<CharacterSpeciesRuntime>(Lifetime.Singleton)
+            .As<ICharacterSpeciesRuntime>();
         builder.Register<ResourceOwnerCandidateCatalog>(Lifetime.Singleton)
             .As<IOwnerCandidateCatalog>();
         builder.Register<RunStartVariableCatalog>(Lifetime.Singleton)

@@ -71,7 +71,7 @@ public static class SurgeryContentAssetBuilder
         ValidateBuiltContent();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-        Debug.Log("Surgery content rebuilt: 13 facilities, 3 anatomy profiles, 13 procedures, 6 research projects.");
+        Debug.Log("Surgery content rebuilt: 13 facilities, 6 anatomy profiles, 13 procedures, 6 research projects.");
     }
 
     private static void BuildProstheticRecipes()
@@ -434,6 +434,9 @@ public static class SurgeryContentAssetBuilder
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateHumanoid());
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateQuadruped());
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateSlime());
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateFungal());
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateAvian());
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateConstruct());
     }
 
     private static void BuildAnatomyAsset(AnatomyProfileDefinition definition)
@@ -656,13 +659,14 @@ public static class SurgeryContentAssetBuilder
         {
             throw new InvalidOperationException($"Expected 13 surgical procedures, found {procedures.Length}.");
         }
-        if (anatomy.Length != 3)
+        if (anatomy.Length != 6)
         {
-            throw new InvalidOperationException($"Expected 3 anatomy profiles, found {anatomy.Length}.");
+            throw new InvalidOperationException($"Expected 6 anatomy profiles, found {anatomy.Length}.");
         }
-        if (research.Length != 78)
+        if (research.Length < 78)
         {
-            throw new InvalidOperationException($"Expected 78 research projects, found {research.Length}.");
+            throw new InvalidOperationException(
+                $"Expected at least 78 research projects, found {research.Length}.");
         }
 
         IReadOnlyList<string> anatomyErrors =

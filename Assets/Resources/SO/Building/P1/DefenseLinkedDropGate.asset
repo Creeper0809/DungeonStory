@@ -1,0 +1,127 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: DefenseLinkedDropGate
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: DefenseFacility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1804
+  objectName: "\uBB38 \uC5F0\uB3D9 \uAC15\uD654 \uB099\uD558\uBB38"
+  sprite: {fileID: 21300000, guid: 01db5f714be6fe488b5fc39cab46891c, type: 3}
+  icon: {fileID: 21300000, guid: 01db5f714be6fe488b5fc39cab46891c, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563312817144073
+    - rid: 7302563312817144076
+    - rid: 7302563313672519971
+    - rid: 7302563313672519972
+  width: 2
+  height: 1
+  layer: 3
+  category: 3
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563312817144073
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 260
+        constructionCost: 260
+        maintenance: 7
+        unlockPhase: 1
+        demolitionRefundRate: 0.5
+    - rid: 7302563312817144076
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: DF05
+    - rid: 7302563313672519971
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 0
+          useDuration: 0
+          requiredWorkers: 0
+          supportedWorkTypes: 4
+          disabledWhenDamaged: 1
+    - rid: 7302563313672519972
+      type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingDefenseAbility
+        settings:
+          enabled: 1
+          concept: 1
+          triggerTimings: 5
+          targetRule: 0
+          cooldownSeconds: 4
+          periodicIntervalSeconds: 0
+          range: 0
+          star: 1
+          combatLogText: "\uBB38 \uC5F0\uB3D9 \uAC15\uD654 \uB099\uD558\uBB38"
+          effectAssets:
+          - {fileID: 11400000, guid: 24f18891388ce264c8630d8f2fa8ccd7, type: 2}
+          - {fileID: 11400000, guid: 38776689f5b827c4ca45aaa5c1c1513e, type: 2}
+          supplyKind: 1
+          supplyItemId: material:iron-ingot
+          supplyCategory: 1
+          supplyCapacity: 3
+          supplyPerActivation: 1
+          initialSupply: 1
+          requiresPower: 0
+          powerDemand: 0
+          conditionLossPerActivation: 2
+          baseJamChance: 0.025
+          baseMisfireChance: 0.005
+          facilityFamilyId: defense:barrier
+          affinityTags:
+          - defense:wall
+          - species:orc
+          - species:golem
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0

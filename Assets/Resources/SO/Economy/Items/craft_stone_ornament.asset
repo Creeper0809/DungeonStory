@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8077
+  id: 8082
   itemId: craft:stone-ornament
   displayName: "\uC11D\uC870 \uC7A5\uC2DD"
   description: "\uBC29\uC758 \uBBF8\uAD00\uACFC \uB300\uD615 \uC0AC\uC5C5\uC5D0 \uC4F0\uB294
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 8
   ingredientTags: 512
   unitPrice: 12
+  marketSaleRate: 0.6
   unitWeight: 1.6
   maxStack: 30
   sprite: {fileID: 0}

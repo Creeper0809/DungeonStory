@@ -53,6 +53,7 @@ public sealed class CharacterSurgeryWindowService :
     private readonly IWildlifeCaptureRuntime wildlifeCapture;
     private readonly ISurgicalCorpseFreshnessRuntime corpseFreshness;
     private readonly ITmpKoreanFontService fonts;
+    private readonly ISurgeryEnvironmentRiskEvaluator environmentRisk;
     private GameObject currentWindow;
 
     public CharacterSurgeryWindowService(
@@ -72,7 +73,8 @@ public sealed class CharacterSurgeryWindowService :
         ICaptivityRuntime captivity,
         IWildlifeCaptureRuntime wildlifeCapture,
         ISurgicalCorpseFreshnessRuntime corpseFreshness,
-        ITmpKoreanFontService fonts)
+        ITmpKoreanFontService fonts,
+        ISurgeryEnvironmentRiskEvaluator environmentRisk = null)
     {
         this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
         this.wildlifeAnatomy = wildlifeAnatomy
@@ -96,6 +98,7 @@ public sealed class CharacterSurgeryWindowService :
         this.corpseFreshness = corpseFreshness
             ?? throw new ArgumentNullException(nameof(corpseFreshness));
         this.fonts = fonts ?? throw new ArgumentNullException(nameof(fonts));
+        this.environmentRisk = environmentRisk;
     }
 
     public void Open(CharacterActor actor, Transform uiHost)
@@ -360,6 +363,40 @@ public sealed class CharacterSurgeryWindowService :
         float compatibilityPenalty = part == null
             ? 0f
             : ResolveCompatibility(patient?.Subject, part);
+        SurgeryRiskBreakdown baseline = risk.Evaluate(
+            doctor,
+            patient?.Subject,
+            procedure,
+            facility,
+            patient?.Instability ?? 0f,
+            compatibilityPenalty);
+        if (environmentRisk == null
+            || facility.PrimaryFacility == null)
+        {
+            return baseline;
+        }
+
+        SurgeryEnvironmentRiskSnapshot snapshot =
+            environmentRisk.Evaluate(
+                facility.PrimaryFacility.centerPos,
+                doctor,
+                patient?.Subject);
+        return environmentRisk.Apply(
+            baseline,
+            snapshot,
+            stageWeight: 1f);
+    }
+
+    internal SurgeryRiskBreakdown EvaluateBaseRisk(
+        SurgeryPlanningSubject patient,
+        SurgicalProcedureSO procedure,
+        SurgicalPartInstance part,
+        CharacterActor doctor,
+        SurgicalFacilitySnapshot facility)
+    {
+        float compatibilityPenalty = part == null
+            ? 0f
+            : ResolveCompatibility(patient?.Subject, part);
         return risk.Evaluate(
             doctor,
             patient?.Subject,
@@ -367,6 +404,36 @@ public sealed class CharacterSurgeryWindowService :
             facility,
             patient?.Instability ?? 0f,
             compatibilityPenalty);
+    }
+
+    internal bool TryEvaluateEnvironmentRisk(
+        SurgeryPlanningSubject patient,
+        CharacterActor doctor,
+        SurgicalFacilitySnapshot facility,
+        out SurgeryEnvironmentRiskSnapshot snapshot)
+    {
+        snapshot = default;
+        if (environmentRisk == null
+            || facility.PrimaryFacility == null)
+        {
+            return false;
+        }
+
+        snapshot = environmentRisk.Evaluate(
+            facility.PrimaryFacility.centerPos,
+            doctor,
+            patient?.Subject);
+        return true;
+    }
+
+    internal SurgeryOrder GetActiveOrder(SurgeryPlanningSubject patient)
+    {
+        return surgery.ActiveOrders.FirstOrDefault(candidate =>
+            candidate?.subject != null
+            && string.Equals(
+                candidate.subject.subjectId,
+                patient?.Subject?.subjectId,
+                StringComparison.Ordinal));
     }
 
     internal bool TrySchedule(
@@ -918,6 +985,50 @@ public sealed class CharacterSurgeryWindowView : MonoBehaviour
         else if (RequiresPart(procedure.Kind) && part == null)
         {
             builder.AppendLine("차단: 사용할 장기 또는 보철이 없습니다.");
+        }
+
+        SurgeryRiskBreakdown baseBreakdown = service.EvaluateBaseRisk(
+            patient,
+            procedure,
+            part,
+            doctor,
+            facility);
+        builder.AppendLine();
+        builder.AppendLine("기본 위험");
+        builder.AppendLine(
+            $"성공 {baseBreakdown.successChance * 100f:0.#}%"
+            + $" · 감염 {baseBreakdown.infectionChance * 100f:0.#}%"
+            + $" · 출혈 {baseBreakdown.bleedingChance * 100f:0.#}%"
+            + $" · 장기 손상 {baseBreakdown.organDamageChance * 100f:0.#}%"
+            + $" · 사망 {baseBreakdown.deathChance * 100f:0.#}%");
+        if (service.TryEvaluateEnvironmentRisk(
+                patient,
+                doctor,
+                facility,
+                out SurgeryEnvironmentRiskSnapshot environment))
+        {
+            builder.AppendLine("현재 환경·노출 보정");
+            builder.AppendLine(
+                $"온도 {environment.Environment.TemperatureC:0.#}°C"
+                + $" · 공기 {environment.Environment.AirQuality:0}"
+                + $" · 조명 {environment.Environment.LightLevel:0}");
+            builder.AppendLine(environment.Summary);
+            builder.AppendLine("위의 최종 확률은 환경이 유지될 경우의 값입니다.");
+        }
+
+        SurgeryOrder activeOrder = service.GetActiveOrder(patient);
+        if (activeOrder?.state == SurgeryOrderState.EnvironmentWaiting)
+        {
+            builder.AppendLine();
+            builder.AppendLine("환경 복구 대기");
+            builder.AppendLine(activeOrder.environmentWaitReason);
+            builder.AppendLine(
+                $"정상 범위 유지 {activeOrder.environmentStableSeconds:0.0}/5.0초");
+            if (!string.IsNullOrWhiteSpace(
+                    activeOrder.environmentRecoveryWorkStatus))
+            {
+                builder.AppendLine(activeOrder.environmentRecoveryWorkStatus);
+            }
         }
 
         details.text = builder.ToString().TrimEnd();

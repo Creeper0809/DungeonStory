@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8100
+  id: 8105
   itemId: ammo:bolt-rune
   displayName: "\uB8EC\uCD09 \uBCFC\uD2B8"
   description: "\uBE44\uC804 \uC800\uD56D\uC744 \uAFF0\uB6AB\uB294 \uB8EC \uBCFC\uD2B8."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 7
   ingredientTags: 1280
   unitPrice: 10
+  marketSaleRate: 0.6
   unitWeight: 0.1
   maxStack: 75
   sprite: {fileID: 0}

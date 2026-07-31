@@ -29,6 +29,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
     private IRandomStreamProvider randomStreamProvider;
     private IOffenseRegionRuntime offenseRegionRuntime;
     private ITreasuryDefenseRuntime treasuryDefenseRuntime;
+    private IExternalInfluenceRuntime externalInfluence;
+    private IInvasionCampaignRuntime campaignRuntime;
     private IDisposable invasionCandidateSubscription;
     private IDisposable invasionResolvedSubscription;
     private bool nextInvasionIsBoss;
@@ -69,7 +71,9 @@ public class InvasionDirectorRuntime : MonoBehaviour
         IRandomStreamProvider randomStreamProvider,
         IGameEventBus gameEventBus,
         IOffenseRegionRuntime offenseRegionRuntime,
-        ITreasuryDefenseRuntime treasuryDefenseRuntime)
+        ITreasuryDefenseRuntime treasuryDefenseRuntime,
+        IExternalInfluenceRuntime externalInfluence = null,
+        IInvasionCampaignRuntime campaignRuntime = null)
     {
         this.invasionContext = invasionContext
             ?? throw new ArgumentNullException(nameof(invasionContext));
@@ -89,6 +93,8 @@ public class InvasionDirectorRuntime : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(offenseRegionRuntime));
         this.treasuryDefenseRuntime = treasuryDefenseRuntime
             ?? throw new ArgumentNullException(nameof(treasuryDefenseRuntime));
+        this.externalInfluence = externalInfluence;
+        this.campaignRuntime = campaignRuntime;
         SubscribeToScopedEvents();
     }
 
@@ -129,11 +135,20 @@ public class InvasionDirectorRuntime : MonoBehaviour
             treasuryDefenseRuntime);
         intruder = runtime.IntruderActor;
         bool isBoss = nextInvasionIsBoss;
+        bool dreadDefense =
+            externalInfluence?.BeginInvasionDread(isBoss) == true;
         InvasionIntruderSettings effectiveSettings = context.ApplyRunVariables(intruderSettings);
         ApplyStrategicPressure(effectiveSettings);
+        ScheduledInvasionOperationState operation =
+            campaignRuntime?.ScheduleNextOperation(snapshot.threat);
+        ApplyCampaignOperation(effectiveSettings, operation);
         effectiveSettings.rallyDurationSeconds = Mathf.Max(
             MinimumRallyDurationSeconds,
             effectiveSettings.rallyDurationSeconds);
+        if (dreadDefense)
+        {
+            effectiveSettings.rallyDurationSeconds += isBoss ? 5f : 10f;
+        }
 
         float runAdjustedOwnerDamage = effectiveSettings.finalCombatDamage;
         if (isBoss)
@@ -185,8 +200,10 @@ public class InvasionDirectorRuntime : MonoBehaviour
             gameEventBus.Publish(new BossInvasionStartedEvent(intruder, snapshot));
         }
         gameEventBus.RaiseAlert(
-            isBoss ? $"최종 침공 집결 · {pattern.title}" : $"침입자 집결 · {pattern.title}",
-            $"침입자들이 외부에서 집결 중입니다. 약 {Mathf.CeilToInt(effectiveSettings.rallyDurationSeconds)}초 뒤 진입을 시작합니다.",
+            isBoss
+                ? $"최종 침공 집결 · {pattern.title}"
+                : $"침입자 집결 · {pattern.title}",
+            BuildRallyDescription(effectiveSettings, operation),
             EventAlertImportance.High,
             "침입");
         return true;
@@ -214,6 +231,62 @@ public class InvasionDirectorRuntime : MonoBehaviour
             1f - pressure.Logistics * 0.0015f,
             0.85f,
             1f);
+    }
+
+    private void ApplyCampaignOperation(
+        InvasionIntruderSettings settings,
+        ScheduledInvasionOperationState operation)
+    {
+        if (settings == null || operation == null || campaignRuntime == null)
+        {
+            return;
+        }
+
+        float branch = campaignRuntime.GetBranchStrengthMultiplier(
+            operation.primaryBranchId);
+        switch (operation.kind)
+        {
+            case InvasionOperationKind.FrontalAssault:
+                settings.patternId = InvasionIntruderPatternIds.Breaker;
+                settings.healthMultiplier *= branch;
+                break;
+            case InvasionOperationKind.Siege:
+                settings.patternId = InvasionIntruderPatternIds.Breaker;
+                settings.meleeDamageMultiplier *= branch;
+                settings.facilityDamageIntervalSeconds /= Mathf.Max(0.35f, branch);
+                break;
+            case InvasionOperationKind.FacilitySabotage:
+                settings.patternId = InvasionIntruderPatternIds.Ambusher;
+                settings.repathIntervalSeconds /= Mathf.Max(0.35f, branch);
+                break;
+            case InvasionOperationKind.Loot:
+                settings.patternId = InvasionIntruderPatternIds.Plunderer;
+                settings.attackSpeedMultiplier *= branch;
+                break;
+            case InvasionOperationKind.CaptiveRescue:
+                settings.patternId = InvasionIntruderPatternIds.Hunter;
+                settings.healthMultiplier *= Mathf.Lerp(1f, branch, 0.6f);
+                break;
+            case InvasionOperationKind.OwnerAssassination:
+                settings.patternId = InvasionIntruderPatternIds.Executioner;
+                settings.rallyDurationSeconds /= Mathf.Max(0.5f, branch);
+                settings.meleeDamageMultiplier *= branch;
+                break;
+        }
+    }
+
+    private static string BuildRallyDescription(
+        InvasionIntruderSettings settings,
+        ScheduledInvasionOperationState operation)
+    {
+        string operationText = operation != null
+            ? $" 작전: {operation.kind} · 목표: {operation.objectiveId} · " +
+              $"정보 신뢰도 {operation.intelligenceConfidence * 100f:0}%."
+            : string.Empty;
+        return
+            $"침입자들이 외부에서 집결 중입니다. 약 " +
+            $"{Mathf.CeilToInt(settings.rallyDurationSeconds)}초 뒤 진입합니다." +
+            operationText;
     }
 
     public IReadOnlyList<InvasionIntruderPersistenceState> CapturePersistentState(Grid grid)

@@ -7,8 +7,8 @@ using UnityEngine;
 
 public static class ResourceEconomyAssetBuilder
 {
-    public const int ExpectedItemCount = 103;
-    public const int ExpectedRecipeCount = 130;
+    public const int ExpectedItemCount = 108;
+    public const int ExpectedRecipeCount = 131;
     public const int ExpectedCropCount = 8;
     public const int ExpectedMaterialCount = 12;
     public const int ExpectedSubstanceCount = 7;
@@ -29,6 +29,7 @@ public static class ResourceEconomyAssetBuilder
         CropDefinitionSO[] crops = BuildCrops();
         CraftMaterialDefinitionSO[] materials = BuildMaterials();
         SubstanceDefinitionSO[] substances = BuildSubstances();
+        ProductionWorkshopContentAssetBuilder.EnsureAssets();
 
         RequireCount(items.Length, ExpectedItemCount, "items");
         RequireCount(recipes.Length, ExpectedRecipeCount, "recipes");
@@ -98,6 +99,7 @@ public static class ResourceEconomyAssetBuilder
             I("resource:bone", "뼈", "무기 재질, 장신구, 퇴비와 연금 재료.", StockCategory.General, ResourceItemKind.AnimalProduct, ResourceIngredientTag.Mineral, 3, 0.4f, 75, "research:husbandry:capture"),
             I("resource:horn", "뿔", "활, 장신구와 룬 탄두의 재료.", StockCategory.General, ResourceItemKind.AnimalProduct, ResourceIngredientTag.Mineral, 8, 0.45f, 50, "research:husbandry:selective"),
             I("resource:fang", "송곳니", "장신구, 독소와 관통 탄두의 재료.", StockCategory.General, ResourceItemKind.AnimalProduct, ResourceIngredientTag.Mineral, 9, 0.15f, 75, "research:husbandry:capture"),
+            I("resource:rune-dust", "룬 가루", "고위험 야생동물에서 얻는 원정 길잡이 촉매.", StockCategory.Mana, ResourceItemKind.AnimalProduct, ResourceIngredientTag.Arcane, 24, 0.05f, 50, "research:husbandry:capture"),
             I("resource:manure", "분뇨", "퇴비, 실내 재배 영양제와 저급 연료의 원료.", StockCategory.Biological, ResourceItemKind.AnimalProduct, ResourceIngredientTag.Spoiled, 0, 0.5f, 75, "research:husbandry:feed"),
             I("waste:plant-rot", "식물성 부패물", "상한 식물성 음식. 퇴비와 저급 사료로 쓸 수 있다.", StockCategory.General, ResourceItemKind.Waste, ResourceIngredientTag.Plant | ResourceIngredientTag.Spoiled, 0, 0.6f, 75, "research:agriculture:compost"),
             I("waste:animal-rot", "동물성 부패물", "상한 동물성 음식. 육식동물 사료와 연료로 쓸 수 있다.", StockCategory.Biological, ResourceItemKind.Waste, ResourceIngredientTag.Meat | ResourceIngredientTag.Spoiled, 0, 0.7f, 75, "research:agriculture:compost"),
@@ -148,6 +150,10 @@ public static class ResourceEconomyAssetBuilder
             I("craft:candle", "양초", "조명과 의식에 쓰는 연료성 완제품.", StockCategory.Fuel, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fat | ResourceIngredientTag.Fuel, 6, 0.2f, 50, "research:authority:ritual"),
             I("craft:resin-balm", "수액 연고", "피부 손상과 방어구 마찰을 줄이는 연고.", StockCategory.Medicine, ResourceItemKind.Medicine, ResourceIngredientTag.Plant | ResourceIngredientTag.Fat, 10, 0.15f, 40, "research:pharmacology:antiseptic"),
             I("craft:bone-charm", "뼈뿔 장신구", "흥행과 권위 장식에 쓰는 거친 장신구.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, 18, 0.2f, 40, "research:authority:prestige"),
+            I("resource:trail-charm", "길잡이 부적", "숨겨진 원정지의 위험과 약점을 해독하는 부적.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Arcane, 60, 0.1f, 30, "research:husbandry:capture"),
+            I("equipment:slime-warming-pad", "보온 점액 패드", "슬라임 전용 초기 저온 작업복.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, 18, 0.3f, 50, "research:environment:cold-work"),
+            I("equipment:cold-work-suit", "방한 작업복", "8°C 냉장실 상시 근무용 작업복.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber, 42, 0.9f, 40, "research:environment:cold-work"),
+            I("equipment:rune-cold-suit", "룬 방한복", "2°C 장기 근무를 지원하되 치명선을 바꾸지 않는 작업복.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Fiber | ResourceIngredientTag.Arcane, 95, 0.8f, 25, "research:environment:rune-insulation"),
             I("craft:gold-ornament", "금 장식", "권위 시설과 계약 납품에 쓰는 고가 장식.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, 95, 0.4f, 20, "research:metallurgy:precious"),
             I("craft:stone-ornament", "석조 장식", "방의 미관과 대형 사업에 쓰는 석조물.", StockCategory.General, ResourceItemKind.FinishedGood, ResourceIngredientTag.Mineral, 12, 1.6f, 30, "research:mining:stonecutting"),
             I("craft:ritual-reagent", "혈액 의식재", "피와 독소를 안정화한 금기 의식 재료.", StockCategory.Biological, ResourceItemKind.FinishedGood, ResourceIngredientTag.Blood | ResourceIngredientTag.Forbidden, 24, 0.25f, 30, "research:control:blood-show"),
@@ -304,6 +310,10 @@ public static class ResourceEconomyAssetBuilder
             R("recipe:candle", "양초", "cookbench", "work:craft", "research:authority:ritual", 7, A("material:tallow", 1), A("resource:shade-fiber", 1), O("craft:candle", 2)),
             R("recipe:resin-balm", "수액 연고", "apothecary", "work:craft", "research:pharmacology:antiseptic", 10, A("resource:dark-resin", 1), A("material:tallow", 1), A("resource:moonflower", 1), O("craft:resin-balm", 1)),
             R("recipe:bone-charm", "뼈뿔 장신구", "jeweler", "work:craft", "research:authority:prestige", 12, A("resource:bone", 2), A("resource:horn", 1), A("resource:fang", 1), O("craft:bone-charm", 1)),
+            R("recipe:trail-charm", "길잡이 부적", "jeweler", "work:craft", "research:husbandry:capture", 16, A("resource:rune-dust", 1), A("resource:fang", 1), O("resource:trail-charm", 1)),
+            R("recipe:slime-warming-pad", "보온 점액 패드", "loom", "work:craft", "research:environment:cold-work", 10, A("material:cloth", 1), A("resource:dark-resin", 1), O("equipment:slime-warming-pad", 1)),
+            R("recipe:cold-work-suit", "방한 작업복", "loom", "work:craft", "research:environment:cold-work", 18, A("material:cloth", 2), A("material:leather", 2), O("equipment:cold-work-suit", 1)),
+            R("recipe:rune-cold-suit", "룬 방한복", "loom", "work:craft", "research:environment:rune-insulation", 28, A("material:rune-leather", 2), A("resource:mana-crystal", 1), A("resource:rune-dust", 1), O("equipment:rune-cold-suit", 1)),
             R("recipe:gold-ornament", "금 장식", "jeweler", "work:craft", "research:metallurgy:precious", 18, A("material:gold-ingot", 1), A("resource:mana-crystal", 1), O("craft:gold-ornament", 1)),
             R("recipe:stone-ornament", "석조 장식", "stonecutter", "work:craft", "research:mining:stonecutting", 12, A("material:stone-block", 2), A("resource:stone", 1), O("craft:stone-ornament", 1)),
             R("recipe:ritual-reagent", "혈액 의식재", "alchemy", "work:craft", "research:control:blood-show", 16, A("resource:blood", 2), A("material:rot-toxin", 1), O("craft:ritual-reagent", 1)),

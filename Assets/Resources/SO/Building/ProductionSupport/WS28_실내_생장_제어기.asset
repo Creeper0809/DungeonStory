@@ -1,0 +1,94 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "WS28_\uC2E4\uB0B4_\uC0DD\uC7A5_\uC81C\uC5B4\uAE30"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: BuildableObject, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1627
+  objectName: "\uC2E4\uB0B4 \uC0DD\uC7A5 \uC81C\uC5B4\uAE30"
+  sprite: {fileID: 0}
+  icon: {fileID: 0}
+  abilityModules:
+    items:
+    - rid: 7302563313672520071
+    - rid: 7302563313672520072
+    - rid: 7302563313672520073
+  width: 1
+  height: 1
+  layer: 1
+  category: 5
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563313672520071
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: WS28
+    - rid: 7302563313672520072
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - production-support
+        - support:growth-control
+    - rid: 7302563313672520073
+      type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionSupportAbility
+        supportId: production-support:ws28
+        featureTags:
+        - support:growth-control
+        compatibleWorkstationTags:
+        - workstation:hydroponics
+        kind: 0
+        batchCapacity: 1
+        requiresPower: 1
+        cleanWaterPerCycle: 0.2
+        wastewaterPerCycle: 0.05
+        allowsManualWaterFallback: 0
+        requiresFuel: 0
+        fuelItemId: resource:log
+        fuelPerCycle: 1
+        workSpeedMultiplier: 1
+        outputMultiplier: 1
+        qualityModifier: 0

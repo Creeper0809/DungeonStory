@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8092
+  id: 8097
   itemId: drug:hallucinogenic-distillate
   displayName: "\uD658\uAC01\uADE0 \uC99D\uB958\uC561"
   description: "\uAC15\uD55C \uD658\uAC01\uACFC \uC624\uB77D \uD6A8\uACFC\uB97C \uC8FC\uB294
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 4
   ingredientTags: 2
   unitPrice: 22
+  marketSaleRate: 0.6
   unitWeight: 0.15
   maxStack: 25
   sprite: {fileID: 0}

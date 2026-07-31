@@ -42,6 +42,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
     private IFacilityCrimeRiskEvaluator crimeRiskEvaluator;
     private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
     private IMealConsumptionRuntime mealConsumptionRuntime;
+    private IServiceSessionRuntime serviceSessionRuntime;
     private IRandomStream shopRandom;
     private bool stockInitialized;
     public int CurrentStock => GetStockCount();
@@ -101,7 +102,8 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         IFacilityCrimeRiskEvaluator crimeRiskEvaluator,
         IRandomStreamProvider randomStreamProvider = null,
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
-        IMealConsumptionRuntime mealConsumptionRuntime = null)
+        IMealConsumptionRuntime mealConsumptionRuntime = null,
+        IServiceSessionRuntime serviceSessionRuntime = null)
     {
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
@@ -117,6 +119,7 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             ?? throw new ArgumentNullException(nameof(crimeRiskEvaluator));
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
         this.mealConsumptionRuntime = mealConsumptionRuntime;
+        this.serviceSessionRuntime = serviceSessionRuntime;
         shopRandom = (randomStreamProvider
             ?? new RandomStreamProvider(GetInstanceID()))
             .Get("shop-runtime");
@@ -144,7 +147,8 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             crimeRiskEvaluator,
             randomStreamProvider,
             roomEnvironmentExperienceService,
-            mealConsumptionRuntime);
+            mealConsumptionRuntime,
+            null);
     }
 
     public IEnumerator Interact(CharacterActor actor)
@@ -172,17 +176,57 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
             yield break;
         }
 
+        ServiceSessionSnapshot serviceSession = null;
+        BuildingServiceHubAbility serviceHub = this.GetServiceHubAbility();
+        if (serviceHub != null
+            && serviceSessionRuntime != null
+            && !serviceSessionRuntime.TryBeginSession(
+                new ServiceSessionRequest
+                {
+                    Hub = this,
+                    Actor = actor,
+                    ProcessId = serviceHub.supportedProcessIds?
+                        .FirstOrDefault() ?? string.Empty,
+                    IsInternalActor = IsInternalStaffUse(actor),
+                    AdvertisedDemand = !IsInternalStaffUse(actor)
+                },
+                out serviceSession,
+                out string serviceFailure))
+        {
+            shopable.SetVisitOutcome(this, ShoppingVisitOutcome.Failed);
+            actor?.AddActivity(CharacterActivityEvent.Facility(
+                CharacterActivityKinds.Shopping,
+                CharacterActivityOutcomes.Failed,
+                $"{objectNameOrDefault()} 이용 실패: {serviceFailure}",
+                this,
+                reasonCode: serviceFailure,
+                bubbleEligible: true));
+            EndUse(actor);
+            yield break;
+        }
+
         AIAction currentAction = actor != null && actor.Brain != null
             ? actor.Brain.bestAction
             : null;
         if (Facility != null && Facility.SupportsRole(FacilityRole.Meal))
         {
+            if (serviceSession != null)
+            {
+                serviceSessionRuntime.TrySetStage(
+                    serviceSession.SessionId,
+                    ServiceSessionStage.Service,
+                    out _);
+            }
             yield return RunPhysicalMealService(
                 actor,
                 shopable,
                 moveable,
                 currentAction);
-            EndUse(actor);
+            FinishServiceUse(
+                actor,
+                serviceSession,
+                shopable.LastVisitOutcome == ShoppingVisitOutcome.Completed,
+                "식사 서비스가 완료되지 않았습니다.");
             yield break;
         }
 
@@ -228,7 +272,11 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
                 this,
                 reasonCode: "no-purchasable-item",
                 bubbleEligible: true));
-            EndUse(actor);
+            FinishServiceUse(
+                actor,
+                serviceSession,
+                false,
+                "구매 가능한 상품이 없습니다.");
             yield break;
         }
 
@@ -236,15 +284,33 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         actor?.Brain?.SetActionPhase("\uACC4\uC0B0\uB300 \uC774\uB3D9", this);
         yield return moveable.Move2PosBySpeed(endPos, 1f, currentAction);
         CheckoutWaitSession checkoutWaitSession = new CheckoutWaitSession();
-        yield return WaitForServingWorkerWithPatience(actor, checkoutWaitSession);
+        bool requiresManagedAttendant = serviceSession == null
+            ? RequiresServingWorker()
+            : serviceSession.Contract.mode == ServiceOperationMode.Managed
+                && RequiresServingWorker();
+        if (requiresManagedAttendant)
+        {
+            serviceSessionRuntime?.TrySetStage(
+                serviceSession?.SessionId,
+                ServiceSessionStage.Waiting,
+                out _);
+            yield return WaitForServingWorkerWithPatience(
+                actor,
+                checkoutWaitSession);
+        }
         if (checkoutWaitSession.Abandoned
             || shopable.LastVisitOutcome == ShoppingVisitOutcome.Abandoned)
         {
             ReleaseShoppingSelectionBuffer(selection);
-            EndUse(actor);
+            FinishServiceUse(
+                actor,
+                serviceSession,
+                false,
+                "대기 시간이 길어 손님이 떠났습니다.");
             yield break;
         }
-        if (!CanServeCustomer(actor, out string serviceFailureReason))
+        if (requiresManagedAttendant
+            && !CanServeCustomer(actor, out string serviceFailureReason))
         {
             ReleaseShoppingSelectionBuffer(selection);
             shopable.SetVisitOutcome(this, ShoppingVisitOutcome.Failed);
@@ -255,16 +321,24 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
                 this,
                 reasonCode: serviceFailureReason,
                 bubbleEligible: true));
-            EndUse(actor);
+            FinishServiceUse(
+                actor,
+                serviceSession,
+                false,
+                serviceFailureReason);
             yield break;
         }
 
+        serviceSessionRuntime?.TrySetStage(
+            serviceSession?.SessionId,
+            ServiceSessionStage.Service,
+            out _);
         yield return RunCheckoutService(actor);
         if (TryResolveCheckoutCrime(actor, cart))
         {
             ReleaseShoppingSelectionBuffer(selection);
             shopable.SetVisitOutcome(this, ShoppingVisitOutcome.Completed);
-            EndUse(actor);
+            FinishServiceUse(actor, serviceSession, true, string.Empty);
             yield break;
         }
 
@@ -309,7 +383,11 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
                 this,
                 reasonCode: "no-purchasable-item",
                 bubbleEligible: true));
-            EndUse(actor);
+            FinishServiceUse(
+                actor,
+                serviceSession,
+                false,
+                "결제 가능한 상품이 없습니다.");
             yield break;
         }
 
@@ -362,6 +440,37 @@ public class Shop : BuildableObject, IRetailFacility, IRestockableFacility, IRet
         shopable.SetVisitOutcome(this, ShoppingVisitOutcome.Completed);
         ReleaseShoppingSelectionBuffer(selection);
         yield return PurchaseCompleteDelay;
+        FinishServiceUse(actor, serviceSession, true, string.Empty);
+    }
+
+    private void FinishServiceUse(
+        CharacterActor actor,
+        ServiceSessionSnapshot session,
+        bool completed,
+        string failureReason)
+    {
+        if (session != null && serviceSessionRuntime != null)
+        {
+            if (completed)
+            {
+                if (!serviceSessionRuntime.TryCompleteSession(
+                        session.SessionId,
+                        out _,
+                        out string completionFailure))
+                {
+                    serviceSessionRuntime.CancelSession(
+                        session.SessionId,
+                        completionFailure);
+                }
+            }
+            else
+            {
+                serviceSessionRuntime.CancelSession(
+                    session.SessionId,
+                    failureReason);
+            }
+        }
+
         EndUse(actor);
     }
 

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4ba678a78e63274890cfcb96413c482, type: 3}
+  m_Name: ColdWorkSuit
+  m_EditorClassIdentifier: Assembly-CSharp::EnvironmentalWorkwearSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 852633
+  workwearId: workwear:cold-work-suit
+  displayName: "\uBC29\uD55C \uC791\uC5C5\uBCF5"
+  description: "\uC804\uD22C \uBC29\uC5B4\uB825 \uC5C6\uC774 8\xB0C \uB0C9\uC7A5\uC2E4
+    \uC0C1\uC2DC \uADFC\uBB34\uB97C \uC9C0\uC6D0\uD55C\uB2E4."
+  allowedSpecies: []
+  protection:
+    comfortMinimumOffset: -8
+    comfortMaximumOffset: 0
+    safeMinimumOffset: -8
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 0.35
+    heatExposureMultiplier: 1
+  requiredResearchId: research:environment:cold-work

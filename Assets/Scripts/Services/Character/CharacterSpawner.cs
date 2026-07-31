@@ -56,6 +56,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
     private ICharacterSpawnObjectFactory characterObjectFactory;
     private IRunCharacterCatalog characterCatalog;
     private ICharacterPopulationService characterPopulationService;
+    private IFactionRuntime factionRuntime;
     private IOwnerRunManagerProvider ownerRunManagerProvider;
     private IBuildingWorldQuery buildingWorldQuery;
     private IRandomStream respawnRandomStream;
@@ -74,7 +75,8 @@ public class CharacterSpawner : BuildableObject,IInteractable
         ICharacterPopulationService characterPopulationService,
         IOwnerRunManagerProvider ownerRunManagerProvider,
         IBuildingWorldQuery buildingWorldQuery,
-        IRandomStreamProvider randomStreamProvider)
+        IRandomStreamProvider randomStreamProvider,
+        IFactionRuntime factionRuntime = null)
     {
         this.regularCustomerRuntimeProvider = regularCustomerRuntimeProvider
             ?? throw new ArgumentNullException(nameof(regularCustomerRuntimeProvider));
@@ -92,6 +94,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
             ?? throw new ArgumentNullException(nameof(ownerRunManagerProvider));
         this.buildingWorldQuery = buildingWorldQuery
             ?? throw new ArgumentNullException(nameof(buildingWorldQuery));
+        this.factionRuntime = factionRuntime;
         respawnRandomStream = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("character-spawner");
@@ -214,6 +217,17 @@ public class CharacterSpawner : BuildableObject,IInteractable
         if (!charactersById.TryGetValue(id, out CharacterSO characterData))
         {
             Debug.LogWarning($"스폰할 캐릭터 데이터를 찾지 못했습니다. id: {id}");
+            return false;
+        }
+
+        CharacterSpeciesSO species = characterData.species;
+        if (species != null
+            && !species.ownerSelectable
+            && (string.IsNullOrWhiteSpace(species.homeFactionId)
+                || factionRuntime?.IsContractUnlocked(
+                    species.homeFactionId,
+                    FactionContractKind.Recruitment) != true))
+        {
             return false;
         }
 

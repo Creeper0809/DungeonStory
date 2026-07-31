@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8044
+  id: 8045
   itemId: material:cloth
   displayName: "\uCC9C"
   description: "\uC758\uBCF5, \uBD95\uB300\uC640 \uAC00\uBCBC\uC6B4 \uBC29\uC5B4\uAD6C\uC758
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 128
   unitPrice: 7
+  marketSaleRate: 0.6
   unitWeight: 0.2
   maxStack: 75
   sprite: {fileID: 0}

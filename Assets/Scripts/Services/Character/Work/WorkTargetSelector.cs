@@ -82,6 +82,7 @@ public sealed class WorkTargetSelector
     private readonly AbilityWork work;
     private readonly IWorkPolicyRegistry workPolicyRegistry;
     private readonly ICaptiveLaborQuery captiveLaborQuery;
+    private readonly IEnvironmentWorkPolicy environmentWorkPolicy;
     private readonly Dictionary<FacilityWorkType, CandidateCacheEntry> candidateCache =
         new Dictionary<FacilityWorkType, CandidateCacheEntry>();
     private readonly Dictionary<FacilityWorkType, IncrementalCandidateScan> incrementalScans =
@@ -104,11 +105,13 @@ public sealed class WorkTargetSelector
     public WorkTargetSelector(
         AbilityWork work,
         IWorkPolicyRegistry workPolicyRegistry = null,
-        ICaptiveLaborQuery captiveLaborQuery = null)
+        ICaptiveLaborQuery captiveLaborQuery = null,
+        IEnvironmentWorkPolicy environmentWorkPolicy = null)
     {
         this.work = work;
         this.workPolicyRegistry = workPolicyRegistry;
         this.captiveLaborQuery = captiveLaborQuery;
+        this.environmentWorkPolicy = environmentWorkPolicy;
     }
 
     public void SeedDecisionContext(
@@ -961,6 +964,29 @@ public sealed class WorkTargetSelector
                 continue;
             }
 
+            if (environmentWorkPolicy != null)
+            {
+                EnvironmentalWorkKind environmentKind =
+                    ResolveEnvironmentWorkKind(workTypeId);
+                WorkEnvironmentAssessment environmentAssessment =
+                    environmentWorkPolicy.Assess(
+                        work.WorkerActor,
+                        building.centerPos,
+                        EstimateRemainingWorkSeconds(
+                            building,
+                            workTypeId),
+                        environmentKind,
+                        forced: ignorePriority);
+                if (!environmentAssessment.CanStart)
+                {
+                    lastWorkTypeFailure = AIActionFailure.Create(
+                        AIActionFailureKind.NoWork,
+                        environmentAssessment.Reason,
+                        building);
+                    continue;
+                }
+            }
+
             WorkTargetCandidate candidate = BuildCandidate(building, definition, priority, searchResult);
             if (!bestCandidate.IsValid || candidate.Score > bestCandidate.Score)
             {
@@ -981,8 +1007,144 @@ public sealed class WorkTargetSelector
             return false;
         }
 
+        if (environmentWorkPolicy != null)
+        {
+            GridMoveStep[] route = searchResult?
+                .GetMovePathTo(bestCandidate.Building.centerPos)
+                .ToArray()
+                ?? System.Array.Empty<GridMoveStep>();
+            WorkEnvironmentAssessment preciseAssessment =
+                environmentWorkPolicy.AssessStart(
+                    work.WorkerActor,
+                    bestCandidate.Building.centerPos,
+                    route,
+                    EstimateRemainingWorkSeconds(
+                        bestCandidate.Building,
+                        bestCandidate.WorkTypeId),
+                    ResolveEnvironmentWorkKind(bestCandidate.WorkTypeId),
+                    forced: ignorePriority);
+            if (!preciseAssessment.CanStart)
+            {
+                bestCandidate = WorkTargetCandidate.Invalid(
+                    building,
+                    preciseAssessment.Reason,
+                    AIActionFailureKind.NoWork);
+                LastRejectedCandidate = bestCandidate;
+                return false;
+            }
+        }
+
         LastRejectedCandidate = default;
         return true;
+    }
+
+    internal bool RequiresForcedEnvironmentConfirmation(
+        BuildableObject building,
+        WorkTypeId workTypeId,
+        GridPathSearchResult searchResult,
+        out string warning)
+    {
+        warning = string.Empty;
+        if (environmentWorkPolicy == null
+            || building == null
+            || !workTypeId.IsValid
+            || work.WorkerActor == null)
+        {
+            return false;
+        }
+
+        GridPathSearchResult resolvedSearch = searchResult;
+        if (resolvedSearch == null)
+        {
+            Grid grid = work.WorkGridResolver.ResolveActiveGrid(work, null);
+            resolvedSearch = grid?.SearchPath(work.WorkerActor.GetNowXY());
+        }
+
+        GridMoveStep[] route = resolvedSearch?
+            .GetMovePathTo(building.centerPos)
+            .ToArray()
+            ?? System.Array.Empty<GridMoveStep>();
+        WorkEnvironmentAssessment assessment =
+            environmentWorkPolicy.AssessStart(
+                work.WorkerActor,
+                building.centerPos,
+                route,
+                EstimateRemainingWorkSeconds(building, workTypeId),
+                ResolveEnvironmentWorkKind(workTypeId),
+                forced: true);
+        bool requiresConfirmation =
+            assessment.Projection.HasLethalChannel
+            || assessment.Projection.WorstBand
+                >= EnvironmentalExposureBand.Critical;
+        if (requiresConfirmation)
+        {
+            warning = assessment.Reason
+                + " 붕괴 시 안전 셀 대피와 치료는 가능하지만 캐릭터 손실 위험이 있습니다. "
+                + "같은 명령을 다시 실행하면 이 위험을 감수합니다.";
+        }
+
+        return requiresConfirmation;
+    }
+
+    private float EstimateRemainingWorkSeconds(
+        BuildableObject building,
+        WorkTypeId workTypeId)
+    {
+        if (building == null || !workTypeId.IsValid)
+        {
+            return 60f;
+        }
+
+        float remainingWork = 0f;
+        if (work.WorkOrderRuntime != null
+            && work.WorkOrderRuntime.TryGetOrderFor(
+                building,
+                workTypeId,
+                out WorkOrderProgressState order))
+        {
+            remainingWork = Mathf.Max(
+                0f,
+                order.RequiredWork - order.CompletedWork);
+        }
+        else
+        {
+            remainingWork = Mathf.Max(
+                0f,
+                building.BuildingData != null
+                    ? building.BuildingData.GetRequiredWork(workTypeId)
+                    : 0f);
+        }
+
+        if (remainingWork <= 0f)
+        {
+            return 60f;
+        }
+
+        float speed = work.WorkerActor != null
+            ? Mathf.Max(
+                0.05f,
+                work.WorkerActor.GetWorkSpeedMultiplier(workTypeId))
+            : 1f;
+        return Mathf.Clamp(remainingWork / speed, 0.1f, 3600f);
+    }
+
+    private static EnvironmentalWorkKind ResolveEnvironmentWorkKind(
+        WorkTypeId workTypeId)
+    {
+        string id = workTypeId.Value ?? string.Empty;
+        if (id.IndexOf("research", System.StringComparison.OrdinalIgnoreCase)
+            >= 0
+            || id.IndexOf("craft", System.StringComparison.OrdinalIgnoreCase)
+            >= 0
+            || id.IndexOf("medical", System.StringComparison.OrdinalIgnoreCase)
+            >= 0
+            || id.IndexOf("treat", System.StringComparison.OrdinalIgnoreCase)
+            >= 0)
+        {
+            return EnvironmentalWorkKind.Precision;
+        }
+
+        return EnvironmentalWorkKind.General;
     }
 
     private WorkTargetCandidate BuildCandidate(

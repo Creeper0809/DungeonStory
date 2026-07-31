@@ -35,11 +35,11 @@ public sealed class ProductionBillsSaveSection : IDungeonSaveSection
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion != SectionVersion)
+        if (sectionVersion < 1 || sectionVersion > SectionVersion)
         {
             report.AddError(
                 $"Unsupported production-bill section version {sectionVersion}; "
-                + $"expected {SectionVersion}.");
+                + $"expected 1..{SectionVersion}.");
             return;
         }
 

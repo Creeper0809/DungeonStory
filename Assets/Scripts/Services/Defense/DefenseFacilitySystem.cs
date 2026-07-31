@@ -40,6 +40,28 @@ public enum DefenseStatusKind
     Slow
 }
 
+public enum DefenseSupplyKind
+{
+    None = 0,
+    MetalParts = 1,
+    Toxin = 2,
+    Fuel = 3,
+    Ammunition = 4,
+    ElectricalCharge = 5,
+    Treasury = 6
+}
+
+[Serializable]
+public sealed class DefenseFacilityGrowthData
+{
+    [Min(0)] public int capacityLevel;
+    [Min(0)] public int resetSpeedLevel;
+    [Min(0)] public int effectStrengthLevel;
+    [Min(0)] public int detectionRangeLevel;
+    [Min(0)] public int identificationLevel;
+    [Min(0)] public int outageResistanceLevel;
+}
+
 [Serializable]
 public class DefenseFacilityData
 {
@@ -53,8 +75,28 @@ public class DefenseFacilityData
     [Min(1)] public int star = 1;
     public string combatLogText;
     public DefenseEffectSO[] effectAssets = Array.Empty<DefenseEffectSO>();
+    [Header("Physical operation")]
+    public DefenseSupplyKind supplyKind;
+    public string supplyItemId = string.Empty;
+    public StockCategory supplyCategory = StockCategory.General;
+    [Min(0)] public int supplyCapacity;
+    [Min(0)] public int supplyPerActivation = 1;
+    [Min(0)] public int initialSupply = 1;
+    public bool requiresPower;
+    [Min(0f)] public float powerDemand;
+    [Min(0f)] public float conditionLossPerActivation = 1f;
+    [Range(0f, 1f)] public float baseJamChance;
+    [Range(0f, 1f)] public float baseMisfireChance;
+    public string facilityFamilyId = "defense:general";
+    public string[] affinityTags = Array.Empty<string>();
+    public DefenseFacilityGrowthData growth = new DefenseFacilityGrowthData();
 
     public bool IsDefenseFacility => enabled && concept != DefenseAttackConcept.None;
+    public bool UsesPhysicalSupply =>
+        supplyKind != DefenseSupplyKind.None
+        && supplyKind != DefenseSupplyKind.ElectricalCharge
+        && supplyKind != DefenseSupplyKind.Treasury
+        && supplyCapacity > 0;
 
     public bool SupportsTrigger(DefenseTriggerTiming timing)
     {
@@ -178,19 +220,24 @@ public class DefenseFacility : Facility
     private float nextTriggerTime;
     private DungeonStory.Foundation.IGameEventBus gameEventBus;
     private IWorldThreatModifierQuery worldThreatModifiers;
+    private IDefenseFacilityRuntime defenseRuntime;
 
     [VContainer.Inject]
     public void ConstructDefenseFacilityEventBus(
         DungeonStory.Foundation.IGameEventBus gameEventBus,
-        IWorldThreatModifierQuery worldThreatModifiers = null)
+        IWorldThreatModifierQuery worldThreatModifiers = null,
+        IDefenseFacilityRuntime defenseRuntime = null)
     {
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.worldThreatModifiers = worldThreatModifiers;
+        this.defenseRuntime = defenseRuntime;
     }
 
     public DefenseFacilityData Defense => BuildingData != null ? BuildingData.Defense : null;
-    public float CooldownRemaining => Mathf.Max(0f, nextTriggerTime - GameTime);
+    public float CooldownRemaining => Mathf.Max(
+        Mathf.Max(0f, nextTriggerTime - GameTime),
+        defenseRuntime?.GetSnapshot(this).CooldownRemaining ?? 0f);
 
     public bool CanTrigger(DefenseTriggerTiming timing, out string failureReason)
     {
@@ -226,6 +273,16 @@ public class DefenseFacility : Facility
             return false;
         }
 
+        if (defenseRuntime != null
+            && !defenseRuntime.CanActivate(
+                this,
+                null,
+                timing,
+                out failureReason))
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -240,6 +297,19 @@ public class DefenseFacility : Facility
             return null;
         }
 
+        DefenseActivationAuthorization operational =
+            DefenseActivationAuthorization.Granted;
+        if (defenseRuntime != null
+            && !defenseRuntime.TryBeginActivation(
+                this,
+                intruder,
+                timing,
+                out operational,
+                out _))
+        {
+            return null;
+        }
+
         DefenseActivationReport report = new DefenseActivationReport(this, intruder, timing);
         nextTriggerTime = GameTime + Mathf.Max(0f, Defense.cooldownSeconds);
         DefenseEffectResolver.ApplyEffects(
@@ -249,7 +319,17 @@ public class DefenseFacility : Facility
             statusRuntimeService,
             (worldThreatModifiers?.GetMultiplier(
                 OffenseThreatModifierKind.AutomatedDefense) ?? 1f)
-                * Mathf.Max(0f, paidPerformanceMultiplier));
+                * Mathf.Max(0f, paidPerformanceMultiplier)
+                * operational.EffectMultiplier);
+        if (operational.Jammed)
+        {
+            report.AddEffectTag("걸림");
+        }
+        if (operational.Misfired)
+        {
+            report.AddEffectTag("오작동");
+        }
+        defenseRuntime?.CompleteActivation(this, operational);
         intruder.AddActivity(CharacterActivityEvent.Facility(
             CharacterActivityKinds.Combat,
             CharacterActivityOutcomes.Damaged,

@@ -49,8 +49,8 @@ MonoBehaviour:
     - rid: 7302563239038812845
     - rid: 7302563239038812846
     - rid: 7302563239038812847
-    - rid: 7302563284524204895
-    - rid: 7302563284524204896
+    - rid: 7302563313663345582
+    - rid: 7302563313663345583
   width: 1
   height: 1
   layer: 1
@@ -122,14 +122,14 @@ MonoBehaviour:
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
-    - rid: 7302563284524204895
+    - rid: 7302563313663345582
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7302563284524204896
+    - rid: 7302563313663345583
       type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterFixtureAbility

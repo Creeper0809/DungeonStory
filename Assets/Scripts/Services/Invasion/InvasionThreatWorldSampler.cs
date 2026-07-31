@@ -11,11 +11,13 @@ public sealed class InvasionThreatWorldSampler : IInvasionThreatWorldSampler
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly ICharacterWorldQuery characterWorld;
     private readonly IFacilityCrimeRiskEvaluator crimeRiskEvaluator;
+    private readonly IExternalInfluenceRuntime externalInfluence;
 
     public InvasionThreatWorldSampler(
         IBuildingWorldQuery buildingWorld,
         ICharacterWorldQuery characterWorld,
-        IFacilityCrimeRiskEvaluator crimeRiskEvaluator)
+        IFacilityCrimeRiskEvaluator crimeRiskEvaluator,
+        IExternalInfluenceRuntime externalInfluence)
     {
         this.buildingWorld = buildingWorld
             ?? throw new System.ArgumentNullException(nameof(buildingWorld));
@@ -23,6 +25,8 @@ public sealed class InvasionThreatWorldSampler : IInvasionThreatWorldSampler
             ?? throw new System.ArgumentNullException(nameof(characterWorld));
         this.crimeRiskEvaluator = crimeRiskEvaluator
             ?? throw new System.ArgumentNullException(nameof(crimeRiskEvaluator));
+        this.externalInfluence = externalInfluence
+            ?? throw new System.ArgumentNullException(nameof(externalInfluence));
     }
 
     public InvasionThreatFactors Sample(float secondsSinceLastInvasion)
@@ -31,7 +35,7 @@ public sealed class InvasionThreatWorldSampler : IInvasionThreatWorldSampler
         IReadOnlyList<CharacterActor> characters = characterWorld.Characters;
 
         float dungeonValue = CalculateDungeonValue(buildings);
-        float reputation = CalculateReputation(characters);
+        float reputation = externalInfluence.HostileRumor / 10f;
         float time = Mathf.Clamp(secondsSinceLastInvasion / 180f, 0f, 10f);
         float risk = CalculateRisk(buildings);
         return new InvasionThreatFactors(dungeonValue, reputation, time, risk);
@@ -40,39 +44,6 @@ public sealed class InvasionThreatWorldSampler : IInvasionThreatWorldSampler
     private static float CalculateDungeonValue(IEnumerable<BuildableObject> buildings)
     {
         return InvasionThreatValueCalculator.CalculateDungeonValue(buildings);
-    }
-
-    private static float CalculateReputation(IEnumerable<CharacterActor> characters)
-    {
-        if (characters == null)
-        {
-            return 0f;
-        }
-
-        int customers = 0;
-        float mood = 0f;
-        foreach (CharacterActor character in characters)
-        {
-            CharacterIdentity identity = character != null ? character.Identity : null;
-            if (identity == null || identity.CharacterType != CharacterType.Customer)
-            {
-                continue;
-            }
-
-            customers++;
-            CharacterStats stats = character.Stats;
-            if (stats != null && stats.Stats.TryGetValue(CharacterCondition.MOOD, out float sample))
-            {
-                mood += Mathf.Clamp(sample, 0f, 100f) / 100f;
-            }
-        }
-
-        if (customers == 0)
-        {
-            return 0f;
-        }
-
-        return customers + (mood / Mathf.Max(1, customers));
     }
 
     private float CalculateRisk(IEnumerable<BuildableObject> buildings)

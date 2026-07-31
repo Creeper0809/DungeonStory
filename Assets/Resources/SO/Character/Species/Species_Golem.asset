@@ -1,0 +1,176 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
+  m_Name: Species_Golem
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9
+  speciesTag: Golem
+  displayName: "\uACE8\uB818"
+  ownerSelectionPolicy: 1
+  homeFactionId: faction:dungeon:golem
+  anatomyProfileId: anatomy:construct
+  needs:
+    hungerRateMultiplier: 0
+    thirstRateMultiplier: 0
+    sleepRateMultiplier: 0.35
+    hygieneRateMultiplier: 0.6
+    socialNeedMultiplier: 0.3
+    chargeRateMultiplier: 1
+    integrityWearMultiplier: 1
+    diet: 0
+    metabolism: 1
+    treatment: 1
+  environment:
+    comfortMinimum: -5
+    comfortMaximum: 35
+    safeMinimum: -20
+    safeMaximum: 50
+    lethalMinimum: -35
+    lethalMaximum: 65
+    comfortableAirMinimum: 20
+    comfortableLightMinimum: 40
+    comfortableLightMaximum: 100
+    airborneExposureMultiplier: 1
+    visualStrainMultiplier: 1
+    preferredHumidity: 0.5
+    drynessSensitivity: 1
+  relationTags:
+  - "\uC9C8\uC11C"
+  - "\uB9C8\uB825"
+  - "\uAE30\uACC4"
+  defenseAffinityTags:
+  - "\uBC29\uBCBD"
+  - "\uC911\uD654\uAE30"
+  - "\uC2DC\uC124-\uBCF5\uAD6C"
+  strongWorkTypeIds:
+  - work:repair
+  - work:haul
+  - work:construct
+  - work:plumbing
+  weakWorkTypeIds:
+  - work:research
+  - work:reception
+  shortDescription: "\uC11D\uB9E5 \uC8FC\uC870\uC18C \uCD9C\uC2E0 \xB7 \uCDA9\uC804\uC18C\xB7\uC815\uBE44\uC2E4\xB7\uC911\uB7C9
+    \uD558\uC5ED\uC7A5 \uC120\uD638"
+  description: "\uACE8\uB818\uC740(\uB294) \uC11D\uB9E5 \uC8FC\uC870\uC18C\uC744
+    \uB300\uD45C\uD558\uB294 \uC885\uC871\uC774\uB2E4. \uC190\uB2D8\xB7\uBAA8\uC9D1
+    \uC9C1\uC6D0\xB7\uC0C1\uC778\xB7\uD3EC\uB85C\xB7\uB3D9\uB9F9 \uC9C0\uC6D0\uAD70\uC73C\uB85C
+    \uB4F1\uC7A5\uD55C\uB2E4."
+  preferredFacilityLabels:
+  - "\uCDA9\uC804\uC18C"
+  - "\uC815\uBE44\uC2E4"
+  - "\uC911\uB7C9 \uD558\uC5ED\uC7A5"
+  dislikedEnvironmentLabels:
+  - "\uCE68\uC218 \uAD6C\uC5ED"
+  - "\uBD80\uC2DD \uC624\uC5FC"
+  - "\uC7A5\uAE30 \uBB34\uCDA9\uC804 \uAD6C\uC5ED"
+  stayDurationMultiplier: 1
+  crimeRiskMultiplier: 1
+  incidentType: 0
+  incident:
+    incidentId: species-incident:golem-core-overload
+    displayName: "\uD575 \uACFC\uBD80\uD558"
+    description: "\uCDA9\uC804 \uBD80\uC871\uACFC \uC190\uC0C1\uC774 \uACB9\uCE58\uBA74
+      \uD575\uC774 \uACFC\uC5F4\uB418\uC5B4 \uC2DC\uC124\uC744 \uD30C\uC190\uD560
+      \uC218 \uC788\uB2E4."
+    mitigatingRoles: 96
+    triggerTags:
+    - discontent
+    - species-specific
+  incidentName: "\uD575 \uACFC\uBD80\uD558"
+  incidentDescription: "\uCDA9\uC804 \uBD80\uC871\uACFC \uC190\uC0C1\uC774 \uACB9\uCE58\uBA74
+    \uD575\uC774 \uACFC\uC5F4\uB418\uC5B4 \uC2DC\uC124\uC744 \uD30C\uC190\uD560 \uC218
+    \uC788\uB2E4."
+  incidentMitigatingRoles: 96
+  statBonus:
+    entries:
+    - statId: stat:attack
+      value: 1
+    - statId: stat:shooting
+      value: 0
+    - statId: stat:evasion
+      value: 0
+    - statId: stat:sales
+      value: -1
+    - statId: stat:research
+      value: -1
+    - statId: stat:move-speed
+      value: 0
+    - statId: stat:strength
+      value: 0
+    - statId: stat:toughness
+      value: 5
+    - statId: stat:dexterity
+      value: -1
+    - statId: stat:cleaning
+      value: 0
+    - statId: stat:endurance
+      value: 0
+    - statId: stat:medical
+      value: 0
+  modifiers:
+    consumptionMultiplier: 0
+    spendingMultiplier: 1
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1.05
+    researchSpeedMultiplier: 1
+    combatPowerMultiplier: 1.15
+    moveSpeedMultiplier: 1
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 537002500
+    dislikedWorkTypes: 1040
+  combatPassive:
+    passiveId: species-passive:golem
+    displayName: "\uBD88\uAD74 \uAD6C\uC870"
+    description: "\uC911\uB7C9 \uC6B4\uBC18\xB7\uAC74\uC124\xB7\uBC29\uBCBD \uBCF5\uAD6C\uC5D0
+      \uAC15\uD558\uC9C0\uB9CC \uC0DD\uBB3C \uC218\uC220\uC744 \uBC1B\uC744 \uC218
+      \uC5C6\uB2E4."
+    mechanicTags:
+    - "\uC911\uB7C9"
+    - "\uC815\uBE44"
+  combatAbilities:
+    abilities:
+    - rid: 7302563310531248891
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563310531248891
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+      data:
+        id: species-active:golem
+        displayName: "\uC8FC\uC870 \uBC29\uBCBD"
+        description: "\uC790\uC2E0\uACFC \uC544\uAD70\uC758 \uD53C\uD574\uB97C \uC7A0\uC2DC
+          \uD06C\uAC8C \uC904\uC778\uB2E4."
+        cooldownTurns: 2
+        targetRule: 1
+        usableFrom: 7
+        targetPositions: 7
+        effects:
+        - rid: 7302563310531248892
+    - rid: 7302563310531248892
+      type: {class: OffenseGuardEffect, ns: , asm: Assembly-CSharp}
+      data:
+        damageReduction: 0.45
+        turns: 2

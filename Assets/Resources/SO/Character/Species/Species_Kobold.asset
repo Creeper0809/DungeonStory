@@ -1,0 +1,172 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
+  m_Name: Species_Kobold
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 6
+  speciesTag: Kobold
+  displayName: "\uCF54\uBCFC\uD2B8"
+  ownerSelectionPolicy: 1
+  homeFactionId: faction:dungeon:kobold
+  anatomyProfileId: anatomy:humanoid
+  needs:
+    hungerRateMultiplier: 0.85
+    thirstRateMultiplier: 0.9
+    sleepRateMultiplier: 1
+    hygieneRateMultiplier: 1
+    socialNeedMultiplier: 0.9
+    chargeRateMultiplier: 1
+    integrityWearMultiplier: 1
+    diet: 2
+    metabolism: 0
+    treatment: 0
+  environment:
+    comfortMinimum: 11
+    comfortMaximum: 28
+    safeMinimum: -2
+    safeMaximum: 40
+    lethalMinimum: -10
+    lethalMaximum: 48
+    comfortableAirMinimum: 60
+    comfortableLightMinimum: 40
+    comfortableLightMaximum: 100
+    airborneExposureMultiplier: 1
+    visualStrainMultiplier: 1
+    preferredHumidity: 0.5
+    drynessSensitivity: 1
+  relationTags:
+  - "\uC9C8\uC11C"
+  - "\uD611\uC18C"
+  - "\uAE30\uACC4"
+  defenseAffinityTags:
+  - "\uAE30\uACC4"
+  - "\uC218\uB9AC"
+  - "\uD0C4\uC57D"
+  strongWorkTypeIds:
+  - work:repair
+  - work:refuel
+  - work:quarry
+  weakWorkTypeIds:
+  - work:reception
+  - work:perform
+  shortDescription: "\uC2EC\uCE35 \uD1B1\uB2C8\uAD74 \uCD9C\uC2E0 \xB7 \uC815\uBE44\uC2E4\xB7\uCC44\uAD74
+    \uC791\uC5C5\uC7A5\xB7\uC881\uC740 \uC219\uC18C \uC120\uD638"
+  description: "\uCF54\uBCFC\uD2B8\uC740(\uB294) \uC2EC\uCE35 \uD1B1\uB2C8\uAD74\uC744
+    \uB300\uD45C\uD558\uB294 \uC885\uC871\uC774\uB2E4. \uC190\uB2D8\xB7\uBAA8\uC9D1
+    \uC9C1\uC6D0\xB7\uC0C1\uC778\xB7\uD3EC\uB85C\xB7\uB3D9\uB9F9 \uC9C0\uC6D0\uAD70\uC73C\uB85C
+    \uB4F1\uC7A5\uD55C\uB2E4."
+  preferredFacilityLabels:
+  - "\uC815\uBE44\uC2E4"
+  - "\uCC44\uAD74 \uC791\uC5C5\uC7A5"
+  - "\uC881\uC740 \uC219\uC18C"
+  dislikedEnvironmentLabels:
+  - "\uB300\uD615 \uC5F0\uD68C\uC7A5"
+  - "\uBB34\uC9C8\uC11C\uD55C \uCC3D\uACE0"
+  - "\uC57C\uC678 \uB178\uC219\uC9C0"
+  stayDurationMultiplier: 1
+  crimeRiskMultiplier: 1.15
+  incidentType: 0
+  incident:
+    incidentId: species-incident:kobold-parts-hoarding
+    displayName: "\uBD80\uD488 \uC0AC\uC7AC\uAE30"
+    description: "\uBD88\uB9CC\uC774 \uCEE4\uC9C0\uBA74 \uC2E4\uC81C \uAE08\uC18D
+      \uBD80\uD488\uACFC \uD0C4\uC57D\uC744 \uC740\uB2C9 \uC2A4\uD0DD\uC73C\uB85C
+      \uC62E\uAE34\uB2E4."
+    mitigatingRoles: 1088
+    triggerTags:
+    - discontent
+    - species-specific
+  incidentName: "\uBD80\uD488 \uC0AC\uC7AC\uAE30"
+  incidentDescription: "\uBD88\uB9CC\uC774 \uCEE4\uC9C0\uBA74 \uC2E4\uC81C \uAE08\uC18D
+    \uBD80\uD488\uACFC \uD0C4\uC57D\uC744 \uC740\uB2C9 \uC2A4\uD0DD\uC73C\uB85C \uC62E\uAE34\uB2E4."
+  incidentMitigatingRoles: 1088
+  statBonus:
+    entries:
+    - statId: stat:attack
+      value: 0
+    - statId: stat:shooting
+      value: 0
+    - statId: stat:evasion
+      value: 0
+    - statId: stat:sales
+      value: 0
+    - statId: stat:research
+      value: 1
+    - statId: stat:move-speed
+      value: 0
+    - statId: stat:strength
+      value: 0
+    - statId: stat:toughness
+      value: -1
+    - statId: stat:dexterity
+      value: 3
+    - statId: stat:cleaning
+      value: 0
+    - statId: stat:endurance
+      value: 0
+    - statId: stat:medical
+      value: 0
+  modifiers:
+    consumptionMultiplier: 0.85
+    spendingMultiplier: 1
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1.05
+    researchSpeedMultiplier: 1
+    combatPowerMultiplier: 1
+    moveSpeedMultiplier: 1
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 16842756
+    dislikedWorkTypes: 525312
+  combatPassive:
+    passiveId: species-passive:kobold
+    displayName: "\uD1B1\uB2C8 \uAC10\uAC01"
+    description: "\uAE30\uACC4 \uD568\uC815 \uC7AC\uC124\uC815\uACFC \uC218\uB9AC\xB7\uD0C4\uC57D
+      \uBCF4\uAE09\uC774 \uBE60\uB974\uB2E4."
+    mechanicTags:
+    - "\uAE30\uACC4"
+    - "\uC815\uBE44"
+  combatAbilities:
+    abilities:
+    - rid: 7302563310531248881
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563310531248881
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+      data:
+        id: species-active:kobold
+        displayName: "\uAE09\uC870 \uD568\uC815"
+        description: "\uC801\uC758 \uD589\uB3D9\uC744 \uC9C0\uC5F0\uC2DC\uD0A4\uACE0
+          \uBC29\uC5B4\uB97C \uC57D\uD654\uD55C\uB2E4."
+        cooldownTurns: 2
+        targetRule: 2
+        usableFrom: 7
+        targetPositions: 7
+        effects:
+        - rid: 7302563310531248882
+    - rid: 7302563310531248882
+      type: {class: OffenseDelayEffect, ns: , asm: Assembly-CSharp}
+      data:
+        initiativePenalty: 0.35

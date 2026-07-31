@@ -10,6 +10,9 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
     private IMealConsumptionRuntime mealConsumptionRuntime;
     private IWaterFixtureUseRuntime waterFixtureUseRuntime;
+    private IWastewaterNetworkRuntime wastewaterNetworkRuntime;
+    private IServiceSessionRuntime serviceSessionRuntime;
+    private IServiceRoomLinkRuntime serviceRoomLinkRuntime;
 
     public WarehouseInventory Inventory => warehouseInventory;
     public bool HasWarehouseInventory => warehouseInventory != null;
@@ -18,11 +21,17 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     public void ConstructFacility(
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService,
         IMealConsumptionRuntime mealConsumptionRuntime = null,
-        IWaterFixtureUseRuntime waterFixtureUseRuntime = null)
+        IWaterFixtureUseRuntime waterFixtureUseRuntime = null,
+        IWastewaterNetworkRuntime wastewaterNetworkRuntime = null,
+        IServiceSessionRuntime serviceSessionRuntime = null,
+        IServiceRoomLinkRuntime serviceRoomLinkRuntime = null)
     {
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
         this.mealConsumptionRuntime = mealConsumptionRuntime;
         this.waterFixtureUseRuntime = waterFixtureUseRuntime;
+        this.wastewaterNetworkRuntime = wastewaterNetworkRuntime;
+        this.serviceSessionRuntime = serviceSessionRuntime;
+        this.serviceRoomLinkRuntime = serviceRoomLinkRuntime;
     }
 
     public override void Initialization(BuildingSO buildingSO, Vector2Int buildPos)
@@ -73,14 +82,72 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             yield break;
         }
 
+        ServiceSessionSnapshot serviceSession = null;
+        BuildingServiceHubAbility serviceHub = this.GetServiceHubAbility();
+        if (serviceHub != null
+            && serviceSessionRuntime != null
+            && !serviceSessionRuntime.TryBeginSession(
+                new ServiceSessionRequest
+                {
+                    Hub = this,
+                    Actor = actor,
+                    ProcessId = serviceHub.supportedProcessIds?
+                        .FirstOrDefault() ?? string.Empty,
+                    IsInternalActor = Shop.IsInternalStaffUse(actor),
+                    AdvertisedDemand = !Shop.IsInternalStaffUse(actor)
+                },
+                out serviceSession,
+                out string serviceFailure))
+        {
+            actor?.AddActivity(CharacterActivityEvent.Facility(
+                CharacterActivityKinds.FacilityUse,
+                CharacterActivityOutcomes.Failed,
+                $"{objectNameOrDefault()} 이용 실패: {serviceFailure}",
+                this,
+                reasonCode: serviceFailure,
+                bubbleEligible: true));
+            yield break;
+        }
+
         WaterFixtureUseTicket fixtureUseTicket = default;
+        BuildingWaterFixtureAbility waterFixture =
+            BuildingData?.GetAbility<BuildingWaterFixtureAbility>();
+        if (waterFixture != null
+            && wastewaterNetworkRuntime != null
+            && waterFixture.wastewaterPerUse > 0f
+            && !wastewaterNetworkRuntime.CanAcceptWastewater(
+                this,
+                waterFixture.wastewaterPerUse,
+                out string drainFailure))
+        {
+            if (serviceSession != null)
+            {
+                serviceSessionRuntime.CancelSession(
+                    serviceSession.SessionId,
+                    drainFailure);
+            }
+            actor?.AddActivity(CharacterActivityEvent.Facility(
+                CharacterActivityKinds.FacilityUse,
+                CharacterActivityOutcomes.Failed,
+                $"{objectNameOrDefault()} 이용 실패: {drainFailure}",
+                this,
+                reasonCode: drainFailure,
+                bubbleEligible: true));
+            yield break;
+        }
         if (waterFixtureUseRuntime != null
-            && BuildingData?.GetAbility<BuildingWaterFixtureAbility>() != null
+            && waterFixture != null
             && !waterFixtureUseRuntime.TryBeginUse(
                 this,
                 out fixtureUseTicket,
                 out string plumbingFailure))
         {
+            if (serviceSession != null)
+            {
+                serviceSessionRuntime.CancelSession(
+                    serviceSession.SessionId,
+                    plumbingFailure);
+            }
             actor?.AddActivity(CharacterActivityEvent.Facility(
                 CharacterActivityKinds.FacilityUse,
                 CharacterActivityOutcomes.Failed,
@@ -93,6 +160,12 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
 
         if (!TryBeginUse(actor, out string failureReason))
         {
+            if (serviceSession != null)
+            {
+                serviceSessionRuntime.CancelSession(
+                    serviceSession.SessionId,
+                    failureReason);
+            }
             actor?.AddActivity(CharacterActivityEvent.Facility(
                 CharacterActivityKinds.FacilityUse,
                 CharacterActivityOutcomes.Failed,
@@ -106,6 +179,12 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         AbilityMove moveable = actor != null ? actor.GetAbility<AbilityMove>() : null;
         if (moveable == null)
         {
+            if (serviceSession != null)
+            {
+                serviceSessionRuntime.CancelSession(
+                    serviceSession.SessionId,
+                    "이동 능력이 없어 서비스를 시작할 수 없습니다.");
+            }
             EndUse(actor);
             yield break;
         }
@@ -118,17 +197,74 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         yield return moveable.Move2PosBySpeed(usePosition, 0.7f, currentAction);
         actor?.Brain?.SetActionPhase("\uC790\uB9AC \uC7A1\uAE30", this);
         yield return Linger(actor, 0.12f, currentAction);
+        if (serviceSession != null
+            && serviceSession.Contract != null)
+        {
+            if ((serviceSession.Contract.activeStages
+                    & ServiceProcessStageMask.Reception) != 0)
+            {
+                serviceSessionRuntime.TrySetStage(
+                    serviceSession.SessionId,
+                    ServiceSessionStage.Reception,
+                    out _);
+                actor?.Brain?.SetActionPhase("서비스 접수", this);
+                yield return Linger(
+                    actor,
+                    serviceSession.Contract.receptionSeconds,
+                    currentAction);
+            }
+            if ((serviceSession.Contract.activeStages
+                    & ServiceProcessStageMask.Waiting) != 0)
+            {
+                serviceSessionRuntime.TrySetStage(
+                    serviceSession.SessionId,
+                    ServiceSessionStage.Waiting,
+                    out _);
+                actor?.Brain?.SetActionPhase("서비스 대기", this);
+                yield return Linger(
+                    actor,
+                    serviceSession.Contract.waitingSeconds,
+                    currentAction);
+            }
+        }
+        if (serviceHub?.serviceCategory == ServiceCategory.Dining
+            && serviceRoomLinkRuntime != null
+            && serviceRoomLinkRuntime.TryResolveFeature(
+                this,
+                "service:seat",
+                out BuildableObject seat,
+                out _))
+        {
+            actor?.Brain?.SetActionPhase("좌석으로 이동", seat);
+            yield return moveable.Move2PosBySpeed(
+                seat.GetFacilityAnchorWorldPosition(
+                    FacilityAnchorPurposeIds.Use,
+                    actor.transform.position),
+                0.7f,
+                currentAction);
+        }
 
-        float duration = Facility != null ? Facility.useDuration : 1f;
+        float duration = serviceSession?.Contract?.serviceSeconds > 0f
+            ? serviceSession.Contract.serviceSeconds
+            : Facility != null
+                ? Facility.useDuration
+                : 1f;
         if (actor != null && actor.Stats != null)
         {
             duration *= actor.Stats.GetStayDurationMultiplier();
         }
 
         actor?.Brain?.SetActionPhase("\uC2DC\uC124 \uC774\uC6A9", this, $"{duration:0.#}s");
+        if (serviceSession != null)
+        {
+            serviceSessionRuntime.TrySetStage(
+                serviceSession.SessionId,
+                ServiceSessionStage.Service,
+                out _);
+        }
         if (duration > 0f)
         {
-            yield return new WaitForSeconds(duration);
+            yield return Linger(actor, duration, currentAction);
         }
 
         MealConsumptionResult mealResult = default;
@@ -141,6 +277,14 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     out mealResult))
             {
                 string reason = mealResult.FailureReason;
+                if (serviceSession != null)
+                {
+                    serviceSessionRuntime.CancelSession(
+                        serviceSession.SessionId,
+                        string.IsNullOrWhiteSpace(reason)
+                            ? "제공할 음식이 없습니다."
+                            : reason);
+                }
                 actor?.AddActivity(CharacterActivityEvent.Facility(
                     CharacterActivityKinds.FacilityUse,
                     CharacterActivityOutcomes.Failed,
@@ -165,7 +309,38 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             this,
             RoomExperienceActivity.FacilityUse));
         actor?.Brain?.SetActionPhase("\uC774\uC6A9 \uC815\uB9AC", this);
-        yield return Linger(actor, 0.12f, currentAction);
+        if (serviceSession?.Contract != null
+            && (serviceSession.Contract.activeStages
+                & ServiceProcessStageMask.Payment) != 0)
+        {
+            serviceSessionRuntime.TrySetStage(
+                serviceSession.SessionId,
+                ServiceSessionStage.Payment,
+                out _);
+            actor?.Brain?.SetActionPhase("서비스 결제", this);
+            yield return Linger(
+                actor,
+                serviceSession.Contract.paymentSeconds,
+                currentAction);
+        }
+        if (serviceSession?.Contract != null
+            && (serviceSession.Contract.activeStages
+                & ServiceProcessStageMask.Cleanup) != 0)
+        {
+            serviceSessionRuntime.TrySetStage(
+                serviceSession.SessionId,
+                ServiceSessionStage.Cleanup,
+                out _);
+            actor?.Brain?.SetActionPhase("서비스 정리", this);
+            yield return Linger(
+                actor,
+                serviceSession.Contract.cleanupSeconds,
+                currentAction);
+        }
+        else
+        {
+            yield return Linger(actor, 0.12f, currentAction);
+        }
         actor?.AddActivity(CharacterActivityEvent.Facility(
             CharacterActivityKinds.FacilityUse,
             CharacterActivityOutcomes.Completed,
@@ -173,6 +348,16 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 ? $"{mealResult.DisplayName} 식사 완료"
                 : $"{objectNameOrDefault()} 이용 완료",
             this));
+        if (serviceSession != null
+            && !serviceSessionRuntime.TryCompleteSession(
+                serviceSession.SessionId,
+                out _,
+                out string completionFailure))
+        {
+            serviceSessionRuntime.CancelSession(
+                serviceSession.SessionId,
+                completionFailure);
+        }
         EndUse(actor);
     }
 

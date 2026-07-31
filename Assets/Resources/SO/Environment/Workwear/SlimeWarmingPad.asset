@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4ba678a78e63274890cfcb96413c482, type: 3}
+  m_Name: SlimeWarmingPad
+  m_EditorClassIdentifier: Assembly-CSharp::EnvironmentalWorkwearSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 899207
+  workwearId: workwear:slime-warming-pad
+  displayName: "\uBCF4\uC628 \uC810\uC561 \uD328\uB4DC"
+  description: "\uC2AC\uB77C\uC784\uC758 \uC9E7\uC740 \uB0C9\uC7A5 \uC6B4\uBC18\uC744
+    \uB3D5\uB294 \uD0C8\uCC29\uC2DD \uBCF4\uC628 \uD328\uB4DC."
+  allowedSpecies:
+  - Slime
+  protection:
+    comfortMinimumOffset: -4
+    comfortMaximumOffset: 0
+    safeMinimumOffset: -4
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 0.6
+    heatExposureMultiplier: 1
+  requiredResearchId: research:environment:cold-work

@@ -617,7 +617,10 @@ internal sealed class RoomInspectionView : IDisposable
         RenderMetric(cleanlinessRow, snapshot.Cleanliness);
         RenderMetric(impressivenessRow, snapshot.Impressiveness);
         RenderMetric(shelterRow, snapshot.Shelter);
-        RenderMetric(temperatureRow, snapshot.Temperature);
+        RenderTemperatureMetric(
+            temperatureRow,
+            snapshot.Temperature,
+            snapshot.TemperatureC);
         RenderMetric(ventilationRow, snapshot.Ventilation);
         RenderMetric(lightingRow, snapshot.Lighting);
         contributorsText.text = BuildContributorText(snapshot);
@@ -716,6 +719,18 @@ internal sealed class RoomInspectionView : IDisposable
     {
         float normalized = Mathf.Clamp01(value / 100f);
         row.Value.text = $"{Mathf.RoundToInt(value)} · {RoomEnvironmentPresentation.GetGrade(value)}";
+        row.Fill.fillAmount = normalized;
+        row.Fill.color = DungeonUiTheme.GetMeterColor(normalized);
+    }
+
+    private static void RenderTemperatureMetric(
+        MetricRow row,
+        float comfortScore,
+        float temperatureC)
+    {
+        float normalized = Mathf.Clamp01(comfortScore / 100f);
+        row.Value.text =
+            $"{temperatureC:0.#}°C · {RoomEnvironmentPresentation.GetGrade(comfortScore)}";
         row.Fill.fillAmount = normalized;
         row.Fill.color = DungeonUiTheme.GetMeterColor(normalized);
     }

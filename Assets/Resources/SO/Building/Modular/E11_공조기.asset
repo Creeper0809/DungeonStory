@@ -1,0 +1,143 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "E11_\uACF5\uC870\uAE30"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: Facility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1502
+  objectName: "\uACF5\uC870\uAE30"
+  sprite: {fileID: 21300000, guid: fe53ebcfdf2e4e74683093b06c84a22e, type: 3}
+  icon: {fileID: 21300000, guid: fe53ebcfdf2e4e74683093b06c84a22e, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563287088235177
+    - rid: 7302563287088235178
+    - rid: 7302563287088235179
+    - rid: 7302563287088235180
+    - rid: 7302563287088235181
+    - rid: 7302563287088235182
+    - rid: 7302563287088235183
+    - rid: 7302563287088235184
+  width: 2
+  height: 1
+  layer: 1
+  category: 7
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563287088235177
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: E11
+    - rid: 7302563287088235178
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 160
+        constructionCost: 0
+        maintenance: 5
+        unlockPhase: 3
+        demolitionRefundRate: 0.5
+    - rid: 7302563287088235179
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 1
+          useDuration: 1.5
+          requiredWorkers: 1
+          supportedWorkTypes: 4
+          disabledWhenDamaged: 1
+    - rid: 7302563287088235180
+      type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEvolutionAbility
+        settings:
+          contributesToRoomProfile: 1
+          tags:
+          - Hygiene
+          - Climate
+          scores:
+          - key: Hygiene
+            value: 3
+          - key: Climate
+            value: 2
+          metrics: []
+    - rid: 7302563287088235181
+      type: {class: BuildingThermalEmitterAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingThermalEmitterAbility
+        mode: 2
+        targetTemperatureC: 22
+        playerConfigurable: 1
+        minimumTargetTemperatureC: 2
+        maximumTargetTemperatureC: 30
+        degreesPerSecond: 2.5
+        radius: 4
+        requiresPower: 1
+        exhaustOffset: {x: 1, y: 0}
+        exhaustHeatMultiplier: 1.15
+    - rid: 7302563287088235182
+      type: {class: BuildingAirExchangeAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingAirExchangeAbility
+        targetAirQuality: 100
+        qualityPerSecond: 6
+        radius: 4
+        requiresPower: 1
+        exchangesWithOutside: 1
+    - rid: 7302563287088235183
+      type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingUtilityConnectionAbility
+        channels: 1
+        maxThroughput: 20
+        normallyOpen: 1
+    - rid: 7302563287088235184
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 10
+        priority: 3
+        minimumSupplyFraction: 0.75

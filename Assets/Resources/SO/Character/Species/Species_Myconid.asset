@@ -1,0 +1,173 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
+  m_Name: Species_Myconid
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7
+  speciesTag: Myconid
+  displayName: "\uADE0\uC0AC\uC778"
+  ownerSelectionPolicy: 1
+  homeFactionId: faction:dungeon:myconid
+  anatomyProfileId: anatomy:fungal
+  needs:
+    hungerRateMultiplier: 0.75
+    thirstRateMultiplier: 1.2
+    sleepRateMultiplier: 1
+    hygieneRateMultiplier: 1
+    socialNeedMultiplier: 0.7
+    chargeRateMultiplier: 1
+    integrityWearMultiplier: 1
+    diet: 0
+    metabolism: 0
+    treatment: 0
+  environment:
+    comfortMinimum: 8
+    comfortMaximum: 22
+    safeMinimum: 0
+    safeMaximum: 32
+    lethalMinimum: -8
+    lethalMaximum: 40
+    comfortableAirMinimum: 35
+    comfortableLightMinimum: 40
+    comfortableLightMaximum: 100
+    airborneExposureMultiplier: 1
+    visualStrainMultiplier: 1
+    preferredHumidity: 0.5
+    drynessSensitivity: 1
+  relationTags:
+  - "\uC2B5\uAE30"
+  - "\uC624\uC5FC"
+  - "\uC800\uC628"
+  defenseAffinityTags:
+  - "\uB3C5"
+  - "\uD3EC\uC790"
+  - "\uC81C\uB3C5"
+  strongWorkTypeIds:
+  - work:clean
+  - work:treat
+  - work:sow
+  - work:harvest
+  weakWorkTypeIds:
+  - work:guard
+  - work:perform
+  shortDescription: "\uADE0\uC0AC \uC2EC\uB9BC \uCD9C\uC2E0 \xB7 \uC7AC\uBC30\uC2E4\xB7\uD1F4\uBE44\uC2E4\xB7\uC57D\uC81C\uC2E4
+    \uC120\uD638"
+  description: "\uADE0\uC0AC\uC778\uC740(\uB294) \uADE0\uC0AC \uC2EC\uB9BC\uC744
+    \uB300\uD45C\uD558\uB294 \uC885\uC871\uC774\uB2E4. \uC190\uB2D8\xB7\uBAA8\uC9D1
+    \uC9C1\uC6D0\xB7\uC0C1\uC778\xB7\uD3EC\uB85C\xB7\uB3D9\uB9F9 \uC9C0\uC6D0\uAD70\uC73C\uB85C
+    \uB4F1\uC7A5\uD55C\uB2E4."
+  preferredFacilityLabels:
+  - "\uC7AC\uBC30\uC2E4"
+  - "\uD1F4\uBE44\uC2E4"
+  - "\uC57D\uC81C\uC2E4"
+  dislikedEnvironmentLabels:
+  - "\uAC74\uC870 \uC5F4\uC6D0"
+  - "\uAC15\uD55C \uC870\uBA85"
+  - "\uD654\uC5FC \uD1B5\uB85C"
+  stayDurationMultiplier: 1
+  crimeRiskMultiplier: 1
+  incidentType: 0
+  incident:
+    incidentId: species-incident:myconid-spore-bloom
+    displayName: "\uD3EC\uC790 \uAC1C\uD654"
+    description: "\uAC74\uC870 \uB178\uCD9C\uACFC \uBD88\uB9CC\uC774 \uACB9\uCE58\uBA74
+      \uC2E4\uC81C \uD3EC\uC790 \uC624\uC5FC\uC744 \uC8FC\uBCC0 \uC140\uC5D0 \uC0DD\uC131\uD55C\uB2E4."
+    mitigatingRoles: 4352
+    triggerTags:
+    - discontent
+    - species-specific
+  incidentName: "\uD3EC\uC790 \uAC1C\uD654"
+  incidentDescription: "\uAC74\uC870 \uB178\uCD9C\uACFC \uBD88\uB9CC\uC774 \uACB9\uCE58\uBA74
+    \uC2E4\uC81C \uD3EC\uC790 \uC624\uC5FC\uC744 \uC8FC\uBCC0 \uC140\uC5D0 \uC0DD\uC131\uD55C\uB2E4."
+  incidentMitigatingRoles: 4352
+  statBonus:
+    entries:
+    - statId: stat:attack
+      value: -1
+    - statId: stat:shooting
+      value: 0
+    - statId: stat:evasion
+      value: 0
+    - statId: stat:sales
+      value: 0
+    - statId: stat:research
+      value: 2
+    - statId: stat:move-speed
+      value: 0
+    - statId: stat:strength
+      value: 0
+    - statId: stat:toughness
+      value: 1
+    - statId: stat:dexterity
+      value: 0
+    - statId: stat:cleaning
+      value: 0
+    - statId: stat:endurance
+      value: 0
+    - statId: stat:medical
+      value: 0
+  modifiers:
+    consumptionMultiplier: 0.75
+    spendingMultiplier: 1
+    waitPatienceMultiplier: 1
+    crowdSensitivityMultiplier: 1
+    accidentChanceMultiplier: 1
+    workSpeedMultiplier: 1.05
+    researchSpeedMultiplier: 1
+    combatPowerMultiplier: 1
+    moveSpeedMultiplier: 1
+    stayDurationMultiplier: 1
+    preferredFacilityRoles: 0
+    dislikedFacilityRoles: 0
+    preferredWorkTypes: 6324232
+    dislikedWorkTypes: 524320
+  combatPassive:
+    passiveId: species-passive:myconid
+    displayName: "\uADE0\uC0AC \uC21C\uD658"
+    description: "\uC7AC\uBC30\xB7\uC57D\uD488\xB7\uC624\uC5FC \uCC98\uB9AC\uC640
+      \uB3C5 \uC2DC\uC124 \uC6B4\uC6A9\uC5D0 \uAC15\uD558\uB2E4."
+    mechanicTags:
+    - "\uC7AC\uBC30"
+    - "\uC81C\uB3C5"
+  combatAbilities:
+    abilities:
+    - rid: 7302563310531248889
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563310531248889
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+      data:
+        id: species-active:myconid
+        displayName: "\uD68C\uBCF5 \uD3EC\uC790"
+        description: "\uC544\uAD70\uC744 \uCE58\uB8CC\uD558\uACE0 \uD574\uB85C\uC6B4
+          \uC0C1\uD0DC\uB97C \uC815\uD654\uD55C\uB2E4."
+        cooldownTurns: 2
+        targetRule: 1
+        usableFrom: 7
+        targetPositions: 7
+        effects:
+        - rid: 7302563310531248890
+    - rid: 7302563310531248890
+      type: {class: OffenseHealEffect, ns: , asm: Assembly-CSharp}
+      data:
+        flatAmount: 12
+        damageDealtRatio: 0

@@ -47,11 +47,12 @@ MonoBehaviour:
     - rid: 7302563239038812972
     - rid: 7302563239038812973
     - rid: 7302563239038812974
-    - rid: 7302563284524205047
-    - rid: 7302563284524205048
-    - rid: 7302563284524205049
-    - rid: 7302563284524205050
-    - rid: 7302563284524205051
+    - rid: 7302563313672519750
+    - rid: 7302563313672519751
+    - rid: 7302563313672519752
+    - rid: 7302563313672519753
+    - rid: 7302563313672519754
+    - rid: 7302563313672520079
   width: 2
   height: 1
   layer: 1
@@ -112,14 +113,14 @@ MonoBehaviour:
           - key: Cooking
             value: 2
           metrics: []
-    - rid: 7302563284524205047
+    - rid: 7302563313672519750
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284524205048
+    - rid: 7302563313672519751
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -130,21 +131,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284524205049
+    - rid: 7302563313672519752
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7302563284524205050
+    - rid: 7302563313672519753
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284524205051
+    - rid: 7302563313672519754
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -154,3 +155,8 @@ MonoBehaviour:
         wastewaterPerCycle: 0.25
         minimumQuality: 0
         allowsManualWaterFallback: 1
+    - rid: 7302563313672520079
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:cookbench

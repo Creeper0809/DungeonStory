@@ -47,6 +47,7 @@ MonoBehaviour:
     - rid: 7302563239583285287
     - rid: 7302563239583285288
     - rid: 7302563239583285289
+    - rid: 7302563313672520016
   width: 3
   height: 1
   layer: 1
@@ -76,6 +77,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 150
         maintenance: 4
         unlockPhase: 2
@@ -106,3 +108,8 @@ MonoBehaviour:
           - key: Mining
             value: 2
           metrics: []
+    - rid: 7302563313672520016
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:quarry

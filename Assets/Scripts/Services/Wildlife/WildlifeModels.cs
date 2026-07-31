@@ -496,9 +496,9 @@ public static class WildlifeBuiltIns
 public static class WildlifeItemDefinitions
 {
     public const string CarcassPrefix = "wild:carcass:";
-    public const string HideItemId = "wild:hide";
-    public const string FangItemId = "wild:fang";
-    public const string RuneDustItemId = "wild:rune_dust";
+    public const string HideItemId = "resource:hide";
+    public const string FangItemId = "resource:fang";
+    public const string RuneDustItemId = "resource:rune-dust";
     public const string RotItemId = "wild:rot";
 
     public static string GetCarcassItemId(string speciesId)
@@ -631,6 +631,36 @@ public interface IWildlifeHuntCommandService
     bool DesignateHunt(string wildlifeId, bool designated, bool priority = false);
 }
 
+public readonly struct WildlifeFoodRaidOrderSnapshot
+{
+    public WildlifeFoodRaidOrderSnapshot(
+        string raidId,
+        string wildlifeId,
+        string targetStackId,
+        WildlifeFoodRaidOrderState state,
+        int stolenQuantity,
+        string outcomeReason)
+    {
+        RaidId = raidId ?? string.Empty;
+        WildlifeId = wildlifeId ?? string.Empty;
+        TargetStackId = targetStackId ?? string.Empty;
+        State = state;
+        StolenQuantity = Mathf.Max(0, stolenQuantity);
+        OutcomeReason = outcomeReason ?? string.Empty;
+    }
+
+    public string RaidId { get; }
+    public string WildlifeId { get; }
+    public string TargetStackId { get; }
+    public WildlifeFoodRaidOrderState State { get; }
+    public int StolenQuantity { get; }
+    public string OutcomeReason { get; }
+    public bool IsTerminal =>
+        State == WildlifeFoodRaidOrderState.Stolen
+        || State == WildlifeFoodRaidOrderState.Cancelled
+        || State == WildlifeFoodRaidOrderState.Failed;
+}
+
 public interface IWildlifeRuntime : IWildlifeQuery, IWildlifeHuntCommandService
 {
     DungeonWildlifeSaveData Capture();
@@ -657,6 +687,13 @@ public interface IWildlifeRuntime : IWildlifeQuery, IWildlifeHuntCommandService
         Vector2Int position,
         out WildlifeActor actor,
         out string message);
+    IReadOnlyList<WorldItemStackSnapshot> GetReachableFoodRaidTargets();
+    IReadOnlyList<WildlifeFoodRaidOrderSnapshot> GetFoodRaidOrders();
+    bool TryBeginFoodRaid(
+        string raidId,
+        int wolfCount,
+        out IReadOnlyList<WildlifeFoodRaidOrderSnapshot> orders,
+        out string failureReason);
     bool TrySpawnDomesticBirth(
         string speciesId,
         Vector2Int position,

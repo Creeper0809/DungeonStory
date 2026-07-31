@@ -21,14 +21,27 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9105
+  id: 9109
   recipeId: sink:starch-preservative
   displayName: "\uBCF4\uC874 \uC804\uBD84"
   description: "\uBCF4\uC874 \uC804\uBD84 \uC18C\uBE44"
   facilityTag: smoker
-  workTypeId: work:operate
+  workstationTag: workstation:smoker
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
+  workTypeId: work:craft
   requiredResearchId: research:survival:preservation
   requiredWork: 4
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:starch
     amount: 1

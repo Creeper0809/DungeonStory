@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
   serializationData:
     SerializedFormat: 2
-    SerializedBytes:
+    SerializedBytes: 
     ReferencedUnityObjects: []
-    SerializedBytesString:
+    SerializedBytesString: 
     Prefab: {fileID: 0}
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
@@ -24,20 +24,20 @@ MonoBehaviour:
     - Name: type
       Entry: 7
       Data: 0|System.RuntimeType, mscorlib
-    - Name:
+    - Name: 
       Entry: 1
       Data: DefenseFacility, Assembly-CSharp
-    - Name:
+    - Name: 
       Entry: 8
-      Data:
+      Data: 
     - Name: tiles
       Entry: 6
-      Data:
+      Data: 
     - Name: OnBuildCondition
       Entry: 6
-      Data:
+      Data: 
   id: 9961
-  objectName: "금고각인 쇠뇌대"
+  objectName: "\uAE08\uACE0\uAC01\uC778 \uC1E0\uB1CC\uB300"
   sprite: {fileID: 21300000, guid: c957472a2987036e7a0aff8fa49118db, type: 3}
   icon: {fileID: 21300000, guid: c957472a2987036e7a0aff8fa49118db, type: 3}
   abilityModules:
@@ -81,6 +81,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 420
         maintenance: 0
         unlockPhase: 3
@@ -121,10 +122,33 @@ MonoBehaviour:
           periodicIntervalSeconds: 0
           range: 0
           star: 3
-          combatLogText: "금고각인 쇠뇌대"
+          combatLogText: "\uAE08\uACE0\uAC01\uC778 \uC1E0\uB1CC\uB300"
           effectAssets:
           - {fileID: 11400000, guid: 407e6b9a195d1d073a19d6992833929d, type: 2}
           - {fileID: 11400000, guid: 98b2e784b5bdf2ff49582d949fe00032, type: 2}
+          supplyKind: 6
+          supplyItemId: 
+          supplyCategory: 1
+          supplyCapacity: 0
+          supplyPerActivation: 0
+          initialSupply: 0
+          requiresPower: 0
+          powerDemand: 0
+          conditionLossPerActivation: 1
+          baseJamChance: 0.01
+          baseMisfireChance: 0.005
+          facilityFamilyId: defense:launcher
+          affinityTags:
+          - defense:ranged
+          - species:harpy
+          - species:kobold
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0
     - rid: 7302563299610000007
       type: {class: BuildingTreasuryPoweredDefenseAbility, ns: , asm: Assembly-CSharp}
       data:

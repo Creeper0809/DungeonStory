@@ -42,12 +42,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 6dd836c1bfd0ecc48adc7badc1d5b481, type: 3}
   abilityModules:
     items:
-    - rid: 7302563284922663008
-    - rid: 7302563284922663009
-    - rid: 7302563284922663010
-    - rid: 7302563284922663011
-    - rid: 7302563284922663012
-    - rid: 7302563284922663013
+    - rid: 7302563313672519851
+    - rid: 7302563313672519852
+    - rid: 7302563313672519853
+    - rid: 7302563313672519854
+    - rid: 7302563313672519855
+    - rid: 7302563313672519856
   width: 2
   height: 1
   layer: 1
@@ -62,12 +62,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563284922663008
+    - rid: 7302563313672519851
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I07
-    - rid: 7302563284922663009
+    - rid: 7302563313672519852
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -76,7 +76,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563284922663010
+    - rid: 7302563313672519853
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -88,21 +88,21 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 4
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563284922663011
+    - rid: 7302563313672519854
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 4
         priority: 1
         minimumSupplyFraction: 1
-    - rid: 7302563284922663012
+    - rid: 7302563313672519855
       type: {class: BuildingWaterProducerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterProducerAbility
         quality: 0
         productionPerSecond: 0.75
         requiresPower: 1
-    - rid: 7302563284922663013
+    - rid: 7302563313672519856
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

@@ -7,6 +7,8 @@ public sealed class DefenseFeatureSurfaceModel
 {
     public string ThreatSummary { get; set; } = string.Empty;
     public string ThreatFactors { get; set; } = string.Empty;
+    public string CampaignSummary { get; set; } = string.Empty;
+    public string ReinforcementSummary { get; set; } = string.Empty;
     public string OwnerEvacuationSummary { get; set; } = string.Empty;
     public IReadOnlyList<DefenseFeatureIntruderRow> Intruders { get; set; }
         = Array.Empty<DefenseFeatureIntruderRow>();
@@ -55,8 +57,11 @@ public sealed class DefenseFeatureGuardRow
 public sealed class DefenseFeatureFacilityRow
 {
     public int Index { get; set; }
+    public int RuntimeId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Detail { get; set; } = string.Empty;
+    public DefenseArmingPolicy ArmingPolicy { get; set; }
+    public DefenseFacilityOperationalState OperationalState { get; set; }
 }
 
 public sealed class DefenseFeatureReportRow
@@ -97,6 +102,8 @@ public interface IDefenseFeatureCommandService
     DefenseFeatureCommandResult DuplicatePolicy(string policyId);
     DefenseFeatureCommandResult DeletePolicy(string policyId);
     DefenseFeatureCommandResult AssignPolicy(int actorRuntimeId, string policyId);
+    DefenseFeatureCommandResult CycleFacilityArmingPolicy(int facilityRuntimeId);
+    DefenseFeatureCommandResult RequestFacilityService(int facilityRuntimeId);
 }
 
 public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
@@ -111,6 +118,9 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
     private readonly IDefenseResponsePolicyRuntime policyRuntime;
     private readonly IStaffWorkforceQueryService workforceQuery;
     private readonly IBuildingWorldQuery buildingWorld;
+    private readonly IDefenseFacilityRuntime defenseFacilities;
+    private readonly IInvasionCampaignRuntime campaign;
+    private readonly IFactionRuntime factions;
 
     public DefenseFeatureQueryService(
         IInvasionThreatRuntimeProvider threatProvider,
@@ -120,7 +130,10 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
         IInvasionOwnerEvacuationService ownerEvacuation,
         IDefenseResponsePolicyRuntime policyRuntime,
         IStaffWorkforceQueryService workforceQuery,
-        IBuildingWorldQuery buildingWorld)
+        IBuildingWorldQuery buildingWorld,
+        IDefenseFacilityRuntime defenseFacilities,
+        IInvasionCampaignRuntime campaign,
+        IFactionRuntime factions)
     {
         this.threatProvider = threatProvider
             ?? throw new ArgumentNullException(nameof(threatProvider));
@@ -138,6 +151,12 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
             ?? throw new ArgumentNullException(nameof(workforceQuery));
         this.buildingWorld = buildingWorld
             ?? throw new ArgumentNullException(nameof(buildingWorld));
+        this.defenseFacilities = defenseFacilities
+            ?? throw new ArgumentNullException(nameof(defenseFacilities));
+        this.campaign = campaign
+            ?? throw new ArgumentNullException(nameof(campaign));
+        this.factions = factions
+            ?? throw new ArgumentNullException(nameof(factions));
     }
 
     public DefenseFeatureSurfaceModel Capture(string selectedPolicyId)
@@ -156,6 +175,8 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
             ThreatFactors = threat != null
                 ? $"현재 요인: {threat.LatestSnapshot.factors}"
                 : "침공 위협 시스템을 불러오지 못했습니다.",
+            CampaignSummary = CreateCampaignSummary(),
+            ReinforcementSummary = CreateReinforcementSummary(),
             OwnerEvacuationSummary = CreateOwnerEvacuationSummary(),
             Intruders = intruders
                 .Take(MaxVisibleCards)
@@ -279,22 +300,76 @@ public sealed class DefenseFeatureQueryService : IDefenseFeatureQueryService
         };
     }
 
-    private static DefenseFeatureFacilityRow CreateFacilityRow(
+    private DefenseFeatureFacilityRow CreateFacilityRow(
         DefenseFacility facility,
         int index)
     {
-        string status = facility.IsDamaged
-            ? "손상"
-            : facility.CooldownRemaining > 0f
-                ? $"재사용 {facility.CooldownRemaining:0.0}초"
-                : "대기";
+        DefenseFacilitySnapshot snapshot =
+            defenseFacilities.GetSnapshot(facility);
+        int capacity = Mathf.Max(
+            0,
+            facility.Defense.supplyCapacity
+                + (facility.Defense.growth?.capacityLevel ?? 0));
+        string supply = facility.Defense.UsesPhysicalSupply
+            ? $"{snapshot.Supply}/{capacity}"
+            : facility.Defense.requiresPower
+                ? (snapshot.Powered ? "전력 정상" : "정전")
+                : "보급 불필요";
         return new DefenseFeatureFacilityRow
         {
             Index = index,
+            RuntimeId = facility.GetInstanceID(),
             Name = GetBuildingName(facility),
-            Detail = $"{facility.Defense.concept} / {status}"
-                + $" / 효과 {facility.Defense.effectAssets?.Count(effect => effect != null) ?? 0}개"
+            ArmingPolicy = snapshot.ArmingPolicy,
+            OperationalState = snapshot.OperationalState,
+            Detail = $"{facility.Defense.concept} / {snapshot.ArmingPolicy}"
+                + $" / {snapshot.OperationalState} / 보급 {supply}"
+                + $" / 건전도 {snapshot.Condition:0}%"
+                + (string.IsNullOrWhiteSpace(snapshot.BlockedReason)
+                    ? string.Empty
+                    : $"\n차단: {snapshot.BlockedReason}")
         };
+    }
+
+    private string CreateCampaignSummary()
+    {
+        ScheduledInvasionOperationState operation =
+            campaign.Operations.LastOrDefault();
+        string operationText = operation != null
+            ? $"{operation.kind} / 목표 {operation.objectiveId}"
+                + $" / 정보 신뢰도 {operation.intelligenceConfidence:P0}"
+            : "예정 작전 없음";
+        string weakest = campaign.Branches
+            .OrderBy(branch => branch.strength)
+            .Select(branch =>
+                $"{branch.displayName} {branch.strength:0}"
+                + (string.IsNullOrWhiteSpace(branch.recoveryReason)
+                    ? string.Empty
+                    : $" ({branch.recoveryReason})"))
+            .FirstOrDefault() ?? "지부 정보 없음";
+        return $"{operationText}\n최약 지부: {weakest}";
+    }
+
+    private string CreateReinforcementSummary()
+    {
+        FactionRouteState[] active = factions.Routes
+            .Where(route => route != null
+                && route.kind == FactionRouteKind.Reinforcement
+                && route.status is FactionRouteStatus.Traveling
+                    or FactionRouteStatus.Delayed
+                    or FactionRouteStatus.Arrived)
+            .ToArray();
+        if (active.Length == 0)
+        {
+            return "이동 중이거나 도착한 동맹 지원군이 없습니다.";
+        }
+
+        return string.Join(
+            "\n",
+            active.Select(route =>
+                $"{route.factionId} / {route.status}"
+                + $" / ETA Day {route.estimatedArrivalDay}"
+                + $" / 전력 {route.strength}"));
     }
 
     private static DefenseFeatureReportRow CreateReportRow(
@@ -409,15 +484,23 @@ public sealed class DefenseFeatureCommandService : IDefenseFeatureCommandService
 {
     private readonly IDefenseResponsePolicyRuntime policyRuntime;
     private readonly ICharacterWorldQuery characterWorld;
+    private readonly IBuildingWorldQuery buildingWorld;
+    private readonly IDefenseFacilityRuntime defenseFacilities;
 
     public DefenseFeatureCommandService(
         IDefenseResponsePolicyRuntime policyRuntime,
-        ICharacterWorldQuery characterWorld)
+        ICharacterWorldQuery characterWorld,
+        IBuildingWorldQuery buildingWorld,
+        IDefenseFacilityRuntime defenseFacilities)
     {
         this.policyRuntime = policyRuntime
             ?? throw new ArgumentNullException(nameof(policyRuntime));
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
+        this.buildingWorld = buildingWorld
+            ?? throw new ArgumentNullException(nameof(buildingWorld));
+        this.defenseFacilities = defenseFacilities
+            ?? throw new ArgumentNullException(nameof(defenseFacilities));
     }
 
     public DefenseFeatureCommandResult ToggleAutoResponse(string policyId)
@@ -506,6 +589,75 @@ public sealed class DefenseFeatureCommandService : IDefenseFeatureCommandService
                 : "정책을 배정하지 못했습니다.");
     }
 
+    public DefenseFeatureCommandResult CycleFacilityArmingPolicy(
+        int facilityRuntimeId)
+    {
+        DefenseFacility facility = FindFacility(facilityRuntimeId);
+        if (facility == null)
+        {
+            return new DefenseFeatureCommandResult(
+                false,
+                "방어시설을 찾을 수 없습니다.");
+        }
+
+        DefenseArmingPolicy current =
+            defenseFacilities.GetSnapshot(facility).ArmingPolicy;
+        DefenseArmingPolicy next =
+            (DefenseArmingPolicy)(((int)current + 1) % 4);
+        bool succeeded =
+            defenseFacilities.SetArmingPolicy(facility, next, out string warning);
+        return new DefenseFeatureCommandResult(
+            succeeded,
+            succeeded
+                ? $"무장 정책 {current} → {next}"
+                    + (string.IsNullOrWhiteSpace(warning)
+                        ? string.Empty
+                        : $" / {warning}")
+                : "무장 정책을 변경하지 못했습니다.");
+    }
+
+    public DefenseFeatureCommandResult RequestFacilityService(
+        int facilityRuntimeId)
+    {
+        DefenseFacility facility = FindFacility(facilityRuntimeId);
+        if (facility == null)
+        {
+            return new DefenseFeatureCommandResult(
+                false,
+                "방어시설을 찾을 수 없습니다.");
+        }
+
+        DefenseFacilitySnapshot snapshot =
+            defenseFacilities.GetSnapshot(facility);
+        bool succeeded;
+        string message;
+        if (snapshot.OperationalState == DefenseFacilityOperationalState.Jammed)
+        {
+            succeeded = defenseFacilities.TryClearJam(
+                facility,
+                out message);
+        }
+        else
+        {
+            succeeded = defenseFacilities.TryRequestReload(
+                facility,
+                out message);
+        }
+
+        return new DefenseFeatureCommandResult(
+            succeeded,
+            message);
+    }
+
+    private DefenseFacility FindFacility(int runtimeId)
+    {
+        return buildingWorld.Buildings
+            .OfType<DefenseFacility>()
+            .FirstOrDefault(facility =>
+                facility != null
+                && facility.GetInstanceID() == runtimeId);
+    }
+
     private DefenseFeatureCommandResult Update(
         string policyId,
         Action<DefenseResponsePolicyData> mutate)
@@ -574,6 +726,8 @@ public sealed class DefenseFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
 
         view.AddSection("침공 위협", model.ThreatSummary);
         view.AddLabel(model.ThreatFactors, 17f, 44f);
+        view.AddSection("인간 연합 작전", model.CampaignSummary);
+        view.AddSection("동맹 지원군", model.ReinforcementSummary);
         view.AddSection("침입자 추적", $"활성 침입자 {model.Intruders.Count}명");
         if (model.Intruders.Count == 0)
         {
@@ -734,20 +888,51 @@ public sealed class DefenseFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
         }
     }
 
-    private static void AddFacilities(
+    private void AddFacilities(
         IFeatureSurfaceView view,
         DefenseFeatureSurfaceModel model)
     {
         view.AddSection("방어 시설", $"가동 시설 {model.Facilities.Count}개");
         foreach (DefenseFeatureFacilityRow facility in model.Facilities)
         {
+            DefenseFeatureFacilityRow captured = facility;
             view.AddDataCard(
-                $"P1State_DefenseFacility_{facility.Index}",
-                facility.Name,
-                facility.Detail,
-                "상태",
-                () => view.ShowFeedback(facility.Detail),
+                $"P1Action_DefenseFacilityPolicy_{captured.Index}",
+                captured.Name,
+                captured.Detail,
+                "무장 전환",
+                () =>
+                {
+                    DefenseFeatureCommandResult result =
+                        commands.CycleFacilityArmingPolicy(
+                            captured.RuntimeId);
+                    view.ShowFeedback(result.Message);
+                    view.RequestRefresh();
+                },
                 CompactCardHeight);
+            if (captured.OperationalState is
+                    DefenseFacilityOperationalState.Empty
+                    or DefenseFacilityOperationalState.Reloading
+                    or DefenseFacilityOperationalState.Jammed)
+            {
+                view.AddDataCard(
+                    $"P1Action_DefenseFacilityService_{captured.Index}",
+                    captured.OperationalState
+                        == DefenseFacilityOperationalState.Jammed
+                            ? "걸림 해제"
+                            : "재장전 요청",
+                    captured.Detail,
+                    "실행",
+                    () =>
+                    {
+                        DefenseFeatureCommandResult result =
+                            commands.RequestFacilityService(
+                                captured.RuntimeId);
+                        view.ShowFeedback(result.Message);
+                        view.RequestRefresh();
+                    },
+                    CompactCardHeight);
+            }
         }
     }
 

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8051
+  id: 8052
   itemId: material:bowstring
   displayName: "\uD65C\uC2DC\uC704"
   description: "\uD65C\uACFC \uC11D\uAD81 \uC81C\uC791\uC5D0 \uC4F0\uB294 \uACE0\uC7A5\uB825
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 128
   unitPrice: 8
+  marketSaleRate: 0.6
   unitWeight: 0.08
   maxStack: 50
   sprite: {fileID: 0}

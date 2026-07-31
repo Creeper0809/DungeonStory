@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8035
+  id: 8036
   itemId: material:syrup
   displayName: "\uBC24\uD3EC\uB3C4 \uC2DC\uB7FD"
   description: "\uD638\uD654\uC2DD\uACFC \uBC1C\uD6A8 \uC74C\uB8CC\uC5D0 \uC4F0\uB294
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 1
   unitPrice: 7
+  marketSaleRate: 0.6
   unitWeight: 0.35
   maxStack: 50
   sprite: {fileID: 0}

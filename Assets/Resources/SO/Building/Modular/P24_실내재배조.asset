@@ -48,6 +48,7 @@ MonoBehaviour:
     - rid: 7302563239583285331
     - rid: 7302563239583285332
     - rid: 7302563239583285333
+    - rid: 7302563313672520133
   width: 3
   height: 1
   layer: 1
@@ -78,6 +79,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 150
         maintenance: 4
         unlockPhase: 2
@@ -117,3 +119,8 @@ MonoBehaviour:
         waterMultiplier: 0.85
         compostPerCycle: 1
         fuelPerCycle: 1
+    - rid: 7302563313672520133
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:hydroponics

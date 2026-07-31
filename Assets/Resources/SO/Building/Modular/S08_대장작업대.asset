@@ -47,11 +47,12 @@ MonoBehaviour:
     - rid: 7302563239583285258
     - rid: 7302563239583285259
     - rid: 7302563239583285260
-    - rid: 7302563265135771929
-    - rid: 7302563284524204990
-    - rid: 7302563284524204991
-    - rid: 7302563284524204992
-    - rid: 7302563284524204993
+    - rid: 7302563288033263636
+    - rid: 7302563313672519693
+    - rid: 7302563313672519694
+    - rid: 7302563313672519695
+    - rid: 7302563313672519696
+    - rid: 7302563313672520117
   width: 2
   height: 1
   layer: 1
@@ -112,7 +113,7 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7302563265135771929
+    - rid: 7302563288033263636
       type: {class: BuildingEquipmentCraftingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEquipmentCraftingAbility
@@ -139,21 +140,21 @@ MonoBehaviour:
         - weapon:spear
         - weapon:throwing-axe
         workUnitsPerCycle: 1
-    - rid: 7302563284524204990
+    - rid: 7302563313672519693
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284524204991
+    - rid: 7302563313672519694
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284524204992
+    - rid: 7302563313672519695
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -164,10 +165,15 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284524204993
+    - rid: 7302563313672519696
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
+    - rid: 7302563313672520117
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:forge-basic

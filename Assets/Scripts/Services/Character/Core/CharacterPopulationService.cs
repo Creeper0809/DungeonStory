@@ -57,6 +57,8 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
     private readonly IResourcesAssetLoader resourcesAssetLoader;
     private readonly ICharacterSkillGenerationService skillGenerationService;
     private readonly IRunVariableRuntimeProvider runVariableRuntimeProvider;
+    private readonly IFactionRuntimeProvider factionRuntimeProvider;
+    private readonly IRunCharacterCatalog characterCatalog;
     private readonly List<WorldCharacterProfile> profiles = new List<WorldCharacterProfile>();
     private readonly Dictionary<CharacterActor, WorldCharacterProfile> actors =
         new Dictionary<CharacterActor, WorldCharacterProfile>();
@@ -73,7 +75,13 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         ICharacterSkillSystemSettingsProvider settingsProvider,
         IResourcesAssetLoader resourcesAssetLoader,
         ICharacterSkillGenerationService skillGenerationService)
-        : this(settingsProvider, resourcesAssetLoader, skillGenerationService, null)
+        : this(
+            settingsProvider,
+            resourcesAssetLoader,
+            skillGenerationService,
+            null,
+            null,
+            null)
     {
     }
 
@@ -82,7 +90,9 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         ICharacterSkillSystemSettingsProvider settingsProvider,
         IResourcesAssetLoader resourcesAssetLoader,
         ICharacterSkillGenerationService skillGenerationService,
-        IRunVariableRuntimeProvider runVariableRuntimeProvider)
+        IRunVariableRuntimeProvider runVariableRuntimeProvider,
+        IFactionRuntimeProvider factionRuntimeProvider = null,
+        IRunCharacterCatalog characterCatalog = null)
     {
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
@@ -91,6 +101,8 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         this.skillGenerationService = skillGenerationService
             ?? throw new ArgumentNullException(nameof(skillGenerationService));
         this.runVariableRuntimeProvider = runVariableRuntimeProvider;
+        this.factionRuntimeProvider = factionRuntimeProvider;
+        this.characterCatalog = characterCatalog;
     }
 
     public IReadOnlyList<WorldCharacterProfile> Profiles => profiles;
@@ -499,14 +511,34 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
 
     private CharacterSO[] GetCustomerTemplates()
     {
-        customerTemplates ??= resourcesAssetLoader
-            .LoadAllRequired<CharacterSO>(CharacterResourcePath)
+        customerTemplates ??= (characterCatalog?.Characters
+                ?? resourcesAssetLoader
+                    .LoadAllRequired<CharacterSO>(CharacterResourcePath))
             .Where(candidate => candidate != null && candidate.characterType == CharacterType.Customer)
             .GroupBy(candidate => candidate.id)
             .Select(group => group.First())
             .OrderBy(candidate => candidate.id)
             .ToArray();
-        return customerTemplates;
+        return customerTemplates
+            .Where(IsRecruitmentEligible)
+            .ToArray();
+    }
+
+    private bool IsRecruitmentEligible(CharacterSO candidate)
+    {
+        CharacterSpeciesSO species = candidate?.species;
+        if (species == null || species.ownerSelectable)
+        {
+            return true;
+        }
+
+        string factionId = species.homeFactionId?.Trim() ?? string.Empty;
+        return factionId.Length > 0
+            && factionRuntimeProvider?.TryGetRuntime(
+                out IFactionRuntime factionRuntime) == true
+            && factionRuntime.IsContractUnlocked(
+                factionId,
+                FactionContractKind.Recruitment) == true;
     }
 
     private int CountAvailableReadyProfiles()

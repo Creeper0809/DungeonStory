@@ -35,6 +35,7 @@ MonoBehaviour:
   unlocks:
     items:
     - rid: 7302563230216618547
+    - rid: 7302563305932456184
   icon: {fileID: 0}
   references:
     version: 2
@@ -43,3 +44,7 @@ MonoBehaviour:
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1075
+    - rid: 7302563305932456184
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1618

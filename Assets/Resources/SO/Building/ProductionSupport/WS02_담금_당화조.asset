@@ -1,0 +1,94 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "WS02_\uB2F4\uAE08_\uB2F9\uD654\uC870"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: BuildableObject, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1601
+  objectName: "\uB2F4\uAE08\xB7\uB2F9\uD654\uC870"
+  sprite: {fileID: 0}
+  icon: {fileID: 0}
+  abilityModules:
+    items:
+    - rid: 7302563313672520134
+    - rid: 7302563313672520135
+    - rid: 7302563313672520136
+  width: 1
+  height: 1
+  layer: 1
+  category: 5
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563313672520134
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: WS02
+    - rid: 7302563313672520135
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - production-support
+        - support:mash-tun
+    - rid: 7302563313672520136
+      type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionSupportAbility
+        supportId: production-support:ws02
+        featureTags:
+        - support:mash-tun
+        compatibleWorkstationTags:
+        - workstation:brewery
+        kind: 0
+        batchCapacity: 1
+        requiresPower: 0
+        cleanWaterPerCycle: 0.25
+        wastewaterPerCycle: 0
+        allowsManualWaterFallback: 1
+        requiresFuel: 0
+        fuelItemId: resource:log
+        fuelPerCycle: 1
+        workSpeedMultiplier: 1
+        outputMultiplier: 1
+        qualityModifier: 0

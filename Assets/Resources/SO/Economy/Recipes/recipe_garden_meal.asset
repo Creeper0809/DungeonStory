@@ -26,9 +26,24 @@ MonoBehaviour:
   displayName: "\uC815\uC6D0 \uC694\uB9AC"
   description: "\uC815\uC6D0 \uC694\uB9AC \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: cookbench
+  workstationTag: workstation:cookbench
+  requiredSupportTags:
+  - support:prep-sink
+  - support:hearth
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:cook
   requiredResearchId: research:cuisine:vegan
   requiredWork: 11
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0.25
+  wastewaterPerCycle: 0.2
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:twilight-grain
     amount: 1

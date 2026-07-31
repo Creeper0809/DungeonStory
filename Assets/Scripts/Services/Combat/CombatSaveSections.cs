@@ -178,7 +178,7 @@ public sealed class SurgerySaveSection : IDungeonSaveSection
     }
 
     public string SectionId => Id;
-    public int SectionVersion => 2;
+    public int SectionVersion => 3;
     public DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
     public IReadOnlyList<string> DependsOn => new[]
@@ -196,17 +196,39 @@ public sealed class SurgerySaveSection : IDungeonSaveSection
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion != SectionVersion)
+        if (sectionVersion < 2 || sectionVersion > SectionVersion)
         {
             throw new InvalidOperationException(
                 $"Unsupported {Id} section version {sectionVersion}.");
         }
 
         List<string> warnings = new List<string>();
-        runtime.Restore(
+        DungeonSurgerySaveData saveData =
             JsonUtility.FromJson<DungeonSurgerySaveData>(
                 payloadJson ?? string.Empty)
-            ?? new DungeonSurgerySaveData(),
+            ?? new DungeonSurgerySaveData();
+        if (sectionVersion == 2)
+        {
+            foreach (SurgeryOrder order in
+                     saveData.orders ?? new List<SurgeryOrder>())
+            {
+                if (order == null)
+                {
+                    continue;
+                }
+
+                order.environmentResumeStage = order.state;
+                order.environmentWaitReason = string.Empty;
+                order.environmentStableSeconds = 0f;
+                order.environmentRecoveryWorkStatus = string.Empty;
+            }
+
+            warnings.Add(
+                "Surgery section V2 migrated to V3 with no active environment waits.");
+        }
+
+        runtime.Restore(
+            saveData,
             warnings);
         foreach (string warning in warnings)
         {

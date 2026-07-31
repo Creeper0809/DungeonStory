@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "SR10_\uAC1D\uC2E4 \uC815\uB9AC\uD568"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: Facility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1709
+  objectName: "\uAC1D\uC2E4 \uC815\uB9AC\uD568"
+  sprite: {fileID: 21300000, guid: 63f03661259d8b14fa0cb53af0ab225f, type: 3}
+  icon: {fileID: 21300000, guid: 63f03661259d8b14fa0cb53af0ab225f, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563313672519936
+    - rid: 7302563313672519937
+    - rid: 7302563313672519938
+    - rid: 7302563313672519939
+    - rid: 7302563313672519940
+  width: 1
+  height: 1
+  layer: 1
+  category: 3
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563313672519936
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 24
+        constructionCost: 0
+        maintenance: 1
+        unlockPhase: 2
+        demolitionRefundRate: 0.5
+    - rid: 7302563313672519937
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: SR10
+    - rid: 7302563313672519938
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingRoomRequirementAbility
+    - rid: 7302563313672519939
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - ServiceRoom
+        - Cleanup
+    - rid: 7302563313672519940
+      type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingServiceSupportAbility
+        supportId: SR10
+        featureTags:
+        - service:room-cleanup
+        compatibleHubTags:
+        - service:lodging
+        modifierType: 6
+        capacity: 0
+        requiresPower: 0
+        cleanWaterPerUse: 0
+        wastewaterPerUse: 0
+        allowsManualWaterFallback: 0
+        workSpeedMultiplier: 1.2
+        satisfactionModifier: 0
+        revenueModifier: 0

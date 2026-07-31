@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8031
+  id: 8032
   itemId: waste:mixed-rot
   displayName: "\uD63C\uD569 \uBD80\uD328\uBB3C"
   description: "\uC7AC\uB8CC\uAC00 \uC11E\uC5EC \uC2DD\uC131\uC744 \uAD6C\uBD84\uD558\uAE30
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 6
   ingredientTags: 2065
   unitPrice: 0
+  marketSaleRate: 0.6
   unitWeight: 0.65
   maxStack: 75
   sprite: {fileID: 0}

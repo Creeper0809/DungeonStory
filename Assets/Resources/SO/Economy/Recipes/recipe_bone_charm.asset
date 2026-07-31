@@ -26,9 +26,22 @@ MonoBehaviour:
   displayName: "\uBF08\uBFD4 \uC7A5\uC2E0\uAD6C"
   description: "\uBF08\uBFD4 \uC7A5\uC2E0\uAD6C \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: jeweler
+  workstationTag: workstation:jeweler
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:craft
   requiredResearchId: research:authority:prestige
   requiredWork: 12
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:bone
     amount: 2

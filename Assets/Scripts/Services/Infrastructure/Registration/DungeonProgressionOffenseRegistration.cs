@@ -67,6 +67,7 @@ public static class DungeonProgressionOffenseRegistration
             .AsSelf()
             .As<IOffenseWorldSimulation>()
             .As<IWorldThreatModifierQuery>();
+        builder.RegisterDungeonFactionWar();
         builder.Register<OffenseReturnSafetyRuntime>(Lifetime.Singleton)
             .As<IOffenseReturnSafetyRuntime>();
         builder.RegisterEntryPoint<OffenseUrgentMitigationRuntime>(

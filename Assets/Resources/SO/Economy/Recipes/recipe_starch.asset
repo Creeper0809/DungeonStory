@@ -26,9 +26,22 @@ MonoBehaviour:
   displayName: "\uC804\uBD84 \uCD94\uCD9C"
   description: "\uC804\uBD84 \uCD94\uCD9C \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: mill
+  workstationTag: workstation:mill
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:craft
   requiredResearchId: research:cuisine:milling
   requiredWork: 7
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:twilight-grain
     amount: 2

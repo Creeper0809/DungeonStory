@@ -20,6 +20,9 @@ MonoBehaviour:
   - Orc
   - Vampire
   - Goblin
+  - Beastkin
+  - Demon
+  - Kobold
   nodes:
   - nodeId: head
     displayName: "\uBA38\uB9AC"

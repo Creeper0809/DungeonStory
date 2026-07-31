@@ -42,11 +42,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: a2cdaf639ef974541beaa0d56ca8603a, type: 3}
   abilityModules:
     items:
-    - rid: 7302563284524204923
-    - rid: 7302563284524204924
-    - rid: 7302563284524204925
-    - rid: 7302563284524204926
-    - rid: 7302563284524204927
+    - rid: 7302563313663345618
+    - rid: 7302563313663345619
+    - rid: 7302563313663345620
+    - rid: 7302563313663345621
+    - rid: 7302563313663345622
   width: 2
   height: 1
   layer: 1
@@ -61,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563284524204923
+    - rid: 7302563313663345618
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I08
-    - rid: 7302563284524204924
+    - rid: 7302563313663345619
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +75,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563284524204925
+    - rid: 7302563313663345620
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -87,14 +87,14 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 4
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563284524204926
+    - rid: 7302563313663345621
       type: {class: BuildingWaterStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterStorageAbility
         channels: 2
         cleanWaterCapacity: 120
         wastewaterCapacity: 0
-    - rid: 7302563284524204927
+    - rid: 7302563313663345622
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

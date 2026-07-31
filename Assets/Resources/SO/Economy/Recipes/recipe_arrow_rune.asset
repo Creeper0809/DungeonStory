@@ -21,14 +21,27 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9099
+  id: 9103
   recipeId: recipe:arrow-rune
   displayName: "\uB8EC\uCD09 \uD654\uC0B4"
   description: "\uB8EC\uCD09 \uD654\uC0B4 \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: arcane-forge
+  workstationTag: workstation:arcane-forge
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:craft
   requiredResearchId: research:arcane:advanced
   requiredWork: 16
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:treated-lumber
     amount: 1

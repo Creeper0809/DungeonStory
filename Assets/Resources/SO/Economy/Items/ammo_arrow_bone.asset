@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8093
+  id: 8098
   itemId: ammo:arrow-bone
   displayName: "\uBF08\uCD09 \uD654\uC0B4"
   description: "\uAC00\uBCCD\uC9C0\uB9CC \uAD00\uD1B5\uC774 \uB0AE\uC740 \uD654\uC0B4."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 7
   ingredientTags: 768
   unitPrice: 2
+  marketSaleRate: 0.6
   unitWeight: 0.08
   maxStack: 100
   sprite: {fileID: 0}

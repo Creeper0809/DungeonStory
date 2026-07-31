@@ -42,13 +42,13 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: fdb3548b08c2343438c9450d9c540dca, type: 3}
   abilityModules:
     items:
-    - rid: 7302563284922663032
-    - rid: 7302563284922663033
-    - rid: 7302563284922663034
-    - rid: 7302563284922663035
-    - rid: 7302563284922663036
-    - rid: 7302563284922663037
-    - rid: 7302563284922663038
+    - rid: 7302563313672519879
+    - rid: 7302563313672519880
+    - rid: 7302563313672519881
+    - rid: 7302563313672519882
+    - rid: 7302563313672519883
+    - rid: 7302563313672519884
+    - rid: 7302563313672519885
   width: 1
   height: 1
   layer: 1
@@ -63,12 +63,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563284922663032
+    - rid: 7302563313672519879
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I14
-    - rid: 7302563284922663033
+    - rid: 7302563313672519880
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -77,7 +77,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563284922663034
+    - rid: 7302563313672519881
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -89,14 +89,14 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 3
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563284922663035
+    - rid: 7302563313672519882
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 10
         normallyOpen: 1
-    - rid: 7302563284922663036
+    - rid: 7302563313672519883
       type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterFixtureAbility
@@ -106,7 +106,7 @@ MonoBehaviour:
         allowsManualWaterFallback: 0
         allowsDryFallback: 0
         manualWasteItemId: 
-    - rid: 7302563284922663037
+    - rid: 7302563313672519884
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -117,7 +117,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 536870924
           disabledWhenDamaged: 1
-    - rid: 7302563284922663038
+    - rid: 7302563313672519885
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility

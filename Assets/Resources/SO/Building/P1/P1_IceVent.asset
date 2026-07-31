@@ -43,8 +43,8 @@ MonoBehaviour:
   abilityModules:
     items:
     - rid: 7302562995605602979
-    - rid: 7302563269269258898
-    - rid: 7302563269269258899
+    - rid: 7302563313672520012
+    - rid: 7302563313672520013
   width: 2
   height: 1
   layer: 5
@@ -63,11 +63,12 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 100
         constructionCost: 100
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563269269258898
+    - rid: 7302563313672520012
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -78,7 +79,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7302563269269258899
+    - rid: 7302563313672520013
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility
@@ -95,3 +96,26 @@ MonoBehaviour:
           effectAssets:
           - {fileID: 11400000, guid: cb9dcbea8120b280d87132cbbdffb1dc, type: 2}
           - {fileID: 11400000, guid: 3f0d24a958b4870cab87755f165e2a8d, type: 2}
+          supplyKind: 5
+          supplyItemId: 
+          supplyCategory: 3
+          supplyCapacity: 0
+          supplyPerActivation: 0
+          initialSupply: 0
+          requiresPower: 1
+          powerDemand: 3
+          conditionLossPerActivation: 1
+          baseJamChance: 0.01
+          baseMisfireChance: 0.005
+          facilityFamilyId: defense:elemental
+          affinityTags:
+          - defense:ice
+          - species:slime
+          - species:vampire
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0

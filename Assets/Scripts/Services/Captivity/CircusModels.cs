@@ -169,6 +169,50 @@ public readonly struct CircusProgramSettlement
     public string Message { get; }
 }
 
+public readonly struct CircusProgramForecast
+{
+    public CircusProgramForecast(
+        int expectedRevenue,
+        float minimumSatisfaction,
+        float maximumSatisfaction,
+        float accidentChance,
+        float renown,
+        float dread,
+        float hostileRumor,
+        float injuryChance,
+        float deathChance,
+        bool canSchedule,
+        string participantRequirement,
+        string failureReason)
+    {
+        ExpectedRevenue = Mathf.Max(0, expectedRevenue);
+        MinimumSatisfaction = Mathf.Clamp(minimumSatisfaction, 0f, 100f);
+        MaximumSatisfaction = Mathf.Clamp(maximumSatisfaction, 0f, 100f);
+        AccidentChance = Mathf.Clamp01(accidentChance);
+        Renown = Mathf.Max(0f, renown);
+        Dread = Mathf.Max(0f, dread);
+        HostileRumor = Mathf.Max(0f, hostileRumor);
+        InjuryChance = Mathf.Clamp01(injuryChance);
+        DeathChance = Mathf.Clamp01(deathChance);
+        CanSchedule = canSchedule;
+        ParticipantRequirement = participantRequirement ?? string.Empty;
+        FailureReason = failureReason ?? string.Empty;
+    }
+
+    public int ExpectedRevenue { get; }
+    public float MinimumSatisfaction { get; }
+    public float MaximumSatisfaction { get; }
+    public float AccidentChance { get; }
+    public float Renown { get; }
+    public float Dread { get; }
+    public float HostileRumor { get; }
+    public float InjuryChance { get; }
+    public float DeathChance { get; }
+    public bool CanSchedule { get; }
+    public string ParticipantRequirement { get; }
+    public string FailureReason { get; }
+}
+
 public interface ICircusProgramHandler
 {
     CircusProgramModule Definition { get; }
@@ -185,6 +229,12 @@ public interface ICircusRuntime
 {
     IReadOnlyList<CircusProgramModule> Programs { get; }
     IReadOnlyList<CircusShowOrder> Orders { get; }
+    CircusProgramForecast GetForecast(
+        BuildableObject stage,
+        string programId,
+        CircusLethalityPolicy lethality,
+        IReadOnlyList<string> performerIds,
+        IReadOnlyList<string> wildlifeIds);
     bool TrySchedule(
         BuildableObject stage,
         string programId,

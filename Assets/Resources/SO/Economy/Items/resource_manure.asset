@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8028
+  id: 8029
   itemId: resource:manure
   displayName: "\uBD84\uB1E8"
   description: "\uD1F4\uBE44, \uC2E4\uB0B4 \uC7AC\uBC30 \uC601\uC591\uC81C\uC640
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 5
   ingredientTags: 2048
   unitPrice: 0
+  marketSaleRate: 0.6
   unitWeight: 0.5
   maxStack: 75
   sprite: {fileID: 0}

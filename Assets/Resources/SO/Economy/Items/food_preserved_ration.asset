@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8068
+  id: 8069
   itemId: food:preserved-ration
   displayName: "\uBCF4\uC874 \uBC30\uAE09\uC2DD"
   description: "\uC804\uBD84\uACFC \uC18C\uAE08\uC73C\uB85C \uC218\uBA85\uC744 \uB298\uB9B0
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 1
   unitPrice: 13
+  marketSaleRate: 0.6
   unitWeight: 0.5
   maxStack: 60
   sprite: {fileID: 0}

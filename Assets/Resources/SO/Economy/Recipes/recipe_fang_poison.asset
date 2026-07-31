@@ -21,14 +21,27 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9082
+  id: 9086
   recipeId: recipe:fang-poison
   displayName: "\uC1A1\uACF3\uB2C8 \uB3C5\uC561"
   description: "\uC1A1\uACF3\uB2C8 \uB3C5\uC561 \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: alchemy
+  workstationTag: workstation:alchemy
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:craft
   requiredResearchId: research:arcane:alchemy
   requiredWork: 14
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:fang
     amount: 2

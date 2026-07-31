@@ -26,14 +26,26 @@ MonoBehaviour:
   displayName: "\uCE58\uC988 \uC219\uC131"
   description: "\uCE58\uC988 \uC219\uC131 \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: cookbench
+  workstationTag: workstation:cookbench
+  requiredSupportTags:
+  - support:cheese-rack
+  batchSupportTag: support:cheese-rack
+  processKind: 1
   workTypeId: work:cook
   requiredResearchId: research:cuisine:livestock
-  requiredWork: 12
+  requiredWork: 4
+  preparationWork: 4
+  finishingWork: 2
+  processingGameHours: 16
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:animal-rot
   inputs:
-  - itemId: resource:milk
-    amount: 3
-  - itemId: resource:saltstone
-    amount: 1
+  - itemId: material:curd
+    amount: 2
   outputs:
   - itemId: material:cheese
     amount: 2

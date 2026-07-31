@@ -32,6 +32,7 @@ public sealed class CircusRuntime :
     private readonly IGameClock clock;
     private readonly IRandomStream random;
     private readonly IGameEventBus events;
+    private readonly IExternalInfluenceRuntime externalInfluence;
     private readonly List<CircusShowOrder> orders = new List<CircusShowOrder>();
     private readonly Dictionary<string, IDisposable> accessPasses =
         new Dictionary<string, IDisposable>(StringComparer.Ordinal);
@@ -61,7 +62,8 @@ public sealed class CircusRuntime :
         IDoorAccessCommandService doorAccess,
         IGameClock clock,
         IRandomStreamProvider randomStreamProvider,
-        IGameEventBus events)
+        IGameEventBus events,
+        IExternalInfluenceRuntime externalInfluence = null)
     {
         this.programs = programs ?? throw new ArgumentNullException(nameof(programs));
         this.captivity = captivity ?? throw new ArgumentNullException(nameof(captivity));
@@ -84,11 +86,134 @@ public sealed class CircusRuntime :
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("circus.runtime");
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.externalInfluence = externalInfluence;
     }
 
     public IReadOnlyList<CircusProgramModule> Programs => programs.Definitions;
     public IReadOnlyList<CircusShowOrder> Orders =>
         orders.Select(order => order.Clone()).ToArray();
+
+    public CircusProgramForecast GetForecast(
+        BuildableObject stage,
+        string programId,
+        CircusLethalityPolicy lethality,
+        IReadOnlyList<string> performerIds,
+        IReadOnlyList<string> wildlifeIds)
+    {
+        BuildingCircusStageAbility stageAbility =
+            stage?.BuildingData.GetCircusStageAbility();
+        if (stage == null || stageAbility == null || !stageAbility.IsValid)
+        {
+            return UnavailableForecast("유효한 서커스 무대가 아닙니다.");
+        }
+
+        if (!programs.TryGet(programId, out ICircusProgramHandler handler))
+        {
+            return UnavailableForecast("공연 프로그램을 찾을 수 없습니다.");
+        }
+
+        if (!TryGetValidCircusRoom(
+                stage,
+                out RoomInstance room,
+                out string roomFailure))
+        {
+            return UnavailableForecast(roomFailure);
+        }
+
+        CircusProgramModule definition = handler.Definition;
+        CircusVenueModifiers venue = EvaluateVenue(
+            room,
+            definition.publiclyCruel);
+        List<CaptiveState> performers = (performerIds ?? Array.Empty<string>())
+            .Select(id => captivity.TryGetCaptive(id, out CaptiveState captive)
+                ? captive
+                : null)
+            .Where(captive => captive != null && captive.IsActive)
+            .Take(stageAbility.performerCapacity)
+            .ToList();
+        List<string> animals = (wildlifeIds ?? Array.Empty<string>())
+            .Where(wildlifeCapture.IsCaptured)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        CircusShowOrder candidate = new CircusShowOrder
+        {
+            programId = definition.programId,
+            lethality = lethality,
+            performerIds = performers.Select(item => item.captiveId).ToList(),
+            wildlifeIds = animals,
+            venueSatisfactionBonus = venue.SatisfactionBonus,
+            venueAccidentRiskBonus = venue.AccidentRiskBonus,
+            venueGamblingVariance = venue.GamblingVariance
+        };
+        bool valid = handler.Validate(
+            candidate,
+            performers,
+            out string failureReason);
+        int audienceCount = SelectAudience(room).Count();
+        int ticketPrice = Mathf.Max(
+            1,
+            Mathf.RoundToInt(
+                stageAbility.baseTicketPrice * venue.RevenueMultiplier));
+        float skill = performers
+            .Select(item => item.performerSkill)
+            .DefaultIfEmpty(0f)
+            .Average();
+        float centerSatisfaction = Mathf.Clamp(
+            definition.baseAudienceSatisfaction
+            + skill * 0.12f
+            + venue.SatisfactionBonus,
+            0f,
+            100f);
+        float satisfactionVariance = Mathf.Max(0f, venue.GamblingVariance);
+        float accidentChance = Mathf.Clamp01(
+            definition.baseAccidentRisk + venue.AccidentRiskBonus);
+        float injuryChance = definition.usesCombat
+            ? Mathf.Max(0.25f, accidentChance)
+            : accidentChance;
+        float deathChance = lethality switch
+        {
+            CircusLethalityPolicy.FightToDeath => 1f,
+            CircusLethalityPolicy.ExecuteDesignatedTarget => 1f,
+            CircusLethalityPolicy.AllowAccidents => injuryChance * 0.2f,
+            _ => 0f
+        };
+        float fame = Mathf.Max(1f, definition.basePerformerFame);
+        string requirement =
+            $"포로 {(definition.requiresCaptive ? "필수" : "선택")}"
+            + $" · 야생동물 {(definition.requiresWildlife ? "필수" : "선택")}"
+            + $" · 현재 포로 {performers.Count}명/동물 {animals.Count}마리";
+        return new CircusProgramForecast(
+            audienceCount
+            * (ticketPrice + venue.FlatRevenuePerAudience),
+            centerSatisfaction - satisfactionVariance,
+            centerSatisfaction + satisfactionVariance,
+            accidentChance,
+            definition.publiclyCruel ? 0f : fame,
+            definition.publiclyCruel ? Mathf.Max(3f, fame) : 0f,
+            definition.publiclyCruel ? Mathf.Max(1f, fame * 0.35f) : 0f,
+            injuryChance,
+            deathChance,
+            valid,
+            requirement,
+            valid ? string.Empty : failureReason);
+    }
+
+    private static CircusProgramForecast UnavailableForecast(string reason)
+    {
+        return new CircusProgramForecast(
+            0,
+            0f,
+            0f,
+            0f,
+            0f,
+            0f,
+            0f,
+            0f,
+            0f,
+            false,
+            string.Empty,
+            reason);
+    }
 
     public void Start()
     {
@@ -596,6 +721,18 @@ public sealed class CircusRuntime :
         if (program.Definition.publiclyCruel)
         {
             ApplyCruelWitnessConsequences(order);
+            externalInfluence?.AddDread(
+                Mathf.Max(3f, settlement.Fame),
+                order.orderId);
+            externalInfluence?.AddHostileRumor(
+                Mathf.Max(1f, settlement.Fame * 0.35f),
+                order.orderId);
+        }
+        else
+        {
+            externalInfluence?.AddRenown(
+                Mathf.Max(1f, settlement.Fame),
+                order.orderId);
         }
 
         order.statusMessage =

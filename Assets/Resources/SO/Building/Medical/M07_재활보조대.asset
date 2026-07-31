@@ -42,17 +42,18 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 3afac5514984ad645af2220793c0bee6, type: 3}
   abilityModules:
     items:
-    - rid: 7302563265135771984
-    - rid: 7302563265135771985
-    - rid: 7302563265135771986
-    - rid: 7302563265135771987
-    - rid: 7302563265135771988
-    - rid: 7302563265135771989
-    - rid: 7302563265135771990
-    - rid: 7302563265135771991
-    - rid: 7302563265135771992
-    - rid: 7302563284922662936
-    - rid: 7302563284922662937
+    - rid: 7302563313663345433
+    - rid: 7302563313663345434
+    - rid: 7302563313663345435
+    - rid: 7302563313663345436
+    - rid: 7302563313663345437
+    - rid: 7302563313663345438
+    - rid: 7302563313663345439
+    - rid: 7302563313663345440
+    - rid: 7302563313663345441
+    - rid: 7302563313663345442
+    - rid: 7302563313672519783
+    - rid: 7302563313672519784
   width: 2
   height: 1
   layer: 1
@@ -67,12 +68,20 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563265135771984
+    - rid: 7302563313663345433
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M07
-    - rid: 7302563265135771985
+    - rid: 7302563313663345434
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - medical
+        - surgery
+        - m07
+    - rid: 7302563313663345435
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -81,7 +90,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563265135771986
+    - rid: 7302563313663345436
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -92,17 +101,17 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
-    - rid: 7302563265135771987
+    - rid: 7302563313663345437
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563265135771988
+    - rid: 7302563313663345438
       type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
-    - rid: 7302563265135771989
+    - rid: 7302563313663345439
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -114,7 +123,7 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 5
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563265135771990
+    - rid: 7302563313663345440
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -126,14 +135,14 @@ MonoBehaviour:
           - m07
           scores: []
           metrics: []
-    - rid: 7302563265135771991
+    - rid: 7302563313663345441
       type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.8
         severityReduction: 0.4
         requiresMedicine: 1
-    - rid: 7302563265135771992
+    - rid: 7302563313663345442
       type: {class: BuildingRehabilitationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRehabilitationAbility
@@ -142,14 +151,14 @@ MonoBehaviour:
         primaryOperatingFacility: 1
         runeSuture: 0
         manaCrystalCost: 0
-    - rid: 7302563284922662936
+    - rid: 7302563313672519783
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7302563284922662937
+    - rid: 7302563313672519784
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

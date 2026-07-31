@@ -52,11 +52,11 @@ MonoBehaviour:
     - rid: 7302563239038812967
     - rid: 7302563239038812968
     - rid: 7302563239038812969
-    - rid: 7302563284524205036
-    - rid: 7302563284524205037
-    - rid: 7302563284524205038
-    - rid: 7302563284524205039
-    - rid: 7302563284524205040
+    - rid: 7302563313672519739
+    - rid: 7302563313672519740
+    - rid: 7302563313672519741
+    - rid: 7302563313672519742
+    - rid: 7302563313672519743
   width: 1
   height: 1
   layer: 1
@@ -152,14 +152,14 @@ MonoBehaviour:
         roomTemperatureOffset: 4
         coldProtection: 6
         heatProtection: 1
-    - rid: 7302563284524205036
+    - rid: 7302563313672519739
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284524205037
+    - rid: 7302563313672519740
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -170,21 +170,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284524205038
+    - rid: 7302563313672519741
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7302563284524205039
+    - rid: 7302563313672519742
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284524205040
+    - rid: 7302563313672519743
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

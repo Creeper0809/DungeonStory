@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8034
+  id: 8035
   itemId: material:starch
   displayName: "\uC804\uBD84"
   description: "\uBCF4\uC874\uC2DD\uACFC \uC811\uCC29 \uAC00\uACF5\uC5D0 \uC4F0\uB294
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 1
   unitPrice: 3
+  marketSaleRate: 0.6
   unitWeight: 0.25
   maxStack: 75
   sprite: {fileID: 0}

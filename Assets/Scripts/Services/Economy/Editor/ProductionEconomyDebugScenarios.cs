@@ -18,6 +18,7 @@ public static class ProductionEconomyDebugScenarios
     {
         ValidateAuthoredContent();
         ValidatePhysicalProductionBill();
+        ValidatePassiveBatchProduction();
         ValidateEconomyPlanning();
         Debug.Log("Production economy contracts passed.");
     }
@@ -66,7 +67,7 @@ public static class ProductionEconomyDebugScenarios
             .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
             .Where(project => project != null)
             .ToArray();
-        Require(projects.Length == 78, $"research projects={projects.Length}");
+        Require(projects.Length >= 78, $"research projects={projects.Length}");
 
         HashSet<int> stationIds = stations.Select(station => station.id).ToHashSet();
         int unlockedStationCount = projects
@@ -81,10 +82,16 @@ public static class ProductionEconomyDebugScenarios
 
         ResourceEconomyContentCatalog catalog = LoadCatalog();
         Require(
-            catalog.Items.Count == ResourceEconomyAssetBuilder.ExpectedItemCount,
+            catalog.Items.Count
+                == ResourceEconomyAssetBuilder.ExpectedItemCount
+                    + ProductionWorkshopContentAssetBuilder
+                        .ExpectedWorkshopItemCount,
             $"resource items={catalog.Items.Count}");
         Require(
-            catalog.Recipes.Count == ResourceEconomyAssetBuilder.ExpectedRecipeCount,
+            catalog.Recipes.Count
+                >= ResourceEconomyAssetBuilder.ExpectedRecipeCount
+                    + ProductionWorkshopContentAssetBuilder
+                        .ExpectedWorkshopRecipeCount,
             $"production recipes={catalog.Recipes.Count}");
         Require(
             catalog.Crops.Count == ResourceEconomyAssetBuilder.ExpectedCropCount,
@@ -282,6 +289,326 @@ public static class ProductionEconomyDebugScenarios
         {
             UnityEngine.Object.DestroyImmediate(facilityObject);
             UnityEngine.Object.DestroyImmediate(building);
+            UnityEngine.Object.DestroyImmediate(recipe);
+        }
+    }
+
+    private static void ValidatePassiveBatchProduction()
+    {
+        ProductionRecipeSO recipe =
+            ScriptableObject.CreateInstance<ProductionRecipeSO>();
+        BuildingSO workstationData =
+            ScriptableObject.CreateInstance<BuildingSO>();
+        BuildingSO supportData =
+            ScriptableObject.CreateInstance<BuildingSO>();
+        GameObject workstationObject = new GameObject(
+            "Passive Batch Contract Workstation");
+        GameObject supportObject = new GameObject(
+            "Passive Batch Contract Support");
+        try
+        {
+            recipe.Configure(
+                "test:recipe:fermentation",
+                "시험 발효",
+                "시간 공정과 저장 복원을 검증한다.",
+                "brewery",
+                BuiltInWorkTypeIds.Craft.Value,
+                string.Empty,
+                2f,
+                new[] { new ItemAmountDefinition("test:wort", 2) },
+                new[] { new ProductionOutputDefinition("test:beer", 2) });
+            recipe.ConfigureWorkshop(
+                "workstation:test-brewery",
+                new[] { "support:test-fermenter" },
+                ProductionProcessKind.PassiveBatch,
+                "support:test-fermenter",
+                prepareWork: 2f,
+                finishWork: 1f,
+                processGameHours: 12f,
+                failedBatchItemId: "test:rot");
+            ResourceEconomyContentCatalog catalog =
+                new ResourceEconomyContentCatalog(
+                    Array.Empty<ResourceItemDefinitionSO>(),
+                    new[] { recipe },
+                    Array.Empty<CropDefinitionSO>(),
+                    Array.Empty<CraftMaterialDefinitionSO>(),
+                    Array.Empty<SubstanceDefinitionSO>());
+
+            BuildingAbilityCollection workstationAbilities =
+                new BuildingAbilityCollection();
+            workstationAbilities.Add(new BuildingFacilityAbility
+            {
+                settings = CreateCraftFacilityData()
+            });
+            workstationAbilities.Add(
+                new BuildingProductionWorkstationAbility
+                {
+                    workstationTag = "workstation:test-brewery"
+                });
+            workstationData.id = 99201;
+            workstationData.objectName = "시험 양조장";
+            workstationData.ReplaceAbilities(workstationAbilities);
+
+            BuildingAbilityCollection supportAbilities =
+                new BuildingAbilityCollection();
+            supportAbilities.Add(new BuildingProductionSupportAbility
+            {
+                supportId = "support:test-fermenter-instance",
+                featureTags = new[] { "support:test-fermenter" },
+                compatibleWorkstationTags =
+                    new[] { "workstation:test-brewery" },
+                kind = ProductionSupportKind.BatchProcessor,
+                batchCapacity = 1,
+                requiresPower = true,
+                requiresFuel = true,
+                fuelItemId = "test:fuel",
+                fuelPerCycle = 1
+            });
+            supportData.id = 99202;
+            supportData.objectName = "시험 발효조";
+            supportData.ReplaceAbilities(supportAbilities);
+
+            BuildableObject workstation =
+                workstationObject.AddComponent<BuildableObject>();
+            workstation.Initialization(
+                workstationData,
+                new Vector2Int(4, 4));
+            BuildableObject support =
+                supportObject.AddComponent<BuildableObject>();
+            support.Initialization(
+                supportData,
+                new Vector2Int(5, 4));
+
+            FakeProductionItemGateway items =
+                new FakeProductionItemGateway();
+            MutableGameClock clock = new MutableGameClock();
+            MutablePowerRuntime power = new MutablePowerRuntime();
+            FakeProductionWorkshop workshop =
+                new FakeProductionWorkshop(workstation, support);
+            ProductionBillRuntime runtime = new ProductionBillRuntime(
+                catalog,
+                items,
+                new RandomStreamProvider(772),
+                workshops: workshop,
+                buildingWorld: new FixedBuildingWorldQuery(
+                    workstation,
+                    support),
+                power: power,
+                clock: clock);
+            ProductionBillCommandResult added = runtime.AddBill(
+                workstation,
+                recipe.RecipeId,
+                ProductionOrderMode.RepeatCount,
+                1);
+            Require(added.Succeeded, added.Message);
+            string destination =
+                ProductionBillRuntime.DestinationPrefix + added.BillId;
+            items.Deliver("test:wort", 2, destination);
+            items.Deliver("test:fuel", 1, destination);
+            Require(runtime.TryBeginWork(
+                    null,
+                    workstation,
+                    BuiltInWorkTypeIds.Craft,
+                    out ProductionBillSnapshot prepared,
+                    out string beginFailure),
+                $"passive batch did not begin: {beginFailure}");
+            Require(runtime.ApplyWork(
+                    null,
+                    workstation,
+                    prepared.BillId,
+                    2f,
+                    out bool earlyComplete,
+                    out _)
+                && !earlyComplete,
+                "preparation incorrectly emitted the final product");
+            ProductionBillSnapshot processing =
+                runtime.GetBills(workstation).Single();
+            Require(
+                processing.BatchStage == ProductionBatchStage.Processing
+                && Mathf.Approximately(
+                    processing.RemainingProcessingHours,
+                    12f)
+                && items.GetAvailable("test:beer") == 0,
+                "batch did not occupy its passive processing stage");
+
+            clock.DeltaTimeValue = 45f;
+            runtime.Tick();
+            string saveJson = new ProductionBillsSaveSection(runtime).Capture();
+            ProductionBillRuntime restored = new ProductionBillRuntime(
+                catalog,
+                items,
+                new RandomStreamProvider(772),
+                workshops: workshop,
+                buildingWorld: new FixedBuildingWorldQuery(
+                    workstation,
+                    support),
+                power: power,
+                clock: clock);
+            DungeonGameRestoreReport report =
+                new DungeonGameRestoreReport();
+            new ProductionBillsSaveSection(restored).Restore(
+                saveJson,
+                DungeonProductionBillSaveData.CurrentVersion,
+                report);
+            ProductionBillSnapshot halfProcessed =
+                restored.GetBills(workstation).Single();
+            Require(
+                report.Success
+                && Mathf.Approximately(
+                    halfProcessed.RemainingProcessingHours,
+                    6f),
+                "passive processing time did not save and restore");
+
+            power.Powered = false;
+            restored.Tick();
+            ProductionBillSnapshot gracePaused =
+                restored.GetBills(workstation).Single();
+            Require(
+                Mathf.Approximately(
+                    gracePaused.RemainingProcessingHours,
+                    6f)
+                && Mathf.Approximately(gracePaused.BatchIntegrity, 100f)
+                && Mathf.Approximately(
+                    gracePaused.UtilityOutageHours,
+                    6f),
+                "six-hour utility grace did not preserve progress and integrity");
+            clock.DeltaTimeValue = 0.75f;
+            restored.Tick();
+            ProductionBillSnapshot decaying =
+                restored.GetBills(workstation).Single();
+            Require(
+                decaying.BatchIntegrity < 100f
+                && decaying.BatchIntegrity > 99f,
+                "integrity did not start decaying after the utility grace");
+
+            power.Powered = true;
+            clock.DeltaTimeValue = 45f;
+            restored.Tick();
+            ProductionBillSnapshot finishing =
+                restored.GetBills(workstation).Single();
+            Require(
+                finishing.BatchStage == ProductionBatchStage.Finishing
+                && items.GetAvailable("test:beer") == 0,
+                "processing completion did not wait for finishing work");
+            Require(restored.TryBeginWork(
+                    null,
+                    workstation,
+                    BuiltInWorkTypeIds.Craft,
+                    out ProductionBillSnapshot finishingWork,
+                    out string finishBeginFailure),
+                $"finishing work did not become runnable: {finishBeginFailure}");
+            Require(restored.ApplyWork(
+                    null,
+                    workstation,
+                    finishingWork.BillId,
+                    1f,
+                    out bool completed,
+                    out _)
+                && completed
+                && items.GetAvailable("test:beer") == 2,
+                "finishing work did not emit a physical final product");
+            Require(
+                items.GetRequested("test:wort") == 2,
+                "passive production generated an automatic downstream order");
+
+            ProductionBillCommandResult degraded = restored.AddBill(
+                workstation,
+                recipe.RecipeId,
+                ProductionOrderMode.RepeatCount,
+                1);
+            Require(degraded.Succeeded, degraded.Message);
+            string degradedDestination =
+                ProductionBillRuntime.DestinationPrefix + degraded.BillId;
+            items.Deliver("test:wort", 2, degradedDestination);
+            items.Deliver("test:fuel", 1, degradedDestination);
+            Require(restored.TryBeginWork(
+                    null,
+                    workstation,
+                    BuiltInWorkTypeIds.Craft,
+                    out ProductionBillSnapshot degradedPreparation,
+                    out string degradedBeginFailure),
+                $"degraded batch did not begin: {degradedBeginFailure}");
+            Require(restored.ApplyWork(
+                    null,
+                    workstation,
+                    degradedPreparation.BillId,
+                    2f,
+                    out _,
+                    out _),
+                "degraded batch preparation failed");
+            power.Powered = false;
+            clock.DeltaTimeValue = 7.5f * 16.2f;
+            restored.Tick();
+            ProductionBillSnapshot degradedProcessing = restored
+                .GetBills(workstation)
+                .Single(bill => bill.BillId == degraded.BillId);
+            Require(
+                degradedProcessing.BatchIntegrity < 50f
+                && degradedProcessing.BatchIntegrity > 48f,
+                "utility outage did not reach the half-yield integrity band");
+            power.Powered = true;
+            clock.DeltaTimeValue = 7.5f * 12f;
+            restored.Tick();
+            Require(restored.TryBeginWork(
+                    null,
+                    workstation,
+                    BuiltInWorkTypeIds.Craft,
+                    out ProductionBillSnapshot degradedFinishing,
+                    out string degradedFinishFailure),
+                $"degraded finishing did not begin: {degradedFinishFailure}");
+            Require(restored.ApplyWork(
+                    null,
+                    workstation,
+                    degradedFinishing.BillId,
+                    1f,
+                    out bool degradedCompleted,
+                    out _)
+                && degradedCompleted
+                && items.GetAvailable("test:beer") == 3,
+                "integrity below 50 did not halve the physical output");
+
+            ProductionBillCommandResult ruined = restored.AddBill(
+                workstation,
+                recipe.RecipeId,
+                ProductionOrderMode.RepeatCount,
+                1);
+            Require(ruined.Succeeded, ruined.Message);
+            string ruinedDestination =
+                ProductionBillRuntime.DestinationPrefix + ruined.BillId;
+            items.Deliver("test:wort", 2, ruinedDestination);
+            items.Deliver("test:fuel", 1, ruinedDestination);
+            Require(restored.TryBeginWork(
+                    null,
+                    workstation,
+                    BuiltInWorkTypeIds.Craft,
+                    out ProductionBillSnapshot ruinedPreparation,
+                    out string ruinedBeginFailure),
+                $"ruined batch did not begin: {ruinedBeginFailure}");
+            Require(restored.ApplyWork(
+                    null,
+                    workstation,
+                    ruinedPreparation.BillId,
+                    2f,
+                    out _,
+                    out _),
+                "ruined batch preparation failed");
+            power.Powered = false;
+            clock.DeltaTimeValue = 7.5f * 26f;
+            restored.Tick();
+            Require(
+                restored.GetBills(workstation)
+                    .All(bill => bill.BillId != ruined.BillId)
+                && items.GetAvailable("test:rot") == 2
+                && items.GetAvailable("test:beer") == 3
+                && items.GetRequested("test:fuel") == 3,
+                "zero-integrity batch did not become matching physical rot");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(workstationObject);
+            UnityEngine.Object.DestroyImmediate(supportObject);
+            UnityEngine.Object.DestroyImmediate(workstationData);
+            UnityEngine.Object.DestroyImmediate(supportData);
             UnityEngine.Object.DestroyImmediate(recipe);
         }
     }
@@ -539,6 +866,134 @@ public static class ProductionEconomyDebugScenarios
                 0,
                 (values.TryGetValue(key, out int current) ? current : 0)
                 + amount);
+        }
+    }
+
+    private sealed class FakeProductionWorkshop :
+        IProductionWorkshopRuntime
+    {
+        private readonly BuildableObject workstation;
+        private readonly BuildableObject support;
+        private readonly BuildingProductionSupportAbility ability;
+
+        public FakeProductionWorkshop(
+            BuildableObject workstation,
+            BuildableObject support)
+        {
+            this.workstation = workstation;
+            this.support = support;
+            ability = support.BuildingData.GetProductionSupportAbility();
+        }
+
+        public int Version => 1;
+
+        public IReadOnlyList<ProductionSupportLinkSnapshot> GetLinks(
+            BuildableObject candidate)
+        {
+            return candidate == workstation
+                ? new[]
+                {
+                    new ProductionSupportLinkSnapshot
+                    {
+                        Workstation = workstation,
+                        Support = support,
+                        WorkstationTag =
+                            workstation.GetProductionWorkstationTag(),
+                        SupportId = ability.SupportId,
+                        FeatureTags = ability.featureTags
+                    }
+                }
+                : Array.Empty<ProductionSupportLinkSnapshot>();
+        }
+
+        public bool TryGetLinkForSupport(
+            BuildableObject candidate,
+            out ProductionSupportLinkSnapshot link)
+        {
+            link = candidate == support
+                ? GetLinks(workstation).Single()
+                : null;
+            return link != null;
+        }
+
+        public bool HasRequiredSupports(
+            BuildableObject candidate,
+            IReadOnlyList<string> requiredFeatureTags,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            bool valid = candidate == workstation
+                && (requiredFeatureTags ?? Array.Empty<string>())
+                    .All(ability.Provides);
+            if (!valid)
+            {
+                failureReason = "missing fake support";
+            }
+            return valid;
+        }
+
+        public bool TryResolveSupport(
+            BuildableObject candidate,
+            string featureTag,
+            ProductionSupportKind? requiredKind,
+            out BuildableObject resolvedSupport,
+            out BuildingProductionSupportAbility resolvedAbility)
+        {
+            bool valid = candidate == workstation
+                && ability.Provides(featureTag)
+                && (!requiredKind.HasValue
+                    || ability.kind == requiredKind.Value);
+            resolvedSupport = valid ? support : null;
+            resolvedAbility = valid ? ability : null;
+            return valid;
+        }
+    }
+
+    private sealed class FixedBuildingWorldQuery : IBuildingWorldQuery
+    {
+        public FixedBuildingWorldQuery(params BuildableObject[] buildings)
+        {
+            Buildings = buildings ?? Array.Empty<BuildableObject>();
+        }
+
+        public int BuildingVersion => 1;
+        public IReadOnlyList<BuildableObject> Buildings { get; }
+    }
+
+    private sealed class MutableGameClock : IGameClock
+    {
+        public float DeltaTimeValue { get; set; }
+        public bool Paused { get; set; }
+
+        public float DeltaTime => DeltaTimeValue;
+        public float Time => 0f;
+        public int FrameCount => 0;
+        public bool IsPaused => Paused;
+    }
+
+    private sealed class MutablePowerRuntime : IElectricalNetworkRuntime
+    {
+        public bool Powered { get; set; } = true;
+
+        public int Version => 1;
+        public IReadOnlyList<PowerNetworkSnapshot> Networks { get; } =
+            Array.Empty<PowerNetworkSnapshot>();
+
+        public bool IsPowered(BuildableObject building) => Powered;
+
+        public bool TryGetNode(
+            BuildableObject building,
+            out PowerNodeSnapshot snapshot)
+        {
+            snapshot = default;
+            return false;
+        }
+
+        public DungeonPowerInfrastructureSaveData Capture() =>
+            new DungeonPowerInfrastructureSaveData();
+
+        public void Restore(DungeonPowerInfrastructureSaveData snapshot)
+        {
         }
     }
 

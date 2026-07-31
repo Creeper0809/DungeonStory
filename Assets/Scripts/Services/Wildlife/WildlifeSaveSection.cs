@@ -29,16 +29,25 @@ public sealed class WildlifeSaveSection : IDungeonSaveSection
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion != SectionVersion)
+        if (sectionVersion < 2 || sectionVersion > SectionVersion)
         {
             report.AddError(
-                $"Unsupported wildlife section version {sectionVersion}; expected {SectionVersion}.");
+                $"Unsupported wildlife section version {sectionVersion}; expected 2-{SectionVersion}.");
             return;
         }
 
-        runtime.Restore(
+        DungeonWildlifeSaveData saveData =
             JsonUtility.FromJson<DungeonWildlifeSaveData>(payloadJson)
-                ?? new DungeonWildlifeSaveData(),
-            report);
+            ?? new DungeonWildlifeSaveData();
+        if (sectionVersion == 2)
+        {
+            saveData.version = DungeonWildlifeSaveData.CurrentVersion;
+            saveData.foodRaidOrders =
+                new List<WildlifeFoodRaidOrderSaveData>();
+            report?.AddWarning(
+                "Wildlife section V2 migrated to V3 with no active food raid orders.");
+        }
+
+        runtime.Restore(saveData, report);
     }
 }

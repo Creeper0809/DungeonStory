@@ -56,7 +56,8 @@ public enum SurgeryOrderState
     Recovering = 6,
     Completed = 7,
     Failed = 8,
-    Cancelled = 9
+    Cancelled = 9,
+    EnvironmentWaiting = 10
 }
 
 public enum SurgeryFailureSeverity
@@ -182,6 +183,12 @@ public sealed class SurgeryRiskBreakdown
     public float difficultyPenalty;
     public float instabilityPenalty;
     public float compatibilityPenalty;
+    public float environmentSuccessPenalty;
+    public float environmentInfectionPenalty;
+    public float environmentBleedingPenalty;
+    public float environmentOrganDamagePenalty;
+    public float environmentInstabilityAdded;
+    public int environmentStagesEvaluated;
     public string summary = string.Empty;
 
     public SurgeryRiskBreakdown Clone()
@@ -233,6 +240,11 @@ public sealed class SurgeryOrder
     public string status = string.Empty;
     public float createdAt;
     public float recoveryUntil;
+    public SurgeryOrderState environmentResumeStage =
+        SurgeryOrderState.Anesthetizing;
+    public string environmentWaitReason = string.Empty;
+    public float environmentStableSeconds;
+    public string environmentRecoveryWorkStatus = string.Empty;
 
     public bool IsActive => state is not SurgeryOrderState.Completed
         and not SurgeryOrderState.Failed
@@ -450,6 +462,59 @@ public interface ISurgeryRiskEvaluator
         SurgicalFacilitySnapshot facility,
         float patientInstability,
         float compatibilityPenalty);
+}
+
+public readonly struct SurgeryEnvironmentRiskSnapshot
+{
+    public SurgeryEnvironmentRiskSnapshot(
+        EnvironmentalCellSnapshot environment,
+        EnvironmentalExposureBand doctorBand,
+        EnvironmentalExposureBand patientBand,
+        float successPenalty,
+        float infectionAdded,
+        float bleedingAdded,
+        float organDamageAdded,
+        float instabilityAdded,
+        bool extreme,
+        bool normal,
+        string summary)
+    {
+        Environment = environment;
+        DoctorBand = doctorBand;
+        PatientBand = patientBand;
+        SuccessPenalty = Mathf.Max(0f, successPenalty);
+        InfectionAdded = Mathf.Max(0f, infectionAdded);
+        BleedingAdded = Mathf.Max(0f, bleedingAdded);
+        OrganDamageAdded = Mathf.Max(0f, organDamageAdded);
+        InstabilityAdded = Mathf.Max(0f, instabilityAdded);
+        Extreme = extreme;
+        Normal = normal;
+        Summary = summary ?? string.Empty;
+    }
+
+    public EnvironmentalCellSnapshot Environment { get; }
+    public EnvironmentalExposureBand DoctorBand { get; }
+    public EnvironmentalExposureBand PatientBand { get; }
+    public float SuccessPenalty { get; }
+    public float InfectionAdded { get; }
+    public float BleedingAdded { get; }
+    public float OrganDamageAdded { get; }
+    public float InstabilityAdded { get; }
+    public bool Extreme { get; }
+    public bool Normal { get; }
+    public string Summary { get; }
+}
+
+public interface ISurgeryEnvironmentRiskEvaluator
+{
+    SurgeryEnvironmentRiskSnapshot Evaluate(
+        Vector2Int facilityPosition,
+        CharacterActor doctor,
+        SurgicalSubjectRef subject);
+    SurgeryRiskBreakdown Apply(
+        SurgeryRiskBreakdown baseline,
+        SurgeryEnvironmentRiskSnapshot snapshot,
+        float stageWeight);
 }
 
 public interface ISurgicalPartRuntime

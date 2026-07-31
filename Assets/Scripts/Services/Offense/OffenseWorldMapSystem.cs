@@ -15,6 +15,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour
     private List<OffenseTargetDefinition> targets;
     private IOffensePanelService panelService;
     private IGameEventBus gameEventBus;
+    private IExternalInfluenceRuntime externalInfluence;
 
     public event Action Changed;
     public event Action<OffenseTargetSnapshot> TargetSelected;
@@ -34,7 +35,13 @@ public class OffenseWorldMapRuntime : MonoBehaviour
         get
         {
             EnsureInitialized();
-            return OffenseWorldMapService.GetVisibleTargetSnapshots(state, targets, preciseIntel);
+            return targets
+                .Where(target => target != null
+                    && state.KnowTarget(target.id))
+                .Select(target => target.ToSnapshot(
+                    HasPreciseIntel(target.id),
+                    state))
+                .ToList();
         }
     }
 
@@ -51,12 +58,14 @@ public class OffenseWorldMapRuntime : MonoBehaviour
     [Inject]
     public void Construct(
         IOffensePanelService panelService,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IExternalInfluenceRuntime externalInfluence = null)
     {
         this.panelService = panelService
             ?? throw new ArgumentNullException(nameof(panelService));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.externalInfluence = externalInfluence;
     }
 
     private void Awake()
@@ -125,6 +134,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour
         }
 
         int newlyRevealed = OffenseWorldMapService.RevealTargetsInRange(state, targets);
+        externalInfluence?.AddScoutingLabor(60f);
         message = $"정찰 Lv.{state.ReconLevel}: 새 원정 대상 {newlyRevealed}개 발견";
         gameEventBus.RaiseAlert("정찰 강화", message, EventAlertImportance.Medium, "오펜스");
         RaiseChanged();
@@ -144,12 +154,12 @@ public class OffenseWorldMapRuntime : MonoBehaviour
 
         if (!OffenseWorldMapService.CanAttemptTarget(state, target, out message))
         {
-            snapshot = target.ToSnapshot(preciseIntel, state);
+            snapshot = target.ToSnapshot(HasPreciseIntel(target.id), state);
             return false;
         }
 
         state.SetSelectedTarget(target.id);
-        snapshot = target.ToSnapshot(preciseIntel, state);
+        snapshot = target.ToSnapshot(HasPreciseIntel(target.id), state);
         message = $"{snapshot.title} 선택";
         TargetSelected?.Invoke(snapshot);
         RaiseChanged();
@@ -166,7 +176,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour
             return false;
         }
 
-        snapshot = target.ToSnapshot(preciseIntel, state);
+        snapshot = target.ToSnapshot(HasPreciseIntel(target.id), state);
         return true;
     }
 
@@ -203,7 +213,9 @@ public class OffenseWorldMapRuntime : MonoBehaviour
         if (!OffenseWorldMapService.CanAttemptTarget(state, target, out message)
             || !state.MarkTargetCompleted(target.id))
         {
-            completedTarget = target.ToSnapshot(preciseIntel, state);
+            completedTarget = target.ToSnapshot(
+                HasPreciseIntel(target.id),
+                state);
             return false;
         }
 
@@ -212,7 +224,9 @@ public class OffenseWorldMapRuntime : MonoBehaviour
             state.RevealTruth(target.id);
         }
 
-        completedTarget = target.ToSnapshot(preciseIntel, state);
+        completedTarget = target.ToSnapshot(
+            HasPreciseIntel(target.id),
+            state);
         message = target.revealsTruth
             ? "최종 오펜스를 마치고 던전의 진실을 밝혔습니다."
             : $"오펜스 목표 완료 {state.CompletedTargetCount}/{targets.Count}";
@@ -293,6 +307,46 @@ public class OffenseWorldMapRuntime : MonoBehaviour
     {
         preciseIntel = value;
         RaiseChanged();
+    }
+
+    public bool TryUnlockTargetIntel(
+        string targetId,
+        ExpeditionIntelPaymentMethod payment,
+        out string message)
+    {
+        EnsureInitialized();
+        if (OffenseWorldMapService.FindKnownTarget(
+            state,
+            targets,
+            targetId) == null)
+        {
+            message = "발견되지 않은 원정 대상입니다.";
+            return false;
+        }
+
+        if (externalInfluence == null)
+        {
+            message = "원정 정보 교환 런타임이 연결되지 않았습니다.";
+            return false;
+        }
+
+        bool unlocked = externalInfluence.TryUnlockIntel(
+            targetId,
+            payment,
+            out message);
+        if (unlocked)
+        {
+            message = "위험, 방어구, 약점과 특수 조건 정보를 확보했습니다.";
+            RaiseChanged();
+        }
+
+        return unlocked;
+    }
+
+    private bool HasPreciseIntel(string targetId)
+    {
+        return preciseIntel
+            || externalInfluence?.IsIntelUnlocked(targetId) == true;
     }
 
     public void SetTargetsForDebug(IEnumerable<OffenseTargetDefinition> debugTargets)

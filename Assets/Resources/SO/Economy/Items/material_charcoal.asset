@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8038
+  id: 8039
   itemId: material:charcoal
   displayName: "\uC22F"
   description: "\uC81C\uAC15\uACFC \uACE0\uC628 \uAC00\uACF5\uC5D0 \uC801\uD569\uD55C
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 8192
   unitPrice: 5
+  marketSaleRate: 0.6
   unitWeight: 0.45
   maxStack: 75
   sprite: {fileID: 0}

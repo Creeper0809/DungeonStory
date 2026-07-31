@@ -1,0 +1,114 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "SR16_\uC790\uB3D9 \uAE09\uBC30\uC218 \uC81C\uC5B4\uAE30"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: Facility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1715
+  objectName: "\uC790\uB3D9 \uAE09\uBC30\uC218 \uC81C\uC5B4\uAE30"
+  sprite: {fileID: 21300000, guid: 14881f193cd4ecc4babd501660d3f539, type: 3}
+  icon: {fileID: 21300000, guid: 14881f193cd4ecc4babd501660d3f539, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563313672519980
+    - rid: 7302563313672519981
+    - rid: 7302563313672519982
+    - rid: 7302563313672519983
+    - rid: 7302563313672519984
+    - rid: 7302563313672519985
+  width: 1
+  height: 1
+  layer: 3
+  category: 3
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563313672519980
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 40
+        constructionCost: 0
+        maintenance: 2
+        unlockPhase: 3
+        demolitionRefundRate: 0.5
+    - rid: 7302563313672519981
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: SR16
+    - rid: 7302563313672519982
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingRoomRequirementAbility
+    - rid: 7302563313672519983
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - ServiceRoom
+        - WorkSpeed
+    - rid: 7302563313672519984
+      type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingServiceSupportAbility
+        supportId: SR16
+        featureTags:
+        - service:auto-water-control
+        compatibleHubTags:
+        - service:bathing
+        modifierType: 2
+        capacity: 0
+        requiresPower: 1
+        cleanWaterPerUse: 0
+        wastewaterPerUse: 0
+        allowsManualWaterFallback: 0
+        workSpeedMultiplier: 1.35
+        satisfactionModifier: 0
+        revenueModifier: 0
+    - rid: 7302563313672519985
+      type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPowerConsumerAbility
+        demandPerSecond: 0.5
+        priority: 4
+        minimumSupplyFraction: 1

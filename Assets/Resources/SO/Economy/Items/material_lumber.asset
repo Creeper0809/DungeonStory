@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8037
+  id: 8038
   itemId: material:lumber
   displayName: "\uBAA9\uC7AC"
   description: "\uAC74\uCD95, \uAC00\uAD6C, \uD65C\uACFC \uBB34\uAE30 \uC790\uB8E8\uC5D0
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 256
   unitPrice: 6
+  marketSaleRate: 0.6
   unitWeight: 1.2
   maxStack: 50
   sprite: {fileID: 0}

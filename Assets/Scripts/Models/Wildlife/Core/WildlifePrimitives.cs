@@ -142,9 +142,33 @@ public sealed class DungeonWildlifeEcosystemSaveData
 
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum WildlifeFoodRaidOrderState
+{
+    Approaching = 0,
+    Leaving = 1,
+    Stolen = 2,
+    Cancelled = 3,
+    Failed = 4
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class WildlifeFoodRaidOrderSaveData
+{
+    public string raidId = string.Empty;
+    public string wildlifeId = string.Empty;
+    public string targetStackId = string.Empty;
+    public WildlifeFoodRaidOrderState state =
+        WildlifeFoodRaidOrderState.Approaching;
+    public int stolenQuantity;
+    public string outcomeReason = string.Empty;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonWildlifeSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
 
     public int version = CurrentVersion;
     public int nextSequence = 1;
@@ -153,6 +177,8 @@ public sealed class DungeonWildlifeSaveData
         new List<WildlifeCarcassFreshnessSaveData>();
     public DungeonWildlifeEcosystemSaveData ecosystem =
         new DungeonWildlifeEcosystemSaveData();
+    public List<WildlifeFoodRaidOrderSaveData> foodRaidOrders =
+        new List<WildlifeFoodRaidOrderSaveData>();
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

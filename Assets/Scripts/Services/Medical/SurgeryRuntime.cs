@@ -45,6 +45,10 @@ public sealed class SurgeryRuntime :
     private readonly IGameClock clock;
     private readonly IRandomStream outcomeRandom;
     private readonly IProcessFluidUseRuntime processFluids;
+    private readonly IEnvironmentalFieldRuntime environmentalField;
+    private readonly ICharacterEnvironmentStatusQuery environmentStatus;
+    private readonly ISurgeryEnvironmentRiskEvaluator
+        environmentRiskEvaluator;
     private readonly Dictionary<Type, ISurgicalProcedureEffectHandler> effectHandlers;
     private readonly List<SurgeryOrder> orders = new();
     private float nextMaterialRefreshAt;
@@ -75,7 +79,10 @@ public sealed class SurgeryRuntime :
         IGameClock clock,
         IRandomStreamProvider randomStreams,
         IReadOnlyList<ISurgicalProcedureEffectHandler> registeredEffectHandlers,
-        IProcessFluidUseRuntime processFluids = null)
+        IProcessFluidUseRuntime processFluids = null,
+        IEnvironmentalFieldRuntime environmentalField = null,
+        ICharacterEnvironmentStatusQuery environmentStatus = null,
+        ISurgeryEnvironmentRiskEvaluator environmentRiskEvaluator = null)
     {
         this.procedures = procedures ?? throw new ArgumentNullException(nameof(procedures));
         this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
@@ -104,6 +111,9 @@ public sealed class SurgeryRuntime :
         this.workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.processFluids = processFluids;
+        this.environmentalField = environmentalField;
+        this.environmentStatus = environmentStatus;
+        this.environmentRiskEvaluator = environmentRiskEvaluator;
         outcomeRandom = (randomStreams
             ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("medical:surgery-outcomes");
@@ -136,10 +146,35 @@ public sealed class SurgeryRuntime :
                      .Where(candidate => candidate != null && candidate.IsActive)
                      .ToArray())
         {
+            if (!string.IsNullOrWhiteSpace(order.doctorId))
+            {
+                CharacterActor assignedDoctor =
+                    SurgicalSubjectResolver.FindCharacter(
+                        characters,
+                        order.doctorId);
+                bool unavailable = assignedDoctor == null
+                    || assignedDoctor.IsDead
+                    || bodyHealth.GetSnapshot(assignedDoctor).Downed;
+                if (unavailable)
+                {
+                    order.doctorId = string.Empty;
+                    order.status = "집도의 행동 불능: 대체 집도의 요청";
+                    workforce.RequestOneWorkerToReplanFor(
+                        BuiltInWorkTypeIds.Surgery,
+                        forceInterrupt: true);
+                }
+            }
+
             if (!TryResolveFacility(order.facilityId, out BuildableObject facility)
                 || !procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure))
             {
                 CancelInternal(order, "수술 시설 또는 절차가 사라졌습니다.");
+                continue;
+            }
+
+            if (order.state == SurgeryOrderState.EnvironmentWaiting)
+            {
+                TickEnvironmentWaiting(order, facility);
                 continue;
             }
 
@@ -415,6 +450,24 @@ public sealed class SurgeryRuntime :
             snapshot,
             ResolvePatientInstability(order.subject),
             ResolveCompatibilityPenalty(order));
+        if (environmentRiskEvaluator != null)
+        {
+            SurgeryEnvironmentRiskSnapshot environmentRisk =
+                environmentRiskEvaluator.Evaluate(
+                    facility.centerPos,
+                    doctor,
+                    order.subject);
+            if (environmentRisk.Extreme
+                && !IsEmergencyOrder(order))
+            {
+                EnterEnvironmentWait(
+                    order,
+                    SurgeryOrderState.Anesthetizing,
+                    environmentRisk);
+                failureReason = order.environmentWaitReason;
+                return false;
+            }
+        }
         order.status = "집도 시작";
         return true;
     }
@@ -472,7 +525,46 @@ public sealed class SurgeryRuntime :
             return false;
         }
 
+        if (order.state == SurgeryOrderState.EnvironmentWaiting)
+        {
+            failureReason = order.environmentWaitReason;
+            return false;
+        }
+
+        float stageBoundary = GetCurrentStageBoundary(order);
+        SurgeryEnvironmentRiskSnapshot environmentRisk = default;
+        bool waitAtBoundary = false;
+        if (environmentRiskEvaluator != null
+            && !IsEmergencyOrder(order))
+        {
+            environmentRisk = environmentRiskEvaluator.Evaluate(
+                facility.centerPos,
+                doctor,
+                order.subject);
+            waitAtBoundary = environmentRisk.Extreme;
+            if (waitAtBoundary
+                && order.completedWork + 0.001f >= stageBoundary)
+            {
+                ApplyCurrentStageEnvironmentRisk(
+                    order,
+                    doctor,
+                    facility);
+                EnterEnvironmentWait(
+                    order,
+                    GetNextClinicalStage(order.state),
+                    environmentRisk);
+                failureReason = order.environmentWaitReason;
+                return false;
+            }
+        }
+
         float applied = Mathf.Max(0f, work);
+        if (waitAtBoundary)
+        {
+            applied = Mathf.Min(
+                applied,
+                Mathf.Max(0f, stageBoundary - order.completedWork));
+        }
         if (applied <= 0f)
         {
             return true;
@@ -481,7 +573,23 @@ public sealed class SurgeryRuntime :
         order.completedWork = Mathf.Min(
             order.requiredWork,
             order.completedWork + applied);
-        UpdatePhase(order, procedure);
+        if (waitAtBoundary
+            && order.completedWork + 0.001f >= stageBoundary
+            && stageBoundary + 0.001f < order.requiredWork)
+        {
+            ApplyCurrentStageEnvironmentRisk(
+                order,
+                doctor,
+                facility);
+            EnterEnvironmentWait(
+                order,
+                GetNextClinicalStage(order.state),
+                environmentRisk);
+            failureReason = order.environmentWaitReason;
+            return false;
+        }
+
+        UpdatePhase(order, procedure, doctor, facility);
         if (order.completedWork + 0.001f < order.requiredWork)
         {
             return true;
@@ -543,6 +651,17 @@ public sealed class SurgeryRuntime :
         if (subject == null || !subject.IsValid)
         {
             failureReason = "수술 대상이 유효하지 않습니다.";
+            return false;
+        }
+
+        if (subject.kind == SurgicalSubjectKind.Character
+            && CharacterSpeciesResourceLookup.TryGet(
+                subject.speciesId,
+                out CharacterSpeciesSO subjectSpecies)
+            && (subjectSpecies.needs?.UsesMaintenanceInsteadOfSurgery ?? false))
+        {
+            failureReason =
+                $"{subjectSpecies.displayName}은(는) 생물 수술 대상이 아닙니다. 정비 주문을 사용해야 합니다.";
             return false;
         }
 
@@ -1208,12 +1327,19 @@ public sealed class SurgeryRuntime :
 
     private void UpdatePhase(
         SurgeryOrder order,
-        SurgicalProcedureSO procedure)
+        SurgicalProcedureSO procedure,
+        CharacterActor doctor,
+        BuildableObject facility)
     {
         float anesthesiaEnd = order.anesthesiaWork;
         float incisionEnd = anesthesiaEnd + order.incisionWork;
         float procedureEnd = incisionEnd + order.procedureWork;
-        RecordClinicalStage(order, SurgeryOrderState.Anesthetizing);
+        if (RecordClinicalStage(
+            order,
+            SurgeryOrderState.Anesthetizing))
+        {
+            ApplyEnvironmentRisk(order, doctor, facility);
+        }
         if (order.completedWork < anesthesiaEnd)
         {
             order.state = SurgeryOrderState.Anesthetizing;
@@ -1221,7 +1347,10 @@ public sealed class SurgeryRuntime :
             return;
         }
 
-        RecordClinicalStage(order, SurgeryOrderState.Incision);
+        if (RecordClinicalStage(order, SurgeryOrderState.Incision))
+        {
+            ApplyEnvironmentRisk(order, doctor, facility);
+        }
         order.incisionOpen = true;
         if (order.completedWork < incisionEnd)
         {
@@ -1230,7 +1359,10 @@ public sealed class SurgeryRuntime :
             return;
         }
 
-        RecordClinicalStage(order, SurgeryOrderState.Procedure);
+        if (RecordClinicalStage(order, SurgeryOrderState.Procedure))
+        {
+            ApplyEnvironmentRisk(order, doctor, facility);
+        }
         if (order.completedWork < procedureEnd)
         {
             order.state = SurgeryOrderState.Procedure;
@@ -1238,12 +1370,238 @@ public sealed class SurgeryRuntime :
             return;
         }
 
-        RecordClinicalStage(order, SurgeryOrderState.Suturing);
+        if (RecordClinicalStage(order, SurgeryOrderState.Suturing))
+        {
+            ApplyEnvironmentRisk(order, doctor, facility);
+        }
         order.state = SurgeryOrderState.Suturing;
         order.status = "봉합 중";
     }
 
-    private static void RecordClinicalStage(
+    private void TickEnvironmentWaiting(
+        SurgeryOrder order,
+        BuildableObject facility)
+    {
+        if (environmentRiskEvaluator == null)
+        {
+            order.state = order.environmentResumeStage;
+            order.environmentStableSeconds = 0f;
+            workforce.RequestOneWorkerToReplanFor(
+                BuiltInWorkTypeIds.Surgery,
+                forceInterrupt: true);
+            return;
+        }
+
+        SurgeryEnvironmentRiskSnapshot snapshot =
+            environmentRiskEvaluator.Evaluate(
+                facility.centerPos,
+                null,
+                order.subject);
+        if (!snapshot.Normal)
+        {
+            order.environmentStableSeconds = 0f;
+            order.environmentWaitReason =
+                $"환경 복구 대기: 16~28°C, 공기·조명 70 이상 필요. {snapshot.Summary}";
+            order.status = order.environmentWaitReason;
+            RequestEnvironmentRecovery(order, snapshot);
+            return;
+        }
+
+        order.environmentStableSeconds += Mathf.Max(
+            0f,
+            clock.DeltaTime);
+        order.status =
+            $"환경 안정 확인 {order.environmentStableSeconds:0.0}/5.0초";
+        if (order.environmentStableSeconds < 5f)
+        {
+            return;
+        }
+
+        order.state = order.environmentResumeStage;
+        order.environmentStableSeconds = 0f;
+        order.environmentWaitReason = string.Empty;
+        order.environmentRecoveryWorkStatus = "환경 정상, 집도의 재배정 대기";
+        order.status =
+            $"환경 복구 완료 — {order.environmentResumeStage} 단계부터 재개";
+        workforce.RequestOneWorkerToReplanFor(
+            BuiltInWorkTypeIds.Surgery,
+            forceInterrupt: true);
+    }
+
+    private void EnterEnvironmentWait(
+        SurgeryOrder order,
+        SurgeryOrderState resumeStage,
+        SurgeryEnvironmentRiskSnapshot snapshot)
+    {
+        order.state = SurgeryOrderState.EnvironmentWaiting;
+        order.environmentResumeStage = resumeStage;
+        order.environmentStableSeconds = 0f;
+        order.environmentWaitReason =
+            $"환경 복구 대기: 16~28°C, 공기·조명 70 이상 필요. {snapshot.Summary}";
+        order.status = order.environmentWaitReason;
+        order.doctorId = string.Empty;
+        RequestEnvironmentRecovery(order, snapshot);
+    }
+
+    private void RequestEnvironmentRecovery(
+        SurgeryOrder order,
+        SurgeryEnvironmentRiskSnapshot snapshot)
+    {
+        List<string> requests = new List<string>();
+        if (snapshot.Environment.TemperatureC < 16f)
+        {
+            BuildableObject source = FindEnvironmentRecoveryFacility(
+                order,
+                building =>
+                {
+                    BuildingThermalEmitterAbility ability =
+                        building.BuildingData?
+                            .GetAbility<BuildingThermalEmitterAbility>();
+                    return ability != null
+                        && ability.mode is ThermalEmitterMode.Heat
+                            or ThermalEmitterMode.Thermostat;
+                });
+            requests.Add(
+                $"난방·연료 점검 ({FormatRecoveryFacility(source, order)})");
+            workforce.RequestOneWorkerToReplanFor(
+                BuiltInWorkTypeIds.Refuel,
+                forceInterrupt: true);
+        }
+        else if (snapshot.Environment.TemperatureC > 28f)
+        {
+            BuildableObject source = FindEnvironmentRecoveryFacility(
+                order,
+                building =>
+                {
+                    BuildingThermalEmitterAbility ability =
+                        building.BuildingData?
+                            .GetAbility<BuildingThermalEmitterAbility>();
+                    return ability != null
+                        && ability.mode is ThermalEmitterMode.Cool
+                            or ThermalEmitterMode.Thermostat;
+                });
+            requests.Add(
+                $"냉각·공조 점검 ({FormatRecoveryFacility(source, order)})");
+            workforce.RequestOneWorkerToReplanFor(
+                BuiltInWorkTypeIds.Repair,
+                forceInterrupt: true);
+        }
+
+        if (snapshot.Environment.AirQuality < 70f)
+        {
+            BuildableObject source = FindEnvironmentRecoveryFacility(
+                order,
+                building => building.BuildingData?
+                    .GetAbility<BuildingAirExchangeAbility>() != null);
+            requests.Add(
+                $"환기·공조 복구 ({FormatRecoveryFacility(source, order)})");
+            workforce.RequestOneWorkerToReplanFor(
+                BuiltInWorkTypeIds.Repair,
+                forceInterrupt: true);
+        }
+
+        if (snapshot.Environment.LightLevel < 70f)
+        {
+            BuildableObject source = FindEnvironmentRecoveryFacility(
+                order,
+                building => building.BuildingData?
+                    .GetAbility<BuildingLightingAbility>() != null);
+            requests.Add(
+                $"조명 전력·연료 복구 ({FormatRecoveryFacility(source, order)})");
+            workforce.RequestOneWorkerToReplanFor(
+                BuiltInWorkTypeIds.Refuel,
+                forceInterrupt: true);
+        }
+
+        order.environmentRecoveryWorkStatus = requests.Count == 0
+            ? "복구 작업 불필요"
+            : string.Join(", ", requests);
+    }
+
+    private BuildableObject FindEnvironmentRecoveryFacility(
+        SurgeryOrder order,
+        Func<BuildableObject, bool> predicate)
+    {
+        if (!TryResolveFacility(
+                order?.facilityId,
+                out BuildableObject surgeryFacility))
+        {
+            return null;
+        }
+
+        return buildings.Buildings
+            .Where(building => building != null
+                && !building.isDestroy
+                && predicate(building))
+            .OrderBy(building =>
+                Mathf.Abs(
+                    building.centerPos.x - surgeryFacility.centerPos.x)
+                + Mathf.Abs(
+                    building.centerPos.y - surgeryFacility.centerPos.y))
+            .ThenBy(building => facilities.GetFacilityId(building))
+            .FirstOrDefault();
+    }
+
+    private string FormatRecoveryFacility(
+        BuildableObject facility,
+        SurgeryOrder order)
+    {
+        if (facility == null)
+        {
+            return $"원인 시설 없음 · 수술실 {order?.facilityId}";
+        }
+
+        string displayName = facility.BuildingData?.objectName
+            ?? facility.name;
+        return $"{displayName} · {facilities.GetFacilityId(facility)}";
+    }
+
+    private static bool IsEmergencyOrder(SurgeryOrder order)
+    {
+        return order?.subject?.automaticEmergencyDefault == true
+            || (order?.procedureId?.IndexOf(
+                    "emergency",
+                    StringComparison.OrdinalIgnoreCase)
+                ?? -1) >= 0;
+    }
+
+    private static float GetCurrentStageBoundary(SurgeryOrder order)
+    {
+        if (order == null)
+        {
+            return 0f;
+        }
+
+        return order.state switch
+        {
+            SurgeryOrderState.Anesthetizing => order.anesthesiaWork,
+            SurgeryOrderState.Incision =>
+                order.anesthesiaWork + order.incisionWork,
+            SurgeryOrderState.Procedure =>
+                order.anesthesiaWork
+                + order.incisionWork
+                + order.procedureWork,
+            SurgeryOrderState.Suturing => order.requiredWork,
+            _ => order.completedWork
+        };
+    }
+
+    private static SurgeryOrderState GetNextClinicalStage(
+        SurgeryOrderState state)
+    {
+        return state switch
+        {
+            SurgeryOrderState.Anesthetizing =>
+                SurgeryOrderState.Incision,
+            SurgeryOrderState.Incision =>
+                SurgeryOrderState.Procedure,
+            SurgeryOrderState.Procedure =>
+                SurgeryOrderState.Suturing,
+            _ => SurgeryOrderState.Suturing
+        };
+    }
+
+    private static bool RecordClinicalStage(
         SurgeryOrder order,
         SurgeryOrderState state)
     {
@@ -1251,6 +1609,167 @@ public sealed class SurgeryRuntime :
         if (!order.reachedClinicalStages.Contains(state))
         {
             order.reachedClinicalStages.Add(state);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void ApplyCurrentStageEnvironmentRisk(
+        SurgeryOrder order,
+        CharacterActor doctor,
+        BuildableObject facility)
+    {
+        if (order != null
+            && RecordClinicalStage(order, order.state))
+        {
+            ApplyEnvironmentRisk(order, doctor, facility);
+        }
+    }
+
+    private void ApplyEnvironmentRisk(
+        SurgeryOrder order,
+        CharacterActor doctor,
+        BuildableObject facility)
+    {
+        if (environmentalField == null)
+        {
+            return;
+        }
+
+        if (facility == null
+            || !environmentalField.TryGetCell(
+                facility.centerPos,
+                out EnvironmentalCellSnapshot environment))
+        {
+            throw new InvalidOperationException(
+                $"Surgery environment cell is unavailable for '{order?.orderId}'.");
+        }
+
+        if (environmentRiskEvaluator != null)
+        {
+            SurgeryEnvironmentRiskSnapshot snapshot =
+                environmentRiskEvaluator.Evaluate(
+                    facility.centerPos,
+                    doctor,
+                    order.subject);
+            order.risk = environmentRiskEvaluator.Apply(
+                order.risk,
+                snapshot,
+                0.25f);
+            if (!snapshot.Normal)
+            {
+                RequestEnvironmentRecovery(order, snapshot);
+                if (IsEmergencyOrder(order))
+                {
+                    order.status =
+                        $"응급 수술 지속 — {snapshot.Summary}; 복구 작업 동시 요청";
+                }
+            }
+
+            return;
+        }
+
+        const float stageWeight = 0.25f;
+        float successPenalty = 0f;
+        float infection = 0f;
+        float bleeding = 0f;
+        float organDamage = 0f;
+        if (environment.TemperatureC < 8f
+            || environment.TemperatureC > 35f)
+        {
+            successPenalty += 0.16f;
+            bleeding += 0.10f;
+        }
+        else if (environment.TemperatureC < 16f
+            || environment.TemperatureC > 28f)
+        {
+            successPenalty += 0.08f;
+            bleeding += 0.05f;
+        }
+
+        if (environment.AirQuality < 40f)
+        {
+            successPenalty += 0.12f;
+            infection += 0.25f;
+        }
+        else if (environment.AirQuality < 70f)
+        {
+            successPenalty += 0.06f;
+            infection += 0.12f;
+        }
+
+        if (environment.LightLevel < 40f)
+        {
+            successPenalty += 0.20f;
+            organDamage += 0.18f;
+        }
+        else if (environment.LightLevel < 70f)
+        {
+            successPenalty += 0.10f;
+            organDamage += 0.08f;
+        }
+
+        EnvironmentalExposureBand doctorBand =
+            environmentStatus?.GetPhysiologicalBand(
+                doctor?.Identity?.PersistentId)
+            ?? EnvironmentalExposureBand.Stable;
+        successPenalty += doctorBand switch
+        {
+            EnvironmentalExposureBand.Critical
+                or EnvironmentalExposureBand.Collapse => 0.12f,
+            EnvironmentalExposureBand.Impaired => 0.05f,
+            _ => 0f
+        };
+
+        CharacterActor patient = SurgicalSubjectResolver.FindCharacter(
+            characters,
+            order.subject?.subjectId);
+        EnvironmentalExposureBand patientBand =
+            environmentStatus?.GetPhysiologicalBand(
+                patient?.Identity?.PersistentId)
+            ?? EnvironmentalExposureBand.Stable;
+        float instabilityAdded = patientBand switch
+        {
+            EnvironmentalExposureBand.Critical
+                or EnvironmentalExposureBand.Collapse => 0.2f,
+            EnvironmentalExposureBand.Impaired => 0.1f,
+            _ => 0f
+        };
+        successPenalty += instabilityAdded * 0.3f;
+
+        SurgeryRiskBreakdown risk =
+            order.risk ??= new SurgeryRiskBreakdown();
+        risk.environmentStagesEvaluated++;
+        risk.environmentSuccessPenalty += successPenalty * stageWeight;
+        risk.environmentInfectionPenalty += infection * stageWeight;
+        risk.environmentBleedingPenalty += bleeding * stageWeight;
+        risk.environmentOrganDamagePenalty += organDamage * stageWeight;
+        risk.environmentInstabilityAdded +=
+            instabilityAdded * stageWeight;
+        risk.successChance = Mathf.Clamp(
+            risk.successChance - successPenalty * stageWeight,
+            0.05f,
+            0.98f);
+        risk.infectionChance = Mathf.Clamp01(
+            risk.infectionChance + infection * stageWeight);
+        risk.bleedingChance = Mathf.Clamp01(
+            risk.bleedingChance + bleeding * stageWeight);
+        risk.organDamageChance = Mathf.Clamp01(
+            risk.organDamageChance + organDamage * stageWeight);
+        risk.summary =
+            $"{risk.summary} | 환경 누적: 성공 -{risk.environmentSuccessPenalty * 100f:0.#}%p, "
+            + $"감염 +{risk.environmentInfectionPenalty * 100f:0.#}%p, "
+            + $"출혈 +{risk.environmentBleedingPenalty * 100f:0.#}%p, "
+            + $"장기손상 +{risk.environmentOrganDamagePenalty * 100f:0.#}%p";
+        if (successPenalty > 0f
+            || infection > 0f
+            || bleeding > 0f
+            || organDamage > 0f)
+        {
+            workforce.RequestOneWorkerToReplanFor(
+                BuiltInWorkTypeIds.Repair,
+                forceInterrupt: true);
         }
     }
 
@@ -1905,7 +2424,14 @@ public sealed class SurgeryRuntime :
                 .ToList(),
             status = source.status ?? string.Empty,
             createdAt = source.createdAt,
-            recoveryUntil = source.recoveryUntil
+            recoveryUntil = source.recoveryUntil,
+            environmentResumeStage = source.environmentResumeStage,
+            environmentWaitReason =
+                source.environmentWaitReason ?? string.Empty,
+            environmentStableSeconds =
+                Mathf.Max(0f, source.environmentStableSeconds),
+            environmentRecoveryWorkStatus =
+                source.environmentRecoveryWorkStatus ?? string.Empty
         };
     }
 }

@@ -9,6 +9,7 @@ public sealed class SurvivalFoodRuntime :
     ISurvivalFoodRuntime,
     ICharacterNutritionRuntime,
     ISurvivalEnvironmentQuery,
+    ISurvivalStorageEnvironmentSink,
     IInitializable,
     IDisposable
 {
@@ -27,6 +28,8 @@ public sealed class SurvivalFoodRuntime :
     private readonly IGameClock gameClock;
     private readonly IResourceEconomyContentCatalog resourceCatalog;
     private readonly IWorldThreatModifierQuery worldThreatModifiers;
+    private readonly IServiceSessionRuntime serviceSessionRuntime;
+    private IEnvironmentalFieldRuntime environmentalField;
     private IDisposable operatingDayStartedSubscription;
     private IDisposable stockConsumedSubscription;
     private IDisposable physicalMealConsumedSubscription;
@@ -54,7 +57,8 @@ public sealed class SurvivalFoodRuntime :
         IWorldItemStackRuntime itemStackRuntime = null,
         IGameClock gameClock = null,
         IResourceEconomyContentCatalog resourceCatalog = null,
-        IWorldThreatModifierQuery worldThreatModifiers = null)
+        IWorldThreatModifierQuery worldThreatModifiers = null,
+        IServiceSessionRuntime serviceSessionRuntime = null)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.speciesCatalog = speciesCatalog ?? throw new ArgumentNullException(nameof(speciesCatalog));
@@ -63,6 +67,7 @@ public sealed class SurvivalFoodRuntime :
         this.gameClock = gameClock;
         this.resourceCatalog = resourceCatalog;
         this.worldThreatModifiers = worldThreatModifiers;
+        this.serviceSessionRuntime = serviceSessionRuntime;
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
     }
@@ -70,6 +75,13 @@ public sealed class SurvivalFoodRuntime :
     public int GetStoredStockCount(StockCategory category)
     {
         return CountStoredStock(category);
+    }
+
+    public void ConfigureStorageEnvironment(
+        IEnvironmentalFieldRuntime fieldRuntime)
+    {
+        environmentalField = fieldRuntime
+            ?? throw new ArgumentNullException(nameof(fieldRuntime));
     }
 
     public SurvivalEnvironmentSnapshot GetEnvironmentSnapshot()
@@ -902,15 +914,26 @@ public sealed class SurvivalFoodRuntime :
             return;
         }
 
-        float weatherMultiplier = state.currentWeather == SurvivalWeatherType.HeatWave
-            ? 1.35f
-            : state.currentWeather == SurvivalWeatherType.ColdSnap
-                ? 0.45f
-                : 1f;
-        float dailyDelta = 180f * weatherMultiplier;
+        Dictionary<string, WorldItemStackSnapshot> stackById =
+            stacks.ToDictionary(
+                stack => stack.StackId,
+                stack => stack,
+                StringComparer.Ordinal);
         List<SurvivalFoodSpoilageSaveData> expired = null;
         foreach (SurvivalFoodSpoilageSaveData entry in state.spoilage)
         {
+            float environmentMultiplier = stackById.TryGetValue(
+                    entry.stackId,
+                    out WorldItemStackSnapshot storedStack)
+                && environmentalField != null
+                    ? environmentalField.GetFoodSpoilageMultiplier(
+                        storedStack.Position)
+                    : state.currentWeather == SurvivalWeatherType.HeatWave
+                        ? 1.35f
+                        : state.currentWeather == SurvivalWeatherType.ColdSnap
+                            ? 0.45f
+                            : 1f;
+            float dailyDelta = 180f * environmentMultiplier;
             if (entry.preserved)
             {
                 entry.remainingFreshnessSeconds -= dailyDelta * 0.25f;
@@ -1314,7 +1337,7 @@ public sealed class SurvivalFoodRuntime :
             return false;
         }
 
-        SurvivalHealthSaveData patientEntry = FindMostSevereHealthEntry();
+        SurvivalHealthSaveData patientEntry = FindTreatmentEntry(building);
         if (patientEntry == null)
         {
             message = "치료할 대상이 없습니다.";
@@ -1322,9 +1345,38 @@ public sealed class SurvivalFoodRuntime :
         }
 
         bool usedBloodSubstitute = false;
+        CharacterActor patient =
+            FindActorByPersistentId(patientEntry.persistentId);
+        ServiceSessionSnapshot serviceSession = null;
+        BuildingServiceHubAbility serviceHub =
+            building.GetServiceHubAbility();
+        if (serviceHub != null
+            && serviceSessionRuntime != null
+            && !serviceSessionRuntime.TryBeginSession(
+                new ServiceSessionRequest
+                {
+                    Hub = building,
+                    Actor = patient,
+                    ProcessId = serviceHub.supportedProcessIds?
+                        .FirstOrDefault() ?? string.Empty,
+                    IsInternalActor = Shop.IsInternalStaffUse(patient),
+                    AdvertisedDemand = !Shop.IsInternalStaffUse(patient)
+                },
+                out serviceSession,
+                out string serviceFailure))
+        {
+            message = serviceFailure;
+            return false;
+        }
         if (medical.requiresMedicine
             && !TryConsumeTreatmentMaterial(out usedBloodSubstitute))
         {
+            if (serviceSession != null)
+            {
+                serviceSessionRuntime.CancelSession(
+                    serviceSession.SessionId,
+                    "약품이 부족합니다.");
+            }
             message = "약품이 부족합니다.";
             return false;
         }
@@ -1345,7 +1397,6 @@ public sealed class SurvivalFoodRuntime :
             patientEntry.state = SurvivalHealthState.Recovering;
         }
 
-        CharacterActor patient = FindActorByPersistentId(patientEntry.persistentId);
         patient?.Heal(TreatmentMedicineHeal * treatmentEfficiency);
         if (usedBloodSubstitute && patient != null)
         {
@@ -1375,6 +1426,16 @@ public sealed class SurvivalFoodRuntime :
             building,
             reasonCode: "survival-treated"));
         amount = 1;
+        if (serviceSession != null
+            && !serviceSessionRuntime.TryCompleteSession(
+                serviceSession.SessionId,
+                out _,
+                out string completionFailure))
+        {
+            serviceSessionRuntime.CancelSession(
+                serviceSession.SessionId,
+                completionFailure);
+        }
         message = "치료를 완료했습니다.";
         return true;
     }
@@ -1571,6 +1632,24 @@ public sealed class SurvivalFoodRuntime :
             .OrderByDescending(entry => entry.state == SurvivalHealthState.Infected ? 1 : 0)
             .ThenByDescending(entry => entry.severity)
             .FirstOrDefault();
+    }
+
+    private SurvivalHealthSaveData FindTreatmentEntry(
+        BuildableObject building)
+    {
+        EnsureStateLists();
+        if (building.GetServiceHubAbility() != null
+            && serviceSessionRuntime != null
+            && serviceSessionRuntime.GetHubSnapshot(building).Mode
+                == ServiceOperationMode.Direct)
+        {
+            return state.health.FirstOrDefault(entry =>
+                entry != null
+                && entry.remainingSeconds > 0f
+                && entry.state != SurvivalHealthState.Healthy);
+        }
+
+        return FindMostSevereHealthEntry();
     }
 
     private void RegisterOrRefreshHealth(

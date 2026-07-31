@@ -43,8 +43,8 @@ MonoBehaviour:
   abilityModules:
     items:
     - rid: 7302562995605602970
-    - rid: 7302563269269258892
-    - rid: 7302563269269258893
+    - rid: 7302563313672520033
+    - rid: 7302563313672520034
   width: 3
   height: 1
   layer: 1
@@ -63,11 +63,12 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 180
         constructionCost: 180
         maintenance: 6
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563269269258892
+    - rid: 7302563313672520033
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -78,7 +79,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 36
           disabledWhenDamaged: 1
-    - rid: 7302563269269258893
+    - rid: 7302563313672520034
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility
@@ -94,3 +95,26 @@ MonoBehaviour:
           combatLogText: "1\uC131 \uACBD\uBE44\uC2E4"
           effectAssets:
           - {fileID: 11400000, guid: e0da7de085d5d4db1923bda6f1147635, type: 2}
+          supplyKind: 1
+          supplyItemId: material:iron-ingot
+          supplyCategory: 1
+          supplyCapacity: 3
+          supplyPerActivation: 1
+          initialSupply: 1
+          requiresPower: 0
+          powerDemand: 0
+          conditionLossPerActivation: 0.5
+          baseJamChance: 0.01
+          baseMisfireChance: 0.005
+          facilityFamilyId: defense:guard-post
+          affinityTags:
+          - defense:blocking
+          - species:orc
+          - species:golem
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0

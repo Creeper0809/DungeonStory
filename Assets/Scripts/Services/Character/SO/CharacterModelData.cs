@@ -149,6 +149,14 @@ public class CharacterModelModifiers
     public IEnumerable<WorkTypeId> PreferredWorkTypeIds => EnumerateWorkTypeIds(preferredWorkTypes);
     public IEnumerable<WorkTypeId> DislikedWorkTypeIds => EnumerateWorkTypeIds(dislikedWorkTypes);
 
+    public void SetWorkPreferences(
+        FacilityWorkType preferred,
+        FacilityWorkType disliked)
+    {
+        preferredWorkTypes = preferred;
+        dislikedWorkTypes = disliked;
+    }
+
     public void Multiply(CharacterModelModifiers other)
     {
         if (other == null) return;
@@ -296,14 +304,39 @@ public sealed class CharacterRuntimeProfile
         return Species != null ? Species.incidentType : CharacterSpeciesIncidentType.None;
     }
 
+    public string GetIncidentId()
+    {
+        return Species?.IncidentId ?? CharacterSpeciesIncidentIds.None;
+    }
+
     public string GetIncidentName()
     {
-        return Species != null ? Species.incidentName : string.Empty;
+        return Species?.IncidentDisplayName ?? string.Empty;
     }
 
     public string GetIncidentDescription()
     {
-        return Species != null ? Species.incidentDescription : string.Empty;
+        return Species?.IncidentDescription ?? string.Empty;
+    }
+
+    public SpeciesNeedProfile GetNeedProfile()
+    {
+        return Species?.needs ?? new SpeciesNeedProfile();
+    }
+
+    public SpeciesEnvironmentProfile GetEnvironmentProfile()
+    {
+        return Species?.environment ?? new SpeciesEnvironmentProfile();
+    }
+
+    public string GetAnatomyProfileId()
+    {
+        return Species?.anatomyProfileId?.Trim() ?? string.Empty;
+    }
+
+    public bool UsesMechanicalMaintenance()
+    {
+        return Species?.needs?.UsesMaintenanceInsteadOfSurgery ?? false;
     }
 
     public string GetShortDescription()

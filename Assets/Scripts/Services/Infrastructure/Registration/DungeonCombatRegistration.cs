@@ -69,6 +69,9 @@ public static class DungeonCombatRegistration
             .As<ISurgicalFacilityQuery>();
         builder.Register<SurgeryRiskEvaluator>(Lifetime.Singleton)
             .As<ISurgeryRiskEvaluator>();
+        builder.Register<SurgeryEnvironmentRiskEvaluator>(
+                Lifetime.Singleton)
+            .As<ISurgeryEnvironmentRiskEvaluator>();
         builder.Register<SurgeryPolicyRuntime>(Lifetime.Singleton)
             .As<ISurgeryPolicyRuntime>();
         builder.Register<SurgeryExtractionLedger>(Lifetime.Singleton)
@@ -135,6 +138,8 @@ public static class DungeonCombatRegistration
             .As<IDefenseStatusRuntimeFactory>();
         builder.Register<DefenseStatusRuntimeService>(Lifetime.Singleton)
             .As<IDefenseStatusRuntimeService>();
+        builder.Register<DefenseFacilityRuntime>(Lifetime.Singleton)
+            .As<IDefenseFacilityRuntime>();
         builder.Register<DefenseResponsePolicyRuntime>(Lifetime.Singleton)
             .As<IDefenseResponsePolicyRuntime>();
         builder.RegisterEntryPoint<InvasionOwnerEvacuationService>(

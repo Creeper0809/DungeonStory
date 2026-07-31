@@ -42,16 +42,17 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: a82f0756fe0caeb4680a2db180e15d88, type: 3}
   abilityModules:
     items:
-    - rid: 7302563265135772105
-    - rid: 7302563265135772106
-    - rid: 7302563265135772107
-    - rid: 7302563265135772108
-    - rid: 7302563265135772109
-    - rid: 7302563265135772110
-    - rid: 7302563265135772111
-    - rid: 7302563265135772112
-    - rid: 7302563265135772113
-    - rid: 7302563265135772114
+    - rid: 7302563313663345566
+    - rid: 7302563313663345567
+    - rid: 7302563313663345568
+    - rid: 7302563313663345569
+    - rid: 7302563313663345570
+    - rid: 7302563313663345571
+    - rid: 7302563313663345572
+    - rid: 7302563313663345573
+    - rid: 7302563313663345574
+    - rid: 7302563313663345575
+    - rid: 7302563313663345576
   width: 1
   height: 1
   layer: 1
@@ -66,20 +67,29 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563265135772105
+    - rid: 7302563313663345566
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M08
-    - rid: 7302563265135772106
+    - rid: 7302563313663345567
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - medical
+        - surgery
+        - m08
+    - rid: 7302563313663345568
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 190
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563265135772107
+    - rid: 7302563313663345569
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -90,17 +100,17 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 66048
           disabledWhenDamaged: 1
-    - rid: 7302563265135772108
+    - rid: 7302563313663345570
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563265135772109
+    - rid: 7302563313663345571
       type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 8
         restockRequestThreshold: 2
-    - rid: 7302563265135772110
+    - rid: 7302563313663345572
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -112,7 +122,7 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 7
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563265135772111
+    - rid: 7302563313663345573
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -124,14 +134,14 @@ MonoBehaviour:
           - m08
           scores: []
           metrics: []
-    - rid: 7302563265135772112
+    - rid: 7302563313663345574
       type: {class: BuildingStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingStorageAbility
         category: 8
         capacity: 8
         allCategories: 0
-    - rid: 7302563265135772113
+    - rid: 7302563313663345575
       type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFuelConsumerAbility
@@ -139,7 +149,7 @@ MonoBehaviour:
         workSeconds: 1
         warmth: 0
         lightSafety: 2
-    - rid: 7302563265135772114
+    - rid: 7302563313663345576
       type: {class: BuildingOrganStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingOrganStorageAbility

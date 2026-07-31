@@ -21,19 +21,31 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9094
+  id: 9098
   recipeId: recipe:night-wine
-  displayName: "\uBC24\uD3EC\uB3C4\uC8FC"
+  displayName: "\uBC24\uD3EC\uB3C4\uC8FC \uC219\uC131"
   description: "\uBC24\uD3EC\uB3C4\uC8FC \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: brewery
-  workTypeId: work:cook
+  workstationTag: workstation:brewery
+  requiredSupportTags:
+  - support:aging-barrel
+  batchSupportTag: support:aging-barrel
+  processKind: 1
+  workTypeId: work:craft
   requiredResearchId: research:cuisine:fermentation
-  requiredWork: 12
+  requiredWork: 3
+  preparationWork: 3
+  finishingWork: 2
+  processingGameHours: 18
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:plant-rot
   inputs:
-  - itemId: resource:night-grape
-    amount: 3
-  - itemId: material:alcohol
-    amount: 1
+  - itemId: material:young-wine
+    amount: 2
   outputs:
   - itemId: drug:night-wine
     amount: 2

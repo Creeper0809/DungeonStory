@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8087
+  id: 8092
   itemId: drug:vitality-tonic
   displayName: "\uD65C\uB825 \uAC15\uC7A5\uC81C"
   description: "\uD53C\uB85C\uB97C \uC904\uC774\uB294 \uBE44\uC911\uB3C5\uC131 \uAC15\uC7A5\uC81C."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 4
   ingredientTags: 1
   unitPrice: 16
+  marketSaleRate: 0.6
   unitWeight: 0.2
   maxStack: 40
   sprite: {fileID: 0}

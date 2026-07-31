@@ -108,4 +108,84 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
 
         return true;
     }
+
+    public bool TryConsumeCycle(
+        BuildableObject facility,
+        WorkTypeId workTypeId,
+        float cleanWater,
+        float wastewaterAmount,
+        bool allowsManualWaterFallback,
+        out string failureReason)
+    {
+        failureReason = string.Empty;
+        if (facility == null)
+        {
+            failureReason = "공정 시설을 찾을 수 없습니다.";
+            return false;
+        }
+
+        float requiredWater = Mathf.Max(0f, cleanWater);
+        float requiredWastewater = Mathf.Max(0f, wastewaterAmount);
+        if (requiredWastewater > 0f
+            && !wastewater.CanAcceptWastewater(
+                facility,
+                requiredWastewater,
+                out string drainFailure))
+        {
+            failureReason = string.IsNullOrWhiteSpace(drainFailure)
+                ? "폐수를 배출할 공간이 부족합니다."
+                : drainFailure;
+            return false;
+        }
+
+        bool consumed = water.TryConsume(
+            facility,
+            WorldWaterQuality.Clean,
+            requiredWater,
+            out _,
+            out string pipeFailure);
+        if (!consumed && allowsManualWaterFallback)
+        {
+            string facilityId =
+                IndustrialInfrastructureIdentity.GetNodeId(facility);
+            string destinationId =
+                $"plumbing:process-water:{facilityId}:{workTypeId.Value}";
+            consumed = water.TryConsumeManualContainer(
+                facility,
+                destinationId,
+                requiredWater,
+                out _);
+            if (!consumed)
+            {
+                items.TryRequestFacilityDelivery(
+                    StockCategory.Water,
+                    Mathf.Max(1, Mathf.CeilToInt(requiredWater)),
+                    facility.centerPos,
+                    destinationId,
+                    out _,
+                    out _);
+                failureReason = "공정용 물통을 운반하는 중입니다.";
+                return false;
+            }
+        }
+
+        if (!consumed)
+        {
+            failureReason = string.IsNullOrWhiteSpace(pipeFailure)
+                ? "공정에 사용할 깨끗한 물이 부족합니다."
+                : pipeFailure;
+            return false;
+        }
+
+        if (requiredWastewater > 0f)
+        {
+            wastewater.TryAddWastewater(
+                facility,
+                requiredWastewater,
+                out _,
+                out _);
+        }
+
+        return true;
+    }
 }

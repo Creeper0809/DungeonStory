@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8056
+  id: 8057
   itemId: food:grain-porridge
   displayName: "\uD669\uD63C\uACE1\uC8FD"
   description: "\uAC12\uC2F8\uACE0 \uC18D\uC774 \uD3B8\uD55C \uBE44\uAC74 \uB2E8\uC21C\uC2DD."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 1
   unitPrice: 5
+  marketSaleRate: 0.6
   unitWeight: 0.6
   maxStack: 50
   sprite: {fileID: 0}

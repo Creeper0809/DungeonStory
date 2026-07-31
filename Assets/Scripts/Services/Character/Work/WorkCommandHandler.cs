@@ -12,6 +12,9 @@ public sealed class WorkCommandHandler
     private CharacterActor prioritySuppressTarget;
     private Grid prioritySuppressGrid;
     private FacilityWorkType priorityWorkType = FacilityWorkType.None;
+    private BuildableObject pendingEnvironmentRiskTarget;
+    private FacilityWorkType pendingEnvironmentRiskWorkType =
+        FacilityWorkType.None;
 
     public WorkCommandHandler(
         AbilityWork work,
@@ -71,6 +74,31 @@ public sealed class WorkCommandHandler
         }
 
         bool forced = preferredWorkType != FacilityWorkType.None;
+        WorkTypeId preferredWorkTypeId = WorkTypeCatalog.TryGet(
+                preferredWorkType,
+                out WorkTypeDefinition preferredDefinition)
+            ? preferredDefinition.WorkTypeId
+            : default;
+        if (forced
+            && targetSelector.RequiresForcedEnvironmentConfirmation(
+                building,
+                preferredWorkTypeId,
+                searchResult,
+                out string environmentWarning))
+        {
+            bool confirmed = pendingEnvironmentRiskTarget == building
+                && pendingEnvironmentRiskWorkType == preferredWorkType;
+            if (!confirmed)
+            {
+                pendingEnvironmentRiskTarget = building;
+                pendingEnvironmentRiskWorkType = preferredWorkType;
+                errorMessage = environmentWarning;
+                return false;
+            }
+        }
+
+        pendingEnvironmentRiskTarget = null;
+        pendingEnvironmentRiskWorkType = FacilityWorkType.None;
         if (!targetSelector.TryEvaluateWorkTarget(building, searchResult, preferredWorkType, forced, out WorkTargetCandidate candidate))
         {
             errorMessage = candidate.FailureReason;
@@ -163,6 +191,8 @@ public sealed class WorkCommandHandler
         prioritySuppressTarget = null;
         prioritySuppressGrid = null;
         priorityWorkType = FacilityWorkType.None;
+        pendingEnvironmentRiskTarget = null;
+        pendingEnvironmentRiskWorkType = FacilityWorkType.None;
     }
 
     public bool HasUrgentPriorityTarget()

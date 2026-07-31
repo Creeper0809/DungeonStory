@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8073
+  id: 8074
   itemId: craft:candle
   displayName: "\uC591\uCD08"
   description: "\uC870\uBA85\uACFC \uC758\uC2DD\uC5D0 \uC4F0\uB294 \uC5F0\uB8CC\uC131
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 8
   ingredientTags: 8256
   unitPrice: 6
+  marketSaleRate: 0.6
   unitWeight: 0.2
   maxStack: 50
   sprite: {fileID: 0}

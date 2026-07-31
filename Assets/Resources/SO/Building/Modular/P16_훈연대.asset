@@ -47,11 +47,12 @@ MonoBehaviour:
     - rid: 7302563239038812838
     - rid: 7302563239038812839
     - rid: 7302563239038812840
-    - rid: 7302563284524204890
-    - rid: 7302563284524204891
-    - rid: 7302563284524204892
-    - rid: 7302563284524204893
-    - rid: 7302563284524204894
+    - rid: 7302563313663345577
+    - rid: 7302563313663345578
+    - rid: 7302563313663345579
+    - rid: 7302563313663345580
+    - rid: 7302563313663345581
+    - rid: 7302563313672520060
   width: 2
   height: 1
   layer: 1
@@ -112,14 +113,14 @@ MonoBehaviour:
           - key: Preservation
             value: 2
           metrics: []
-    - rid: 7302563284524204890
+    - rid: 7302563313663345577
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284524204891
+    - rid: 7302563313663345578
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -130,21 +131,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284524204892
+    - rid: 7302563313663345579
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7302563284524204893
+    - rid: 7302563313663345580
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284524204894
+    - rid: 7302563313663345581
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -154,3 +155,8 @@ MonoBehaviour:
         wastewaterPerCycle: 0.25
         minimumQuality: 0
         allowsManualWaterFallback: 1
+    - rid: 7302563313672520060
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:smoker

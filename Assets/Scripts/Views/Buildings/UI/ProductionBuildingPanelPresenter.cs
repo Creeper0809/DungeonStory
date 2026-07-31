@@ -7,6 +7,8 @@ using UnityEngine.UI;
 
 public interface IProductionBuildingPanelPresenter
 {
+    void ShowWorldLinks(BuildableObject building);
+    void ClearWorldLinks();
     IReadOnlyList<GameObject> Render(
         Transform parent,
         BuildableObject building,
@@ -20,15 +22,109 @@ public sealed class ProductionBuildingPanelPresenter :
 {
     private readonly IProductionBillRuntime bills;
     private readonly IResourceEconomyContentCatalog catalog;
+    private readonly IProductionWorkshopRuntime workshops;
+    private readonly IBlueprintResearchRuntimeProvider researchProvider;
+    private readonly IElectricalNetworkRuntime power;
+    private readonly IWaterNetworkRuntime water;
+    private readonly IWastewaterNetworkRuntime wastewater;
+    private readonly IEnvironmentalFieldRuntime environment;
     private readonly Dictionary<string, string> feedbackByFacility =
         new Dictionary<string, string>(StringComparer.Ordinal);
+    private GameObject worldLinkRoot;
+    private Material worldLinkMaterial;
 
     public ProductionBuildingPanelPresenter(
         IProductionBillRuntime bills,
-        IResourceEconomyContentCatalog catalog)
+        IResourceEconomyContentCatalog catalog,
+        IProductionWorkshopRuntime workshops = null,
+        IBlueprintResearchRuntimeProvider researchProvider = null,
+        IElectricalNetworkRuntime power = null,
+        IWaterNetworkRuntime water = null,
+        IWastewaterNetworkRuntime wastewater = null,
+        IEnvironmentalFieldRuntime environment = null)
     {
         this.bills = bills ?? throw new ArgumentNullException(nameof(bills));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        this.workshops = workshops;
+        this.researchProvider = researchProvider;
+        this.power = power;
+        this.water = water;
+        this.wastewater = wastewater;
+        this.environment = environment;
+    }
+
+    public void ShowWorldLinks(BuildableObject building)
+    {
+        ClearWorldLinks();
+        if (building == null || workshops == null)
+        {
+            return;
+        }
+
+        IReadOnlyList<ProductionSupportLinkSnapshot> links;
+        if (building.BuildingData.GetProductionWorkstationAbility() != null)
+        {
+            links = workshops.GetLinks(building);
+        }
+        else if (workshops.TryGetLinkForSupport(
+                     building,
+                     out ProductionSupportLinkSnapshot supportLink))
+        {
+            links = new[] { supportLink };
+        }
+        else
+        {
+            return;
+        }
+
+        if (links.Count == 0)
+        {
+            return;
+        }
+
+        worldLinkRoot = new GameObject("ProductionWorkshopConnections");
+        for (int index = 0; index < links.Count; index++)
+        {
+            ProductionSupportLinkSnapshot link = links[index];
+            if (link?.Workstation == null || link.Support == null)
+            {
+                continue;
+            }
+
+            GameObject lineObject = new GameObject($"Connection_{index}");
+            lineObject.transform.SetParent(worldLinkRoot.transform, false);
+            LineRenderer line = lineObject.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.positionCount = 2;
+            line.startWidth = 0.07f;
+            line.endWidth = 0.07f;
+            line.numCapVertices = 3;
+            line.startColor = new Color(0.96f, 0.72f, 0.22f, 0.9f);
+            line.endColor = new Color(0.4f, 0.85f, 0.95f, 0.9f);
+            line.sortingOrder = 60;
+            Material material = GetWorldLinkMaterial();
+            if (material != null)
+            {
+                line.sharedMaterial = material;
+            }
+            Vector3 start = link.Workstation.transform.position;
+            Vector3 end = link.Support.transform.position;
+            start.z = -0.5f;
+            end.z = -0.5f;
+            line.SetPosition(0, start);
+            line.SetPosition(1, end);
+        }
+    }
+
+    public void ClearWorldLinks()
+    {
+        if (worldLinkRoot == null)
+        {
+            return;
+        }
+
+        UnityEngine.Object.Destroy(worldLinkRoot);
+        worldLinkRoot = null;
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -44,12 +140,25 @@ public sealed class ProductionBuildingPanelPresenter :
             return created;
         }
 
+        BuildingProductionSupportAbility supportAbility =
+            building.BuildingData.GetProductionSupportAbility();
+        if (supportAbility != null)
+        {
+            RenderSupportDetail(
+                parent,
+                building,
+                supportAbility,
+                font,
+                created);
+            return created;
+        }
+
         ProductionRecipeSO[] recipes = catalog.Recipes
             .Where(recipe =>
                 recipe != null
                 && recipe.RecipeId.StartsWith("recipe:", StringComparison.Ordinal)
                 && building.SupportsWork(recipe.WorkTypeId)
-                && building.HasSemanticTag(recipe.FacilityTag))
+                && building.MatchesProductionWorkstation(recipe))
             .OrderBy(recipe => recipe.DisplayName, StringComparer.Ordinal)
             .ToArray();
         IReadOnlyList<ProductionBillSnapshot> queue = bills.GetBills(building);
@@ -151,7 +260,7 @@ public sealed class ProductionBuildingPanelPresenter :
             GameObject recipeRow = CreateRow(
                 parent,
                 $"ProductionRecipe_{index}",
-                58f);
+                82f);
             created.Add(recipeRow);
 
             AddRecipeText(
@@ -159,6 +268,10 @@ public sealed class ProductionBuildingPanelPresenter :
                 $"{recipe.DisplayName}\n"
                 + $"{FormatInputs(recipe)} → {FormatOutputs(recipe)}"
                 + $" · 작업 {recipe.RequiredWork:0.#}",
+                font);
+            AddRecipeProcessText(
+                recipeRow.transform,
+                FormatProcess(recipe) + FormatSupportState(building, recipe),
                 font);
             AddButton(
                 recipeRow.transform,
@@ -181,6 +294,145 @@ public sealed class ProductionBuildingPanelPresenter :
         return created;
     }
 
+    private void RenderSupportDetail(
+        Transform parent,
+        BuildableObject support,
+        BuildingProductionSupportAbility ability,
+        TMP_FontAsset font,
+        ICollection<GameObject> created)
+    {
+        AddText(
+            parent,
+            "연결 생산 설비",
+            font,
+            21f,
+            DungeonUiTheme.TextPrimary,
+            34f,
+            created);
+        if (workshops == null
+            || !workshops.TryGetLinkForSupport(
+                support,
+                out ProductionSupportLinkSnapshot link))
+        {
+            AddText(
+                parent,
+                "같은 닫힌 방에 호환되는 주 작업대가 없습니다.",
+                font,
+                14f,
+                DungeonUiTheme.Warning,
+                42f,
+                created);
+            return;
+        }
+
+        AddText(
+            parent,
+            $"연결: {link.Workstation.BuildingData?.objectName ?? link.WorkstationTag}",
+            font,
+            16f,
+            DungeonUiTheme.TextPrimary,
+            30f,
+            created);
+        string features = string.Join(
+            ", ",
+            link.FeatureTags ?? Array.Empty<string>());
+        AddText(
+            parent,
+            $"기능: {features}\n{FormatSupportUtilities(ability)}",
+            font,
+            14f,
+            DungeonUiTheme.TextSecondary,
+            48f,
+            created);
+
+        string nodeId = IndustrialInfrastructureIdentity.GetNodeId(support);
+        ProductionBillSnapshot[] active = bills.GetBills(link.Workstation)
+            .Where(bill => string.Equals(
+                bill.OccupiedSupportNodeId,
+                nodeId,
+                StringComparison.Ordinal))
+            .ToArray();
+        if (active.Length == 0)
+        {
+            AddText(
+                parent,
+                $"배치 용량 {ability.BatchCapacity} · 현재 비어 있음",
+                font,
+                14f,
+                DungeonUiTheme.TextSecondary,
+                28f,
+                created);
+            return;
+        }
+
+        foreach (ProductionBillSnapshot batch in active)
+        {
+            AddText(
+                parent,
+                $"{batch.RecipeName}: {batch.RemainingProcessingHours:0.#}시간 남음"
+                + $" · 건전도 {batch.BatchIntegrity:0.#}"
+                + (string.IsNullOrWhiteSpace(batch.BlockedReason)
+                    ? string.Empty
+                    : $"\n{batch.BlockedReason}"),
+                font,
+                14f,
+                string.IsNullOrWhiteSpace(batch.BlockedReason)
+                    ? DungeonUiTheme.TextSecondary
+                    : DungeonUiTheme.Warning,
+                44f,
+                created);
+        }
+    }
+
+    private Material GetWorldLinkMaterial()
+    {
+        if (worldLinkMaterial != null)
+        {
+            return worldLinkMaterial;
+        }
+
+        Shader shader = Shader.Find(
+            "Universal Render Pipeline/2D/Sprite-Unlit-Default");
+        shader ??= Shader.Find("Sprites/Default");
+        if (shader != null)
+        {
+            worldLinkMaterial = new Material(shader)
+            {
+                name = "ProductionWorkshopConnectionMaterial"
+            };
+        }
+        return worldLinkMaterial;
+    }
+
+    private static string FormatSupportUtilities(
+        BuildingProductionSupportAbility ability)
+    {
+        List<string> requirements = new List<string>();
+        if (ability.requiresPower)
+        {
+            requirements.Add("전력");
+        }
+        if (ability.cleanWaterPerCycle > 0f)
+        {
+            requirements.Add($"상수 {ability.cleanWaterPerCycle:0.##}");
+        }
+        if (ability.wastewaterPerCycle > 0f)
+        {
+            requirements.Add($"배수 {ability.wastewaterPerCycle:0.##}");
+        }
+        if (ability.requiresFuel)
+        {
+            requirements.Add("물리 연료");
+        }
+        if (ability.allowsManualWaterFallback)
+        {
+            requirements.Add("물통 대체 가능");
+        }
+        return requirements.Count == 0
+            ? "유틸리티: 불필요"
+            : $"유틸리티: {string.Join(", ", requirements)}";
+    }
+
     private static string GetFacilityKey(BuildableObject building)
     {
         return $"{building.id}:{building.centerPos.x}:{building.centerPos.y}";
@@ -200,6 +452,207 @@ public sealed class ProductionBuildingPanelPresenter :
             recipe.Outputs,
             output => output.ItemId,
             output => output.Amount);
+    }
+
+    private static string FormatProcess(ProductionRecipeSO recipe)
+    {
+        if (recipe == null
+            || recipe.ProcessKind == ProductionProcessKind.WorkOnly)
+        {
+            return $"작업 {recipe?.RequiredWork ?? 0f:0.#}";
+        }
+
+        return $"준비 {recipe.PreparationWork:0.#}"
+            + $" → 처리 {recipe.ProcessingGameHours:0.#}시간"
+            + (recipe.FinishingWork > 0f
+                ? $" → 마감 {recipe.FinishingWork:0.#}"
+                : string.Empty);
+    }
+
+    private string FormatSupportState(
+        BuildableObject building,
+        ProductionRecipeSO recipe)
+    {
+        if (recipe == null)
+        {
+            return string.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(recipe.RequiredResearchId)
+            && (researchProvider == null
+                || !researchProvider.TryGetRuntime(
+                    out BlueprintResearchRuntime research)
+                || !research.State.Projects.IsCompleted(
+                    new ResearchProjectId(recipe.RequiredResearchId))))
+        {
+            return $"\n연구 부족: {recipe.RequiredResearchId}";
+        }
+
+        if (recipe.RequiredSupportTags.Count == 0)
+        {
+            return FormatRecipeUtilityState(building, recipe);
+        }
+
+        if (workshops == null)
+        {
+            return $"\n필요 연결: {string.Join(", ", recipe.RequiredSupportTags)}";
+        }
+
+        if (!workshops.HasRequiredSupports(
+                building,
+                recipe.RequiredSupportTags,
+                out string reason))
+        {
+            return $"\n{reason}";
+        }
+
+        HashSet<string> checkedSupports =
+            new HashSet<string>(StringComparer.Ordinal);
+        foreach (string feature in recipe.RequiredSupportTags)
+        {
+            if (!workshops.TryResolveSupport(
+                    building,
+                    feature,
+                    null,
+                    out BuildableObject support,
+                    out BuildingProductionSupportAbility ability))
+            {
+                return $"\n연결 시설 부족: {feature}";
+            }
+
+            string nodeId =
+                IndustrialInfrastructureIdentity.GetNodeId(support);
+            if (!checkedSupports.Add(nodeId))
+            {
+                continue;
+            }
+
+            string utilityState = FormatSupportUtilityBlock(
+                support,
+                ability);
+            if (!string.IsNullOrWhiteSpace(utilityState))
+            {
+                return $"\n{utilityState}";
+            }
+        }
+
+        string recipeUtilityState =
+            FormatRecipeUtilityState(building, recipe);
+        if (!string.IsNullOrWhiteSpace(recipeUtilityState))
+        {
+            return recipeUtilityState;
+        }
+
+        if (recipe.ProcessKind == ProductionProcessKind.PassiveBatch)
+        {
+            ProductionSupportLinkSnapshot[] candidates = workshops
+                .GetLinks(building)
+                .Where(link =>
+                    link.Support?.BuildingData.GetProductionSupportAbility()
+                        is BuildingProductionSupportAbility ability
+                    && ability.kind == ProductionSupportKind.BatchProcessor
+                    && ability.Provides(recipe.BatchSupportTag))
+                .ToArray();
+            bool hasCapacity = candidates.Any(link =>
+            {
+                BuildingProductionSupportAbility ability =
+                    link.Support.BuildingData.GetProductionSupportAbility();
+                string nodeId =
+                    IndustrialInfrastructureIdentity.GetNodeId(link.Support);
+                int occupied = bills.GetBills(building).Count(bill =>
+                    string.Equals(
+                        bill.OccupiedSupportNodeId,
+                        nodeId,
+                        StringComparison.Ordinal));
+                return occupied < ability.BatchCapacity;
+            });
+            if (!hasCapacity)
+            {
+                return "\n배치 용량 부족";
+            }
+
+            BuildableObject temperatureTarget =
+                candidates.FirstOrDefault()?.Support;
+            if (temperatureTarget != null
+                && environment != null
+                && environment.TryGetCell(
+                    temperatureTarget.centerPos,
+                    out EnvironmentalCellSnapshot cell))
+            {
+                float temperature = cell.TemperatureC;
+                if (temperature < recipe.WarningTemperatureMinimum
+                    || temperature > recipe.WarningTemperatureMaximum)
+                {
+                    return $"\n온도 부적합: {temperature:0.#}°C (공정 정지)";
+                }
+                if (temperature < recipe.OptimalTemperatureMinimum
+                    || temperature > recipe.OptimalTemperatureMaximum)
+                {
+                    return $"\n온도 주의: {temperature:0.#}°C (속도 50%)";
+                }
+            }
+        }
+
+        return "\n제작 가능 · 연결 시설 준비됨";
+    }
+
+    private string FormatRecipeUtilityState(
+        BuildableObject building,
+        ProductionRecipeSO recipe)
+    {
+        if (recipe.WastewaterPerCycle > 0f
+            && (wastewater == null
+                || !wastewater.CanAcceptWastewater(
+                    building,
+                    recipe.WastewaterPerCycle,
+                    out _)))
+        {
+            return "\n배수 불가";
+        }
+        if (recipe.CleanWaterPerCycle > 0f
+            && (water == null
+                || !water.CanConsume(
+                    building,
+                    WorldWaterQuality.Clean,
+                    recipe.CleanWaterPerCycle,
+                    out _))
+            && !recipe.AllowsManualWaterFallback)
+        {
+            return "\n상수 부족";
+        }
+        return string.Empty;
+    }
+
+    private string FormatSupportUtilityBlock(
+        BuildableObject support,
+        BuildingProductionSupportAbility ability)
+    {
+        if (ability.requiresPower
+            && (power == null || !power.IsPowered(support)))
+        {
+            return "전력 부족";
+        }
+        if (ability.wastewaterPerCycle > 0f
+            && (wastewater == null
+                || !wastewater.CanAcceptWastewater(
+                    support,
+                    ability.wastewaterPerCycle,
+                    out _)))
+        {
+            return "배수 불가";
+        }
+        if (ability.cleanWaterPerCycle > 0f
+            && (water == null
+                || !water.CanConsume(
+                    support,
+                    WorldWaterQuality.Clean,
+                    ability.cleanWaterPerCycle,
+                    out _))
+            && !ability.allowsManualWaterFallback)
+        {
+            return "상수 부족";
+        }
+        return string.Empty;
     }
 
     private string FormatAmounts<T>(
@@ -246,7 +699,11 @@ public sealed class ProductionBuildingPanelPresenter :
         fillObject.transform.SetParent(root.transform, false);
         RectTransform fillRect = fillObject.GetComponent<RectTransform>();
         fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = new Vector2(bill.ProgressRatio, 1f);
+        float visibleProgress = bill.Status == ProductionBillStatus.Processing
+            || bill.Status == ProductionBillStatus.WaitingForUtilities
+                ? bill.ProcessingProgressRatio
+                : bill.ProgressRatio;
+        fillRect.anchorMax = new Vector2(visibleProgress, 1f);
         fillRect.offsetMin = Vector2.zero;
         fillRect.offsetMax = Vector2.zero;
         Image fill = fillObject.GetComponent<Image>();
@@ -291,6 +748,10 @@ public sealed class ProductionBuildingPanelPresenter :
             ProductionBillStatus.Suspended => "일시 중지",
             ProductionBillStatus.Completed => "완료",
             ProductionBillStatus.Cancelled => "취소됨",
+            ProductionBillStatus.WaitingForSupports => "연결 시설 대기",
+            ProductionBillStatus.WaitingForUtilities => "설비 대기",
+            ProductionBillStatus.Processing => "시간 공정 중",
+            ProductionBillStatus.WaitingForFinishing => "마감 작업 대기",
             _ => status.ToString()
         };
     }
@@ -337,6 +798,31 @@ public sealed class ProductionBuildingPanelPresenter :
         text.fontSizeMin = 10f;
         text.fontSizeMax = 14f;
         text.color = DungeonUiTheme.TextPrimary;
+        text.alignment = TextAlignmentOptions.MidlineLeft;
+        text.textWrappingMode = TextWrappingModes.Normal;
+        text.raycastTarget = false;
+    }
+
+    private static void AddRecipeProcessText(
+        Transform parent,
+        string value,
+        TMP_FontAsset font)
+    {
+        GameObject textObject = new GameObject(
+            "ProductionProcessLabel",
+            typeof(RectTransform),
+            typeof(TextMeshProUGUI),
+            typeof(LayoutElement));
+        textObject.transform.SetParent(parent, false);
+        textObject.GetComponent<LayoutElement>().preferredWidth = 245f;
+        TMP_Text text = textObject.GetComponent<TMP_Text>();
+        text.text = value;
+        text.font = font;
+        text.fontSize = 13f;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 9f;
+        text.fontSizeMax = 13f;
+        text.color = DungeonUiTheme.TextSecondary;
         text.alignment = TextAlignmentOptions.MidlineLeft;
         text.textWrappingMode = TextWrappingModes.Normal;
         text.raycastTarget = false;

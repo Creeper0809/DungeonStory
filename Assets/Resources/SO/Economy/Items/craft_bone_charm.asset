@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8075
+  id: 8076
   itemId: craft:bone-charm
   displayName: "\uBF08\uBFD4 \uC7A5\uC2E0\uAD6C"
   description: "\uD765\uD589\uACFC \uAD8C\uC704 \uC7A5\uC2DD\uC5D0 \uC4F0\uB294 \uAC70\uCE5C
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 8
   ingredientTags: 512
   unitPrice: 18
+  marketSaleRate: 0.6
   unitWeight: 0.2
   maxStack: 40
   sprite: {fileID: 0}

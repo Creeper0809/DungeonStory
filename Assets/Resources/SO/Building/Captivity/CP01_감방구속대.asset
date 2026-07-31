@@ -42,10 +42,10 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 2e8bb37627d98644f84857f21f98e99d, type: 3}
   abilityModules:
     items:
-    - rid: 7302563263860704031
-    - rid: 7302563263860704032
-    - rid: 7302563263860704033
-    - rid: 7302563263860704034
+    - rid: 7302563299362341549
+    - rid: 7302563299362341550
+    - rid: 7302563299362341551
+    - rid: 7302563299362341552
   width: 2
   height: 1
   layer: 1
@@ -60,20 +60,21 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563263860704031
+    - rid: 7302563299362341549
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CP01
-    - rid: 7302563263860704032
+    - rid: 7302563299362341550
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 90
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563263860704033
+    - rid: 7302563299362341551
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -84,7 +85,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 262144
           disabledWhenDamaged: 1
-    - rid: 7302563263860704034
+    - rid: 7302563299362341552
       type: {class: BuildingCaptiveHousingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCaptiveHousingAbility

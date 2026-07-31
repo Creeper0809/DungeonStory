@@ -38,7 +38,8 @@ public class CharacterSO : ScriptableObject
     public string SpeciesTag => species != null && !string.IsNullOrWhiteSpace(species.speciesTag)
         ? species.speciesTag
         : speciesTag;
-    public bool IsOwnerCandidate => role == CharacterRole.Owner;
+    public bool IsOwnerCandidate => role == CharacterRole.Owner
+        && (species == null || species.ownerSelectable);
     public IEnumerable<WorkTypeId> OwnerPreferredWorkTypeIds
     {
         get
@@ -110,6 +111,32 @@ public class CharacterSO : ScriptableObject
 
         int baseSpeed = (int)respawnSpeedType;
         return Mathf.Lerp(baseSpeed, baseSpeed * 1.5f, randomStream.NextFloat());
+    }
+
+    public void ConfigureGeneratedVisitProfile(
+        int minimumFrequency,
+        int maximumFrequency,
+        int minimumMoney,
+        int maximumMoney,
+        int movementSpeed = 4,
+        int respawnSpeed = 13)
+    {
+        frequencyVisitMin = Mathf.Max(1, minimumFrequency);
+        frequencyVisitMax = Mathf.Max(
+            frequencyVisitMin,
+            maximumFrequency);
+        minHoldingMoney = Mathf.Max(0, minimumMoney);
+        maxHoldingMoney = Mathf.Max(
+            minHoldingMoney + 1,
+            maximumMoney);
+        speedType = (CharacterSpeedType)Mathf.Clamp(
+            movementSpeed,
+            (int)CharacterSpeedType.VerySlow,
+            (int)CharacterSpeedType.VeryFast);
+        respawnSpeedType = (CharacterRespawnSpeedType)Mathf.Clamp(
+            respawnSpeed,
+            (int)CharacterRespawnSpeedType.VeryFast,
+            (int)CharacterRespawnSpeedType.VerySlow);
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

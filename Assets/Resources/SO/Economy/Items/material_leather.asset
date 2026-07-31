@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8045
+  id: 8046
   itemId: material:leather
   displayName: "\uAC00\uC8FD"
   description: "\uADE0\uD615 \uC7A1\uD78C \uC5F0\uAC11\uACFC \uC7A5\uBE44\uC758 \uC8FC\uC7AC\uB8CC."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 128
   unitPrice: 10
+  marketSaleRate: 0.6
   unitWeight: 0.45
   maxStack: 60
   sprite: {fileID: 0}

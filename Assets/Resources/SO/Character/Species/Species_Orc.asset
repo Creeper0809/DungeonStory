@@ -24,6 +24,44 @@ MonoBehaviour:
   id: 2
   speciesTag: Orc
   displayName: "\uC624\uD06C"
+  ownerSelectionPolicy: 0
+  homeFactionId: 
+  anatomyProfileId: anatomy:humanoid
+  needs:
+    hungerRateMultiplier: 1
+    thirstRateMultiplier: 1
+    sleepRateMultiplier: 1
+    hygieneRateMultiplier: 1
+    socialNeedMultiplier: 1
+    chargeRateMultiplier: 1
+    integrityWearMultiplier: 1
+    diet: 2
+    metabolism: 0
+    treatment: 0
+  environment:
+    comfortMinimum: 12
+    comfortMaximum: 30
+    safeMinimum: -5
+    safeMaximum: 42
+    lethalMinimum: -15
+    lethalMaximum: 50
+    comfortableAirMinimum: 65
+    comfortableLightMinimum: 40
+    comfortableLightMaximum: 100
+    airborneExposureMultiplier: 1
+    visualStrainMultiplier: 1
+    preferredHumidity: 0.5
+    drynessSensitivity: 1
+  relationTags:
+  - "\uC18C\uC74C"
+  - "\uD63C\uC7A1"
+  - "\uC57C\uC678"
+  defenseAffinityTags:
+  - "\uBB3C\uB9AC"
+  - "\uD654\uC5FC"
+  - "\uC804\uC120-\uC800\uC9C0"
+  strongWorkTypeIds: []
+  weakWorkTypeIds: []
   shortDescription: "\uACE0\uC18C\uBE44/\uC804\uD22C/\uD6C8\uB828/\uB09C\uB3D9 \uC704\uD5D8"
   description: "\uB3C8\uC744 \uB9CE\uC774 \uC4F0\uACE0 \uACBD\uBE44 \uC778\uB825\uC73C\uB85C
     \uAC15\uD558\uC9C0\uB9CC, \uBD88\uB9CC\uC774 \uC313\uC774\uBA74 \uC2DC\uC124
@@ -36,13 +74,19 @@ MonoBehaviour:
   - "\uC870\uC6A9\uD55C \uC5F0\uAD6C \uAD6C\uC5ED"
   - "\uB9C8\uB825 \uC2DC\uC124"
   - "\uC881\uC740 \uD734\uC2DD \uAD6C\uC5ED"
-  stayDurationMultiplier: 1.05
-  crimeRiskMultiplier: 1.2
+  stayDurationMultiplier: 1
+  crimeRiskMultiplier: 1
   incidentType: 2
+  incident:
+    incidentId: species-incident:orc-rampage
+    displayName: "\uC624\uD06C \uB09C\uB3D9"
+    description: 
+    mitigatingRoles: 1032
+    triggerTags:
+    - discontent
   incidentName: "\uC624\uD06C \uB09C\uB3D9"
-  incidentDescription: "\uBD88\uB9CC\uC774 \uC313\uC774\uBA74 \uC8FC\uBCC0 \uC2DC\uC124
-    \uB0B4\uAD6C\uB3C4\uB97C \uAE4E\uAC70\uB098 \uC6B4\uC601\uC744 \uBC29\uD574\uD55C\uB2E4."
-  incidentMitigatingRoles: 9
+  incidentDescription: 
+  incidentMitigatingRoles: 1032
   statBonus:
     entries:
     - statId: stat:attack
@@ -78,3 +122,16 @@ MonoBehaviour:
     dislikedFacilityRoles: 48
     preferredWorkTypes: 36
     dislikedWorkTypes: 24
+  combatPassive:
+    passiveId: species-passive:orc
+    displayName: "\uC804\uC120 \uBCF8\uB2A5"
+    description: "\uC804\uC120 \uC800\uC9C0\uC640 \uBB3C\uB9AC\xB7\uD654\uC5FC \uC2DC\uC124
+      \uC6B4\uC6A9\uC5D0 \uAC15\uD558\uB2E4."
+    mechanicTags:
+    - "\uC800\uC9C0"
+    - "\uBB3C\uB9AC"
+  combatAbilities:
+    abilities: []
+  references:
+    version: 2
+    RefIds: []

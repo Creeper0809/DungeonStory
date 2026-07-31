@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8060
+  id: 8061
   itemId: food:egg-pancake
   displayName: "\uB2EC\uAC40\uC804"
   description: "\uC54C\uACFC \uACE1\uBB3C\uB85C \uB9CC\uB4E0 \uCC44\uC2DD\uC2DD."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 9
   unitPrice: 11
+  marketSaleRate: 0.6
   unitWeight: 0.65
   maxStack: 40
   sprite: {fileID: 0}

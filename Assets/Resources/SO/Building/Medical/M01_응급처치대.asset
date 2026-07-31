@@ -42,17 +42,19 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: e643cde27dd93af448d2fa7aa2b70179, type: 3}
   abilityModules:
     items:
-    - rid: 7302563265135772066
-    - rid: 7302563265135772067
-    - rid: 7302563265135772068
-    - rid: 7302563265135772069
-    - rid: 7302563265135772070
-    - rid: 7302563265135772071
-    - rid: 7302563265135772072
-    - rid: 7302563265135772073
-    - rid: 7302563265135772074
-    - rid: 7302563284922663069
-    - rid: 7302563284922663070
+    - rid: 7302563313663345523
+    - rid: 7302563313663345524
+    - rid: 7302563313663345525
+    - rid: 7302563313663345526
+    - rid: 7302563313663345527
+    - rid: 7302563313663345528
+    - rid: 7302563313663345529
+    - rid: 7302563313663345530
+    - rid: 7302563313663345531
+    - rid: 7302563313663345532
+    - rid: 7302563313672519916
+    - rid: 7302563313672519917
+    - rid: 7302563313672519999
   width: 2
   height: 1
   layer: 1
@@ -63,16 +65,24 @@ MonoBehaviour:
   movementTravelTime: 1.2
   facilityAnchors:
     slots: []
-  unlocked: 0
+  unlocked: 1
   references:
     version: 2
     RefIds:
-    - rid: 7302563265135772066
+    - rid: 7302563313663345523
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M01
-    - rid: 7302563265135772067
+    - rid: 7302563313663345524
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - medical
+        - surgery
+        - m01
+    - rid: 7302563313663345525
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -81,7 +91,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563265135772068
+    - rid: 7302563313663345526
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -92,17 +102,17 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
-    - rid: 7302563265135772069
+    - rid: 7302563313663345527
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563265135772070
+    - rid: 7302563313663345528
       type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
-    - rid: 7302563265135772071
+    - rid: 7302563313663345529
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -114,7 +124,7 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 3
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563265135772072
+    - rid: 7302563313663345530
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -126,14 +136,14 @@ MonoBehaviour:
           - m01
           scores: []
           metrics: []
-    - rid: 7302563265135772073
+    - rid: 7302563313663345531
       type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.8
         severityReduction: 0.4
         requiresMedicine: 1
-    - rid: 7302563265135772074
+    - rid: 7302563313663345532
       type: {class: BuildingSurgeryTableAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSurgeryTableAbility
@@ -142,14 +152,14 @@ MonoBehaviour:
         workSpeedMultiplier: 1.3
         baseSterility: 0.12
         patientSlots: 1
-    - rid: 7302563284922663069
+    - rid: 7302563313672519916
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7302563284922663070
+    - rid: 7302563313672519917
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -159,3 +169,22 @@ MonoBehaviour:
         wastewaterPerCycle: 0.2
         minimumQuality: 0
         allowsManualWaterFallback: 1
+    - rid: 7302563313672519999
+      type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingServiceHubAbility
+        serviceCategory: 4
+        serviceHubTag: service:medical
+        supportedProcessIds:
+        - service:medical:treat
+        baseCapacity: 1
+        allowedModes: 7
+        allowInternalStaffDirectUse: 1
+        paymentPolicy: 2
+        directPrice: 10
+        directSatisfaction: 48
+        managedRequiredFeatureTags:
+        - service:medical-triage
+        - service:medical-call
+        automatedRequiredFeatureTags:
+        - service:queue

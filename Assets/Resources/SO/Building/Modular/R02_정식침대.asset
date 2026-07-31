@@ -51,6 +51,7 @@ MonoBehaviour:
     - rid: 7302563239038813074
     - rid: 7302563239038813075
     - rid: 7302563239038813076
+    - rid: 7302563313672519987
   width: 2
   height: 1
   layer: 1
@@ -74,6 +75,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 135
         maintenance: 4
         unlockPhase: 2
@@ -140,3 +142,22 @@ MonoBehaviour:
         roomTemperatureOffset: 1
         coldProtection: 5
         heatProtection: 3
+    - rid: 7302563313672519987
+      type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingServiceHubAbility
+        serviceCategory: 2
+        serviceHubTag: service:lodging
+        supportedProcessIds:
+        - service:lodging:rest
+        baseCapacity: 1
+        allowedModes: 7
+        allowInternalStaffDirectUse: 1
+        paymentPolicy: 2
+        directPrice: 8
+        directSatisfaction: 46
+        managedRequiredFeatureTags:
+        - service:lodging-reception
+        - service:room-cleanup
+        automatedRequiredFeatureTags:
+        - service:auto-room-assignment

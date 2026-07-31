@@ -48,10 +48,11 @@ MonoBehaviour:
     - rid: 7302563239583285388
     - rid: 7302563239583285389
     - rid: 7302563239583285390
-    - rid: 7302563284922663050
-    - rid: 7302563284922663051
-    - rid: 7302563284922663052
-    - rid: 7302563284922663053
+    - rid: 7302563313672519897
+    - rid: 7302563313672519898
+    - rid: 7302563313672519899
+    - rid: 7302563313672519900
+    - rid: 7302563313672520158
   width: 3
   height: 1
   layer: 1
@@ -116,21 +117,21 @@ MonoBehaviour:
           - key: Mana
             value: 2
           metrics: []
-    - rid: 7302563284922663050
+    - rid: 7302563313672519897
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284922663051
+    - rid: 7302563313672519898
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284922663052
+    - rid: 7302563313672519899
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -141,10 +142,15 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284922663053
+    - rid: 7302563313672519900
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
+    - rid: 7302563313672520158
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:arcane-forge

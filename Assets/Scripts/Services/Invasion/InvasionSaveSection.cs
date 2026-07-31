@@ -15,7 +15,7 @@ public sealed class InvasionSaveSection : IDungeonSaveSection
     }
 
     public string SectionId => Id;
-    public int SectionVersion => 1;
+    public int SectionVersion => 2;
     public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.LateRuntimeState;
     public IReadOnlyList<string> DependsOn => new[]
     {
@@ -41,7 +41,7 @@ public sealed class InvasionSaveSection : IDungeonSaveSection
 
     private void ValidateVersion(int version)
     {
-        if (version != SectionVersion)
+        if (version < 1 || version > SectionVersion)
         {
             throw new InvalidOperationException(
                 $"Unsupported {Id} section version {version}.");

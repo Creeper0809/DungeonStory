@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8036
+  id: 8037
   itemId: material:alcohol
   displayName: "\uC54C\uCF54\uC62C"
   description: "\uC220, \uC18C\uB3C5\uC81C\uC640 \uC5F0\uAE08 \uC6A9\uB9E4\uC758
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 1
   unitPrice: 6
+  marketSaleRate: 0.6
   unitWeight: 0.5
   maxStack: 50
   sprite: {fileID: 0}

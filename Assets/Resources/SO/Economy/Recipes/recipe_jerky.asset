@@ -23,17 +23,29 @@ MonoBehaviour:
     SerializationNodes: []
   id: 9066
   recipeId: recipe:jerky
-  displayName: "\uC721\uD3EC"
+  displayName: "\uC721\uD3EC \uD6C8\uC5F0"
   description: "\uC721\uD3EC \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: smoker
-  workTypeId: work:cook
+  workstationTag: workstation:smoker
+  requiredSupportTags:
+  - support:smoke-hood
+  batchSupportTag: 
+  processKind: 0
+  workTypeId: work:craft
   requiredResearchId: research:survival:preservation
-  requiredWork: 12
+  requiredWork: 8
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
-  - itemId: resource:meat
-    amount: 3
-  - itemId: resource:saltstone
-    amount: 1
+  - itemId: material:salted-meat
+    amount: 2
   outputs:
   - itemId: food:jerky
     amount: 2

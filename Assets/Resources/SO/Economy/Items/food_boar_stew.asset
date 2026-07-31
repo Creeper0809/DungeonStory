@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8063
+  id: 8064
   itemId: food:boar-stew
   displayName: "\uBA67\uB3FC\uC9C0 \uC2A4\uD29C"
   description: "\uACE0\uAE30\uC640 \uBFCC\uB9AC\uB97C \uB053\uC778 \uD63C\uD569 \uACE0\uAE09\uC2DD."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 17
   unitPrice: 15
+  marketSaleRate: 0.6
   unitWeight: 0.85
   maxStack: 40
   sprite: {fileID: 0}

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8053
+  id: 8054
   itemId: material:cheese
   displayName: "\uCE58\uC988"
   description: "\uBCF4\uC874\uC131\uC774 \uC88B\uC740 \uCC44\uC2DD \uB2E8\uBC31\uC9C8
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 4
   unitPrice: 8
+  marketSaleRate: 0.6
   unitWeight: 0.4
   maxStack: 50
   sprite: {fileID: 0}

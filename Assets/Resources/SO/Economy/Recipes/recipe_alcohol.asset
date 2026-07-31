@@ -25,15 +25,27 @@ MonoBehaviour:
   recipeId: recipe:alcohol
   displayName: "\uAE30\uCD08 \uC54C\uCF54\uC62C"
   description: "\uAE30\uCD08 \uC54C\uCF54\uC62C \uC0DD\uC0B0 \uC8FC\uBB38"
-  facilityTag: brewery
-  workTypeId: work:cook
-  requiredResearchId: research:cuisine:fermentation
-  requiredWork: 12
+  facilityTag: distillery
+  workstationTag: workstation:distillery
+  requiredSupportTags:
+  - support:fractional-still
+  batchSupportTag: 
+  processKind: 0
+  workTypeId: work:craft
+  requiredResearchId: research:cuisine:distilling-aging
+  requiredWork: 10
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
-  - itemId: resource:twilight-grain
+  - itemId: material:fermented-liquor
     amount: 2
-  - itemId: resource:night-grape
-    amount: 1
   outputs:
   - itemId: material:alcohol
     amount: 2

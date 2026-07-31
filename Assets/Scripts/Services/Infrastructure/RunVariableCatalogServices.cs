@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 public interface IRunCharacterCatalog
 {
@@ -36,12 +37,84 @@ public sealed class ResourceRunCharacterCatalog : IRunCharacterCatalog
     {
         get
         {
-            characters ??= resourcesAssetLoader
-                .LoadAllRequired<CharacterSO>(CharacterRootPath)
-                .ToArray();
+            characters ??= MergeExpandedSpeciesTemplates(
+                resourcesAssetLoader
+                    .LoadAllRequired<CharacterSO>(CharacterRootPath));
 
             return characters;
         }
+    }
+
+    private static CharacterSO[] MergeExpandedSpeciesTemplates(
+        IEnumerable<CharacterSO> loaded)
+    {
+        List<CharacterSO> values = (loaded ?? Array.Empty<CharacterSO>())
+            .Where(value => value != null)
+            .ToList();
+        Sprite fallbackSprite = values
+            .Select(value => value.characterSprite)
+            .FirstOrDefault(value => value != null);
+        string[] tags =
+        {
+            "Beastkin",
+            "Demon",
+            "Kobold",
+            "Myconid",
+            "Harpy",
+            "Golem"
+        };
+        foreach (string tag in tags)
+        {
+            if (values.Any(value => string.Equals(
+                    value.SpeciesTag,
+                    tag,
+                    StringComparison.OrdinalIgnoreCase))
+                || !CharacterSpeciesResourceLookup.TryGet(
+                    tag,
+                    out CharacterSpeciesSO species))
+            {
+                continue;
+            }
+
+            CharacterSO generated = UnityEngine.ScriptableObject
+                .CreateInstance<CharacterSO>();
+            generated.name = $"RuntimeCustomer_{tag}";
+            generated.characterType = CharacterType.Customer;
+            generated.role = CharacterRole.Regular;
+            generated.id = 9000 + species.id;
+            generated.characterName = species.displayName;
+            generated.speciesTag = tag;
+            generated.species = species;
+            generated.baseStats = CharacterStatBlock.CreateDefault();
+            generated.traits = Array.Empty<CharacterTraitSO>();
+            generated.defaultWorkPriorities =
+                WorkPriorityProfile.CreateDefault();
+            foreach (string workTypeId in species.strongWorkTypeIds
+                         ?? Array.Empty<string>())
+            {
+                WorkTypeId id = new WorkTypeId(workTypeId);
+                if (id.IsValid)
+                {
+                    generated.defaultWorkPriorities.SetPriority(
+                        id,
+                        WorkPriorityLevel.Priority1);
+                }
+            }
+            generated.aiPersonality = new CharacterAiPersonality();
+            generated.characterSprite = fallbackSprite;
+            generated.ConfigureGeneratedVisitProfile(
+                1,
+                3,
+                tag == "Demon" ? 300 : 80,
+                tag == "Demon" ? 650 : 320,
+                tag is "Beastkin" or "Harpy" ? 5 : 4);
+            values.Add(generated);
+        }
+
+        return values
+            .OrderBy(value => value.id)
+            .ThenBy(value => value.name, StringComparer.Ordinal)
+            .ToArray();
     }
 }
 

@@ -42,11 +42,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 3c3dffa54a186c949a291c9ef3a0aba1, type: 3}
   abilityModules:
     items:
-    - rid: 7302563284524204980
-    - rid: 7302563284524204981
-    - rid: 7302563284524204982
-    - rid: 7302563284524204983
-    - rid: 7302563284524204984
+    - rid: 7302563313672519684
+    - rid: 7302563313672519685
+    - rid: 7302563313672519686
+    - rid: 7302563313672519687
+    - rid: 7302563313672519688
   width: 1
   height: 1
   layer: 1
@@ -61,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563284524204980
+    - rid: 7302563313672519684
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I05
-    - rid: 7302563284524204981
+    - rid: 7302563313672519685
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +75,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563284524204982
+    - rid: 7302563313672519686
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -87,13 +87,13 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 3
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563284524204983
+    - rid: 7302563313672519687
       type: {class: BuildingCircuitBreakerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCircuitBreakerAbility
         overloadTolerance: 1.15
         tripHeat: 100
-    - rid: 7302563284524204984
+    - rid: 7302563313672519688
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

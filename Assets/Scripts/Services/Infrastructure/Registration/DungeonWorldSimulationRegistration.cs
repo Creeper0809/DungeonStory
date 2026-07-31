@@ -63,7 +63,17 @@ public static class DungeonWorldSimulationRegistration
             .As<IResourceUsageIndex>();
         builder.Register<ProductionItemGateway>(Lifetime.Singleton)
             .As<IProductionItemGateway>();
-        builder.Register<ProductionBillRuntime>(Lifetime.Singleton)
+        builder.Register<ProductionWorkshopRuntime>(Lifetime.Singleton)
+            .As<IProductionWorkshopRuntime>();
+        builder.Register<ServiceRoomLinkRuntime>(Lifetime.Singleton)
+            .As<IServiceRoomLinkRuntime>();
+        builder.Register<ResourceServiceProcessCatalog>(Lifetime.Singleton)
+            .As<IServiceProcessCatalog>();
+        builder.Register<ServiceSessionRuntime>(Lifetime.Singleton)
+            .As<IServiceSessionRuntime>()
+            .As<IServiceAvailabilityQuery>()
+            .As<IServiceDemandPolicyRuntime>();
+        builder.RegisterEntryPoint<ProductionBillRuntime>(Lifetime.Singleton)
             .As<IProductionBillRuntime>();
         builder.RegisterEntryPoint<GrandProjectRuntime>(Lifetime.Singleton)
             .As<IGrandProjectRuntime>()
@@ -106,6 +116,26 @@ public static class DungeonWorldSimulationRegistration
             .As<IConveyorRoutingService>();
         builder.RegisterEntryPoint<AutomationRuntime>(Lifetime.Singleton)
             .As<IAutomationRuntime>();
+        builder.RegisterEntryPoint<EnvironmentalFieldRuntime>(
+                Lifetime.Singleton)
+            .As<IEnvironmentalFieldRuntime>();
+        builder.Register<ResourceEnvironmentalWorkwearCatalog>(
+                Lifetime.Singleton)
+            .As<IEnvironmentalWorkwearCatalog>();
+        builder.Register<EnvironmentalWorkwearRuntime>(Lifetime.Singleton)
+            .As<IEnvironmentalWorkwearRuntime>();
+        builder.Register<CharacterEnvironmentProtectionResolver>(
+                Lifetime.Singleton)
+            .As<ICharacterEnvironmentProtectionResolver>();
+        builder.RegisterEntryPoint<CharacterEnvironmentRuntime>(
+                Lifetime.Singleton)
+            .As<ICharacterEnvironmentRuntime>()
+            .As<ICharacterEnvironmentStatusQuery>();
+        builder.Register<EnvironmentWorkPolicy>(Lifetime.Singleton)
+            .As<IEnvironmentWorkPolicy>();
+        builder.Register<EnvironmentalWorkwearProductionOutputHandler>(
+                Lifetime.Singleton)
+            .As<IProductionOutputHandler>();
         builder.RegisterEntryPoint<IndustrialInfrastructureOverlayPresenter>(
                 Lifetime.Singleton)
             .As<IIndustrialInfrastructureOverlayService>();
@@ -146,12 +176,19 @@ public static class DungeonWorldSimulationRegistration
             .As<IWildlifeRuntime>()
             .As<IWildlifeQuery>()
             .As<IWildlifeHuntCommandService>();
+        builder.RegisterEntryPoint<ExternalInfluenceRuntime>(
+                Lifetime.Singleton)
+            .As<IExternalInfluenceRuntime>()
+            .As<IExternalCombatInfluenceQuery>();
         builder.RegisterEntryPoint<ExteriorIncidentWildlifeConnector>(
             Lifetime.Singleton);
         builder.RegisterEntryPoint<SurvivalFoodRuntime>(Lifetime.Singleton)
             .As<ISurvivalFoodRuntime>()
             .As<ICharacterNutritionRuntime>()
-            .As<ISurvivalEnvironmentQuery>();
+            .As<ISurvivalEnvironmentQuery>()
+            .As<ISurvivalStorageEnvironmentSink>();
+        builder.RegisterEntryPoint<SurvivalEnvironmentalFieldBridge>(
+            Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterConsumablesRuntime>(
                 Lifetime.Singleton)
             .As<ICharacterConsumablesRuntime>()
@@ -194,6 +231,8 @@ public static class DungeonWorldSimulationRegistration
             .As<IAnimalHusbandryRuntime>()
             .As<IAnimalPenCompatibilityQuery>();
         builder.Register<NonlethalActCircusProgram>(Lifetime.Singleton)
+            .As<ICircusProgramHandler>();
+        builder.Register<TrophyDisplayCircusProgram>(Lifetime.Singleton)
             .As<ICircusProgramHandler>();
         builder.Register<DangerousStuntCircusProgram>(Lifetime.Singleton)
             .As<ICircusProgramHandler>();

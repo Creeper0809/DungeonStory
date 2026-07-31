@@ -23,19 +23,29 @@ MonoBehaviour:
     SerializationNodes: []
   id: 9069
   recipeId: recipe:preserved-ration
-  displayName: "\uBCF4\uC874 \uBC30\uAE09\uC2DD"
+  displayName: "\uBCF4\uC874 \uBC30\uAE09\uC2DD \uD6C8\uC5F0"
   description: "\uBCF4\uC874 \uBC30\uAE09\uC2DD \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: smoker
-  workTypeId: work:cook
+  workstationTag: workstation:smoker
+  requiredSupportTags:
+  - support:smoke-hood
+  batchSupportTag: 
+  processKind: 0
+  workTypeId: work:craft
   requiredResearchId: research:cuisine:lavish
-  requiredWork: 14
+  requiredWork: 8
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
-  - itemId: resource:ember-root
+  - itemId: material:ration-mixture
     amount: 2
-  - itemId: material:starch
-    amount: 1
-  - itemId: resource:saltstone
-    amount: 1
   outputs:
   - itemId: food:preserved-ration
     amount: 3

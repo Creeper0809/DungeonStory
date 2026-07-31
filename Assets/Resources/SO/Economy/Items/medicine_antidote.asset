@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8084
+  id: 8089
   itemId: medicine:antidote
   displayName: "\uD574\uB3C5\uC81C"
   description: "\uB3C5\uC18C\uC640 \uACFC\uB2E4 \uBCF5\uC6A9 \uC99D\uC0C1\uC744 \uC644\uD654\uD55C\uB2E4."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 3
   ingredientTags: 1025
   unitPrice: 28
+  marketSaleRate: 0.6
   unitWeight: 0.12
   maxStack: 30
   sprite: {fileID: 0}

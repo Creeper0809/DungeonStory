@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8069
+  id: 8070
   itemId: feed:hay
   displayName: "\uAC74\uCD08 \uC0AC\uB8CC"
   description: "\uCD08\uC2DD\uB3D9\uBB3C\uC6A9 \uAE30\uBCF8 \uC0AC\uB8CC."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 8
   ingredientTags: 1
   unitPrice: 2
+  marketSaleRate: 0.6
   unitWeight: 0.45
   maxStack: 75
   sprite: {fileID: 0}

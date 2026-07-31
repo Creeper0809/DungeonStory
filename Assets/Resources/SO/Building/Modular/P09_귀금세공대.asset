@@ -47,10 +47,11 @@ MonoBehaviour:
     - rid: 7302563239038813034
     - rid: 7302563239038813035
     - rid: 7302563239038813036
-    - rid: 7302563284922662984
-    - rid: 7302563284922662985
-    - rid: 7302563284922662986
-    - rid: 7302563284922662987
+    - rid: 7302563313672519815
+    - rid: 7302563313672519816
+    - rid: 7302563313672519817
+    - rid: 7302563313672519818
+    - rid: 7302563313672519979
   width: 2
   height: 1
   layer: 1
@@ -111,21 +112,21 @@ MonoBehaviour:
           - key: Luxury
             value: 3
           metrics: []
-    - rid: 7302563284922662984
+    - rid: 7302563313672519815
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284922662985
+    - rid: 7302563313672519816
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284922662986
+    - rid: 7302563313672519817
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -136,10 +137,15 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284922662987
+    - rid: 7302563313672519818
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
+    - rid: 7302563313672519979
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:jeweler

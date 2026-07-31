@@ -63,6 +63,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 0
         maintenance: 2
         unlockPhase: 1
@@ -95,3 +96,26 @@ MonoBehaviour:
           effectAssets:
           - {fileID: 11400000, guid: 5df706f7e2814c5afbd5f3b798766d0d, type: 2}
           - {fileID: 11400000, guid: d69458bb61fe33df8bfb930734f1c985, type: 2}
+          supplyKind: 2
+          supplyItemId: material:rot-toxin
+          supplyCategory: 8
+          supplyCapacity: 4
+          supplyPerActivation: 1
+          initialSupply: 1
+          requiresPower: 0
+          powerDemand: 0
+          conditionLossPerActivation: 1
+          baseJamChance: 0.01
+          baseMisfireChance: 0.005
+          facilityFamilyId: defense:toxin
+          affinityTags:
+          - defense:poison
+          - species:vampire
+          - species:myconid
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0

@@ -46,6 +46,7 @@ MonoBehaviour:
     - rid: 7302563239038812989
     - rid: 7302563239038812990
     - rid: 7302563239038812991
+    - rid: 7302563313672520088
   width: 1
   height: 1
   layer: 1
@@ -69,6 +70,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 60
         maintenance: 1
         unlockPhase: 1
@@ -92,3 +94,21 @@ MonoBehaviour:
       data:
         abilityId: BuildingSeatingAbility
         capacity: 1
+    - rid: 7302563313672520088
+      type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingServiceSupportAbility
+        supportId: service-seat-basic
+        featureTags:
+        - service:seat
+        compatibleHubTags:
+        - service:dining
+        modifierType: 1
+        capacity: 1
+        requiresPower: 0
+        cleanWaterPerUse: 0
+        wastewaterPerUse: 0
+        allowsManualWaterFallback: 0
+        workSpeedMultiplier: 1
+        satisfactionModifier: 0
+        revenueModifier: 0

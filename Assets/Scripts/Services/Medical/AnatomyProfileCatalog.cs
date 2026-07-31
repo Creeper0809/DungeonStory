@@ -25,6 +25,9 @@ public sealed class ResourceAnatomyProfileCatalog : IAnatomyProfileCatalog
             loaded.Add(AnatomyProfileDefaults.CreateHumanoid());
             loaded.Add(AnatomyProfileDefaults.CreateQuadruped());
             loaded.Add(AnatomyProfileDefaults.CreateSlime());
+            loaded.Add(AnatomyProfileDefaults.CreateFungal());
+            loaded.Add(AnatomyProfileDefaults.CreateAvian());
+            loaded.Add(AnatomyProfileDefaults.CreateConstruct());
         }
 
         profiles = loaded;
@@ -114,7 +117,16 @@ public static class AnatomyProfileDefaults
             "anatomy:humanoid",
             "인간형",
             "humanoid",
-            new[] { "Human", "Orc", "Vampire", "Goblin" },
+            new[]
+            {
+                "Human",
+                "Orc",
+                "Vampire",
+                "Goblin",
+                "Beastkin",
+                "Demon",
+                "Kobold"
+            },
             new[]
             {
                 Node("head", "머리", "", AnatomyNodeKind.BodyPart,
@@ -232,6 +244,118 @@ public static class AnatomyProfileDefaults
                 Node("pseudopods", "위족", "membrane", AnatomyNodeKind.Limb,
                     AnatomyFunction.Manipulation | AnatomyFunction.Mobility,
                     30f, 1f, false, true)
+            });
+    }
+
+    public static AnatomyProfileDefinition CreateFungal()
+    {
+        return new AnatomyProfileDefinition(
+            "anatomy:fungal",
+            "균사 군체 구조",
+            "fungal",
+            new[] { "Myconid" },
+            new[]
+            {
+                Node("head", "균모", "", AnatomyNodeKind.BodyPart,
+                    AnatomyFunction.Sight | AnatomyFunction.Filtration,
+                    24f, 0.5f, false, true, legacy: CombatBodyPart.Head),
+                Node("spore-sac", "포자낭", "head", AnatomyNodeKind.Organ,
+                    AnatomyFunction.Breathing | AnatomyFunction.Filtration,
+                    16f, 0.8f, false, true),
+                Node("torso", "균사 몸통", "", AnatomyNodeKind.Core,
+                    AnatomyFunction.Core | AnatomyFunction.Consciousness
+                    | AnatomyFunction.Digestion,
+                    48f, 1f, true, false, legacy: CombatBodyPart.Torso),
+                Node("hypha-core", "중심 균핵", "torso", AnatomyNodeKind.Core,
+                    AnatomyFunction.Core | AnatomyFunction.Consciousness,
+                    18f, 1f, true, false),
+                Node("arm:left", "왼쪽 균사팔", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Manipulation, 20f, 0.5f, false, true, "arms",
+                    CombatBodyPart.LeftArm),
+                Node("arm:right", "오른쪽 균사팔", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Manipulation, 20f, 0.5f, false, true, "arms",
+                    CombatBodyPart.RightArm),
+                Node("leg:left", "왼쪽 균사다리", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Mobility, 22f, 0.5f, false, true, "legs",
+                    CombatBodyPart.LeftLeg),
+                Node("leg:right", "오른쪽 균사다리", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Mobility, 22f, 0.5f, false, true, "legs",
+                    CombatBodyPart.RightLeg)
+            });
+    }
+
+    public static AnatomyProfileDefinition CreateAvian()
+    {
+        return new AnatomyProfileDefinition(
+            "anatomy:avian",
+            "조류형",
+            "avian",
+            new[] { "Harpy" },
+            new[]
+            {
+                Node("head", "머리", "", AnatomyNodeKind.BodyPart,
+                    AnatomyFunction.Consciousness | AnatomyFunction.Sight,
+                    15f, 0.35f, true, false, legacy: CombatBodyPart.Head),
+                Node("brain", "뇌", "head", AnatomyNodeKind.Organ,
+                    AnatomyFunction.Consciousness, 10f, 0.7f, true, false),
+                Node("eye:left", "왼쪽 눈", "head", AnatomyNodeKind.SensoryOrgan,
+                    AnatomyFunction.Sight, 6f, 0.5f, false, true, "eyes"),
+                Node("eye:right", "오른쪽 눈", "head", AnatomyNodeKind.SensoryOrgan,
+                    AnatomyFunction.Sight, 6f, 0.5f, false, true, "eyes"),
+                Node("torso", "몸통", "", AnatomyNodeKind.Core,
+                    AnatomyFunction.Core, 38f, 1f, true, false,
+                    legacy: CombatBodyPart.Torso),
+                Node("heart", "심장", "torso", AnatomyNodeKind.Organ,
+                    AnatomyFunction.Core, 12f, 1f, true, true),
+                Node("air-sacs", "기낭", "torso", AnatomyNodeKind.Organ,
+                    AnatomyFunction.Breathing, 13f, 1f, false, true),
+                Node("wing:left", "왼날개", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Mobility | AnatomyFunction.Manipulation,
+                    24f, 0.5f, false, true, "wings", CombatBodyPart.LeftArm),
+                Node("wing:right", "오른날개", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Mobility | AnatomyFunction.Manipulation,
+                    24f, 0.5f, false, true, "wings", CombatBodyPart.RightArm),
+                Node("leg:left", "왼다리", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Mobility, 20f, 0.5f, false, true, "legs",
+                    CombatBodyPart.LeftLeg),
+                Node("leg:right", "오른다리", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Mobility, 20f, 0.5f, false, true, "legs",
+                    CombatBodyPart.RightLeg)
+            });
+    }
+
+    public static AnatomyProfileDefinition CreateConstruct()
+    {
+        return new AnatomyProfileDefinition(
+            "anatomy:construct",
+            "골렘 기계 구조",
+            "construct",
+            new[] { "Golem" },
+            new[]
+            {
+                Node("head", "감응석 머리", "", AnatomyNodeKind.BodyPart,
+                    AnatomyFunction.Sight, 28f, 1f, false, true,
+                    legacy: CombatBodyPart.Head),
+                Node("sensor-core", "감응 핵", "head", AnatomyNodeKind.SensoryOrgan,
+                    AnatomyFunction.Sight, 18f, 1f, false, true),
+                Node("torso", "주조 몸체", "", AnatomyNodeKind.Core,
+                    AnatomyFunction.Core | AnatomyFunction.Consciousness,
+                    70f, 1f, true, false, legacy: CombatBodyPart.Torso),
+                Node("power-core", "동력핵", "torso", AnatomyNodeKind.Core,
+                    AnatomyFunction.Core | AnatomyFunction.Consciousness,
+                    24f, 1f, true, false),
+                Node("arm:left", "왼쪽 작업팔", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Manipulation, 38f, 0.5f, false, true, "arms",
+                    CombatBodyPart.LeftArm),
+                Node("arm:right", "오른쪽 작업팔", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Manipulation, 38f, 0.5f, false, true, "arms",
+                    CombatBodyPart.RightArm),
+                Node("leg:left", "왼쪽 지지각", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Mobility, 44f, 0.5f, false, true, "legs",
+                    CombatBodyPart.LeftLeg),
+                Node("leg:right", "오른쪽 지지각", "torso", AnatomyNodeKind.Limb,
+                    AnatomyFunction.Mobility, 44f, 0.5f, false, true, "legs",
+                    CombatBodyPart.RightLeg)
             });
     }
 

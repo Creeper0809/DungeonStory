@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8061
+  id: 8062
   itemId: food:cheese-mushroom
   displayName: "\uCE58\uC988\uBC84\uC12F\uCC1C"
   description: "\uCE58\uC988\uC640 \uBC84\uC12F\uC744 \uACC1\uB4E4\uC778 \uCC44\uC2DD
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 6
   unitPrice: 14
+  marketSaleRate: 0.6
   unitWeight: 0.7
   maxStack: 40
   sprite: {fileID: 0}

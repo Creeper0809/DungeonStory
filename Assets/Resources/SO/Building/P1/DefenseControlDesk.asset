@@ -1,0 +1,125 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: DefenseControlDesk
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: type
+      Entry: 7
+      Data: 0|System.RuntimeType, mscorlib
+    - Name: 
+      Entry: 1
+      Data: DefenseFacility, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 1801
+  objectName: "\uBC29\uC5B4 \uD1B5\uC81C\uB300"
+  sprite: {fileID: 21300000, guid: c28dedc883570139aa21b0a55f922f3f, type: 3}
+  icon: {fileID: 21300000, guid: c28dedc883570139aa21b0a55f922f3f, type: 3}
+  abilityModules:
+    items:
+    - rid: 7302563312817144224
+    - rid: 7302563312817144227
+    - rid: 7302563313672520111
+    - rid: 7302563313672520112
+  width: 2
+  height: 1
+  layer: 1
+  category: 3
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563312817144224
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 210
+        constructionCost: 210
+        maintenance: 5
+        unlockPhase: 1
+        demolitionRefundRate: 0.5
+    - rid: 7302563312817144227
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: DF02
+    - rid: 7302563313672520111
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 0
+          useDuration: 0
+          requiredWorkers: 1
+          supportedWorkTypes: 36
+          disabledWhenDamaged: 1
+    - rid: 7302563313672520112
+      type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingDefenseAbility
+        settings:
+          enabled: 1
+          concept: 6
+          triggerTimings: 0
+          targetRule: 3
+          cooldownSeconds: 0
+          periodicIntervalSeconds: 0
+          range: 6
+          star: 1
+          combatLogText: "\uBC29\uC5B4 \uD1B5\uC81C\uB300"
+          effectAssets: []
+          supplyKind: 5
+          supplyItemId: 
+          supplyCategory: 3
+          supplyCapacity: 0
+          supplyPerActivation: 0
+          initialSupply: 0
+          requiresPower: 1
+          powerDemand: 2
+          conditionLossPerActivation: 0.1
+          baseJamChance: 0.01
+          baseMisfireChance: 0.005
+          facilityFamilyId: defense:control
+          affinityTags:
+          - defense:identification
+          - species:demon
+          - species:golem
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0

@@ -164,7 +164,7 @@ public static class WorkTypeCatalog
         return ById.TryGetValue(id.Value ?? string.Empty, out definition);
     }
 
-    internal static bool TryGet(FacilityWorkType type, out WorkTypeDefinition definition)
+    public static bool TryGet(FacilityWorkType type, out WorkTypeDefinition definition)
     {
         EnsureInitialized();
         return ByType.TryGetValue(type, out definition);
@@ -180,7 +180,7 @@ public static class WorkTypeCatalog
         throw new KeyNotFoundException($"No work type definition is registered for '{type}' ({(int)type}).");
     }
 
-    internal static IEnumerable<WorkTypeDefinition> Enumerate(FacilityWorkType workTypes)
+    public static IEnumerable<WorkTypeDefinition> Enumerate(FacilityWorkType workTypes)
     {
         return All.Where(definition => (workTypes & definition.Type) != 0);
     }

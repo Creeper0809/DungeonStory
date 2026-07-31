@@ -26,6 +26,8 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private IGameEventBus gameEventBus;
     private IDoorAccessPanelPresenter doorAccessPanelPresenter;
     private ICircusBuildingPanelPresenter circusBuildingPanelPresenter;
+    private IEnvironmentalBuildingPanelPresenter
+        environmentalBuildingPanelPresenter;
     private IEquipmentCraftingPanelPresenter equipmentCraftingPanelPresenter;
     private IInstanceEvolutionPanelPresenter instanceEvolutionPanelPresenter;
     private IProductionBuildingPanelPresenter productionBuildingPanelPresenter;
@@ -34,6 +36,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private ISurgeryBuildingPanelPresenter surgeryBuildingPanelPresenter;
     private IPaidFacilityBuildingPanelPresenter
         paidFacilityBuildingPanelPresenter;
+    private IServiceRoomBuildingPanelPresenter serviceRoomBuildingPanelPresenter;
     private ITreasuryDefenseBuildingPanelPresenter
         treasuryDefenseBuildingPanelPresenter;
     private IDisposable infoFeedSubscription;
@@ -64,6 +67,8 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         IWorkOrderRuntime workOrderRuntime,
         IDoorAccessPanelPresenter doorAccessPanelPresenter,
         ICircusBuildingPanelPresenter circusBuildingPanelPresenter,
+        IEnvironmentalBuildingPanelPresenter
+            environmentalBuildingPanelPresenter,
         IEquipmentCraftingPanelPresenter equipmentCraftingPanelPresenter,
         IInstanceEvolutionPanelPresenter instanceEvolutionPanelPresenter,
         IProductionBuildingPanelPresenter productionBuildingPanelPresenter,
@@ -72,6 +77,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         ISurgeryBuildingPanelPresenter surgeryBuildingPanelPresenter,
         IPaidFacilityBuildingPanelPresenter
             paidFacilityBuildingPanelPresenter,
+        IServiceRoomBuildingPanelPresenter serviceRoomBuildingPanelPresenter,
         ITreasuryDefenseBuildingPanelPresenter
             treasuryDefenseBuildingPanelPresenter)
     {
@@ -93,6 +99,10 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             ?? throw new ArgumentNullException(nameof(doorAccessPanelPresenter));
         this.circusBuildingPanelPresenter = circusBuildingPanelPresenter
             ?? throw new ArgumentNullException(nameof(circusBuildingPanelPresenter));
+        this.environmentalBuildingPanelPresenter =
+            environmentalBuildingPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(environmentalBuildingPanelPresenter));
         this.equipmentCraftingPanelPresenter = equipmentCraftingPanelPresenter
             ?? throw new ArgumentNullException(
                 nameof(equipmentCraftingPanelPresenter));
@@ -115,6 +125,10 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             paidFacilityBuildingPanelPresenter
             ?? throw new ArgumentNullException(
                 nameof(paidFacilityBuildingPanelPresenter));
+        this.serviceRoomBuildingPanelPresenter =
+            serviceRoomBuildingPanelPresenter
+            ?? throw new ArgumentNullException(
+                nameof(serviceRoomBuildingPanelPresenter));
         this.treasuryDefenseBuildingPanelPresenter =
             treasuryDefenseBuildingPanelPresenter
             ?? throw new ArgumentNullException(
@@ -171,6 +185,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
 
         if (building != selectedBuilding && !hidden) return;
         selectedBuilding = building;
+        productionBuildingPanelPresenter?.ShowWorldLinks(building);
         BuildingSO buildingData = ResolveBuildingLookup().GetBuilding(building.id) ?? building.BuildingData;
         if (buildingData == null)
         {
@@ -250,6 +265,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         EnsureInitialized();
         hidden = true;
         selectedBuilding = null;
+        productionBuildingPanelPresenter?.ClearWorldLinks();
         ClearCraftActions();
 
         if (!gameObject.activeInHierarchy)
@@ -286,6 +302,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
 
     private void OnDisable()
     {
+        productionBuildingPanelPresenter?.ClearWorldLinks();
         infoFeedSubscription?.Dispose();
         infoFeedSubscription = null;
     }
@@ -306,6 +323,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         EnsureInitialized();
         hidden = true;
         selectedBuilding = null;
+        productionBuildingPanelPresenter?.ClearWorldLinks();
         ClearCraftActions();
         SetHiddenImmediate();
         ResolvePopupService().ReleaseTouch();
@@ -337,6 +355,14 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                 message => craftStatusMessage = message,
                 () => DisplayBuildingInfo(building));
         craftActionObjects.AddRange(evolutionObjects);
+        IReadOnlyList<GameObject> environmentalObjects =
+            environmentalBuildingPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(environmentalObjects);
         RenderMaintenanceActions(buildingData, building);
         IReadOnlyList<GameObject> productionObjects =
             productionBuildingPanelPresenter.Render(
@@ -378,6 +404,14 @@ public class UIBuildingInfo : SerializedMonoBehaviour
                 message => craftStatusMessage = message,
                 () => DisplayBuildingInfo(building));
         craftActionObjects.AddRange(paidFacilityObjects);
+        IReadOnlyList<GameObject> serviceRoomObjects =
+            serviceRoomBuildingPanelPresenter.Render(
+                RequireContextActionsRoot(),
+                building,
+                nameText != null ? nameText.font : null,
+                message => craftStatusMessage = message,
+                () => DisplayBuildingInfo(building));
+        craftActionObjects.AddRange(serviceRoomObjects);
         IReadOnlyList<GameObject> treasuryDefenseObjects =
             treasuryDefenseBuildingPanelPresenter.Render(
                 RequireContextActionsRoot(),
@@ -683,9 +717,35 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private Transform RequireContextActionsRoot()
     {
         EnsureContextActionsPanel();
+        ApplyResponsiveContextActionsLayout();
         contextActionsPanel.SetActive(true);
         contextActionsPanel.transform.SetAsLastSibling();
         return contextActionsContent;
+    }
+
+    private void ApplyResponsiveContextActionsLayout()
+    {
+        if (contextActionsPanel == null)
+        {
+            return;
+        }
+
+        RectTransform panelRect =
+            contextActionsPanel.GetComponent<RectTransform>();
+        if (panelRect == null)
+        {
+            return;
+        }
+
+        bool portrait = Screen.height > Screen.width;
+        panelRect.anchorMin = portrait
+            ? new Vector2(0.04f, 0.05f)
+            : new Vector2(0.38f, 0.08f);
+        panelRect.anchorMax = portrait
+            ? new Vector2(0.96f, 0.72f)
+            : new Vector2(0.98f, 0.72f);
+        panelRect.offsetMin = Vector2.zero;
+        panelRect.offsetMax = Vector2.zero;
     }
 
     private void EnsureContextActionsPanel()

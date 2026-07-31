@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8081
+  id: 8086
   itemId: medicine:antiseptic
   displayName: "\uC18C\uB3C5\uC81C"
   description: "\uAC10\uC5FC \uC704\uD5D8\uC744 \uB0AE\uCD94\uB294 \uC678\uC6A9 \uC57D\uD488."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 3
   ingredientTags: 1
   unitPrice: 12
+  marketSaleRate: 0.6
   unitWeight: 0.18
   maxStack: 50
   sprite: {fileID: 0}

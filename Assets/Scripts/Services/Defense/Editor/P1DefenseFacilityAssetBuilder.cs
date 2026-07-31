@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -7,6 +8,12 @@ public static class P1DefenseFacilityAssetBuilder
 {
     private const string BuildingFolder = "Assets/Resources/SO/Building/P1";
     private const string EffectFolder = "Assets/Resources/SO/Defense/Effects/P1";
+    private const string CanonicalTreasuryLauncherPath =
+        BuildingFolder + "/P1_TreasuryBoltThrower.asset";
+    private const string LegacyTreasuryLauncherPath =
+        BuildingFolder + "/P1_TreasuryCrossbow.asset";
+    private const string LegacyTreasuryLauncherEffectPath =
+        EffectFolder + "/P1_TreasuryCrossbow_1_Damage.asset";
 
     [MenuItem("DungeonStory/Debug/Defense/Ensure P1 Defense Assets")]
     public static void EnsureP1DefenseAssetsFromMenu()
@@ -27,13 +34,33 @@ public static class P1DefenseFacilityAssetBuilder
 
         System.IO.Directory.CreateDirectory(BuildingFolder);
         System.IO.Directory.CreateDirectory(EffectFolder);
+        RemoveLegacyTreasuryLauncherDuplicate();
         foreach (DefenseAssetSpec spec in CreateSpecs())
         {
             EnsureAsset(spec);
         }
 
+        EnhanceAllDefenseAssets();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
+    }
+
+    private static void RemoveLegacyTreasuryLauncherDuplicate()
+    {
+        BuildingSO canonical = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            CanonicalTreasuryLauncherPath);
+        BuildingSO legacy = AssetDatabase.LoadAssetAtPath<BuildingSO>(
+            LegacyTreasuryLauncherPath);
+        if (canonical == null
+            || canonical.id != 9961
+            || legacy == null
+            || legacy.id != 36)
+        {
+            return;
+        }
+
+        AssetDatabase.DeleteAsset(LegacyTreasuryLauncherPath);
+        AssetDatabase.DeleteAsset(LegacyTreasuryLauncherEffectPath);
     }
 
     private static void EnsureAsset(DefenseAssetSpec spec)
@@ -98,6 +125,18 @@ public static class P1DefenseFacilityAssetBuilder
             combatLogText = spec.displayName,
             effectAssets = effectAssets
         };
+        if (spec.id >= 1800 && spec.id <= 1805)
+        {
+            BuildingFacilityPartAbility part =
+                building.GetAbility<BuildingFacilityPartAbility>();
+            if (part == null)
+            {
+                part = new BuildingFacilityPartAbility();
+                building.AbilityModules.Add(part);
+            }
+
+            part.code = $"DF{spec.id - 1799:00}";
+        }
         if (spec.treasuryPowered)
         {
             BuildingTreasuryPoweredDefenseAbility treasuryAbility =
@@ -121,7 +160,249 @@ public static class P1DefenseFacilityAssetBuilder
         }
 
         building.unlocked = true;
+        building.AbilityModules.EnsureStableIds();
+        building.ValidateAbilitiesOrThrow();
         EditorUtility.SetDirty(building);
+    }
+
+    private static void EnhanceAllDefenseAssets()
+    {
+        BuildingSO[] defenses = AssetDatabase
+            .FindAssets(
+                "t:BuildingSO",
+                new[] { "Assets/Resources/SO/Building" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
+            .Where(building =>
+                building != null
+                && building.Defense != null
+                && building.Defense.IsDefenseFacility)
+            .OrderBy(building => building.id)
+            .ToArray();
+
+        foreach (BuildingSO building in defenses)
+        {
+            ConfigureOperationalContract(building);
+            building.AbilityModules.EnsureStableIds();
+            building.ValidateAbilitiesOrThrow();
+            EditorUtility.SetDirty(building);
+        }
+    }
+
+    private static void ConfigureOperationalContract(BuildingSO building)
+    {
+        DefenseFacilityData defense = building.Defense;
+        defense.initialSupply = 1;
+        defense.supplyPerActivation = 1;
+        defense.conditionLossPerActivation = 1f;
+        defense.baseJamChance = 0.01f;
+        defense.baseMisfireChance = 0.005f;
+        defense.growth ??= new DefenseFacilityGrowthData();
+
+        if (building.GetAbility<BuildingTreasuryPoweredDefenseAbility>() != null)
+        {
+            SetSupply(
+                defense,
+                DefenseSupplyKind.Treasury,
+                string.Empty,
+                StockCategory.General,
+                0);
+            defense.facilityFamilyId = "defense:launcher";
+            defense.affinityTags =
+                new[] { "defense:ranged", "species:harpy", "species:kobold" };
+            return;
+        }
+
+        switch (building.id)
+        {
+            case 1800:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.None,
+                    string.Empty,
+                    StockCategory.General,
+                    0);
+                defense.range = Mathf.Max(5, defense.range);
+                defense.facilityFamilyId = "defense:detection";
+                defense.affinityTags =
+                    new[] { "defense:alarm", "species:beastkin", "species:harpy" };
+                defense.conditionLossPerActivation = 0.2f;
+                return;
+            case 1801:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.ElectricalCharge,
+                    string.Empty,
+                    StockCategory.Mana,
+                    0);
+                defense.requiresPower = true;
+                defense.powerDemand = 2f;
+                defense.range = Mathf.Max(6, defense.range);
+                defense.facilityFamilyId = "defense:control";
+                defense.affinityTags =
+                    new[] { "defense:identification", "species:demon", "species:golem" };
+                defense.conditionLossPerActivation = 0.1f;
+                return;
+            case 1802:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.None,
+                    string.Empty,
+                    StockCategory.Ammunition,
+                    0);
+                defense.facilityFamilyId = "defense:supply";
+                defense.affinityTags =
+                    new[] { "defense:reload", "species:beastkin", "species:kobold" };
+                defense.conditionLossPerActivation = 0f;
+                return;
+            case 1803:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.None,
+                    string.Empty,
+                    StockCategory.General,
+                    0);
+                defense.facilityFamilyId = "defense:maintenance";
+                defense.affinityTags =
+                    new[] { "defense:repair", "species:kobold", "species:golem" };
+                defense.conditionLossPerActivation = 0f;
+                return;
+            case 1804:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.MetalParts,
+                    "material:iron-ingot",
+                    StockCategory.General,
+                    3);
+                defense.facilityFamilyId = "defense:barrier";
+                defense.affinityTags =
+                    new[] { "defense:wall", "species:orc", "species:golem" };
+                defense.conditionLossPerActivation = 2f;
+                defense.baseJamChance = 0.025f;
+                return;
+            case 1805:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.Ammunition,
+                    "ammo:bolt-iron",
+                    StockCategory.Ammunition,
+                    8);
+                defense.facilityFamilyId = "defense:launcher";
+                defense.affinityTags =
+                    new[] { "defense:ranged", "species:harpy", "species:kobold" };
+                defense.conditionLossPerActivation = 0.8f;
+                return;
+        }
+
+        switch (defense.concept)
+        {
+            case DefenseAttackConcept.Poison:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.Toxin,
+                    "material:rot-toxin",
+                    StockCategory.Biological,
+                    4);
+                defense.facilityFamilyId = "defense:toxin";
+                defense.affinityTags =
+                    new[] { "defense:poison", "species:vampire", "species:myconid" };
+                break;
+            case DefenseAttackConcept.Fire:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.Fuel,
+                    "resource:coal",
+                    StockCategory.Fuel,
+                    4);
+                defense.facilityFamilyId = "defense:elemental";
+                defense.affinityTags =
+                    new[] { "defense:fire", "species:orc", "species:demon" };
+                break;
+            case DefenseAttackConcept.Lightning:
+                SetPoweredElemental(
+                    defense,
+                    "defense:lightning",
+                    "species:beastkin",
+                    "species:demon");
+                break;
+            case DefenseAttackConcept.Ice:
+                SetPoweredElemental(
+                    defense,
+                    "defense:ice",
+                    "species:slime",
+                    "species:vampire");
+                break;
+            case DefenseAttackConcept.Guard:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.MetalParts,
+                    "material:iron-ingot",
+                    StockCategory.General,
+                    3);
+                defense.facilityFamilyId = "defense:guard-post";
+                defense.affinityTags =
+                    new[] { "defense:blocking", "species:orc", "species:golem" };
+                defense.conditionLossPerActivation = 0.5f;
+                break;
+            default:
+                bool launcher = building.id == 36
+                    || (building.objectName ?? string.Empty).IndexOf(
+                        "crossbow",
+                        StringComparison.OrdinalIgnoreCase) >= 0
+                    || (building.objectName ?? string.Empty).IndexOf(
+                        "bolt",
+                        StringComparison.OrdinalIgnoreCase) >= 0;
+                SetSupply(
+                    defense,
+                    launcher
+                        ? DefenseSupplyKind.Ammunition
+                        : DefenseSupplyKind.MetalParts,
+                    launcher ? "ammo:bolt-iron" : "material:iron-ingot",
+                    launcher ? StockCategory.Ammunition : StockCategory.General,
+                    launcher ? 8 : 3);
+                defense.facilityFamilyId =
+                    launcher ? "defense:launcher" : "defense:mechanical-trap";
+                defense.affinityTags = launcher
+                    ? new[] { "defense:ranged", "species:harpy", "species:kobold" }
+                    : new[] { "defense:mechanical", "species:kobold", "species:orc" };
+                break;
+        }
+    }
+
+    private static void SetPoweredElemental(
+        DefenseFacilityData defense,
+        string affinity,
+        string firstSpecies,
+        string secondSpecies)
+    {
+        SetSupply(
+            defense,
+            DefenseSupplyKind.ElectricalCharge,
+            string.Empty,
+            StockCategory.Mana,
+            0);
+        defense.requiresPower = true;
+        defense.powerDemand = 3f;
+        defense.facilityFamilyId = "defense:elemental";
+        defense.affinityTags =
+            new[] { affinity, firstSpecies, secondSpecies };
+    }
+
+    private static void SetSupply(
+        DefenseFacilityData defense,
+        DefenseSupplyKind kind,
+        string itemId,
+        StockCategory category,
+        int capacity)
+    {
+        defense.supplyKind = kind;
+        defense.supplyItemId = itemId ?? string.Empty;
+        defense.supplyCategory = category;
+        defense.supplyCapacity = Mathf.Max(0, capacity);
+        defense.initialSupply = defense.supplyCapacity > 0 ? 1 : 0;
+        defense.supplyPerActivation = defense.supplyCapacity > 0 ? 1 : 0;
+        defense.requiresPower = false;
+        defense.powerDemand = 0f;
     }
 
     private static IEnumerable<WorkTypeId> ToWorkTypeIds(FacilityWorkType workTypes)
@@ -277,7 +558,122 @@ public static class P1DefenseFacilityAssetBuilder
                 FacilityWorkType.Repair | FacilityWorkType.Guard,
                 1,
                 new[] { Effect<DefenseGuardAttackEffectSO>(10f, 0f, 1, "경비 교전") })
-        };
+            ,
+            new DefenseAssetSpec(
+                "DefenseCorridorDetector",
+                1800,
+                "복도 침입 감지기",
+                "Assets/Images/Placeholders/Defense/defense_guard_room.png",
+                1,
+                GridLayer.WallFixture,
+                95,
+                2,
+                DefenseAttackConcept.Guard,
+                DefenseTriggerTiming.OnEnter,
+                DefenseTargetRule.EnteringIntruder,
+                0.5f,
+                0f,
+                FacilityWorkType.Repair,
+                0,
+                Array.Empty<DefenseEffectAssetSpec>()),
+            new DefenseAssetSpec(
+                "DefenseControlDesk",
+                1801,
+                "방어 통제대",
+                "Assets/Images/Placeholders/Defense/defense_guard_room.png",
+                2,
+                GridLayer.Building,
+                210,
+                5,
+                DefenseAttackConcept.Guard,
+                DefenseTriggerTiming.None,
+                DefenseTargetRule.GuardTarget,
+                0f,
+                0f,
+                FacilityWorkType.Repair | FacilityWorkType.Guard,
+                1,
+                Array.Empty<DefenseEffectAssetSpec>()),
+            new DefenseAssetSpec(
+                "DefenseSupplyDepot",
+                1802,
+                "탄약·촉매 보급고",
+                "Assets/Images/Placeholders/Items/item_weapon.png",
+                2,
+                GridLayer.Building,
+                170,
+                4,
+                DefenseAttackConcept.Guard,
+                DefenseTriggerTiming.None,
+                DefenseTargetRule.GuardTarget,
+                0f,
+                0f,
+                FacilityWorkType.Repair,
+                0,
+                Array.Empty<DefenseEffectAssetSpec>()),
+            new DefenseAssetSpec(
+                "DefenseMaintenanceBench",
+                1803,
+                "함정 정비대",
+                "Assets/Images/Placeholders/Defense/defense_spike.png",
+                2,
+                GridLayer.Building,
+                155,
+                3,
+                DefenseAttackConcept.Guard,
+                DefenseTriggerTiming.None,
+                DefenseTargetRule.GuardTarget,
+                0f,
+                0f,
+                FacilityWorkType.Repair,
+                1,
+                Array.Empty<DefenseEffectAssetSpec>()),
+            new DefenseAssetSpec(
+                "DefenseLinkedDropGate",
+                1804,
+                "문 연동 강화 낙하문",
+                "Assets/Images/Placeholders/Defense/defense_spike.png",
+                2,
+                GridLayer.WallFixture,
+                260,
+                7,
+                DefenseAttackConcept.Physical,
+                DefenseTriggerTiming.OnEnter | DefenseTriggerTiming.Cooldown,
+                DefenseTargetRule.EnteringIntruder,
+                4f,
+                0f,
+                FacilityWorkType.Repair,
+                0,
+                new[]
+                {
+                    Effect<DefenseDamageEffectSO>(24f, 0f, 1, "낙하문 충격"),
+                    Effect<DefenseSlowEffectSO>(0.55f, 3f, 1, "통로 봉쇄")
+                }),
+            new DefenseAssetSpec(
+                "DefenseWallLauncher",
+                1805,
+                "벽면 발사구",
+                "Assets/Images/Placeholders/Items/item_weapon.png",
+                1,
+                GridLayer.WallFixture,
+                225,
+                5,
+                DefenseAttackConcept.Physical,
+                DefenseTriggerTiming.OnEnter | DefenseTriggerTiming.Cooldown,
+                DefenseTargetRule.EnteringIntruder,
+                2f,
+                0f,
+                FacilityWorkType.Repair,
+                0,
+                new[]
+                {
+                    Effect<DefenseDamageEffectSO>(28f, 0f, 1, "벽면 볼트")
+                })
+        }
+        // The treasury-funded launcher already exists as
+        // P1_TreasuryBoltThrower (building 9961). Keep that canonical asset
+        // instead of generating the legacy building-36 duplicate.
+        .Where(spec => spec.assetName != "P1_TreasuryCrossbow")
+        .ToArray();
     }
 
     private static DefenseEffectAssetSpec Effect<TEffect>(float amount, float duration, int stacks, string logTag)

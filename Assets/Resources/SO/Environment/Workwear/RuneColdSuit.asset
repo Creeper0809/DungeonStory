@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4ba678a78e63274890cfcb96413c482, type: 3}
+  m_Name: RuneColdSuit
+  m_EditorClassIdentifier: Assembly-CSharp::EnvironmentalWorkwearSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 875194
+  workwearId: workwear:rune-cold-suit
+  displayName: "\uB8EC \uBC29\uD55C\uBCF5"
+  description: "\uD6C4\uAE30 2\xB0C \uB0C9\uC7A5 \uADFC\uBB34\uC6A9 \uB8EC \uB2E8\uC5F4
+    \uC791\uC5C5\uBCF5. \uCE58\uBA85\uC120\uC740 \uBC14\uAFB8\uC9C0 \uC54A\uB294\uB2E4."
+  allowedSpecies: []
+  protection:
+    comfortMinimumOffset: -10
+    comfortMaximumOffset: 0
+    safeMinimumOffset: -10
+    safeMaximumOffset: 0
+    coldExposureMultiplier: 0.2
+    heatExposureMultiplier: 1
+  requiredResearchId: research:environment:rune-insulation

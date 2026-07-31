@@ -70,6 +70,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
     private readonly ICombatCoverQuery coverQuery;
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IWorldThreatModifierQuery worldThreatModifiers;
+    private readonly IExternalCombatInfluenceQuery externalCombatInfluence;
 
     public DefenseCombatExecutor(
         ICombatResolutionService combatResolution,
@@ -77,7 +78,8 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         ICharacterBodyHealthRuntime bodyHealth,
         ICombatCoverQuery coverQuery,
         IWorldItemStackRuntime itemStackRuntime,
-        IWorldThreatModifierQuery worldThreatModifiers = null)
+        IWorldThreatModifierQuery worldThreatModifiers = null,
+        IExternalCombatInfluenceQuery externalCombatInfluence = null)
     {
         this.combatResolution = combatResolution
             ?? throw new ArgumentNullException(nameof(combatResolution));
@@ -90,6 +92,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         this.itemStackRuntime = itemStackRuntime
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.worldThreatModifiers = worldThreatModifiers;
+        this.externalCombatInfluence = externalCombatInfluence;
     }
 
     public CharacterCombatLoadoutProfile GetActiveProfile(CharacterActor actor)
@@ -232,7 +235,11 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             weapon,
             CombatFireMode.Aimed);
         return Mathf.Clamp(
-            interval / Mathf.Max(0.1f, attackSpeedMultiplier),
+            interval / Mathf.Max(
+                0.1f,
+                attackSpeedMultiplier
+                * (externalCombatInfluence?.GetAttackSpeedMultiplier(
+                    GetPersistentId(actor)) ?? 1f)),
             0.25f,
             4f);
     }
@@ -242,10 +249,14 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         CombatWeaponSnapshot weapon,
         CombatFireMode mode)
     {
-        return combatResolution.CalculateAttackInterval(
+        float interval = combatResolution.CalculateAttackInterval(
             CreateCombatStats(actor, bodyHealth.GetSnapshot(actor)),
             weapon,
             mode);
+        float multiplier =
+            externalCombatInfluence?.GetAttackSpeedMultiplier(
+                GetPersistentId(actor)) ?? 1f;
+        return interval / Mathf.Max(0.1f, multiplier);
     }
 
     public DefenseCombatExecutionResult ExecuteMelee(

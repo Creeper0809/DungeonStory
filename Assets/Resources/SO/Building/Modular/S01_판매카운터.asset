@@ -51,6 +51,7 @@ MonoBehaviour:
     - rid: 7302563239583285358
     - rid: 7302563239583285359
     - rid: 7302563239583285360
+    - rid: 7302563313672520047
   width: 2
   height: 1
   layer: 1
@@ -74,6 +75,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 110
         maintenance: 3
         unlockPhase: 1
@@ -126,3 +128,22 @@ MonoBehaviour:
       data:
         abilityId: BuildingRetailAbility
         category: 1
+    - rid: 7302563313672520047
+      type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingServiceHubAbility
+        serviceCategory: 1
+        serviceHubTag: service:retail
+        supportedProcessIds:
+        - service:retail:sale
+        baseCapacity: 1
+        allowedModes: 7
+        allowInternalStaffDirectUse: 1
+        paymentPolicy: 2
+        directPrice: 4
+        directSatisfaction: 40
+        managedRequiredFeatureTags:
+        - service:staffed-checkout
+        - service:display
+        automatedRequiredFeatureTags:
+        - service:auto-checkout

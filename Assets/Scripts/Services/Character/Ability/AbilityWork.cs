@@ -54,6 +54,9 @@ public class AbilityWork : CharacterAbility
     private IWorkPolicyRegistry workPolicyRegistry;
     private IWorkOrderRuntime workOrderRuntime;
     private IPaidFacilityContractRuntime paidFacilityContracts;
+    private IEnvironmentWorkPolicy environmentWorkPolicy;
+    private ICharacterEnvironmentRuntime characterEnvironmentRuntime;
+    private IEnvironmentalWorkwearRuntime environmentalWorkwearRuntime;
     private IWorkAmountCalculator workAmountCalculator;
     private ICaptiveLaborQuery captiveLaborQuery;
     private IGameClock gameClock;
@@ -211,7 +214,10 @@ public class AbilityWork : CharacterAbility
         IGameClock gameClock = null,
         IDefenseEngagementRuntime defenseEngagementRuntime = null,
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
-        IPaidFacilityContractRuntime paidFacilityContracts = null)
+        IPaidFacilityContractRuntime paidFacilityContracts = null,
+        IEnvironmentWorkPolicy environmentWorkPolicy = null,
+        ICharacterEnvironmentRuntime characterEnvironmentRuntime = null,
+        IEnvironmentalWorkwearRuntime environmentalWorkwearRuntime = null)
     {
         this.blueprintResearchWorkService = blueprintResearchWorkService
             ?? throw new ArgumentNullException(nameof(blueprintResearchWorkService));
@@ -234,6 +240,9 @@ public class AbilityWork : CharacterAbility
         this.defenseEngagementRuntime = defenseEngagementRuntime;
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
         this.paidFacilityContracts = paidFacilityContracts;
+        this.environmentWorkPolicy = environmentWorkPolicy;
+        this.characterEnvironmentRuntime = characterEnvironmentRuntime;
+        this.environmentalWorkwearRuntime = environmentalWorkwearRuntime;
         targetSelector = null;
         taskExecutor = null;
         commandHandler = null;
@@ -859,7 +868,8 @@ public class AbilityWork : CharacterAbility
         targetSelector ??= new WorkTargetSelector(
             this,
             workPolicyRegistry,
-            captiveLaborQuery);
+            captiveLaborQuery,
+            environmentWorkPolicy);
         taskExecutor ??= new WorkTaskExecutor(
             this,
             targetSelector,
@@ -868,7 +878,10 @@ public class AbilityWork : CharacterAbility
             workAmountCalculator,
             gameClock,
             roomEnvironmentExperienceService,
-            paidFacilityContracts);
+            paidFacilityContracts,
+            characterEnvironmentRuntime,
+            environmentalWorkwearRuntime,
+            environmentWorkPolicy);
         dutyController ??= new WorkDutyController(this);
         commandHandler ??= new WorkCommandHandler(this, targetSelector, defenseEngagementRuntime);
     }

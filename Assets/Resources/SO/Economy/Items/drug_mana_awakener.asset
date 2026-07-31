@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8090
+  id: 8095
   itemId: drug:mana-awakener
   displayName: "\uB9C8\uB098 \uAC01\uC131\uC81C"
   description: "\uC5F0\uAD6C\uC640 \uBE44\uC804 \uAC10\uAC01\uC744 \uC99D\uD3ED\uD558\uB294
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 4
   ingredientTags: 1024
   unitPrice: 34
+  marketSaleRate: 0.6
   unitWeight: 0.1
   maxStack: 25
   sprite: {fileID: 0}

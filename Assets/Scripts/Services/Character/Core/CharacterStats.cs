@@ -49,6 +49,8 @@ public class CharacterStats : SerializedMonoBehaviour
     private ICharacterPhysicalCapacityQuery physicalCapacityQuery;
     private ICharacterDeprivationRuntime deprivationRuntime;
     private ICharacterSubstanceRuntime substanceRuntime;
+    private ICharacterEnvironmentStatusQuery environmentStatus;
+    private IExternalCombatInfluenceQuery externalCombatInfluence;
     private ISurgicalAugmentationQuery surgicalAugmentation;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
@@ -126,7 +128,9 @@ public class CharacterStats : SerializedMonoBehaviour
         ICharacterDeprivationRuntime deprivationRuntime = null,
         IGameEventBus gameEventBus = null,
         ICharacterSubstanceRuntime substanceRuntime = null,
-        ISurgicalAugmentationQuery surgicalAugmentation = null)
+        ISurgicalAugmentationQuery surgicalAugmentation = null,
+        ICharacterEnvironmentStatusQuery environmentStatus = null,
+        IExternalCombatInfluenceQuery externalCombatInfluence = null)
     {
         this.staffDiscontentRuntimeService = staffDiscontentRuntimeService
             ?? throw new ArgumentNullException(nameof(staffDiscontentRuntimeService));
@@ -141,6 +145,8 @@ public class CharacterStats : SerializedMonoBehaviour
         this.gameEventBus = gameEventBus;
         this.substanceRuntime = substanceRuntime;
         this.surgicalAugmentation = surgicalAugmentation;
+        this.environmentStatus = environmentStatus;
+        this.externalCombatInfluence = externalCombatInfluence;
 
         if (actor != null)
         {
@@ -201,6 +207,8 @@ public class CharacterStats : SerializedMonoBehaviour
     private void ApplyNeedDecayTick()
     {
         EnsureStats();
+        SpeciesNeedProfile speciesNeeds =
+            actor?.profile?.GetNeedProfile() ?? new SpeciesNeedProfile();
         float hungerMultiplier = actor != null && actor.PersonaRuntime != null
             ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.HUNGER)
             : 1f;
@@ -213,6 +221,20 @@ public class CharacterStats : SerializedMonoBehaviour
         float hygieneMultiplier = actor != null && actor.PersonaRuntime != null
             ? actor.PersonaRuntime.GetConditionCurveMultiplier(CharacterCondition.HYGIENE)
             : 1f;
+        hungerMultiplier *= Mathf.Max(
+            0f,
+            speciesNeeds.hungerRateMultiplier);
+        thirstMultiplier *= Mathf.Max(
+            0f,
+            speciesNeeds.thirstRateMultiplier);
+        excretionMultiplier *= Mathf.Max(
+            0f,
+            Mathf.Max(
+                speciesNeeds.hungerRateMultiplier,
+                speciesNeeds.thirstRateMultiplier));
+        hygieneMultiplier *= Mathf.Max(
+            0f,
+            speciesNeeds.hygieneRateMultiplier);
         SynchronizeExternalMoodOverride();
         bool changed = false;
         changed |= ApplyStatDeltaWithoutPublishing(
@@ -409,7 +431,11 @@ public class CharacterStats : SerializedMonoBehaviour
             * (GetEffectiveProfile()?.GetMoveModifierOnly() ?? 1f)
             * GetFatigueEfficiencyMultiplier()
             * Mathf.Min(injuryMultiplier, bodyMultiplier)
-            * (deprivationRuntime?.GetMoveSpeedMultiplier(actor) ?? 1f);
+            * (deprivationRuntime?.GetMoveSpeedMultiplier(actor) ?? 1f)
+            * (environmentStatus?.GetMoveSpeedMultiplier(
+                identity?.PersistentId) ?? 1f)
+            * (externalCombatInfluence?.GetMoveSpeedMultiplier(
+                identity?.PersistentId) ?? 1f);
     }
 
     public float GetConsumptionMultiplier()
@@ -462,7 +488,27 @@ public class CharacterStats : SerializedMonoBehaviour
             * discontentMultiplier
             * CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(actor)
             * (deprivationRuntime?.GetWorkSpeedMultiplier(actor) ?? 1f)
-            * (substanceRuntime?.GetWorkSpeedMultiplier(actor) ?? 1f);
+            * (substanceRuntime?.GetWorkSpeedMultiplier(actor) ?? 1f)
+            * ResolveEnvironmentWorkSpeed(definition.WorkTypeId);
+    }
+
+    private float ResolveEnvironmentWorkSpeed(WorkTypeId workTypeId)
+    {
+        if (environmentStatus == null)
+        {
+            return 1f;
+        }
+
+        string id = workTypeId.Value ?? string.Empty;
+        bool precision =
+            id.IndexOf("research", StringComparison.OrdinalIgnoreCase) >= 0
+            || id.IndexOf("craft", StringComparison.OrdinalIgnoreCase) >= 0
+            || id.IndexOf("medical", StringComparison.OrdinalIgnoreCase) >= 0
+            || id.IndexOf("treat", StringComparison.OrdinalIgnoreCase) >= 0;
+        string characterId = identity?.PersistentId;
+        return precision
+            ? environmentStatus.GetPrecisionWorkSpeedMultiplier(characterId)
+            : environmentStatus.GetWorkSpeedMultiplier(characterId);
     }
 
     public float GetFacilityPreferenceScore(FacilityRole roles)

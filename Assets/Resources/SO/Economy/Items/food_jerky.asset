@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8065
+  id: 8066
   itemId: food:jerky
   displayName: "\uC721\uD3EC"
   description: "\uC624\uB798 \uBCF4\uAD00 \uAC00\uB2A5\uD55C \uC721\uC2DD \uBCF4\uC874\uC2DD."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 16
   unitPrice: 12
+  marketSaleRate: 0.6
   unitWeight: 0.45
   maxStack: 50
   sprite: {fileID: 0}

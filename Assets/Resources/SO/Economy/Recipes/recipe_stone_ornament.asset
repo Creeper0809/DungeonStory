@@ -21,14 +21,27 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9080
+  id: 9084
   recipeId: recipe:stone-ornament
   displayName: "\uC11D\uC870 \uC7A5\uC2DD"
   description: "\uC11D\uC870 \uC7A5\uC2DD \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: stonecutter
+  workstationTag: workstation:stonecutter
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:craft
   requiredResearchId: research:mining:stonecutting
   requiredWork: 12
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:stone-block
     amount: 2

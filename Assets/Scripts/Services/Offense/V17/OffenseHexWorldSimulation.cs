@@ -23,6 +23,7 @@ public interface IOffenseWorldSimulation
     bool TryGetUrgentSite(string siteId, out OffenseUrgentSiteStateData site);
     bool TryRevealSite(string siteId);
     bool TryResolveSite(string siteId);
+    bool TryRegisterStrategicSite(OffenseWorldSiteStateData site);
     bool TrySpawnUrgentSite(string definitionId, OffenseHexCoord coord, out string siteId);
     bool TryMitigateUrgentSite(string siteId, float amount);
     bool TryDestroyUrgentSite(string siteId);
@@ -196,6 +197,37 @@ public sealed class OffenseHexWorldSimulation :
         }
 
         site.state = OffenseWorldSiteState.Resolved;
+        Changed?.Invoke();
+        return true;
+    }
+
+    public bool TryRegisterStrategicSite(OffenseWorldSiteStateData site)
+    {
+        if (site == null
+            || string.IsNullOrWhiteSpace(site.siteId)
+            || !tiles.TryGetValue(site.Coord, out OffenseHexTileState tile)
+            || tile.blocked)
+        {
+            return false;
+        }
+
+        if (sites.ContainsKey(site.siteId))
+        {
+            return true;
+        }
+
+        OffenseWorldSiteStateData registered = CloneSite(site);
+        registered.regionId = string.IsNullOrWhiteSpace(registered.regionId)
+            ? tile.regionId
+            : registered.regionId;
+        registered.createdDay = Mathf.Max(1, registered.createdDay);
+        registered.expiresDay = registered.expiresDay <= 0
+            ? int.MaxValue
+            : registered.expiresDay;
+        registered.state = registered.state == OffenseWorldSiteState.Hidden
+            ? OffenseWorldSiteState.Revealed
+            : registered.state;
+        sites.Add(registered.siteId, registered);
         Changed?.Invoke();
         return true;
     }

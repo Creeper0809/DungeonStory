@@ -34,11 +34,11 @@ MonoBehaviour:
     quantity: 1
     optional: 0
   effects:
-  - rid: 7302563265135772010
+  - rid: 7302563313663345462
   references:
     version: 2
     RefIds:
-    - rid: 7302563265135772010
+    - rid: 7302563313663345462
       type: {class: RemoveSurgicalNodeEffect, ns: , asm: Assembly-CSharp}
       data:
         effectId: RemoveSurgicalNodeEffect

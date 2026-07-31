@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: cuisine_baking
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7127
+  projectId: research:cuisine:baking
+  displayName: "\uC81C\uBE75"
+  description: "\uBC18\uC8FD\uACFC \uBCBD\uB3CC \uC624\uBE10\uC744 \uC774\uC6A9\uD574
+    \uD30C\uC774\uC640 \uAD6C\uC6B4 \uACE0\uAE09\uC2DD\uC744 \uB9CC\uB4E0\uB2E4."
+  field: 12
+  requiredWork: 152
+  prerequisites:
+  - {fileID: 11400000, guid: f1173f0c18c7a684ebd30fecce8262cd, type: 2}
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7302563305932456140
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7302563305932456140
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 1608

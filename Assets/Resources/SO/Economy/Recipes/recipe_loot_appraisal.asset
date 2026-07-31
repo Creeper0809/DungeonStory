@@ -21,10 +21,10 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9126
+  id: 9130
   recipeId: recipe:loot-appraisal
   displayName: "\uC6D0\uC815 \uC804\uB9AC\uD488 \uAC10\uC815"
-  description: "\uD558\uCC28\uC7A5\uC5D0\uC11C \uC6B4\uBC18\uD55C \uC804\uB9AC\uD488\uC758 \uCD9C\uCC98\uC640 \uAC00\uCE58\uB97C \uD655\uC778\uD55C\uB2E4."
+  description: "\uC6D0\uC815 \uC804\uB9AC\uD488 \uAC10\uC815 \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: loot-appraisal
   workTypeId: work:craft
   requiredResearchId: 

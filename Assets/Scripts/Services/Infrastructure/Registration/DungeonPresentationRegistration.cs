@@ -189,6 +189,9 @@ public static class DungeonPresentationRegistration
             .As<IDoorAccessPanelPresenter>();
         builder.Register<CircusBuildingPanelPresenter>(Lifetime.Singleton)
             .As<ICircusBuildingPanelPresenter>();
+        builder.Register<EnvironmentalBuildingPanelPresenter>(
+                Lifetime.Singleton)
+            .As<IEnvironmentalBuildingPanelPresenter>();
         builder.Register<ProductionBuildingPanelPresenter>(Lifetime.Singleton)
             .As<IProductionBuildingPanelPresenter>();
         builder.Register<EquipmentCraftingPanelPresenter>(Lifetime.Singleton)
@@ -208,6 +211,8 @@ public static class DungeonPresentationRegistration
         builder.Register<PaidFacilityBuildingPanelPresenter>(
                 Lifetime.Singleton)
             .As<IPaidFacilityBuildingPanelPresenter>();
+        builder.Register<ServiceRoomBuildingPanelPresenter>(Lifetime.Singleton)
+            .As<IServiceRoomBuildingPanelPresenter>();
         builder.Register<TreasuryDefenseBuildingPanelPresenter>(
                 Lifetime.Singleton)
             .As<ITreasuryDefenseBuildingPanelPresenter>();

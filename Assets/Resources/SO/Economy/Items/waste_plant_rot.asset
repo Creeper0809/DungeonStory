@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8029
+  id: 8030
   itemId: waste:plant-rot
   displayName: "\uC2DD\uBB3C\uC131 \uBD80\uD328\uBB3C"
   description: "\uC0C1\uD55C \uC2DD\uBB3C\uC131 \uC74C\uC2DD. \uD1F4\uBE44\uC640
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 6
   ingredientTags: 2049
   unitPrice: 0
+  marketSaleRate: 0.6
   unitWeight: 0.6
   maxStack: 75
   sprite: {fileID: 0}

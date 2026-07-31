@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
@@ -39,15 +40,24 @@ public sealed class CombatResolutionService : ICombatResolutionService
     private readonly ICombatRandomSource random;
     private readonly IEquipmentEvolutionRuntime evolution;
     private readonly IEquipmentOverclockRuntime overclock;
+    private readonly ICharacterEnvironmentStatusQuery environmentStatus;
+    private readonly IEnvironmentalFieldRuntime environmentalField;
+    private readonly ICharacterWorldQuery characters;
 
     public CombatResolutionService(
         ICombatRandomSource random,
         IEquipmentEvolutionRuntime evolution = null,
-        IEquipmentOverclockRuntime overclock = null)
+        IEquipmentOverclockRuntime overclock = null,
+        ICharacterEnvironmentStatusQuery environmentStatus = null,
+        IEnvironmentalFieldRuntime environmentalField = null,
+        ICharacterWorldQuery characters = null)
     {
         this.random = random ?? throw new ArgumentNullException(nameof(random));
         this.evolution = evolution;
         this.overclock = overclock;
+        this.environmentStatus = environmentStatus;
+        this.environmentalField = environmentalField;
+        this.characters = characters;
     }
 
     public CombatAttackResult Resolve(CombatAttackRequest request)
@@ -96,6 +106,10 @@ public sealed class CombatResolutionService : ICombatResolutionService
         float hitChance = isRanged
             ? CalculateRangedHitChance(request, rangeAccuracy)
             : CalculateMeleeHitChance(request, rangeAccuracy);
+        hitChance = ApplyEnvironmentAccuracyPenalty(
+            request.AttackerId,
+            hitChance,
+            isRanged);
         if (random.Next01() > hitChance)
         {
             return Record(request, new CombatAttackResult(
@@ -307,6 +321,10 @@ public sealed class CombatResolutionService : ICombatResolutionService
         float hitChance = isRanged
             ? CalculateRangedHitChance(request, rangeAccuracy)
             : CalculateMeleeHitChance(request, rangeAccuracy);
+        hitChance = ApplyEnvironmentAccuracyPenalty(
+            request.AttackerId,
+            hitChance,
+            isRanged);
         float coverChance = isRanged && request.Cover.Height != CombatCoverHeight.None
             ? request.Cover.BaseBlockChance * request.Cover.GetDirectionalMultiplier()
             : 0f;
@@ -411,6 +429,44 @@ public sealed class CombatResolutionService : ICombatResolutionService
             * request.WeatherMultiplier
             * suppression;
         return Mathf.Clamp(chance, 0.05f, 0.95f);
+    }
+
+    private float ApplyEnvironmentAccuracyPenalty(
+        string attackerId,
+        float hitChance,
+        bool isRanged)
+    {
+        float penaltyPoints =
+            environmentStatus?.GetAccuracyPenaltyPoints(attackerId) ?? 0f;
+        if (isRanged
+            && environmentalField != null
+            && characters != null)
+        {
+            CharacterActor attacker = characters.Characters
+                .FirstOrDefault(candidate => candidate != null
+                    && string.Equals(
+                        candidate.Identity?.PersistentId,
+                        attackerId,
+                        StringComparison.Ordinal));
+            if (attacker != null
+                && environmentalField.TryGetCell(
+                    attacker.GetNowXY(),
+                    out EnvironmentalCellSnapshot environment))
+            {
+                penaltyPoints += environment.LightLevel switch
+                {
+                    < 20f => 40f,
+                    < 40f => 25f,
+                    < 50f => 10f,
+                    _ => 0f
+                };
+            }
+        }
+
+        return Mathf.Clamp(
+            hitChance - penaltyPoints / 100f,
+            0.05f,
+            0.95f);
     }
 
     private static float CalculateMeleeHitChance(CombatAttackRequest request, float rangeAccuracy)

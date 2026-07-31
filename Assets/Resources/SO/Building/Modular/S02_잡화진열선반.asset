@@ -47,6 +47,7 @@ MonoBehaviour:
     - rid: 7302563239583285302
     - rid: 7302563239583285303
     - rid: 7302563239583285304
+    - rid: 7302563313672520129
   width: 2
   height: 1
   layer: 1
@@ -70,6 +71,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 75
         maintenance: 1
         unlockPhase: 1
@@ -101,3 +103,21 @@ MonoBehaviour:
       data:
         abilityId: BuildingRetailAbility
         category: 1
+    - rid: 7302563313672520129
+      type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingServiceSupportAbility
+        supportId: service-retail-display
+        featureTags:
+        - service:display
+        compatibleHubTags:
+        - service:retail
+        modifierType: 4
+        capacity: 0
+        requiresPower: 0
+        cleanWaterPerUse: 0
+        wastewaterPerUse: 0
+        allowsManualWaterFallback: 0
+        workSpeedMultiplier: 1
+        satisfactionModifier: 0
+        revenueModifier: 2

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8047
+  id: 8048
   itemId: material:dreamweave
   displayName: "\uBABD\uC9C1\uBB3C"
   description: "\uCD08\uACBD\uB7C9\uACFC \uC815\uC2E0 \uC800\uD56D\uC744 \uC81C\uACF5\uD558\uB294
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 1152
   unitPrice: 34
+  marketSaleRate: 0.6
   unitWeight: 0.12
   maxStack: 40
   sprite: {fileID: 0}

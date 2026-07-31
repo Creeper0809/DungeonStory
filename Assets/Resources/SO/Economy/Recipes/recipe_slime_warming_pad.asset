@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f75000297946ffe4481d69575fdbfd0a, type: 3}
+  m_Name: recipe_slime_warming_pad
+  m_EditorClassIdentifier: Assembly-CSharp::ProductionRecipeSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 9080
+  recipeId: recipe:slime-warming-pad
+  displayName: "\uBCF4\uC628 \uC810\uC561 \uD328\uB4DC"
+  description: "\uBCF4\uC628 \uC810\uC561 \uD328\uB4DC \uC0DD\uC0B0 \uC8FC\uBB38"
+  facilityTag: loom
+  workstationTag: workstation:loom
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
+  workTypeId: work:craft
+  requiredResearchId: research:environment:cold-work
+  requiredWork: 10
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
+  inputs:
+  - itemId: material:cloth
+    amount: 1
+  - itemId: resource:dark-resin
+    amount: 1
+  outputs:
+  - itemId: equipment:slime-warming-pad
+    amount: 1
+    probability: 1

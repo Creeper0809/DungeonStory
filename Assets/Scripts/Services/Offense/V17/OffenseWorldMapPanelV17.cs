@@ -11,6 +11,7 @@ public partial class OffenseWorldMapPanel
     private enum V17SurfaceKind
     {
         Map,
+        Factions,
         Decision,
         Battle
     }
@@ -34,6 +35,9 @@ public partial class OffenseWorldMapPanel
     private IOffensePreparationService v17Preparation;
     private IOffenseExpeditionRuntimeProvider v17ExpeditionProvider;
     private ITmpKoreanFontService v17Font;
+    private IExternalInfluenceRuntime v17ExternalInfluence;
+    private IFactionRuntime v17Factions;
+    private IInvasionCampaignRuntime v17Campaign;
     private OffenseExpeditionRuntime boundV17Expedition;
     private RectTransform v17MapRoot;
     private OffenseWorldMapResponsiveLayout v17ResponsiveLayout;
@@ -41,8 +45,15 @@ public partial class OffenseWorldMapPanel
     private OffenseHexCoord selectedV17Coord;
     private string pendingCardCharacterId = string.Empty;
     private string pendingCardInstanceId = string.Empty;
+    private string pendingIntelSiteId = string.Empty;
+    private ExpeditionIntelPaymentMethod pendingIntelPayment;
+    private int pendingIntelExpiresDay;
     private string v17Status = string.Empty;
     private int selectedV17FieldFunds;
+    private bool showV17FactionSurface;
+    private string selectedV17FactionId = string.Empty;
+    private string selectedV17HumanBranchId = string.Empty;
+    private string pendingV17BetrayalFactionId = string.Empty;
     private V17SurfaceKind activeV17Surface = V17SurfaceKind.Map;
 
     [Inject]
@@ -57,7 +68,10 @@ public partial class OffenseWorldMapPanel
         IOffenseUrgentMitigationRuntime mitigation,
         IOffensePreparationService preparation,
         IOffenseExpeditionRuntimeProvider expeditionProvider,
-        ITmpKoreanFontService font)
+        ITmpKoreanFontService font,
+        IExternalInfluenceRuntime externalInfluence,
+        IFactionRuntime factions,
+        IInvasionCampaignRuntime campaign)
     {
         v17World = world ?? throw new ArgumentNullException(nameof(world));
         v17Travel = travel ?? throw new ArgumentNullException(nameof(travel));
@@ -76,6 +90,12 @@ public partial class OffenseWorldMapPanel
         v17ExpeditionProvider = expeditionProvider
             ?? throw new ArgumentNullException(nameof(expeditionProvider));
         v17Font = font ?? throw new ArgumentNullException(nameof(font));
+        v17ExternalInfluence = externalInfluence
+            ?? throw new ArgumentNullException(nameof(externalInfluence));
+        v17Factions = factions
+            ?? throw new ArgumentNullException(nameof(factions));
+        v17Campaign = campaign
+            ?? throw new ArgumentNullException(nameof(campaign));
         selectedV17Coord = v17World.DungeonCoord;
         v17World.Changed += RenderV17IfVisible;
         v17BattleDirector.Changed += RenderV17IfVisible;
@@ -136,8 +156,18 @@ public partial class OffenseWorldMapPanel
             return;
         }
 
+        if (showV17FactionSurface)
+        {
+            PrepareV17Surface(V17SurfaceKind.Factions);
+            RenderV17HexMap(expedition);
+            RenderV17FactionMarkers();
+            RenderV17FactionSidebar();
+            return;
+        }
+
         PrepareV17Surface(V17SurfaceKind.Map);
         RenderV17HexMap(expedition);
+        RenderV17FactionMarkers();
         RenderV17Sidebar(expedition);
     }
 
@@ -222,6 +252,7 @@ public partial class OffenseWorldMapPanel
                 RenderV17();
             });
         AddUrgentMitigationButtonIfSelected();
+        AddRightButton("세력", OpenV17FactionSurface);
         AddRightButton("지도 맞춤", ResetV17MapView);
         AddRightButton("닫기", Hide);
 
@@ -294,6 +325,7 @@ public partial class OffenseWorldMapPanel
                 selectedV17FieldFunds += 100;
                 RenderV17();
             });
+        AddIntelPurchaseButtonsIfSelected();
 
         AddRightButton(
             "선택 거점으로 출정",
@@ -319,6 +351,7 @@ public partial class OffenseWorldMapPanel
             },
             new Color(0.48f, 0.2f, 0.16f, 1f));
         AddUrgentMitigationButtonIfSelected();
+        AddRightButton("세력", OpenV17FactionSurface);
         AddRightButton("지도 맞춤", ResetV17MapView);
         AddRightButton("닫기", Hide);
 
@@ -352,6 +385,311 @@ public partial class OffenseWorldMapPanel
             preparation,
             out _,
             out message);
+    }
+
+    private void OpenV17FactionSurface()
+    {
+        showV17FactionSurface = true;
+        pendingV17BetrayalFactionId = string.Empty;
+        RenderV17();
+    }
+
+    private void RenderV17FactionMarkers()
+    {
+        if (v17Factions == null || v17Campaign == null)
+        {
+            return;
+        }
+
+        foreach (DungeonFactionState faction in v17Factions.Factions)
+        {
+            DungeonFactionDefinitionSO definition =
+                v17Factions.Definitions.FirstOrDefault(value =>
+                    value != null
+                    && value.StableId == faction.factionId);
+            CreateV17StrategicMarker(
+                faction.discovered
+                    ? definition?.displayName ?? faction.factionId
+                    : "미탐사 던전",
+                faction.HomeCoord,
+                new Color(0.36f, 0.75f, 0.52f, 1f));
+        }
+
+        foreach (HumanSupportSiteState site in v17Campaign.SupportSites
+                     .Where(value => value != null && value.alive))
+        {
+            CreateV17StrategicMarker(
+                "인간 지원",
+                site.Coord,
+                site.connected
+                    ? new Color(0.9f, 0.32f, 0.24f, 1f)
+                    : new Color(0.48f, 0.4f, 0.38f, 1f));
+        }
+
+        foreach (FactionRouteState route in v17Factions.Routes.Where(value =>
+                     value != null
+                     && value.status is FactionRouteStatus.Traveling
+                         or FactionRouteStatus.Delayed))
+        {
+            CreateV17StrategicMarker(
+                route.kind == FactionRouteKind.Reinforcement
+                    ? "지원군"
+                    : "상단",
+                route.CurrentCoord,
+                new Color(0.95f, 0.78f, 0.28f, 1f));
+        }
+    }
+
+    private void CreateV17StrategicMarker(
+        string label,
+        OffenseHexCoord coord,
+        Color color)
+    {
+        GameObject marker = OffensePanelUiFactory.CreateText(
+            v17MapRoot,
+            "FactionMarker",
+            10f,
+            TextAlignmentOptions.Center,
+            v17Font);
+        RectTransform rect = marker.GetComponent<RectTransform>();
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0f);
+        rect.sizeDelta = new Vector2(92f, 22f);
+        rect.anchoredPosition =
+            HexToMapPosition(coord) + new Vector2(0f, 13f);
+        TMP_Text text = marker.GetComponent<TMP_Text>();
+        text.text = label;
+        text.color = color;
+        text.raycastTarget = false;
+        spawnedV17Objects.Add(marker);
+    }
+
+    private void RenderV17FactionSidebar()
+    {
+        headerText.text =
+            $"세력 · 던전 팩션 {v17Factions.Factions.Count}"
+            + $" · 인간 지부 {v17Campaign.Branches.Count}"
+            + $" · 이동 경로 {v17Factions.Routes.Count}";
+        AddRightButton(
+            "← 월드 지도",
+            () =>
+            {
+                showV17FactionSurface = false;
+                pendingV17BetrayalFactionId = string.Empty;
+                RenderV17();
+            });
+
+        foreach (DungeonFactionState faction in v17Factions.Factions)
+        {
+            DungeonFactionState captured = faction;
+            DungeonFactionDefinitionSO definition =
+                v17Factions.Definitions.FirstOrDefault(value =>
+                    value != null
+                    && value.StableId == captured.factionId);
+            AddRightButton(
+                $"{(captured.factionId == selectedV17FactionId ? "●" : "○")} "
+                    + $"{definition?.displayName ?? captured.factionId} "
+                    + $"[{captured.trust}]",
+                () =>
+                {
+                    selectedV17FactionId = captured.factionId;
+                    selectedV17HumanBranchId = string.Empty;
+                    pendingV17BetrayalFactionId = string.Empty;
+                    v17Status = string.Empty;
+                    RenderV17();
+                });
+        }
+
+        foreach (HumanInvasionBranchState branch in v17Campaign.Branches)
+        {
+            HumanInvasionBranchState captured = branch;
+            AddRightButton(
+                $"{(captured.branchId == selectedV17HumanBranchId ? "●" : "○")} "
+                    + $"{captured.displayName} {captured.strength:0}",
+                () =>
+                {
+                    selectedV17HumanBranchId = captured.branchId;
+                    selectedV17FactionId = string.Empty;
+                    pendingV17BetrayalFactionId = string.Empty;
+                    v17Status = string.Empty;
+                    RenderV17();
+                },
+                new Color(0.38f, 0.18f, 0.16f, 1f));
+        }
+
+        if (!string.IsNullOrWhiteSpace(selectedV17FactionId)
+            && v17Factions.TryGetFaction(
+                selectedV17FactionId,
+                out DungeonFactionState selectedFaction))
+        {
+            RenderV17FactionCommands(selectedFaction);
+            detailText.text = BuildV17FactionDetail(selectedFaction)
+                + BuildStatusText();
+        }
+        else if (!string.IsNullOrWhiteSpace(selectedV17HumanBranchId)
+            && v17Campaign.TryGetBranch(
+                selectedV17HumanBranchId,
+                out HumanInvasionBranchState selectedBranch))
+        {
+            detailText.text = BuildV17HumanBranchDetail(selectedBranch)
+                + BuildStatusText();
+        }
+        else
+        {
+            detailText.text =
+                "던전 팩션을 선택해 신뢰·계약·지원군을 관리하거나,\n"
+                + "인간 지부를 선택해 전력과 지원 거점 회복 원인을 확인하십시오.";
+        }
+
+        AddRightButton("지도 맞춤", ResetV17MapView);
+        AddRightButton("닫기", Hide);
+    }
+
+    private void RenderV17FactionCommands(DungeonFactionState faction)
+    {
+        AddRightButton(
+            "호의 물자 50 전달",
+            () =>
+            {
+                v17Factions.TryOfferGoodwill(
+                    faction.factionId,
+                    50,
+                    out v17Status);
+                RenderV17();
+            },
+            new Color(0.18f, 0.34f, 0.25f, 1f));
+        if (v17Factions.IsContractUnlocked(
+                faction.factionId,
+                FactionContractKind.Trade))
+        {
+            AddRightButton(
+                "교역 상단 요청",
+                () =>
+                {
+                    v17Factions.TryRequestTrade(
+                        faction.factionId,
+                        out _,
+                        out v17Status);
+                    RenderV17();
+                });
+        }
+
+        if (v17Factions.IsContractUnlocked(
+                faction.factionId,
+                FactionContractKind.Supply))
+        {
+            AddRightButton(
+                "물자 지원 요청",
+                () =>
+                {
+                    v17Factions.TryRequestSupply(
+                        faction.factionId,
+                        out _,
+                        out v17Status);
+                    RenderV17();
+                });
+        }
+
+        if (faction.trust >= 70 && !faction.allianceProjectCompleted)
+        {
+            AddRightButton(
+                "동맹 프로젝트 완료",
+                () =>
+                {
+                    v17Factions.TryCompleteAllianceProject(
+                        faction.factionId,
+                        out v17Status);
+                    RenderV17();
+                });
+        }
+
+        if (v17Factions.IsContractUnlocked(
+                faction.factionId,
+                FactionContractKind.Reinforcement))
+        {
+            AddRightButton(
+                "지원군 요청",
+                () =>
+                {
+                    v17Factions.TryRequestReinforcement(
+                        faction.factionId,
+                        out _,
+                        out v17Status);
+                    RenderV17();
+                },
+                new Color(0.22f, 0.32f, 0.42f, 1f));
+        }
+
+        bool confirming = string.Equals(
+            pendingV17BetrayalFactionId,
+            faction.factionId,
+            StringComparison.Ordinal);
+        AddRightButton(
+            confirming
+                ? "배신 확정 · 실물 약탈 최대 300"
+                : "동맹 던전 공격",
+            () =>
+            {
+                if (!confirming)
+                {
+                    pendingV17BetrayalFactionId = faction.factionId;
+                    v17Status =
+                        "대상 신뢰 -100, 다른 던전 -15, 10일 협상 봉쇄. "
+                        + "같은 버튼을 다시 눌러 확정하십시오.";
+                }
+                else
+                {
+                    v17Factions.TryBetray(
+                        faction.factionId,
+                        300,
+                        out v17Status);
+                    pendingV17BetrayalFactionId = string.Empty;
+                }
+                RenderV17();
+            },
+            new Color(0.46f, 0.16f, 0.14f, 1f));
+    }
+
+    private string BuildV17FactionDetail(DungeonFactionState faction)
+    {
+        DungeonFactionDefinitionSO definition =
+            v17Factions.Definitions.FirstOrDefault(value =>
+                value != null && value.StableId == faction.factionId);
+        string contracts = string.Join(
+            " · ",
+            Enum.GetValues(typeof(FactionContractKind))
+                .Cast<FactionContractKind>()
+                .Where(kind => v17Factions.IsContractUnlocked(
+                    faction.factionId,
+                    kind))
+                .Select(kind => kind.ToString()));
+        return $"{definition?.displayName ?? faction.factionId}\n"
+            + $"{definition?.description}\n"
+            + $"거점: ({faction.homeQ}, {faction.homeR})\n"
+            + $"신뢰 {faction.trust} / 배신의 흔적 {faction.betrayalScars}\n"
+            + $"해금 계약: {(string.IsNullOrWhiteSpace(contracts) ? "없음" : contracts)}\n"
+            + $"협상 봉쇄 종료: Day {faction.negotiationBlockedUntilDay}\n"
+            + $"지원군 손실: 사망 {faction.reinforcementDeaths} · 장비 {faction.equipmentLosses}\n"
+            + $"복구 배상 요구: {faction.restitutionRequiredValue}";
+    }
+
+    private string BuildV17HumanBranchDetail(
+        HumanInvasionBranchState branch)
+    {
+        HumanSupportSiteState[] sites = v17Campaign.SupportSites
+            .Where(site => site != null && site.branchId == branch.branchId)
+            .ToArray();
+        return $"{branch.displayName}\n"
+            + $"전력 {branch.strength:0}/100 · "
+            + $"{(branch.operational ? "작전 가능" : "작전 불능")}\n"
+            + $"회복: {branch.lastRecoveryAmount:0}/일 · {branch.recoveryReason}\n"
+            + string.Join(
+                "\n",
+                sites.Select(site =>
+                    $"{site.displayName}: "
+                    + $"{(site.alive ? "생존" : "파괴")} / "
+                    + $"{(site.connected ? "연결" : "차단")} / "
+                    + $"({site.q}, {site.r})"));
     }
 
     private void RenderV17Decision(
@@ -698,6 +1036,13 @@ public partial class OffenseWorldMapPanel
         button.onClick.AddListener(() =>
         {
             selectedV17Coord = capturedCoord;
+            if (!string.Equals(
+                    selectedV17SiteId,
+                    capturedSiteId,
+                    StringComparison.Ordinal))
+            {
+                pendingIntelSiteId = string.Empty;
+            }
             selectedV17SiteId = capturedSiteId;
             v17Status = string.Empty;
             RenderV17();
@@ -880,14 +1225,134 @@ public partial class OffenseWorldMapPanel
             int distance = v17World.GetMinimumStepDistance(
                 v17World.DungeonCoord,
                 site.Coord);
+            bool hasIntel =
+                v17ExternalInfluence?.IsIntelUnlocked(site.siteId) == true;
+            string expiration = site.fixedBoss
+                ? "만료 없음"
+                : $"Day {site.expiresDay} 만료"
+                    + $" · {Mathf.Max(0, site.expiresDay - v17World.WorldDay)}일 남음";
+            if (!site.IsActive)
+            {
+                string expiredDisplayName = site.displayName;
+                pendingIntelSiteId = string.Empty;
+                selectedV17SiteId = string.Empty;
+                return $"{expiredDisplayName}\n거점 만료 · {expiration}\n"
+                    + "선택 중 거점이 만료되어 상세와 결제를 닫았습니다.";
+            }
+
             return $"{site.displayName}\n"
+                + $"{expiration}\n"
                 + $"지역: {site.regionId}\n"
-                + $"전력: {site.strength}\n"
-                + $"압력 축: {site.pressureAxis}\n"
+                + $"전력: {(hasIntel ? site.strength.ToString() : "미확인")}\n"
+                + $"압력 축: {(hasIntel ? site.pressureAxis.ToString() : "미확인")}\n"
                 + $"거리: {distance}칸";
         }
 
         return $"선택 좌표: ({selectedV17Coord.Q}, {selectedV17Coord.R})";
+    }
+
+    private void AddIntelPurchaseButtonsIfSelected()
+    {
+        if (v17ExternalInfluence == null
+            || string.IsNullOrWhiteSpace(selectedV17SiteId)
+            || v17ExternalInfluence.IsIntelUnlocked(selectedV17SiteId)
+            || !v17World.TryGetSite(
+                selectedV17SiteId,
+                out OffenseWorldSiteStateData site)
+            || site == null
+            || !site.IsActive)
+        {
+            return;
+        }
+
+        AddRightButton("정보 확보 · 명성 10", () =>
+            TryPurchaseSelectedIntel(ExpeditionIntelPaymentMethod.Renown));
+        AddRightButton("정보 확보 · 골드 200", () =>
+            TryPurchaseSelectedIntel(ExpeditionIntelPaymentMethod.Gold));
+        AddRightButton("정보 확보 · 정찰 노동 60", () =>
+            TryPurchaseSelectedIntel(
+                ExpeditionIntelPaymentMethod.ScoutingLabor));
+        AddRightButton("정보 확보 · 길잡이 부적 1", () =>
+            TryPurchaseSelectedIntel(
+                ExpeditionIntelPaymentMethod.TrailCharm));
+    }
+
+    private void TryPurchaseSelectedIntel(
+        ExpeditionIntelPaymentMethod payment)
+    {
+        if (!v17World.TryGetSite(
+                selectedV17SiteId,
+                out OffenseWorldSiteStateData site)
+            || site == null
+            || !site.IsActive
+            || (!site.fixedBoss
+                && (site.expiresDay <= 0
+                    || v17World.WorldDay >= site.expiresDay)))
+        {
+            pendingIntelSiteId = string.Empty;
+            v17Status =
+                "확인 중 거점이 만료되어 결제를 취소했습니다. 재화는 차감되지 않았습니다.";
+            selectedV17SiteId = string.Empty;
+            RenderV17();
+            return;
+        }
+
+        bool confirmed = string.Equals(
+                pendingIntelSiteId,
+                site.siteId,
+                StringComparison.Ordinal)
+            && pendingIntelPayment == payment
+            && pendingIntelExpiresDay == site.expiresDay;
+        if (!confirmed)
+        {
+            pendingIntelSiteId = site.siteId;
+            pendingIntelPayment = payment;
+            pendingIntelExpiresDay = site.expiresDay;
+            string expiry = site.fixedBoss
+                ? "만료 없음"
+                : $"Day {site.expiresDay} · "
+                    + $"{Mathf.Max(0, site.expiresDay - v17World.WorldDay)}일 남음";
+            v17Status =
+                $"정보 구매 확인 · {FormatIntelPayment(payment)}"
+                + $" · 만료 {expiry}"
+                + (site.fixedBoss
+                    ? string.Empty
+                    : " · 거점 만료 시 환불 없음")
+                + " · 같은 결제 버튼을 다시 눌러 확정";
+            RenderV17();
+            return;
+        }
+
+        pendingIntelSiteId = string.Empty;
+        if (v17ExternalInfluence.TryUnlockIntelForActiveSite(
+            site.siteId,
+            site.fixedBoss,
+            site.expiresDay,
+            v17World.WorldDay,
+            payment,
+            out string failureReason))
+        {
+            v17Status = "원정지의 적 구성·방어구·약점 정보를 확보했습니다.";
+        }
+        else
+        {
+            v17Status = failureReason;
+        }
+
+        RenderV17();
+    }
+
+    private static string FormatIntelPayment(
+        ExpeditionIntelPaymentMethod payment)
+    {
+        return payment switch
+        {
+            ExpeditionIntelPaymentMethod.Renown => "명성 10",
+            ExpeditionIntelPaymentMethod.Gold => "골드 200",
+            ExpeditionIntelPaymentMethod.ScoutingLabor => "정찰 노동 60",
+            ExpeditionIntelPaymentMethod.TrailCharm => "길잡이 부적 1",
+            _ => payment.ToString()
+        };
     }
 
     private string BuildThreatDetail()

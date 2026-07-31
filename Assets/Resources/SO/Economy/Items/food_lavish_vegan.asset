@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8066
+  id: 8067
   itemId: food:lavish-vegan
   displayName: "\uC6D4\uC57C \uBE44\uAC74 \uB9CC\uCC2C"
   description: "\uC138 \uAC00\uC9C0 \uC2DD\uBB3C \uC7AC\uB8CC\uAD70\uC744 \uC4F4
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 3
   unitPrice: 24
+  marketSaleRate: 0.6
   unitWeight: 0.9
   maxStack: 30
   sprite: {fileID: 0}

@@ -43,8 +43,8 @@ MonoBehaviour:
   abilityModules:
     items:
     - rid: 7302562995605602982
-    - rid: 7302563269269258900
-    - rid: 7302563269269258901
+    - rid: 7302563313672520156
+    - rid: 7302563313672520157
   width: 2
   height: 1
   layer: 5
@@ -63,11 +63,12 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 130
         constructionCost: 130
         maintenance: 4
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563269269258900
+    - rid: 7302563313672520156
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -78,7 +79,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7302563269269258901
+    - rid: 7302563313672520157
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility
@@ -95,3 +96,26 @@ MonoBehaviour:
           effectAssets:
           - {fileID: 11400000, guid: 407e6b9a195d1d073a19d6992833929d, type: 2}
           - {fileID: 11400000, guid: 98b2e784b5bdf2ff49582d949fe00032, type: 2}
+          supplyKind: 5
+          supplyItemId: 
+          supplyCategory: 3
+          supplyCapacity: 0
+          supplyPerActivation: 0
+          initialSupply: 0
+          requiresPower: 1
+          powerDemand: 3
+          conditionLossPerActivation: 1
+          baseJamChance: 0.01
+          baseMisfireChance: 0.005
+          facilityFamilyId: defense:elemental
+          affinityTags:
+          - defense:lightning
+          - species:beastkin
+          - species:demon
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0

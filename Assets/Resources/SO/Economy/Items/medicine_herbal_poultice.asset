@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8080
+  id: 8085
   itemId: medicine:herbal-poultice
   displayName: "\uC57D\uCD08 \uCC1C\uC9C8\uC57D"
   description: "\uAC00\uBCBC\uC6B4 \uBD80\uC0C1\uC5D0 \uC4F0\uB294 \uAE30\uBCF8 \uC57D\uD488."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 3
   ingredientTags: 1
   unitPrice: 8
+  marketSaleRate: 0.6
   unitWeight: 0.2
   maxStack: 50
   sprite: {fileID: 0}

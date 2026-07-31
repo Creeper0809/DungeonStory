@@ -21,14 +21,27 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9124
+  id: 9128
   recipeId: sink:gold-equipment
   displayName: "\uAE08 \uC7A5\uBE44"
   description: "\uAE08 \uC7A5\uBE44 \uC18C\uBE44"
   facilityTag: forge
+  workstationTag: workstation:forge
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:operate
   requiredResearchId: research:metallurgy:precious
   requiredWork: 4
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:gold-ingot
     amount: 1

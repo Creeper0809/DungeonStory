@@ -1,0 +1,301 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2141cf61d65c4574b72b89276d3dd67f, type: 3}
+  m_Name: Faction_Harpy_StormNest
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonFactionDefinitionSO
+  factionId: faction:dungeon:harpy
+  displayName: "\uD3ED\uD48D \uB465\uC9C0"
+  speciesTag: Harpy
+  description: "\uC815\uBCF4\uC640 \uC6D0\uAC70\uB9AC \uD0C4\uC57D\uC744 \uBE60\uB974\uAC8C
+    \uB098\uB974\uB294 \uD558\uD53C \uACE0\uC9C0 \uB3D9\uB9F9."
+  relationTags:
+  - "\uC57C\uC678"
+  - "\uCCAD\uC815"
+  - "\uAC1C\uBC29"
+  tradeTags:
+  - "\uC815\uBCF4"
+  - "\uAE43\uD138"
+  - "\uC6D0\uAC70\uB9AC \uD0C4\uC57D"
+  - "\uC815\uCC30"
+  reinforcementRole: "\uC678\uBD80 \uACE0\uC9C0 \uC815\uCC30\uACFC \uC6D0\uAC70\uB9AC
+    \uC5C4\uD638\uB300"
+  crest: {fileID: 3228507006170723322}
+  tradeCargo:
+  - itemId: resource:feather
+    amount: 10
+  - itemId: ammo:arrow-iron
+    amount: 12
+  - itemId: ammo:bolt-bone
+    amount: 8
+  supplyCargo:
+  - itemId: ammo:arrow-steel
+    amount: 16
+  - itemId: ammo:bolt-steel
+    amount: 12
+  - itemId: resource:feather
+    amount: 14
+--- !u!213 &3228507006170723322
+Sprite:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Faction_Harpy_StormNest_Crest
+  m_Rect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 32
+    height: 32
+  m_Offset: {x: 0, y: 0}
+  m_Border: {x: 0, y: 0, z: 0, w: 0}
+  m_PixelsToUnits: 32
+  m_Pivot: {x: 0.5, y: 0.5}
+  m_Extrude: 0
+  m_IsPolygon: 0
+  m_PackingTag: 
+  m_RenderDataKey:
+    00000000000000000000000000000000: 0
+  m_AtlasTags: []
+  m_SpriteAtlas: {fileID: 0}
+  m_RD:
+    serializedVersion: 3
+    texture: {fileID: 5137273710557527566}
+    alphaTexture: {fileID: 0}
+    secondaryTextures: []
+    m_SubMeshes:
+    - serializedVersion: 2
+      firstByte: 0
+      indexCount: 15
+      topology: 0
+      baseVertex: 0
+      firstVertex: 0
+      vertexCount: 7
+      localAABB:
+        m_Center: {x: 0, y: 0, z: 0}
+        m_Extent: {x: 0, y: 0, z: 0}
+    m_IndexBuffer: 060005000100040001000500030001000400000001000300020001000000
+    m_VertexData:
+      serializedVersion: 3
+      m_VertexCount: 7
+      m_Channels:
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 3
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 1
+        offset: 0
+        format: 0
+        dimension: 2
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      m_DataSize: 152
+      _typelessdata: 0000e03e0000403e000000000000d03e0000f0be000000000000e03e000040be000000000000a03e0000e03e000000000000c0be0000e03e000000000000e0be0000603e000000000000e0be0000f0be000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+    m_Bindpose: []
+    textureRect:
+      serializedVersion: 2
+      x: 2.0761204
+      y: 1.0761205
+      width: 27.84776
+      height: 28.84776
+    textureRectOffset: {x: 2.0761204, y: 1.0761205}
+    atlasRectOffset: {x: -1, y: -1}
+    settingsRaw: 64
+    uvTransform: {x: 32, y: 16, z: 32, w: 16}
+    downscaleMultiplier: 1
+  m_AtlasRD:
+    serializedVersion: 3
+    texture: {fileID: 5137273710557527566}
+    alphaTexture: {fileID: 0}
+    secondaryTextures: []
+    m_SubMeshes:
+    - serializedVersion: 2
+      firstByte: 0
+      indexCount: 15
+      topology: 0
+      baseVertex: 0
+      firstVertex: 0
+      vertexCount: 7
+      localAABB:
+        m_Center: {x: 0, y: 0, z: 0}
+        m_Extent: {x: 0, y: 0, z: 0}
+    m_IndexBuffer: 060005000100040001000500030001000400000001000300020001000000
+    m_VertexData:
+      serializedVersion: 3
+      m_VertexCount: 7
+      m_Channels:
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 3
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 1
+        offset: 0
+        format: 0
+        dimension: 2
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      - stream: 0
+        offset: 0
+        format: 0
+        dimension: 0
+      m_DataSize: 152
+      _typelessdata: 0000e03e0000403e000000000000d03e0000f0be000000000000e03e000040be000000000000a03e0000e03e000000000000c0be0000e03e000000000000e0be0000603e000000000000e0be0000f0be000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+    m_Bindpose: []
+    textureRect:
+      serializedVersion: 2
+      x: 2.0761204
+      y: 1.0761205
+      width: 27.84776
+      height: 28.84776
+    textureRectOffset: {x: 2.0761204, y: 1.0761205}
+    atlasRectOffset: {x: -1, y: -1}
+    settingsRaw: 64
+    uvTransform: {x: 32, y: 16, z: 32, w: 16}
+    downscaleMultiplier: 1
+  m_PhysicsShape: []
+  m_Bones: []
+  m_ScriptableObjects: []
+  m_SpriteID: 
+--- !u!28 &5137273710557527566
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Faction_Harpy_StormNest_CrestTexture
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 4
+  m_Width: 32
+  m_Height: 32
+  m_CompleteImageSize: 4096
+  m_MipsStripped: 0
+  m_TextureFormat: 4
+  m_MipCount: 1
+  m_IsReadable: 0
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 1
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 1
+    m_WrapV: 1
+    m_WrapW: 1
+  m_LightmapFormat: 0
+  m_ColorSpace: 1
+  m_PlatformBlob: 
+  image data: 4096
+  _typelessdata: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffff8cdbffff8cdbffff000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff0000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff8cdbffff00000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff8cdbffff00000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff8cdbffff00000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff8cdbffff00000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff8cdbffff00000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff8cdbffff00000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffffc0ebffff8cdbffff8cdbffff8cdbffff0000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff8cdbffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff1f476bff1f476bff1f476bff1f476bff1f476bffc0ebffff1f476bff8cdbffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff8cdbffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 

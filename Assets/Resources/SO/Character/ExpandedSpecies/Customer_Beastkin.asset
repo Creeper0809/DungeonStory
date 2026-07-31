@@ -1,0 +1,141 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 177cfc3b70256b84ca2f4f0975a0db84, type: 3}
+  m_Name: Customer_Beastkin
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterSO
+  characterType: 1
+  role: 0
+  id: 9004
+  characterName: "\uB77C\uCE74"
+  speciesTag: Beastkin
+  species: {fileID: 11400000, guid: 23b3bdb812c683d40925cebba53b2137, type: 2}
+  baseStats:
+    entries:
+    - statId: stat:attack
+      value: 8
+    - statId: stat:shooting
+      value: 5
+    - statId: stat:evasion
+      value: 5
+    - statId: stat:sales
+      value: 5
+    - statId: stat:research
+      value: 4
+    - statId: stat:move-speed
+      value: 5
+    - statId: stat:strength
+      value: 5
+    - statId: stat:toughness
+      value: 7
+    - statId: stat:dexterity
+      value: 7
+    - statId: stat:cleaning
+      value: 5
+    - statId: stat:endurance
+      value: 5
+    - statId: stat:medical
+      value: 5
+  traits: []
+  defaultWorkPriorities:
+    schemaVersion: 2
+    priorities:
+    - workTypeId: work:operate
+      priority: 1
+    - workTypeId: work:restock
+      priority: 1
+    - workTypeId: work:construct
+      priority: 2
+    - workTypeId: work:repair
+      priority: 2
+    - workTypeId: work:clean
+      priority: 3
+    - workTypeId: work:research
+      priority: 2
+    - workTypeId: work:guard
+      priority: 3
+    - workTypeId: work:reception
+      priority: 1
+    - workTypeId: work:rescue
+      priority: 2
+    - workTypeId: work:rest
+      priority: 3
+    - workTypeId: work:craft
+      priority: 2
+    - workTypeId: work:haul
+      priority: 1
+    - workTypeId: work:hunt
+      priority: 1
+    - workTypeId: work:butcher
+      priority: 2
+    - workTypeId: work:draw-water
+      priority: 2
+    - workTypeId: work:cook
+      priority: 2
+    - workTypeId: work:treat
+      priority: 2
+    - workTypeId: work:surgery
+      priority: 1
+    - workTypeId: work:refuel
+      priority: 2
+    - workTypeId: work:warden
+      priority: 2
+    - workTypeId: work:perform
+      priority: 2
+    - workTypeId: work:gather
+      priority: 2
+    - workTypeId: work:sow
+      priority: 2
+    - workTypeId: work:harvest
+      priority: 2
+    - workTypeId: work:logging
+      priority: 2
+    - workTypeId: work:quarry
+      priority: 2
+    - workTypeId: work:animal-care
+      priority: 2
+    - workTypeId: work:grand-project
+      priority: 2
+    - workTypeId: work:threat-mitigation
+      priority: 1
+    - workTypeId: work:plumbing
+      priority: 2
+    legacyOperate: 1
+    legacyRestock: 2
+    legacyRepair: 2
+    legacyClean: 3
+    legacyResearch: 2
+    legacyGuard: 3
+    legacyRescue: 2
+    legacyRest: 3
+  aiPersonality:
+    diligence: 1.25
+    curiosity: 1
+    selfCare: 1
+    patience: 1
+    shoppingInterest: 1
+    sociability: 1.4
+    riskTaking: 1
+    orderliness: 1
+    outdoorPreference: 1.5
+    noveltySeeking: 1
+    routineAdherence: 1
+  ownerSummary: 
+  ownerPreferredWorkTypes: 0
+  ownerFixedSkills: []
+  characterSprite: {fileID: 21300000, guid: bbf2e2af9c80d2a4c9b9d9bfd9cbc907, type: 3}
+  favoriteStore: []
+  frequencyVisitMax: 3
+  frequencyVisitMin: 1
+  maxHoldingMoney: 320
+  minHoldingMoney: 120
+  speedType: 5
+  respawnSpeedType: 13

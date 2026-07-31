@@ -21,14 +21,27 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9085
+  id: 9089
   recipeId: recipe:standard-medicine
   displayName: "\uD45C\uC900 \uC57D\uD488"
   description: "\uD45C\uC900 \uC57D\uD488 \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: apothecary
+  workstationTag: workstation:apothecary
+  requiredSupportTags: []
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:craft
   requiredResearchId: research:pharmacology:distillation
   requiredWork: 14
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: resource:cave-mushroom
     amount: 1

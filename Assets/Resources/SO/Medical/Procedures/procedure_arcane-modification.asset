@@ -38,18 +38,18 @@ MonoBehaviour:
     quantity: 2
     optional: 0
   effects:
-  - rid: 7302563265135772034
-  - rid: 7302563265135772035
+  - rid: 7302563313663345510
+  - rid: 7302563313663345511
   references:
     version: 2
     RefIds:
-    - rid: 7302563265135772034
+    - rid: 7302563313663345510
       type: {class: InstallSurgicalPartEffect, ns: , asm: Assembly-CSharp}
       data:
         effectId: InstallSurgicalPartEffect
         partKind: 3
         efficiency: 1.2
-    - rid: 7302563265135772035
+    - rid: 7302563313663345511
       type: {class: ApplySurgicalBurdenEffect, ns: , asm: Assembly-CSharp}
       data:
         effectId: ApplySurgicalBurdenEffect

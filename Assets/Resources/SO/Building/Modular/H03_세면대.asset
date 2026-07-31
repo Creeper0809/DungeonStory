@@ -51,8 +51,9 @@ MonoBehaviour:
     - rid: 7302563239038812957
     - rid: 7302563239038812958
     - rid: 7302563239038812959
-    - rid: 7302563284524205034
-    - rid: 7302563284524205035
+    - rid: 7302563313672519737
+    - rid: 7302563313672519738
+    - rid: 7302563313672520078
   width: 1
   height: 1
   layer: 1
@@ -137,14 +138,14 @@ MonoBehaviour:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 10
         smokeRiskReduction: 4
-    - rid: 7302563284524205034
+    - rid: 7302563313672519737
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7302563284524205035
+    - rid: 7302563313672519738
       type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterFixtureAbility
@@ -154,3 +155,22 @@ MonoBehaviour:
         allowsManualWaterFallback: 1
         allowsDryFallback: 0
         manualWasteItemId: industrial:sludge
+    - rid: 7302563313672520078
+      type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingServiceHubAbility
+        serviceCategory: 3
+        serviceHubTag: service:bathing
+        supportedProcessIds:
+        - service:bathing:wash
+        baseCapacity: 1
+        allowedModes: 7
+        allowInternalStaffDirectUse: 1
+        paymentPolicy: 2
+        directPrice: 5
+        directSatisfaction: 44
+        managedRequiredFeatureTags:
+        - service:bath-reception
+        - service:bath-hygiene
+        automatedRequiredFeatureTags:
+        - service:auto-water-control

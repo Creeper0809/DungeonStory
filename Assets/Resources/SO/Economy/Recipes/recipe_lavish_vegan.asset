@@ -26,9 +26,26 @@ MonoBehaviour:
   displayName: "\uC6D4\uC57C \uBE44\uAC74 \uB9CC\uCC2C"
   description: "\uC6D4\uC57C \uBE44\uAC74 \uB9CC\uCC2C \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: cookbench
+  workstationTag: workstation:cookbench
+  requiredSupportTags:
+  - support:prep-sink
+  - support:cold-prep
+  - support:spice-rack
+  - support:hearth
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:cook
   requiredResearchId: research:cuisine:lavish
   requiredWork: 18
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0.3
+  wastewaterPerCycle: 0.25
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: material:flour
     amount: 2

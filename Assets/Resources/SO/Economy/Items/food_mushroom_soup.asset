@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8058
+  id: 8059
   itemId: food:mushroom-soup
   displayName: "\uB3D9\uAD74\uBC84\uC12F\uAD6D"
   description: "\uB2E8\uBC31\uC9C8\uC774 \uD48D\uBD80\uD55C \uBE44\uAC74 \uAD6D."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 2
   unitPrice: 7
+  marketSaleRate: 0.6
   unitWeight: 0.65
   maxStack: 50
   sprite: {fileID: 0}

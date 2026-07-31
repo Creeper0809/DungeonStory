@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8046
+  id: 8047
   itemId: material:rune-leather
   displayName: "\uB8EC\uAC00\uC8FD"
   description: "\uACE0\uBC29\uC5B4\uC640 \uB9C8\uBC95 \uC800\uD56D\uC744 \uC81C\uACF5\uD558\uB294
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 1152
   unitPrice: 30
+  marketSaleRate: 0.6
   unitWeight: 0.4
   maxStack: 40
   sprite: {fileID: 0}

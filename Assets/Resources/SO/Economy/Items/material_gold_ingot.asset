@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8042
+  id: 8043
   itemId: material:gold-ingot
   displayName: "\uAE08\uAD34"
   description: "\uAD8C\uC704 \uC2DC\uC124, \uC7A5\uC2DD\uACFC \uACE0\uAC00 \uC7A5\uBE44\uC758
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 512
   unitPrice: 60
+  marketSaleRate: 0.6
   unitWeight: 1.35
   maxStack: 30
   sprite: {fileID: 0}

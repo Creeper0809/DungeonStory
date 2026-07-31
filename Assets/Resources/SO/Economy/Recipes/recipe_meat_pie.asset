@@ -23,18 +23,30 @@ MonoBehaviour:
     SerializationNodes: []
   id: 9065
   recipeId: recipe:meat-pie
-  displayName: "\uACE0\uAE30 \uD30C\uC774"
+  displayName: "\uACE0\uAE30 \uD30C\uC774 \uAD7D\uAE30"
   description: "\uACE0\uAE30 \uD30C\uC774 \uC0DD\uC0B0 \uC8FC\uBB38"
   facilityTag: cookbench
+  workstationTag: workstation:cookbench
+  requiredSupportTags:
+  - support:oven
+  batchSupportTag: 
+  processKind: 0
   workTypeId: work:cook
-  requiredResearchId: research:cuisine:livestock
-  requiredWork: 13
+  requiredResearchId: research:cuisine:baking
+  requiredWork: 10
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
-  - itemId: resource:meat
-    amount: 2
-  - itemId: material:flour
-    amount: 2
-  - itemId: resource:egg
+  - itemId: material:dough
+    amount: 1
+  - itemId: material:seasoned-filling
     amount: 1
   outputs:
   - itemId: food:meat-pie

@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8057
+  id: 8058
   itemId: food:root-stew
   displayName: "\uC7BF\uBD88\uBFCC\uB9AC \uC2A4\uD29C"
   description: "\uC5F4\uB7C9\uC774 \uB192\uC740 \uBE44\uAC74 \uC2A4\uD29C."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 1
   unitPrice: 7
+  marketSaleRate: 0.6
   unitWeight: 0.7
   maxStack: 50
   sprite: {fileID: 0}

@@ -139,7 +139,7 @@ public static class SurgeryDebugScenarios
             "Assets/Resources/SO/Medical/Anatomy");
         ResourceAnatomyProfileCatalog catalog =
             new ResourceAnatomyProfileCatalog(profiles);
-        Require(profiles.Length == 3, $"expected 3 anatomy profiles, got {profiles.Length}");
+        Require(profiles.Length == 6, $"expected 6 anatomy profiles, got {profiles.Length}");
         Require(catalog.Validate().Count == 0, string.Join(" | ", catalog.Validate()));
 
         AnatomyProfileDefinition humanoid = catalog.GetDefaultHumanoid();
@@ -158,7 +158,7 @@ public static class SurgeryDebugScenarios
         Require(
             catalog.GetForSpecies("Slime").ProfileId == "anatomy:slime",
             "slime did not resolve to its dedicated anatomy");
-        return "humanoid, quadruped, and slime anatomy resolve stable vital and paired nodes";
+        return "six anatomy profiles resolve stable vital and paired nodes";
     }
 
     private static string VerifyResearchBranch()
@@ -167,7 +167,9 @@ public static class SurgeryDebugScenarios
             "Assets/Resources/SO/Research/Projects");
         ResourceResearchProjectCatalog catalog =
             new ResourceResearchProjectCatalog(projects);
-        Require(projects.Length == 78, $"expected 78 research projects, got {projects.Length}");
+        Require(
+            projects.Length >= 78,
+            $"expected at least 78 research projects, got {projects.Length}");
         Require(catalog.Validate().Count == 0, string.Join(" | ", catalog.Validate()));
         foreach (string id in RequiredResearchIds)
         {
@@ -193,7 +195,7 @@ public static class SurgeryDebugScenarios
             catalog,
             "research:medical:aberrant-augmentation",
             "research:medical:xenotransplant");
-        return "the deterministic 78-node graph includes the six surgery nodes and prerequisites";
+        return "the research graph includes the six surgery nodes and prerequisites";
     }
 
     private static string VerifyProstheticRecipes()

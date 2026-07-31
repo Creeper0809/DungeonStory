@@ -94,6 +94,24 @@ public sealed class NonlethalActCircusProgram : CircusProgramHandlerBase
     }
 }
 
+public sealed class TrophyDisplayCircusProgram :
+    CircusProgramHandlerBase
+{
+    public TrophyDisplayCircusProgram() : base(new CircusProgramModule
+    {
+        programId = "circus:trophy-display",
+        displayName = "전리품 전시",
+        requiresCaptive = false,
+        requiresWildlife = false,
+        usesCombat = false,
+        publiclyCruel = false,
+        baseAudienceSatisfaction = 66f,
+        basePerformerFame = 4f
+    })
+    {
+    }
+}
+
 public sealed class DangerousStuntCircusProgram : CircusProgramHandlerBase
 {
     public DangerousStuntCircusProgram() : base(new CircusProgramModule

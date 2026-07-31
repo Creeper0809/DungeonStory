@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8052
+  id: 8053
   itemId: material:treated-lumber
   displayName: "\uCC98\uB9AC \uBAA9\uC7AC"
   description: "\uC218\uC561\uC73C\uB85C \uBC29\uC2B5\xB7\uAC15\uD654\uD55C \uBAA9\uC7AC."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 256
   unitPrice: 12
+  marketSaleRate: 0.6
   unitWeight: 1.15
   maxStack: 40
   sprite: {fileID: 0}

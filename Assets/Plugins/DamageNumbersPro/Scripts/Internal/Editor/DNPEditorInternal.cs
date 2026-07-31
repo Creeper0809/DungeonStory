@@ -933,7 +933,7 @@ namespace DamageNumbersPro.Internal {
             tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
             tmp.horizontalAlignment = HorizontalAlignmentOptions.Center;
             tmp.text = "1";
-            tmp.enableWordWrapping = false;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
 
             //Size Delta:
             RectTransform rectTransform = tmp.GetComponent<RectTransform>();
@@ -963,7 +963,7 @@ namespace DamageNumbersPro.Internal {
             tmp.verticalAlignment = VerticalAlignmentOptions.Middle;
             tmp.horizontalAlignment = HorizontalAlignmentOptions.Center;
             tmp.text = "1";
-            tmp.enableWordWrapping = false;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.raycastTarget = false;
 
             //Size Delta:

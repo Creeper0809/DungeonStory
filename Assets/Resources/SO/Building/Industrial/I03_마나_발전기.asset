@@ -42,11 +42,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: e3a26ee5ebc5d2f47bf68a58f86c41f9, type: 3}
   abilityModules:
     items:
-    - rid: 7302563284524204913
-    - rid: 7302563284524204914
-    - rid: 7302563284524204915
-    - rid: 7302563284524204916
-    - rid: 7302563284524204917
+    - rid: 7302563313663345605
+    - rid: 7302563313663345606
+    - rid: 7302563313663345607
+    - rid: 7302563313663345608
+    - rid: 7302563313663345609
   width: 2
   height: 1
   layer: 1
@@ -61,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563284524204913
+    - rid: 7302563313663345605
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I03
-    - rid: 7302563284524204914
+    - rid: 7302563313663345606
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +75,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563284524204915
+    - rid: 7302563313663345607
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -87,7 +87,7 @@ MonoBehaviour:
         constructionMaterialCategory: 1
         constructionMaterialAmount: 4
         materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563284524204916
+    - rid: 7302563313663345608
       type: {class: BuildingPowerProducerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerProducerAbility
@@ -95,7 +95,7 @@ MonoBehaviour:
         requiresFuel: 1
         fuelItemId: resource:mana-crystal
         secondsPerFuel: 90
-    - rid: 7302563284524204917
+    - rid: 7302563313663345609
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

@@ -47,10 +47,11 @@ MonoBehaviour:
     - rid: 7302563239583285405
     - rid: 7302563239583285406
     - rid: 7302563239583285407
-    - rid: 7302563284922663071
-    - rid: 7302563284922663072
-    - rid: 7302563284922663073
-    - rid: 7302563284922663074
+    - rid: 7302563313672519918
+    - rid: 7302563313672519919
+    - rid: 7302563313672519920
+    - rid: 7302563313672519921
+    - rid: 7302563313672520059
   width: 2
   height: 1
   layer: 1
@@ -111,21 +112,21 @@ MonoBehaviour:
           - key: Fermentation
             value: 2
           metrics: []
-    - rid: 7302563284922663071
+    - rid: 7302563313672519918
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563284922663072
+    - rid: 7302563313672519919
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563284922663073
+    - rid: 7302563313672519920
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -136,10 +137,15 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563284922663074
+    - rid: 7302563313672519921
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
+    - rid: 7302563313672520059
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:brewery

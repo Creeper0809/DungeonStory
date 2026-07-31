@@ -65,6 +65,7 @@ MonoBehaviour:
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
+        constructionValue: 0
         constructionCost: 0
         maintenance: 5
         unlockPhase: 1
@@ -107,3 +108,26 @@ MonoBehaviour:
           combatLogText: "3\uC131 \uC804\uD22C \uBCD1\uC601"
           effectAssets:
           - {fileID: 11400000, guid: 08881978cf0e6db2294746ab0febeba1, type: 2}
+          supplyKind: 1
+          supplyItemId: material:iron-ingot
+          supplyCategory: 1
+          supplyCapacity: 3
+          supplyPerActivation: 1
+          initialSupply: 1
+          requiresPower: 0
+          powerDemand: 0
+          conditionLossPerActivation: 0.5
+          baseJamChance: 0.01
+          baseMisfireChance: 0.005
+          facilityFamilyId: defense:guard-post
+          affinityTags:
+          - defense:blocking
+          - species:orc
+          - species:golem
+          growth:
+            capacityLevel: 0
+            resetSpeedLevel: 0
+            effectStrengthLevel: 0
+            detectionRangeLevel: 0
+            identificationLevel: 0
+            outageResistanceLevel: 0

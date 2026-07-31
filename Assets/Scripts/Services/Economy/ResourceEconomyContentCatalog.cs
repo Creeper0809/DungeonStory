@@ -299,6 +299,25 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
         foreach (ResourceItemDefinitionSO item in catalog.Items)
         {
             StaticUsage usage = staticEntries[item.ItemId];
+            if (string.Equals(
+                item.ItemId,
+                "offense:unappraised-loot",
+                StringComparison.Ordinal))
+            {
+                usage.AddProducer(
+                    "source:expedition-loot",
+                    string.Empty);
+            }
+            else if (string.Equals(
+                item.ItemId,
+                "resource:rune-dust",
+                StringComparison.Ordinal))
+            {
+                usage.AddProducer(
+                    "source:high-risk-wildlife",
+                    "research:husbandry:capture");
+            }
+
             foreach (string sink in GetBuiltInSinks(item))
             {
                 usage.AddConsumer(sink, item.RequiredResearchId);

@@ -494,6 +494,13 @@ public interface IProcessFluidUseRuntime
         BuildableObject facility,
         WorkTypeId workTypeId,
         out string failureReason);
+    bool TryConsumeCycle(
+        BuildableObject facility,
+        WorkTypeId workTypeId,
+        float cleanWater,
+        float wastewater,
+        bool allowsManualWaterFallback,
+        out string failureReason);
 }
 
 public interface IConveyorRuntime

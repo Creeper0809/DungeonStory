@@ -40,6 +40,8 @@ public sealed class WildlifeRuntime :
     private readonly List<WildlifeActor> wildlife = new List<WildlifeActor>();
     private readonly Dictionary<string, float> nextBehaviorTickByWildlifeId =
         new Dictionary<string, float>(StringComparer.Ordinal);
+    private readonly List<WildlifeFoodRaidOrderSaveData> foodRaidOrders =
+        new List<WildlifeFoodRaidOrderSaveData>();
     private WorldItemStackSnapshot[] cachedItemStacks = Array.Empty<WorldItemStackSnapshot>();
     private int cachedItemStackVersion = -1;
     private int nextSequence = 1;
@@ -148,6 +150,9 @@ public sealed class WildlifeRuntime :
             WildlifeActor actor = wildlife[i];
             if (actor == null || !actor.IsAlive)
             {
+                CancelFoodRaidForActor(
+                    actor?.WildlifeId,
+                    "습격 개체가 처치되어 도난이 취소되었습니다.");
                 wildlife.RemoveAt(i);
                 if (actor != null)
                 {
@@ -175,6 +180,7 @@ public sealed class WildlifeRuntime :
             ecosystemRuntime?.TickAnimal(actor, grid, gameClock.DeltaTime);
             if (ecosystemRuntime != null && ecosystemRuntime.ShouldRemoveLeavingAnimal(actor, grid))
             {
+                CompleteLeavingFoodRaidForActor(actor.WildlifeId);
                 wildlife.RemoveAt(i);
                 nextBehaviorTickByWildlifeId.Remove(actor.WildlifeId);
                 DestroyWildlifeActor(actor);
@@ -187,6 +193,11 @@ public sealed class WildlifeRuntime :
             }
 
             TryResolvePredatorWildlifeContact(actor);
+            if (TickFoodRaid(actor, grid, now))
+            {
+                continue;
+            }
+
             TickBehavior(actor, grid, now);
         }
 
@@ -211,7 +222,10 @@ public sealed class WildlifeRuntime :
                 .ToList(),
             carcasses = carcassService?.CaptureFreshness().ToList()
                 ?? new List<WildlifeCarcassFreshnessSaveData>(),
-            ecosystem = ecosystemRuntime?.Capture() ?? new DungeonWildlifeEcosystemSaveData()
+            ecosystem = ecosystemRuntime?.Capture() ?? new DungeonWildlifeEcosystemSaveData(),
+            foodRaidOrders = foodRaidOrders
+                .Select(CloneFoodRaidOrder)
+                .ToList()
         };
     }
 
@@ -246,6 +260,31 @@ public sealed class WildlifeRuntime :
         }
 
         carcassService?.RestoreFreshness(source.carcasses);
+        foodRaidOrders.Clear();
+        foreach (WildlifeFoodRaidOrderSaveData order in
+                 source.foodRaidOrders
+                 ?? Enumerable.Empty<WildlifeFoodRaidOrderSaveData>())
+        {
+            if (order == null || string.IsNullOrWhiteSpace(order.wildlifeId))
+            {
+                continue;
+            }
+
+            WildlifeFoodRaidOrderSaveData restored = CloneFoodRaidOrder(order);
+            if (restored.state == WildlifeFoodRaidOrderState.Approaching
+                && wildlife.All(actor => actor == null
+                    || !string.Equals(
+                        actor.WildlifeId,
+                        restored.wildlifeId,
+                        StringComparison.Ordinal)))
+            {
+                restored.state = WildlifeFoodRaidOrderState.Cancelled;
+                restored.outcomeReason =
+                    "저장 복원 시 습격 개체가 없어 도난이 취소되었습니다.";
+            }
+
+            foodRaidOrders.Add(restored);
+        }
 
         initialSpawnCompleted = true;
     }
@@ -354,6 +393,105 @@ public sealed class WildlifeRuntime :
         return true;
     }
 
+    public IReadOnlyList<WorldItemStackSnapshot> GetReachableFoodRaidTargets()
+    {
+        if (itemStackRuntime == null
+            || !gridSystemProvider.TryGetGrid(out Grid grid)
+            || !TryFindFoodRaidEntry(grid, out Vector2Int entry))
+        {
+            return Array.Empty<WorldItemStackSnapshot>();
+        }
+
+        return itemStackRuntime.GetAllStacks()
+            .Where(stack => IsLooseRaidFood(stack)
+                && IsReachableFoodRaidTarget(grid, entry, stack.Position))
+            .OrderBy(stack => Manhattan(entry, stack.Position))
+            .ThenBy(stack => stack.StackId, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    public IReadOnlyList<WildlifeFoodRaidOrderSnapshot> GetFoodRaidOrders()
+    {
+        return foodRaidOrders.Select(ToFoodRaidSnapshot).ToArray();
+    }
+
+    public bool TryBeginFoodRaid(
+        string raidId,
+        int wolfCount,
+        out IReadOnlyList<WildlifeFoodRaidOrderSnapshot> orders,
+        out string failureReason)
+    {
+        orders = Array.Empty<WildlifeFoodRaidOrderSnapshot>();
+        string normalizedRaidId = raidId?.Trim() ?? string.Empty;
+        if (normalizedRaidId.Length == 0)
+        {
+            failureReason = "습격 ID가 필요합니다.";
+            return false;
+        }
+
+        if (foodRaidOrders.Any(order =>
+                order != null
+                && !IsFoodRaidTerminal(order.state)))
+        {
+            failureReason = "이미 진행 중인 식량 습격이 있습니다.";
+            return false;
+        }
+
+        IReadOnlyList<WorldItemStackSnapshot> targets =
+            GetReachableFoodRaidTargets();
+        if (!gridSystemProvider.TryGetGrid(out Grid grid)
+            || !TryFindFoodRaidEntry(grid, out Vector2Int entry))
+        {
+            failureReason = "외부 진입로에 유효한 늑대 출현 지점이 없습니다.";
+            return false;
+        }
+
+        foodRaidOrders.Clear();
+        int requested = Mathf.Max(1, wolfCount);
+        string lastSpawnFailure = string.Empty;
+        for (int index = 0; index < requested; index++)
+        {
+            if (!TrySpawnArrival(
+                    "shadow_wolf",
+                    entry,
+                    out WildlifeActor wolf,
+                    out lastSpawnFailure))
+            {
+                continue;
+            }
+
+            WorldItemStackSnapshot target = targets.Count > 0
+                ? targets[index % targets.Count]
+                : null;
+            foodRaidOrders.Add(new WildlifeFoodRaidOrderSaveData
+            {
+                raidId = normalizedRaidId,
+                wildlifeId = wolf.WildlifeId,
+                targetStackId = target?.StackId ?? string.Empty,
+                state = WildlifeFoodRaidOrderState.Approaching,
+                stolenQuantity = 0,
+                outcomeReason = string.Empty
+            });
+            wolf.SetIntent(
+                WildlifeIntent.Forage,
+                target != null
+                    ? $"노출 식량 {target.DisplayName}을 노리는 중"
+                    : "노출 식량을 찾는 중");
+        }
+
+        orders = GetFoodRaidOrders();
+        if (orders.Count == 0)
+        {
+            failureReason = string.IsNullOrWhiteSpace(lastSpawnFailure)
+                ? "습격 늑대를 출현시키지 못했습니다."
+                : lastSpawnFailure;
+            return false;
+        }
+
+        failureReason = string.Empty;
+        return true;
+    }
+
     public bool TrySpawnDomesticBirth(
         string speciesId,
         Vector2Int position,
@@ -439,6 +577,9 @@ public sealed class WildlifeRuntime :
             return false;
         }
 
+        CancelFoodRaidForActor(
+            actor.WildlifeId,
+            "습격 개체가 제거되어 도난이 취소되었습니다.");
         wildlife.Remove(actor);
         nextBehaviorTickByWildlifeId.Remove(actor.WildlifeId);
         DestroyWildlifeActor(actor);
@@ -775,6 +916,9 @@ public sealed class WildlifeRuntime :
 
         if (killed)
         {
+            CancelFoodRaidForActor(
+                target.WildlifeId,
+                "습격 늑대가 처치되어 도난이 취소되었습니다.");
             ecosystemRuntime?.NotifyWildlifeKilled(target, byHunt: true);
             hunter.Progression?.AddExperience(target.IsDangerous ? 20 : 10);
             RecordHuntNarrative(hunter, target);
@@ -1259,6 +1403,9 @@ public sealed class WildlifeRuntime :
             WildlifeActor actor = wildlife[i];
             if (actor != null)
             {
+                CancelFoodRaidForActor(
+                    actor.WildlifeId,
+                    "습격 개체가 제거되어 도난이 취소되었습니다.");
                 DestroyWildlifeActor(actor);
             }
         }
@@ -1390,6 +1537,186 @@ public sealed class WildlifeRuntime :
             candidate != null
             && string.Equals(candidate.WildlifeId, normalized, StringComparison.Ordinal));
         return target != null;
+    }
+
+    private bool TickFoodRaid(WildlifeActor actor, Grid grid, float now)
+    {
+        WildlifeFoodRaidOrderSaveData order = foodRaidOrders.FirstOrDefault(
+            candidate => candidate != null
+                && candidate.state == WildlifeFoodRaidOrderState.Approaching
+                && string.Equals(
+                    candidate.wildlifeId,
+                    actor?.WildlifeId,
+                    StringComparison.Ordinal));
+        if (order == null)
+        {
+            return false;
+        }
+
+        if (actor == null || !actor.IsAlive)
+        {
+            order.state = WildlifeFoodRaidOrderState.Cancelled;
+            order.outcomeReason =
+                "습격 개체가 처치되어 도난이 취소되었습니다.";
+            return true;
+        }
+
+        WorldItemStackSnapshot target = itemStackRuntime?.GetAllStacks()
+            .FirstOrDefault(stack => IsLooseRaidFood(stack)
+                && string.Equals(
+                    stack.StackId,
+                    order.targetStackId,
+                    StringComparison.Ordinal));
+        if (target == null)
+        {
+            target = FindReachableFoodRaidTarget(actor, grid, now);
+            if (target == null)
+            {
+                order.state = WildlifeFoodRaidOrderState.Failed;
+                order.outcomeReason =
+                    "도달 가능한 노출 식량이 없어 아무것도 훔치지 못했습니다.";
+                actor.MarkLeaving();
+                return true;
+            }
+
+            order.targetStackId = target.StackId;
+        }
+
+        actor.SetIntent(
+            WildlifeIntent.Forage,
+            $"노출 식량 {target.DisplayName}을 노리는 중");
+        if (actor.GridPosition == target.Position)
+        {
+            if (itemStackRuntime.TryConsumeStackQuantity(
+                    target.StackId,
+                    1,
+                    out WorldItemStackSnapshot consumed))
+            {
+                order.stolenQuantity = consumed?.Quantity ?? 0;
+                order.state = WildlifeFoodRaidOrderState.Stolen;
+                order.outcomeReason =
+                    order.stolenQuantity > 0
+                        ? "늑대가 식량에 도달해 1개를 훔쳤습니다."
+                        : "식량이 먼저 사라져 아무것도 훔치지 못했습니다.";
+            }
+            else
+            {
+                order.state = WildlifeFoodRaidOrderState.Failed;
+                order.outcomeReason =
+                    "식량이 먼저 사라져 아무것도 훔치지 못했습니다.";
+            }
+
+            actor.MarkLeaving();
+            return true;
+        }
+
+        if (!actor.CanRepath(now))
+        {
+            return true;
+        }
+
+        if (actor.TrySetPath(target.Position, now))
+        {
+            return true;
+        }
+
+        WorldItemStackSnapshot replacement =
+            FindReachableFoodRaidTarget(actor, grid, now);
+        if (replacement == null
+            || !actor.TrySetPath(replacement.Position, now))
+        {
+            order.state = WildlifeFoodRaidOrderState.Failed;
+            order.outcomeReason =
+                "문 또는 지형에 막혀 도달 가능한 노출 식량이 없습니다.";
+            actor.MarkLeaving();
+            return true;
+        }
+
+        order.targetStackId = replacement.StackId;
+        return true;
+    }
+
+    private WorldItemStackSnapshot FindReachableFoodRaidTarget(
+        WildlifeActor actor,
+        Grid grid,
+        float now)
+    {
+        if (actor == null || grid == null || itemStackRuntime == null)
+        {
+            return null;
+        }
+
+        foreach (WorldItemStackSnapshot candidate in itemStackRuntime
+                     .GetAllStacks()
+                     .Where(IsLooseRaidFood)
+                     .OrderBy(stack =>
+                         Manhattan(actor.GridPosition, stack.Position))
+                     .ThenBy(stack => stack.StackId, StringComparer.Ordinal))
+        {
+            if (candidate.Position == actor.GridPosition)
+            {
+                return candidate;
+            }
+
+            Queue<GridMoveStep> path = pathSearchBroker?.GetMovePathTo(
+                grid,
+                actor.GridPosition,
+                candidate.Position,
+                GridPathSearchPriority.Urgent,
+                GridTraversalContext.ForWildlife(actor));
+            path ??= grid.GetMovePathTo(
+                actor.GridPosition,
+                candidate.Position);
+            if (path != null && path.Count > 0)
+            {
+                return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private void CancelFoodRaidForActor(
+        string wildlifeId,
+        string reason)
+    {
+        if (string.IsNullOrWhiteSpace(wildlifeId))
+        {
+            return;
+        }
+
+        foreach (WildlifeFoodRaidOrderSaveData order in foodRaidOrders)
+        {
+            if (order == null
+                || IsFoodRaidTerminal(order.state)
+                || !string.Equals(
+                    order.wildlifeId,
+                    wildlifeId,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            order.state = WildlifeFoodRaidOrderState.Cancelled;
+            order.outcomeReason = reason ?? string.Empty;
+        }
+    }
+
+    private void CompleteLeavingFoodRaidForActor(string wildlifeId)
+    {
+        WildlifeFoodRaidOrderSaveData order = foodRaidOrders.FirstOrDefault(
+            candidate => candidate != null
+                && candidate.state == WildlifeFoodRaidOrderState.Leaving
+                && string.Equals(
+                    candidate.wildlifeId,
+                    wildlifeId,
+                    StringComparison.Ordinal));
+        if (order != null)
+        {
+            order.state = order.stolenQuantity > 0
+                ? WildlifeFoodRaidOrderState.Stolen
+                : WildlifeFoodRaidOrderState.Failed;
+        }
     }
 
     private void TickBehavior(WildlifeActor actor, Grid grid, float now)
@@ -1710,6 +2037,113 @@ public sealed class WildlifeRuntime :
         return IsInitialWildlifeSpawnCell(grid, grid?.GetGridCell(position));
     }
 
+    private bool TryFindFoodRaidEntry(
+        Grid grid,
+        out Vector2Int entryPosition)
+    {
+        entryPosition = default;
+        if (grid == null)
+        {
+            return false;
+        }
+
+        GridCell entrance = grid.GetCells()
+            .Where(cell => cell != null
+                && cell.AreaType == GridCellAreaType.Entrance)
+            .OrderBy(cell => cell.Position.y)
+            .ThenBy(cell => cell.Position.x)
+            .FirstOrDefault();
+        if (entrance != null
+            && TryFindNearestInitialSpawnCell(
+                grid,
+                entrance.Position,
+                out entryPosition))
+        {
+            return true;
+        }
+
+        GridCell exterior = grid.GetCells()
+            .FirstOrDefault(cell => IsInitialWildlifeSpawnCell(grid, cell));
+        if (exterior == null)
+        {
+            return false;
+        }
+
+        entryPosition = exterior.Position;
+        return true;
+    }
+
+    private static bool IsReachableFoodRaidTarget(
+        Grid grid,
+        Vector2Int entry,
+        Vector2Int target)
+    {
+        if (grid == null || !grid.IsValidGridPos(target))
+        {
+            return false;
+        }
+
+        return entry == target
+            || grid.GetMovePathTo(entry, target)?.Count > 0;
+    }
+
+    private static bool IsLooseRaidFood(WorldItemStackSnapshot stack)
+    {
+        return stack != null
+            && IsRaidFoodEligible(
+                stack.State,
+                stack.StockCategory,
+                stack.Quantity);
+    }
+
+    public static bool IsRaidFoodEligible(
+        WorldItemStackState state,
+        StockCategory category,
+        int quantity)
+    {
+        return state == WorldItemStackState.Loose
+            && category == StockCategory.Food
+            && quantity > 0;
+    }
+
+    private static bool IsFoodRaidTerminal(
+        WildlifeFoodRaidOrderState state)
+    {
+        return state == WildlifeFoodRaidOrderState.Stolen
+            || state == WildlifeFoodRaidOrderState.Cancelled
+            || state == WildlifeFoodRaidOrderState.Failed;
+    }
+
+    private static WildlifeFoodRaidOrderSaveData CloneFoodRaidOrder(
+        WildlifeFoodRaidOrderSaveData source)
+    {
+        return source == null
+            ? new WildlifeFoodRaidOrderSaveData()
+            : new WildlifeFoodRaidOrderSaveData
+            {
+                raidId = source.raidId ?? string.Empty,
+                wildlifeId = source.wildlifeId ?? string.Empty,
+                targetStackId = source.targetStackId ?? string.Empty,
+                state = source.state,
+                stolenQuantity = Mathf.Max(0, source.stolenQuantity),
+                outcomeReason = source.outcomeReason ?? string.Empty
+            };
+    }
+
+    private static WildlifeFoodRaidOrderSnapshot ToFoodRaidSnapshot(
+        WildlifeFoodRaidOrderSaveData source)
+    {
+        WildlifeFoodRaidOrderSaveData value =
+            source ?? new WildlifeFoodRaidOrderSaveData();
+        return new WildlifeFoodRaidOrderSnapshot(
+            value.raidId,
+            value.wildlifeId,
+            value.targetStackId,
+            value.state,
+            value.stolenQuantity,
+            value.outcomeReason);
+    }
+
     private static bool IsValidCurrentWildlifePosition(Grid grid, WildlifeActor actor)
     {
         if (grid == null || actor == null || !grid.IsWalkable(actor.GridPosition))
@@ -1992,6 +2426,9 @@ public sealed class WildlifeRuntime :
             return true;
         }
 
+        CancelFoodRaidForActor(
+            prey.WildlifeId,
+            "습격 늑대가 처치되어 도난이 취소되었습니다.");
         ecosystemRuntime?.NotifyWildlifeKilled(prey, byHunt: false);
         carcassService?.SpawnCarcass(prey);
         wildlife.Remove(prey);

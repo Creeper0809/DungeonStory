@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8086
+  id: 8091
   itemId: drug:moonflower-tea
   displayName: "\uC6D4\uD654\uCC28"
   description: "\uC758\uC874\uC131 \uC5C6\uC774 \uC9D1\uC911\uACFC \uAE30\uBD84\uC744
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 4
   ingredientTags: 1025
   unitPrice: 9
+  marketSaleRate: 0.6
   unitWeight: 0.25
   maxStack: 40
   sprite: {fileID: 0}

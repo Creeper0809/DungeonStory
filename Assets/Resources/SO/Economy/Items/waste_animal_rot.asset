@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8030
+  id: 8031
   itemId: waste:animal-rot
   displayName: "\uB3D9\uBB3C\uC131 \uBD80\uD328\uBB3C"
   description: "\uC0C1\uD55C \uB3D9\uBB3C\uC131 \uC74C\uC2DD. \uC721\uC2DD\uB3D9\uBB3C
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 6
   ingredientTags: 2064
   unitPrice: 0
+  marketSaleRate: 0.6
   unitWeight: 0.7
   maxStack: 75
   sprite: {fileID: 0}

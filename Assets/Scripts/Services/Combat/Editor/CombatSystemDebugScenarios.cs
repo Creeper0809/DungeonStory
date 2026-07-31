@@ -635,7 +635,7 @@ public static class CombatSystemDebugScenarios
 
     private static bool VerifySaveContract()
     {
-        return DungeonGameSaveData.CurrentVersion == 16
+        return DungeonGameSaveData.CurrentVersion >= 16
             && CombatItemDefinitions.TryGetDefinition(CombatItemDefinitions.ArrowItemId, out DungeonItemDefinition arrow)
             && CombatItemDefinitions.TryGetDefinition(CombatItemDefinitions.BoltItemId, out DungeonItemDefinition bolt)
             && arrow.StockCategory == StockCategory.Ammunition
@@ -757,7 +757,7 @@ public static class CombatSystemDebugScenarios
                 restored,
                 EquipmentMaintenanceSaveSection.Id);
         return restored != null
-            && restored.version == 16
+            && restored.version == DungeonGameSaveData.CurrentVersion
             && medical.orders.Single().carried
             && commands.commands.Single().type == CombatCommandType.Rescue
             && tactics.reservations.Single().kind

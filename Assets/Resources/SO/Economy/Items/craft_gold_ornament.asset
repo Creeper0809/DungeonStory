@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8076
+  id: 8081
   itemId: craft:gold-ornament
   displayName: "\uAE08 \uC7A5\uC2DD"
   description: "\uAD8C\uC704 \uC2DC\uC124\uACFC \uACC4\uC57D \uB0A9\uD488\uC5D0 \uC4F0\uB294
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 8
   ingredientTags: 512
   unitPrice: 95
+  marketSaleRate: 0.6
   unitWeight: 0.4
   maxStack: 20
   sprite: {fileID: 0}

@@ -27,6 +27,9 @@ public static class ResearchProjectAssetBuilder
     {
         EnsureFolders();
         IndustrialInfrastructureAssetBuilder.EnsureAssets();
+        ProductionWorkshopContentAssetBuilder.EnsureAssets();
+        ServiceRoomContentAssetBuilder.EnsureAssets();
+        P1DefenseFacilityAssetBuilder.EnsureP1DefenseAssets();
         Dictionary<int, FacilityBlueprintSO> blueprints = AssetDatabase
             .FindAssets("t:FacilityBlueprintSO", new[] { "Assets/Resources/SO/Blueprint" })
             .Select(AssetDatabase.GUIDToAssetPath)
@@ -86,6 +89,7 @@ public static class ResearchProjectAssetBuilder
             }
 
             AppendProductionStationUnlocks(spec.Id, unlocks);
+            AppendServiceRoomUnlocks(spec.Id, unlocks);
             project.Configure(
                 spec.Id,
                 spec.Name,
@@ -131,32 +135,46 @@ public static class ResearchProjectAssetBuilder
                 ? industrialCodes
                 : researchId switch
         {
-            "research:cuisine:milling" => new[] { "P01" },
-            "research:cuisine:fermentation" => new[] { "P02" },
-            "research:forestry:sawmill" => new[] { "P03" },
+            "research:cuisine:milling" => new[] { "P01", "WS01" },
+            "research:cuisine:fermentation" =>
+                new[] { "P02", "WS02", "WS03", "WS05" },
+            "research:cuisine:livestock" => new[] { "WS15", "WS16" },
+            "research:cuisine:baking" => new[] { "WS09" },
+            "research:cuisine:kitchen-hygiene" =>
+                new[] { "WS11", "WS12", "WS13" },
+            "research:cuisine:controlled-fermentation" =>
+                new[] { "WS04", "WS06" },
+            "research:cuisine:distilling-aging" => new[] { "WS07" },
+            "research:forestry:sawmill" => new[] { "P03", "WS19" },
             "research:forestry:charcoal" => new[] { "P04" },
-            "research:mining:stonecutting" => new[] { "P05" },
+            "research:mining:stonecutting" => new[] { "P05", "WS20" },
             "research:mining:sorting" => new[] { "P06" },
-            "research:metallurgy:iron" => new[] { "P07" },
+            "research:metallurgy:iron" => new[] { "P07", "WS21" },
             "research:metallurgy:steel" => new[] { "P08" },
-            "research:metallurgy:precious" => new[] { "P09" },
-            "research:metallurgy:blacksteel" => new[] { "P10" },
-            "research:textile:fiber" => new[] { "P11" },
+            "research:metallurgy:precious" => new[] { "P09", "WS22" },
+            "research:metallurgy:blacksteel" => new[] { "P10", "WS23" },
+            "research:textile:fiber" => new[] { "P11", "WS24" },
             "research:textile:tanning" => new[] { "P12" },
             "research:agriculture:compost" => new[] { "P13" },
             "research:pharmacology:distillation" => new[] { "P14" },
             "research:cuisine:crops" => new[] { "P15" },
-            "research:survival:preservation" => new[] { "P16" },
-            "research:husbandry:feed" => new[] { "P17" },
-            "research:pharmacology:antiseptic" => new[] { "P18" },
-            "research:arcane:alchemy" => new[] { "P19" },
+            "research:survival:preservation" =>
+                new[] { "P16", "WS14", "WS18" },
+            "research:husbandry:feed" => new[] { "P17", "WS17" },
+            "research:pharmacology:antiseptic" =>
+                new[] { "P18", "WS25" },
+            "research:arcane:alchemy" => new[] { "P19", "WS26" },
             "research:textile:dreamweave" => new[] { "P20" },
-            "research:metallurgy:primitive" => new[] { "P21" },
+            "research:metallurgy:primitive" => new[] { "P21", "WS27" },
             "research:mining:quarry" => new[] { "P22" },
             "research:agriculture:field" => new[] { "P23" },
-            "research:agriculture:indoor" => new[] { "P24" },
+            "research:agriculture:indoor" => new[] { "P24", "WS28" },
             "research:survival:sanitation" => new[] { "P25" },
             "research:survival:medical" => new[] { "M01" },
+            "research:environment:cold-work" =>
+                new[] { "L08", "E10", "E12", "E13", "E14" },
+            "research:environment:rune-insulation" =>
+                new[] { "E11" },
             "research:medical:anatomy" => new[] { "M02" },
             "research:medical:surgery" => new[] { "M03", "M04", "M05" },
             "research:medical:prosthetics" => new[] { "M06", "M07" },
@@ -164,6 +182,11 @@ public static class ResearchProjectAssetBuilder
             "research:medical:xenotransplant" => new[] { "M09", "M10", "M11" },
             "research:medical:aberrant-augmentation" => new[] { "M12", "M13" },
             "research:defense:tactical-command" => new[] { "T01" },
+            "research:defense:supply" => new[] { "DF03", "DF04" },
+            "research:defense:corridor-mechanisms" => new[] { "DF05" },
+            "research:defense:rune-identification" => new[] { "DF01" },
+            "research:defense:remote-control" => new[] { "DF02" },
+            "research:defense:siege-fortification" => new[] { "DF06" },
             _ => Array.Empty<string>()
         };
         if (facilityCodes.Length == 0)
@@ -206,6 +229,33 @@ public static class ResearchProjectAssetBuilder
                 unlocks.Add(new BlueprintBuildingUnlock
                 {
                     buildingId = building.id
+                });
+            }
+        }
+    }
+
+    private static void AppendServiceRoomUnlocks(
+        string researchId,
+        BlueprintUnlockCollection unlocks)
+    {
+        if (unlocks == null
+            || !ServiceRoomContentAssetBuilder
+                .GetResearchUnlockIds()
+                .TryGetValue(researchId, out int[] buildingIds))
+        {
+            return;
+        }
+
+        foreach (int buildingId in buildingIds)
+        {
+            bool exists = unlocks.Items
+                .OfType<BlueprintBuildingUnlock>()
+                .Any(unlock => unlock.buildingId == buildingId);
+            if (!exists)
+            {
+                unlocks.Add(new BlueprintBuildingUnlock
+                {
+                    buildingId = buildingId
                 });
             }
         }
@@ -280,10 +330,17 @@ public static class ResearchProjectAssetBuilder
     {
         return new[]
         {
+            S(ServiceRoomResearchIds.ServiceFlow, 7015, "서비스 동선", "간이 서비스를 접수·대기·이용·결제로 나누어 관리형으로 운영한다.", ResearchField.CommerceAndCraft, 68, prerequisites: new[] { "research:commerce:logistics" }),
+            S(ServiceRoomResearchIds.HospitalityOperations, 7016, "환대 운영", "숙박 접수와 객실 배정·정리 절차를 표준화한다.", ResearchField.AuthorityAndHousing, 86, prerequisites: new[] { ServiceRoomResearchIds.ServiceFlow, "research:authority:quarters" }),
+            S(ServiceRoomResearchIds.BathBusiness, 7017, "목욕 영업", "목욕 접수와 급배수·위생 관리 절차를 갖춘다.", ResearchField.WaterAndSanitation, 94, prerequisites: new[] { ServiceRoomResearchIds.ServiceFlow, "research:survival:sanitation" }),
+            S(ServiceRoomResearchIds.MedicalReception, 7018, "의료 접수", "환자를 접수하고 중증도로 분류해 치료 대기를 관리한다.", ResearchField.SurgeryAndTransplant, 102, prerequisites: new[] { ServiceRoomResearchIds.ServiceFlow, "research:survival:medical" }),
+            S(ServiceRoomResearchIds.ServiceAutomation, 7019, "서비스 자동화", "자동 계산·순번·보온·객실 배정 장치로 직원 부담을 줄인다.", ResearchField.IndustryAndAutomation, 176, prerequisites: new[] { ServiceRoomResearchIds.HospitalityOperations, ServiceRoomResearchIds.BathBusiness, ServiceRoomResearchIds.MedicalReception, "research:industry:distribution" }),
             S("research:survival:sanitation", 7001, "기초 위생", "오염을 통제하고 기본 위생 설비를 운용한다.", ResearchField.LifeAndSurvival, 36),
             S("research:survival:support", 7002, "생활 지원", "식사와 휴식, 기본 생활 설비의 효율을 높인다.", ResearchField.LifeAndSurvival, 56, ResearchBlueprintRule.Required, 6103, "research:survival:sanitation"),
             S("research:survival:preservation", 7003, "식량 보존", "식량 부패를 늦추고 보존 조리법을 정리한다.", ResearchField.LifeAndSurvival, 84, prerequisites: new[] { "research:survival:support" }),
             S("research:survival:medical", 7004, "의료 회복", "부상과 질병을 체계적으로 안정화하고 치료한다.", ResearchField.LifeAndSurvival, 126, prerequisites: new[] { "research:survival:preservation", "research:arcane:alchemy" }),
+            S("research:environment:cold-work", 7005, "저온 작업 보호", "냉장 구역의 짧은 운반과 장기 근무를 분리하고 보호장비 보관함, 보온 점액 패드와 방한 작업복을 운용한다.", ResearchField.LifeAndSurvival, 104, prerequisites: new[] { "research:survival:preservation", "research:textile:fiber" }),
+            S("research:environment:rune-insulation", 7006, "룬 단열학", "룬 방한복과 내한성 점액 배양으로 극저온 작업 교대를 가능하게 한다.", ResearchField.LifeAndSurvival, 196, prerequisites: new[] { "research:environment:cold-work", "research:textile:rune-leather", "research:arcane:advanced" }),
 
             S("research:commerce:logistics", 7011, "창고 구획", "물자를 분류하고 운반 동선을 표준화한다.", ResearchField.CommerceAndCraft, 36),
             S("research:commerce:retail", 7012, "상업 진열", "손님 동선과 상품 진열을 정비한다.", ResearchField.CommerceAndCraft, 58, prerequisites: new[] { "research:commerce:logistics" }),
@@ -357,7 +414,11 @@ public static class ResearchProjectAssetBuilder
             S("research:cuisine:vegan", 7123, "채식 조리", "비건과 채식 식단을 실제 재료로 구분해 조리한다.", ResearchField.Cuisine, 78, prerequisites: new[] { "research:cuisine:milling", "research:agriculture:field" }),
             S("research:cuisine:livestock", 7124, "축산 조리", "고기, 우유와 알을 고급 식사로 가공한다.", ResearchField.Cuisine, 106, prerequisites: new[] { "research:cuisine:vegan", "research:husbandry:feed" }),
             S("research:cuisine:fermentation", 7125, "발효", "과일, 곡물과 버섯을 술과 조미료로 바꾼다.", ResearchField.Cuisine, 140, prerequisites: new[] { "research:cuisine:livestock" }),
-            S("research:cuisine:lavish", 7126, "호화·보존식", "세 재료군과 보존 기술로 장기 저장 가능한 호화식을 만든다.", ResearchField.Cuisine, 186, prerequisites: new[] { "research:cuisine:fermentation", "research:survival:preservation" }),
+            S("research:cuisine:lavish", 7126, "호화·보존식", "세척·제빵·발효·보존 설비를 모두 활용해 호화식과 보존식을 만든다.", ResearchField.Cuisine, 186, prerequisites: new[] { "research:cuisine:baking", "research:cuisine:kitchen-hygiene", "research:cuisine:fermentation", "research:survival:preservation" }),
+            S("research:cuisine:baking", 7127, "제빵", "반죽과 벽돌 오븐을 이용해 파이와 구운 고급식을 만든다.", ResearchField.Cuisine, 152, prerequisites: new[] { "research:cuisine:milling" }),
+            S("research:cuisine:kitchen-hygiene", 7128, "주방 위생", "상수와 배수에 연결한 전처리 싱크로 고급식 재료를 안전하게 세척한다.", ResearchField.Cuisine, 168, prerequisites: new[] { "research:cuisine:livestock", "research:plumbing:sewer" }),
+            S("research:cuisine:controlled-fermentation", 7129, "제어 발효", "전력과 배관으로 발효 온도와 세척·병입을 제어한다.", ResearchField.Cuisine, 198, prerequisites: new[] { "research:cuisine:fermentation", "research:industry:distribution", "research:plumbing:sewer" }),
+            S("research:cuisine:distilling-aging", 7130, "주류 증류·숙성", "분별 증류와 오크 숙성으로 중성 알코올과 밤 증류주를 만든다.", ResearchField.Cuisine, 220, prerequisites: new[] { "research:cuisine:fermentation", "research:pharmacology:distillation" }),
 
             S("research:pharmacology:herbalism", 7131, "약초학", "약용 식물의 효능과 독성을 분류한다.", ResearchField.Pharmacology, 34),
             S("research:pharmacology:antiseptic", 7132, "소독·붕대", "섬유와 약초로 감염을 막는 치료재를 만든다.", ResearchField.Pharmacology, 58, prerequisites: new[] { "research:pharmacology:herbalism", "research:textile:fiber" }),
@@ -416,7 +477,14 @@ public static class ResearchProjectAssetBuilder
             S("research:plumbing:sewer", 7195, "하수 배관", "폐수 저장과 역류 방지를 위한 별도 하수망을 구축한다.", ResearchField.WaterAndSanitation, 174, prerequisites: new[] { "research:plumbing:flush-sanitation" }),
             S("research:plumbing:settling", 7196, "오수 침전", "폐수에서 재이용수와 슬러지를 분리한다.", ResearchField.WaterAndSanitation, 204, prerequisites: new[] { "research:plumbing:sewer", "research:agriculture:compost" }),
             S("research:plumbing:reuse", 7197, "정수와 재이용", "침전수와 소독제를 사용해 깨끗한 물로 되돌린다.", ResearchField.WaterAndSanitation, 242, prerequisites: new[] { "research:plumbing:settling", "research:pharmacology:distillation" }),
-            S("research:plumbing:rune-purification", 7198, "룬 정화 순환", "마나와 룬으로 폐수 손실을 줄인 고효율 순환망을 만든다.", ResearchField.WaterAndSanitation, 304, prerequisites: new[] { "research:plumbing:reuse", "research:arcane:resonance", "research:industry:rune-grid" })
+            S("research:plumbing:rune-purification", 7198, "룬 정화 순환", "마나와 룬으로 폐수 손실을 줄인 고효율 순환망을 만든다.", ResearchField.WaterAndSanitation, 304, prerequisites: new[] { "research:plumbing:reuse", "research:arcane:resonance", "research:industry:rune-grid" }),
+
+            S("research:defense:supply", 7201, "방어 보급학", "탄약·촉매 보급고와 함정 정비대로 방어시설의 실물 보급과 재장전을 표준화한다.", ResearchField.DefenseAndTactics, 112, prerequisites: new[] { "research:defense:fortification", "research:commerce:logistics" }),
+            S("research:defense:corridor-mechanisms", 7202, "복도 기구학", "침입 감지기와 문 연동 낙하문으로 좁은 통로의 발동 순서를 설계한다.", ResearchField.DefenseAndTactics, 142, prerequisites: new[] { "research:defense:supply", "research:metallurgy:iron" }),
+            S("research:defense:rune-identification", 7203, "룬 식별", "감지 장치가 허용 대상과 적대 대상을 더 정확하게 구분하도록 룬 식별 규칙을 새긴다.", ResearchField.DefenseAndTactics, 176, prerequisites: new[] { "research:defense:corridor-mechanisms", "research:arcane:advanced" }),
+            S("research:defense:remote-control", 7204, "원격 통제", "방어 통제대에서 무장 정책과 발동 구역을 원격으로 전환한다.", ResearchField.DefenseAndTactics, 214, prerequisites: new[] { "research:defense:rune-identification", "research:industry:distribution" }),
+            S("research:defense:siege-fortification", 7205, "공성 요새화", "강화 낙하문과 벽면 발사구를 공성 장비와 중장갑 침입자에 맞게 보강한다.", ResearchField.DefenseAndTactics, 258, prerequisites: new[] { "research:defense:remote-control", "research:defense:ranged-positions", "research:metallurgy:steel" }),
+            S("research:defense:alliance-signals", 7206, "동맹 신호학", "동맹 지원군의 접근 경로와 방어시설 허용 목록을 공유하는 신호 체계를 만든다.", ResearchField.DefenseAndTactics, 296, prerequisites: new[] { "research:defense:siege-fortification", "research:commerce:secure-trade" })
         };
     }
 

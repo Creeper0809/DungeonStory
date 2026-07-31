@@ -19,17 +19,25 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
     private readonly ICircusRuntime circus;
     private readonly ICaptivityRuntime captivity;
     private readonly IWildlifeCaptureRuntime wildlife;
+    private readonly IExternalInfluenceRuntime externalInfluence;
     private readonly Dictionary<string, CircusLethalityPolicy> selectedLethality =
         new Dictionary<string, CircusLethalityPolicy>(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> panelStatus =
+        new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> pendingLethalProgram =
+        new Dictionary<string, string>(StringComparer.Ordinal);
 
     public CircusBuildingPanelPresenter(
         ICircusRuntime circus,
         ICaptivityRuntime captivity,
-        IWildlifeCaptureRuntime wildlife)
+        IWildlifeCaptureRuntime wildlife,
+        IExternalInfluenceRuntime externalInfluence)
     {
         this.circus = circus ?? throw new ArgumentNullException(nameof(circus));
         this.captivity = captivity ?? throw new ArgumentNullException(nameof(captivity));
         this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
+        this.externalInfluence = externalInfluence
+            ?? throw new ArgumentNullException(nameof(externalInfluence));
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -51,6 +59,18 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
             lethality = CircusLethalityPolicy.StopWhenDowned;
             selectedLethality[stageKey] = lethality;
         }
+        BuildingCircusStageAbility stageAbility =
+            building.BuildingData.GetCircusStageAbility();
+        string[] availablePerformers = captivity.Captives
+            .Where(item => item.IsActive)
+            .OrderByDescending(item => item.performerSkill)
+            .Take(Mathf.Max(1, stageAbility.performerCapacity))
+            .Select(item => item.captiveId)
+            .ToArray();
+        string[] availableAnimals = wildlife.CapturedAnimals
+            .Where(item => string.IsNullOrWhiteSpace(item.assignedShowOrderId))
+            .Select(item => item.wildlifeId)
+            .ToArray();
 
         AddText(parent, "공연", font, 21f, DungeonUiTheme.TextPrimary, 34f, created);
         AddText(
@@ -62,6 +82,96 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
             DungeonUiTheme.TextSecondary,
             30f,
             created);
+
+        AddText(
+            parent,
+            $"명성 {externalInfluence.Renown:0.#} · 공포 "
+            + $"{externalInfluence.Dread:0.#} · 적대 소문 "
+            + $"{externalInfluence.HostileRumor:0.#}",
+            font,
+            15f,
+            DungeonUiTheme.TextSecondary,
+            30f,
+            created);
+        GameObject influenceRow = CreateRow(
+            parent,
+            "CircusExternalInfluence",
+            42f);
+        created.Add(influenceRow);
+        AddButton(
+            influenceRow.transform,
+            externalInfluence.IsDreadDefenseArmed
+                ? "다음 침입 약화 예약됨"
+                : "공포 15 · 다음 침입 약화",
+            font,
+            externalInfluence.IsDreadDefenseArmed,
+            () =>
+            {
+                bool armed = externalInfluence.TryArmDreadDefense(
+                    out string failureReason);
+                panelStatus[stageKey] = armed
+                    ? "공포 15를 예약했습니다. 다음 일반 침입은 이동·공격 -10%, 집결 +10초, 보스는 -5%, +5초이며 침입 시작 시 1회 소모됩니다."
+                    : failureReason;
+                refresh?.Invoke();
+            });
+
+        float rumorReduction = Mathf.Min(
+            15f,
+            externalInfluence.HostileRumor);
+        int renownCost = Mathf.CeilToInt(rumorReduction / 15f * 10f);
+        int goldCost = Mathf.CeilToInt(rumorReduction / 15f * 200f);
+        GameObject rumorRow = CreateRow(parent, "CircusRumorMitigation", 42f);
+        created.Add(rumorRow);
+        AddButton(
+            rumorRow.transform,
+            $"소문 {rumorReduction:0.#}↓ · 명성 {renownCost}",
+            font,
+            false,
+            () => MitigateRumor(
+                HostileRumorMitigationMethod.Renown,
+                stageKey,
+                refresh));
+        AddButton(
+            rumorRow.transform,
+            $"소문 {rumorReduction:0.#}↓ · 골드 {goldCost}",
+            font,
+            false,
+            () => MitigateRumor(
+                HostileRumorMitigationMethod.Gold,
+                stageKey,
+                refresh));
+
+        EcologyRaidSnapshot raid = externalInfluence.GetEcologyRaidSnapshot();
+        if (raid.Phase != EcologyRaidPhase.Inactive)
+        {
+            AddText(
+                parent,
+                $"생태 습격 {FormatRaidPhase(raid.Phase)}"
+                + (raid.Phase == EcologyRaidPhase.Scheduled
+                    ? $" · {raid.RemainingSeconds:0.0}초 남음"
+                    : string.Empty)
+                + $" · 노출 식량 위치 {raid.ExposedFoodPositions.Count}곳"
+                + $" · 도난 {raid.StolenQuantity}",
+                font,
+                14f,
+                raid.Phase == EcologyRaidPhase.Resolved
+                    ? DungeonUiTheme.TextSecondary
+                    : DungeonUiTheme.Danger,
+                42f,
+                created);
+        }
+        if (panelStatus.TryGetValue(stageKey, out string status)
+            && !string.IsNullOrWhiteSpace(status))
+        {
+            AddText(
+                parent,
+                status,
+                font,
+                14f,
+                DungeonUiTheme.TextSecondary,
+                48f,
+                created);
+        }
 
         GameObject lethalityRow = CreateRow(parent, "CircusLethality", 42f);
         created.Add(lethalityRow);
@@ -79,35 +189,88 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
         AddText(parent, "프로그램", font, 18f, DungeonUiTheme.TextPrimary, 30f, created);
         for (int offset = 0; offset < circus.Programs.Count; offset += 3)
         {
-            GameObject row = CreateRow(parent, $"CircusPrograms_{offset}", 44f);
+            GameObject row = CreateRow(parent, $"CircusPrograms_{offset}", 64f);
             created.Add(row);
             foreach (CircusProgramModule program in circus.Programs.Skip(offset).Take(3))
             {
                 CircusProgramModule capturedProgram = program;
-                AddButton(row.transform, program.displayName, font, false, () =>
+                CircusProgramForecast forecast = circus.GetForecast(
+                    building,
+                    program.programId,
+                    lethality,
+                    availablePerformers,
+                    availableAnimals);
+                string forecastLabel =
+                    $"{program.displayName}\n"
+                    + $"수입 {forecast.ExpectedRevenue}"
+                    + $" · 만족 {forecast.MinimumSatisfaction:0}"
+                    + $"~{forecast.MaximumSatisfaction:0}"
+                    + $" · 사고 {forecast.AccidentChance:P0}";
+                AddButton(row.transform, forecastLabel, font, false, () =>
                 {
-                    BuildingCircusStageAbility ability =
-                        building.BuildingData.GetCircusStageAbility();
-                    string[] performers = captivity.Captives
-                        .Where(item => item.IsActive)
-                        .OrderByDescending(item => item.performerSkill)
-                        .Take(Mathf.Max(1, ability.performerCapacity))
-                        .Select(item => item.captiveId)
-                        .ToArray();
-                    string[] animals = wildlife.CapturedAnimals
-                        .Where(item => string.IsNullOrWhiteSpace(item.assignedShowOrderId))
-                        .Select(item => item.wildlifeId)
-                        .ToArray();
-                    circus.TrySchedule(
+                    CircusLethalityPolicy selected =
+                        selectedLethality[stageKey];
+                    CircusProgramForecast currentForecast =
+                        circus.GetForecast(
+                            building,
+                            capturedProgram.programId,
+                            selected,
+                            availablePerformers,
+                            availableAnimals);
+                    if (!currentForecast.CanSchedule)
+                    {
+                        panelStatus[stageKey] =
+                            currentForecast.FailureReason;
+                        refresh?.Invoke();
+                        return;
+                    }
+
+                    bool lethal = selected is
+                        CircusLethalityPolicy.FightToDeath
+                        or CircusLethalityPolicy.ExecuteDesignatedTarget;
+                    if (lethal
+                        && (!pendingLethalProgram.TryGetValue(
+                                stageKey,
+                                out string pending)
+                            || !string.Equals(
+                                pending,
+                                capturedProgram.programId,
+                                StringComparison.Ordinal)))
+                    {
+                        pendingLethalProgram[stageKey] =
+                            capturedProgram.programId;
+                        panelStatus[stageKey] =
+                            $"치명 정책 확인: 대상 {availablePerformers.Length}명"
+                            + $" · 부상 {currentForecast.InjuryChance:P0}"
+                            + $" · 사망 {currentForecast.DeathChance:P0}"
+                            + $" · 명성 +{currentForecast.Renown:0.#}"
+                            + $" · 공포 +{currentForecast.Dread:0.#}"
+                            + $" · 적대 소문 +{currentForecast.HostileRumor:0.#}"
+                            + " · 같은 프로그램을 다시 눌러 예약";
+                        refresh?.Invoke();
+                        return;
+                    }
+
+                    bool scheduled = circus.TrySchedule(
                         building,
                         capturedProgram.programId,
-                        selectedLethality[stageKey],
-                        performers,
-                        animals,
+                        selected,
+                        availablePerformers,
+                        availableAnimals,
                         out _,
-                        out _);
+                        out string failureReason);
+                    pendingLethalProgram.Remove(stageKey);
+                    panelStatus[stageKey] = scheduled
+                        ? $"공연 예약 완료 · 예상 수입 {currentForecast.ExpectedRevenue}"
+                            + $" · 만족 {currentForecast.MinimumSatisfaction:0}"
+                            + $"~{currentForecast.MaximumSatisfaction:0}"
+                            + $" · 사고 {currentForecast.AccidentChance:P0}"
+                            + $" · 명성 +{currentForecast.Renown:0.#}"
+                            + $" · 공포 +{currentForecast.Dread:0.#}"
+                            + $" · 적대 소문 +{currentForecast.HostileRumor:0.#}"
+                        : failureReason;
                     refresh?.Invoke();
-                });
+                }, 190f);
             }
         }
 
@@ -148,6 +311,44 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
         }
 
         return created;
+    }
+
+    private void MitigateRumor(
+        HostileRumorMitigationMethod method,
+        string stageKey,
+        Action refresh)
+    {
+        float before = externalInfluence.HostileRumor;
+        bool succeeded = externalInfluence.TryMitigateHostileRumor(
+            method,
+            out float reduced,
+            out int cost,
+            out string failureReason);
+        panelStatus[stageKey] = succeeded
+            ? $"소문 수습 완료 · {before:0.#} → "
+                + $"{externalInfluence.HostileRumor:0.#}"
+                + $" · {FormatMitigationMethod(method)} {cost} 사용"
+            : failureReason;
+        refresh?.Invoke();
+    }
+
+    private static string FormatMitigationMethod(
+        HostileRumorMitigationMethod method)
+    {
+        return method == HostileRumorMitigationMethod.Renown
+            ? "명성"
+            : "골드";
+    }
+
+    private static string FormatRaidPhase(EcologyRaidPhase phase)
+    {
+        return phase switch
+        {
+            EcologyRaidPhase.Scheduled => "예정",
+            EcologyRaidPhase.InProgress => "진행",
+            EcologyRaidPhase.Resolved => "해결",
+            _ => "비활성"
+        };
     }
 
     private string GetProgramName(string programId)
@@ -197,7 +398,8 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
         string label,
         TMP_FontAsset font,
         bool selected,
-        Action action)
+        Action action,
+        float preferredWidth = 130f)
     {
         GameObject buttonObject = new GameObject(
             "CircusButton",
@@ -206,7 +408,7 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
             typeof(Button),
             typeof(LayoutElement));
         buttonObject.transform.SetParent(parent, false);
-        buttonObject.GetComponent<LayoutElement>().preferredWidth = 130f;
+        buttonObject.GetComponent<LayoutElement>().preferredWidth = preferredWidth;
         Button button = buttonObject.GetComponent<Button>();
         DungeonUiTheme.StyleButton(button, selected);
         button.onClick.AddListener(() => action?.Invoke());

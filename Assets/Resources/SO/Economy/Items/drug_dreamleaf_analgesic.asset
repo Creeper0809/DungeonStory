@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8088
+  id: 8093
   itemId: drug:dreamleaf-analgesic
   displayName: "\uBABD\uC5FD \uC9C4\uD1B5\uC81C"
   description: "\uD1B5\uC99D\uC744 \uD06C\uAC8C \uB0AE\uCD94\uC9C0\uB9CC \uC758\uC874
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 4
   ingredientTags: 1
   unitPrice: 18
+  marketSaleRate: 0.6
   unitWeight: 0.12
   maxStack: 30
   sprite: {fileID: 0}

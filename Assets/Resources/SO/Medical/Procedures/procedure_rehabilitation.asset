@@ -34,18 +34,18 @@ MonoBehaviour:
     quantity: 1
     optional: 0
   effects:
-  - rid: 7302563265135772022
-  - rid: 7302563265135772023
+  - rid: 7302563313663345475
+  - rid: 7302563313663345476
   references:
     version: 2
     RefIds:
-    - rid: 7302563265135772022
+    - rid: 7302563313663345475
       type: {class: HealSurgicalNodeEffect, ns: , asm: Assembly-CSharp}
       data:
         effectId: HealSurgicalNodeEffect
         health: 16
         infectionReduction: 6
-    - rid: 7302563265135772023
+    - rid: 7302563313663345476
       type: {class: ReduceSurgicalBurdenEffect, ns: , asm: Assembly-CSharp}
       data:
         effectId: ReduceSurgicalBurdenEffect

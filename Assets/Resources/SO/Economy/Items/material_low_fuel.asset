@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8054
+  id: 8055
   itemId: material:low-fuel
   displayName: "\uC800\uAE09 \uC5F0\uB8CC"
   description: "\uBD80\uD328\uBB3C\uACFC \uBD84\uB1E8\uB97C \uAD73\uD78C \uB0C4\uC0C8\uB098\uB294
@@ -30,6 +30,7 @@ MonoBehaviour:
   kind: 1
   ingredientTags: 10240
   unitPrice: 1
+  marketSaleRate: 0.6
   unitWeight: 0.8
   maxStack: 75
   sprite: {fileID: 0}

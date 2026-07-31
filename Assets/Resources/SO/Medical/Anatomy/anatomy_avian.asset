@@ -1,0 +1,152 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
+  m_Name: anatomy_avian
+  m_EditorClassIdentifier: Assembly-CSharp::AnatomyProfileSO
+  profileId: anatomy:avian
+  displayName: "\uC870\uB958\uD615"
+  anatomyFamily: avian
+  speciesIds:
+  - Harpy
+  nodes:
+  - nodeId: head
+    displayName: "\uBA38\uB9AC"
+    parentNodeId: 
+    kind: 0
+    functions: 6
+    maxHealth: 15
+    capacityWeight: 0.35
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 1
+  - nodeId: brain
+    displayName: "\uB1CC"
+    parentNodeId: head
+    kind: 1
+    functions: 2
+    maxHealth: 10
+    capacityWeight: 0.7
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: eye:left
+    displayName: "\uC67C\uCABD \uB208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 6
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: eyes
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: eye:right
+    displayName: "\uC624\uB978\uCABD \uB208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 6
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: eyes
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: torso
+    displayName: "\uBAB8\uD1B5"
+    parentNodeId: 
+    kind: 4
+    functions: 1
+    maxHealth: 38
+    capacityWeight: 1
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 1
+    mapsToLegacyBodyPart: 1
+  - nodeId: heart
+    displayName: "\uC2EC\uC7A5"
+    parentNodeId: torso
+    kind: 1
+    functions: 1
+    maxHealth: 12
+    capacityWeight: 1
+    vital: 1
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: air-sacs
+    displayName: "\uAE30\uB0AD"
+    parentNodeId: torso
+    kind: 1
+    functions: 8
+    maxHealth: 13
+    capacityWeight: 1
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+  - nodeId: wing:left
+    displayName: "\uC67C\uB0A0\uAC1C"
+    parentNodeId: torso
+    kind: 3
+    functions: 192
+    maxHealth: 24
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: wings
+    legacyBodyPart: 2
+    mapsToLegacyBodyPart: 0
+  - nodeId: wing:right
+    displayName: "\uC624\uB978\uB0A0\uAC1C"
+    parentNodeId: torso
+    kind: 3
+    functions: 192
+    maxHealth: 24
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: wings
+    legacyBodyPart: 3
+    mapsToLegacyBodyPart: 0
+  - nodeId: leg:left
+    displayName: "\uC67C\uB2E4\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 20
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 4
+    mapsToLegacyBodyPart: 1
+  - nodeId: leg:right
+    displayName: "\uC624\uB978\uB2E4\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 20
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 5
+    mapsToLegacyBodyPart: 1

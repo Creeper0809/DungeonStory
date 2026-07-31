@@ -21,7 +21,7 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8064
+  id: 8065
   itemId: food:meat-pie
   displayName: "\uACE0\uAE30 \uD30C\uC774"
   description: "\uACE0\uAE30\uC640 \uBC00\uAC00\uB8E8\uB97C \uC4F4 \uD63C\uD569 \uACE0\uAE09\uC2DD."
@@ -29,6 +29,7 @@ MonoBehaviour:
   kind: 2
   ingredientTags: 17
   unitPrice: 17
+  marketSaleRate: 0.6
   unitWeight: 0.8
   maxStack: 40
   sprite: {fileID: 0}

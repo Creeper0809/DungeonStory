@@ -426,6 +426,10 @@ public static class DungeonGameSaveDebugScenarios
             DefenseStatusRuntime savedIntruderStatuses = defenseStatusRuntimeService.GetOrAdd(savedIntruder);
             savedIntruderStatuses.ApplyStatus(DefenseStatusKind.Burn, 1.5f, 33f, 2);
             float savedIntruderHealth = savedIntruder.CurrentHealth;
+            string savedIntruderPatternId = savedIntruderRuntime.Pattern?.id
+                ?? string.Empty;
+            Require(!string.IsNullOrWhiteSpace(savedIntruderPatternId),
+                "The invasion save test spawned an intruder without a pattern.");
             invasionThreat.RestorePersistentState(new InvasionThreatPersistenceState(
                 84f,
                 123f,
@@ -716,20 +720,36 @@ public static class DungeonGameSaveDebugScenarios
             DefenseStatusRuntime restoredIntruderStatuses = restoredIntruder != null
                 ? defenseStatusRuntimeService.Get(restoredIntruder.IntruderActor)
                 : null;
+            string restoredStatusSummary = restoredIntruderStatuses == null
+                ? string.Empty
+                : string.Join(
+                    ",",
+                    restoredIntruderStatuses.ActiveStatuses.Select(status =>
+                        $"{status.Kind}:{status.Value:0.###}:{status.Stacks}"));
             Require(report.RestoredIntruderCount == 1
                 && invasionDirector.ActiveIntruders.Count == 1
                 && restoredIntruder != null
                 && restoredIntruder.State == InvasionIntruderState.Rallying
                 && restoredIntruder.RallySecondsRemaining > 0f
                 && !restoredIntruder.HasBreachedDungeonInterior
-                && restoredIntruder.Pattern.id == InvasionIntruderPatternIds.Plunderer
+                && restoredIntruder.Pattern.id == savedIntruderPatternId
                 && restoredIntruder.FacilityDamageCount == 1
                 && Mathf.Approximately(restoredIntruder.IntruderActor.CurrentHealth, savedIntruderHealth)
                 && restoredIntruderStatuses != null
                 && restoredIntruderStatuses.ActiveStatuses.Any(status => status.Kind == DefenseStatusKind.Burn
                     && Mathf.Approximately(status.Value, 1.5f)
                     && status.Stacks == 2),
-                "Active invasion intruder did not round-trip with health and defense statuses.");
+                "Active invasion intruder did not round-trip with health and defense statuses. "
+                + $"reported={report.RestoredIntruderCount}, "
+                + $"active={invasionDirector.ActiveIntruders.Count}, "
+                + $"state={restoredIntruder?.State}, "
+                + $"rally={restoredIntruder?.RallySecondsRemaining:0.###}, "
+                + $"breached={restoredIntruder?.HasBreachedDungeonInterior}, "
+                + $"pattern={restoredIntruder?.Pattern?.id}/{savedIntruderPatternId}, "
+                + $"facilityDamage={restoredIntruder?.FacilityDamageCount}, "
+                + $"health={restoredIntruder?.IntruderActor?.CurrentHealth:0.###}/"
+                + $"{savedIntruderHealth:0.###}, "
+                + $"statuses={restoredStatusSummary}.");
             Require(report.Warnings.Count == 0,
                 "V16 restore emitted warnings: " + string.Join(" | ", report.Warnings));
 
