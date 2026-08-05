@@ -7,8 +7,8 @@ using UnityEngine;
 
 public static class ProductionWorkshopContentAssetBuilder
 {
-    public const int ExpectedWorkshopItemCount = 16;
-    public const int ExpectedWorkshopRecipeCount = 16;
+    public const int ExpectedWorkshopItemCount = 24;
+    public const int ExpectedWorkshopRecipeCount = 24;
     public const int ExpectedSupportCount = 28;
 
     private const string ItemRoot =
@@ -122,9 +122,6 @@ public static class ProductionWorkshopContentAssetBuilder
             new("material:malt", "맥아", ResourceItemKind.Intermediate,
                 ResourceIngredientTag.Plant, 5, 0.35f,
                 "research:cuisine:fermentation"),
-            new("material:wort", "맥아즙", ResourceItemKind.Intermediate,
-                ResourceIngredientTag.Plant, 7, 0.55f,
-                "research:cuisine:fermentation"),
             new("material:grape-juice", "포도즙", ResourceItemKind.Intermediate,
                 ResourceIngredientTag.Plant, 6, 0.45f,
                 "research:cuisine:fermentation"),
@@ -150,7 +147,8 @@ public static class ProductionWorkshopContentAssetBuilder
                 ResourceItemKind.Food, ResourceIngredientTag.Plant,
                 9, 0.45f, "research:survival:preservation"),
             new("feed:silage", "사일리지", ResourceItemKind.FinishedGood,
-                ResourceIngredientTag.Plant, 5, 0.7f,
+                ResourceIngredientTag.Plant | ResourceIngredientTag.Fuel
+                    | ResourceIngredientTag.Feed, 5, 0.7f,
                 "research:husbandry:feed"),
             new("material:washed-vegetable", "세척 채소",
                 ResourceItemKind.Intermediate, ResourceIngredientTag.Plant,
@@ -167,8 +165,37 @@ public static class ProductionWorkshopContentAssetBuilder
                 8, 0.65f, "research:survival:preservation"),
             new("material:ration-mixture", "배급식 혼합물",
                 ResourceItemKind.Intermediate, ResourceIngredientTag.Plant,
-                6, 0.55f, "research:cuisine:lavish")
+                6, 0.55f, "research:cuisine:lavish"),
+            new("food:malt-porridge", "맥아죽", ResourceItemKind.Food,
+                ResourceIngredientTag.Plant, 6, 0.55f,
+                "research:cuisine:crops"),
+            new("food:grape-syrup", "포도 시럽", ResourceItemKind.Food,
+                ResourceIngredientTag.Plant, 8, 0.35f,
+                "research:cuisine:fermentation"),
+            new("craft:fermented-vinegar", "발효 식초", ResourceItemKind.FinishedGood,
+                ResourceIngredientTag.Plant, 9, 0.4f,
+                "research:cuisine:fermentation"),
+            new("food:fresh-curd", "신선 응유식", ResourceItemKind.Food,
+                ResourceIngredientTag.Milk, 9, 0.45f,
+                "research:cuisine:livestock"),
+            new("food:vegetable-pie", "채소 파이", ResourceItemKind.Food,
+                ResourceIngredientTag.Plant | ResourceIngredientTag.Egg, 12, 0.7f,
+                "research:cuisine:baking"),
+            new("food:stuffed-mushroom", "속 채운 버섯", ResourceItemKind.Food,
+                ResourceIngredientTag.Meat | ResourceIngredientTag.Fungus, 13, 0.65f,
+                "research:cuisine:kitchen-hygiene"),
+            new("food:expedition-ration-pack", "원정 배급 꾸러미", ResourceItemKind.Food,
+                ResourceIngredientTag.Meat | ResourceIngredientTag.Plant, 16, 0.75f,
+                "research:survival:field-rations"),
+            new("food:salted-meat-stew", "염장육 스튜", ResourceItemKind.Food,
+                ResourceIngredientTag.Meat | ResourceIngredientTag.Plant, 14, 0.8f,
+                "research:cuisine:livestock"),
+            new("food:preserved-vegetable", "보존 채식", ResourceItemKind.Food,
+                ResourceIngredientTag.Plant, 11, 0.55f,
+                "research:cuisine:vegan")
         };
+
+        AssetDatabase.DeleteAsset($"{ItemRoot}/{Sanitize("material:wort")}.asset");
 
         for (int index = 0; index < specs.Length; index++)
         {
@@ -197,6 +224,43 @@ public static class ProductionWorkshopContentAssetBuilder
                     1440f,
                     true);
             }
+            if (spec.Id == "food:twilight-beer")
+            {
+                asset.ConfigureSubstance(
+                    "substance:twilight-beer",
+                    SubstanceUseClass.Recreational,
+                    0.025f,
+                    0.015f,
+                    0.05f,
+                    0.008f,
+                    5f,
+                    -0.02f,
+                    -0.02f,
+                    180f);
+            }
+            else if (spec.Id == "food:night-spirit")
+            {
+                asset.ConfigureSubstance(
+                    "substance:night-spirit",
+                    SubstanceUseClass.Recreational,
+                    0.07f,
+                    0.045f,
+                    0.12f,
+                    0.025f,
+                    9f,
+                    -0.08f,
+                    -0.06f,
+                    240f);
+            }
+            else
+            {
+                asset.ClearSubstance();
+            }
+            asset.ConfigureFacilitySupply(
+                spec.Id == "feed:silage" ? 4f : 0f,
+                spec.Id == "feed:silage" ? 14f : 0f,
+                spec.Id == "feed:silage",
+                spec.Kind == ResourceItemKind.Intermediate);
             EditorUtility.SetDirty(asset);
         }
     }
@@ -283,12 +347,40 @@ public static class ProductionWorkshopContentAssetBuilder
             asset.height = 1;
             asset.layer = GridLayer.Building;
             asset.category = BuildingCategory.Production;
-            asset.type = typeof(BuildableObject);
+            asset.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
             asset.horizontalDraggable = false;
             asset.verticalDraggable = false;
             asset.unlocked = false;
             BuildingAbilityCollection abilities = new();
             abilities.Add(new BuildingFacilityPartAbility { code = spec.Code });
+            int constructionValue = spec.Power ? 60 : 40;
+            abilities.Add(new BuildingEconomyAbility
+            {
+                constructionValue = constructionValue,
+                maintenance = spec.Power ? 2 : 1,
+                unlockPhase = spec.Power ? 3 : 2,
+                demolitionRefundRate = 0.5f
+            });
+            BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
+            {
+                constructionWorkRequired =
+                    18f + constructionValue * 0.02f,
+                repairWorkRequired = 10f,
+                cleanWorkRequired = 6.25f,
+                researchWorkRequired = 6f,
+                operateWorkRequired = 10f
+            };
+            workAmount.SetConstructionMaterials(new[]
+            {
+                new ItemAmountDefinition(
+                    spec.Power
+                        ? "component:machine-parts"
+                        : "material:lumber",
+                    Mathf.Max(
+                        1,
+                        Mathf.CeilToInt(constructionValue * 0.05f)))
+            });
+            abilities.Add(workAmount);
             abilities.Add(new BuildingSemanticTagsAbility
             {
                 tags = new[] { "production-support", spec.Feature }
@@ -310,6 +402,41 @@ public static class ProductionWorkshopContentAssetBuilder
             });
             if (spec.Fuel)
             {
+                abilities.Add(new BuildingFacilitySupplyAbility
+                {
+                    profiles = new List<FacilitySupplyProfile>
+                    {
+                        new FacilitySupplyProfile
+                        {
+                            kind = FacilitySupplyKind.Fuel,
+                            requiredTags = ResourceIngredientTag.None,
+                            minimumValue = 2f,
+                            bufferCapacity = 24,
+                            allowedItemIds = new List<string>
+                            {
+                                "resource:log",
+                                "material:low-fuel",
+                                "resource:coal",
+                                "material:charcoal",
+                                "feed:silage",
+                                "craft:candle"
+                            },
+                            forbiddenItemIds = new List<string>
+                            {
+                                "material:black-powder"
+                            },
+                            priorityItemIds = new List<string>
+                            {
+                                "resource:log",
+                                "material:low-fuel",
+                                "resource:coal",
+                                "material:charcoal",
+                                "feed:silage",
+                                "craft:candle"
+                            }
+                        }
+                    }
+                });
                 abilities.Add(new BuildingFuelConsumerAbility
                 {
                     fuelPerRefuel = 1,
@@ -342,8 +469,25 @@ public static class ProductionWorkshopContentAssetBuilder
             building.AbilityModules.Add(
                 new BuildingProductionWorkstationAbility
                 {
-                    workstationTag = tag
+                    workstationTag = tag,
+                    stockSensorInstallationItemId =
+                        "component:stock-sensor-panel"
                 });
+            building.AbilityModules.Remove<BuildingProductionBufferAbility>();
+            building.AbilityModules.Add(new BuildingProductionBufferAbility
+            {
+                defaultBatchCapacity = 4,
+                outputCapacities = new List<ProductionItemBufferCapacity>
+                {
+                    new() { itemId = "material:lead-ingot", capacity = 24 },
+                    new() { itemId = "material:lead-shot", capacity = 96 },
+                    new() { itemId = "material:black-powder", capacity = 48 },
+                    new() { itemId = "material:paper", capacity = 64 },
+                    new() { itemId = "ammo:paper-cartridge", capacity = 120 },
+                    new() { itemId = "component:machine-parts", capacity = 16 },
+                    new() { itemId = "component:precision-parts", capacity = 16 }
+                }
+            });
             building.AbilityModules.EnsureStableIds();
             EditorUtility.SetDirty(building);
         }
@@ -467,17 +611,14 @@ public static class ProductionWorkshopContentAssetBuilder
 
     private static void BuildNewRecipes()
     {
+        AssetDatabase.DeleteAsset($"{RecipeRoot}/{Sanitize("recipe:wort")}.asset");
         CreateRecipe("recipe:malt", "맥아 만들기", "mill", "work:craft",
             "research:cuisine:milling", 6f,
             A("resource:twilight-grain", 2), O("material:malt", 2),
             W("support:fine-sieve"));
-        CreateRecipe("recipe:wort", "맥아즙 당화", "brewery", "work:craft",
-            "research:cuisine:fermentation", 8f,
-            A("material:malt", 2), O("material:wort", 2),
-            W("support:mash-tun"), 0.25f, 0.1f, true);
         CreateBatch("recipe:twilight-beer", "황혼 맥주 발효", "brewery",
             "research:cuisine:fermentation", 3f, 2f, 12f,
-            A("material:wort", 2), O("food:twilight-beer", 2),
+            A("material:fermented-liquor", 2), O("food:twilight-beer", 2),
             "support:fermenter");
         CreateRecipe("recipe:grape-juice", "밤포도 착즙", "brewery",
             "work:craft", "research:cuisine:fermentation", 6f,
@@ -489,11 +630,11 @@ public static class ProductionWorkshopContentAssetBuilder
             "support:fermenter");
         CreateBatch("recipe:fermented-liquor", "증류용 발효액", "brewery",
             "research:cuisine:fermentation", 3f, 1f, 12f,
-            A("material:wort", 2), O("material:fermented-liquor", 2),
+            A("material:malt", 2), O("material:fermented-liquor", 2),
             "support:fermenter");
         CreateBatch("recipe:night-spirit", "밤 증류주 오크 숙성", "brewery",
             "research:cuisine:distilling-aging", 3f, 2f, 12f,
-            new[] { A("material:alcohol", 2), A("material:syrup", 1) },
+            new[] { A("material:young-wine", 2), A("material:syrup", 1) },
             O("food:night-spirit", 2), "support:aging-barrel");
         CreateRecipe("recipe:curd", "응유 만들기", "cookbench", "work:cook",
             "research:cuisine:livestock", 6f,
@@ -508,14 +649,18 @@ public static class ProductionWorkshopContentAssetBuilder
             "work:cook", "research:survival:preservation", 5f,
             new[]
             {
-                A("resource:ember-root", 2),
+                A("material:washed-vegetable", 2),
                 A("resource:saltstone", 1)
             },
             O("material:brined-vegetable", 2),
             W("support:pickling-vat"), 0.2f, 0.2f, true);
         CreateBatch("recipe:fermented-pickle", "발효 절임", "cookbench",
             "research:survival:preservation", 2f, 1f, 12f,
-            A("material:brined-vegetable", 2),
+            new[]
+            {
+                A("material:brined-vegetable", 2),
+                A("craft:fermented-vinegar", 1)
+            },
             O("food:fermented-pickle", 2), "support:pickling-vat");
         CreateBatch("recipe:silage", "사일리지 발효", "feedbench",
             "research:husbandry:feed", 3f, 1f, 12f,
@@ -567,6 +712,47 @@ public static class ProductionWorkshopContentAssetBuilder
             },
             O("material:ration-mixture", 2),
             W("support:prep-sink"), 0.1f, 0.1f, true);
+        CreateRecipe("recipe:malt-porridge", "맥아죽", "cookbench", "work:cook",
+            "research:cuisine:crops", 5f,
+            A("material:malt", 1), O("food:malt-porridge", 2),
+            W("support:hearth"));
+        CreateRecipe("recipe:grape-syrup", "포도 시럽", "cookbench", "work:cook",
+            "research:cuisine:fermentation", 5f,
+            A("material:grape-juice", 1), O("food:grape-syrup", 2),
+            W("support:hearth"));
+        CreateRecipe("recipe:fermented-vinegar", "발효 식초", "brewery", "work:craft",
+            "research:cuisine:fermentation", 6f,
+            A("material:fermented-liquor", 1), O("craft:fermented-vinegar", 2),
+            W("support:fermenter"));
+        CreateRecipe("recipe:fresh-curd", "신선 응유식", "cookbench", "work:cook",
+            "research:cuisine:livestock", 5f,
+            A("material:curd", 1), O("food:fresh-curd", 2),
+            W("support:cheese-vat"));
+        CreateRecipe("recipe:vegetable-pie", "채소 파이", "cookbench", "work:cook",
+            "research:cuisine:baking", 8f,
+            new[] { A("material:dough", 1), A("material:washed-vegetable", 1) },
+            O("food:vegetable-pie", 2), W("support:oven"));
+        CreateRecipe("recipe:stuffed-mushroom", "속 채운 버섯", "cookbench", "work:cook",
+            "research:cuisine:kitchen-hygiene", 8f,
+            new[] { A("material:seasoned-filling", 1), A("resource:cave-mushroom", 2) },
+            O("food:stuffed-mushroom", 2), W("support:hearth"));
+        CreateRecipe("recipe:expedition-ration-pack", "원정 배급 꾸러미", "smoker", "work:craft",
+            "research:survival:field-rations", 8f,
+            new[] { A("material:ration-mixture", 1), A("material:salted-meat", 1) },
+            O("food:expedition-ration-pack", 2), W("support:smoke-hood"));
+        CreateRecipe("recipe:salted-meat-stew", "염장육 스튜", "cookbench", "work:cook",
+            "research:cuisine:livestock", 7f,
+            new[] { A("material:salted-meat", 1), A("resource:ember-root", 1) },
+            O("food:salted-meat-stew", 2), W("support:hearth"));
+        CreateRecipe("recipe:preserved-vegetable", "보존 채식", "cookbench", "work:cook",
+            "research:cuisine:vegan", 7f,
+            new[]
+            {
+                A("material:brined-vegetable", 1),
+                A("material:washed-vegetable", 1),
+                A("craft:fermented-vinegar", 1)
+            },
+            O("food:preserved-vegetable", 2), W("support:hearth"));
     }
 
     private static void CreateBatch(
@@ -685,7 +871,6 @@ public static class ProductionWorkshopContentAssetBuilder
         recipeId switch
         {
             "recipe:malt" => 9900,
-            "recipe:wort" => 9901,
             "recipe:twilight-beer" => 9902,
             "recipe:grape-juice" => 9903,
             "recipe:young-wine" => 9904,
@@ -700,6 +885,15 @@ public static class ProductionWorkshopContentAssetBuilder
             "recipe:seasoned-filling" => 9913,
             "recipe:salted-meat" => 9914,
             "recipe:ration-mixture" => 9915,
+            "recipe:malt-porridge" => 9916,
+            "recipe:grape-syrup" => 9917,
+            "recipe:fermented-vinegar" => 9918,
+            "recipe:fresh-curd" => 9919,
+            "recipe:vegetable-pie" => 9920,
+            "recipe:stuffed-mushroom" => 9921,
+            "recipe:expedition-ration-pack" => 9922,
+            "recipe:salted-meat-stew" => 9923,
+            "recipe:preserved-vegetable" => 9924,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(recipeId),
                 recipeId,

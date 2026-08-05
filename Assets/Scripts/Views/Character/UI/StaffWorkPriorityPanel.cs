@@ -6,7 +6,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
 
-public partial class StaffWorkPriorityPanel : MonoBehaviour
+public class StaffWorkPriorityPanel :
+    MonoBehaviour,
+    IStaffManagementSurfaceQuery,
+    IStaffManagementSurfaceCommand
 {
     private const float CharacterColumnWidth = 180f;
     private const float WorkColumnWidth = 98f;
@@ -30,12 +33,13 @@ public partial class StaffWorkPriorityPanel : MonoBehaviour
     private IStaffWorkPriorityPanelModelBuilder modelBuilder;
     private IStaffWorkPriorityPanelUiFactory uiFactory;
     private IUiClock uiClock;
-    private IStaffDiscontentRuntimeProvider staffDiscontentRuntimeProvider;
+    private StaffDiscontentRuntime staffDiscontentRuntime;
     private ICharacterWorldQuery characterWorldQuery;
     private IBuildingWorldQuery buildingWorldQuery;
     private IPlayerStaffCommandSource playerStaffCommands;
     private ICharacterMoodImpulseQuery moodImpulseQuery;
     private IGameEventBus gameEventBus;
+    private StaffManagementSurfacePanel managementSurface;
     private IDisposable infoFeedSubscription;
     public int VisibleWorkerCount { get; private set; }
     public int VisibleCellCount { get; private set; }
@@ -52,19 +56,22 @@ public partial class StaffWorkPriorityPanel : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(uiFactory));
         this.uiClock = uiClock
             ?? throw new ArgumentNullException(nameof(uiClock));
+        managementSurface = null;
     }
 
     [Inject]
     public void ConstructStaffManagementDependencies(
-        IStaffDiscontentRuntimeProvider staffDiscontentRuntimeProvider,
+        CharacterSceneRuntimeReferences characterRuntimes,
         ICharacterWorldQuery characterWorldQuery,
         IBuildingWorldQuery buildingWorldQuery,
         IPlayerStaffCommandSource playerStaffCommands,
         ICharacterMoodImpulseQuery moodImpulseQuery)
     {
-        this.staffDiscontentRuntimeProvider = staffDiscontentRuntimeProvider
-            ?? throw new ArgumentNullException(
-                nameof(staffDiscontentRuntimeProvider));
+        staffDiscontentRuntime = (characterRuntimes
+                ?? throw new ArgumentNullException(nameof(characterRuntimes)))
+            .StaffDiscontent
+            ?? throw new InvalidOperationException(
+                $"{nameof(StaffWorkPriorityPanel)} requires a loaded {nameof(StaffDiscontentRuntime)}.");
         this.characterWorldQuery = characterWorldQuery
             ?? throw new ArgumentNullException(nameof(characterWorldQuery));
         this.buildingWorldQuery = buildingWorldQuery
@@ -73,6 +80,7 @@ public partial class StaffWorkPriorityPanel : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(playerStaffCommands));
         this.moodImpulseQuery = moodImpulseQuery
             ?? throw new ArgumentNullException(nameof(moodImpulseQuery));
+        managementSurface = null;
     }
 
     [Inject]
@@ -80,6 +88,7 @@ public partial class StaffWorkPriorityPanel : MonoBehaviour
     {
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        managementSurface = null;
         SubscribeToInfoFeed();
     }
 
@@ -157,7 +166,7 @@ public partial class StaffWorkPriorityPanel : MonoBehaviour
         titleText.fontStyle = FontStyles.Bold;
         titleText.alignment = TextAlignmentOptions.Left;
 
-        BuildModeBar(host);
+        RequireManagementSurface().BuildModeBar(host);
 
         GameObject scrollObject = RequireUiFactory().CreateUiObject("PriorityScrollView", host);
         RectTransform scrollRectTransform = scrollObject.GetComponent<RectTransform>();
@@ -253,6 +262,7 @@ public partial class StaffWorkPriorityPanel : MonoBehaviour
             return;
         }
 
+        RequireManagementSurface().Clear();
         ClearSpawnedObjects();
 
         IReadOnlyList<WorkTypeDefinition> workTypes = WorkTaskCatalog.Definitions;
@@ -261,9 +271,9 @@ public partial class StaffWorkPriorityPanel : MonoBehaviour
         VisibleCellCount = workers.Count * workTypes.Count;
         lastWorkerHash = RequireModelBuilder().CalculateWorkerHash(workers);
 
-        if (panelMode == StaffPanelMode.Management)
+        if (RequireManagementSurface().IsManagementMode)
         {
-            BuildStaffManagement(workers);
+            RequireManagementSurface().BuildStaffManagement(workers);
             return;
         }
 
@@ -397,7 +407,7 @@ public partial class StaffWorkPriorityPanel : MonoBehaviour
         WorkTypeDefinition definition)
     {
         WorkTypeId workTypeId = definition.WorkTypeId;
-        FacilityWorkType legacyType = definition.Type;
+        FacilityWorkType legacyType = FacilityWorkTypeMap.GetRequired(definition);
         WorkPriorityLevel priority = worker.Work.WorkPriorities.GetPriority(workTypeId);
         GameObject cell = CreateCellObject($"Cell_{worker.Character.GetInstanceID()}_{legacyType}", parent, WorkColumnWidth, RowHeight);
         Image image = RequireUiFactory().AddImage(cell, GetPriorityColor(priority, worker.Character == selectedCharacter));
@@ -568,11 +578,63 @@ public partial class StaffWorkPriorityPanel : MonoBehaviour
 
     private IStaffWorkPriorityPanelModelBuilder RequireModelBuilder()
     {
-        return RuntimeDependency.Require(modelBuilder, this);
+        return modelBuilder
+            ?? throw new InvalidOperationException(
+                $"{nameof(StaffWorkPriorityPanel)} requires {nameof(IStaffWorkPriorityPanelModelBuilder)} injection before use.");
     }
 
     private IStaffWorkPriorityPanelUiFactory RequireUiFactory()
     {
-        return RuntimeDependency.Require(uiFactory, this);
+        return uiFactory
+            ?? throw new InvalidOperationException(
+                $"{nameof(StaffWorkPriorityPanel)} requires {nameof(IStaffWorkPriorityPanelUiFactory)} injection before use.");
     }
+
+    private StaffManagementSurfacePanel RequireManagementSurface()
+    {
+        if (managementSurface != null)
+        {
+            return managementSurface;
+        }
+
+        bool domainAvailable = staffDiscontentRuntime != null
+            && characterWorldQuery != null
+            && buildingWorldQuery != null
+            && playerStaffCommands != null
+            && moodImpulseQuery != null
+            && gameEventBus != null;
+        StaffManagementDomainContext domain = domainAvailable
+            ? StaffManagementDomainContext.Create(
+                staffDiscontentRuntime,
+                characterWorldQuery,
+                buildingWorldQuery,
+                playerStaffCommands,
+                moodImpulseQuery,
+                gameEventBus)
+            : StaffManagementDomainContext.Unavailable();
+        managementSurface = new StaffManagementSurfacePanel(
+            this,
+            this,
+            RequireModelBuilder(),
+            domain,
+            () => selectedCharacter,
+            actor => selectedCharacter = actor);
+        return managementSurface;
+    }
+
+    RectTransform IStaffManagementSurfaceQuery.ContentRoot => contentRoot;
+    Transform IStaffManagementSurfaceQuery.TableRoot => tableRoot;
+    TMP_Text IStaffManagementSurfaceQuery.TitleText => titleText;
+    IStaffWorkPriorityPanelUiFactory IStaffManagementSurfaceQuery.UiFactory =>
+        RequireUiFactory();
+
+    void IStaffManagementSurfaceCommand.SetVisibleCounts(
+        int workerCount,
+        int cellCount)
+    {
+        VisibleWorkerCount = Mathf.Max(0, workerCount);
+        VisibleCellCount = Mathf.Max(0, cellCount);
+    }
+
+    void IStaffManagementSurfaceCommand.RequestRefresh() => Refresh();
 }

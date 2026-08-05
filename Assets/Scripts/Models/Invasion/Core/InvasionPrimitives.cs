@@ -26,6 +26,85 @@ public enum DefenseResponsePolicyKind
     Custom
 }
 
+public static class DefenseResponsePolicyIds
+{
+    public const string Standard = "defense-policy:standard";
+    public const string SurvivalFirst = "defense-policy:survival-first";
+    public const string HoldTheLine = "defense-policy:hold-the-line";
+    public const string CustomPrefix = "defense-policy:custom:";
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public static class HumanInvasionBranchIds
+{
+    public const string RoyalArmy = "human-branch:royal-army";
+    public const string PioneerSupply = "human-branch:pioneer-supply";
+    public const string RoyalOrdnance = "human-branch:royal-ordnance";
+    public const string IntelligenceHunters = "human-branch:intelligence-hunters";
+    public const string RadiantOrder = "human-branch:radiant-order";
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum InvasionOperationKind
+{
+    FrontalAssault = 0,
+    Siege = 1,
+    FacilitySabotage = 2,
+    Loot = 3,
+    CaptiveRescue = 4,
+    OwnerAssassination = 5
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum InvasionIntruderState
+{
+    None = 0,
+    Entering = 1,
+    Searching = 2,
+    MovingToOwner = 3,
+    MovingToFacility = 4,
+    DamagingFacility = 5,
+    InterceptPlanned = 6,
+    Engaged = 7,
+    FrontBroken = 8,
+    FinalCombat = 9,
+    Finished = 10,
+    Rallying = 11,
+    Breaching = 12
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class DefenseKnownRiskSaveData
+{
+    public int x;
+    public int y;
+    public float severity;
+    public string facilityBuildingInstanceId = string.Empty;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class DefenseExpectedPathCellSaveData
+{
+    public int x;
+    public int y;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class DefenseRaidAwarenessSaveData
+{
+    public string raidId = string.Empty;
+    public int identificationStage;
+    public string routeChangeReason = string.Empty;
+    public string breachTargetBuildingInstanceId = string.Empty;
+    public List<DefenseKnownRiskSaveData> knownRisks =
+        new List<DefenseKnownRiskSaveData>();
+    public List<DefenseExpectedPathCellSaveData> expectedPath =
+        new List<DefenseExpectedPathCellSaveData>();
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DefenseResponsePolicyData

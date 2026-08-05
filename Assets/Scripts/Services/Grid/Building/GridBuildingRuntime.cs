@@ -63,7 +63,7 @@ public class GridBuildingPlacementService
         Func<int, BuildingSO> findBuildingData,
         IGridBuildingFactory buildingFactory,
         BuildingPlacementValidator placementValidator,
-        IWorkOrderRuntime workOrderRuntime = null,
+        IWorkOrderRuntime workOrderRuntime,
         Action<BuildableObject> onConstructionSiteCreated = null)
     {
         this.grid = grid;
@@ -194,7 +194,7 @@ public class GridBuildingPlacementService
 
     public bool CanPlaceBuilding(BuildingSO buildingData, Vector2Int position, out string errorMessage)
     {
-        if (DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.IgnorePlacementRules))
+        if (placementValidator.DebugRules.IsEnabled(DungeonDebugCheat.IgnorePlacementRules))
         {
             if (grid == null || buildingData == null)
             {
@@ -662,6 +662,7 @@ public class BuildingPlacementValidator
 {
     private readonly GridPlacementValidator gridPlacementValidator;
     private readonly Func<BuildingConditionContext> conditionContextFactory;
+    public IDungeonDebugRuleQuery DebugRules => CreateConditionContext().DebugRules;
 
     public BuildingPlacementValidator()
         : this(new GridPlacementValidator(), null)
@@ -696,11 +697,11 @@ public class BuildingPlacementValidator
         }
 
         BuildingConditionContext context = CreateConditionContext();
-        if (!DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.IgnoreUnlocks)
-            && !FacilityProgression.IsUnlocked(
+        if (!FacilityProgression.IsUnlocked(
                 buildingData,
-                context.GameData,
-                context.BuildingUnlockState))
+                context.GameSessionState,
+                context.BuildingUnlockState,
+                context.DebugRules))
         {
             int phase = buildingData.GetUnlockPhase();
             errorMessage = $"{phase}단계 시설입니다. 운영일을 진행하거나 관련 설계도를 연구해야 합니다.";
@@ -743,7 +744,11 @@ public class BuildingPlacementValidator
         foreach (IBuildingCondition condition in buildingData.BuildConditions)
         {
             if (ShouldApplyBuildCondition(buildingData, condition)
-                && !condition.IsSatisfy(grid, totalBuildPos, context, out errorMessage))
+                && !condition.IsSatisfy(
+                    new BuildingConnectivityQueryAdapter(grid),
+                    totalBuildPos,
+                    context,
+                    out errorMessage))
             {
                 return false;
             }
@@ -921,13 +926,7 @@ public static class GridBuildingExtensions
 
     public static bool IsConnected(this Grid grid, Vector2Int start, int id)
     {
-        if (grid == null) return false;
-
-        return grid.GetOccupantPath(start, (pos) =>
-        {
-            GridCell cell = grid.GetGridCell(pos);
-            return cell != null && cell.GetAllOccupants().Any((occupant) => occupant.GridId == id);
-        }).Any();
+        return grid != null && grid.IsConnected(start, id);
     }
 
     public static List<BuildableObject> FindAllBuilding(this Grid grid, int id)

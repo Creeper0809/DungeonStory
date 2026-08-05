@@ -1,0 +1,80 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa401bda1083a0a49abbc7ea825b25a0, type: 3}
+  m_Name: W19_SiegeArbalest
+  m_EditorClassIdentifier: Assembly-CSharp::CombatWeaponSO
+  equipmentId: weapon:siege-arbalest
+  displayName: "\uACF5\uC131 \uC1E0\uB1CC"
+  description: "\uACF5\uC131 \uC1E0\uB1CC \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:weapon:siege-arbalest
+  weight: 8.5
+  occupiedHands: 2
+  maxDurability: 100
+  requiredCraftWork: 6
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 7
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:growth-frame
+    amount: 1
+  - itemId: material:bowstring
+    amount: 2
+  - itemId: component:siege-counterweight
+    amount: 1
+  - itemId: component:engineering-drawing
+    amount: 1
+  - itemId: component:prototype-package
+    amount: 1
+  requiredResearchId: research:equipment:pressure-barrels
+  era: 3
+  tier: 3
+  slotProfile: 4
+  lineageKind: 0
+  growthEquipment: 1
+  growthBaseStatMultiplier: 0.88
+  verbs:
+  - rid: 7737211765905949115
+  rangeProfiles:
+  - band: 2
+    accuracyMultiplier: 0.9
+    damageMultiplier: 1.25
+  - band: 3
+    accuracyMultiplier: 0.86
+    damageMultiplier: 1.2
+  maximumRange: 26
+  compatibleAmmunitionItemIds:
+  - ammo:bolt
+  - ammo:bolt-bone
+  - ammo:bolt-iron
+  - ammo:bolt-steel
+  - ammo:bolt-rune
+  magazineCapacity: 1
+  reloadSeconds: 9
+  supportsAimed: 1
+  supportsRapid: 0
+  supportsSuppressive: 1
+  gunpowderWeapon: 0
+  maximumMisfireChance: 0
+  smokeExposure: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211765905949115
+      type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
+      data:
+        attackTime: 2
+        baseDamage: 38
+        penetration: 34
+        damageType: 1
+        tracking: 0.015
+        projectileSpeed: 16

@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uCD08\uACBD\uB7C9\uACFC \uC815\uC2E0 \uC800\uD56D\uC744 \uC81C\uACF5\uD558\uB294
     \uBE44\uC804 \uC9C1\uBB3C."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 1152
-  unitPrice: 34
-  marketSaleRate: 0.6
   unitWeight: 0.12
   maxStack: 40
   sprite: {fileID: 0}
-  requiredResearchId: research:textile:dreamweave
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 34
+  features:
+  - rid: 7737211673962611559
+  - rid: 7737211673962611560
+  - rid: 7737211673962611561
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611559
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:textile:dreamweave
+    - rid: 7737211673962611560
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 1152
+        sharedIntermediate: 1
+    - rid: 7737211673962611561
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

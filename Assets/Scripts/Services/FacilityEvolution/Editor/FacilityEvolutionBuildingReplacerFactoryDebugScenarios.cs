@@ -25,11 +25,11 @@ public static class FacilityEvolutionBuildingReplacerFactoryDebugScenarios
 
         IFacilityEvolutionBuildingReplacerFactory factory =
             scope.Container.Resolve<IFacilityEvolutionBuildingReplacerFactory>();
-        IFacilityEvolutionRuntimeProvider runtimeProvider =
-            scope.Container.Resolve<IFacilityEvolutionRuntimeProvider>();
-        if (factory == null || runtimeProvider == null)
+        FacilityFeatureSceneRuntimeReferences runtimeReferences =
+            scope.Container.Resolve<FacilityFeatureSceneRuntimeReferences>();
+        if (factory == null || runtimeReferences == null)
         {
-            report = $"Resolve failed. factory={factory != null}, runtimeProvider={runtimeProvider != null}";
+            report = $"Resolve failed. factory={factory != null}, runtimeReferences={runtimeReferences != null}";
             return false;
         }
 
@@ -44,7 +44,7 @@ public static class FacilityEvolutionBuildingReplacerFactoryDebugScenarios
         string runtimeReason = string.Empty;
         try
         {
-            runtime = runtimeProvider.Runtime;
+            runtime = runtimeReferences.Evolution;
         }
         catch (Exception ex)
         {
@@ -59,7 +59,7 @@ public static class FacilityEvolutionBuildingReplacerFactoryDebugScenarios
             temporaryRuntimeInjected = true;
         }
 
-        report = $"scope={scope.name}, factoryResolved=True, runtimeProviderResolved=True, replacer={replacer?.GetType().Name ?? "null"}, rejectsNull={rejectsNull}, runtime={(runtime != null ? runtime.name : "null")}, runtimeReason={runtimeReason}, temporaryRuntimeInjected={temporaryRuntimeInjected}";
+        report = $"scope={scope.name}, factoryResolved=True, runtimeReferencesResolved=True, replacer={replacer?.GetType().Name ?? "null"}, rejectsNull={rejectsNull}, runtime={(runtime != null ? runtime.name : "null")}, runtimeReason={runtimeReason}, temporaryRuntimeInjected={temporaryRuntimeInjected}";
 
         if (temporaryRuntimeObject != null)
         {

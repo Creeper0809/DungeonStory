@@ -834,7 +834,7 @@ public sealed class RoomInspectionPlayModeVerificationRunner : MonoBehaviour
         temporaryWallData.height = 1;
         temporaryWallData.layer = GridLayer.Building;
         temporaryWallData.category = BuildingCategory.Wall;
-        temporaryWallData.type = typeof(BuildableObject);
+        temporaryWallData.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
         temporaryWallData.Facility = new FacilityData();
         temporaryWallData.Evolution = new FacilityEvolutionContributionData();
 

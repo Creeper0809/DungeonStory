@@ -1,0 +1,17 @@
+{
+  "name": "DungeonStory.ServiceRooms",
+  "rootNamespace": "DungeonStory.ServiceRooms",
+  "references": [
+    "DungeonStory.CoreSession",
+    "DungeonStory.Foundation"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

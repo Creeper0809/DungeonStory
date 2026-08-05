@@ -63,7 +63,12 @@ public sealed class DungeonResolutionVerificationRunner : MonoBehaviour
     private IEnumerator Start()
     {
         Directory.CreateDirectory("Temp");
-        PlayModeVerificationPersistenceSnapshot.CaptureCurrent("resolution-matrix");
+        if (!DungeonFinalPlayModeAcceptanceRequestFacade
+                .IsPersistenceCoordinatorActive)
+        {
+            PlayModeVerificationPersistenceSnapshot.CaptureCurrent(
+                "resolution-matrix");
+        }
         Application.logMessageReceived += CaptureLog;
         originalGameViewSizeIndex = GameViewResolutionController.SelectedSizeIndex;
         yield return null;
@@ -197,7 +202,9 @@ public sealed class DungeonResolutionVerificationRunner : MonoBehaviour
 
     private IEnumerator EnsurePlayableRun()
     {
-        DungeonSceneNavigator navigator = new DungeonSceneNavigator();
+        DungeonSceneNavigator navigator = new DungeonSceneNavigator(
+            new DungeonStory.Foundation.UnityGameTimeScaleController(),
+            new DungeonStory.Foundation.UnityUiClock());
         if (!navigator.StartNewGameDirectForDebug(DungeonDifficulty.Normal))
         {
             Check(
@@ -228,16 +235,39 @@ public sealed class DungeonResolutionVerificationRunner : MonoBehaviour
             yield return new WaitForSecondsRealtime(0.25f);
         }
 
-        bool ownerSelectionVisible = Resources.FindObjectsOfTypeAll<OwnerSelectionPanel>()
-            .Any(panel => panel != null
-                && panel.gameObject.scene.IsValid()
-                && panel.gameObject.activeInHierarchy);
+        string fastCommit =
+            StartPartyPreparationPlayModeVerifier.RunFastCommitForDebug();
+        report.Add("[INFO] FAST_PARTY_COMMIT " + fastCommit);
+
+        OwnerRunManager ownerManager = null;
+        bool ownerSelectionVisible = true;
+        float commitDeadline = Time.realtimeSinceStartup + 12f;
+        while (Time.realtimeSinceStartup < commitDeadline)
+        {
+            ownerManager = UnityEngine.Object.FindFirstObjectByType<
+                OwnerRunManager>(FindObjectsInactive.Include);
+            ownerSelectionVisible = Resources
+                .FindObjectsOfTypeAll<OwnerSelectionPanel>()
+                .Any(panel => panel != null
+                    && panel.gameObject.scene.IsValid()
+                    && panel.gameObject.activeInHierarchy);
+            if (ownerManager?.CurrentOwnerActor != null
+                && !ownerSelectionVisible)
+            {
+                break;
+            }
+
+            yield return null;
+        }
+
         GameObject saveModal = FindSceneObject("SaveModal");
         Check(SceneManager.GetActiveScene().name == DungeonSceneNavigator.GameplaySceneName
+                && ownerManager?.CurrentOwnerActor != null
                 && (saveModal == null || !saveModal.activeInHierarchy)
                 && !ownerSelectionVisible,
             "GAME_READY",
-            "Gameplay loaded and owner selection is closed before HUD checks");
+            "Gameplay loaded, the prepared party committed, and owner selection "
+                + $"closed before HUD checks; {fastCommit}");
     }
 
     private void VerifyGameplayHud(Vector2Int resolution)

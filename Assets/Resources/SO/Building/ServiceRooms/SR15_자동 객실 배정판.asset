@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,18 +33,20 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 14881f193cd4ecc4babd501660d3f539, type: 3}
   abilityModules:
     items:
-    - rid: 7302563313672519988
-    - rid: 7302563313672519989
-    - rid: 7302563313672519990
-    - rid: 7302563313672519991
-    - rid: 7302563313672519992
-    - rid: 7302563313672519993
+    - rid: 7737211730889016163
+    - rid: 7737211730889016164
+    - rid: 7737211730889016165
+    - rid: 7737211730889016166
+    - rid: 7737211730889016167
+    - rid: 7737211730889016168
+    - rid: 7737211730889016169
   width: 1
   height: 1
   layer: 3
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -62,7 +55,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563313672519988
+    - rid: 7737211730889016163
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -71,23 +64,35 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563313672519989
+    - rid: 7737211730889016164
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 24.8
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: component:machine-parts
+          amount: 2
+    - rid: 7737211730889016165
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: SR15
-    - rid: 7302563313672519990
+    - rid: 7737211730889016166
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563313672519991
+    - rid: 7737211730889016167
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - ServiceRoom
         - WorkSpeed
-    - rid: 7302563313672519992
+    - rid: 7737211730889016168
       type: {class: BuildingServiceSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceSupportAbility
@@ -105,7 +110,7 @@ MonoBehaviour:
         workSpeedMultiplier: 1.35
         satisfactionModifier: 0
         revenueModifier: 0
-    - rid: 7302563313672519993
+    - rid: 7737211730889016169
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility

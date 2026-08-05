@@ -27,39 +27,50 @@ MonoBehaviour:
   description: "\uC804\uBB38 \uC0C1\uC810\uACFC \uACE0\uAE09 \uC81C\uC791 \uC124\uBE44\uB97C
     \uAC1C\uBC29\uD55C\uB2E4."
   field: 1
-  requiredWork: 88
+  requiredWork: 92
   prerequisites:
   - {fileID: 11400000, guid: 37bea86414c60b04d9c5bcd13cfcef4b, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:commerce:retail
+    prerequisite: {fileID: 11400000, guid: 37bea86414c60b04d9c5bcd13cfcef4b, type: 2}
+    kind: 2
+    reason: "\uC0C1\uC5C5 \uC9C4\uC5F4\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC0C1\uC5C5 \uD655\uC7A5 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 1
   blueprint: {fileID: 11400000, guid: 75a99e92193be87e2a49bdbb00980764, type: 2}
   unlocks:
     items:
-    - rid: 7302563220868825647
-    - rid: 7302563220868825648
-    - rid: 7302563220868825649
-    - rid: 7302563220868825650
-    - rid: 7302563220868825651
+    - rid: 7737211730927812947
+    - rid: 7737211730927812948
+    - rid: 7737211730927812949
+    - rid: 7737211730927812950
+    - rid: 7737211730927812951
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563220868825647
+    - rid: 7737211730927812947
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1005
-    - rid: 7302563220868825648
+    - rid: 7737211730927812948
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1007
-    - rid: 7302563220868825649
+    - rid: 7737211730927812949
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1010
-    - rid: 7302563220868825650
+    - rid: 7737211730927812950
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1011
-    - rid: 7302563220868825651
+    - rid: 7737211730927812951
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1019

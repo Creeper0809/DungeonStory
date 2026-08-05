@@ -2,11 +2,6 @@ using System;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-public interface ILlmJsonPayload
-{
-    bool Validate(out string error);
-}
-
 public static class LlmJsonResponseParser
 {
     private static readonly Regex TrailingCommaRegex = new Regex(

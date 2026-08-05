@@ -13,7 +13,10 @@ public static class DungeonWorkRegistration
         builder.Register<ResearchWorkExecutionHandler>(Lifetime.Singleton)
             .As<IWorkExecutionHandler>()
             .As<IWorkCandidateProvider>();
-        builder.Register<CraftWorkExecutionHandler>(Lifetime.Singleton)
+        builder.Register<BuildingCraftWorkRuntimeAdapter>(Lifetime.Singleton)
+            .As<IBuildingCraftWorkRuntimePort>();
+        builder.Register<CraftWorkExecutionHandler>(Lifetime.Singleton);
+        builder.Register<CraftWorkExecutionAdapter>(Lifetime.Singleton)
             .As<IWorkExecutionHandler>()
             .As<IWorkCandidateProvider>();
         builder.Register<ButcherWorkExecutionHandler>(Lifetime.Singleton)
@@ -26,11 +29,11 @@ public static class DungeonWorkRegistration
             .As<IWorkUrgencyProvider>();
         builder.Register<CleanWorkExecutionHandler>(Lifetime.Singleton)
             .As<IWorkExecutionHandler>();
-        builder.Register<WardenWorkExecutionHandler>(Lifetime.Singleton)
+        builder.Register<WardenWorkExecutionUnityAdapter>(Lifetime.Singleton)
             .As<IWorkExecutionHandler>()
             .As<IWorkCandidateProvider>()
             .As<IWorkUrgencyProvider>();
-        builder.Register<PerformWorkExecutionHandler>(Lifetime.Singleton)
+        builder.Register<PerformWorkExecutionUnityAdapter>(Lifetime.Singleton)
             .As<IWorkExecutionHandler>()
             .As<IWorkCandidateProvider>()
             .As<IWorkUrgencyProvider>();
@@ -38,7 +41,10 @@ public static class DungeonWorkRegistration
             .As<IWorkExecutionHandler>()
             .As<IWorkCandidateProvider>()
             .As<IWorkUrgencyProvider>();
-        builder.Register<AnimalHusbandryWorkExecutionHandler>(Lifetime.Singleton)
+        builder.Register<AnimalHusbandryWorkRuntimePortAdapter>(Lifetime.Singleton)
+            .As<IAnimalHusbandryWorkRuntimePort>();
+        builder.Register<AnimalHusbandryWorkExecutionHandler>(Lifetime.Singleton);
+        builder.Register<AnimalHusbandryWorkExecutionAdapter>(Lifetime.Singleton)
             .As<IWorkExecutionHandler>()
             .As<IWorkCandidateProvider>()
             .As<IWorkUrgencyProvider>();
@@ -73,6 +79,15 @@ public static class DungeonWorkRegistration
             .As<IBuildingWorkCompletionFallbackHandler>();
         builder.Register<EquipmentCraftingBuildingAbilityHandler>(Lifetime.Singleton)
             .As<IBuildingAbilityWorkCompletedHandler>();
+        builder.Register<ModularBuildingCoreFacilityEffectsAdapter>(Lifetime.Singleton)
+            .As<DungeonStory.Buildings.IBuildingCoreFacilityEffectsPort>();
+        builder.Register<DungeonStory.Buildings.ProductionBuildingAbilityHandler>(Lifetime.Singleton);
+        builder.Register<DungeonStory.Buildings.CleaningBuildingAbilityHandler>(Lifetime.Singleton);
+        builder.Register<DungeonStory.Buildings.SecurityBuildingAbilityHandler>(Lifetime.Singleton);
+        builder.Register<DungeonStory.Buildings.ReceptionBuildingAbilityHandler>(Lifetime.Singleton);
+        builder.Register<DungeonStory.Buildings.PatrolPostBuildingAbilityHandler>(Lifetime.Singleton);
+        builder.Register<DungeonStory.Buildings.OutdoorRestBuildingAbilityHandler>(Lifetime.Singleton);
+        builder.Register<DungeonStory.Buildings.ExteriorMaintenanceBuildingAbilityHandler>(Lifetime.Singleton);
         builder.Register<ProductionBuildingAbilityHandler>(Lifetime.Singleton)
             .As<IBuildingAbilityWorkCompletedHandler>();
         builder.Register<CleaningBuildingAbilityHandler>(Lifetime.Singleton)

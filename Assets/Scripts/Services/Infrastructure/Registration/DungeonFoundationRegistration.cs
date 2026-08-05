@@ -12,11 +12,16 @@ public static class DungeonFoundationRegistration
         builder.Register<UnityGameTimeScaleController>(Lifetime.Singleton)
             .As<IGameTimeScaleController>();
         builder.Register(
-                _ => new RandomStreamProvider(rootSeed: 1),
+                resolver => new RandomStreamProvider(
+                    resolver.Resolve<DungeonRuntimeAggregateRootStore>()),
                 Lifetime.Singleton)
             .As<IRandomStreamProvider>();
         builder.Register<GameEventBus>(Lifetime.Singleton)
             .As<IGameEventBus>();
+        builder.Register<BuildingVisitEventPublisher>(Lifetime.Singleton)
+            .As<IBuildingVisitEventPort>();
+        builder.Register<GuidPersistentIdGenerator>(Lifetime.Singleton)
+            .As<IPersistentIdGenerator>();
         builder.Register<DynamicFrameWorkBudget>(Lifetime.Singleton)
             .As<IDynamicFrameWorkBudget>();
         builder.RegisterInstance(DefaultGridTraversalCostPolicy.Instance)
@@ -34,6 +39,9 @@ public static class DungeonFoundationRegistration
             .As<ISceneRuntimeRegistry<IWarehouseFacility>>();
         builder.Register<SceneRuntimeRegistry<IRetailFacility>>(Lifetime.Singleton)
             .As<ISceneRuntimeRegistry<IRetailFacility>>();
+        builder.Register<RestoreWorldCandidateIndex>(Lifetime.Singleton)
+            .As<IRestoreWorldCandidateQuery>()
+            .As<IRestoreWorldCandidatePublisher>();
         builder.Register<CharacterAiWorldRegistry>(Lifetime.Singleton)
             .AsImplementedInterfaces();
     }

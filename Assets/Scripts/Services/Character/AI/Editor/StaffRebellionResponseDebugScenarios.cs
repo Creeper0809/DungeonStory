@@ -247,10 +247,11 @@ public static class StaffRebellionResponseDebugScenarios
             data.height = 1;
             data.layer = GridLayer.Hallway;
             data.category = BuildingCategory.Movement;
-            data.type = typeof(BuildableObject);
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
 
             obj.transform.position = Grid.GetWorldPos(position);
             hallway.SetGrid(Grid);
+            CharacterAiEditorTestDependencies.Inject(hallway);
             hallway.Initialization(data, position);
             Grid.RegisterOccupant(
                 hallway,

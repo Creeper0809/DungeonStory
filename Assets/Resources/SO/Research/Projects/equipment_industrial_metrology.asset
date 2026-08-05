@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: equipment_industrial_metrology
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7244
+  projectId: research:equipment:industrial-metrology
+  displayName: "\uC0B0\uC5C5 \uACC4\uCE21\uD559"
+  description: "\uC2DC\uC81C\uD488 \uACF5\uC815\uACFC \uC815\uBC00 \uC790\uB3D9\uD654\uC758
+    \uD3B8\uCC28\uB97C \uACF5\uC7A5 \uADDC\uBAA8\uC5D0\uC11C \uACC4\uCE21\uD55C\uB2E4."
+  field: 15
+  requiredWork: 960
+  prerequisites:
+  - {fileID: 11400000, guid: 8839eece9e0123c429a6f8b47e3801b2, type: 2}
+  - {fileID: 11400000, guid: 5f482d6d36c48094fbdc08be33a2735a, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:equipment:prototype-engineering
+    prerequisite: {fileID: 11400000, guid: 8839eece9e0123c429a6f8b47e3801b2, type: 2}
+    kind: 2
+    reason: "\uC2DC\uC81C\uD488 \uACF5\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC0B0\uC5C5 \uACC4\uCE21\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:precision
+    prerequisite: {fileID: 11400000, guid: 5f482d6d36c48094fbdc08be33a2735a, type: 2}
+    kind: 2
+    reason: "\uC815\uBC00 \uC790\uB3D9\uD654\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC0B0\uC5C5 \uACC4\uCE21\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211730927813214
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730927813214
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 8846

@@ -27,21 +27,42 @@ MonoBehaviour:
   description: "\uD1B5\uC99D\uC744 \uD06C\uAC8C \uB0AE\uCD94\uC9C0\uB9CC \uC758\uC874
     \uC704\uD5D8\uC774 \uC788\uB2E4."
   stockCategory: 5
-  kind: 4
-  ingredientTags: 1
-  unitPrice: 18
-  marketSaleRate: 0.6
   unitWeight: 0.12
   maxStack: 30
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:anesthesia
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 18
+  features:
+  - rid: 7737211673962611640
+  - rid: 7737211673962611641
+  - rid: 7737211673962611642
+  - rid: 7737211673962611643
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611640
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:anesthesia
+    - rid: 7737211673962611641
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 4
+        ingredientTags: 1
+        sharedIntermediate: 0
+    - rid: 7737211673962611642
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211673962611643
+      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        substanceId: substance:dreamleaf-analgesic
+        useClass: 2
+        addictionChance: 0.08
+        overdoseChance: 0.02
+        toleranceGain: 0.12
+        withdrawalPerHour: 0.02
+        moodEffect: 4
+        workSpeedEffect: 0.05
+        combatEffect: -0.03
+        durationSeconds: 240

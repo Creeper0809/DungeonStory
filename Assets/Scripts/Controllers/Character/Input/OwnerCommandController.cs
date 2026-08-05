@@ -62,22 +62,19 @@ public class OwnerCommandController :
     private ICharacterAiWorldRegistry worldRegistry;
     private IDefenseEngagementRuntime defenseEngagementRuntime;
     private IGameEventBus gameEventBus;
-    private IDisposable infoFeedSubscription;
-    private CharacterActor selectedActor;
-    private readonly List<CharacterActor> selectedActors = new List<CharacterActor>();
-    private bool trackingDragSelection;
-    private Vector3 dragStartScreenPosition;
+    private readonly OwnerCommandSelectionState selection = new();
+    private OwnerCommandDragSelector dragSelector;
+    private OwnerCommandInfoFeedBridge infoFeedBridge;
     private CombatCommandType combatInputMode;
 
-    public CharacterActor SelectedActor => selectedActor != null ? selectedActor : null;
-    public IReadOnlyList<CharacterActor> SelectedActors
+    private CharacterActor selectedActor
     {
-        get
-        {
-            PruneSelection();
-            return selectedActors;
-        }
+        get => selection.Primary;
+        set => selection.Primary = value;
     }
+    private IReadOnlyList<CharacterActor> selectedActors => selection.Actors;
+    public CharacterActor SelectedActor => selection.Primary;
+    public IReadOnlyList<CharacterActor> SelectedActors => selection.Actors;
     public CombatCommandType CombatInputMode => combatInputMode;
     public bool HasCombatStanceSelection => GetSelectedCommandActors()
         .Any(actor => combatCommandRuntime != null
@@ -116,13 +113,25 @@ public class OwnerCommandController :
             ?? throw new ArgumentNullException(nameof(defenseEngagementRuntime));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
-        SubscribeToInfoFeed();
+        dragSelector = new OwnerCommandDragSelector(
+            selection,
+            this.inputReader,
+            this.uiPointerBlocker,
+            this.mainCameraProvider,
+            this.worldRegistry);
+        infoFeedBridge = new OwnerCommandInfoFeedBridge(
+            this.gameEventBus,
+            OnTriggerEvent);
+        infoFeedBridge.Enable(isActiveAndEnabled);
     }
 
     private void Update()
     {
         PruneSelection();
-        UpdateDragSelection();
+        dragSelector?.Update(
+            targetCamera,
+            dragSelectionThresholdPixels,
+            IsShiftHeld());
 
         if (selectedActor == null)
         {
@@ -745,7 +754,9 @@ public class OwnerCommandController :
             CharacterActivityOutcomes.Failed,
             $"우선 지정 실패: {message}",
             actionId: "command:priority-suppress",
-            targetId: target != null ? $"character:{target.GetInstanceID()}" : string.Empty,
+            targetId: target != null
+                ? CharacterPersistentIdentity.Require(target).Value
+                : string.Empty,
             targetName: target != null ? target.name : string.Empty,
             reasonCode: reasonCode,
             sentiment: -0.7f,
@@ -763,102 +774,23 @@ public class OwnerCommandController :
 
     private void OnEnable()
     {
-        SubscribeToInfoFeed();
+        infoFeedBridge?.Enable(isActiveAndEnabled);
     }
 
     private void OnDisable()
     {
-        infoFeedSubscription?.Dispose();
-        infoFeedSubscription = null;
+        infoFeedBridge?.Disable();
         ClearSelection();
-        trackingDragSelection = false;
-    }
-
-    private void SubscribeToInfoFeed()
-    {
-        if (!isActiveAndEnabled || gameEventBus == null)
-        {
-            return;
-        }
-
-        infoFeedSubscription ??=
-            gameEventBus.Subscribe<InfoFeedEvent>(OnTriggerEvent);
-    }
-
-    private void UpdateDragSelection()
-    {
-        IPlayerInputReader input = inputReader;
-        if (input == null)
-        {
-            return;
-        }
-
-        if (input.GetMouseButtonDown(0))
-        {
-            trackingDragSelection = !RequireUiPointerBlocker().IsPointerOverUi();
-            dragStartScreenPosition = input.MousePosition;
-            return;
-        }
-
-        if (!trackingDragSelection || input.GetMouseButton(0))
-        {
-            return;
-        }
-
-        trackingDragSelection = false;
-        Vector3 end = input.MousePosition;
-        if (RequireUiPointerBlocker().IsPointerOverUi()
-            || Vector2.Distance(dragStartScreenPosition, end) < dragSelectionThresholdPixels)
-        {
-            return;
-        }
-
-        SelectActorsInScreenRect(dragStartScreenPosition, end, IsShiftHeld());
+        dragSelector?.Reset();
     }
 
     public int SelectActorsInScreenRect(Vector2 start, Vector2 end, bool additive)
     {
-        Camera camera = targetCamera != null
-            ? targetCamera
-            : mainCameraProvider?.Camera;
-        if (camera == null)
-        {
-            return 0;
-        }
-
-        Rect selectionRect = Rect.MinMaxRect(
-            Mathf.Min(start.x, end.x),
-            Mathf.Min(start.y, end.y),
-            Mathf.Max(start.x, end.x),
-            Mathf.Max(start.y, end.y));
-        if (!additive)
-        {
-            ClearSelection();
-        }
-
-        int added = 0;
-        foreach (CharacterActor candidate in worldRegistry.Characters)
-        {
-            CharacterActor actor = CharacterActorCollection.GetCanonical(candidate);
-            if (!IsCommandableActor(actor)
-                || actor.TryGetComponent(out InvasionIntruderRuntime _))
-            {
-                continue;
-            }
-
-            Vector3 screen = camera.WorldToScreenPoint(actor.transform.position);
-            if (screen.z < 0f || !selectionRect.Contains(screen))
-            {
-                continue;
-            }
-
-            if (AddSelection(actor))
-            {
-                added++;
-            }
-        }
-
-        selectedActor = selectedActors.LastOrDefault();
+        int added = dragSelector?.SelectActorsInScreenRect(
+            targetCamera,
+            start,
+            end,
+            additive) ?? 0;
         if (added > 0)
         {
             gameEventBus.ShowNotice(
@@ -869,78 +801,17 @@ public class OwnerCommandController :
         return added;
     }
 
-    private IEnumerable<CharacterActor> GetSelectedCommandActors()
-    {
-        PruneSelection();
-        if (selectedActors.Count > 0)
-        {
-            return selectedActors.ToArray();
-        }
+    private IEnumerable<CharacterActor> GetSelectedCommandActors() =>
+        selection.GetCommandActors();
 
-        return selectedActor != null
-            ? new[] { selectedActor }
-            : Array.Empty<CharacterActor>();
-    }
+    private static bool IsCommandableActor(CharacterActor actor) =>
+        OwnerCommandSelectionState.IsCommandable(actor);
 
-    private static bool IsCommandableActor(CharacterActor actor)
-    {
-        return actor != null
-            && !actor.IsDead
-            && actor.TryGetAbility(out AbilityWork _);
-    }
+    private bool AddSelection(CharacterActor actor) => selection.Add(actor);
 
-    private bool AddSelection(CharacterActor actor)
-    {
-        if (actor == null || selectedActors.Contains(actor))
-        {
-            return false;
-        }
+    private void ClearSelection() => selection.Clear();
 
-        selectedActors.Add(actor);
-        if (Application.isPlaying)
-        {
-            WorldCharacterNameplate.Ensure(actor)?.SetCommandSelected(true);
-        }
-        return true;
-    }
-
-    private void ClearSelection()
-    {
-        foreach (CharacterActor actor in selectedActors)
-        {
-            if (actor != null && actor.TryGetComponent(out WorldCharacterNameplate nameplate))
-            {
-                nameplate.SetCommandSelected(false);
-            }
-        }
-
-        selectedActors.Clear();
-        selectedActor = null;
-    }
-
-    private void PruneSelection()
-    {
-        for (int i = selectedActors.Count - 1; i >= 0; i--)
-        {
-            CharacterActor actor = selectedActors[i];
-            if (IsCommandableActor(actor))
-            {
-                continue;
-            }
-
-            if (actor != null && actor.TryGetComponent(out WorldCharacterNameplate nameplate))
-            {
-                nameplate.SetCommandSelected(false);
-            }
-
-            selectedActors.RemoveAt(i);
-        }
-
-        if (!IsCommandableActor(selectedActor))
-        {
-            selectedActor = selectedActors.LastOrDefault();
-        }
-    }
+    private void PruneSelection() => selection.Prune();
 
     private bool IsShiftHeld()
     {
@@ -949,27 +820,15 @@ public class OwnerCommandController :
                 || inputReader.GetKey(KeyCode.RightShift));
     }
 
-    private IMainCameraProvider RequireMainCameraProvider()
-    {
-        return mainCameraProvider
-            ?? throw new InvalidOperationException($"{nameof(OwnerCommandController)} requires {nameof(IMainCameraProvider)} injection.");
-    }
+    private IMainCameraProvider RequireMainCameraProvider() => mainCameraProvider
+        ?? throw new InvalidOperationException($"{nameof(OwnerCommandController)} requires {nameof(IMainCameraProvider)} injection.");
 
-    private IPlayerInputReader RequireInputReader()
-    {
-        return inputReader
-            ?? throw new InvalidOperationException($"{nameof(OwnerCommandController)} requires {nameof(IPlayerInputReader)} injection.");
-    }
+    private IPlayerInputReader RequireInputReader() => inputReader
+        ?? throw new InvalidOperationException($"{nameof(OwnerCommandController)} requires {nameof(IPlayerInputReader)} injection.");
 
-    private IWorldPointerRaycaster RequirePointerRaycaster()
-    {
-        return pointerRaycaster
-            ?? throw new InvalidOperationException($"{nameof(OwnerCommandController)} requires {nameof(IWorldPointerRaycaster)} injection.");
-    }
+    private IWorldPointerRaycaster RequirePointerRaycaster() => pointerRaycaster
+        ?? throw new InvalidOperationException($"{nameof(OwnerCommandController)} requires {nameof(IWorldPointerRaycaster)} injection.");
 
-    private IUiPointerBlocker RequireUiPointerBlocker()
-    {
-        return uiPointerBlocker
-            ?? throw new InvalidOperationException($"{nameof(OwnerCommandController)} requires {nameof(IUiPointerBlocker)} injection.");
-    }
+    private IUiPointerBlocker RequireUiPointerBlocker() => uiPointerBlocker
+        ?? throw new InvalidOperationException($"{nameof(OwnerCommandController)} requires {nameof(IUiPointerBlocker)} injection.");
 }

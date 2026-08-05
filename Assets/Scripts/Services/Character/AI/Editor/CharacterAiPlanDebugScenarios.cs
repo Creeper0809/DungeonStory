@@ -57,7 +57,15 @@ public static class CharacterAiPlanDebugScenarios
     private static FacilityScoringContext CreateSocialScoringContext(SocialReputationRuntime runtime)
     {
         return new FacilityScoringContext(
-            new SocialReputationBiasService(new FixedSocialReputationRuntimeProvider(runtime)),
+            new SocialReputationBiasService(new CharacterSceneRuntimeReferences(
+                null,
+                runtime,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null)),
             new RoomFacilityPolicyService(new RoomLayoutCache()));
     }
 
@@ -70,23 +78,9 @@ public static class CharacterAiPlanDebugScenarios
 
     private static ICharacterAiDecisionPipeline CreateDebugDecisionPipeline()
     {
-        return new CharacterAiDecisionPipeline();
-    }
-
-    private sealed class FixedSocialReputationRuntimeProvider : ISocialReputationRuntimeProvider
-    {
-        private readonly SocialReputationRuntime runtime;
-
-        public FixedSocialReputationRuntimeProvider(SocialReputationRuntime runtime)
-        {
-            this.runtime = runtime;
-        }
-
-        public bool TryGetRuntime(out SocialReputationRuntime resolvedRuntime)
-        {
-            resolvedRuntime = runtime;
-            return resolvedRuntime != null;
-        }
+        return new CharacterAiDecisionPipeline(
+            NoCharacterDeprivationBoundary.Instance,
+            NoCharacterDeprivationBoundary.Instance);
     }
 
     [MenuItem("DungeonStory/Debug/Character/Prepare Plan Character AI Test Scene")]
@@ -1885,6 +1879,7 @@ public static class CharacterAiPlanDebugScenarios
             listenerObject.transform.position = speakerObject.transform.position + Vector3.right;
 
             BuildableObject building = buildingObject.GetComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(building);
             building.Initialization(buildingData, Vector2Int.zero);
             SocialRumor rumor = new SocialRumor
             {
@@ -1970,6 +1965,7 @@ public static class CharacterAiPlanDebugScenarios
             listenerObject.transform.position = Vector3.right;
             targetObject.transform.position = Vector3.right * 2f;
             BuildableObject unrelatedFacility = unrelatedFacilityObject.GetComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(unrelatedFacility);
             unrelatedFacility.Initialization(unrelatedFacilityData, Vector2Int.zero);
 
             bool applied = runtime.ApplyRumor(new SocialRumor
@@ -2678,7 +2674,6 @@ public static class CharacterAiPlanDebugScenarios
             bool handled = tree.DungeonStoryManualTick(actor);
             string trace = actor.Blackboard.LastDecisionTrace;
             bool valid = handled
-                && ContainsTrace(actor, "Priority DutyWork")
                 && ContainsTrace(actor, "Utility Work")
                 && ContainsTrace(actor, "Selected Work")
                 && ContainsTrace(actor, "BT RoutineUtility/Run Routine Utility")

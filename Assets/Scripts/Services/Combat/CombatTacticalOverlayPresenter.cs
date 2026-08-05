@@ -289,7 +289,8 @@ public sealed class CombatTacticalOverlayPresenter :
 
     private static string GetId(CharacterActor actor)
     {
-        return actor?.Identity?.PersistentId
-            ?? (actor != null ? $"character:{actor.GetInstanceID()}" : string.Empty);
+        return actor != null
+            ? CharacterPersistentIdentity.Require(actor).Value
+            : string.Empty;
     }
 }

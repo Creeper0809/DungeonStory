@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -11,7 +12,7 @@ public static class FacilityDebugScenarios
     private static readonly IWorldInfoClickSelector WorldInfoClickSelector =
         new NoopWorldInfoClickSelector();
     private static readonly IFacilityCandidateCache FacilityCandidateCacheService =
-        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
     private static readonly IRoomFacilityPolicy RoomFacilityPolicyService =
         new RoomFacilityPolicyService(RoomRegistry.EditorCache);
     private static readonly IShopStockCatalog ShopStockCatalogService =
@@ -40,13 +41,13 @@ public static class FacilityDebugScenarios
         RunScenario("작업 후보 판정", VerifyWorkability, errors);
         RunScenario("재고/파손 제외", VerifyUnavailableFacilitiesAreExcluded, errors);
         RunScenario("재고 계열 설정", VerifyStockCategories, errors);
-        RunScenario("창고 런타임 재고", VerifyWarehouseInventory, errors);
-        RunScenario("창고에서 상점 보충", VerifyWarehouseRestocksShop, errors);
+        RunScenario("창고 물리 재고 인덱스", VerifyWarehouseInventory, errors);
+        RunScenario("물리 런타임 없는 상점 보충 차단", VerifyShopRestockRequiresPhysicalRuntime, errors);
         RunScenario("운영일 납품 제안", VerifyDailyDeliveryOffers, errors);
-        RunScenario("돈으로 창고 재고 구매", VerifyPurchaseDeliveryUsesMoneyAndWarehouseCapacity, errors);
+        RunScenario("물리 런타임 없는 납품 차단", VerifyDeliveryRequiresPhysicalRuntime, errors);
         RunScenario("재고 구매 실패 조건", VerifyPurchaseDeliveryFailureConditions, errors);
-        RunScenario("침입 보상 재고 입고", VerifyDefenseRewardStockGrant, errors);
-        RunScenario("내부 생산 확장 슬롯", VerifyInternalProductionSlot, errors);
+        RunScenario("물리 런타임 없는 보상 차단", VerifyDefenseRewardRequiresPhysicalRuntime, errors);
+        RunScenario("물리 런타임 없는 내부 생산 차단", VerifyInternalProductionRequiresPhysicalRuntime, errors);
 
         if (errors.Count > 0)
         {
@@ -160,15 +161,23 @@ public static class FacilityDebugScenarios
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
         BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
 
-        return warehouseBuilding is IWarehouseFacility warehouse
-            && warehouse.HasWarehouseInventory
-            && warehouse.Inventory.TotalStock == warehouseBuilding.GetInternalStockCapacity()
-            && warehouse.Inventory.GetStock(StockCategory.Food) > 0
-            && warehouse.Inventory.GetStock(StockCategory.Weapon) > 0
-            && warehouse.Inventory.GetStock(StockCategory.Mana) > 0;
+        if (warehouseBuilding is not IWarehouseFacility warehouse
+            || !warehouse.HasWarehouseInventory
+            || warehouse.Inventory.TotalStock != 0)
+        {
+            return false;
+        }
+
+        warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 3);
+        warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Weapon, 2);
+        warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Mana, 1);
+        return warehouse.Inventory.TotalStock == 6
+            && warehouse.Inventory.GetStock(StockCategory.Food) == 3
+            && warehouse.Inventory.GetStock(StockCategory.Weapon) == 2
+            && warehouse.Inventory.GetStock(StockCategory.Mana) == 1;
     }
 
-    private static bool VerifyWarehouseRestocksShop()
+    private static bool VerifyShopRestockRequiresPhysicalRuntime()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
         BuildableObject shopBuilding = world.Place("P1_LowFoodShop", new Vector2Int(1, 0));
@@ -176,19 +185,28 @@ public static class FacilityDebugScenarios
         Shop shop = shopBuilding as Shop;
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
         ClearShopStock(shopBuilding);
+        warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 5);
 
         int beforeWarehouseFood = warehouse.Inventory.GetStock(StockCategory.Food);
-        int moved = shop.RestockFrom(new[] { warehouse }, 5, out string message);
-
-        return moved == 5
-            && message == "5개 보충"
-            && shop.CurrentStock == 5
-            && warehouse.Inventory.GetStock(StockCategory.Food) == beforeWarehouseFood - 5;
+        try
+        {
+            shop.RestockFrom(new[] { warehouse }, 5, out _);
+            return false;
+        }
+        catch (System.InvalidOperationException error)
+        {
+            return error.Message == "Shop restocking requires physical item runtime."
+                && shop.CurrentStock == 0
+                && warehouse.Inventory.GetStock(StockCategory.Food) == beforeWarehouseFood;
+        }
     }
 
     private static bool VerifyDailyDeliveryOffers()
     {
-        IReadOnlyList<StockDeliveryOffer> offers = StockSupplyService.CreateDailyDeliveryOffers(1, DefaultStockCostMultiplier);
+        IReadOnlyList<StockDeliveryOffer> offers = StockSupplyService.CreateDailyDeliveryOffers(
+            1,
+            DefaultStockCostMultiplier,
+            CharacterAiEditorTestDependencies.AuthoredGameplay);
 
         return offers.Count >= 7
             && offers.Any((offer) => offer.category == StockCategory.Food && offer.amount > 0 && offer.cost > 0)
@@ -200,31 +218,32 @@ public static class FacilityDebugScenarios
             && offers.Any((offer) => offer.category == StockCategory.Fuel && offer.amount > 0 && offer.cost > 0);
     }
 
-    private static bool VerifyPurchaseDeliveryUsesMoneyAndWarehouseCapacity()
+    private static bool VerifyDeliveryRequiresPhysicalRuntime()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
         BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
-        GameData gameData = CreateGameData(500);
-        warehouse.Inventory.Withdraw(StockCategory.Food, 10);
+        GameSessionState gameData = CreateGameData(500);
+        warehouse.Inventory.ConsumePhysicalStockForTest(StockCategory.Food, 10);
 
         int beforeMoney = gameData.holdingMoney.Value;
         int beforeFood = warehouse.Inventory.GetStock(StockCategory.Food);
         StockDeliveryOffer offer = new StockDeliveryOffer(StockCategory.Food, 5, 40, "테스트 납품");
         bool success = StockSupplyService.TryPurchaseDelivery(
-            gameData,
+            new EditorGameMoneyAccount(gameData),
             new[] { warehouse },
+            itemStackRuntime: null,
             offer,
+            DisabledDungeonDebugRuleQuery.Instance,
             out StockSupplyResult result);
 
         int afterMoney = gameData.holdingMoney.Value;
-        Object.DestroyImmediate(gameData);
-        return success
-            && result.success
-            && result.deliveredAmount == 5
-            && warehouse.Inventory.GetStock(StockCategory.Food) == beforeFood + 5
-            && warehouse.Inventory.TotalStock <= warehouse.Inventory.MaxCapacity
-            && beforeMoney - afterMoney == 40;
+        return !success
+            && !result.success
+            && result.deliveredAmount == 0
+            && result.reason == "물리 아이템 런타임 없음"
+            && warehouse.Inventory.GetStock(StockCategory.Food) == beforeFood
+            && beforeMoney == afterMoney;
     }
 
     private static bool VerifyPurchaseDeliveryFailureConditions()
@@ -232,82 +251,86 @@ public static class FacilityDebugScenarios
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
         BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
-        GameData poorData = CreateGameData(1);
-        GameData richData = CreateGameData(500);
+        GameSessionState poorData = CreateGameData(1);
+        GameSessionState richData = CreateGameData(500);
         StockDeliveryOffer offer = new StockDeliveryOffer(StockCategory.Food, 5, 40, "테스트 납품");
 
         bool noMoney = !StockSupplyService.TryPurchaseDelivery(
-            poorData,
+            new EditorGameMoneyAccount(poorData),
             new[] { warehouse },
+            itemStackRuntime: null,
             offer,
+            DisabledDungeonDebugRuleQuery.Instance,
             out StockSupplyResult noMoneyResult)
             && noMoneyResult.reason == "자금 부족";
 
-        bool noSpace = !StockSupplyService.TryPurchaseDelivery(
-            richData,
+        bool noPhysicalRuntime = !StockSupplyService.TryPurchaseDelivery(
+            new EditorGameMoneyAccount(richData),
             new[] { warehouse },
+            itemStackRuntime: null,
             offer,
-            out StockSupplyResult noSpaceResult)
-            && noSpaceResult.reason == "창고 공간 부족";
+            DisabledDungeonDebugRuleQuery.Instance,
+            out StockSupplyResult noPhysicalRuntimeResult)
+            && noPhysicalRuntimeResult.reason == "물리 아이템 런타임 없음";
 
-        Object.DestroyImmediate(poorData);
-        Object.DestroyImmediate(richData);
-        return noMoney && noSpace;
+        return noMoney && noPhysicalRuntime;
     }
 
-    private static bool VerifyDefenseRewardStockGrant()
+    private static bool VerifyDefenseRewardRequiresPhysicalRuntime()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
         BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
-        warehouse.Inventory.Withdraw(StockCategory.Weapon, 5);
+        warehouse.Inventory.ConsumePhysicalStockForTest(StockCategory.Weapon, 5);
 
         int beforeWeapon = warehouse.Inventory.GetStock(StockCategory.Weapon);
         bool success = StockSupplyService.GrantReward(
             new[] { warehouse },
+            itemStackRuntime: null,
             StockCategory.Weapon,
             3,
             "침입 방어 보상",
             out StockSupplyResult result);
 
-        return success
-            && result.success
+        return !success
+            && !result.success
             && result.cost == 0
-            && result.deliveredAmount == 3
-            && warehouse.Inventory.GetStock(StockCategory.Weapon) == beforeWeapon + 3;
+            && result.deliveredAmount == 0
+            && result.reason == "물리 아이템 런타임 없음"
+            && warehouse.Inventory.GetStock(StockCategory.Weapon) == beforeWeapon;
     }
 
-    private static bool VerifyInternalProductionSlot()
+    private static bool VerifyInternalProductionRequiresPhysicalRuntime()
     {
         using FacilityScenarioWorld world = new FacilityScenarioWorld();
         BuildableObject warehouseBuilding = world.Place("P1_Warehouse", new Vector2Int(5, 0));
         IWarehouseFacility warehouse = warehouseBuilding as IWarehouseFacility;
-        warehouse.Inventory.Withdraw(StockCategory.Mana, 4);
+        warehouse.Inventory.ConsumePhysicalStockForTest(StockCategory.Mana, 4);
 
         int beforeMana = warehouse.Inventory.GetStock(StockCategory.Mana);
         List<StockSupplyResult> results = StockSupplyService.RunInternalProduction(
             new[] { warehouse },
+            itemStackRuntime: null,
             new[] { new StockProductionRule(StockCategory.Mana, 2, "내부 생산") });
 
         return results.Count == 1
-            && results[0].success
-            && results[0].deliveredAmount == 2
-            && warehouse.Inventory.GetStock(StockCategory.Mana) == beforeMana + 2;
+            && !results[0].success
+            && results[0].deliveredAmount == 0
+            && results[0].reason == "물리 아이템 런타임 없음"
+            && warehouse.Inventory.GetStock(StockCategory.Mana) == beforeMana;
     }
 
     private static void ClearShopStock(BuildableObject building)
     {
-        FieldInfo field = typeof(Shop).GetField("stocks", BindingFlags.Instance | BindingFlags.NonPublic);
-        if (field != null)
+        if (building is Shop shop)
         {
-            field.SetValue(building, new List<RemainStock>());
+            shop.DebugClearStock();
         }
     }
 
-    private static GameData CreateGameData(int holdingMoney)
+    private static GameSessionState CreateGameData(int holdingMoney)
     {
-        GameData gameData = ScriptableObject.CreateInstance<GameData>();
-        gameData.holdingMoney = new Data<int>();
+        GameSessionState gameData = new GameSessionState();
         gameData.holdingMoney.Initialize(holdingMoney);
         return gameData;
     }
@@ -316,13 +339,12 @@ public static class FacilityDebugScenarios
     {
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly List<ScriptableObject> scriptableObjects = new List<ScriptableObject>();
-        private readonly IGameDataProvider gameDataProvider;
+        private readonly IGameMoneyAccount moneyAccount;
 
         public FacilityScenarioWorld()
         {
-            GameData gameData = CreateGameData(1000);
-            scriptableObjects.Add(gameData);
-            gameDataProvider = new FixedGameDataProvider(gameData);
+            GameSessionState gameData = CreateGameData(1000);
+            moneyAccount = new EditorGameMoneyAccount(gameData);
             Grid = new Grid(14, 1);
             for (int x = 0; x < Grid.width; x++)
             {
@@ -394,7 +416,7 @@ public static class FacilityDebugScenarios
             buildingData.height = 1;
             buildingData.layer = GridLayer.Building;
             buildingData.category = BuildingCategory.None;
-            buildingData.type = typeof(Door);
+            buildingData.runtimeArchetype = BuildingRuntimeArchetypeKind.Door;
             buildingData.unlocked = true;
             buildingData.Facility = new FacilityData();
 
@@ -413,22 +435,43 @@ public static class FacilityDebugScenarios
 
         private void InjectBuildableObject(BuildableObject building)
         {
+            building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            building.ConstructDebugRules(DisabledDungeonDebugRuleQuery.Instance);
             building.ConstructBuildableObject(
-                BlueprintResearchWorkService,
-                WorldInfoClickSelector,
+                new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
                 FacilityCandidateCacheService,
-                RoomFacilityPolicyService);
+                RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
             building.ConstructBuildableObjectEventBus(
-                CharacterAiEditorTestDependencies.GameEvents);
+                CharacterAiEditorTestDependencies.GameEvents,
+                new BuildingVisitEventPublisher(
+                    CharacterAiEditorTestDependencies.GameEvents),
+                new BuildingInfoPresentationAdapter(
+                    CharacterAiEditorTestDependencies.GameEvents));
+            if (building is Facility facility)
+            {
+                facility.ConstructFacility(
+                    roomEnvironmentExperienceService: null,
+                    new EmptyStockQuery(),
+                    mealConsumptionRuntime: null,
+                    waterFixtureUseRuntime: null,
+                    wastewaterNetworkRuntime:
+                        FacilityFixtureWastewaterTransaction.Instance,
+                    serviceSessionRuntime: null,
+                    serviceRoomLinkRuntime: null,
+                    stockCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay);
+            }
             if (building is Shop shop)
             {
                 shop.ConstructShop(
-                    gameDataProvider,
+                    moneyAccount,
                     ShopStockCatalogService,
                     FloatingNumberFeedbackService,
                     WorkforceReplanService,
                     FacilityCrimeEditorTestDependencies.Evaluator,
-                    new DungeonStory.Foundation.RandomStreamProvider(101));
+                    new DungeonStory.Foundation.RandomStreamProvider(101),
+                    null,
+                    null,
+                    null);
             }
         }
 
@@ -436,13 +479,63 @@ public static class FacilityDebugScenarios
         {
             foreach (GameObject obj in objects.Where((obj) => obj != null))
             {
-                Object.DestroyImmediate(obj);
+                UnityEngine.Object.DestroyImmediate(obj);
             }
 
             foreach (ScriptableObject obj in scriptableObjects.Where((obj) => obj != null))
             {
-                Object.DestroyImmediate(obj);
+                UnityEngine.Object.DestroyImmediate(obj);
             }
+        }
+    }
+
+    private sealed class EmptyStockQuery : IStockQuery
+    {
+        public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
+            System.Array.Empty<WorldItemStackSnapshot>();
+        public int GetGlobalQuantity(string itemDefinitionId) => 0;
+        public int GetWarehouseQuantity(
+            BuildingInstanceId warehouseId,
+            string itemDefinitionId) => 0;
+        public int GetWarehouseQuantity(
+            BuildingInstanceId warehouseId,
+            StockCategory category) => 0;
+        public int GetWarehouseTotal(BuildingInstanceId warehouseId) => 0;
+    }
+
+    private sealed class FacilityFixtureWastewaterTransaction :
+        IFluidWastewaterTransaction
+    {
+        public static readonly FacilityFixtureWastewaterTransaction Instance =
+            new FacilityFixtureWastewaterTransaction();
+
+        public bool TryAddWastewater(
+            BuildableObject fixture,
+            float amount,
+            out float accepted,
+            out DomainFailure failure)
+        {
+            accepted = Mathf.Max(0f, amount);
+            failure = default;
+            return true;
+        }
+
+        public bool TryConsumeWastewater(
+            BuildableObject processor,
+            float amount,
+            out float consumed)
+        {
+            consumed = Mathf.Max(0f, amount);
+            return true;
+        }
+
+        public bool CanAcceptWastewater(
+            BuildableObject fixture,
+            float amount,
+            out DomainFailure failure)
+        {
+            failure = default;
+            return true;
         }
     }
 
@@ -544,16 +637,16 @@ public static class FacilityDebugScenarios
         }
     }
 
-    private sealed class FixedGameDataProvider : IGameDataProvider
+    private sealed class FixedGameDataProvider : IGameSessionStateProvider
     {
-        private readonly GameData gameData;
+        private readonly GameSessionState gameData;
 
-        public FixedGameDataProvider(GameData gameData)
+        public FixedGameDataProvider(GameSessionState gameData)
         {
             this.gameData = gameData;
         }
 
-        public bool TryGetGameData(out GameData resolvedGameData)
+        public bool TryGetSessionState(out GameSessionState resolvedGameData)
         {
             resolvedGameData = gameData;
             return resolvedGameData != null;

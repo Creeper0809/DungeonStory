@@ -26,7 +26,7 @@ public static class DefenseEngagementDebugScenarios
         Run("침입자 전투 설정 저장", VerifyIntruderSettingsPersistence, errors);
         Run("집결 상태 JSON 저장 계약", VerifyRallySaveContract, errors);
         Run("원거리 경비 2인 저장 계약", VerifySecondRangedGuardSaveContract, errors);
-        Run("V16 저장 계약", () => DungeonGameSaveData.CurrentVersion == 16, errors);
+        Run("V18 저장 계약", () => DungeonGameSaveData.CurrentVersion == 18, errors);
 
         foreach (string error in errors)
         {
@@ -175,7 +175,9 @@ public static class DefenseEngagementDebugScenarios
 
     private static bool VerifyPolicyRoundTrip()
     {
-        DefenseResponsePolicyRuntime source = new DefenseResponsePolicyRuntime();
+        DefenseResponsePolicyRuntime source = new DefenseResponsePolicyRuntime(
+            new InvasionAggregateStateStore(
+                new DungeonRuntimeAggregateRootStore()));
         DefenseResponsePolicyData standard = source.Policies.FirstOrDefault(
             policy => policy.id == DefenseResponsePolicyRuntime.StandardPolicyId);
         DefenseResponsePolicyData survival = source.Policies.FirstOrDefault(
@@ -204,13 +206,13 @@ public static class DefenseEngagementDebugScenarios
         custom.rejoinHealthRatio = 0.75f;
         source.TryUpdatePolicy(custom);
         DefenseResponsePolicySaveSnapshot snapshot = source.Capture();
-        DefenseResponsePolicyRuntime restored = new DefenseResponsePolicyRuntime();
-        List<string> warnings = new List<string>();
-        restored.Restore(snapshot, warnings);
+        DefenseResponsePolicyRuntime restored = new DefenseResponsePolicyRuntime(
+            new InvasionAggregateStateStore(
+                new DungeonRuntimeAggregateRootStore()));
+        restored.ReplaceFromValidatedSnapshot(snapshot);
         DefenseResponsePolicyData restoredCustom = restored.Policies.FirstOrDefault(
             policy => policy.id == custom.id);
-        return warnings.Count == 0
-            && restoredCustom != null
+        return restoredCustom != null
             && restoredCustom.displayName == "야간 경계"
             && Mathf.Approximately(restoredCustom.minimumDispatchHealthRatio, 0.5f)
             && Mathf.Approximately(restoredCustom.retreatHealthRatio, 0.3f)

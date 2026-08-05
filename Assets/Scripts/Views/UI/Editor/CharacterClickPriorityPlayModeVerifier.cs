@@ -48,7 +48,7 @@ public sealed class CharacterClickPriorityVerificationRunner : MonoBehaviour
 
     private CharacterActor actor;
     private BuildableObject building;
-    private CharacterSummeryInfo characterSummary;
+    private CharacterSummaryInfo characterSummary;
     private BuildingSummaryInfo buildingSummary;
     private UIBuildingInfo buildingDetail;
     private WildlifeInfoPanel wildlifeInfo;
@@ -105,7 +105,7 @@ public sealed class CharacterClickPriorityVerificationRunner : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.2f);
 
         Camera camera = Camera.main;
-        characterSummary = UnityEngine.Object.FindFirstObjectByType<CharacterSummeryInfo>();
+        characterSummary = UnityEngine.Object.FindFirstObjectByType<CharacterSummaryInfo>();
         buildingSummary = UnityEngine.Object.FindFirstObjectByType<BuildingSummaryInfo>();
         buildingDetail = UnityEngine.Object.FindFirstObjectByType<UIBuildingInfo>(FindObjectsInactive.Include);
         wildlifeInfo = UnityEngine.Object.FindFirstObjectByType<WildlifeInfoPanel>();

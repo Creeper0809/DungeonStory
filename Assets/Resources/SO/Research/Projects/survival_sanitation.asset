@@ -29,16 +29,20 @@ MonoBehaviour:
   field: 0
   requiredWork: 36
   prerequisites: []
+  prerequisiteLinks: []
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563235454517249
+    - rid: 7737211730927813273
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563235454517249
+    - rid: 7737211730927813273
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1097

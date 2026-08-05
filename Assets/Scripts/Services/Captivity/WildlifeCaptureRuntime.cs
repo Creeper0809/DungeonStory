@@ -5,7 +5,79 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
-public sealed class WildlifeCaptureRuntime :
+public sealed class WildlifeCaptureWorldContext
+{
+    public WildlifeCaptureWorldContext(
+        ICharacterAiWorldRegistry world,
+        IRoomLayoutCache rooms,
+        IGridSystemProvider gridProvider,
+        IDoorAccessCommandService doorAccessCommands,
+        IDoorAccessSubjectRegistry doorSubjects)
+    {
+        World = world ?? throw new ArgumentNullException(nameof(world));
+        Rooms = rooms ?? throw new ArgumentNullException(nameof(rooms));
+        GridProvider = gridProvider
+            ?? throw new ArgumentNullException(nameof(gridProvider));
+        DoorAccessCommands = doorAccessCommands
+            ?? throw new ArgumentNullException(nameof(doorAccessCommands));
+        DoorSubjects = doorSubjects
+            ?? throw new ArgumentNullException(nameof(doorSubjects));
+    }
+
+    public ICharacterAiWorldRegistry World { get; }
+    public IRoomLayoutCache Rooms { get; }
+    public IGridSystemProvider GridProvider { get; }
+    public IDoorAccessCommandService DoorAccessCommands { get; }
+    public IDoorAccessSubjectRegistry DoorSubjects { get; }
+}
+
+public sealed class WildlifeCaptureCareContext
+{
+    public WildlifeCaptureCareContext(
+        IWorldItemStackRuntime itemRuntime,
+        IWorldFilthQuery filth,
+        IResourceEconomyContentCatalog contentCatalog,
+        IWildlifeSpeciesCatalogProvider speciesCatalog,
+        IWasteFeedCommand wasteProcessing)
+    {
+        ItemRuntime = itemRuntime
+            ?? throw new ArgumentNullException(nameof(itemRuntime));
+        Filth = filth ?? throw new ArgumentNullException(nameof(filth));
+        ContentCatalog = contentCatalog
+            ?? throw new ArgumentNullException(nameof(contentCatalog));
+        SpeciesCatalog = speciesCatalog
+            ?? throw new ArgumentNullException(nameof(speciesCatalog));
+        WasteProcessing = wasteProcessing
+            ?? throw new ArgumentNullException(nameof(wasteProcessing));
+    }
+
+    public IWorldItemStackRuntime ItemRuntime { get; }
+    public IWorldFilthQuery Filth { get; }
+    public IResourceEconomyContentCatalog ContentCatalog { get; }
+    public IWildlifeSpeciesCatalogProvider SpeciesCatalog { get; }
+    public IWasteFeedCommand WasteProcessing { get; }
+}
+
+public sealed class WildlifeCaptureSessionContext
+{
+    public WildlifeCaptureSessionContext(
+        IGameClock clock,
+        IRandomStreamProvider randomStreamProvider,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
+    {
+        Clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        RandomStreamProvider = randomStreamProvider
+            ?? throw new ArgumentNullException(nameof(randomStreamProvider));
+        AggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+    }
+
+    public IGameClock Clock { get; }
+    public IRandomStreamProvider RandomStreamProvider { get; }
+    public DungeonRuntimeAggregateRootStore AggregateRootStore { get; }
+}
+
+public sealed partial class WildlifeCaptureRuntime :
     IWildlifeCaptureRuntime,
     IWildlifeCaptureTransportRuntime,
     ITickable
@@ -22,53 +94,44 @@ public sealed class WildlifeCaptureRuntime :
     private readonly IWorldFilthQuery filth;
     private readonly IResourceEconomyContentCatalog contentCatalog;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
-    private readonly IWasteProcessingRuntime wasteProcessing;
+    private readonly IWasteFeedCommand wasteProcessing;
     private readonly IGameClock clock;
     private readonly IRandomStream random;
-    private readonly Dictionary<string, CapturedWildlifeState> captured =
-        new Dictionary<string, CapturedWildlifeState>(StringComparer.Ordinal);
+    private readonly DungeonRuntimeAggregateRootStore sessionAggregateRootStore;
+    private readonly CapturedWildlifeStateSession stateSession;
     private readonly Dictionary<string, Transform> carriedParents =
         new Dictionary<string, Transform>(StringComparer.Ordinal);
     private readonly List<CapturedWildlifeState> tickBuffer =
         new List<CapturedWildlifeState>();
 
     public WildlifeCaptureRuntime(
-        ICharacterAiWorldRegistry world,
-        IRoomLayoutCache rooms,
-        IGridSystemProvider gridProvider,
-        IDoorAccessCommandService doorAccessCommands,
-        IDoorAccessSubjectRegistry doorSubjects,
-        IWorldItemStackRuntime itemRuntime,
-        IWorldFilthQuery filth,
-        IResourceEconomyContentCatalog contentCatalog,
-        IWildlifeSpeciesCatalogProvider speciesCatalog,
-        IGameClock clock,
-        IRandomStreamProvider randomStreamProvider,
-        IWasteProcessingRuntime wasteProcessing = null)
+        WildlifeCaptureWorldContext worldContext,
+        WildlifeCaptureCareContext care,
+        WildlifeCaptureSessionContext session)
     {
-        this.world = world ?? throw new ArgumentNullException(nameof(world));
-        this.rooms = rooms ?? throw new ArgumentNullException(nameof(rooms));
-        this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
-        this.doorAccessCommands = doorAccessCommands
-            ?? throw new ArgumentNullException(nameof(doorAccessCommands));
-        this.doorSubjects = doorSubjects
-            ?? throw new ArgumentNullException(nameof(doorSubjects));
-        this.itemRuntime = itemRuntime
-            ?? throw new ArgumentNullException(nameof(itemRuntime));
-        this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
-        this.contentCatalog = contentCatalog
-            ?? throw new ArgumentNullException(nameof(contentCatalog));
-        this.speciesCatalog = speciesCatalog
-            ?? throw new ArgumentNullException(nameof(speciesCatalog));
-        this.wasteProcessing = wasteProcessing;
-        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        random = (randomStreamProvider
-            ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
+        worldContext = worldContext
+            ?? throw new ArgumentNullException(nameof(worldContext));
+        care = care ?? throw new ArgumentNullException(nameof(care));
+        session = session ?? throw new ArgumentNullException(nameof(session));
+        world = worldContext.World;
+        rooms = worldContext.Rooms;
+        gridProvider = worldContext.GridProvider;
+        doorAccessCommands = worldContext.DoorAccessCommands;
+        doorSubjects = worldContext.DoorSubjects;
+        itemRuntime = care.ItemRuntime;
+        filth = care.Filth;
+        contentCatalog = care.ContentCatalog;
+        speciesCatalog = care.SpeciesCatalog;
+        wasteProcessing = care.WasteProcessing;
+        clock = session.Clock;
+        sessionAggregateRootStore = session.AggregateRootStore;
+        stateSession = new CapturedWildlifeStateSession(sessionAggregateRootStore);
+        random = session.RandomStreamProvider
             .Get("captivity.wildlife-care");
     }
 
     public IReadOnlyList<CapturedWildlifeState> CapturedAnimals =>
-        captured.Values.Select(item => item.Clone()).ToArray();
+        stateSession.Capture();
 
     public void CopyCapturedAnimalReferences(
         List<CapturedWildlifeState> destination)
@@ -79,7 +142,7 @@ public sealed class WildlifeCaptureRuntime :
         }
 
         destination.Clear();
-        foreach (CapturedWildlifeState state in captured.Values)
+        foreach (CapturedWildlifeState state in stateSession.Values)
         {
             destination.Add(state);
         }
@@ -88,7 +151,7 @@ public sealed class WildlifeCaptureRuntime :
     public bool IsCaptured(string wildlifeId)
     {
         return !string.IsNullOrWhiteSpace(wildlifeId)
-            && captured.TryGetValue(
+            && stateSession.TryGet(
                 wildlifeId.Trim(),
                 out CapturedWildlifeState state)
             && !state.escaped;
@@ -96,18 +159,19 @@ public sealed class WildlifeCaptureRuntime :
 
     public void Tick()
     {
+        EnsureProjectionCurrent();
         if (clock.IsPaused || clock.DeltaTime <= 0f)
         {
             return;
         }
 
-        if (captured.Count == 0)
+        if (stateSession.Count == 0)
         {
             return;
         }
 
         tickBuffer.Clear();
-        foreach (CapturedWildlifeState state in captured.Values)
+        foreach (CapturedWildlifeState state in stateSession.Values)
         {
             tickBuffer.Add(state);
         }
@@ -207,7 +271,7 @@ public sealed class WildlifeCaptureRuntime :
         }
 
         string penId = GetPenId(pen);
-        int occupied = captured.Values.Count(item =>
+        int occupied = stateSession.Values.Count(item =>
             !item.escaped
             && string.Equals(item.penId, penId, StringComparison.Ordinal));
         if (occupied >= penAbility.capacity)
@@ -258,19 +322,20 @@ public sealed class WildlifeCaptureRuntime :
             nextCareAt = clock.Time + 5f,
             lastCareStatus = "우리 수용 준비"
         };
-        captured[state.wildlifeId] = state;
+        stateSession.Set(state);
         doorSubjects.SetCapturedWildlife(state.wildlifeId, true);
         AbilityWildlifeCaptureTransport transport =
-            AbilityWildlifeCaptureTransport.Ensure(carrier);
+            CaptivityAbilityAdapterFactory.EnsureWildlifeTransport(
+                carrier,
+                this);
         if (transport == null)
         {
-            captured.Remove(state.wildlifeId);
+            stateSession.Remove(state.wildlifeId);
             doorSubjects.SetCapturedWildlife(state.wildlifeId, false);
             failureReason = "동물 운반 행동을 시작할 수 없습니다.";
             return false;
         }
 
-        transport.Configure(this);
         transport.StartTransport(state.wildlifeId);
         return true;
     }
@@ -280,7 +345,7 @@ public sealed class WildlifeCaptureRuntime :
         out CapturedWildlifeState state)
     {
         string id = wildlifeId?.Trim() ?? string.Empty;
-        if (captured.TryGetValue(id, out CapturedWildlifeState found))
+        if (stateSession.TryGet(id, out CapturedWildlifeState found))
         {
             state = found.Clone();
             return true;
@@ -297,7 +362,7 @@ public sealed class WildlifeCaptureRuntime :
     {
         failureReason = string.Empty;
         string id = wildlifeId?.Trim() ?? string.Empty;
-        if (!captured.TryGetValue(id, out CapturedWildlifeState state))
+        if (!stateSession.TryGet(id, out CapturedWildlifeState state))
         {
             failureReason = "우리에서 관리 중인 동물을 찾을 수 없습니다.";
             return false;
@@ -347,7 +412,7 @@ public sealed class WildlifeCaptureRuntime :
             return false;
         }
 
-        int occupied = captured.Values.Count(state =>
+        int occupied = stateSession.Values.Count(state =>
             !state.escaped
             && string.Equals(state.penId, normalizedPenId, StringComparison.Ordinal));
         if (occupied >= penAbility.capacity)
@@ -368,7 +433,7 @@ public sealed class WildlifeCaptureRuntime :
             isTamed = true,
             lastCareStatus = "우리에서 태어난 새끼"
         };
-        captured[state.wildlifeId] = state;
+        stateSession.Set(state);
         doorSubjects.SetCapturedWildlife(state.wildlifeId, true);
         wildlife.WarpTo(penPosition);
         wildlife.SetCaptured(true);
@@ -379,7 +444,7 @@ public sealed class WildlifeCaptureRuntime :
     {
         failureReason = string.Empty;
         string id = wildlifeId?.Trim() ?? string.Empty;
-        if (!captured.Remove(id, out CapturedWildlifeState state))
+        if (!stateSession.Remove(id, out CapturedWildlifeState state))
         {
             failureReason = "포획 동물을 찾을 수 없습니다.";
             return false;
@@ -406,7 +471,7 @@ public sealed class WildlifeCaptureRuntime :
     {
         failureReason = string.Empty;
         string id = wildlifeId?.Trim() ?? string.Empty;
-        if (!captured.TryGetValue(id, out CapturedWildlifeState state))
+        if (!stateSession.TryGet(id, out CapturedWildlifeState state))
         {
             failureReason = "포획 동물을 찾을 수 없습니다.";
             return false;
@@ -436,7 +501,7 @@ public sealed class WildlifeCaptureRuntime :
     public void CompleteShowAssignment(string wildlifeId, string orderId)
     {
         string id = wildlifeId?.Trim() ?? string.Empty;
-        if (!captured.TryGetValue(id, out CapturedWildlifeState state)
+        if (!stateSession.TryGet(id, out CapturedWildlifeState state)
             || !string.Equals(
                 state.assignedShowOrderId,
                 orderId?.Trim(),
@@ -457,7 +522,7 @@ public sealed class WildlifeCaptureRuntime :
         out string failureReason)
     {
         string id = wildlifeId?.Trim() ?? string.Empty;
-        captured.TryGetValue(id, out CapturedWildlifeState found);
+        stateSession.TryGet(id, out CapturedWildlifeState found);
         wildlife = FindActor(id);
         state = found;
         failureReason = string.Empty;
@@ -555,7 +620,7 @@ public sealed class WildlifeCaptureRuntime :
         string reason)
     {
         string id = wildlifeId?.Trim() ?? string.Empty;
-        if (!captured.Remove(id, out CapturedWildlifeState state))
+        if (!stateSession.Remove(id, out CapturedWildlifeState state))
         {
             return;
         }
@@ -578,53 +643,153 @@ public sealed class WildlifeCaptureRuntime :
         return CapturedAnimals;
     }
 
-    public void Restore(
-        IEnumerable<CapturedWildlifeState> states,
-        IList<string> warnings)
+    public void ValidateRestore(
+        CircusSaveData saveData,
+        DungeonGameRestoreReport report)
     {
-        foreach (string id in captured.Keys)
-        {
-            doorSubjects.SetCapturedWildlife(id, false);
-        }
-        captured.Clear();
-        carriedParents.Clear();
-        foreach (CapturedWildlifeState source in states
-                     ?? Array.Empty<CapturedWildlifeState>())
-        {
-            string id = source?.wildlifeId?.Trim() ?? string.Empty;
-            if (id.Length == 0 || captured.ContainsKey(id))
-            {
-                warnings?.Add("유효하지 않거나 중복된 포획 동물 상태를 건너뛰었습니다.");
-                continue;
-            }
+        WildlifeCaptureRestoreValidator.Validate(
+            saveData,
+            new WildlifeCaptureRestoreWorldAdapter(
+                world,
+                rooms,
+                gridProvider,
+                contentCatalog,
+                speciesCatalog),
+            report);
+    }
 
-            CapturedWildlifeState restored = source.Clone();
-            if (restored.transportState is CapturedWildlifeTransportState.AwaitingTransport
-                or CapturedWildlifeTransportState.Transporting
-                or CapturedWildlifeTransportState.MovingToShow
-                or CapturedWildlifeTransportState.Performing
-                or CapturedWildlifeTransportState.ReturningToPen)
+    public void StageRestore(CircusRestoreCandidate candidate)
+    {
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
+        }
+        if (!sessionAggregateRootStore.IsRestoreStaging)
+        {
+            throw new InvalidOperationException(
+                "Captured wildlife restore requires the V18 aggregate staging boundary.");
+        }
+
+        stateSession.Stage(candidate);
+    }
+
+    public void PublishRestoreProjection()
+    {
+        if (sessionAggregateRootStore.IsRestoreStaging)
+        {
+            throw new InvalidOperationException(
+                "Captured wildlife projection cannot publish while restore staging is active.");
+        }
+        WildlifeCaptureProjectionPublication publication =
+            BeginRestoreProjectionPublication();
+        CompleteRestoreProjection(publication);
+    }
+
+    public WildlifeCaptureProjectionPublication
+        BeginRestoreProjectionPublication()
+    {
+        CapturedWildlifeProjectionPublication projection =
+            stateSession.BeginProjectionPublication();
+        return new WildlifeCaptureProjectionPublication(
+            this,
+            rollback: () =>
+                stateSession.RollbackProjectionPublication(projection),
+            complete: () =>
             {
-                restored.reservedCarrierId = string.Empty;
-                restored.assignedShowOrderId = string.Empty;
-                restored.transportState = CapturedWildlifeTransportState.Penned;
-                warnings?.Add(
-                    $"{id}: 진행 중이던 동물 운반을 우리 수용 상태로 복원했습니다.");
+                if (projection.Changed)
+                {
+                    FinalizeProjectionBestEffort();
+                }
+                stateSession.CompleteProjectionPublication(projection);
+            });
+    }
+
+    public void RollbackRestoreProjection(
+        WildlifeCaptureProjectionPublication publication)
+    {
+        (publication ?? throw new ArgumentNullException(nameof(publication)))
+            .Rollback(this);
+    }
+
+    public void CompleteRestoreProjection(
+        WildlifeCaptureProjectionPublication publication)
+    {
+        (publication ?? throw new ArgumentNullException(nameof(publication)))
+            .Complete(this);
+    }
+
+    private void EnsureProjectionCurrent()
+    {
+        PublishRestoreProjection();
+    }
+
+    private void FinalizeProjectionBestEffort()
+    {
+        foreach (KeyValuePair<string, Transform> carried in
+                 carriedParents.ToArray())
+        {
+            try
+            {
+                WildlifeActor carriedActor = FindActor(carried.Key);
+                carriedActor?.EndManagedCarry(
+                    carriedActor.GridPosition,
+                    carried.Value);
             }
-            captured.Add(id, restored);
-            doorSubjects.SetCapturedWildlife(id, !restored.escaped);
-            WildlifeActor actor = FindActor(id);
+            catch
+            {
+                // Carry projection cleanup is best effort after aggregate commit.
+            }
+        }
+        carriedParents.Clear();
+
+        foreach (WildlifeActor actor in world.Wildlife.ToArray())
+        {
+            try
+            {
+                actor?.SetCaptured(false);
+            }
+            catch
+            {
+                // Actor presentation cannot invalidate a committed restore.
+            }
+        }
+
+        foreach (CapturedWildlifeState restored in stateSession.Values.ToArray())
+        {
+            WildlifeActor actor = FindActor(restored.wildlifeId);
             if (actor == null)
             {
-                warnings?.Add($"{id}: 포획 동물 개체를 찾을 수 없습니다.");
                 continue;
             }
 
-            actor.SetCaptured(!restored.escaped);
-            actor.WarpTo(
-                restored.transportState == CapturedWildlifeTransportState.Escaped
-                    ? restored.escapeDestination
-                    : restored.penPosition);
+            try
+            {
+                actor.SetCaptured(!restored.escaped);
+                actor.WarpTo(
+                    restored.transportState
+                        == CapturedWildlifeTransportState.Escaped
+                        ? restored.escapeDestination
+                        : restored.penPosition);
+            }
+            catch
+            {
+                // Actor presentation cannot invalidate a committed restore.
+            }
+        }
+
+        try
+        {
+            doorSubjects.ReplaceCapturedWildlifeSubjects(
+                stateSession.Values
+                    .Where(state => state != null
+                        && !state.escaped
+                        && state.transportState
+                            != CapturedWildlifeTransportState.Released)
+                    .Select(state => state.wildlifeId));
+        }
+        catch
+        {
+            // Door-access projection is derived from the committed aggregate.
         }
     }
 
@@ -796,10 +961,10 @@ public sealed class WildlifeCaptureRuntime :
             return true;
         }
 
-        if (wasteProcessing?.TryConsumeDirectFeed(
-                diet,
-                state.penId,
-                out WasteFeedResult wasteFeed) == true)
+        WasteFeedResult wasteFeed = wasteProcessing.ConsumeDirectFeed(
+            diet,
+            state.penId);
+        if (wasteFeed.Succeeded)
         {
             actor.SatisfyCaptiveNeeds(
                 Mathf.Clamp(wasteFeed.Nutrition * 0.9f, 0.35f, 0.8f),
@@ -815,7 +980,7 @@ public sealed class WildlifeCaptureRuntime :
                 actor.ApplyDamage(1, null);
             }
 
-            state.lastCareStatus = wasteFeed.Message;
+            state.lastCareStatus = wasteFeed.Outcome.ToString();
             deliveryPending = false;
             return true;
         }
@@ -843,16 +1008,18 @@ public sealed class WildlifeCaptureRuntime :
                 break;
             }
 
-            if (!deliveryPending
-                && wasteProcessing?.TryRequestDirectFeed(
-                    diet,
-                    state.penPosition,
-                    state.penId,
-                    out string wasteItemId,
-                    out _) == true)
+            if (!deliveryPending)
             {
-                state.lastFeedItemId = wasteItemId;
-                deliveryPending = true;
+                WasteFeedRequestResult wasteRequest =
+                    wasteProcessing.RequestDirectFeed(
+                        diet,
+                        state.penPosition,
+                        state.penId);
+                if (wasteRequest.Succeeded)
+                {
+                    state.lastFeedItemId = wasteRequest.ItemId;
+                    deliveryPending = true;
+                }
             }
 
             if (!deliveryPending)
@@ -1055,21 +1222,21 @@ public sealed class WildlifeCaptureRuntime :
 
     private static string GetPenId(BuildableObject pen)
     {
-        return $"pen:{pen.id}:{pen.centerPos.x}:{pen.centerPos.y}";
+        return pen != null
+            ? pen.RequirePersistentInstanceId().Value
+            : string.Empty;
     }
 
     private static string GetCharacterId(CharacterActor actor)
     {
-        string id = actor?.Identity?.PersistentId?.Trim() ?? string.Empty;
-        return id.Length > 0
-            ? id
-            : actor != null
-                ? $"character:{actor.GetInstanceID()}"
-                : string.Empty;
+        return actor != null
+            ? CharacterPersistentIdentity.Require(actor).Value
+            : string.Empty;
     }
 
     private static int Manhattan(Vector2Int left, Vector2Int right)
     {
         return Mathf.Abs(left.x - right.x) + Mathf.Abs(left.y - right.y);
     }
+
 }

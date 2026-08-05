@@ -1,0 +1,58 @@
+using System;
+
+public sealed class WorldItemReadServices
+{
+    public WorldItemReadServices(
+        IDungeonItemCatalogProvider catalog,
+        IItemHaulingSettingsProvider haulingSettings,
+        WorldItemQueryService queries,
+        IItemMarkerPresenter markers,
+        ICharacterAiPerformanceRecorder performance,
+        IDungeonDebugRuleQuery debugRules)
+    {
+        Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        HaulingSettings = haulingSettings
+            ?? throw new ArgumentNullException(nameof(haulingSettings));
+        Queries = queries ?? throw new ArgumentNullException(nameof(queries));
+        Markers = markers ?? throw new ArgumentNullException(nameof(markers));
+        Performance = performance
+            ?? throw new ArgumentNullException(nameof(performance));
+        DebugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
+    }
+
+    public IDungeonItemCatalogProvider Catalog { get; }
+    public IItemHaulingSettingsProvider HaulingSettings { get; }
+    public WorldItemQueryService Queries { get; }
+    public IItemMarkerPresenter Markers { get; }
+    public ICharacterAiPerformanceRecorder Performance { get; }
+    public IDungeonDebugRuleQuery DebugRules { get; }
+}
+
+public sealed class WorldItemMutationServices
+{
+    public WorldItemMutationServices(
+        WorldItemRepository repository,
+        IItemReservationService reservations,
+        IWorldItemSpawner spawner,
+        IWorldItemHaulPlanningService haulPlanning,
+        IItemTransferService transfers,
+        WorldItemTheftService theft)
+    {
+        Repository = repository
+            ?? throw new ArgumentNullException(nameof(repository));
+        Reservations = reservations
+            ?? throw new ArgumentNullException(nameof(reservations));
+        Spawner = spawner ?? throw new ArgumentNullException(nameof(spawner));
+        HaulPlanning = haulPlanning
+            ?? throw new ArgumentNullException(nameof(haulPlanning));
+        Transfers = transfers ?? throw new ArgumentNullException(nameof(transfers));
+        Theft = theft ?? throw new ArgumentNullException(nameof(theft));
+    }
+
+    public WorldItemRepository Repository { get; }
+    public IItemReservationService Reservations { get; }
+    public IWorldItemSpawner Spawner { get; }
+    public IWorldItemHaulPlanningService HaulPlanning { get; }
+    public IItemTransferService Transfers { get; }
+    public WorldItemTheftService Theft { get; }
+}

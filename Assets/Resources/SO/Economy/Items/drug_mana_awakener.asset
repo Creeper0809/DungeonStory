@@ -27,21 +27,42 @@ MonoBehaviour:
   description: "\uC5F0\uAD6C\uC640 \uBE44\uC804 \uAC10\uAC01\uC744 \uC99D\uD3ED\uD558\uB294
     \uC911\uB3C5\uC131 \uC57D\uBB3C."
   stockCategory: 5
-  kind: 4
-  ingredientTags: 1024
-  unitPrice: 34
-  marketSaleRate: 0.6
   unitWeight: 0.1
   maxStack: 25
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:stimulants
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 34
+  features:
+  - rid: 7737211674039681150
+  - rid: 7737211674039681151
+  - rid: 7737211674039681152
+  - rid: 7737211674039681153
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681150
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:stimulants
+    - rid: 7737211674039681151
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 4
+        ingredientTags: 1024
+        sharedIntermediate: 0
+    - rid: 7737211674039681152
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211674039681153
+      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        substanceId: substance:mana-awakener
+        useClass: 2
+        addictionChance: 0.11
+        overdoseChance: 0.05
+        toleranceGain: 0.16
+        withdrawalPerHour: 0.025
+        moodEffect: 2
+        workSpeedEffect: 0.18
+        combatEffect: 0.08
+        durationSeconds: 180

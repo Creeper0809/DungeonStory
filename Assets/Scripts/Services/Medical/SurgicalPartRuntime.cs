@@ -22,18 +22,25 @@ public sealed class SurgicalPartRuntime :
     private readonly ISurgicalFacilityQuery facilities;
     private readonly IAnatomyProfileCatalog anatomyProfiles;
     private readonly IGameClock clock;
-    private readonly List<SurgicalPartInstance> parts = new();
-    private readonly Dictionary<string, SurgicalOrganStorageState> storageStates =
-        new(StringComparer.Ordinal);
+    private readonly SurgeryAggregateStateStore stateStore;
     private float nextFuelRefreshAt;
-    private int sequence;
+
+    private List<SurgicalPartInstance> parts => stateStore.State.Parts;
+    private Dictionary<string, SurgicalOrganStorageState> storageStates =>
+        stateStore.State.OrganStorage;
+    private int sequence
+    {
+        get => stateStore.State.PartSequence;
+        set => stateStore.State.PartSequence = value;
+    }
 
     public SurgicalPartRuntime(
         IWorldItemStackRuntime items,
         IBuildingWorldQuery buildings,
         ISurgicalFacilityQuery facilities,
         IAnatomyProfileCatalog anatomyProfiles,
-        IGameClock clock)
+        IGameClock clock,
+        SurgeryAggregateStateStore stateStore)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
@@ -41,6 +48,8 @@ public sealed class SurgicalPartRuntime :
         this.anatomyProfiles = anatomyProfiles
             ?? throw new ArgumentNullException(nameof(anatomyProfiles));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
     public IReadOnlyList<SurgicalPartInstance> Parts => parts;
@@ -72,13 +81,15 @@ public sealed class SurgicalPartRuntime :
         float quality,
         Vector2Int position,
         out SurgicalPartInstance part,
-        out string failureReason)
+        out DomainFailure failure)
     {
         part = null;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (donor == null || !donor.IsValid || string.IsNullOrWhiteSpace(nodeId))
         {
-            failureReason = "기증자 또는 적출 부위가 유효하지 않습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryTargetNodeMissing,
+                nodeId ?? string.Empty);
             return false;
         }
 
@@ -92,7 +103,7 @@ public sealed class SurgicalPartRuntime :
                 string.Empty,
                 out string stackId))
         {
-            failureReason = "적출 장기 물리 아이템을 생성하지 못했습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryEffectFailed, itemId);
             return false;
         }
 
@@ -106,7 +117,7 @@ public sealed class SurgicalPartRuntime :
             donorName = donor.displayName,
             donorSpeciesId = donor.speciesId,
             anatomyFamily = ResolveAnatomyFamily(donor),
-            quality = Mathf.Clamp(quality, 0.1f, 1.5f),
+            quality = Mathf.Clamp(quality, 0.1f, 1.75f),
             specialEffectId = ResolveSpecialEffectId(
                 donor.speciesId,
                 nodeId),
@@ -183,14 +194,16 @@ public sealed class SurgicalPartRuntime :
         float quality,
         Vector2Int position,
         out SurgicalPartInstance part,
-        out string failureReason)
+        out DomainFailure failure)
     {
         part = null;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (string.IsNullOrWhiteSpace(nodeId)
             || kind == SurgicalPartKind.NaturalOrgan)
         {
-            failureReason = "제작할 보철 부위가 유효하지 않습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryTargetNodeMissing,
+                nodeId ?? string.Empty);
             return false;
         }
 
@@ -202,7 +215,7 @@ public sealed class SurgicalPartRuntime :
                 string.Empty,
                 out string stackId))
         {
-            failureReason = "제작된 보철 물리 아이템을 생성하지 못했습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryEffectFailed, itemId);
             return false;
         }
 
@@ -219,7 +232,7 @@ public sealed class SurgicalPartRuntime :
             donorName = "제작품",
             donorSpeciesId = string.Empty,
             anatomyFamily = "humanoid",
-            quality = Mathf.Clamp(quality, 0.1f, 1.5f),
+            quality = Mathf.Clamp(quality, 0.1f, 1.75f),
             freshnessSeconds = float.PositiveInfinity,
             worldStackId = stackId
         };
@@ -230,27 +243,34 @@ public sealed class SurgicalPartRuntime :
     public bool TryReserveForOrder(
         string partInstanceId,
         string orderId,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (!TryGet(partInstanceId, out SurgicalPartInstance part)
             || part.installed)
         {
-            failureReason = "사용 가능한 수술 부품이 아닙니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                partInstanceId ?? string.Empty);
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(part.reservedOrderId)
             && !string.Equals(part.reservedOrderId, orderId, StringComparison.Ordinal))
         {
-            failureReason = "다른 수술에서 예약한 부품입니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                partInstanceId ?? string.Empty,
+                part.reservedOrderId);
             return false;
         }
 
         if (part.kind == SurgicalPartKind.NaturalOrgan
             && part.freshnessSeconds <= 0f)
         {
-            failureReason = "장기가 부패했습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryCorpseStale,
+                partInstanceId ?? string.Empty);
             return false;
         }
 
@@ -272,21 +292,25 @@ public sealed class SurgicalPartRuntime :
         string orderId,
         string subjectId,
         out SurgicalPartInstance part,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (!TryGet(partInstanceId, out part)
             || part.installed
             || !string.Equals(part.reservedOrderId, orderId, StringComparison.Ordinal))
         {
-            failureReason = "예약된 수술 부품을 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                partInstanceId ?? string.Empty);
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(part.worldStackId)
             && !items.TryConsumeStackQuantity(part.worldStackId, 1, out _))
         {
-            failureReason = "수술 부품 물리 스택을 소비하지 못했습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                partInstanceId ?? string.Empty);
             return false;
         }
 
@@ -361,7 +385,7 @@ public sealed class SurgicalPartRuntime :
 
     public IReadOnlyList<SurgicalPartInstance> CaptureParts()
     {
-        return parts.Select(Clone).ToArray();
+        return parts.Select(SurgeryStateCloner.ClonePart).ToArray();
     }
 
     public IReadOnlyList<SurgicalOrganStorageState> CaptureStorageStates()
@@ -372,61 +396,6 @@ public sealed class SurgicalPartRuntime :
             .OrderBy(state => state.facilityId, StringComparer.Ordinal)
             .Select(state => state.Clone())
             .ToArray();
-    }
-
-    public void RestoreParts(
-        IEnumerable<SurgicalPartInstance> restoredParts,
-        IList<string> warnings)
-    {
-        parts.Clear();
-        sequence = 0;
-        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (SurgicalPartInstance source in
-                 restoredParts ?? Array.Empty<SurgicalPartInstance>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.partInstanceId)
-                || !ids.Add(source.partInstanceId))
-            {
-                warnings?.Add("중복되거나 잘못된 수술 부품을 복원에서 제외했습니다.");
-                continue;
-            }
-
-            SurgicalPartInstance clone = Clone(source);
-            parts.Add(clone);
-            if (clone.partInstanceId.StartsWith(
-                    "surgical-part:",
-                    StringComparison.Ordinal)
-                && int.TryParse(
-                    clone.partInstanceId.Substring("surgical-part:".Length),
-                    out int parsed))
-            {
-                sequence = Mathf.Max(sequence, parsed);
-            }
-        }
-    }
-
-    public void RestoreStorageStates(
-        IEnumerable<SurgicalOrganStorageState> restoredStates,
-        IList<string> warnings)
-    {
-        storageStates.Clear();
-        foreach (SurgicalOrganStorageState source in
-                 restoredStates ?? Array.Empty<SurgicalOrganStorageState>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.facilityId)
-                || storageStates.ContainsKey(source.facilityId))
-            {
-                warnings?.Add(
-                    "중복되거나 대상이 없는 장기 보관함 연료 상태를 제외했습니다.");
-                continue;
-            }
-
-            storageStates.Add(source.facilityId, source.Clone());
-        }
-
-        nextFuelRefreshAt = 0f;
     }
 
     public bool TryGetOrganStorageStatus(
@@ -656,31 +625,6 @@ public sealed class SurgicalPartRuntime :
     private static string GetFuelDestinationId(string facilityId)
     {
         return FuelDestinationPrefix + (facilityId?.Trim() ?? string.Empty);
-    }
-
-    private static SurgicalPartInstance Clone(SurgicalPartInstance source)
-    {
-        return new SurgicalPartInstance
-        {
-            partInstanceId = source.partInstanceId ?? string.Empty,
-            kind = source.kind,
-            nodeId = source.nodeId ?? string.Empty,
-            displayName = source.displayName ?? string.Empty,
-            donorId = source.donorId ?? string.Empty,
-            donorName = source.donorName ?? string.Empty,
-            donorSpeciesId = source.donorSpeciesId ?? string.Empty,
-            anatomyFamily = source.anatomyFamily ?? string.Empty,
-            quality = source.quality,
-            freshnessSeconds = source.freshnessSeconds,
-            contamination = source.contamination,
-            specialEffectStrength = source.specialEffectStrength,
-            specialEffectId = source.specialEffectId ?? string.Empty,
-            worldStackId = source.worldStackId ?? string.Empty,
-            storedFacilityId = source.storedFacilityId ?? string.Empty,
-            reservedOrderId = source.reservedOrderId ?? string.Empty,
-            installed = source.installed,
-            installedSubjectId = source.installedSubjectId ?? string.Empty
-        };
     }
 
     private string ResolveAnatomyFamily(SurgicalSubjectRef donor)

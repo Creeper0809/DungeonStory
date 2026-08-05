@@ -25,7 +25,6 @@ public interface IEmploymentContractRuntime
         int premium,
         out string failureReason);
     EmploymentContractSaveData Capture();
-    void Restore(EmploymentContractSaveData saveData);
 }
 
 public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
@@ -37,18 +36,21 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
 
     private readonly ICharacterWorldQuery characterWorld;
     private readonly ICombatEquipmentRuntime equipmentRuntime;
-    private readonly IGameMoneyRuntime money;
+    private readonly IGameMoneyAccount money;
     private readonly IGameEventBus eventBus;
-    private readonly Dictionary<string, EmployeeWageState> wageByCharacterId =
-        new Dictionary<string, EmployeeWageState>(StringComparer.Ordinal);
-    private readonly Dictionary<string, MercenaryContract> mercenaryByCharacterId =
-        new Dictionary<string, MercenaryContract>(StringComparer.Ordinal);
+    private readonly TreasuryEconomyAggregateStateStore stateStore;
+
+    private Dictionary<string, EmployeeWageState> wageByCharacterId =>
+        stateStore.Current.Wages;
+    private Dictionary<string, MercenaryContract> mercenaryByCharacterId =>
+        stateStore.Current.Mercenaries;
 
     public EmploymentContractRuntime(
         ICharacterWorldQuery characterWorld,
         ICombatEquipmentRuntime equipmentRuntime,
-        IGameMoneyRuntime money,
-        IGameEventBus eventBus)
+        IGameMoneyAccount money,
+        IGameEventBus eventBus,
+        TreasuryEconomyAggregateStateStore stateStore)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
@@ -58,6 +60,8 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
             ?? throw new ArgumentNullException(nameof(money));
         this.eventBus = eventBus
             ?? throw new ArgumentNullException(nameof(eventBus));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
     public IReadOnlyList<EmployeeWageState> WageStates =>
@@ -303,10 +307,13 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
         };
     }
 
-    public void Restore(EmploymentContractSaveData saveData)
+    internal void PopulateRestoreState(
+        TreasuryEconomyAggregateState target,
+        EmploymentContractSaveData saveData)
     {
-        wageByCharacterId.Clear();
-        mercenaryByCharacterId.Clear();
+        target = target ?? throw new ArgumentNullException(nameof(target));
+        target.Wages.Clear();
+        target.Mercenaries.Clear();
         foreach (EmployeeWageState source in saveData?.wageStates
                      ?? new List<EmployeeWageState>())
         {
@@ -315,7 +322,7 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
             {
                 EmployeeWageState state = source.Clone();
                 state.characterId = characterId;
-                wageByCharacterId[characterId] = state;
+                target.Wages[characterId] = state;
             }
         }
 
@@ -327,14 +334,18 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
             {
                 MercenaryContract contract = source.Clone();
                 contract.characterId = characterId;
-                mercenaryByCharacterId[characterId] = contract;
+                target.Mercenaries[characterId] = contract;
             }
         }
 
-        EnsureCurrentStaff();
     }
 
     private void EnsureCurrentStaff()
+    {
+        EnsureCurrentStaff(stateStore.Current);
+    }
+
+    private void EnsureCurrentStaff(TreasuryEconomyAggregateState target)
     {
         foreach (CharacterActor actor in characterWorld.Characters
                      ?? Array.Empty<CharacterActor>())
@@ -349,12 +360,13 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
 
             string characterId = NormalizeId(identity.PersistentId);
             if (characterId.Length == 0
-                || wageByCharacterId.ContainsKey(characterId))
+                || target.Wages.ContainsKey(characterId))
             {
                 continue;
             }
 
             GetOrCreateState(
+                target,
                 characterId,
                 IsFounder(characterId, actor)
                     ? EmploymentContractKind.Founder
@@ -366,7 +378,15 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
         string characterId,
         EmploymentContractKind kind)
     {
-        if (!wageByCharacterId.TryGetValue(
+        return GetOrCreateState(stateStore.Current, characterId, kind);
+    }
+
+    private static EmployeeWageState GetOrCreateState(
+        TreasuryEconomyAggregateState target,
+        string characterId,
+        EmploymentContractKind kind)
+    {
+        if (!target.Wages.TryGetValue(
                 characterId,
                 out EmployeeWageState state))
         {
@@ -376,7 +396,7 @@ public sealed class EmploymentContractRuntime : IEmploymentContractRuntime
                 contractKind = kind,
                 active = true
             };
-            wageByCharacterId.Add(characterId, state);
+            target.Wages.Add(characterId, state);
         }
         else
         {

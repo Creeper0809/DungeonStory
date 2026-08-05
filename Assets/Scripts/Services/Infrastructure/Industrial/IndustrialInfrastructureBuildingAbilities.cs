@@ -29,7 +29,7 @@ public sealed class BuildingPowerProducerAbility : BuildingAbility
     public bool requiresFuel;
 
     [InspectorName("연료 아이템 ID")]
-    public string fuelItemId = "stock-item:Fuel";
+    public string fuelItemId = "material:low-fuel";
 
     [Min(0f), InspectorName("연료당 가동 시간")]
     public float secondsPerFuel = 60f;
@@ -292,6 +292,11 @@ public sealed class BuildingConveyorOverflowAbility : BuildingAbility
 public sealed class BuildingAutomationAbility : BuildingAbility
 {
     public AutomationMode maximumMode = AutomationMode.Automatic;
+
+    public AutomationPowerDemandProfile PowerDemandProfile =>
+        new AutomationPowerDemandProfile(
+            assistedPowerDemand,
+            automaticPowerDemand);
 
     [Min(0f), InspectorName("보조 전력")]
     public float assistedPowerDemand = 2f;

@@ -175,7 +175,7 @@ public sealed class CharacterActivityEvent
         int quantity = 0,
         bool bubbleEligible = false)
     {
-        WorkTypeId workTypeId = WorkTypeCatalog.TryGet(
+        WorkTypeId workTypeId = FacilityWorkTypeMap.TryGet(
                 workType,
                 out WorkTypeDefinition definition)
             ? definition.WorkTypeId
@@ -248,9 +248,7 @@ public sealed class CharacterActivityEvent
         }
 
         CharacterIdentity identity = actor.Identity;
-        string boundActorId = !string.IsNullOrWhiteSpace(identity?.PersistentId)
-            ? identity.PersistentId
-            : actor.GetInstanceID().ToString();
+        string boundActorId = CharacterPersistentIdentity.Require(actor).Value;
         string boundActorName = !string.IsNullOrWhiteSpace(identity != null ? identity.DisplayName : null)
             ? identity.DisplayName
             : actor.name;
@@ -286,7 +284,9 @@ public sealed class CharacterActivityEvent
 
     private static string GetTargetId(BuildableObject target)
     {
-        return target != null ? $"facility:{target.id}" : string.Empty;
+        return target != null
+            ? target.RequirePersistentInstanceId().Value
+            : string.Empty;
     }
 
     private static string GetTargetName(BuildableObject target)

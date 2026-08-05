@@ -414,8 +414,10 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             Check(Time.timeScale > 0f, "RUN_RESUMED", $"clock resumes after prepared start; timeScale={Time.timeScale:0.##}");
 
             yield return new WaitForSecondsRealtime(1f);
-            IRunVariableRuntimeProvider runVariables = scope.Container.Resolve<IRunVariableRuntimeProvider>();
-            Check(runVariables.TryGetRuntime(out RunVariableRuntime runVariableRuntime)
+            RunVariableRuntime runVariableRuntime = scope.Container
+                .Resolve<DungeonSceneRuntimeReferences>()
+                .RunVariables;
+            Check(runVariableRuntime != null
                     && runVariableRuntime.State.StartVariables?.runDifficulty == DungeonDifficulty.Hard,
                 "FIXED_RUN_DIFFICULTY",
                 $"selected={runVariableRuntime?.State.StartVariables?.runDifficulty}");
@@ -489,10 +491,9 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             yield return Click(FindSceneComponent<Button>("Button_원정 출발"));
 
             IOffenseBattleRuntime battle = scope.Container.Resolve<IOffenseBattleRuntime>();
-            OffenseExpeditionRuntime activeExpedition = scope.Container.Resolve<IOffenseExpeditionRuntimeProvider>()
-                .TryGetRuntime(out OffenseExpeditionRuntime resolvedExpedition)
-                    ? resolvedExpedition
-                    : null;
+            OffenseExpeditionRuntime activeExpedition = scope.Container
+                .Resolve<OffenseSceneRuntimeReferences>()
+                .Expedition;
             Check(activeExpedition?.ActiveExpeditions.FirstOrDefault()?.Phase == OffenseExpeditionPhase.ChoosingRoute,
                 "JOURNEY_STARTED",
                 $"phase={activeExpedition?.ActiveExpeditions.FirstOrDefault()?.Phase}");
@@ -522,10 +523,12 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             yield return Click(FindSceneComponent<Button>("SaveMenuButton"));
             yield return Click(FindSceneComponent<Button>("SaveButton_manual"));
             string expectedBattleState = JsonUtility.ToJson(battle.CapturePersistentState());
-            int historyBeforeRestore = scope.Container.Resolve<IOffenseExpeditionRuntimeProvider>()
-                .TryGetRuntime(out OffenseExpeditionRuntime expeditionRuntime)
-                    ? expeditionRuntime.ResultHistory.Count
-                    : -1;
+            OffenseExpeditionRuntime expeditionRuntime = scope.Container
+                .Resolve<OffenseSceneRuntimeReferences>()
+                .Expedition;
+            int historyBeforeRestore = expeditionRuntime != null
+                ? expeditionRuntime.ResultHistory.Count
+                : -1;
             yield return Click(FindSceneComponent<Button>("CloseButton", "SavePanel"));
             yield return Click(FindSceneComponent<Button>("Button_전투 복귀"));
 
@@ -834,12 +837,7 @@ public sealed class DungeonProductShellVerificationRunner : MonoBehaviour
             yield break;
         }
 
-        IRegularCustomerRuntimeProvider recruitmentProvider =
-            scope.Container.Resolve<IRegularCustomerRuntimeProvider>();
-        if (!recruitmentProvider.TryGetRuntime(out preparedRecruitment))
-        {
-            yield break;
-        }
+        preparedRecruitment = scope.Container.Resolve<RegularCustomerRuntime>();
 
         ICharacterSpawnerProvider spawnerProvider = scope.Container.Resolve<ICharacterSpawnerProvider>();
         if (!spawnerProvider.TryGetSpawner(out CharacterSpawner spawner)

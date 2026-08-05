@@ -54,17 +54,94 @@ public class CharacterLifecycle : SerializedMonoBehaviour
     private CharacterExpeditionRecoveryState expeditionRecovery = new CharacterExpeditionRecoveryState();
     private IGridSystemProvider gridSystemProvider;
     private GridSystemManager subscribedGridSystem;
+    private bool unpublishedComposition;
+    private bool detachedRestoreCandidate;
 
     public CharacterLifecycleState CurrentState => lifecycleState;
     public bool IsAiPaused => aiPaused;
     public CharacterExpeditionRecoveryState ExpeditionRecovery => expeditionRecovery ??= new CharacterExpeditionRecoveryState();
+    public bool IsUnpublishedComposition => unpublishedComposition;
+
+    public void PrepareForComposition(CharacterActor owner)
+    {
+        if (owner == null)
+        {
+            throw new ArgumentNullException(nameof(owner));
+        }
+        if (unpublishedComposition || detachedRestoreCandidate)
+        {
+            throw new InvalidOperationException(
+                "Character lifecycle composition mode can only be selected once.");
+        }
+
+        actor = owner;
+        unpublishedComposition = true;
+    }
+
+    public void PrepareForDetachedRestore(CharacterActor owner)
+    {
+        if (owner == null)
+        {
+            throw new ArgumentNullException(nameof(owner));
+        }
+        if (detachedRestoreCandidate || unpublishedComposition)
+        {
+            throw new InvalidOperationException(
+                "Character lifecycle detached mode can only be selected once.");
+        }
+
+        actor = owner;
+        detachedRestoreCandidate = true;
+    }
 
     [Inject]
     public void ConstructCharacterLifecycle(IGridSystemProvider gridSystemProvider)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new System.ArgumentNullException(nameof(gridSystemProvider));
+        if (!IsPublicationSuppressed)
+        {
+            TrySubscribeToGridChanges();
+        }
+    }
+
+    public void RequireCompositionReadyForPublication()
+    {
+        if (!unpublishedComposition || detachedRestoreCandidate || actor == null)
+        {
+            throw new InvalidOperationException(
+                "Only a configured unpublished character lifecycle can be published.");
+        }
+    }
+
+    public void PublishComposition()
+    {
+        RequireCompositionReadyForPublication();
+        unpublishedComposition = false;
         TrySubscribeToGridChanges();
+    }
+
+    public void PublishDetachedRestore()
+    {
+        if (!detachedRestoreCandidate || unpublishedComposition)
+        {
+            throw new InvalidOperationException(
+                "Only a detached character lifecycle can be published.");
+        }
+
+        detachedRestoreCandidate = false;
+        TrySubscribeToGridChanges();
+    }
+
+    public void RollbackDetachedRestorePublication()
+    {
+        if (detachedRestoreCandidate)
+        {
+            return;
+        }
+
+        UnsubscribeFromGridChanges();
+        detachedRestoreCandidate = true;
     }
 
     private void Awake()
@@ -74,13 +151,22 @@ public class CharacterLifecycle : SerializedMonoBehaviour
 
     private void Start()
     {
-        TrySubscribeToGridChanges();
+        if (!IsPublicationSuppressed)
+        {
+            TrySubscribeToGridChanges();
+        }
     }
 
     private void OnEnable()
     {
-        TrySubscribeToGridChanges();
+        if (!IsPublicationSuppressed)
+        {
+            TrySubscribeToGridChanges();
+        }
     }
+
+    private bool IsPublicationSuppressed =>
+        unpublishedComposition || detachedRestoreCandidate;
 
     private void OnDisable()
     {

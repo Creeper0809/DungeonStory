@@ -48,62 +48,42 @@ public sealed class FacilityRoleDefinition
     }
 }
 
+/// <summary>
+/// Immutable mapping for the fixed FacilityRole bit protocol.
+/// </summary>
 public static class FacilityRoleCatalog
 {
-    private static readonly Dictionary<string, FacilityRoleDefinition> ById =
-        new Dictionary<string, FacilityRoleDefinition>(StringComparer.Ordinal);
-    private static readonly Dictionary<FacilityRole, FacilityRoleDefinition> ByRole =
-        new Dictionary<FacilityRole, FacilityRoleDefinition>();
-    private static bool initialized;
-
-    public static IReadOnlyList<FacilityRoleDefinition> All
+    private static readonly FacilityRoleDefinition[] Definitions =
     {
-        get
-        {
-            EnsureInitialized();
-            return ById.Values
-                .OrderBy((definition) => definition.SortOrder)
-                .ThenBy((definition) => definition.Id, StringComparer.Ordinal)
-                .ToArray();
-        }
-    }
+        Definition("role:meal", FacilityRole.Meal, "식사", "식당", 10, new Color(0.84f, 0.65f, 0.29f, 1f), "Meal"),
+        Definition("role:purchase", FacilityRole.Purchase, "상점", "상점", 20, new Color(0.91f, 0.78f, 0.36f, 1f), "Purchase"),
+        Definition("role:rest", FacilityRole.Rest, "휴식", "휴게실", 30, new Color(0.31f, 0.65f, 0.78f, 1f), "Rest"),
+        Definition("role:training", FacilityRole.Training, "훈련", "훈련실", 40, new Color(0.79f, 0.36f, 0.36f, 1f), "Training"),
+        Definition("role:research", FacilityRole.Research, "연구", "연구실", 50, new Color(0.31f, 0.69f, 0.46f, 1f), "Research"),
+        Definition("role:mana", FacilityRole.Mana, "마나", "마나실", 60, new Color(0.60f, 0.42f, 0.78f, 1f), "Mana"),
+        Definition("role:logistics", FacilityRole.Logistics, "창고", "창고", 70, new Color(0.53f, 0.56f, 0.61f, 1f), "Logistics"),
+        Definition("role:toilet", FacilityRole.Toilet, "화장실", "화장실", 80, new Color(0.31f, 0.51f, 0.72f, 1f), "Toilet"),
+        Definition("role:hygiene", FacilityRole.Hygiene, "위생", "세면실", 90, new Color(0.33f, 0.72f, 0.63f, 1f), "Hygiene"),
+        Definition("role:administration", FacilityRole.Administration, "집무", "사장실", 100, new Color(0.74f, 0.57f, 0.32f, 1f), "Administration"),
+        Definition("role:security", FacilityRole.Security, "경비", "경비실", 110, new Color(0.67f, 0.33f, 0.31f, 1f), "Security"),
+        Definition("role:entertainment", FacilityRole.Entertainment, "흥행", "서커스장", 120, new Color(0.72f, 0.29f, 0.42f, 1f), "Entertainment"),
+        Definition("role:medical", FacilityRole.Medical, "의료", "의무실", 130, new Color(0.40f, 0.69f, 0.64f, 1f), "Medical")
+    };
 
-    public static void Register(FacilityRoleDefinition definition)
-    {
-        if (definition == null)
-        {
-            throw new ArgumentNullException(nameof(definition));
-        }
-
-        EnsureInitialized();
-        if (ById.TryGetValue(definition.Id, out FacilityRoleDefinition existingById)
-            && existingById.Role != definition.Role)
-        {
-            throw new InvalidOperationException(
-                $"Facility role id '{definition.Id}' is already assigned to {existingById.Role}.");
-        }
-
-        if (ByRole.TryGetValue(definition.Role, out FacilityRoleDefinition existingByRole)
-            && !string.Equals(existingByRole.Id, definition.Id, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                $"Facility role flag '{definition.Role}' is already assigned to '{existingByRole.Id}'.");
-        }
-
-        ById[definition.Id] = definition;
-        ByRole[definition.Role] = definition;
-    }
+    public static IReadOnlyList<FacilityRoleDefinition> All => Definitions;
 
     public static bool TryGet(FacilityRole role, out FacilityRoleDefinition definition)
     {
-        EnsureInitialized();
-        return ByRole.TryGetValue(role, out definition);
+        definition = Definitions.FirstOrDefault(candidate => candidate.Role == role);
+        return definition != null;
     }
 
     public static bool TryGet(string id, out FacilityRoleDefinition definition)
     {
-        EnsureInitialized();
-        return ById.TryGetValue(id?.Trim() ?? string.Empty, out definition);
+        string normalized = id?.Trim() ?? string.Empty;
+        definition = Definitions.FirstOrDefault(candidate =>
+            string.Equals(candidate.Id, normalized, StringComparison.Ordinal));
+        return definition != null;
     }
 
     public static string GetRoomLabel(FacilityRole role)
@@ -129,54 +109,10 @@ public static class FacilityRoleCatalog
 
     public static IEnumerable<FacilityRoleDefinition> Enumerate(FacilityRole roles)
     {
-        return All.Where((definition) => (roles & definition.Role) != 0);
+        return Definitions.Where(definition => (roles & definition.Role) != 0);
     }
 
-    public static void ResetToBuiltIns()
-    {
-        ById.Clear();
-        ByRole.Clear();
-        initialized = true;
-        RegisterBuiltIns();
-    }
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetRuntimeState()
-    {
-        ById.Clear();
-        ByRole.Clear();
-        initialized = false;
-    }
-
-    private static void EnsureInitialized()
-    {
-        if (initialized)
-        {
-            return;
-        }
-
-        initialized = true;
-        RegisterBuiltIns();
-    }
-
-    private static void RegisterBuiltIns()
-    {
-        RegisterBuiltIn("role:meal", FacilityRole.Meal, "식사", "식당", 10, new Color(0.84f, 0.65f, 0.29f, 1f), "Meal");
-        RegisterBuiltIn("role:purchase", FacilityRole.Purchase, "상점", "상점", 20, new Color(0.91f, 0.78f, 0.36f, 1f), "Purchase");
-        RegisterBuiltIn("role:rest", FacilityRole.Rest, "휴식", "휴게실", 30, new Color(0.31f, 0.65f, 0.78f, 1f), "Rest");
-        RegisterBuiltIn("role:training", FacilityRole.Training, "훈련", "훈련실", 40, new Color(0.79f, 0.36f, 0.36f, 1f), "Training");
-        RegisterBuiltIn("role:research", FacilityRole.Research, "연구", "연구실", 50, new Color(0.31f, 0.69f, 0.46f, 1f), "Research");
-        RegisterBuiltIn("role:mana", FacilityRole.Mana, "마나", "마나실", 60, new Color(0.60f, 0.42f, 0.78f, 1f), "Mana");
-        RegisterBuiltIn("role:logistics", FacilityRole.Logistics, "창고", "창고", 70, new Color(0.53f, 0.56f, 0.61f, 1f), "Logistics");
-        RegisterBuiltIn("role:toilet", FacilityRole.Toilet, "화장실", "화장실", 80, new Color(0.31f, 0.51f, 0.72f, 1f), "Toilet");
-        RegisterBuiltIn("role:hygiene", FacilityRole.Hygiene, "위생", "세면실", 90, new Color(0.33f, 0.72f, 0.63f, 1f), "Hygiene");
-        RegisterBuiltIn("role:administration", FacilityRole.Administration, "집무", "사장실", 100, new Color(0.74f, 0.57f, 0.32f, 1f), "Administration");
-        RegisterBuiltIn("role:security", FacilityRole.Security, "경비", "경비실", 110, new Color(0.67f, 0.33f, 0.31f, 1f), "Security");
-        RegisterBuiltIn("role:entertainment", FacilityRole.Entertainment, "흥행", "서커스장", 120, new Color(0.72f, 0.29f, 0.42f, 1f), "Entertainment");
-        RegisterBuiltIn("role:medical", FacilityRole.Medical, "의료", "의무실", 130, new Color(0.40f, 0.69f, 0.64f, 1f), "Medical");
-    }
-
-    private static void RegisterBuiltIn(
+    private static FacilityRoleDefinition Definition(
         string id,
         FacilityRole role,
         string roomLabel,
@@ -185,7 +121,7 @@ public static class FacilityRoleCatalog
         Color color,
         string semanticTag)
     {
-        FacilityRoleDefinition definition = new FacilityRoleDefinition(
+        return new FacilityRoleDefinition(
             id,
             role,
             roomLabel,
@@ -193,7 +129,5 @@ public static class FacilityRoleCatalog
             sortOrder,
             color,
             semanticTag);
-        ById.Add(definition.Id, definition);
-        ByRole.Add(definition.Role, definition);
     }
 }

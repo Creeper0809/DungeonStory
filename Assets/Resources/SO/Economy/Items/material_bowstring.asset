@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uD65C\uACFC \uC11D\uAD81 \uC81C\uC791\uC5D0 \uC4F0\uB294 \uACE0\uC7A5\uB825
     \uC12C\uC720."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 128
-  unitPrice: 8
-  marketSaleRate: 0.6
   unitWeight: 0.08
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:textile:fiber
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 8
+  features:
+  - rid: 7737211674039681357
+  - rid: 7737211674039681358
+  - rid: 7737211674039681359
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681357
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:textile:fiber
+    - rid: 7737211674039681358
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 128
+        sharedIntermediate: 1
+    - rid: 7737211674039681359
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

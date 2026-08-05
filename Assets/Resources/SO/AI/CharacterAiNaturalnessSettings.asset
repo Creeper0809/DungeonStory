@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30802e66c77647d585779b2205877846, type: 3}
+  m_Name: CharacterAiNaturalnessSettings
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAiNaturalnessSettingsSO
+  softLockMinimumSeconds: 1.15
+  softLockMaximumSeconds: 4.5
+  softLockScoreBonus: 0.14
+  nearbyCharacterRadius: 4
+  wildlifeThreatRadius: 7
+  signalCacheSeconds: 0.25
+  queueWaitThreshold: 0.35
+  shelterWeatherThreshold: 0.55
+  stepAsideFailureThreshold: 0.35

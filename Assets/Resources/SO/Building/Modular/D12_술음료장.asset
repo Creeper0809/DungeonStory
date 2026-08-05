@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,22 +33,25 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 5b8278d53f5799b419abb77a8dd5a731, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239583285338
-    - rid: 7302563239583285339
-    - rid: 7302563239583285340
-    - rid: 7302563239583285341
-    - rid: 7302563239583285342
-    - rid: 7302563239583285343
-    - rid: 7302563239583285344
-    - rid: 7302563239583285345
-    - rid: 7302563239583285346
-    - rid: 7302563313672520043
+    - rid: 7737211730834227589
+    - rid: 7737211730834227590
+    - rid: 7737211730834227592
+    - rid: 7737211730834227593
+    - rid: 7737211730834227594
+    - rid: 7737211730834227595
+    - rid: 7737211730834227596
+    - rid: 7737211730834227597
+    - rid: 7737211730834227598
+    - rid: 7737211730834227599
+    - rid: 7737211730889016244
+    - rid: 7737211730889016245
   width: 1
   height: 1
   layer: 1
   category: 2
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -66,27 +60,39 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239583285338
+    - rid: 7737211730834227589
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D12
-    - rid: 7302563239583285339
+    - rid: 7737211730834227590
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - brewery
-    - rid: 7302563239583285340
+    - rid: 7737211730834227592
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 120
+        constructionValue: 120
+        constructionCost: 0
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302563239583285341
+    - rid: 7737211730834227593
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 20.4
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 6
+    - rid: 7737211730834227594
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -97,11 +103,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 13
           disabledWhenDamaged: 1
-    - rid: 7302563239583285342
+    - rid: 7737211730834227595
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563239583285343
+    - rid: 7737211730834227596
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -116,7 +122,7 @@ MonoBehaviour:
           - key: Luxury
             value: 3
           metrics: []
-    - rid: 7302563239583285344
+    - rid: 7737211730834227597
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -127,21 +133,42 @@ MonoBehaviour:
           hunger: 12
           excretion: 0
           hygiene: 0
-    - rid: 7302563239583285345
+    - rid: 7737211730834227598
       type: {class: BuildingServiceAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceAbility
         capacity: 1
         contributesStockCategory: 1
         stockCategory: 0
-    - rid: 7302563239583285346
+    - rid: 7737211730834227599
       type: {class: BuildingMercenaryHiringAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingMercenaryHiringAbility
         rolePremium: 0
         minimumCandidateSatisfaction: 65
-    - rid: 7302563313672520043
+    - rid: 7737211730889016244
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:tavern-brewery
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211730889016245
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16

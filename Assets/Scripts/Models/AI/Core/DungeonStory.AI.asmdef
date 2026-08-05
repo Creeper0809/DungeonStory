@@ -1,7 +1,13 @@
 {
   "name": "DungeonStory.AI",
   "rootNamespace": "DungeonStory.AI",
-  "references": [],
+  "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.Foundation",
+    "DungeonStory.Grid",
+    "DungeonStory.World",
+    "VContainer"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

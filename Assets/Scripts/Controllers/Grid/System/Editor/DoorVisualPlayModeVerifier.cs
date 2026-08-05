@@ -126,7 +126,7 @@ public sealed class DoorVisualPlayModeVerificationRunner : MonoBehaviour
             .FirstOrDefault(item => item != null
                 && item.GetType() == typeof(Door)
                 && item.BuildingData != null
-                && item.BuildingData.type == typeof(Door));
+                && item.BuildingData.runtimeArchetype == BuildingRuntimeArchetypeKind.Door);
         SpriteRenderer dungeonDoorRenderer = dungeonDoor != null ? dungeonDoor.VisualRenderer : null;
         Bounds dungeonDoorBounds = dungeonDoorRenderer != null ? dungeonDoorRenderer.bounds : default;
         GridTexture gridTexture = UnityEngine.Object.FindFirstObjectByType<GridTexture>();
@@ -410,7 +410,10 @@ public sealed class DoorVisualPlayModeVerificationRunner : MonoBehaviour
         result.RendererCount = actorRenderers.Length;
         foreach (SpriteRenderer renderer in actorRenderers)
         {
-            DoorVisualMaterial.Apply(renderer);
+            DoorVisualMaterial.Apply(
+                renderer,
+                AssetDatabase.LoadAssetAtPath<Material>(
+                    "Assets/Resources/Materials/DoorSpriteUnlit.mat"));
         }
 
         foreach (MonoBehaviour behaviour in actorObject.GetComponentsInChildren<MonoBehaviour>(true))
@@ -508,14 +511,16 @@ public sealed class DoorVisualPlayModeVerificationRunner : MonoBehaviour
             pointer,
             scope.Container.Resolve<IGridTextureProvider>(),
             scope.Container.Resolve<IObjectResolver>(),
-            scope.Container.Resolve<IGameDataProvider>(),
-            scope.Container.Resolve<IBlueprintResearchRuntimeProvider>(),
+            scope.Container.Resolve<IGameSessionStateProvider>(),
+            scope.Container.Resolve<IGameMoneyAccount>(),
+            scope.Container.Resolve<ProgressionSceneRuntimeReferences>(),
             scope.Container.Resolve<IGridBuildingObjectFactory>(),
             new NoUiPointerBlocker(),
             new NoOpPlayerInputReader(),
             scope.Container.Resolve<IWorkOrderRuntime>(),
             scope.Container.Resolve<IGameEventBus>(),
-            scope.Container.Resolve<IGameClock>());
+            scope.Container.Resolve<IGameClock>(),
+            scope.Container.Resolve<IDungeonDebugRuleQuery>());
         ghostPresenter.Construct(
             scope.Container.Resolve<IGridSystemProvider>(),
             scope.Container.Resolve<IDungeonGridBuildingControllerProvider>(),

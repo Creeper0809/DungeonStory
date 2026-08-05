@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,15 +33,17 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 2e447a96666abbc419305bde00eaed89, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239583285421
-    - rid: 7302563239583285422
-    - rid: 7302563239583285423
+    - rid: 7737211730834227714
+    - rid: 7737211730834227715
+    - rid: 7737211730834227716
+    - rid: 7737211730834227717
   width: 1
   height: 1
   layer: 3
   category: 7
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -59,20 +52,33 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239583285421
+    - rid: 7737211730834227714
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: E08
-    - rid: 7302563239583285422
+    - rid: 7737211730834227715
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionCost: 110
+        constructionValue: 110
+        constructionCost: 0
         maintenance: 3
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563239583285423
+    - rid: 7737211730834227716
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 20.2
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: component:machine-parts
+          amount: 6
+    - rid: 7737211730834227717
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility

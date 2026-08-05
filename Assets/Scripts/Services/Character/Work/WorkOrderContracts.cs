@@ -1,0 +1,133 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+public enum WorkOrderStatus
+{
+    WaitingForMaterials = 0,
+    Ready = 1,
+    InProgress = 2,
+    Blocked = 3,
+    Completed = 4,
+    Cancelled = 5
+}
+
+[Serializable]
+public sealed class WorkOrderItemMaterialSaveData
+{
+    public string itemId = string.Empty;
+    public int required;
+    public int delivered;
+}
+
+[Serializable]
+public sealed class WorkOrderSaveData
+{
+    public string workOrderId = string.Empty;
+    public string workTypeId = string.Empty;
+    public int targetBuildingId;
+    public int gridX;
+    public int gridY;
+    public float requiredWork;
+    public float completedWork;
+    public string materialDestinationId = string.Empty;
+    public string reservedWorkerPersistentId = string.Empty;
+    public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
+    public List<WorkOrderItemMaterialSaveData> itemMaterials =
+        new List<WorkOrderItemMaterialSaveData>();
+}
+
+[Serializable]
+public sealed class DungeonWorkOrderSaveData
+{
+    public const int CurrentVersion = 3;
+
+    public int version = CurrentVersion;
+    public int nextOrderSequence = 1;
+    public List<WorkOrderSaveData> orders = new List<WorkOrderSaveData>();
+}
+
+public sealed class WorkOrderProgressState
+{
+    public string WorkOrderId { get; set; }
+    public WorkTypeId WorkTypeId { get; set; }
+    public int TargetBuildingId { get; set; }
+    public Vector2Int Position { get; set; }
+    public float RequiredWork { get; set; }
+    public float CompletedWork { get; set; }
+    public string MaterialDestinationId { get; set; }
+    public string ReservedWorkerPersistentId { get; set; }
+    public WorkOrderStatus Status { get; set; }
+    public IReadOnlyDictionary<string, int> ItemMaterialRequirements { get; set; }
+    public IReadOnlyDictionary<string, int> DeliveredItemMaterials { get; set; }
+    public float ProgressRatio => RequiredWork <= 0f ? 1f : Mathf.Clamp01(CompletedWork / RequiredWork);
+}
+
+public interface IWorkOrderQuery
+{
+    int Version { get; }
+    IReadOnlyList<WorkOrderProgressState> ActiveOrders { get; }
+}
+
+public interface IWorkOrderRuntime
+{
+    int WorkOrderCandidateVersion { get; }
+    DungeonWorkOrderSaveData Capture();
+    void ValidateRestorePayload(DungeonWorkOrderSaveData snapshot);
+    WorkOrderRestoreCandidate PrepareRestoreCandidate(
+        DungeonWorkOrderSaveData snapshot);
+    void PublishRestoreCandidate(WorkOrderRestoreCandidate candidate);
+    bool TryCreateConstructionOrder(ConstructionSite site, BuildingSO building, Vector2Int position, out string orderId, out string failureReason);
+    bool TryGetOrderFor(BuildableObject target, WorkTypeId workTypeId, out WorkOrderProgressState order);
+    bool ApplyWork(CharacterActor worker, BuildableObject target, WorkTypeId workTypeId, float amount, out bool completed, out bool appliedCompletionEffects, out string message);
+    bool RefreshMaterialsReady(ConstructionSite site);
+    bool CancelOrder(string orderId, bool refundDeliveredMaterials);
+    bool DebugCompleteOrder(string orderId, out string message);
+    int DebugCompleteAllOrders();
+}
+
+internal sealed class WorkOrderRecord
+{
+    public string workOrderId = string.Empty;
+    public WorkTypeId workTypeId;
+    public int targetBuildingId;
+    public Vector2Int position;
+    public float requiredWork;
+    public float completedWork;
+    public string materialDestinationId = string.Empty;
+    public string reservedWorkerPersistentId = string.Empty;
+    public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
+    public readonly Dictionary<string, int> requiredItemMaterials =
+        new Dictionary<string, int>(StringComparer.Ordinal);
+    public readonly Dictionary<string, int> deliveredItemMaterials =
+        new Dictionary<string, int>(StringComparer.Ordinal);
+
+    public WorkOrderRecord DeepClone()
+    {
+        WorkOrderRecord clone = new WorkOrderRecord
+        {
+            workOrderId = workOrderId,
+            workTypeId = workTypeId,
+            targetBuildingId = targetBuildingId,
+            position = position,
+            requiredWork = requiredWork,
+            completedWork = completedWork,
+            materialDestinationId = materialDestinationId,
+            reservedWorkerPersistentId = reservedWorkerPersistentId,
+            status = status
+        };
+        Copy(requiredItemMaterials, clone.requiredItemMaterials);
+        Copy(deliveredItemMaterials, clone.deliveredItemMaterials);
+        return clone;
+    }
+
+    private static void Copy<TKey>(
+        IReadOnlyDictionary<TKey, int> source,
+        IDictionary<TKey, int> destination)
+    {
+        foreach (KeyValuePair<TKey, int> pair in source)
+        {
+            destination.Add(pair.Key, pair.Value);
+        }
+    }
+}

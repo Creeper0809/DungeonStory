@@ -27,20 +27,36 @@ MonoBehaviour:
   description: "\uC54C\uCF54\uC62C\uACFC \uC5F0\uAE08 \uC6A9\uB9E4\uB85C \uC720\uD6A8
     \uC131\uBD84\uC744 \uB18D\uCD95\uD55C\uB2E4."
   field: 13
-  requiredWork: 86
+  requiredWork: 92
   prerequisites:
   - {fileID: 11400000, guid: 1f0f04477ee507543893f06592b0442c, type: 2}
   - {fileID: 11400000, guid: 81003f66b70835f44b6e4ed6dd7bb783, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:alchemy
+    prerequisite: {fileID: 11400000, guid: 1f0f04477ee507543893f06592b0442c, type: 2}
+    kind: 0
+    reason: "\uC5F0\uAE08 \uAC00\uACF5\uC758 \uC774\uB860\uC774(\uAC00) \uC99D\uB958
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:pharmacology:antiseptic
+    prerequisite: {fileID: 11400000, guid: 81003f66b70835f44b6e4ed6dd7bb783, type: 2}
+    kind: 2
+    reason: "\uC18C\uB3C5\xB7\uBD95\uB300\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC99D\uB958 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563230216618543
+    - rid: 7737211730927812973
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 4
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563230216618543
+    - rid: 7737211730927812973
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1086

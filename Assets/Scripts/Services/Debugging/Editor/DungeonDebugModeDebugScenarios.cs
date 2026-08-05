@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using DungeonStory.Content.CoreSession;
 using UnityEditor;
 using UnityEngine;
 
@@ -20,8 +21,9 @@ public static class DungeonDebugModeDebugScenarios
         List<string> failures = new List<string>();
         Verify("settings v1 migration defaults developer mode off", VerifySettingsMigration, failures);
         Verify("run history is capped and save-safe", VerifyHistoryAndTransientReset, failures);
+        Verify("debug rules are isolated per runtime scope", VerifyScopedRuleIsolation, failures);
         Verify("target contracts reject approximate selections", VerifyExactTargetContracts, failures);
-        Verify("legacy V12 JSON accepts optional debug metadata", VerifyLegacyV12Compatibility, failures);
+        Verify("pre-V18 saves are rejected without partial debug restore", VerifyLegacyV12Rejection, failures);
 
         foreach (string failure in failures)
         {
@@ -51,7 +53,11 @@ public static class DungeonDebugModeDebugScenarios
     {
         ScenarioSettings settings = new ScenarioSettings();
         ScenarioGameData gameData = new ScenarioGameData();
-        DungeonDebugModeService mode = new DungeonDebugModeService(settings, gameData);
+        DungeonDebugModeService mode = new DungeonDebugModeService(
+            settings,
+            gameData,
+            new DungeonRuntimeAggregateRootStore(),
+            LoadRulesProvider());
         mode.Start();
         try
         {
@@ -69,12 +75,12 @@ public static class DungeonDebugModeDebugScenarios
             bool capturedState = captured.debugModified
                 && captured.recentCommands.Count == 50
                 && captured.recentCommands[0].commandId == "scenario:10";
-            mode.Restore(captured);
+            mode.PublishRestoreCandidate(
+                mode.PrepareRestoreCandidate(captured));
             bool transientCleared = !mode.IsCheatEnabled(DungeonDebugCheat.FreezeNeeds)
                 && !mode.IsOverlayEnabled(DungeonDebugOverlayKind.Grid)
                 && mode.IsDebugModified;
-            settings.Current.developerMode = false;
-            DungeonUserSettingsRuntime.Publish(settings.Current);
+            settings.Update(current => current.developerMode = false);
             return capturedState && transientCleared;
         }
         finally
@@ -105,18 +111,51 @@ public static class DungeonDebugModeDebugScenarios
             && !cell.Matches(DungeonDebugTargetKind.Wildlife);
     }
 
-    private static bool VerifyLegacyV12Compatibility()
+    private static bool VerifyScopedRuleIsolation()
+    {
+        DungeonDebugModeService firstMode = new DungeonDebugModeService(
+            new ScenarioSettings(),
+            new ScenarioGameData(),
+            new DungeonRuntimeAggregateRootStore(),
+            LoadRulesProvider());
+        DungeonDebugModeService secondMode = new DungeonDebugModeService(
+            new ScenarioSettings(),
+            new ScenarioGameData(),
+            new DungeonRuntimeAggregateRootStore(),
+            LoadRulesProvider());
+        firstMode.Start();
+        secondMode.Start();
+        try
+        {
+            DungeonDebugRuleRuntime firstRules = new DungeonDebugRuleRuntime(firstMode);
+            DungeonDebugRuleRuntime secondRules = new DungeonDebugRuleRuntime(secondMode);
+            firstMode.SetCheat(DungeonDebugCheat.FreezeNeeds, true);
+            firstRules.BeginCommandExecution();
+            bool isolatedCommandDepth = firstRules.IsExecutingCommand
+                && !secondRules.IsExecutingCommand;
+            firstRules.EndCommandExecution();
+            return isolatedCommandDepth
+                && firstRules.IsEnabled(DungeonDebugCheat.FreezeNeeds)
+                && !secondRules.IsEnabled(DungeonDebugCheat.FreezeNeeds)
+                && !firstRules.IsExecutingCommand;
+        }
+        finally
+        {
+            firstMode.Dispose();
+            secondMode.Dispose();
+        }
+    }
+
+    private static bool VerifyLegacyV12Rejection()
     {
         DungeonGameSaveData legacy = JsonUtility.FromJson<DungeonGameSaveData>(
             "{\"version\":12,\"savedAtUtc\":\"2026-07-23T00:00:00Z\"}");
-        DungeonDebugRunSaveData debug =
-            DungeonSaveSectionPayload.ReadOrNew<DungeonDebugRunSaveData>(
-                legacy,
-                DungeonDebugSaveSection.Id);
         return legacy != null
-            && legacy.version == DungeonGameSaveData.CurrentVersion
-            && !debug.debugModified
-            && debug.recentCommands.Count == 0;
+            && legacy.version == 12
+            && DungeonSaveCompatibility.TryGetIncompatibilityReason(
+                legacy.version,
+                out string reason)
+            && !string.IsNullOrWhiteSpace(reason);
     }
 
     private static void Verify(string label, Func<bool> scenario, ICollection<string> failures)
@@ -134,6 +173,30 @@ public static class DungeonDebugModeDebugScenarios
         }
     }
 
+    private static ICoreSessionRulesProvider LoadRulesProvider()
+    {
+        CoreSessionRulesSO rules = AssetDatabase.LoadAssetAtPath<CoreSessionRulesSO>(
+            "Assets/Resources/SO/Content/CoreSessionRules.asset");
+        if (rules == null)
+        {
+            throw new InvalidOperationException("Core session rules asset is missing.");
+        }
+
+        rules.ValidateDefinition();
+        return new FixedCoreSessionRulesProvider(
+            rules.CreateRuntimeDefinition());
+    }
+
+    private sealed class FixedCoreSessionRulesProvider : ICoreSessionRulesProvider
+    {
+        public FixedCoreSessionRulesProvider(CoreSessionRulesDefinition rules)
+        {
+            CoreSessionRules = rules ?? throw new ArgumentNullException(nameof(rules));
+        }
+
+        public CoreSessionRulesDefinition CoreSessionRules { get; }
+    }
+
     private sealed class ScenarioSettings : IDungeonUserSettingsService
     {
         public DungeonUserSettingsData Current { get; } = new DungeonUserSettingsData
@@ -143,25 +206,28 @@ public static class DungeonDebugModeDebugScenarios
 
         public string SettingsPath => string.Empty;
         public string LastError => string.Empty;
-        public void Update(Action<DungeonUserSettingsData> change) => change?.Invoke(Current);
-        public void ResetDefaults() => Current.developerMode = false;
-        public void ApplyCurrent() => DungeonUserSettingsRuntime.Publish(Current);
+        public event Action Changed;
+        public void Update(Action<DungeonUserSettingsData> change)
+        {
+            change?.Invoke(Current);
+            Changed?.Invoke();
+        }
+        public void ResetDefaults() => Update(current => current.developerMode = false);
+        public void ApplyCurrent() => Changed?.Invoke();
     }
 
-    private sealed class ScenarioGameData : IGameDataProvider
+    private sealed class ScenarioGameData : IGameSessionStateProvider
     {
-        private readonly GameData data;
+        private readonly GameSessionState data;
 
         public ScenarioGameData()
         {
-            data = ScriptableObject.CreateInstance<GameData>();
-            data.day = new Data<int>();
-            data.hour = new Data<int>();
+            data = new GameSessionState();
             data.day.Initialize(2);
             data.hour.Initialize(7);
         }
 
-        public bool TryGetGameData(out GameData gameData)
+        public bool TryGetSessionState(out GameSessionState gameData)
         {
             gameData = data;
             return true;

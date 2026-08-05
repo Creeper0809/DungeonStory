@@ -12,19 +12,24 @@ public sealed class WildlifeAnatomyHealthRuntime :
     private readonly IAnatomyProfileCatalog profiles;
     private readonly IWildlifeWorldQuery wildlife;
     private readonly IGameClock clock;
-    private readonly Dictionary<string, WildlifeAnatomyState> states =
-        new(StringComparer.Ordinal);
+    private readonly SurgeryAggregateStateStore stateStore;
 
     private float nextComplicationTickAt;
+
+    private Dictionary<string, WildlifeAnatomyState> states =>
+        stateStore.State.WildlifeAnatomy;
 
     public WildlifeAnatomyHealthRuntime(
         IAnatomyProfileCatalog profiles,
         IWildlifeWorldQuery wildlife,
-        IGameClock clock)
+        IGameClock clock,
+        SurgeryAggregateStateStore stateStore)
     {
         this.profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
         this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
     public void Tick()
@@ -104,13 +109,13 @@ public sealed class WildlifeAnatomyHealthRuntime :
         WildlifeActor actor,
         string nodeId,
         out AnatomyNodeHealthState removedNode,
-        out string failureReason)
+        out DomainFailure failure)
     {
         removedNode = null;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (actor == null || !actor.IsAlive)
         {
-            failureReason = "살아 있는 동물 환자가 없습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryWildlifeSubjectUnavailable);
             return false;
         }
 
@@ -119,18 +124,18 @@ public sealed class WildlifeAnatomyHealthRuntime :
         if (!profile.TryGetNode(nodeId, out AnatomyNodeDefinition definition)
             || !definition.Removable)
         {
-            failureReason = "적출하거나 절단할 수 없는 부위입니다.";
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeUnavailable, nodeId);
             return false;
         }
 
         AnatomyNodeHealthState node = Find(state, nodeId);
         if (node == null || node.missing)
         {
-            failureReason = "이미 결손된 부위입니다.";
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeUnavailable, nodeId);
             return false;
         }
 
-        removedNode = CloneNode(node);
+        removedNode = SurgeryStateCloner.CloneAnatomyNode(node);
         node.missing = true;
         node.currentHealth = 0f;
         node.installedPartId = string.Empty;
@@ -149,19 +154,19 @@ public sealed class WildlifeAnatomyHealthRuntime :
         string partInstanceId,
         SurgicalPartKind partKind,
         float efficiency,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (actor == null || !actor.IsAlive)
         {
-            failureReason = "살아 있는 동물 환자가 없습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryWildlifeSubjectUnavailable);
             return false;
         }
 
         AnatomyNodeHealthState node = Find(GetOrCreate(actor), nodeId);
         if (node == null)
         {
-            failureReason = "대상 동물의 해부 구조에 해당 부위가 없습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeMissing, nodeId);
             return false;
         }
 
@@ -170,7 +175,14 @@ public sealed class WildlifeAnatomyHealthRuntime :
         node.bleedingPerSecond = 0f;
         node.installedPartId = partInstanceId?.Trim() ?? string.Empty;
         node.installedPartKind = partKind;
-        node.installedPartEfficiency = Mathf.Clamp(efficiency, 0.1f, 1.5f);
+        node.installedPartEfficiency = Mathf.Clamp(efficiency, 0.1f, 1.75f);
+        node.moduleBonus = 0f;
+        node.recoveryPolicy = partKind switch
+        {
+            SurgicalPartKind.NaturalOrgan => PartRecoveryPolicy.Natural,
+            SurgicalPartKind.ArcaneGraft => PartRecoveryPolicy.AssistedRegeneration,
+            _ => PartRecoveryPolicy.MaintenanceOnly
+        };
         return true;
     }
 
@@ -180,15 +192,15 @@ public sealed class WildlifeAnatomyHealthRuntime :
         float rejection,
         float mutation,
         float infection,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         AnatomyNodeHealthState node = actor != null
             ? Find(GetOrCreate(actor), nodeId)
             : null;
         if (node == null || node.missing)
         {
-            failureReason = "부담을 적용할 동물 부위가 없습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeUnavailable, nodeId);
             return false;
         }
 
@@ -213,15 +225,15 @@ public sealed class WildlifeAnatomyHealthRuntime :
         float rejection,
         float mutation,
         float infection,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         AnatomyNodeHealthState node = actor != null
             ? Find(GetOrCreate(actor), nodeId)
             : null;
         if (node == null || node.missing)
         {
-            failureReason = "부담을 줄일 동물 신체 부위를 찾을 수 없습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryTargetNodeUnavailable, nodeId);
             return false;
         }
 
@@ -241,30 +253,8 @@ public sealed class WildlifeAnatomyHealthRuntime :
     {
         return states.Values
             .OrderBy(state => state.wildlifeId, StringComparer.Ordinal)
-            .Select(CloneState)
+            .Select(SurgeryStateCloner.CloneWildlifeAnatomy)
             .ToArray();
-    }
-
-    public void Restore(
-        IEnumerable<WildlifeAnatomyState> restored,
-        IList<string> warnings)
-    {
-        states.Clear();
-        foreach (WildlifeAnatomyState source in
-                 restored ?? Array.Empty<WildlifeAnatomyState>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.wildlifeId)
-                || states.ContainsKey(source.wildlifeId))
-            {
-                warnings?.Add("중복되거나 대상이 없는 동물 해부 상태를 제외했습니다.");
-                continue;
-            }
-
-            WildlifeAnatomyState clone = CloneState(source);
-            EnsureNodes(clone, ResolveProfile(clone.profileId));
-            states.Add(clone.wildlifeId, clone);
-        }
     }
 
     private WildlifeAnatomyState GetOrCreate(WildlifeActor actor)
@@ -347,7 +337,7 @@ public sealed class WildlifeAnatomyHealthRuntime :
 
         return new AnatomyHealthSnapshot(
             state.profileId,
-            state.nodes.Select(CloneNode).ToArray(),
+            state.nodes.Select(SurgeryStateCloner.CloneAnatomyNode).ToArray(),
             Capacity(AnatomyFunction.Consciousness),
             Capacity(AnatomyFunction.Sight),
             Capacity(AnatomyFunction.Breathing),
@@ -364,37 +354,6 @@ public sealed class WildlifeAnatomyHealthRuntime :
         return state?.nodes?.FirstOrDefault(node =>
             node != null
             && string.Equals(node.nodeId, nodeId, StringComparison.Ordinal));
-    }
-
-    private static WildlifeAnatomyState CloneState(WildlifeAnatomyState source)
-    {
-        return new WildlifeAnatomyState
-        {
-            wildlifeId = source.wildlifeId ?? string.Empty,
-            profileId = source.profileId ?? string.Empty,
-            nodes = (source.nodes ?? new List<AnatomyNodeHealthState>())
-                .Where(node => node != null)
-                .Select(CloneNode)
-                .ToList()
-        };
-    }
-
-    private static AnatomyNodeHealthState CloneNode(AnatomyNodeHealthState source)
-    {
-        return new AnatomyNodeHealthState
-        {
-            nodeId = source.nodeId ?? string.Empty,
-            maxHealth = source.maxHealth,
-            currentHealth = source.currentHealth,
-            bleedingPerSecond = source.bleedingPerSecond,
-            infection = source.infection,
-            missing = source.missing,
-            installedPartId = source.installedPartId ?? string.Empty,
-            installedPartKind = source.installedPartKind,
-            installedPartEfficiency = source.installedPartEfficiency,
-            rejectionBurden = source.rejectionBurden,
-            mutationBurden = source.mutationBurden
-        };
     }
 
     private static AnatomyHealthSnapshot Empty()

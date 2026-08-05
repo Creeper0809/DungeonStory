@@ -5,62 +5,6 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
-public static class HumanInvasionBranchIds
-{
-    public const string RoyalArmy = "human-branch:royal-army";
-    public const string PioneerSupply = "human-branch:pioneer-supply";
-    public const string RoyalOrdnance = "human-branch:royal-ordnance";
-    public const string IntelligenceHunters = "human-branch:intelligence-hunters";
-    public const string RadiantOrder = "human-branch:radiant-order";
-}
-
-public enum InvasionOperationKind
-{
-    FrontalAssault = 0,
-    Siege = 1,
-    FacilitySabotage = 2,
-    Loot = 3,
-    CaptiveRescue = 4,
-    OwnerAssassination = 5
-}
-
-[Serializable]
-public sealed class HumanInvasionBranchState
-{
-    public string branchId = string.Empty;
-    public string displayName = string.Empty;
-    [Range(0f, 100f)] public float strength = 70f;
-    public bool operational = true;
-    public float lastRecoveryAmount;
-    public string recoveryReason = string.Empty;
-}
-
-[Serializable]
-public sealed class HumanSupportSiteState
-{
-    public string siteId = string.Empty;
-    public string branchId = string.Empty;
-    public string displayName = string.Empty;
-    public int q;
-    public int r;
-    public bool alive = true;
-    public bool connected = true;
-    public int destroyedDay;
-    public OffenseHexCoord Coord => new OffenseHexCoord(q, r);
-}
-
-[Serializable]
-public sealed class ScheduledInvasionOperationState
-{
-    public string operationId = string.Empty;
-    public InvasionOperationKind kind;
-    public string primaryBranchId = string.Empty;
-    public List<string> participatingBranchIds = new List<string>();
-    public string objectiveId = string.Empty;
-    public int scheduledDay;
-    public float intelligenceConfidence;
-}
-
 [Serializable]
 public sealed class InvasionCampaignSaveData
 {
@@ -84,8 +28,10 @@ public interface IInvasionCampaignRuntime
     ScheduledInvasionOperationState ScheduleNextOperation(float threat);
     float GetBranchStrengthMultiplier(string branchId);
     InvasionCampaignSaveData Capture();
-    void Restore(InvasionCampaignSaveData state);
-    void RestoreFromLegacyPressure(IOffenseRegionRuntime regions);
+    void ReplaceFromValidatedSnapshot(InvasionCampaignSaveData state);
+    void PublishRestoreProjection();
+    void RollbackPublishedRestoreProjection();
+    void CompleteRestoreProjection();
 }
 
 public sealed class InvasionCampaignRuntime :
@@ -98,24 +44,37 @@ public sealed class InvasionCampaignRuntime :
     private readonly IOffenseWorldSimulation world;
     private readonly IGameEventBus events;
     private readonly IRandomStream random;
-    private readonly Dictionary<string, HumanInvasionBranchState> branches =
-        new Dictionary<string, HumanInvasionBranchState>(StringComparer.Ordinal);
-    private readonly List<HumanSupportSiteState> supportSites =
-        new List<HumanSupportSiteState>();
-    private readonly List<ScheduledInvasionOperationState> operations =
-        new List<ScheduledInvasionOperationState>();
+    private readonly InvasionAggregateStateStore aggregateStateStore;
     private IDisposable daySubscription;
     private bool syncingWorldSites;
-    private int currentDay = 1;
-    private int operationSequence;
+    private bool restoreProjectionPublicationPending;
+    private InvasionCampaignAggregateState State =>
+        aggregateStateStore.Campaign;
+    private Dictionary<string, HumanInvasionBranchState> branches =>
+        State.Branches;
+    private List<HumanSupportSiteState> supportSites => State.SupportSites;
+    private List<ScheduledInvasionOperationState> operations => State.Operations;
+    private int currentDay
+    {
+        get => State.CurrentDay;
+        set => State.CurrentDay = value;
+    }
+    private int operationSequence
+    {
+        get => State.OperationSequence;
+        set => State.OperationSequence = value;
+    }
 
     public InvasionCampaignRuntime(
         IOffenseWorldSimulation world,
         IGameEventBus events,
-        IRandomStreamProvider randomStreams)
+        IRandomStreamProvider randomStreams,
+        InvasionAggregateStateStore aggregateStateStore)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.aggregateStateStore = aggregateStateStore
+            ?? throw new ArgumentNullException(nameof(aggregateStateStore));
         random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
             .Get("invasion:campaign");
     }
@@ -230,60 +189,63 @@ public sealed class InvasionCampaignRuntime :
         };
     }
 
-    public void Restore(InvasionCampaignSaveData state)
+    public void ReplaceFromValidatedSnapshot(InvasionCampaignSaveData state)
     {
+        if (state?.branches == null
+            || state.supportSites == null
+            || state.operations == null)
+        {
+            throw new ArgumentException(
+                "Validated invasion campaign snapshot is required.",
+                nameof(state));
+        }
         branches.Clear();
         supportSites.Clear();
         operations.Clear();
-        if (state == null || state.branches == null || state.branches.Count == 0)
+        currentDay = state.currentDay;
+        operationSequence = state.operationSequence;
+        foreach (HumanInvasionBranchState branch in state.branches)
         {
-            EnsureInitialized();
+            branches.Add(branch.branchId, Clone(branch));
+        }
+        supportSites.AddRange(state.supportSites.Select(Clone));
+        operations.AddRange(state.operations.Select(Clone));
+        if (!aggregateStateStore.IsRestoreStaging)
+        {
+            SynchronizeWorldSites();
+        }
+    }
+
+    public void PublishRestoreProjection()
+    {
+        if (!aggregateStateStore.IsRestoreStaging)
+        {
+            throw new InvalidOperationException(
+                "Invasion campaign projection requires restore staging.");
+        }
+        if (restoreProjectionPublicationPending)
+        {
+            throw new InvalidOperationException(
+                "An invasion campaign projection is already awaiting completion.");
+        }
+
+        restoreProjectionPublicationPending = true;
+    }
+
+    public void RollbackPublishedRestoreProjection()
+    {
+        restoreProjectionPublicationPending = false;
+    }
+
+    public void CompleteRestoreProjection()
+    {
+        if (!restoreProjectionPublicationPending)
+        {
             return;
         }
 
-        currentDay = Mathf.Max(1, state.currentDay);
-        operationSequence = Mathf.Max(0, state.operationSequence);
-        foreach (HumanInvasionBranchState branch in state.branches)
-        {
-            if (branch != null && !string.IsNullOrWhiteSpace(branch.branchId))
-            {
-                branch.strength = Mathf.Clamp(branch.strength, 0f, 100f);
-                branch.operational = branch.strength > 0f;
-                branches[branch.branchId] = Clone(branch);
-            }
-        }
-        supportSites.AddRange((state.supportSites
-                ?? new List<HumanSupportSiteState>())
-            .Where(value => value != null)
-            .Select(Clone));
-        operations.AddRange((state.operations
-                ?? new List<ScheduledInvasionOperationState>())
-            .Where(value => value != null)
-            .Select(Clone));
+        restoreProjectionPublicationPending = false;
         SynchronizeWorldSites();
-    }
-
-    public void RestoreFromLegacyPressure(IOffenseRegionRuntime regions)
-    {
-        EnsureInitialized();
-        OffenseStrategicPressureSnapshot pressure =
-            regions?.GetFactionPressure(OffenseRegionRuntime.HumanFactionId)
-            ?? default;
-        SetLegacyStrength(
-            HumanInvasionBranchIds.RoyalArmy,
-            pressure.Manpower);
-        SetLegacyStrength(
-            HumanInvasionBranchIds.PioneerSupply,
-            pressure.Logistics);
-        SetLegacyStrength(
-            HumanInvasionBranchIds.RoyalOrdnance,
-            pressure.Armament);
-        SetLegacyStrength(
-            HumanInvasionBranchIds.IntelligenceHunters,
-            pressure.Intelligence);
-        SetLegacyStrength(
-            HumanInvasionBranchIds.RadiantOrder,
-            (pressure.Armament + pressure.Intelligence) * 0.5f);
     }
 
     private void OnDayStarted(OperatingDayStartedEvent value)
@@ -512,16 +474,6 @@ public sealed class InvasionCampaignRuntime :
             HumanInvasionBranchIds.RadiantOrder => "captives-or-curse",
             _ => "breach-and-occupy"
         };
-    }
-
-    private void SetLegacyStrength(string branchId, float damage)
-    {
-        if (TryGetBranch(branchId, out HumanInvasionBranchState branch))
-        {
-            branch.strength = Mathf.Clamp(100f - damage, 0f, 100f);
-            branch.operational = branch.strength > 0f;
-            branch.recoveryReason = "V1 지역 압력에서 변환";
-        }
     }
 
     private float GetStrength(string branchId)

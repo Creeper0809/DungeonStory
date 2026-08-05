@@ -17,7 +17,7 @@ public sealed class SurgeryRiskEvaluator : ISurgeryRiskEvaluator
             {
                 successChance = 0.05f,
                 deathChance = 0.1f,
-                summary = "수술 절차가 없습니다."
+                summaryCode = SurgeryRiskSummaryCode.SurgeryRiskProcedureMissing
             };
         }
 
@@ -83,10 +83,7 @@ public sealed class SurgeryRiskEvaluator : ISurgeryRiskEvaluator
             difficultyPenalty = procedure.DifficultyPenalty,
             instabilityPenalty = instability,
             compatibilityPenalty = compatibility,
-            summary =
-                $"성공 {success * 100f:0.#}% · 감염 {infection * 100f:0.#}% · "
-                + $"출혈 {bleeding * 100f:0.#}% · 장기 손상 {organDamage * 100f:0.#}% · "
-                + $"사망 {death * 100f:0.#}%"
+            summaryCode = SurgeryRiskSummaryCode.SurgeryRiskEvaluated
         };
     }
 

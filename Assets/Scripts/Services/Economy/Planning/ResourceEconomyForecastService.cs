@@ -3,49 +3,104 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+public sealed class ResourceEconomyForecastInventoryDependencies
+{
+    public ResourceEconomyForecastInventoryDependencies(
+        IResourceEconomyContentCatalog catalog,
+        IWorldItemStackRuntime items,
+        IProductionBillQuery productionBills,
+        IBuildingWorldQuery buildings)
+    {
+        Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        Items = items ?? throw new ArgumentNullException(nameof(items));
+        ProductionBills = productionBills
+            ?? throw new ArgumentNullException(nameof(productionBills));
+        Buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
+    }
+
+    public IResourceEconomyContentCatalog Catalog { get; }
+    public IWorldItemStackRuntime Items { get; }
+    public IProductionBillQuery ProductionBills { get; }
+    public IBuildingWorldQuery Buildings { get; }
+}
+
+public sealed class ResourceEconomyForecastPopulationDependencies
+{
+    public ResourceEconomyForecastPopulationDependencies(
+        ICharacterWorldQuery characters,
+        ICropPlotRuntime crops,
+        IAnimalHusbandryQuery husbandry,
+        IWildlifeSpeciesCatalogProvider wildlifeSpecies)
+    {
+        Characters = characters ?? throw new ArgumentNullException(nameof(characters));
+        Crops = crops ?? throw new ArgumentNullException(nameof(crops));
+        Husbandry = husbandry ?? throw new ArgumentNullException(nameof(husbandry));
+        WildlifeSpecies = wildlifeSpecies
+            ?? throw new ArgumentNullException(nameof(wildlifeSpecies));
+    }
+
+    public ICharacterWorldQuery Characters { get; }
+    public ICropPlotRuntime Crops { get; }
+    public IAnimalHusbandryQuery Husbandry { get; }
+    public IWildlifeSpeciesCatalogProvider WildlifeSpecies { get; }
+}
+
+public sealed class ResourceEconomyForecastPlanningDependencies
+{
+    public ResourceEconomyForecastPlanningDependencies(
+        IRegionalSupplyContractRuntime contracts,
+        IGrandProjectRuntime grandProjects,
+        IResourceStockPolicyRuntime stockPolicies)
+    {
+        Contracts = contracts ?? throw new ArgumentNullException(nameof(contracts));
+        GrandProjects = grandProjects
+            ?? throw new ArgumentNullException(nameof(grandProjects));
+        StockPolicies = stockPolicies
+            ?? throw new ArgumentNullException(nameof(stockPolicies));
+    }
+
+    public IRegionalSupplyContractRuntime Contracts { get; }
+    public IGrandProjectRuntime GrandProjects { get; }
+    public IResourceStockPolicyRuntime StockPolicies { get; }
+}
+
 public sealed class ResourceEconomyForecastService :
     IResourceEconomyForecastService
 {
     private const string FoodSummaryId = "forecast:category:food";
-    private const string WaterItemId = "stock-item:4";
+    private const string WaterItemId = "resource:clean-water";
 
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly IWorldItemStackRuntime items;
-    private readonly IProductionBillRuntime productionBills;
+    private readonly IProductionBillQuery productionBills;
     private readonly IBuildingWorldQuery buildings;
     private readonly ICharacterWorldQuery characters;
     private readonly ICropPlotRuntime crops;
-    private readonly IAnimalHusbandryRuntime husbandry;
+    private readonly IAnimalHusbandryQuery husbandry;
     private readonly IWildlifeSpeciesCatalogProvider wildlifeSpecies;
     private readonly IRegionalSupplyContractRuntime contracts;
     private readonly IGrandProjectRuntime grandProjects;
     private readonly IResourceStockPolicyRuntime stockPolicies;
 
     public ResourceEconomyForecastService(
-        IResourceEconomyContentCatalog catalog,
-        IWorldItemStackRuntime items,
-        IProductionBillRuntime productionBills,
-        IBuildingWorldQuery buildings,
-        ICharacterWorldQuery characters,
-        ICropPlotRuntime crops = null,
-        IAnimalHusbandryRuntime husbandry = null,
-        IWildlifeSpeciesCatalogProvider wildlifeSpecies = null,
-        IRegionalSupplyContractRuntime contracts = null,
-        IGrandProjectRuntime grandProjects = null,
-        IResourceStockPolicyRuntime stockPolicies = null)
+        ResourceEconomyForecastInventoryDependencies inventory,
+        ResourceEconomyForecastPopulationDependencies population,
+        ResourceEconomyForecastPlanningDependencies planning)
     {
-        this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
-        this.productionBills = productionBills
-            ?? throw new ArgumentNullException(nameof(productionBills));
-        this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
-        this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
-        this.crops = crops;
-        this.husbandry = husbandry;
-        this.wildlifeSpecies = wildlifeSpecies;
-        this.contracts = contracts;
-        this.grandProjects = grandProjects;
-        this.stockPolicies = stockPolicies;
+        inventory = inventory ?? throw new ArgumentNullException(nameof(inventory));
+        population = population ?? throw new ArgumentNullException(nameof(population));
+        planning = planning ?? throw new ArgumentNullException(nameof(planning));
+        catalog = inventory.Catalog;
+        items = inventory.Items;
+        productionBills = inventory.ProductionBills;
+        buildings = inventory.Buildings;
+        characters = population.Characters;
+        crops = population.Crops;
+        husbandry = population.Husbandry;
+        wildlifeSpecies = population.WildlifeSpecies;
+        contracts = planning.Contracts;
+        grandProjects = planning.GrandProjects;
+        stockPolicies = planning.StockPolicies;
     }
 
     public ResourceEconomyForecast Capture(int horizonDays = 3)
@@ -77,8 +132,7 @@ public sealed class ResourceEconomyForecastService :
             .ThenBy(row => row.DisplayName, StringComparer.Ordinal)
             .ToArray();
         Dictionary<string, ResourceStockPolicyData> policies =
-            (stockPolicies?.Policies
-                ?? Array.Empty<ResourceStockPolicyData>())
+            stockPolicies.Policies
             .Where(policy => policy != null && policy.enabled)
             .ToDictionary(
                 policy => policy.itemId,
@@ -201,7 +255,7 @@ public sealed class ResourceEconomyForecastService :
         int days)
     {
         foreach (CropPlotSnapshot plot in
-                 crops?.Plots ?? Array.Empty<CropPlotSnapshot>())
+                 crops.Plots)
         {
             if (plot == null
                 || string.IsNullOrWhiteSpace(plot.CropId)
@@ -232,33 +286,33 @@ public sealed class ResourceEconomyForecastService :
         int days)
     {
         foreach (HusbandryAnimalState animal in
-                 husbandry?.Animals ?? Array.Empty<HusbandryAnimalState>())
+                 husbandry.Animals)
         {
-            if (animal == null || !animal.tamed)
+            if (animal == null || !animal.Tamed)
             {
                 continue;
             }
 
-            string feedItem = ResolveFeedItem(animal.speciesId);
+            string feedItem = ResolveFeedItem(animal.SpeciesId.Value);
             GetOrCreate(rows, feedItem).ExpectedDemand += days;
             foreach (AnimalProductProgressState product in
-                     animal.products
+                     animal.Products
                      ?? new List<AnimalProductProgressState>())
             {
                 if (product == null
-                    || string.IsNullOrWhiteSpace(product.itemId))
+                    || !product.ItemId.IsValid)
                 {
                     continue;
                 }
 
-                GetOrCreate(rows, product.itemId).ExpectedProduction +=
-                    product.readyCycles
-                    + (product.progressDays + days >= 1f ? 1 : 0);
+                GetOrCreate(rows, product.ItemId.Value).ExpectedProduction +=
+                    product.ReadyCycles
+                    + (product.ProgressDays + days >= 1f ? 1 : 0);
             }
 
             GetOrCreate(rows, "resource:manure").ExpectedProduction +=
-                animal.readyManureCycles
-                + (animal.manureProgressDays + days >= 1f ? 1 : 0);
+                animal.ReadyManureCycles
+                + (animal.ManureProgressDays + days >= 1f ? 1 : 0);
         }
     }
 
@@ -277,8 +331,7 @@ public sealed class ResourceEconomyForecastService :
         IDictionary<string, ResourceEconomyForecastRow> rows)
     {
         foreach (RegionalSupplyContractState contract in
-                 contracts?.Contracts
-                 ?? Array.Empty<RegionalSupplyContractState>())
+                 contracts.Contracts)
         {
             if (contract == null
                 || contract.status is not (
@@ -304,8 +357,7 @@ public sealed class ResourceEconomyForecastService :
     private void AddGrandProjectDemand(
         IDictionary<string, ResourceEconomyForecastRow> rows)
     {
-        if (grandProjects == null
-            || string.IsNullOrWhiteSpace(
+        if (string.IsNullOrWhiteSpace(
                 grandProjects.State?.activeProjectId))
         {
             return;
@@ -353,8 +405,7 @@ public sealed class ResourceEconomyForecastService :
 
     private string ResolveFeedItem(string speciesId)
     {
-        if (wildlifeSpecies != null
-            && wildlifeSpecies.TryGetSpecies(
+        if (wildlifeSpecies.TryGetSpecies(
                 speciesId,
                 out WildlifeSpeciesDefinition species)
             && species.Diet is WildlifeDietType.Carnivore

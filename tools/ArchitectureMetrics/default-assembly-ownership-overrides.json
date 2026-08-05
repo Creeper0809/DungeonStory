@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "path": "Assets/Scripts/Services/Operation/OperatingDaySettlementRuntime.cs",
+      "classification": "DefaultAllowed",
+      "rationale": "GUID-preserving Unity component facade; all ledger authority and transitions live in DungeonStory.Operation and all scene/economy/event work lives in OperatingDaySettlementApplicationAdapter.",
+      "reviewedBy": "phase117-operating-day-settlement-audit"
+    },
+    {
+      "path": "Assets/Scripts/Services/Infrastructure/OperatingDaySettlementSaveService.cs",
+      "classification": "ReviewRequired",
+      "rationale": "Reviewed strict save bundle: mutable collections are DTO payloads, while the readonly runtime service only performs canonical validation and detached prepare/publish staging; no independent settlement writer exists.",
+      "reviewedBy": "phase117-cross-domain-risk-audit"
+    },
+    {
+      "path": "Assets/Scripts/Services/Operation/OperatingDaySettlement.cs",
+      "classification": "NamedRequired",
+      "rationale": "Reviewed immutable report/value contracts plus transient Unity event envelopes and publisher; the source contains no persistent mutable settlement authority or save writer.",
+      "reviewedBy": "phase117-cross-domain-risk-audit"
+    },
+    {
+      "path": "Assets/Scripts/Services/ServiceRooms/ServiceSessionRuntime.cs",
+      "classification": "DefaultAllowed",
+      "rationale": "Reviewed Unity application adapter: persistent modes, sessions, advertising, version transitions, completion idempotence, and restore reconstruction live in DungeonStory.ServiceRooms; this source only resolves scene hubs/characters, maintains removable Unity subscriptions, queries research/power, and executes one aggregate-issued money command.",
+      "reviewedBy": "phase118-service-session-authority"
+    },
+    {
+      "path": "Assets/Scripts/Services/Run/DungeonRunFlowRuntime.cs",
+      "classification": "DefaultAllowed",
+      "rationale": "GUID-preserving fieldless compatibility facade; deterministic run-flow transitions live in DungeonStory.Content and all invasion, pacing, owner, alert, and restore projection work lives in DungeonRunFlowApplicationAdapter.",
+      "reviewedBy": "phase117-dungeon-run-flow-authority"
+    }
+  ]
+}

@@ -87,14 +87,36 @@ public static class OffenseRouteGenerator
 
 public static class OffenseSupplyCatalog
 {
-    public static StockCategory GetStockCategory(OffenseSupplyType type)
+    public static string GetPhysicalItemId(OffenseSupplyType type)
     {
         return type switch
         {
-            OffenseSupplyType.Rations => StockCategory.Food,
-            OffenseSupplyType.Medicine => StockCategory.General,
-            OffenseSupplyType.Tools => StockCategory.Weapon,
-            _ => StockCategory.Mana
+            OffenseSupplyType.Rations => "food:preserved-ration",
+            OffenseSupplyType.Medicine => "medicine:standard",
+            OffenseSupplyType.Tools => "tool:field-repair-kit",
+            OffenseSupplyType.ManaLantern => "resource:mana-crystal",
+            OffenseSupplyType.FieldEmergencyKit => SurgeryItemDefinitions.FieldEmergencyKitId,
+            OffenseSupplyType.RuneSlimePatch => SurgeryItemDefinitions.RuneSlimePatchId,
+            OffenseSupplyType.MycelialCulturePack => SurgeryItemDefinitions.MycelialCulturePackId,
+            OffenseSupplyType.WingSplintKit => SurgeryItemDefinitions.WingSplintKitId,
+            OffenseSupplyType.TemporaryPowerBypass => SurgeryItemDefinitions.TemporaryPowerBypassId,
+            OffenseSupplyType.BloodSealKit => SurgeryItemDefinitions.BloodSealKitId,
+            OffenseSupplyType.ManaCoreRestraint => SurgeryItemDefinitions.ManaCoreRestraintId,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+    }
+
+    public static OffenseSupplyType GetFieldMedicalKit(string speciesId)
+    {
+        return speciesId?.Trim() switch
+        {
+            "Slime" => OffenseSupplyType.RuneSlimePatch,
+            "Myconid" => OffenseSupplyType.MycelialCulturePack,
+            "Harpy" => OffenseSupplyType.WingSplintKit,
+            "Golem" => OffenseSupplyType.TemporaryPowerBypass,
+            "Vampire" => OffenseSupplyType.BloodSealKit,
+            "Demon" => OffenseSupplyType.ManaCoreRestraint,
+            _ => OffenseSupplyType.FieldEmergencyKit
         };
     }
 
@@ -105,7 +127,15 @@ public static class OffenseSupplyCatalog
             OffenseSupplyType.Rations => "식량",
             OffenseSupplyType.Medicine => "치료약",
             OffenseSupplyType.Tools => "원정 도구",
-            _ => "마력등"
+            OffenseSupplyType.ManaLantern => "마력등",
+            OffenseSupplyType.FieldEmergencyKit => "야전 응급 키트",
+            OffenseSupplyType.RuneSlimePatch => "룬 점액 패치",
+            OffenseSupplyType.MycelialCulturePack => "균사 배양 팩",
+            OffenseSupplyType.WingSplintKit => "날개 고정 키트",
+            OffenseSupplyType.TemporaryPowerBypass => "임시 동력 바이패스",
+            OffenseSupplyType.BloodSealKit => "혈액 봉합 키트",
+            OffenseSupplyType.ManaCoreRestraint => "마핵 구속구",
+            _ => type.ToString()
         };
     }
 }

@@ -3,242 +3,73 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-[Serializable]
-public sealed class DungeonCombatEquipmentSaveData
-{
-    public List<CombatEquipmentInstance> instances = new List<CombatEquipmentInstance>();
-    public List<CharacterCombatLoadoutState> loadouts = new List<CharacterCombatLoadoutState>();
-    public List<CombatEquipmentCraftOrderSaveData> craftOrders =
-        new List<CombatEquipmentCraftOrderSaveData>();
-    public List<CombatEquipmentCraftMaterialPolicySaveData> craftMaterialPolicies =
-        new List<CombatEquipmentCraftMaterialPolicySaveData>();
-}
-
-[Serializable]
-public sealed class CombatEquipmentCraftMaterialPolicySaveData
-{
-    public string facilityKey = string.Empty;
-    public string definitionId = string.Empty;
-    public List<string> priorityMaterialIds = new List<string>();
-    public List<string> allowedMaterialIds = new List<string>();
-
-    public CombatEquipmentCraftMaterialPolicySaveData Clone()
-    {
-        return new CombatEquipmentCraftMaterialPolicySaveData
-        {
-            facilityKey = facilityKey ?? string.Empty,
-            definitionId = definitionId ?? string.Empty,
-            priorityMaterialIds = priorityMaterialIds?
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Select(id => id.Trim())
-                .Distinct(StringComparer.Ordinal)
-                .ToList() ?? new List<string>(),
-            allowedMaterialIds = allowedMaterialIds?
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Select(id => id.Trim())
-                .Distinct(StringComparer.Ordinal)
-                .ToList() ?? new List<string>()
-        };
-    }
-}
-
-[Serializable]
-public sealed class CombatEquipmentCraftOrderSaveData
-{
-    public string orderId = string.Empty;
-    public string definitionId = string.Empty;
-    public string materialId = string.Empty;
-    public float requiredWork;
-    public float completedWork;
-    public bool materialsReady;
-    public string materialDestinationId = string.Empty;
-    public int destinationX;
-    public int destinationY;
-
-    public float RemainingWork => Mathf.Max(0f, requiredWork - completedWork);
-
-    public CombatEquipmentCraftOrderSaveData Clone()
-    {
-        return new CombatEquipmentCraftOrderSaveData
-        {
-            orderId = orderId ?? string.Empty,
-            definitionId = definitionId ?? string.Empty,
-            materialId = materialId ?? string.Empty,
-            requiredWork = Mathf.Max(0.1f, requiredWork),
-            completedWork = Mathf.Clamp(completedWork, 0f, Mathf.Max(0.1f, requiredWork)),
-            materialsReady = materialsReady,
-            materialDestinationId = materialDestinationId ?? string.Empty,
-            destinationX = destinationX,
-            destinationY = destinationY
-        };
-    }
-}
-
-public interface ICombatEquipmentRuntime
-{
-    IReadOnlyList<CombatEquipmentDefinitionSO> Definitions { get; }
-    IReadOnlyCollection<CombatEquipmentInstance> Instances { get; }
-    IReadOnlyList<CombatEquipmentCraftOrderSaveData> CraftQueue { get; }
-    bool TryGetDefinition(string definitionId, out CombatEquipmentDefinitionSO definition);
-    int GetAvailableCount(string definitionId);
-    bool TryQueueCraft(
-        string definitionId,
-        BuildableObject craftingFacility,
-        out string failureReason);
-    bool TryQueueCraft(
-        string definitionId,
-        string materialId,
-        BuildableObject craftingFacility,
-        out string failureReason);
-    bool HasPendingCraftWork(IEnumerable<string> craftableDefinitionIds);
-    int ApplyCraftWork(
-        IEnumerable<string> craftableDefinitionIds,
-        float workUnits,
-        out string completedDefinitionId);
-    int ApplyCraftWork(
-        IEnumerable<string> craftableDefinitionIds,
-        float workUnits,
-        out string completedDefinitionId,
-        out string completedMaterialId);
-    CombatEquipmentInstance CreateInstance(
-        string definitionId,
-        CombatEquipmentQuality quality,
-        CombatEquipmentWorldState worldState = CombatEquipmentWorldState.Stored,
-        string materialId = "");
-    IReadOnlyList<CraftMaterialDefinitionSO> GetAllowedMaterials(
-        string definitionId);
-    CombatEquipmentCraftMaterialPolicySaveData GetCraftMaterialPolicy(
-        string definitionId,
-        BuildableObject craftingFacility);
-    bool SetCraftMaterialAllowed(
-        string definitionId,
-        string materialId,
-        BuildableObject craftingFacility,
-        bool allowed,
-        out string failureReason);
-    bool MoveCraftMaterialPriority(
-        string definitionId,
-        string materialId,
-        BuildableObject craftingFacility,
-        int offset,
-        out string failureReason);
-    bool TryGetPreviewStats(
-        string definitionId,
-        string materialId,
-        out CombatEquipmentDerivedStats stats);
-    bool TryGetDerivedStats(
-        string instanceId,
-        out CombatEquipmentDerivedStats stats);
-    bool TrySalvage(
-        string instanceId,
-        Vector2Int outputPosition,
-        out string recoveredItemId,
-        out int recoveredAmount,
-        out string failureReason);
-    bool TryGetInstance(string instanceId, out CombatEquipmentInstance instance);
-    bool TryUpdateEvolutionState(
-        string instanceId,
-        EquipmentEvolutionState evolutionState);
-    bool TryGetInstanceBySourceStack(string sourceStackId, out CombatEquipmentInstance instance);
-    bool TryLinkToWorldStack(
-        string instanceId,
-        string sourceStackId,
-        CombatEquipmentWorldState worldState);
-    bool TrySetWorldStateBySourceStack(string sourceStackId, CombatEquipmentWorldState worldState);
-    bool TryMarkLost(string instanceId);
-    bool TryAssignToCharacter(string characterId, string instanceId, out string failureReason);
-    bool TryUnassignSlot(
-        string characterId,
-        CombatEquipmentLoadoutSlot slot,
-        out string failureReason);
-    bool TrySetActiveWeapon(string characterId, string instanceId, out string failureReason);
-    bool TrySetActiveProfile(string characterId, string profileId);
-    bool TrySetFireMode(string characterId, CombatFireMode fireMode, out string failureReason);
-    bool TrySetHoldFire(string characterId, bool holdFire);
-    CharacterCombatLoadoutState GetOrCreateLoadout(string characterId);
-    CharacterCombatLoadoutProfile GetActiveProfileSnapshot(string characterId);
-    bool TryGetActiveWeapon(string characterId, out CombatWeaponSnapshot weapon);
-    IReadOnlyList<CombatArmorSnapshot> GetArmor(string characterId);
-    CombatShieldSnapshot GetShield(string characterId, float incomingAngleDegrees = 0f);
-    bool TryReload(string instanceId, int availableAmmo, out int consumedAmmo);
-    bool TryReloadFromInventory(
-        string instanceId,
-        CharacterCarryInventory inventory,
-        out int consumedAmmo);
-    bool TryReloadFromCharacterInventory(
-        string characterId,
-        string instanceId,
-        out int consumedAmmo);
-    bool TryConsumeLoadedAmmo(string instanceId);
-    bool TryApplyDurabilityDamage(string instanceId, float damage);
-    bool TryDetachForMaintenance(
-        string instanceId,
-        out CombatEquipmentInstance detached);
-    IReadOnlyList<CombatEquipmentInstance> ConfiscateAllFromCharacter(
-        string characterId);
-    void HandleCharacterDeath(string characterId);
-    bool TryRestoreDurability(string instanceId, float durabilityRatio);
-    float GetCarriedWeight(string characterId);
-    DungeonCombatEquipmentSaveData Capture();
-    void Restore(DungeonCombatEquipmentSaveData saveData);
-}
-
-public interface ICombatLoadoutRuntime
-{
-    CharacterCombatLoadoutState GetOrCreateLoadout(string characterId);
-    bool TrySetActiveProfile(string characterId, string profileId);
-    bool TrySetActiveWeapon(string characterId, string instanceId, out string failureReason);
-    bool TrySetFireMode(string characterId, CombatFireMode fireMode, out string failureReason);
-    bool TrySetHoldFire(string characterId, bool holdFire);
-}
-
 public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoadoutRuntime
 {
     private readonly ICombatEquipmentCatalog catalog;
-    private readonly IResourceEconomyContentCatalog materialCatalog;
-    private readonly IEvolutionModuleRegistry evolutionModules;
-    private IWorldItemStackRuntime itemStackRuntime;
-    private readonly Dictionary<string, CombatEquipmentInstance> instances =
-        new Dictionary<string, CombatEquipmentInstance>(StringComparer.Ordinal);
-    private readonly Dictionary<string, CharacterCombatLoadoutState> loadouts =
-        new Dictionary<string, CharacterCombatLoadoutState>(StringComparer.Ordinal);
-    private readonly List<CombatEquipmentCraftOrderSaveData> craftOrders =
-        new List<CombatEquipmentCraftOrderSaveData>();
-    private readonly Dictionary<string, CombatEquipmentCraftMaterialPolicySaveData>
-        craftMaterialPolicies =
-            new Dictionary<string, CombatEquipmentCraftMaterialPolicySaveData>(
-                StringComparer.Ordinal);
-    private IReadOnlyList<CombatEquipmentCraftOrderSaveData> craftQueueView;
+    private readonly IItemInstanceRepository itemInstances;
+    private readonly ICharacterCarryInventoryRegistry carryInventories;
+    private readonly CombatEquipmentStatProjector statProjector;
+    private readonly IEquipmentModuleCatalog moduleCatalog;
+    private readonly CombatEquipmentCraftingRuntime crafting;
+    private readonly EquipmentModuleRuntime moduleRuntime;
+    private readonly EquipmentHistoryTransferRuntime historyRuntime;
+    private readonly CombatEquipmentPhysicalStateWriter physicalState;
+    private readonly CombatEquipmentLoadoutRuntime loadoutRuntime;
+    private readonly CombatEquipmentRuntimeStateStore stateStore;
+    private readonly IEquipmentPhysicalItemGateway itemStackRuntime;
+    private IDictionary<string, CombatEquipmentInstance> instances =>
+        itemInstances.EquipmentInstances;
+    private IDictionary<string, EquipmentModuleInstance> moduleInstances =>
+        itemInstances.EquipmentModules;
 
     public CombatEquipmentRuntime(
         ICombatEquipmentCatalog catalog,
-        IResourceEconomyContentCatalog materialCatalog = null,
-        IEvolutionModuleRegistry evolutionModules = null)
+        IItemInstanceRepository itemInstances,
+        ICharacterCarryInventoryRegistry carryInventories,
+        IEquipmentModuleCatalog moduleCatalog,
+        IEquipmentPhysicalItemGateway itemStackRuntime,
+        CombatEquipmentRuntimeCollaborators collaborators,
+        CombatEquipmentCraftingRuntime crafting,
+        CombatEquipmentLoadoutRuntime loadoutRuntime)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        this.materialCatalog = materialCatalog;
-        this.evolutionModules = evolutionModules;
+        this.itemInstances = itemInstances
+            ?? throw new ArgumentNullException(nameof(itemInstances));
+        this.carryInventories = carryInventories
+            ?? throw new ArgumentNullException(nameof(carryInventories));
+        this.moduleCatalog = moduleCatalog
+            ?? throw new ArgumentNullException(nameof(moduleCatalog));
+        this.itemStackRuntime = itemStackRuntime
+            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
+        CombatEquipmentRuntimeCollaborators requiredCollaborators = collaborators
+            ?? throw new ArgumentNullException(nameof(collaborators));
+        this.statProjector = requiredCollaborators.StatProjector;
+        this.physicalState = requiredCollaborators.PhysicalState;
+        this.moduleRuntime = requiredCollaborators.ModuleRuntime;
+        this.historyRuntime = requiredCollaborators.HistoryRuntime;
+        this.stateStore = requiredCollaborators.StateStore;
+        this.crafting = crafting
+            ?? throw new ArgumentNullException(nameof(crafting));
+        this.loadoutRuntime = loadoutRuntime
+            ?? throw new ArgumentNullException(nameof(loadoutRuntime));
     }
 
     public IReadOnlyList<CombatEquipmentDefinitionSO> Definitions => catalog.All;
-    public IReadOnlyCollection<CombatEquipmentInstance> Instances => instances.Values;
-    public IReadOnlyList<CombatEquipmentCraftOrderSaveData> CraftQueue =>
-        craftQueueView ??= craftOrders.AsReadOnly();
+    public IReadOnlyCollection<CombatEquipmentInstance> Instances =>
+        instances.Values.Select(instance => instance.Clone()).ToArray();
+    public IReadOnlyList<CombatEquipmentCraftOrderSaveData> CraftQueue => crafting.Queue;
+    public IReadOnlyCollection<EquipmentModuleInstance> ModuleInstances =>
+        moduleRuntime.Snapshots;
+    public IReadOnlyList<EquipmentHistoryTransferOrder> HistoryTransferOrders =>
+        historyRuntime.Snapshots;
 
-    public void BindItemStackRuntime(IWorldItemStackRuntime runtime)
+    public bool TryGetModuleDefinition(
+        string definitionId,
+        out EquipmentModuleDefinitionSO definition)
     {
-        if (runtime == null)
-        {
-            throw new ArgumentNullException(nameof(runtime));
-        }
-
-        if (itemStackRuntime != null && !ReferenceEquals(itemStackRuntime, runtime))
-        {
-            throw new InvalidOperationException(
-                "Combat equipment is already bound to another item runtime.");
-        }
-
-        itemStackRuntime = runtime;
+        return moduleCatalog.TryGet(
+            definitionId?.Trim() ?? string.Empty,
+            out definition);
     }
 
     public bool TryGetDefinition(
@@ -246,6 +77,11 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         out CombatEquipmentDefinitionSO definition)
     {
         return catalog.TryGet(definitionId, out definition);
+    }
+
+    public bool IsDefinitionUnlocked(string definitionId, out string failureReason)
+    {
+        return crafting.IsDefinitionUnlocked(definitionId, out failureReason);
     }
 
     public int GetAvailableCount(string definitionId)
@@ -260,35 +96,14 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
     public IReadOnlyList<CraftMaterialDefinitionSO> GetAllowedMaterials(
         string definitionId)
     {
-        if (materialCatalog == null
-            || !catalog.TryGet(
-                definitionId?.Trim() ?? string.Empty,
-                out CombatEquipmentDefinitionSO definition))
-        {
-            return Array.Empty<CraftMaterialDefinitionSO>();
-        }
-
-        return materialCatalog.Materials
-            .Where(definition.AllowsMaterial)
-            .OrderBy(material => material.RareMaterial ? 1 : 0)
-            .ThenBy(material => material.DisplayName, StringComparer.Ordinal)
-            .ToArray();
+        return crafting.GetAllowedMaterials(definitionId);
     }
 
     public CombatEquipmentCraftMaterialPolicySaveData GetCraftMaterialPolicy(
         string definitionId,
         BuildableObject craftingFacility)
     {
-        if (!TryGetOrCreateCraftMaterialPolicy(
-                definitionId,
-                craftingFacility,
-                out CombatEquipmentCraftMaterialPolicySaveData policy,
-                out _))
-        {
-            return new CombatEquipmentCraftMaterialPolicySaveData();
-        }
-
-        return policy.Clone();
+        return crafting.GetMaterialPolicy(definitionId, craftingFacility);
     }
 
     public bool SetCraftMaterialAllowed(
@@ -298,41 +113,12 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         bool allowed,
         out string failureReason)
     {
-        if (!TryGetOrCreateCraftMaterialPolicy(
-                definitionId,
-                craftingFacility,
-                out CombatEquipmentCraftMaterialPolicySaveData policy,
-                out failureReason))
-        {
-            return false;
-        }
-
-        string normalizedMaterialId = materialId?.Trim() ?? string.Empty;
-        if (!policy.priorityMaterialIds.Contains(
-                normalizedMaterialId,
-                StringComparer.Ordinal))
-        {
-            failureReason = "이 장비에 사용할 수 없는 재질입니다.";
-            return false;
-        }
-
-        if (allowed)
-        {
-            if (!policy.allowedMaterialIds.Contains(
-                    normalizedMaterialId,
-                    StringComparer.Ordinal))
-            {
-                policy.allowedMaterialIds.Add(normalizedMaterialId);
-            }
-        }
-        else
-        {
-            policy.allowedMaterialIds.RemoveAll(id =>
-                string.Equals(id, normalizedMaterialId, StringComparison.Ordinal));
-        }
-
-        failureReason = string.Empty;
-        return true;
+        return crafting.SetMaterialAllowed(
+            definitionId,
+            materialId,
+            craftingFacility,
+            allowed,
+            out failureReason);
     }
 
     public bool MoveCraftMaterialPriority(
@@ -342,38 +128,12 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         int offset,
         out string failureReason)
     {
-        if (!TryGetOrCreateCraftMaterialPolicy(
-                definitionId,
-                craftingFacility,
-                out CombatEquipmentCraftMaterialPolicySaveData policy,
-                out failureReason))
-        {
-            return false;
-        }
-
-        string normalizedMaterialId = materialId?.Trim() ?? string.Empty;
-        int currentIndex = policy.priorityMaterialIds.FindIndex(id =>
-            string.Equals(id, normalizedMaterialId, StringComparison.Ordinal));
-        if (currentIndex < 0)
-        {
-            failureReason = "이 장비에 사용할 수 없는 재질입니다.";
-            return false;
-        }
-
-        int targetIndex = Mathf.Clamp(
-            currentIndex + Math.Sign(offset),
-            0,
-            policy.priorityMaterialIds.Count - 1);
-        if (targetIndex == currentIndex)
-        {
-            failureReason = string.Empty;
-            return true;
-        }
-
-        policy.priorityMaterialIds.RemoveAt(currentIndex);
-        policy.priorityMaterialIds.Insert(targetIndex, normalizedMaterialId);
-        failureReason = string.Empty;
-        return true;
+        return crafting.MoveMaterialPriority(
+            definitionId,
+            materialId,
+            craftingFacility,
+            offset,
+            out failureReason);
     }
 
     public bool TryGetDerivedStats(
@@ -391,10 +151,10 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             return false;
         }
 
-        CraftMaterialDefinitionSO material = ResolveInstanceMaterial(
+        CraftMaterialDefinitionSO material = crafting.ResolveInstanceMaterial(
             instance,
             definition);
-        stats = BuildDerivedStats(definition, material, instance);
+        stats = statProjector.Build(definition, material, instance);
         return true;
     }
 
@@ -403,21 +163,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         string materialId,
         out CombatEquipmentDerivedStats stats)
     {
-        stats = default;
-        if (!catalog.TryGet(
-                definitionId?.Trim() ?? string.Empty,
-                out CombatEquipmentDefinitionSO definition)
-            || !TryResolveMaterial(
-                definition,
-                materialId,
-                out CraftMaterialDefinitionSO material,
-                out _))
-        {
-            return false;
-        }
-
-        stats = BuildDerivedStats(definition, material);
-        return true;
+        return crafting.TryGetPreviewStats(definitionId, materialId, out stats);
     }
 
     public bool TrySalvage(
@@ -449,7 +195,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             return false;
         }
 
-        CraftMaterialDefinitionSO material = ResolveInstanceMaterial(
+        CraftMaterialDefinitionSO material = crafting.ResolveInstanceMaterial(
             instance,
             definition);
         if (material == null || string.IsNullOrWhiteSpace(material.ItemId))
@@ -468,8 +214,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             return false;
         }
 
-        if (itemStackRuntime == null
-            || !itemStackRuntime.SpawnItemAt(
+        if (!itemStackRuntime.SpawnItemAt(
                 material.ItemId,
                 recoveredAmount,
                 outputPosition,
@@ -488,7 +233,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             itemStackRuntime.DeleteStack(instance.sourceStackId);
         }
 
-        RemoveFromAllLoadouts(instance.instanceId);
+        loadoutRuntime.RemoveEquipment(instance.instanceId);
         instances.Remove(instance.instanceId);
         recoveredItemId = material.ItemId;
         return true;
@@ -499,43 +244,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         BuildableObject craftingFacility,
         out string failureReason)
     {
-        string normalizedId = definitionId?.Trim() ?? string.Empty;
-        string defaultMaterialId = string.Empty;
-        if (catalog.TryGet(
-                normalizedId,
-                out CombatEquipmentDefinitionSO definition))
-        {
-            if (TryGetOrCreateCraftMaterialPolicy(
-                    normalizedId,
-                    craftingFacility,
-                    out CombatEquipmentCraftMaterialPolicySaveData policy,
-                    out failureReason))
-            {
-                defaultMaterialId = policy.priorityMaterialIds.FirstOrDefault(id =>
-                    policy.allowedMaterialIds.Contains(
-                        id,
-                        StringComparer.Ordinal)) ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(defaultMaterialId))
-                {
-                    failureReason = "허용된 제작 재질이 없습니다.";
-                    return false;
-                }
-            }
-            else if (materialCatalog != null)
-            {
-                return false;
-            }
-            else
-            {
-                defaultMaterialId = definition.DefaultMaterialId;
-            }
-        }
-
-        return TryQueueCraft(
-            normalizedId,
-            defaultMaterialId,
-            craftingFacility,
-            out failureReason);
+        return crafting.TryQueue(definitionId, craftingFacility, out failureReason);
     }
 
     public bool TryQueueCraft(
@@ -544,83 +253,16 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         BuildableObject craftingFacility,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        string normalizedId = definitionId?.Trim() ?? string.Empty;
-        bool isAmmunitionRecipe = IsAmmunitionRecipe(normalizedId);
-        CombatEquipmentDefinitionSO definition = null;
-        if (!isAmmunitionRecipe && !catalog.TryGet(normalizedId, out definition))
-        {
-            failureReason = "제작할 장비를 찾을 수 없습니다.";
-            return false;
-        }
-
-        CraftMaterialDefinitionSO material = null;
-        if (!isAmmunitionRecipe
-            && !TryResolveMaterial(
-                definition,
-                materialId,
-                out material,
-                out failureReason))
-        {
-            return false;
-        }
-
-        if (craftingFacility == null || itemStackRuntime == null)
-        {
-            failureReason = "제작 시설이나 물리 아이템 시스템이 준비되지 않았습니다.";
-            return false;
-        }
-
-        string orderId = $"combat-craft:{Guid.NewGuid():N}";
-        string destinationId = WorldItemStackRuntime.FacilityInputDestinationPrefix + orderId;
-        IReadOnlyDictionary<string, int> materials =
-            BuildCraftMaterials(definition, normalizedId, material);
-        foreach (KeyValuePair<string, int> cost in materials)
-        {
-            if (!itemStackRuntime.TryRequestItemDelivery(
-                    cost.Key,
-                    cost.Value,
-                    craftingFacility.centerPos,
-                    destinationId,
-                    out int requested,
-                    out string requestFailure)
-                || requested < cost.Value)
-            {
-                itemStackRuntime.ReleaseStacksByDestination(
-                    destinationId,
-                    craftingFacility.centerPos);
-                failureReason = string.IsNullOrWhiteSpace(requestFailure)
-                    ? "제작 재료가 부족합니다."
-                    : requestFailure;
-                return false;
-            }
-        }
-
-        craftOrders.Add(new CombatEquipmentCraftOrderSaveData
-        {
-            orderId = orderId,
-            definitionId = normalizedId,
-            materialId = material?.MaterialId
-                ?? ResolveRequestedMaterialId(definition, materialId),
-            requiredWork = isAmmunitionRecipe
-                ? 4f
-                : definition.RequiredCraftWork,
-            completedWork = 0f,
-            materialsReady = materials.Count == 0,
-            materialDestinationId = destinationId,
-            destinationX = craftingFacility.centerPos.x,
-            destinationY = craftingFacility.centerPos.y
-        });
-        return true;
+        return crafting.TryQueue(
+            definitionId,
+            materialId,
+            craftingFacility,
+            out failureReason);
     }
 
     public bool HasPendingCraftWork(IEnumerable<string> craftableDefinitionIds)
     {
-        return craftOrders.Any(order =>
-            order != null
-            && order.RemainingWork > 0f
-            && IsCraftable(order.definitionId, craftableDefinitionIds)
-            && EnsureCraftMaterialsReady(order));
+        return crafting.HasPendingWork(craftableDefinitionIds);
     }
 
     public int ApplyCraftWork(
@@ -628,7 +270,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         float workUnits,
         out string completedDefinitionId)
     {
-        return ApplyCraftWork(
+        return crafting.ApplyWork(
             craftableDefinitionIds,
             workUnits,
             out completedDefinitionId,
@@ -641,39 +283,11 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         out string completedDefinitionId,
         out string completedMaterialId)
     {
-        completedDefinitionId = string.Empty;
-        completedMaterialId = string.Empty;
-        float safeWork = Mathf.Max(0f, workUnits);
-        if (safeWork <= 0f)
-        {
-            return 0;
-        }
-
-        for (int index = 0; index < craftOrders.Count; index++)
-        {
-            CombatEquipmentCraftOrderSaveData order = craftOrders[index];
-            if (order == null
-                || !IsCraftable(order.definitionId, craftableDefinitionIds)
-                || !EnsureCraftMaterialsReady(order))
-            {
-                continue;
-            }
-
-            order.completedWork = Mathf.Min(
-                Mathf.Max(0.1f, order.requiredWork),
-                order.completedWork + safeWork);
-            if (order.RemainingWork > 0.001f)
-            {
-                return 0;
-            }
-
-            completedDefinitionId = order.definitionId;
-            completedMaterialId = order.materialId;
-            craftOrders.RemoveAt(index);
-            return 1;
-        }
-
-        return 0;
+        return crafting.ApplyWork(
+            craftableDefinitionIds,
+            workUnits,
+            out completedDefinitionId,
+            out completedMaterialId);
     }
 
     public CombatEquipmentInstance CreateInstance(
@@ -682,33 +296,11 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         CombatEquipmentWorldState worldState = CombatEquipmentWorldState.Stored,
         string materialId = "")
     {
-        if (!catalog.TryGet(definitionId, out CombatEquipmentDefinitionSO definition))
-        {
-            throw new KeyNotFoundException($"Unknown combat equipment definition '{definitionId}'.");
-        }
-
-        if (!TryResolveMaterial(
-                definition,
-                materialId,
-                out CraftMaterialDefinitionSO material,
-                out string failureReason))
-        {
-            throw new ArgumentException(failureReason, nameof(materialId));
-        }
-
-        CombatEquipmentInstance instance = new CombatEquipmentInstance
-        {
-            instanceId = $"combat-item:{Guid.NewGuid():N}",
-            definitionId = definition.EquipmentId,
-            materialId = material?.MaterialId
-                ?? ResolveRequestedMaterialId(definition, materialId),
-            quality = quality,
-            durabilityRatio = 1f,
-            loadedAmmo = 0,
-            worldState = worldState
-        };
-        instances.Add(instance.instanceId, instance);
-        return instance.Clone();
+        return crafting.CreateInstance(
+            definitionId,
+            quality,
+            worldState,
+            materialId);
     }
 
     public bool TryGetInstance(string instanceId, out CombatEquipmentInstance instance)
@@ -736,7 +328,8 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
 
         instance.evolution = evolutionState?.Clone()
             ?? new EquipmentEvolutionState();
-        NormalizeEvolutionPresentationState(instance.evolution);
+        CombatEquipmentStatProjector.NormalizeEvolutionPresentationState(instance.evolution);
+        PersistPhysicalState(instance);
         return true;
     }
 
@@ -771,18 +364,39 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             return false;
         }
 
+        WorldItemStackSnapshot physicalStack = itemStackRuntime.GetAllStacks()
+            .FirstOrDefault(stack => stack != null
+                && string.Equals(
+                    stack.StackId,
+                    sourceStackId.Trim(),
+                    StringComparison.Ordinal));
+        if (physicalStack == null
+            || !string.Equals(
+                physicalStack.ItemInstanceId,
+                instance.instanceId,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
         instance.sourceStackId = sourceStackId.Trim();
         instance.worldState = worldState;
+        PersistPhysicalState(instance);
         if (worldState is CombatEquipmentWorldState.Stored
             or CombatEquipmentWorldState.Loose
             or CombatEquipmentWorldState.Carried
             or CombatEquipmentWorldState.MaintenanceBuffer)
         {
-            RemoveFromAllLoadouts(instance.instanceId);
+            loadoutRuntime.RemoveEquipment(instance.instanceId);
             instance.ownerCharacterId = string.Empty;
         }
 
         return true;
+    }
+
+    private void PersistPhysicalState(CombatEquipmentInstance instance)
+    {
+        physicalState.Persist(instance);
     }
 
     public bool TrySetWorldStateBySourceStack(
@@ -801,6 +415,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         }
 
         instance.worldState = worldState;
+        PersistPhysicalState(instance);
         return true;
     }
 
@@ -813,78 +428,34 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             return false;
         }
 
-        RemoveFromAllLoadouts(instance.instanceId);
+        loadoutRuntime.RemoveEquipment(instance.instanceId);
         instance.ownerCharacterId = string.Empty;
         instance.sourceStackId = string.Empty;
         instance.worldState = CombatEquipmentWorldState.Lost;
+        foreach (EquipmentModuleSlotState slot in instance.moduleSlots
+                     ?? new List<EquipmentModuleSlotState>())
+        {
+            if (slot != null
+                && moduleInstances.TryGetValue(slot.moduleInstanceId,
+                    out EquipmentModuleInstance module))
+            {
+                module.attachedEquipmentInstanceId = string.Empty;
+                module.state = EquipmentModuleProcessState.Lost;
+                module.condition = 0f;
+            }
+        }
         return true;
     }
 
-    public bool TryAssignToCharacter(string characterId, string instanceId, out string failureReason)
+    public bool TryAssignToCharacter(
+        string characterId,
+        string instanceId,
+        out string failureReason)
     {
-        failureReason = string.Empty;
-        string normalizedCharacterId = characterId?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(characterId)
-            || !instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
-            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition))
-        {
-            failureReason = "장비 또는 캐릭터가 유효하지 않습니다.";
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(instance.ownerCharacterId)
-            && !string.Equals(
-                instance.ownerCharacterId,
-                normalizedCharacterId,
-                StringComparison.Ordinal))
-        {
-            failureReason = "다른 캐릭터가 이미 장착한 장비입니다.";
-            return false;
-        }
-
-        if (instance.worldState is CombatEquipmentWorldState.Lost
-            or CombatEquipmentWorldState.ExpeditionPacked
-            or CombatEquipmentWorldState.MaintenanceBuffer)
-        {
-            failureReason = "현재 장착할 수 없는 상태의 장비입니다.";
-            return false;
-        }
-
-        CharacterCombatLoadoutProfile profile = GetActiveProfile(
-            GetOrCreateLoadout(normalizedCharacterId));
-        if (!ValidateLayerConflict(profile, definition, out failureReason))
-        {
-            return false;
-        }
-
-        if (!ValidateHandOccupancyForAssignment(profile, definition, out failureReason))
-        {
-            return false;
-        }
-
-        RemoveFromAllLoadouts(instance.instanceId);
-        instance.ownerCharacterId = normalizedCharacterId;
-        instance.sourceStackId = string.Empty;
-        instance.worldState = CombatEquipmentWorldState.Equipped;
-        switch (definition.Kind)
-        {
-            case CombatEquipmentKind.Armor:
-                profile.armorInstanceIds.Add(instance.instanceId);
-                break;
-            case CombatEquipmentKind.Shield:
-                MarkReplacedShieldCarried(profile, characterId);
-                profile.shieldInstanceId = instance.instanceId;
-                break;
-            default:
-                profile.weaponInstanceIds.Add(instance.instanceId);
-                if (string.IsNullOrWhiteSpace(profile.activeWeaponInstanceId))
-                {
-                    profile.activeWeaponInstanceId = instance.instanceId;
-                }
-                break;
-        }
-
-        return true;
+        return loadoutRuntime.TryAssign(
+            characterId,
+            instanceId,
+            out failureReason);
     }
 
     public bool TryUnassignSlot(
@@ -892,92 +463,23 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         CombatEquipmentLoadoutSlot slot,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            failureReason = "캐릭터를 찾을 수 없습니다.";
-            return false;
-        }
-
-        CharacterCombatLoadoutProfile profile = GetActiveProfile(
-            GetOrCreateLoadout(characterId));
-        List<string> instanceIds = slot == CombatEquipmentLoadoutSlot.Weapon
-            ? profile.weaponInstanceIds.ToList()
-            : profile.armorInstanceIds
-                .Concat(string.IsNullOrWhiteSpace(profile.shieldInstanceId)
-                    ? Array.Empty<string>()
-                    : new[] { profile.shieldInstanceId })
-                .ToList();
-        if (instanceIds.Count == 0)
-        {
-            failureReason = "해제할 장비가 없습니다.";
-            return false;
-        }
-
-        foreach (string instanceId in instanceIds)
-        {
-            RemoveFromAllLoadouts(instanceId);
-            if (instances.TryGetValue(instanceId, out CombatEquipmentInstance instance))
-            {
-                instance.ownerCharacterId = string.Empty;
-                instance.worldState = CombatEquipmentWorldState.Stored;
-            }
-        }
-
-        return true;
+        return loadoutRuntime.TryUnassign(characterId, slot, out failureReason);
     }
 
-    public bool TrySetActiveWeapon(string characterId, string instanceId, out string failureReason)
+    public bool TrySetActiveWeapon(
+        string characterId,
+        string instanceId,
+        out string failureReason)
     {
-        failureReason = string.Empty;
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            failureReason = "캐릭터 ID가 없습니다.";
-            return false;
-        }
-
-        CharacterCombatLoadoutProfile profile = GetActiveProfile(GetOrCreateLoadout(characterId));
-        if (!profile.weaponInstanceIds.Contains(instanceId, StringComparer.Ordinal)
-            || !instances.TryGetValue(instanceId ?? string.Empty, out CombatEquipmentInstance instance)
-            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
-            || definition is not CombatWeaponSO weapon)
-        {
-            failureReason = "현재 로드아웃에 없는 무기입니다.";
-            return false;
-        }
-
-        if (!ValidateHandOccupancy(profile, weapon, out failureReason))
-        {
-            return false;
-        }
-
-        profile.activeWeaponInstanceId = instanceId;
-        return true;
+        return loadoutRuntime.TrySetActiveWeapon(
+            characterId,
+            instanceId,
+            out failureReason);
     }
 
     public bool TrySetActiveProfile(string characterId, string profileId)
     {
-        if (string.IsNullOrWhiteSpace(characterId)
-            || string.IsNullOrWhiteSpace(profileId))
-        {
-            return false;
-        }
-
-        CharacterCombatLoadoutState state = GetOrCreateLoadout(characterId);
-        if (!state.profiles.Any(profile => string.Equals(profile.profileId, profileId, StringComparison.Ordinal)))
-        {
-            return false;
-        }
-
-        CharacterCombatLoadoutProfile targetProfile = state.profiles.First(profile =>
-            string.Equals(profile.profileId, profileId, StringComparison.Ordinal));
-        if (!ValidateProfileHandOccupancy(targetProfile))
-        {
-            return false;
-        }
-
-        state.activeProfileId = profileId;
-        return true;
+        return loadoutRuntime.TrySetActiveProfile(characterId, profileId);
     }
 
     public bool TrySetFireMode(
@@ -985,267 +487,91 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         CombatFireMode fireMode,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        if (!TryGetActiveWeapon(characterId, out CombatWeaponSnapshot weapon)
-            || weapon == null
-            || !weapon.IsRanged
-            || string.IsNullOrWhiteSpace(weapon.InstanceId))
-        {
-            failureReason = "활성 원거리 무기가 없습니다.";
-            return false;
-        }
-
-        bool supported = fireMode switch
-        {
-            CombatFireMode.Aimed => weapon.SupportsAimed,
-            CombatFireMode.Rapid => weapon.SupportsRapid,
-            CombatFireMode.Suppressive => weapon.SupportsSuppressive,
-            _ => false
-        };
-        if (!supported)
-        {
-            failureReason = "이 무기는 선택한 사격 모드를 지원하지 않습니다.";
-            return false;
-        }
-
-        GetActiveProfile(GetOrCreateLoadout(characterId)).fireMode = fireMode;
-        return true;
+        return loadoutRuntime.TrySetFireMode(
+            characterId,
+            fireMode,
+            out failureReason);
     }
 
     public bool TrySetHoldFire(string characterId, bool holdFire)
     {
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            return false;
-        }
-
-        GetActiveProfile(GetOrCreateLoadout(characterId)).holdFire = holdFire;
-        return true;
+        return loadoutRuntime.TrySetHoldFire(characterId, holdFire);
     }
 
     public CharacterCombatLoadoutState GetOrCreateLoadout(string characterId)
     {
-        string normalizedId = characterId?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(normalizedId))
-        {
-            throw new ArgumentException("Character ID is required.", nameof(characterId));
-        }
-
-        if (loadouts.TryGetValue(normalizedId, out CharacterCombatLoadoutState existing))
-        {
-            return existing;
-        }
-
-        CharacterCombatLoadoutState created = new CharacterCombatLoadoutState
-        {
-            characterId = normalizedId,
-            activeProfileId = CombatLoadoutPresetIds.Peace,
-            profiles = new List<CharacterCombatLoadoutProfile>
-            {
-                new CharacterCombatLoadoutProfile
-                {
-                    profileId = CombatLoadoutPresetIds.Peace,
-                    displayName = "평시"
-                },
-                new CharacterCombatLoadoutProfile
-                {
-                    profileId = CombatLoadoutPresetIds.Combat,
-                    displayName = "전투",
-                    desiredWeaponDefinitionIds = new List<string> { "weapon:longsword" },
-                    desiredArmorDefinitionIds = new List<string> { "armor:gambeson" },
-                    desiredShieldDefinitionId = "shield:wood",
-                    desiredAmmo = 20
-                },
-                new CharacterCombatLoadoutProfile
-                {
-                    profileId = CombatLoadoutPresetIds.Melee,
-                    displayName = "근접병",
-                    desiredWeaponDefinitionIds = new List<string> { "weapon:longsword" },
-                    desiredArmorDefinitionIds = new List<string> { "armor:gambeson" },
-                    desiredShieldDefinitionId = "shield:wood",
-                    desiredAmmo = 0
-                },
-                new CharacterCombatLoadoutProfile
-                {
-                    profileId = CombatLoadoutPresetIds.Archer,
-                    displayName = "궁수",
-                    desiredWeaponDefinitionIds = new List<string>
-                    {
-                        "weapon:shortbow",
-                        "weapon:dagger"
-                    },
-                    desiredArmorDefinitionIds = new List<string> { "armor:leather" },
-                    desiredAmmo = 30
-                },
-                new CharacterCombatLoadoutProfile
-                {
-                    profileId = CombatLoadoutPresetIds.Crossbow,
-                    displayName = "석궁수",
-                    desiredWeaponDefinitionIds = new List<string>
-                    {
-                        "weapon:crossbow",
-                        "weapon:dagger"
-                    },
-                    desiredArmorDefinitionIds = new List<string> { "armor:gambeson" },
-                    desiredAmmo = 18
-                },
-                new CharacterCombatLoadoutProfile
-                {
-                    profileId = CombatLoadoutPresetIds.Skirmisher,
-                    displayName = "척후병",
-                    desiredWeaponDefinitionIds = new List<string>
-                    {
-                        "weapon:javelin",
-                        "weapon:throwing-axe"
-                    },
-                    desiredArmorDefinitionIds = new List<string> { "armor:leather" },
-                    desiredAmmo = 6
-                }
-            }
-        };
-        loadouts.Add(normalizedId, created);
-        return created;
+        return loadoutRuntime.GetOrCreate(characterId);
     }
 
     public CharacterCombatLoadoutProfile GetActiveProfileSnapshot(string characterId)
     {
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            return null;
-        }
-
-        return GetActiveProfile(GetOrCreateLoadout(characterId)).Clone();
+        return loadoutRuntime.GetActiveProfileSnapshot(characterId);
     }
 
-    public bool TryGetActiveWeapon(string characterId, out CombatWeaponSnapshot weapon)
+    public bool TryGetActiveWeapon(
+        string characterId,
+        out CombatWeaponSnapshot weapon)
     {
-        weapon = CombatWeaponSnapshot.CreateUnarmed();
-        if (string.IsNullOrWhiteSpace(characterId)
-            || !loadouts.TryGetValue(characterId, out CharacterCombatLoadoutState state))
-        {
-            return true;
-        }
-
-        CharacterCombatLoadoutProfile profile = GetActiveProfile(state);
-        if (string.IsNullOrWhiteSpace(profile.activeWeaponInstanceId)
-            || !instances.TryGetValue(profile.activeWeaponInstanceId, out CombatEquipmentInstance instance)
-            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
-            || definition is not CombatWeaponSO weaponDefinition)
-        {
-            return true;
-        }
-
-        weapon = weaponDefinition.CreateSnapshot(
-            instance,
-            material: ResolveInstanceMaterial(instance, weaponDefinition),
-            evolutionDamageMultiplier: GetEvolutionMultiplier(
-                instance,
-                "combat.damage"),
-            evolutionPenetrationMultiplier: GetEvolutionMultiplier(
-                instance,
-                "combat.penetration"),
-            evolutionAccuracyMultiplier: GetEvolutionMultiplier(
-                instance,
-                "combat.accuracy"),
-            evolutionReloadMultiplier: GetEvolutionMultiplier(
-                instance,
-                "combat.reload"));
-        return true;
+        return loadoutRuntime.TryGetActiveWeapon(characterId, out weapon);
     }
 
     public IReadOnlyList<CombatArmorSnapshot> GetArmor(string characterId)
     {
-        if (string.IsNullOrWhiteSpace(characterId)
-            || !loadouts.TryGetValue(characterId, out CharacterCombatLoadoutState state))
-        {
-            return Array.Empty<CombatArmorSnapshot>();
-        }
-
-        List<CombatArmorSnapshot> result = new List<CombatArmorSnapshot>();
-        CharacterCombatLoadoutProfile profile = GetActiveProfile(state);
-        foreach (string instanceId in profile.armorInstanceIds)
-        {
-            if (!instances.TryGetValue(instanceId, out CombatEquipmentInstance instance)
-                || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
-                || definition is not CombatArmorSO armorDefinition)
-            {
-                continue;
-            }
-
-            foreach (CombatArmorPartValue value in armorDefinition.BodyPartDefense)
-            {
-                if (value == null)
-                {
-                    continue;
-                }
-
-                CraftMaterialDefinitionSO material = ResolveInstanceMaterial(
-                    instance,
-                    armorDefinition);
-                result.Add(new CombatArmorSnapshot(
-                    instance.instanceId,
-                    value.bodyPart,
-                    armorDefinition.Layer,
-                    instance.quality,
-                    instance.durabilityRatio,
-                    value.slashDefense,
-                    value.pierceDefense,
-                    value.bluntDefense,
-                    (material?.PenetrationDefenseMultiplier ?? 1f)
-                    * GetEvolutionMultiplier(instance, "combat.defense")));
-            }
-        }
-
-        return result;
+        return loadoutRuntime.GetArmor(characterId);
     }
 
-    public CombatShieldSnapshot GetShield(string characterId, float incomingAngleDegrees = 0f)
+    public CombatShieldSnapshot GetShield(
+        string characterId,
+        float incomingAngleDegrees = 0f)
     {
-        if (string.IsNullOrWhiteSpace(characterId)
-            || !loadouts.TryGetValue(characterId, out CharacterCombatLoadoutState state))
-        {
-            return default;
-        }
-
-        CharacterCombatLoadoutProfile profile = GetActiveProfile(state);
-        if (string.IsNullOrWhiteSpace(profile.shieldInstanceId)
-            || !instances.TryGetValue(profile.shieldInstanceId, out CombatEquipmentInstance instance)
-            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
-            || definition is not CombatShieldSO shield)
-        {
-            return default;
-        }
-
-        return new CombatShieldSnapshot(
-            instance.instanceId,
-            instance.quality,
-            instance.durabilityRatio,
-            shield.FrontalBlockChance,
-            incomingAngleDegrees,
-            shield.SlashDefense,
-            shield.PierceDefense,
-            shield.BluntDefense,
-            ResolveInstanceMaterial(instance, shield)
-                ?.PenetrationDefenseMultiplier
-                * GetEvolutionMultiplier(instance, "combat.defense")
-                ?? GetEvolutionMultiplier(instance, "combat.defense"));
+        return loadoutRuntime.GetShield(characterId, incomingAngleDegrees);
     }
 
-    public bool TryReload(string instanceId, int availableAmmo, out int consumedAmmo)
+
+    public bool HasCompatibleAmmunition(
+        string characterId,
+        string instanceId)
     {
-        consumedAmmo = 0;
-        if (!instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
-            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
-            || definition is not CombatWeaponSO weapon
-            || weapon.MagazineCapacity <= 0)
+        CharacterCarryInventory inventory = carryInventories.Find((CharacterId)characterId);
+        if (inventory == null)
         {
             return false;
         }
 
-        int needed = Mathf.Max(0, weapon.MagazineCapacity - instance.loadedAmmo);
-        consumedAmmo = Mathf.Min(needed, Mathf.Max(0, availableAmmo));
-        instance.loadedAmmo += consumedAmmo;
-        return consumedAmmo > 0;
+        if (!instances.TryGetValue(
+                instanceId?.Trim() ?? string.Empty,
+                out CombatEquipmentInstance instance))
+        {
+            return false;
+        }
+
+        if (!catalog.TryGet(
+                instance.definitionId,
+                out CombatEquipmentDefinitionSO definition)
+            || definition is not CombatWeaponSO weapon)
+        {
+            return false;
+        }
+
+        return CombatAmmunitionPolicy.CountAvailable(weapon, inventory) > 0;
+    }
+
+    public bool TryGetPreferredAmmunitionItemId(
+        string definitionId,
+        out ItemDefinitionId itemId)
+    {
+        itemId = default;
+        if (!catalog.TryGet(
+                definitionId?.Trim() ?? string.Empty,
+                out CombatEquipmentDefinitionSO definition)
+            || definition is not CombatWeaponSO weapon)
+        {
+            return false;
+        }
+
+        itemId = CombatAmmunitionPolicy.GetPreferred(
+            weapon.CompatibleAmmunitionItemIds);
+        return itemId.IsValid;
     }
 
     public bool TryReloadFromInventory(
@@ -1253,28 +579,50 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         CharacterCarryInventory inventory,
         out int consumedAmmo)
     {
+        return TryReloadFromInventory(
+            instanceId,
+            inventory,
+            out _,
+            out consumedAmmo);
+    }
+
+    public bool TryReloadFromInventory(
+        string instanceId,
+        CharacterCarryInventory inventory,
+        out ItemDefinitionId consumedAmmoItemId,
+        out int consumedAmmo)
+    {
+        consumedAmmoItemId = default;
         consumedAmmo = 0;
         if (inventory == null
             || !instances.TryGetValue(instanceId?.Trim() ?? string.Empty, out CombatEquipmentInstance instance)
             || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
             || definition is not CombatWeaponSO weapon
             || weapon.MagazineCapacity <= 0
-            || string.IsNullOrWhiteSpace(weapon.AmmunitionItemId))
+            || !CombatAmmunitionPolicy.TrySelectAvailable(
+                weapon,
+                inventory,
+                out ItemDefinitionId selectedItemId))
         {
             return false;
         }
 
         int needed = Mathf.Max(0, weapon.MagazineCapacity - instance.loadedAmmo);
-        int available = inventory.CountItem(weapon.AmmunitionItemId);
+        int available = inventory.CountItem(selectedItemId.Value);
         consumedAmmo = Mathf.Min(needed, available);
         if (consumedAmmo <= 0
-            || !inventory.TryConsumeItem(weapon.AmmunitionItemId, consumedAmmo))
+            || !CombatAmmunitionPolicy.TryConsumeSelected(
+                inventory,
+                selectedItemId,
+                consumedAmmo))
         {
             consumedAmmo = 0;
             return false;
         }
 
+        consumedAmmoItemId = selectedItemId;
         instance.loadedAmmo += consumedAmmo;
+        PersistPhysicalState(instance);
         return true;
     }
 
@@ -1283,9 +631,23 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         string instanceId,
         out int consumedAmmo)
     {
+        return TryReloadFromCharacterInventory(
+            characterId,
+            instanceId,
+            out _,
+            out consumedAmmo);
+    }
+
+    public bool TryReloadFromCharacterInventory(
+        string characterId,
+        string instanceId,
+        out ItemDefinitionId consumedAmmoItemId,
+        out int consumedAmmo)
+    {
         return TryReloadFromInventory(
             instanceId,
-            CharacterCarryInventory.FindByCharacterId(characterId),
+            carryInventories.Find((CharacterId)characterId),
+            out consumedAmmoItemId,
             out consumedAmmo);
     }
 
@@ -1298,6 +660,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
         }
 
         instance.loadedAmmo--;
+        PersistPhysicalState(instance);
         return true;
     }
 
@@ -1313,12 +676,13 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             return false;
         }
 
-        float maxDurability = BuildDerivedStats(
+        float maxDurability = statProjector.Build(
             definition,
-            ResolveInstanceMaterial(instance, definition),
+            crafting.ResolveInstanceMaterial(instance, definition),
             instance).MaxDurability;
         instance.durabilityRatio = Mathf.Clamp01(
             instance.durabilityRatio - damage / maxDurability);
+        PersistPhysicalState(instance);
         return true;
     }
 
@@ -1337,7 +701,7 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
             return false;
         }
 
-        RemoveFromAllLoadouts(instance.instanceId);
+        loadoutRuntime.RemoveEquipment(instance.instanceId);
         instance.ownerCharacterId = string.Empty;
         instance.sourceStackId = string.Empty;
         instance.worldState = CombatEquipmentWorldState.Loose;
@@ -1348,52 +712,12 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
     public IReadOnlyList<CombatEquipmentInstance> ConfiscateAllFromCharacter(
         string characterId)
     {
-        string normalized = characterId?.Trim() ?? string.Empty;
-        if (normalized.Length == 0)
-        {
-            return Array.Empty<CombatEquipmentInstance>();
-        }
-
-        List<CombatEquipmentInstance> confiscated = instances.Values
-            .Where(instance => instance != null
-                && string.Equals(
-                    instance.ownerCharacterId,
-                    normalized,
-                    StringComparison.Ordinal))
-            .ToList();
-        foreach (CombatEquipmentInstance instance in confiscated)
-        {
-            RemoveFromAllLoadouts(instance.instanceId);
-            instance.ownerCharacterId = string.Empty;
-            instance.sourceStackId = string.Empty;
-            instance.worldState = CombatEquipmentWorldState.Loose;
-        }
-
-        return confiscated.Select(instance => instance.Clone()).ToArray();
+        return loadoutRuntime.ConfiscateAll(characterId);
     }
 
     public void HandleCharacterDeath(string characterId)
     {
-        string normalized = characterId?.Trim() ?? string.Empty;
-        if (normalized.Length == 0)
-        {
-            return;
-        }
-
-        string[] lostInstanceIds = instances.Values
-            .Where(instance => instance != null
-                && string.Equals(
-                    instance.ownerCharacterId,
-                    normalized,
-                    StringComparison.Ordinal))
-            .Select(instance => instance.instanceId)
-            .ToArray();
-        foreach (string instanceId in lostInstanceIds)
-        {
-            TryMarkLost(instanceId);
-        }
-
-        loadouts.Remove(normalized);
+        loadoutRuntime.HandleCharacterDeath(characterId);
     }
 
     public bool TryRestoreDurability(string instanceId, float durabilityRatio)
@@ -1410,834 +734,151 @@ public sealed class CombatEquipmentRuntime : ICombatEquipmentRuntime, ICombatLoa
 
         instance.durabilityRatio = Mathf.Clamp01(
             Mathf.Max(instance.durabilityRatio, durabilityRatio));
+        PersistPhysicalState(instance);
         return true;
+    }
+
+    public EquipmentModuleInstance CreateExpeditionModule(
+        string definitionId,
+        int grade,
+        Vector2Int deliveryPosition,
+        WorldItemStackState worldState = WorldItemStackState.Loose,
+        string destinationId = "",
+        bool identified = false)
+    {
+        return moduleRuntime.CreateExpeditionModule(
+            definitionId,
+            grade,
+            deliveryPosition,
+            worldState,
+            destinationId,
+            identified);
+    }
+
+    public bool TryAppraiseModule(
+        string moduleInstanceId,
+        BuildableObject facility,
+        out DomainFailure failure)
+    {
+        return moduleRuntime.TryAppraise(moduleInstanceId, facility, out failure);
+    }
+
+    public bool TryRestoreModule(
+        string moduleInstanceId,
+        BuildableObject facility,
+        out DomainFailure failure)
+    {
+        return moduleRuntime.TryRestore(moduleInstanceId, facility, out failure);
+    }
+
+    public bool TryTuneModule(
+        string moduleInstanceId,
+        BuildableObject facility,
+        out DomainFailure failure)
+    {
+        return moduleRuntime.TryTune(moduleInstanceId, facility, out failure);
+    }
+
+    public bool TryInstallModule(
+        string equipmentInstanceId,
+        string moduleInstanceId,
+        int slotIndex,
+        BuildableObject facility,
+        out DomainFailure failure)
+    {
+        return moduleRuntime.TryInstall(
+            equipmentInstanceId,
+            moduleInstanceId,
+            slotIndex,
+            facility,
+            out failure);
+    }
+
+    public bool TryRemoveModule(
+        string equipmentInstanceId,
+        int slotIndex,
+        BuildableObject facility,
+        out EquipmentModuleInstance removed,
+        out DomainFailure failure)
+    {
+        return moduleRuntime.TryRemove(
+            equipmentInstanceId,
+            slotIndex,
+            facility,
+            out removed,
+            out failure);
+    }
+
+    public bool TryQueueHistoryTransfer(
+        string sourceEquipmentInstanceId,
+        string targetEquipmentInstanceId,
+        string lineageSealStackId,
+        BuildableObject facility,
+        out EquipmentHistoryTransferOrder order,
+        out DomainFailure failure)
+    {
+        return historyRuntime.TryQueue(
+            sourceEquipmentInstanceId,
+            targetEquipmentInstanceId,
+            lineageSealStackId,
+            facility,
+            out order,
+            out failure);
+    }
+
+    public bool ApplyHistoryTransferWork(
+        string orderId,
+        float work,
+        BuildableObject facility,
+        out bool completed,
+        out DomainFailure failure)
+    {
+        return historyRuntime.ApplyWork(
+            orderId,
+            work,
+            facility,
+            out completed,
+            out failure);
+    }
+
+    public bool TryClaimRegionLineageSeal(string regionId)
+    {
+        return historyRuntime.TryClaimRegionSeal(regionId);
     }
 
     public float GetCarriedWeight(string characterId)
     {
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            return 0f;
-        }
-
-        float total = 0f;
-        foreach (CombatEquipmentInstance instance in instances.Values)
-        {
-            if (string.Equals(instance.ownerCharacterId, characterId, StringComparison.Ordinal)
-                && catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition))
-            {
-                total += BuildDerivedStats(
-                    definition,
-                    ResolveInstanceMaterial(instance, definition),
-                    instance).Weight;
-            }
-        }
-
-        return total;
+        return loadoutRuntime.GetCarriedWeight(characterId);
     }
 
     public DungeonCombatEquipmentSaveData Capture()
     {
         return new DungeonCombatEquipmentSaveData
         {
-            instances = instances.Values.Select(item => item.Clone()).ToList(),
-            loadouts = loadouts.Values.Select(CloneLoadout).ToList(),
-            craftOrders = craftOrders
-                .Where(order => order != null && order.RemainingWork > 0f)
-                .Select(order => order.Clone())
-                .ToList(),
-            craftMaterialPolicies = craftMaterialPolicies.Values
-                .Select(policy => policy.Clone())
-                .ToList()
+            loadouts = loadoutRuntime.Capture().ToList(),
+            craftOrders = crafting.CaptureOrders().ToList(),
+            craftMaterialPolicies = crafting.CapturePolicies().ToList(),
+            historyTransferOrders = historyRuntime.CaptureOrders().ToList(),
+            claimedLineageSealRegionIds =
+                historyRuntime.CaptureClaimedRegionIds().ToList()
         };
     }
 
-    public void Restore(DungeonCombatEquipmentSaveData saveData)
+    public CombatEquipmentRestoreCandidate BuildRestoreCandidate(
+        DungeonCombatEquipmentSaveData saveData)
     {
-        instances.Clear();
-        loadouts.Clear();
-        craftOrders.Clear();
-        craftMaterialPolicies.Clear();
-        foreach (CombatEquipmentInstance instance in saveData?.instances ?? new List<CombatEquipmentInstance>())
-        {
-            if (instance == null
-                || string.IsNullOrWhiteSpace(instance.instanceId)
-                || string.IsNullOrWhiteSpace(instance.definitionId)
-                || !catalog.TryGet(
-                    instance.definitionId,
-                    out CombatEquipmentDefinitionSO definition)
-                || instances.ContainsKey(instance.instanceId))
-            {
-                continue;
-            }
-
-            instance.durabilityRatio = Mathf.Clamp01(instance.durabilityRatio);
-            instance.evolution ??= new EquipmentEvolutionState();
-            NormalizeEvolutionPresentationState(instance.evolution);
-            instance.materialId = NormalizeRestoredMaterialId(
-                definition,
-                instance.materialId);
-            instances.Add(instance.instanceId, instance.Clone());
-        }
-
-        foreach (CharacterCombatLoadoutState loadout in saveData?.loadouts ?? new List<CharacterCombatLoadoutState>())
-        {
-            if (loadout == null
-                || string.IsNullOrWhiteSpace(loadout.characterId)
-                || loadouts.ContainsKey(loadout.characterId))
-            {
-                continue;
-            }
-
-            CharacterCombatLoadoutState restored = CloneLoadout(loadout);
-            SanitizeLoadout(restored);
-            loadouts.Add(loadout.characterId, restored);
-        }
-
-        HashSet<string> orderIds = new HashSet<string>(StringComparer.Ordinal);
-        foreach (CombatEquipmentCraftOrderSaveData source in saveData?.craftOrders
-            ?? new List<CombatEquipmentCraftOrderSaveData>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.orderId)
-                || !orderIds.Add(source.orderId)
-                || source.RemainingWork <= 0f
-                || (!IsAmmunitionRecipe(source.definitionId)
-                    && !catalog.TryGet(source.definitionId, out _)))
-            {
-                continue;
-            }
-
-            CombatEquipmentCraftOrderSaveData restoredOrder = source.Clone();
-            if (catalog.TryGet(
-                    restoredOrder.definitionId,
-                    out CombatEquipmentDefinitionSO restoredDefinition))
-            {
-                restoredOrder.materialId = NormalizeRestoredMaterialId(
-                    restoredDefinition,
-                    restoredOrder.materialId);
-            }
-
-            craftOrders.Add(restoredOrder);
-        }
-
-        foreach (CombatEquipmentCraftMaterialPolicySaveData source in
-            saveData?.craftMaterialPolicies
-                ?? new List<CombatEquipmentCraftMaterialPolicySaveData>())
-        {
-            CombatEquipmentCraftMaterialPolicySaveData restored =
-                NormalizeCraftMaterialPolicy(source);
-            if (string.IsNullOrWhiteSpace(restored.facilityKey)
-                || string.IsNullOrWhiteSpace(restored.definitionId)
-                || craftMaterialPolicies.ContainsKey(
-                    BuildCraftMaterialPolicyKey(
-                        restored.facilityKey,
-                        restored.definitionId)))
-            {
-                continue;
-            }
-
-            craftMaterialPolicies.Add(
-                BuildCraftMaterialPolicyKey(
-                    restored.facilityKey,
-                    restored.definitionId),
-                restored);
-        }
+        return CombatEquipmentRestoreBuilder.Build(
+            saveData,
+            catalog,
+            crafting);
     }
 
-    private bool EnsureCraftMaterialsReady(CombatEquipmentCraftOrderSaveData order)
+    public void PublishRestoreCandidate(
+        CombatEquipmentRestoreCandidate candidate)
     {
-        if (order == null)
-        {
-            return false;
-        }
-
-        if (order.materialsReady)
-        {
-            return true;
-        }
-
-        CombatEquipmentDefinitionSO definition = null;
-        if (!IsAmmunitionRecipe(order.definitionId)
-            && !catalog.TryGet(order.definitionId, out definition))
-        {
-            return false;
-        }
-
-        CraftMaterialDefinitionSO material = null;
-        if (definition != null
-            && !TryResolveMaterial(
-                definition,
-                order.materialId,
-                out material,
-                out _))
-        {
-            return false;
-        }
-
-        IReadOnlyDictionary<string, int> materials =
-            BuildCraftMaterials(definition, order.definitionId, material);
-        if (materials.Count == 0)
-        {
-            order.materialsReady = true;
-            return true;
-        }
-
-        if (itemStackRuntime == null
-            || string.IsNullOrWhiteSpace(order.materialDestinationId)
-            || !itemStackRuntime.TryConsumeFacilityItemBuffer(
-                order.materialDestinationId,
-                materials,
-                out _))
-        {
-            return false;
-        }
-
-        order.materialsReady = true;
-        return true;
+        stateStore.Replace(
+            (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+            .State);
     }
 
-    private static IReadOnlyDictionary<string, int> BuildCraftMaterials(
-        CombatEquipmentDefinitionSO definition,
-        string definitionId,
-        CraftMaterialDefinitionSO material)
-    {
-        Dictionary<string, int> materials =
-            new Dictionary<string, int>(StringComparer.Ordinal);
-        if (IsAmmunitionRecipe(definitionId))
-        {
-            materials[DungeonItemCatalogSO.StockItemId(StockCategory.General)] = 1;
-            return materials;
-        }
-
-        if (material != null && !string.IsNullOrWhiteSpace(material.ItemId))
-        {
-            materials[material.ItemId] =
-                Mathf.Max(1, definition?.PrimaryMaterialAmount ?? 1);
-        }
-
-        foreach (CombatEquipmentCraftMaterial extra in definition?.CraftMaterials
-            ?? Array.Empty<CombatEquipmentCraftMaterial>())
-        {
-            if (extra == null || extra.amount <= 0)
-            {
-                continue;
-            }
-
-            string itemId = DungeonItemCatalogSO.StockItemId(extra.category);
-            materials.TryGetValue(itemId, out int current);
-            materials[itemId] = current + extra.amount;
-        }
-
-        if (materials.Count == 0)
-        {
-            materials[DungeonItemCatalogSO.StockItemId(StockCategory.General)] = 1;
-        }
-
-        return materials;
-    }
-
-    private bool TryResolveMaterial(
-        CombatEquipmentDefinitionSO definition,
-        string requestedMaterialId,
-        out CraftMaterialDefinitionSO material,
-        out string failureReason)
-    {
-        material = null;
-        failureReason = string.Empty;
-        if (definition == null)
-        {
-            failureReason = "장비 형태를 찾을 수 없습니다.";
-            return false;
-        }
-
-        string normalizedId = ResolveRequestedMaterialId(
-            definition,
-            requestedMaterialId);
-        if (materialCatalog == null)
-        {
-            return true;
-        }
-
-        if (string.IsNullOrWhiteSpace(normalizedId)
-            || !materialCatalog.TryGetMaterial(normalizedId, out material))
-        {
-            failureReason = "선택한 제작 재질을 찾을 수 없습니다.";
-            return false;
-        }
-
-        if (!definition.AllowsMaterial(material))
-        {
-            failureReason =
-                $"{definition.DisplayName}에는 {material.DisplayName} 재질을 사용할 수 없습니다.";
-            material = null;
-            return false;
-        }
-
-        return true;
-    }
-
-    private CraftMaterialDefinitionSO ResolveInstanceMaterial(
-        CombatEquipmentInstance instance,
-        CombatEquipmentDefinitionSO definition)
-    {
-        if (materialCatalog == null || definition == null)
-        {
-            return null;
-        }
-
-        string materialId = ResolveRequestedMaterialId(
-            definition,
-            instance?.materialId);
-        return materialCatalog.TryGetMaterial(
-                materialId,
-                out CraftMaterialDefinitionSO material)
-            && definition.AllowsMaterial(material)
-                ? material
-                : null;
-    }
-
-    private string NormalizeRestoredMaterialId(
-        CombatEquipmentDefinitionSO definition,
-        string materialId)
-    {
-        string normalized = ResolveRequestedMaterialId(definition, materialId);
-        if (materialCatalog == null)
-        {
-            return normalized;
-        }
-
-        return materialCatalog.TryGetMaterial(
-                normalized,
-                out CraftMaterialDefinitionSO material)
-            && definition.AllowsMaterial(material)
-                ? material.MaterialId
-                : definition.DefaultMaterialId;
-    }
-
-    private static string ResolveRequestedMaterialId(
-        CombatEquipmentDefinitionSO definition,
-        string requestedMaterialId)
-    {
-        return string.IsNullOrWhiteSpace(requestedMaterialId)
-            ? definition?.DefaultMaterialId ?? string.Empty
-            : requestedMaterialId.Trim();
-    }
-
-    private CombatEquipmentDerivedStats BuildDerivedStats(
-        CombatEquipmentDefinitionSO definition,
-        CraftMaterialDefinitionSO material,
-        CombatEquipmentInstance instance = null)
-    {
-        float weightMultiplier = material?.WeightMultiplier ?? 1f;
-        float durabilityMultiplier = material?.DurabilityMultiplier ?? 1f;
-        string displayName = material == null
-            ? definition?.DisplayName ?? string.Empty
-            : $"{material.DisplayName} {definition.DisplayName}";
-        return new CombatEquipmentDerivedStats(
-            definition?.EquipmentId,
-            material?.MaterialId,
-            displayName,
-            (definition?.Weight ?? 0f)
-                * weightMultiplier
-                * GetEvolutionMultiplier(instance, "combat.weight"),
-            (definition?.MaxDurability ?? 1f)
-                * durabilityMultiplier
-                * GetEvolutionMultiplier(instance, "combat.durability"),
-            (material?.DamageMultiplier ?? 1f)
-                * GetEvolutionMultiplier(instance, "combat.damage"),
-            (material?.PenetrationDefenseMultiplier ?? 1f)
-                * GetEvolutionMultiplier(instance, "combat.defense"),
-            (material?.ValueMultiplier ?? 1f)
-                * GetEvolutionMultiplier(instance, "combat.value"),
-            material?.Tint ?? Color.white);
-    }
-
-    private float GetEvolutionMultiplier(
-        CombatEquipmentInstance instance,
-        string statId)
-    {
-        if (instance?.evolution == null
-            || evolutionModules == null
-            || string.IsNullOrWhiteSpace(statId))
-        {
-            return 1f;
-        }
-
-        HashSet<string> activeHistory = new HashSet<string>(
-            instance.evolution.activeHistoricalNodeIds
-                ?? new List<string>(),
-            StringComparer.Ordinal);
-        float additive = 0f;
-        float multiplier = 1f;
-        foreach (EvolutionNode node in instance.evolution.evolutionNodes
-                     ?? new List<EvolutionNode>())
-        {
-            if (node == null
-                || !node.active
-                || node.historical
-                    && (!node.playerVisible
-                        || !activeHistory.Contains(node.nodeId)))
-            {
-                continue;
-            }
-
-            float potency = Mathf.Max(0.01f, node.potencyMultiplier);
-            if (evolutionModules.TryGet(
-                    node.effectId,
-                    out EvolutionModuleDefinition module))
-            {
-                ApplyEvolutionModifiers(
-                    module.Benefits,
-                    statId,
-                    potency,
-                    ref additive,
-                    ref multiplier);
-                ApplyEvolutionModifiers(
-                    module.Burdens,
-                    statId,
-                    potency,
-                    ref additive,
-                    ref multiplier);
-            }
-
-            if (!string.IsNullOrWhiteSpace(node.burdenEffectId)
-                && !string.Equals(
-                    node.burdenEffectId,
-                    node.effectId,
-                    StringComparison.Ordinal)
-                && evolutionModules.TryGet(
-                    node.burdenEffectId,
-                    out EvolutionModuleDefinition burdenModule))
-            {
-                ApplyEvolutionModifiers(
-                    burdenModule.Burdens,
-                    statId,
-                    potency,
-                    ref additive,
-                    ref multiplier);
-            }
-        }
-
-        return Mathf.Max(0.05f, multiplier + additive);
-    }
-
-    private static void NormalizeEvolutionPresentationState(
-        EquipmentEvolutionState evolution)
-    {
-        if (evolution == null)
-        {
-            return;
-        }
-
-        evolution.evolutionNodes ??= new List<EvolutionNode>();
-        evolution.narrativeRequests ??=
-            new List<EvolutionNarrativeRequestSnapshot>();
-        foreach (EvolutionNode node in evolution.evolutionNodes
-                     .Where(node => node != null && !node.historical))
-        {
-            node.playerVisible = true;
-        }
-    }
-
-    private static void ApplyEvolutionModifiers(
-        IReadOnlyList<EvolutionEffectModifier> modifiers,
-        string statId,
-        float potency,
-        ref float additive,
-        ref float multiplier)
-    {
-        foreach (EvolutionEffectModifier modifier in modifiers
-                     ?? Array.Empty<EvolutionEffectModifier>())
-        {
-            if (modifier != null
-                && string.Equals(modifier.statId, statId, StringComparison.Ordinal))
-            {
-                additive += modifier.additive * potency;
-                multiplier *= Mathf.Max(
-                    0f,
-                    1f + (modifier.multiplier - 1f) * potency);
-            }
-        }
-    }
-
-    private bool TryGetOrCreateCraftMaterialPolicy(
-        string definitionId,
-        BuildableObject craftingFacility,
-        out CombatEquipmentCraftMaterialPolicySaveData policy,
-        out string failureReason)
-    {
-        policy = null;
-        failureReason = string.Empty;
-        if (craftingFacility == null)
-        {
-            failureReason = "제작 시설을 찾을 수 없습니다.";
-            return false;
-        }
-
-        string normalizedDefinitionId = definitionId?.Trim() ?? string.Empty;
-        if (!catalog.TryGet(
-                normalizedDefinitionId,
-                out CombatEquipmentDefinitionSO definition))
-        {
-            failureReason = "장비 형태를 찾을 수 없습니다.";
-            return false;
-        }
-
-        IReadOnlyList<CraftMaterialDefinitionSO> allowedMaterials =
-            GetAllowedMaterials(normalizedDefinitionId);
-        if (allowedMaterials.Count == 0)
-        {
-            failureReason = "이 장비에 사용할 수 있는 제작 재질이 없습니다.";
-            return false;
-        }
-
-        string facilityKey = BuildCraftingFacilityKey(craftingFacility);
-        string policyKey = BuildCraftMaterialPolicyKey(
-            facilityKey,
-            normalizedDefinitionId);
-        if (craftMaterialPolicies.TryGetValue(policyKey, out policy))
-        {
-            CombatEquipmentCraftMaterialPolicySaveData normalized =
-                NormalizeCraftMaterialPolicy(policy);
-            craftMaterialPolicies[policyKey] = normalized;
-            policy = normalized;
-            return true;
-        }
-
-        List<string> priority = allowedMaterials
-            .OrderBy(material =>
-                string.Equals(
-                    material.MaterialId,
-                    definition.DefaultMaterialId,
-                    StringComparison.Ordinal)
-                        ? 0
-                        : 1)
-            .ThenBy(material => material.RareMaterial ? 1 : 0)
-            .ThenBy(material => material.DisplayName, StringComparer.Ordinal)
-            .Select(material => material.MaterialId)
-            .ToList();
-        List<string> allowed = allowedMaterials
-            .Where(material => !material.RareMaterial)
-            .Select(material => material.MaterialId)
-            .ToList();
-        if (allowed.Count == 0 && priority.Count > 0)
-        {
-            allowed.Add(priority[0]);
-        }
-
-        policy = new CombatEquipmentCraftMaterialPolicySaveData
-        {
-            facilityKey = facilityKey,
-            definitionId = normalizedDefinitionId,
-            priorityMaterialIds = priority,
-            allowedMaterialIds = allowed
-        };
-        craftMaterialPolicies.Add(policyKey, policy);
-        return true;
-    }
-
-    private CombatEquipmentCraftMaterialPolicySaveData NormalizeCraftMaterialPolicy(
-        CombatEquipmentCraftMaterialPolicySaveData source)
-    {
-        CombatEquipmentCraftMaterialPolicySaveData clone =
-            source?.Clone() ?? new CombatEquipmentCraftMaterialPolicySaveData();
-        if (!catalog.TryGet(
-                clone.definitionId,
-                out CombatEquipmentDefinitionSO definition))
-        {
-            return new CombatEquipmentCraftMaterialPolicySaveData();
-        }
-
-        Dictionary<string, CraftMaterialDefinitionSO> allowedById =
-            GetAllowedMaterials(definition.EquipmentId)
-                .ToDictionary(
-                    material => material.MaterialId,
-                    material => material,
-                    StringComparer.Ordinal);
-        List<string> priority = clone.priorityMaterialIds
-            .Where(allowedById.ContainsKey)
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-        foreach (CraftMaterialDefinitionSO material in allowedById.Values
-            .OrderBy(candidate =>
-                string.Equals(
-                    candidate.MaterialId,
-                    definition.DefaultMaterialId,
-                    StringComparison.Ordinal)
-                        ? 0
-                        : 1)
-            .ThenBy(candidate => candidate.RareMaterial ? 1 : 0)
-            .ThenBy(candidate => candidate.DisplayName, StringComparer.Ordinal))
-        {
-            if (!priority.Contains(material.MaterialId, StringComparer.Ordinal))
-            {
-                priority.Add(material.MaterialId);
-            }
-        }
-
-        return new CombatEquipmentCraftMaterialPolicySaveData
-        {
-            facilityKey = clone.facilityKey,
-            definitionId = definition.EquipmentId,
-            priorityMaterialIds = priority,
-            allowedMaterialIds = clone.allowedMaterialIds
-                .Where(allowedById.ContainsKey)
-                .Distinct(StringComparer.Ordinal)
-                .ToList()
-        };
-    }
-
-    private static string BuildCraftingFacilityKey(BuildableObject facility)
-    {
-        return facility == null
-            ? string.Empty
-            : $"{facility.id}:{facility.centerPos.x}:{facility.centerPos.y}";
-    }
-
-    private static string BuildCraftMaterialPolicyKey(
-        string facilityKey,
-        string definitionId)
-    {
-        return $"{facilityKey?.Trim() ?? string.Empty}|"
-            + $"{definitionId?.Trim() ?? string.Empty}";
-    }
-
-    private static bool IsCraftable(
-        string definitionId,
-        IEnumerable<string> craftableDefinitionIds)
-    {
-        if (string.IsNullOrWhiteSpace(definitionId))
-        {
-            return false;
-        }
-
-        string[] allowed = craftableDefinitionIds?
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .ToArray() ?? Array.Empty<string>();
-        return allowed.Length == 0
-            || allowed.Contains(definitionId, StringComparer.Ordinal);
-    }
-
-    private static bool IsAmmunitionRecipe(string definitionId)
-    {
-        return string.Equals(
-                definitionId,
-                CombatItemDefinitions.ArrowBundleRecipeId,
-                StringComparison.Ordinal)
-            || string.Equals(
-                definitionId,
-                CombatItemDefinitions.BoltBundleRecipeId,
-                StringComparison.Ordinal);
-    }
-
-    private bool ValidateHandOccupancyForAssignment(
-        CharacterCombatLoadoutProfile profile,
-        CombatEquipmentDefinitionSO candidate,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        if (candidate is CombatShieldSO)
-        {
-            CombatWeaponSO activeWeapon = ResolveActiveWeaponDefinition(profile);
-            return ValidateHandOccupancy(profile, activeWeapon, candidate, out failureReason);
-        }
-
-        if (candidate is CombatWeaponSO weapon
-            && string.IsNullOrWhiteSpace(profile.activeWeaponInstanceId))
-        {
-            return ValidateHandOccupancy(profile, weapon, out failureReason);
-        }
-
-        return true;
-    }
-
-    private bool ValidateHandOccupancy(
-        CharacterCombatLoadoutProfile profile,
-        CombatWeaponSO activeWeapon,
-        out string failureReason)
-    {
-        CombatEquipmentDefinitionSO shield = ResolveShieldDefinition(profile);
-        return ValidateHandOccupancy(profile, activeWeapon, shield, out failureReason);
-    }
-
-    private static bool ValidateHandOccupancy(
-        CharacterCombatLoadoutProfile profile,
-        CombatEquipmentDefinitionSO activeWeapon,
-        CombatEquipmentDefinitionSO shield,
-        out string failureReason)
-    {
-        int occupiedHands = (activeWeapon?.OccupiedHands ?? 0) + (shield?.OccupiedHands ?? 0);
-        if (occupiedHands <= 2)
-        {
-            failureReason = string.Empty;
-            return true;
-        }
-
-        string weaponName = activeWeapon?.DisplayName ?? "활성 무기";
-        string shieldName = shield?.DisplayName ?? "방패";
-        failureReason = $"{weaponName}과 {shieldName}은 함께 사용할 손이 부족합니다.";
-        return false;
-    }
-
-    private bool ValidateProfileHandOccupancy(CharacterCombatLoadoutProfile profile)
-    {
-        return ValidateHandOccupancy(
-            profile,
-            ResolveActiveWeaponDefinition(profile),
-            ResolveShieldDefinition(profile),
-            out _);
-    }
-
-    private CombatWeaponSO ResolveActiveWeaponDefinition(CharacterCombatLoadoutProfile profile)
-    {
-        if (profile == null
-            || string.IsNullOrWhiteSpace(profile.activeWeaponInstanceId)
-            || !instances.TryGetValue(profile.activeWeaponInstanceId, out CombatEquipmentInstance instance)
-            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition))
-        {
-            return null;
-        }
-
-        return definition as CombatWeaponSO;
-    }
-
-    private CombatEquipmentDefinitionSO ResolveShieldDefinition(CharacterCombatLoadoutProfile profile)
-    {
-        if (profile == null
-            || string.IsNullOrWhiteSpace(profile.shieldInstanceId)
-            || !instances.TryGetValue(profile.shieldInstanceId, out CombatEquipmentInstance instance)
-            || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition))
-        {
-            return null;
-        }
-
-        return definition is CombatShieldSO ? definition : null;
-    }
-
-    private void MarkReplacedShieldCarried(
-        CharacterCombatLoadoutProfile profile,
-        string characterId)
-    {
-        if (profile == null
-            || string.IsNullOrWhiteSpace(profile.shieldInstanceId)
-            || !instances.TryGetValue(profile.shieldInstanceId, out CombatEquipmentInstance previous))
-        {
-            return;
-        }
-
-        previous.ownerCharacterId = characterId?.Trim() ?? string.Empty;
-        previous.worldState = CombatEquipmentWorldState.Carried;
-    }
-
-    private void SanitizeLoadout(CharacterCombatLoadoutState state)
-    {
-        foreach (CharacterCombatLoadoutProfile profile in state?.profiles
-            ?? new List<CharacterCombatLoadoutProfile>())
-        {
-            profile.weaponInstanceIds ??= new List<string>();
-            profile.armorInstanceIds ??= new List<string>();
-            profile.desiredWeaponDefinitionIds ??= new List<string>();
-            profile.desiredArmorDefinitionIds ??= new List<string>();
-
-            if (ValidateProfileHandOccupancy(profile))
-            {
-                continue;
-            }
-
-            profile.shieldInstanceId = string.Empty;
-        }
-    }
-
-    private bool ValidateLayerConflict(
-        CharacterCombatLoadoutProfile profile,
-        CombatEquipmentDefinitionSO candidate,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        if (candidate is not CombatArmorSO candidateArmor)
-        {
-            return true;
-        }
-
-        foreach (string instanceId in profile.armorInstanceIds)
-        {
-            if (!instances.TryGetValue(instanceId, out CombatEquipmentInstance instance)
-                || !catalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
-                || definition is not CombatArmorSO equippedArmor
-                || equippedArmor.Layer != candidateArmor.Layer)
-            {
-                continue;
-            }
-
-            bool overlaps = equippedArmor.BodyPartDefense.Any(left => left != null
-                && candidateArmor.BodyPartDefense.Any(right => right != null && right.bodyPart == left.bodyPart));
-            if (overlaps)
-            {
-                failureReason = "같은 부위와 레이어를 차지하는 방어구가 이미 장착되어 있습니다.";
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void RemoveFromAllLoadouts(string instanceId)
-    {
-        foreach (CharacterCombatLoadoutState state in loadouts.Values)
-        {
-            foreach (CharacterCombatLoadoutProfile profile in state.profiles)
-            {
-                profile.weaponInstanceIds.RemoveAll(id => string.Equals(id, instanceId, StringComparison.Ordinal));
-                profile.armorInstanceIds.RemoveAll(id => string.Equals(id, instanceId, StringComparison.Ordinal));
-                if (string.Equals(profile.shieldInstanceId, instanceId, StringComparison.Ordinal))
-                {
-                    profile.shieldInstanceId = string.Empty;
-                }
-
-                if (string.Equals(profile.activeWeaponInstanceId, instanceId, StringComparison.Ordinal))
-                {
-                    profile.activeWeaponInstanceId = profile.weaponInstanceIds.FirstOrDefault() ?? string.Empty;
-                }
-            }
-        }
-    }
-
-    private static CharacterCombatLoadoutProfile GetActiveProfile(CharacterCombatLoadoutState state)
-    {
-        CharacterCombatLoadoutProfile profile = state.profiles.FirstOrDefault(item =>
-            string.Equals(item.profileId, state.activeProfileId, StringComparison.Ordinal));
-        if (profile != null)
-        {
-            return profile;
-        }
-
-        profile = state.profiles.FirstOrDefault();
-        if (profile == null)
-        {
-            profile = new CharacterCombatLoadoutProfile
-            {
-                profileId = CombatLoadoutPresetIds.Peace,
-                displayName = "평시"
-            };
-            state.profiles.Add(profile);
-        }
-
-        state.activeProfileId = profile.profileId;
-        return profile;
-    }
-
-    private static CharacterCombatLoadoutState CloneLoadout(CharacterCombatLoadoutState source)
-    {
-        return new CharacterCombatLoadoutState
-        {
-            characterId = source.characterId ?? string.Empty,
-            activeProfileId = source.activeProfileId ?? CombatLoadoutPresetIds.Peace,
-            profiles = source.profiles?.Select(profile => profile?.Clone())
-                .Where(profile => profile != null)
-                .ToList() ?? new List<CharacterCombatLoadoutProfile>()
-        };
-    }
 }

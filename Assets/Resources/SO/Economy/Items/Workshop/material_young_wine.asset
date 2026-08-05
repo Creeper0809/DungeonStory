@@ -21,27 +21,29 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8304
+  id: 8303
   itemId: material:young-wine
   displayName: "\uC5B4\uB9B0 \uD3EC\uB3C4\uC8FC"
   description: "\uC791\uC5C5\uC2E4\uC758 \uB2E4\uC74C \uACF5\uC815\uC73C\uB85C \uC2E4\uC81C
     \uC6B4\uBC18\uB418\uB294 \uBB3C\uB9AC \uC911\uAC04\uC7AC."
   stockCategory: 0
-  kind: 1
-  ingredientTags: 1
-  unitPrice: 10
-  marketSaleRate: 0.6
   unitWeight: 0.5
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:fermentation
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 10
+  features:
+  - rid: 7737211730927812640
+  - rid: 7737211730927812641
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730927812640
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:fermentation
+    - rid: 7737211730927812641
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 1
+        sharedIntermediate: 1

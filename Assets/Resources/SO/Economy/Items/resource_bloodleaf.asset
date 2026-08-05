@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uC18C\uB3C5\uC81C\uC640 \uC804\uD22C \uCD09\uC9C4\uC81C\uC5D0 \uC4F0\uB294
     \uBD89\uC740 \uC57D\uCD08."
   stockCategory: 5
-  kind: 0
-  ingredientTags: 33
-  unitPrice: 5
-  marketSaleRate: 0.6
   unitWeight: 0.1
   maxStack: 75
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:herbalism
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 5
+  features:
+  - rid: 7737211674039681283
+  - rid: 7737211674039681284
+  - rid: 7737211674039681285
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681283
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:herbalism
+    - rid: 7737211674039681284
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 0
+        ingredientTags: 33
+        sharedIntermediate: 0
+    - rid: 7737211674039681285
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

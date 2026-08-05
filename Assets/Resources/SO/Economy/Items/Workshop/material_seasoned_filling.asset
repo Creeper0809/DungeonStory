@@ -21,27 +21,29 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8313
+  id: 8312
   itemId: material:seasoned-filling
   displayName: "\uC591\uB150 \uC18D\uC7AC\uB8CC"
   description: "\uC791\uC5C5\uC2E4\uC758 \uB2E4\uC74C \uACF5\uC815\uC73C\uB85C \uC2E4\uC81C
     \uC6B4\uBC18\uB418\uB294 \uBB3C\uB9AC \uC911\uAC04\uC7AC."
   stockCategory: 0
-  kind: 1
-  ingredientTags: 17
-  unitPrice: 9
-  marketSaleRate: 0.6
   unitWeight: 0.65
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:kitchen-hygiene
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 9
+  features:
+  - rid: 7737211730889016248
+  - rid: 7737211730889016249
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730889016248
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:kitchen-hygiene
+    - rid: 7737211730889016249
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 17
+        sharedIntermediate: 1

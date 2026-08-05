@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Operation;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -146,7 +147,9 @@ public sealed class UnifiedUiPlayModeVerificationRunner : MonoBehaviour
 
         if (!HasPlayableActor())
         {
-            DungeonSceneNavigator navigator = new DungeonSceneNavigator();
+            DungeonSceneNavigator navigator = new DungeonSceneNavigator(
+                new DungeonStory.Foundation.UnityGameTimeScaleController(),
+                new DungeonStory.Foundation.UnityUiClock());
             navigator.StartNewGameDirectForDebug(DungeonDifficulty.Normal);
             float deadline = Time.realtimeSinceStartup + 8f;
             while (Time.realtimeSinceStartup < deadline && !HasPlayableActor())
@@ -312,7 +315,7 @@ public sealed class UnifiedUiPlayModeVerificationRunner : MonoBehaviour
                 FindObjectsInactive.Exclude,
                 FindObjectsSortMode.None)
             .FirstOrDefault(item => item != null && item.isRootCanvas);
-        CharacterSummeryInfo summary = UnityEngine.Object.FindFirstObjectByType<CharacterSummeryInfo>();
+        CharacterSummaryInfo summary = UnityEngine.Object.FindFirstObjectByType<CharacterSummaryInfo>();
         CharacterActor actor = UnityEngine.Object.FindObjectsByType<CharacterActor>(
                 FindObjectsInactive.Exclude,
                 FindObjectsSortMode.None)

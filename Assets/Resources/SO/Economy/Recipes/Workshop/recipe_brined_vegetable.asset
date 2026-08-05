@@ -45,7 +45,7 @@ MonoBehaviour:
   allowsManualWaterFallback: 1
   spoilageItemId: waste:mixed-rot
   inputs:
-  - itemId: resource:ember-root
+  - itemId: material:washed-vegetable
     amount: 2
   - itemId: resource:saltstone
     amount: 1

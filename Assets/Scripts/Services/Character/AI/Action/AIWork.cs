@@ -188,8 +188,10 @@ public class AIWork : AIActionSet
         bool found = TryResolveWorkTypeId(actor, out WorkTypeId workTypeId)
             ? work.TryGetBestWorkCandidate(workTypeId, searchResult, out candidate)
             : work.TryGetBestAnyWorkCandidate(searchResult, out candidate);
+        BuildableObject building =
+            WorkTargetCandidateRuntimeAdapter.ResolveBuilding(candidate);
         return found
-            ? new List<BuildableObject> { candidate.Building }
+            ? new List<BuildableObject> { building }
             : new List<BuildableObject>();
     }
 
@@ -225,7 +227,9 @@ public class AIWork : AIActionSet
             : work.TryGetBestAnyWorkCandidate(
                 searchResult,
                 out candidate);
-        if (!found || candidate.Building == null || candidate.Building.isDestroy)
+        BuildableObject building =
+            WorkTargetCandidateRuntimeAdapter.ResolveBuilding(candidate);
+        if (!found || building == null || building.isDestroy)
         {
             AIActionFailureKind failureKind =
                 candidate.FailureKind != AIActionFailureKind.None
@@ -234,11 +238,11 @@ public class AIWork : AIActionSet
             failure = AIActionFailure.Create(
                 failureKind,
                 candidate.FailureReason,
-                candidate.Building);
+                building);
             return false;
         }
 
-        destination = candidate.Building;
+        destination = building;
         return true;
     }
 
@@ -255,7 +259,7 @@ public class AIWork : AIActionSet
             return false;
         }
 
-        if (!WorkTypeCatalog.TryGet(workType, out WorkTypeDefinition definition))
+        if (!FacilityWorkTypeMap.TryGet(workType, out WorkTypeDefinition definition))
         {
             return false;
         }

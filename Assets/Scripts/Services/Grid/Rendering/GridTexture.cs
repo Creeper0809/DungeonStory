@@ -25,7 +25,8 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
     [SerializeField] private string ceilingOverlaySortingLayerName = "Wall";
     [SerializeField] private int ceilingOverlaySortingOrder = 110;
     private readonly GridWallTileCalculator wallTileCalculator = new GridWallTileCalculator();
-    private readonly Dictionary<SpriteTileKey, Tile> spriteTiles = new Dictionary<SpriteTileKey, Tile>();
+    private readonly Dictionary<SpriteBuildingKey, SpriteRenderer> spriteBuildings =
+        new Dictionary<SpriteBuildingKey, SpriteRenderer>();
 
     private void Awake()
     {
@@ -35,6 +36,19 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
     private void OnValidate()
     {
         ApplyTilemapSorting();
+    }
+
+    private void OnDestroy()
+    {
+        foreach (SpriteRenderer renderer in spriteBuildings.Values)
+        {
+            if (renderer != null)
+            {
+                Destroy(renderer.gameObject);
+            }
+        }
+
+        spriteBuildings.Clear();
     }
 
     public void DrawBuilding(Dictionary<TilemapLayer, Tile> tiles,Vector2Int selectPos,bool isEven)
@@ -116,7 +130,17 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         if (buildingData.sprite == null) return;
         if (!TryGetTilemap(GetSpriteTilemapLayer(buildingData), buildingData.IsEvenWidth, out Tilemap targetTilemap)) return;
 
-        targetTilemap.SetTile(GetTilePosition(selectPos), GetSpriteTile(buildingData, targetTilemap));
+        Vector3Int tilePosition = GetTilePosition(selectPos);
+        SpriteBuildingKey key = new SpriteBuildingKey(targetTilemap, tilePosition);
+        if (!spriteBuildings.TryGetValue(key, out SpriteRenderer renderer) || renderer == null)
+        {
+            GameObject visual = new GameObject($"{buildingData.objectName} Sprite");
+            visual.transform.SetParent(targetTilemap.transform, false);
+            renderer = visual.AddComponent<SpriteRenderer>();
+            spriteBuildings[key] = renderer;
+        }
+
+        ConfigureSpriteBuilding(renderer, buildingData, targetTilemap, tilePosition);
     }
 
     private void DeleteSpriteBuilding(BuildingSO buildingData, Vector2Int selectPos)
@@ -124,37 +148,44 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         if (buildingData.sprite == null) return;
         if (!TryGetTilemap(GetSpriteTilemapLayer(buildingData), buildingData.IsEvenWidth, out Tilemap targetTilemap)) return;
 
-        targetTilemap.SetTile(GetTilePosition(selectPos), null);
+        DestroySpriteBuilding(targetTilemap, GetTilePosition(selectPos));
     }
 
-    private Tile GetSpriteTile(BuildingSO buildingData, Tilemap targetTilemap)
+    private static void ConfigureSpriteBuilding(
+        SpriteRenderer renderer,
+        BuildingSO buildingData,
+        Tilemap targetTilemap,
+        Vector3Int tilePosition)
     {
-        Sprite sprite = buildingData.sprite;
-        int cellTileHeight = GridBuildingTileTransformCalculator.DefaultCellTileHeight;
-        Vector2 tileAnchor = targetTilemap != null
-            ? (Vector2)targetTilemap.tileAnchor
-            : GridBuildingTileTransformCalculator.DefaultTileAnchor;
-        SpriteTileKey key = new SpriteTileKey(
-            sprite,
-            buildingData.width,
-            buildingData.height,
-            cellTileHeight,
-            tileAnchor,
-            targetTilemap.transform.localPosition);
-        if (!spriteTiles.TryGetValue(key, out Tile tile) || tile == null)
+        renderer.sprite = buildingData.sprite;
+        TilemapRenderer tilemapRenderer = targetTilemap.GetComponent<TilemapRenderer>();
+        if (tilemapRenderer != null)
         {
-            tile = ScriptableObject.CreateInstance<Tile>();
-            tile.name = $"{sprite.name}_{buildingData.width}x{buildingData.height}_RuntimeTile";
-            tile.sprite = sprite;
-            tile.transform = GridBuildingTileTransformCalculator.Calculate(
-                buildingData,
-                cellTileHeight,
-                tileAnchor,
-                targetTilemap.transform.localPosition);
-            spriteTiles[key] = tile;
+            renderer.sortingLayerID = tilemapRenderer.sortingLayerID;
+            renderer.sortingOrder = tilemapRenderer.sortingOrder;
         }
 
-        return tile;
+        Matrix4x4 matrix = GridBuildingTileTransformCalculator.Calculate(
+            buildingData,
+            GridBuildingTileTransformCalculator.DefaultCellTileHeight,
+            targetTilemap.tileAnchor,
+            targetTilemap.transform.localPosition);
+        Vector3 anchorPosition = targetTilemap.CellToLocalInterpolated(
+            (Vector3)tilePosition + targetTilemap.tileAnchor);
+        renderer.transform.localPosition = anchorPosition + (Vector3)matrix.GetColumn(3);
+        renderer.transform.localRotation = matrix.rotation;
+        renderer.transform.localScale = matrix.lossyScale;
+    }
+
+    private void DestroySpriteBuilding(Tilemap targetTilemap, Vector3Int tilePosition)
+    {
+        SpriteBuildingKey key = new SpriteBuildingKey(targetTilemap, tilePosition);
+        if (!spriteBuildings.Remove(key, out SpriteRenderer renderer) || renderer == null)
+        {
+            return;
+        }
+
+        Destroy(renderer.gameObject);
     }
 
     private bool TryGetTilemap(TilemapLayer layer, bool isEven, out Tilemap targetTilemap)
@@ -204,50 +235,33 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         }
     }
 
-    private readonly struct SpriteTileKey : System.IEquatable<SpriteTileKey>
+    private readonly struct SpriteBuildingKey : System.IEquatable<SpriteBuildingKey>
     {
-        private readonly Sprite sprite;
-        private readonly int width;
-        private readonly int height;
-        private readonly int cellTileHeight;
-        private readonly Vector2 tileAnchor;
-        private readonly Vector2 tilemapLocalOffset;
+        private readonly Tilemap tilemap;
+        private readonly Vector3Int tilePosition;
 
-        public SpriteTileKey(Sprite sprite, int width, int height, int cellTileHeight, Vector2 tileAnchor, Vector2 tilemapLocalOffset)
+        public SpriteBuildingKey(Tilemap tilemap, Vector3Int tilePosition)
         {
-            this.sprite = sprite;
-            this.width = width;
-            this.height = height;
-            this.cellTileHeight = cellTileHeight;
-            this.tileAnchor = tileAnchor;
-            this.tilemapLocalOffset = tilemapLocalOffset;
+            this.tilemap = tilemap;
+            this.tilePosition = tilePosition;
         }
 
-        public bool Equals(SpriteTileKey other)
+        public bool Equals(SpriteBuildingKey other)
         {
-            return sprite == other.sprite
-                && width == other.width
-                && height == other.height
-                && cellTileHeight == other.cellTileHeight
-                && tileAnchor == other.tileAnchor
-                && tilemapLocalOffset == other.tilemapLocalOffset;
+            return tilemap == other.tilemap && tilePosition == other.tilePosition;
         }
 
         public override bool Equals(object obj)
         {
-            return obj is SpriteTileKey other && Equals(other);
+            return obj is SpriteBuildingKey other && Equals(other);
         }
 
         public override int GetHashCode()
         {
             unchecked
             {
-                int hash = sprite != null ? sprite.GetHashCode() : 0;
-                hash = (hash * 397) ^ width;
-                hash = (hash * 397) ^ height;
-                hash = (hash * 397) ^ cellTileHeight;
-                hash = (hash * 397) ^ tileAnchor.GetHashCode();
-                hash = (hash * 397) ^ tilemapLocalOffset.GetHashCode();
+                int hash = tilemap != null ? tilemap.GetHashCode() : 0;
+                hash = (hash * 397) ^ tilePosition.GetHashCode();
                 return hash;
             }
         }
@@ -445,6 +459,7 @@ public class GridTexture : SerializedMonoBehaviour, IGridBuildingVisual
         if (TryGetTilemap(layer, isEven, out Tilemap targetTilemap))
         {
             targetTilemap.SetTile(tilePos, null);
+            DestroySpriteBuilding(targetTilemap, tilePos);
         }
     }
 

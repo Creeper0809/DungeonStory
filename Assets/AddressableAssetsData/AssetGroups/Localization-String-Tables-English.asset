@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Localization-String-Tables-English
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: Localization-String-Tables-English
+  m_GUID: 34106ff925c038e4ea85ae1e7fcbe4f4
+  m_SerializeEntries:
+  - m_GUID: 09851c8d51b2686428b6746bf4470223
+    m_Address: DomainFailures_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 2fb06533cb3a38e42a6b6841d41240a7
+    m_Address: CharacterCombatUI_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 5f0a0f6b6dc95da4fbc5799a5a9f7f09
+    m_Address: CharacterNarrative_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 65f5a06032c921a4b9930f1046669ea2
+    m_Address: DefenseUI_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a0d154d1b8c43714686e1aa30b7fd33e
+    m_Address: BuildingSummaryUI_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a7d6879bd3b2dcb40955a61203e53b9a
+    m_Address: CharacterSummaryUI_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d10d47423dd268340b91dd7ab67d46b2
+    m_Address: CharacterAI_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d2bdfb3a1a62c9046a777ae2eb1b0080
+    m_Address: WildlifeUI_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: eb009b5f95446be40af1a62309f450fb
+    m_Address: ProductionUI_en
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-en
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 1
+  m_Settings: {fileID: 11400000, guid: 4e9c14b0d9289aa41bb3eb0b41bd1700, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: 1e69926541f57d54cbd03eaaf96c7e30, type: 2}
+    - {fileID: 11400000, guid: 977243472173e8d4fa76c70b7ceeb849, type: 2}

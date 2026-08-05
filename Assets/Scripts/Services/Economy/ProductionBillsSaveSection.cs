@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public sealed class ProductionBillsSaveSection : IDungeonSaveSection
+public sealed class ProductionBillsSaveSection :
+    IDungeonSaveSection,
+    IDungeonSaveSectionPreflight,
+    IDungeonStagedSaveSection,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "economy.production-bills";
 
@@ -12,11 +16,12 @@ public sealed class ProductionBillsSaveSection : IDungeonSaveSection
         ModularFacilityWorldSaveSection.Id
     };
 
-    private readonly IProductionBillRuntime runtime;
+    private readonly IProductionBillPersistence persistence;
 
-    public ProductionBillsSaveSection(IProductionBillRuntime runtime)
+    public ProductionBillsSaveSection(IProductionBillPersistence persistence)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
     public string SectionId => Id;
@@ -25,9 +30,15 @@ public sealed class ProductionBillsSaveSection : IDungeonSaveSection
         DungeonSaveRestorePhase.RuntimeState;
     public IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
+    public string Capture() => JsonUtility.ToJson(persistence.Capture());
+
+    public void ValidatePayload(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
     {
-        return JsonUtility.ToJson(runtime.Capture());
+        RequireVersion(sectionVersion);
+        persistence.BuildRestore(Parse(payloadJson));
     }
 
     public void Restore(
@@ -35,19 +46,56 @@ public sealed class ProductionBillsSaveSection : IDungeonSaveSection
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion < 1 || sectionVersion > SectionVersion)
+        IDungeonSaveRestoreStage stage = StageRestore(
+            payloadJson,
+            sectionVersion,
+            report);
+        if (report.Success)
         {
-            report.AddError(
-                $"Unsupported production-bill section version {sectionVersion}; "
-                + $"expected 1..{SectionVersion}.");
-            return;
+            stage.Commit(report);
         }
+    }
 
-        DungeonProductionBillSaveData snapshot =
-            string.IsNullOrWhiteSpace(payloadJson)
-                ? new DungeonProductionBillSaveData()
-                : JsonUtility.FromJson<DungeonProductionBillSaveData>(
-                    payloadJson) ?? new DungeonProductionBillSaveData();
-        runtime.Restore(snapshot);
+    public IDungeonSaveRestoreStage StageRestore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        RequireVersion(sectionVersion);
+        ProductionBillRestoreCandidate candidate =
+            persistence.BuildRestore(Parse(payloadJson));
+        return new DungeonDelegateSaveRestoreStage(
+            SectionId,
+            _ => persistence.Restore(candidate));
+    }
+
+    private void RequireVersion(int sectionVersion)
+    {
+        if (sectionVersion != SectionVersion)
+        {
+            throw new InvalidOperationException(
+                $"Unsupported {SectionId} section version {sectionVersion}; expected {SectionVersion}.");
+        }
+    }
+
+    private DungeonProductionBillSaveData Parse(string payloadJson)
+    {
+        if (string.IsNullOrWhiteSpace(payloadJson))
+        {
+            throw new InvalidOperationException(
+                $"{SectionId} payload is empty.");
+        }
+        try
+        {
+            return JsonUtility.FromJson<DungeonProductionBillSaveData>(payloadJson)
+                ?? throw new InvalidOperationException(
+                    $"{SectionId} payload deserialized to null.");
+        }
+        catch (Exception exception) when (exception is not InvalidOperationException)
+        {
+            throw new InvalidOperationException(
+                $"{SectionId} payload JSON is invalid: {exception.Message}",
+                exception);
+        }
     }
 }

@@ -1,10 +1,21 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
-
-public sealed class InvasionSaveSection : IDungeonSaveSection
+public sealed class InvasionSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonInvasionSaveData,
+        InvasionRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "invasion.state";
+
+    private static readonly string[] Dependencies =
+    {
+        CharacterWorldSaveSection.Id,
+        ModularFacilityWorldSaveSection.Id,
+        CharacterBodyHealthSaveSection.Id,
+        CombatEquipmentSaveSection.Id,
+        DefenseTacticalSaveSection.Id
+    };
 
     private readonly IInvasionSaveService saveService;
 
@@ -14,37 +25,22 @@ public sealed class InvasionSaveSection : IDungeonSaveSection
             ?? throw new ArgumentNullException(nameof(saveService));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => 2;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
-    {
-        CharacterBodyHealthSaveSection.Id,
-        CombatEquipmentSaveSection.Id,
-        DefenseTacticalSaveSection.Id
-    };
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonInvasionSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.LateRuntimeState;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture() => JsonUtility.ToJson(saveService.Capture());
-
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
+    protected override DungeonInvasionSaveData CapturePayload()
     {
-        ValidateVersion(sectionVersion);
-        saveService.Restore(
-            JsonUtility.FromJson<DungeonInvasionSaveData>(
-                payloadJson ?? string.Empty)
-            ?? new DungeonInvasionSaveData(),
-            report);
+        return saveService.Capture();
     }
 
-    private void ValidateVersion(int version)
-    {
-        if (version < 1 || version > SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {version}.");
-        }
-    }
+    protected override InvasionRestoreCandidate BuildRestoreCandidate(
+        DungeonInvasionSaveData payload) =>
+        saveService.PrepareRestore(payload);
+
+    protected override void PublishRestoreCandidate(
+        InvasionRestoreCandidate candidate) =>
+        saveService.PublishRestore(candidate);
 }

@@ -23,10 +23,11 @@ public static class InstanceEvolutionDebugScenarios
         Run("Facility candidates are deterministic", VerifyFacilityCandidateDeterminism, errors);
         Run("Room conditions only gate benefits", VerifyRoomActivationContract, errors);
         Run("Catalyst economy and potency scaling stay explicit", VerifyCatalystRules, errors);
+        Run("Catalyst SO projection separates progression and potency", VerifyCatalystContentProjection, errors);
         Run("Narrative responses cannot alter locked facts", VerifyNarrativeLock, errors);
         Run("Packed relocation save state preserves construction occupancy", VerifyPackedRelocationSaveState, errors);
         Run("Packed relocation destruction releases construction occupancy", VerifyPackedRelocationDestruction, errors);
-        Run("World save version two migrates without losing buildings", VerifyWorldSaveV2Migration, errors);
+        Run("World save version two is rejected by V18 generation", VerifyWorldSaveV2Rejected, errors);
 
         if (errors.Count > 0)
         {
@@ -154,7 +155,8 @@ public static class InstanceEvolutionDebugScenarios
             roomEnvironment: null,
             facilityCandidateCache: null,
             worldItems: null,
-            relocationWorld: new NoopRelocationWorldService());
+            relocationWorld: new NoopRelocationWorldService(),
+            runSeedProvider: new FixedRunSeedProvider(0));
         runtime.RecordUsage(
             first.Building,
             "research.completed",
@@ -195,8 +197,18 @@ public static class InstanceEvolutionDebugScenarios
             candidate.benefitModuleId,
             candidate.burdenModuleId,
             candidate.catalystFamily,
-            candidate.minimumCatalystPotency,
+            candidate.minimumCatalystProgressionLevel,
             candidate.historyHash);
+    }
+
+    private sealed class FixedRunSeedProvider : IRunSeedProvider
+    {
+        internal FixedRunSeedProvider(int runSeed)
+        {
+            RunSeed = runSeed;
+        }
+
+        public int RunSeed { get; }
     }
 
     private static void VerifyRoomActivationContract()
@@ -248,18 +260,53 @@ public static class InstanceEvolutionDebugScenarios
             EvolutionCatalystEconomyRules.RefinementResidueCost == 3,
             "refinement ratio changed");
         Require(
-            EvolutionCatalystEconomyRules.PotencyUpgradeResidueCost == 5,
-            "potency upgrade ratio changed");
+            EvolutionCatalystEconomyRules.ProgressionUpgradeResidueCost == 5,
+            "progression upgrade ratio changed");
         Require(
             Mathf.Approximately(
                 EvolutionCatalystEconomyRules.MerchantExchangeValueMultiplier,
                 1.5f),
             "merchant exchange multiplier changed");
         Require(
-            EquipmentEvolutionProgression.GetMinimumCatalystPotency(0) == 1
-            && EquipmentEvolutionProgression.GetMinimumCatalystPotency(4) == 2
-            && EquipmentEvolutionProgression.GetMinimumCatalystPotency(8) == 3,
-            "generation potency gates are incorrect");
+            EquipmentEvolutionProgression
+                    .GetMinimumCatalystProgressionLevel(0) == 1
+            && EquipmentEvolutionProgression
+                    .GetMinimumCatalystProgressionLevel(4) == 2
+            && EquipmentEvolutionProgression
+                    .GetMinimumCatalystProgressionLevel(8) == 3,
+            "generation progression gates are incorrect");
+
+        Require(
+            EvolutionCatalystProgression.GetPotencyGrade(1) == 1
+            && EvolutionCatalystProgression.GetPotencyGrade(5) == 1
+            && EvolutionCatalystProgression.GetPotencyGrade(6) == 2
+            && EvolutionCatalystProgression.GetPotencyGrade(9) == 2
+            && EvolutionCatalystProgression.GetPotencyGrade(10) == 3
+            && EvolutionCatalystProgression.GetPotencyGrade(13) == 3
+            && EvolutionCatalystProgression.GetPotencyGrade(14) == 4
+            && EvolutionCatalystProgression.GetPotencyGrade(17) == 4
+            && EvolutionCatalystProgression.GetPotencyGrade(18) == 5
+            && EvolutionCatalystProgression.GetPotencyGrade(21) == 5,
+            "progression-to-potency bands changed");
+        Require(
+            EvolutionCatalystProgression.MaximumPotencyGrade
+                == EvolutionCatalystItemFeature.MaximumPotency,
+            "runtime potency taxonomy diverged from the item feature contract");
+
+        bool rejectedOutOfRangeProgression = false;
+        try
+        {
+            EvolutionCatalystItemId.BuildCatalyst(
+                "arcane",
+                EvolutionCatalystProgression.MaximumLevel + 1);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            rejectedOutOfRangeProgression = true;
+        }
+        Require(
+            rejectedOutOfRangeProgression,
+            "catalyst ID builder silently normalized invalid progression");
 
         string catalystId = EvolutionCatalystItemId.BuildCatalyst(
             "catalyst:arcane",
@@ -269,7 +316,8 @@ public static class InstanceEvolutionDebugScenarios
                 catalystId,
                 out EquipmentCatalystDefinition catalyst)
             && catalyst.family == "arcane"
-            && catalyst.potency == 7,
+            && catalyst.progressionLevel == 7
+            && catalyst.potency == 2,
             $"catalyst parse failed: {catalystId}");
         Require(
             EquipmentEvolutionRuntime.GetCatalystFamilyPotencyScale("arcane")
@@ -278,7 +326,80 @@ public static class InstanceEvolutionDebugScenarios
         Require(
             EvolutionCatalystItemDefinitions.GetCatalystValue(4)
             > EvolutionCatalystItemDefinitions.GetCatalystValue(3),
-            "higher potency did not increase catalyst value");
+            "higher progression did not increase catalyst value");
+    }
+
+    private static void VerifyCatalystContentProjection()
+    {
+        ItemDefinitionSO[] definitions = AssetDatabase
+            .FindAssets(
+                "t:ItemDefinitionSO",
+                new[] { "Assets/Resources/SO/Items/Definitions" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<ItemDefinitionSO>)
+            .Where(definition => definition != null)
+            .Where(definition =>
+                EvolutionCatalystItemId.TryParseCatalyst(
+                    definition.ItemId,
+                    out _)
+                || EvolutionCatalystItemId.TryParseResidue(
+                    definition.ItemId,
+                    out _))
+            .OrderBy(definition => definition.ItemId, StringComparer.Ordinal)
+            .ToArray();
+        Require(
+            definitions.Length
+                == 8 * EvolutionCatalystProgression.MaximumLevel,
+            $"catalyst definition count={definitions.Length}");
+
+        foreach (ItemDefinitionSO definition in definitions)
+        {
+            int progressionLevel;
+            string expectedFamily;
+            bool expectedResidue;
+            if (EvolutionCatalystItemId.TryParseCatalyst(
+                    definition.ItemId,
+                    out EquipmentCatalystDefinition catalyst))
+            {
+                progressionLevel = catalyst.progressionLevel;
+                expectedFamily = catalyst.family;
+                expectedResidue = false;
+            }
+            else
+            {
+                Require(
+                    EvolutionCatalystItemId.TryParseResidue(
+                        definition.ItemId,
+                        out progressionLevel),
+                    $"invalid catalyst item ID: {definition.ItemId}");
+                expectedFamily = "universal";
+                expectedResidue = true;
+            }
+
+            int expectedPotency =
+                EvolutionCatalystProgression.GetPotencyGrade(
+                    progressionLevel);
+            Require(
+                definition.TryGetFeature(
+                    out EvolutionCatalystItemFeature feature),
+                $"catalyst feature missing: {definition.ItemId}");
+            Require(
+                feature.potency == expectedPotency
+                && feature.potency >= 1
+                && feature.potency
+                    <= EvolutionCatalystItemFeature.MaximumPotency,
+                $"catalyst potency projection mismatch: {definition.ItemId}");
+            Require(
+                feature.residue == expectedResidue
+                && string.Equals(
+                    feature.family,
+                    expectedFamily,
+                    StringComparison.Ordinal),
+                $"catalyst taxonomy projection mismatch: {definition.ItemId}");
+            Require(
+                definition.ValidateDefinition().Count == 0,
+                $"invalid catalyst SO: {definition.ItemId}");
+        }
     }
 
     private static void VerifyNarrativeLock()
@@ -396,12 +517,8 @@ public static class InstanceEvolutionDebugScenarios
             "authored placement layer was overwritten");
     }
 
-    private static void VerifyWorldSaveV2Migration()
+    private static void VerifyWorldSaveV2Rejected()
     {
-        ModularFacilityWorldSaveService service =
-            new ModularFacilityWorldSaveService(
-                _ => null,
-                new GridBuildingFactory(_ => { }));
         ModularFacilityWorldSaveData legacy = new ModularFacilityWorldSaveData
         {
             version = 2,
@@ -416,16 +533,20 @@ public static class InstanceEvolutionDebugScenarios
                 }
             }
         };
-        ModularFacilityWorldSaveData migrated =
-            service.FromJson(JsonUtility.ToJson(legacy));
-        Require(
-            migrated.version == ModularFacilityWorldSaveService.CurrentVersion,
-            $"migrated version={migrated.version}");
-        Require(migrated.migratedFromVersion == 2, "v2 migration was not recorded");
-        Require(migrated.buildings.Count == 1, "v2 building was lost");
-        Require(
-            !migrated.buildings[0].hasRuntimeLayer,
-            "legacy building invented a runtime layer");
+        try
+        {
+            ModularFacilityWorldSaveCodec.Deserialize(JsonUtility.ToJson(legacy));
+        }
+        catch (InvalidOperationException exception)
+        {
+            Require(
+                exception.Message.Contains("V4", StringComparison.Ordinal),
+                "rejection did not identify the required facility version");
+            return;
+        }
+
+        throw new InvalidOperationException(
+            "V2 modular facility payload was accepted by the V18 generation.");
     }
 
     private static void VerifyPackedRelocationDestruction()
@@ -471,7 +592,7 @@ public static class InstanceEvolutionDebugScenarios
             Data.height = 1;
             Data.layer = GridLayer.Building;
             Data.category = BuildingCategory.Special;
-            Data.type = typeof(BuildableObject);
+            Data.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
             Data.unlocked = true;
             Data.ReplaceAbilities(new BuildingAbilityCollection());
 

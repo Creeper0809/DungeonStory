@@ -27,49 +27,58 @@ MonoBehaviour:
   description: "\uC2DD\uC0AC\uC640 \uD734\uC2DD, \uAE30\uBCF8 \uC0DD\uD65C \uC124\uBE44\uC758
     \uD6A8\uC728\uC744 \uB192\uC778\uB2E4."
   field: 0
-  requiredWork: 56
+  requiredWork: 60
   prerequisites:
   - {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:survival:sanitation
+    prerequisite: {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+    kind: 2
+    reason: "\uAE30\uCD08 \uC704\uC0DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC0DD\uD65C \uC9C0\uC6D0 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 1
   blueprint: {fileID: 11400000, guid: b791025255c3809d782186d5f1c52415, type: 2}
   unlocks:
     items:
-    - rid: 7302563220868825628
-    - rid: 7302563220868825629
-    - rid: 7302563220868825630
-    - rid: 7302563220868825631
-    - rid: 7302563220868825632
-    - rid: 7302563220868825633
-    - rid: 7302563220868825634
+    - rid: 7737211730927813048
+    - rid: 7737211730927813049
+    - rid: 7737211730927813050
+    - rid: 7737211730927813051
+    - rid: 7737211730927813052
+    - rid: 7737211730927813053
+    - rid: 7737211730927813054
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563220868825628
+    - rid: 7737211730927813048
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1021
-    - rid: 7302563220868825629
+    - rid: 7737211730927813049
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1022
-    - rid: 7302563220868825630
+    - rid: 7737211730927813050
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1024
-    - rid: 7302563220868825631
+    - rid: 7737211730927813051
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1025
-    - rid: 7302563220868825632
+    - rid: 7737211730927813052
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1060
-    - rid: 7302563220868825633
+    - rid: 7737211730927813053
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1063
-    - rid: 7302563220868825634
+    - rid: 7737211730927813054
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1054

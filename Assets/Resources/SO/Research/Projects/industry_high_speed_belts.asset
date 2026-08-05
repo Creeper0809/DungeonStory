@@ -27,20 +27,38 @@ MonoBehaviour:
   description: "\uAC15\uCCA0 \uAD6C\uB3D9\uBD80\uC640 \uD68C\uB85C \uC81C\uC5B4\uB85C
     \uBCA8\uD2B8 \uCC98\uB9AC\uB7C9\uC744 \uB192\uC778\uB2E4."
   field: 15
-  requiredWork: 288
+  requiredWork: 960
   prerequisites:
   - {fileID: 11400000, guid: cba4954662d7845428dffe977bf50103, type: 2}
   - {fileID: 11400000, guid: cff45ee0ce5d7d14f99782e65e757b2f, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:industry:lifts
+    prerequisite: {fileID: 11400000, guid: cba4954662d7845428dffe977bf50103, type: 2}
+    kind: 2
+    reason: "\uCE35\uAC04 \uBB3C\uB958 \uB9AC\uD504\uD2B8\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uACE0\uC18D \uBB3C\uB958\uB9DD \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:overflow
+    prerequisite: {fileID: 11400000, guid: cff45ee0ce5d7d14f99782e65e757b2f, type: 2}
+    kind: 2
+    reason: "\uC624\uBC84\uD50C\uB85C \uBC30\uCD9C\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uACE0\uC18D \uBB3C\uB958\uB9DD \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687340
+    - rid: 7737211730927813213
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687340
+    - rid: 7737211730927813213
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9852

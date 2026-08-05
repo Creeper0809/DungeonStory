@@ -30,21 +30,34 @@ MonoBehaviour:
   requiredWork: 60
   prerequisites:
   - {fileID: 11400000, guid: 03cfd04c2b1ad654a9b9ff7542b01332, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:records
+    prerequisite: {fileID: 11400000, guid: 03cfd04c2b1ad654a9b9ff7542b01332, type: 2}
+    kind: 0
+    reason: "\uAE30\uB85D \uCCB4\uACC4\uC758 \uC774\uB860\uC774(\uAC00) \uC5F0\uAE08
+      \uAC00\uACF5 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563230216618559
-    - rid: 7302563305932456235
+    - rid: 7737211730927813447
+    - rid: 7737211730927813448
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 1
+    requiredCount: 1
+  - capability: 5
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563230216618559
+    - rid: 7737211730927813447
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1091
-    - rid: 7302563305932456235
+    - rid: 7737211730927813448
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1625

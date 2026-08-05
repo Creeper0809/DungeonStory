@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,25 +33,28 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 1f00fc8c03658f646be863afaa640006, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239038813025
-    - rid: 7302563239038813026
-    - rid: 7302563239038813027
-    - rid: 7302563239038813028
-    - rid: 7302563239038813029
-    - rid: 7302563239038813030
-    - rid: 7302563239038813031
-    - rid: 7302563313672519792
-    - rid: 7302563313672519793
-    - rid: 7302563313672519794
-    - rid: 7302563313672519795
-    - rid: 7302563313672519796
-    - rid: 7302563313672520093
+    - rid: 7737211730538791923
+    - rid: 7737211730538791924
+    - rid: 7737211730538791926
+    - rid: 7737211730538791927
+    - rid: 7737211730538791928
+    - rid: 7737211730538791929
+    - rid: 7737211730538791930
+    - rid: 7737211730538791931
+    - rid: 7737211730889015922
+    - rid: 7737211730889015923
+    - rid: 7737211730889015924
+    - rid: 7737211730889015925
+    - rid: 7737211730889015926
+    - rid: 7737211730927812626
+    - rid: 7737211730927812627
   width: 2
   height: 1
   layer: 1
   category: 2
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -69,27 +63,39 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239038813025
+    - rid: 7737211730538791923
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D03
-    - rid: 7302563239038813026
+    - rid: 7737211730538791924
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - cookbench
-    - rid: 7302563239038813027
+    - rid: 7737211730538791926
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 75
+        constructionValue: 75
+        constructionCost: 0
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563239038813028
+    - rid: 7737211730538791927
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 25.5
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:lumber
+          amount: 4
+    - rid: 7737211730538791928
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -100,7 +106,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 536887296
           disabledWhenDamaged: 1
-    - rid: 7302563239038813029
+    - rid: 7737211730538791929
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -115,14 +121,14 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7302563239038813030
+    - rid: 7737211730538791930
       type: {class: BuildingServiceAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceAbility
         capacity: 1
         contributesStockCategory: 1
         stockCategory: 0
-    - rid: 7302563239038813031
+    - rid: 7737211730538791931
       type: {class: BuildingCookingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCookingAbility
@@ -130,14 +136,14 @@ MonoBehaviour:
         cookedMeals: 1
         workSeconds: 1
         requiresFuel: 0
-    - rid: 7302563313672519792
+    - rid: 7737211730889015922
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563313672519793
+    - rid: 7737211730889015923
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -148,21 +154,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563313672519794
+    - rid: 7737211730889015924
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7302563313672519795
+    - rid: 7737211730889015925
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563313672519796
+    - rid: 7737211730889015926
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -172,8 +178,29 @@ MonoBehaviour:
         wastewaterPerCycle: 0.25
         minimumQuality: 0
         allowsManualWaterFallback: 1
-    - rid: 7302563313672520093
+    - rid: 7737211730927812626
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:kitchen-basic
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211730927812627
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16

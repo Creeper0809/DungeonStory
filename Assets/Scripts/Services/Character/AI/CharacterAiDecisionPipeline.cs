@@ -4,89 +4,6 @@ using System.Linq;
 using Unity.Profiling;
 using UnityEngine;
 
-public readonly struct CharacterAiDecisionTickResult
-{
-    public CharacterAiDecisionTickResult(
-        bool handled,
-        CharacterAiBranch branch,
-        string task,
-        string status)
-    {
-        Handled = handled;
-        Branch = branch;
-        Task = task ?? string.Empty;
-        Status = status ?? string.Empty;
-    }
-
-    public bool Handled { get; }
-    public CharacterAiBranch Branch { get; }
-    public string Task { get; }
-    public string Status { get; }
-}
-
-public interface ICharacterAiDecisionPipeline
-{
-    CharacterAiDecisionTickResult RunRootDecision(CharacterActor actor);
-    bool HasCriticalState(CharacterActor actor);
-    CharacterAiDecisionTickResult RunCritical(CharacterActor actor, CharacterBlackboard blackboard);
-    bool HasDeprivationBreakdown(CharacterActor actor);
-    CharacterAiDecisionTickResult RunDeprivationBreakdown(CharacterActor actor);
-    bool HasLockedAction(CharacterActor actor);
-    bool CanInterruptCurrentAction(CharacterActor actor);
-    CharacterAiDecisionTickResult RunLockedAction(CharacterActor actor);
-    bool HasMacroGoal(CharacterActor actor);
-    bool HasContinuableCurrentAction(CharacterActor actor);
-    bool ShouldStopCurrentActionForReplan(CharacterActor actor);
-    CharacterAiDecisionTickResult ContinueCurrentAction(CharacterActor actor);
-    CharacterAiDecisionTickResult StopCurrentActionForReplan(CharacterActor actor);
-    CharacterAiDecisionTickResult SelectJobGiverAction(CharacterActor actor, CharacterAiJobGiver jobGiver, string taskName);
-    CharacterAiDecisionTickResult RunSelectedAction(
-        CharacterActor actor,
-        string taskName,
-        CharacterAiBranch branchOverride = CharacterAiBranch.None);
-    CharacterAiDecisionTickResult RunMacroGoalDecision(CharacterActor actor);
-    CharacterAiDecisionTickResult RunEmergencyDecision(CharacterActor actor);
-    CharacterAiDecisionTickResult RunRoutineUtilityDecision(CharacterActor actor);
-    CharacterAiDecisionTickResult RunIdleBehavior(CharacterActor actor, CharacterBlackboard blackboard);
-    CharacterAiDecisionTickResult RecordBtDecisionTrace(CharacterActor actor, CharacterAiBranch branch, string taskName, string status);
-    bool HasMacroGoalType(CharacterActor actor, CharacterMacroGoalType goalType);
-    CharacterAiDecisionTickResult ClearContinueMacro(CharacterActor actor);
-    CharacterAiDecisionTickResult RunComplainMacro(CharacterActor actor, CharacterBlackboard blackboard, CharacterMacroGoal goal);
-    CharacterAiDecisionTickResult ApplyAvoidFacility(CharacterActor actor, CharacterBlackboard blackboard, CharacterMacroGoal goal);
-    CharacterAiDecisionTickResult RunExitDungeonMacro(CharacterActor actor, CharacterBlackboard blackboard, CharacterMacroGoal goal);
-    CharacterAiDecisionTickResult RunVandalizeMacro(CharacterActor actor, CharacterBlackboard blackboard, CharacterMacroGoal goal);
-}
-
-public interface ICharacterAiFacilityLookup
-{
-    BuildableObject FindFacility(int id, string tag);
-}
-
-public sealed class CharacterAiFacilityLookup : ICharacterAiFacilityLookup
-{
-    private readonly IBuildingWorldQuery buildingWorld;
-
-    public CharacterAiFacilityLookup(IBuildingWorldQuery buildingWorld)
-    {
-        this.buildingWorld = buildingWorld
-            ?? throw new ArgumentNullException(nameof(buildingWorld));
-    }
-
-    public BuildableObject FindFacility(int id, string tag)
-    {
-        IReadOnlyList<BuildableObject> buildings = buildingWorld.Buildings;
-        foreach (BuildableObject building in buildings)
-        {
-            if (CharacterAiDecisionPipeline.MatchesFacility(building, id, tag))
-            {
-                return building;
-            }
-        }
-
-        return null;
-    }
-}
-
 public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 {
     private static readonly ProfilerMarker EmergencyDecisionMarker =
@@ -103,8 +20,9 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         new ProfilerMarker("CharacterAi.RoutineDecision");
     private static readonly ProfilerMarker DomainSelectionMarker =
         new ProfilerMarker("CharacterAi.DomainSelection");
-    private const float SecondaryEmergencyNeedThreshold = 0.2f;
-    private readonly ICharacterDeprivationRuntime deprivationRuntime;
+    private readonly ICharacterDeprivationQuery deprivationQuery;
+    private readonly ICharacterDeprivationCommand deprivationCommands;
+    private readonly CharacterAiMacroDecisionRunner macroDecisions;
     private readonly List<CharacterAiJobGiver> jobGiverBuffer = new List<CharacterAiJobGiver>(10);
     private readonly List<string> rejectedCandidateBuffer = new List<string>(10);
     private readonly Dictionary<CharacterAiBranch, CharacterAiDecisionContext> decisionContextBuffer =
@@ -138,9 +56,14 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
     }
 
     public CharacterAiDecisionPipeline(
-        ICharacterDeprivationRuntime deprivationRuntime = null)
+        ICharacterDeprivationQuery deprivationQuery,
+        ICharacterDeprivationCommand deprivationCommands)
     {
-        this.deprivationRuntime = deprivationRuntime;
+        this.deprivationQuery = deprivationQuery
+            ?? throw new ArgumentNullException(nameof(deprivationQuery));
+        this.deprivationCommands = deprivationCommands
+            ?? throw new ArgumentNullException(nameof(deprivationCommands));
+        macroDecisions = new CharacterAiMacroDecisionRunner(RunSelectedAction);
     }
 
     public CharacterAiDecisionTickResult RunRootDecision(CharacterActor actor)
@@ -221,12 +144,12 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
     {
         if (actor == null)
         {
-            return Result(false, CharacterAiBranch.Critical, "HasCriticalState", "Actor is missing.", blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.Critical, "HasCriticalState", "Actor is missing.", blackboard);
         }
 
         if (actor.Brain != null && actor.Brain.IsManualCommandActive)
         {
-            return Result(
+            return CharacterAiDecisionRules.Result(
                 true,
                 CharacterAiBranch.Critical,
                 "PlayerMoveCommand",
@@ -240,7 +163,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             actor.Brain.isBestActionEnd = false;
         }
 
-        return Result(true, CharacterAiBranch.Critical, "HasCriticalState", actor.CurrentLifecycleState.ToString(), blackboard);
+        return CharacterAiDecisionRules.Result(true, CharacterAiBranch.Critical, "HasCriticalState", actor.CurrentLifecycleState.ToString(), blackboard);
     }
 
     public bool HasMacroGoal(CharacterActor actor)
@@ -250,16 +173,15 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 
     public bool HasDeprivationBreakdown(CharacterActor actor)
     {
-        return deprivationRuntime?.HasActiveBreakdown(actor) == true;
+        return deprivationQuery.HasActiveBreakdown(actor);
     }
 
     public CharacterAiDecisionTickResult RunDeprivationBreakdown(CharacterActor actor)
     {
         CharacterBlackboard blackboard = actor != null ? actor.Blackboard : null;
-        if (deprivationRuntime == null
-            || !deprivationRuntime.TryRunActiveBreakdown(actor, out string status))
+        if (!deprivationCommands.TryRunActiveBreakdown(actor, out string status))
         {
-            return Result(false, CharacterAiBranch.DeprivationBreakdown, "Run Deprivation Breakdown", "활성 붕괴 없음", blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.DeprivationBreakdown, "Run Deprivation Breakdown", "활성 붕괴 없음", blackboard);
         }
 
         blackboard?.SetIntent(
@@ -281,7 +203,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 status,
                 "붕괴 행동이 끝날 때까지 유지");
         }
-        return Result(true, CharacterAiBranch.DeprivationBreakdown, "Run Deprivation Breakdown", status, blackboard);
+        return CharacterAiDecisionRules.Result(true, CharacterAiBranch.DeprivationBreakdown, "Run Deprivation Breakdown", status, blackboard);
     }
 
     public bool HasLockedAction(CharacterActor actor)
@@ -317,24 +239,24 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 
     public CharacterAiDecisionTickResult RunLockedAction(CharacterActor actor)
     {
-        if (!TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
+        if (!CharacterAiDecisionRules.TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
         {
-            return Result(false, CharacterAiBranch.LockedAction, "Locked Action", error, blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.LockedAction, "Locked Action", error, blackboard);
         }
 
         if (actor.Brain == null)
         {
-            return Result(false, CharacterAiBranch.LockedAction, "Locked Action", "AIBrain is missing.", blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.LockedAction, "Locked Action", "AIBrain is missing.", blackboard);
         }
 
         if (actor.Brain.ShouldStopCurrentActionForReplan(out string stopReason))
         {
-            return Result(false, CharacterAiBranch.LockedAction, "Locked Action", stopReason, blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.LockedAction, "Locked Action", stopReason, blackboard);
         }
 
         if (!actor.Brain.CanContinueCurrentAction(out string status))
         {
-            return Result(false, CharacterAiBranch.LockedAction, "Locked Action", status, blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.LockedAction, "Locked Action", status, blackboard);
         }
 
         AIAction runningAction = actor.Brain.bestAction;
@@ -351,24 +273,24 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             CharacterAiUtilityText.GetIntention(runningAction?.actionset?.Branch ?? CharacterAiBranch.None),
             status,
             0.05f);
-        return Result(true, CharacterAiBranch.LockedAction, "Locked Action", status, blackboard);
+        return CharacterAiDecisionRules.Result(true, CharacterAiBranch.LockedAction, "Locked Action", status, blackboard);
     }
 
     public CharacterAiDecisionTickResult ContinueCurrentAction(CharacterActor actor)
     {
-        if (!TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
+        if (!CharacterAiDecisionRules.TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
         {
-            return Result(false, CharacterAiBranch.ContinueCurrent, "Continue Current Action", error, blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.ContinueCurrent, "Continue Current Action", error, blackboard);
         }
 
         if (actor.Brain == null)
         {
-            return Result(false, CharacterAiBranch.ContinueCurrent, "Continue Current Action", "AIBrain is missing.", blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.ContinueCurrent, "Continue Current Action", "AIBrain is missing.", blackboard);
         }
 
         if (!actor.Brain.CanContinueCurrentAction(out string status))
         {
-            return Result(false, CharacterAiBranch.ContinueCurrent, "Continue Current Action", status, blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.ContinueCurrent, "Continue Current Action", status, blackboard);
         }
 
         AIAction runningAction = actor.Brain.bestAction;
@@ -380,19 +302,19 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             GetActionLabel(runningAction?.actionset),
             "Continue Current Action",
             status);
-        return Result(true, CharacterAiBranch.ContinueCurrent, "Continue Current Action", status, blackboard);
+        return CharacterAiDecisionRules.Result(true, CharacterAiBranch.ContinueCurrent, "Continue Current Action", status, blackboard);
     }
 
     public CharacterAiDecisionTickResult StopCurrentActionForReplan(CharacterActor actor)
     {
-        if (!TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
+        if (!CharacterAiDecisionRules.TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
         {
-            return Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", error, blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", error, blackboard);
         }
 
         if (actor.Brain == null)
         {
-            return Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", "AIBrain is missing.", blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", "AIBrain is missing.", blackboard);
         }
 
         CharacterAiInterruptReason interruptReason =
@@ -401,7 +323,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         {
             if (!ShouldInterruptForSafeEmergencyRelief(actor, out stopReason))
             {
-                return Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", "Current action does not need replan.", blackboard);
+                return CharacterAiDecisionRules.Result(false, CharacterAiBranch.InterruptCheck, "Interrupt Check", "Current action does not need replan.", blackboard);
             }
 
             interruptReason = CharacterAiInterruptReason.SurvivalEmergency;
@@ -416,7 +338,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             actionLabel,
             "Interrupt Check",
             stopReason);
-        return Result(true, CharacterAiBranch.InterruptCheck, "Interrupt Check", stopReason, blackboard);
+        return CharacterAiDecisionRules.Result(true, CharacterAiBranch.InterruptCheck, "Interrupt Check", stopReason, blackboard);
     }
 
     private bool ShouldInterruptForSafeEmergencyRelief(
@@ -426,7 +348,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         reason = string.Empty;
         return actor != null
             && actor.Brain != null
-            && deprivationRuntime?.NeedsSafeEmergencyRelief(actor, out reason) == true
+            && deprivationQuery.NeedsSafeEmergencyRelief(actor, out reason)
             && actor.Brain.CanInterruptCurrentActionForSurvivalEmergency(out _);
     }
 
@@ -438,25 +360,25 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         CharacterAiBranch branch = jobGiver != null
             ? jobGiver.Branch
             : CharacterAiBranch.None;
-        if (!TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
+        if (!CharacterAiDecisionRules.TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
         {
-            return Result(false, branch, taskName, error, blackboard);
+            return CharacterAiDecisionRules.Result(false, branch, taskName, error, blackboard);
         }
 
         if (actor.Brain == null)
         {
-            return Result(false, branch, taskName, "AIBrain is missing.", blackboard);
+            return CharacterAiDecisionRules.Result(false, branch, taskName, "AIBrain is missing.", blackboard);
         }
 
         if (jobGiver == null)
         {
-            return Result(false, branch, taskName, "JobGiver is missing.", blackboard);
+            return CharacterAiDecisionRules.Result(false, branch, taskName, "JobGiver is missing.", blackboard);
         }
 
         if (!blackboard.TryGetCachedJobGiverCandidate(branch, out CharacterAiJobCandidate jobCandidate)
             && !jobGiver.TryEvaluate(actor, out jobCandidate))
         {
-            return Result(
+            return CharacterAiDecisionRules.Result(
                 false,
                 branch,
                 taskName,
@@ -470,17 +392,17 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         if (!actor.Brain.TryCommitActionCandidate(jobCandidate.ActionCandidate, out AIActionFailure failure))
         {
             blackboard.ReportActionFailure(null, failure);
-            return Result(false, branch, taskName, failure.ToString(), blackboard);
+            return CharacterAiDecisionRules.Result(false, branch, taskName, failure.ToString(), blackboard);
         }
 
         AIAction selectedAction = actor.Brain.bestAction;
         string actionLabel = GetActionLabel(selectedAction?.actionset);
-        string destinationLabel = GetBuildingLabel(selectedAction?.destination);
+        string destinationLabel = CharacterAiDecisionRules.GetBuildingLabel(selectedAction?.destination);
         string status = actor.ShouldCollectDetailedAiDiagnostics
             ? $"{destinationLabel} | {jobCandidate.DebugSummary}"
             : actionLabel;
         blackboard.SetIntent(branch, actionLabel, taskName, status);
-        return Result(true, branch, taskName, status, blackboard);
+        return CharacterAiDecisionRules.Result(true, branch, taskName, status, blackboard);
     }
 
     public CharacterAiDecisionTickResult RunSelectedAction(
@@ -488,9 +410,9 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         string taskName,
         CharacterAiBranch branchOverride = CharacterAiBranch.None)
     {
-        if (!TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
+        if (!CharacterAiDecisionRules.TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
         {
-            return Result(false, CharacterAiBranch.None, taskName, error, blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.None, taskName, error, blackboard);
         }
 
         AIAction selectedAction = actor.Brain != null ? actor.Brain.bestAction : null;
@@ -499,7 +421,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             : GetBranchForActionSet(selectedAction?.actionset);
         if (selectedAction == null || selectedAction.actionset == null)
         {
-            return Result(false, branch, taskName, "No selected AI action.", blackboard);
+            return CharacterAiDecisionRules.Result(false, branch, taskName, "No selected AI action.", blackboard);
         }
 
         bool executed = actor.TryExecuteSelectedAiAction();
@@ -508,7 +430,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             blackboard.RefreshCommitment(selectedAction);
         }
 
-        return Result(
+        return CharacterAiDecisionRules.Result(
             executed,
             branch,
             taskName,
@@ -516,77 +438,19 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             blackboard);
     }
 
-    public CharacterAiDecisionTickResult RunMacroGoalDecision(CharacterActor actor)
-    {
-        if (!TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "Run Macro Goal", error, blackboard);
-        }
-
-        CharacterMacroGoal goal = blackboard.ActiveMacroGoal;
-        if (goal == null || !blackboard.HasActiveMacroGoal())
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "Run Macro Goal", "No active macro goal.", blackboard);
-        }
-
-        return goal.type switch
-        {
-            CharacterMacroGoalType.Continue => ClearContinueMacro(actor),
-            CharacterMacroGoalType.SeekFood => RunMacroJobGiverDecision(
-                actor,
-                blackboard,
-                goal,
-                "Seek Food",
-                RequireJobGiverCatalog(actor).GetFood),
-            CharacterMacroGoalType.SeekToilet => RunMacroJobGiverDecision(
-                actor,
-                blackboard,
-                goal,
-                "Seek Toilet",
-                RequireJobGiverCatalog(actor).Toilet),
-            CharacterMacroGoalType.SeekHygiene => RunMacroJobGiverDecision(
-                actor,
-                blackboard,
-                goal,
-                "Seek Hygiene",
-                RequireJobGiverCatalog(actor).Hygiene),
-            CharacterMacroGoalType.SeekFun => RunMacroJobGiverDecision(
-                actor,
-                blackboard,
-                goal,
-                "Seek Fun",
-                RequireJobGiverCatalog(actor).Shopping,
-                RequireJobGiverCatalog(actor).LookAround),
-            CharacterMacroGoalType.AvoidFacility => ApplyAvoidFacility(
-                actor,
-                blackboard,
-                goal),
-            CharacterMacroGoalType.Complain => RunComplainMacro(
-                actor,
-                blackboard,
-                goal),
-            CharacterMacroGoalType.ExitDungeon => RunExitDungeonMacro(
-                actor,
-                blackboard,
-                goal),
-            CharacterMacroGoalType.Vandalize => RunVandalizeMacro(
-                actor,
-                blackboard,
-                goal),
-            _ => Result(false, CharacterAiBranch.MacroGoal, "Run Macro Goal", $"Unsupported macro goal: {goal.type}.", blackboard)
-        };
-    }
+    public CharacterAiDecisionTickResult RunMacroGoalDecision(CharacterActor actor) =>
+        macroDecisions.RunGoal(actor);
 
     public CharacterAiDecisionTickResult RunIdleBehavior(CharacterActor actor, CharacterBlackboard blackboard)
     {
-        if (!TryPrepare(actor, out blackboard, out string error))
+        if (!CharacterAiDecisionRules.TryPrepare(actor, out blackboard, out string error))
         {
-            return Result(false, CharacterAiBranch.Idle, "RunIdleBehavior", error, blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.Idle, "RunIdleBehavior", error, blackboard);
         }
 
         if (!actor.TryGetAbility(out AbilityMove _))
         {
-            return Result(false, CharacterAiBranch.Idle, "RunIdleBehavior", "AbilityMove is missing.", blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.Idle, "RunIdleBehavior", "AbilityMove is missing.", blackboard);
         }
 
         if (actor.Brain != null)
@@ -604,7 +468,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 CharacterActivityOutcomes.Started,
                 "idle-selected",
                 $"AI idle: {behaviorName}"));
-            return Result(true, CharacterAiBranch.Idle, "RunIdleBehavior", behaviorName, blackboard);
+            return CharacterAiDecisionRules.Result(true, CharacterAiBranch.Idle, "RunIdleBehavior", behaviorName, blackboard);
         }
 
         actor.AddActivity(CharacterActivityEvent.InternalAi(
@@ -616,7 +480,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             actor.Brain.isBestActionEnd = true;
         }
 
-        return Result(false, CharacterAiBranch.Idle, "RunIdleBehavior", failureReason, blackboard);
+        return CharacterAiDecisionRules.Result(false, CharacterAiBranch.Idle, "RunIdleBehavior", failureReason, blackboard);
     }
 
     public CharacterAiDecisionTickResult RunEmergencyDecision(CharacterActor actor)
@@ -627,9 +491,9 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         string error;
         using (EmergencyPrepareMarker.Auto())
         {
-            if (!TryPrepare(actor, out blackboard, out error))
+            if (!CharacterAiDecisionRules.TryPrepare(actor, out blackboard, out error))
             {
-                return Result(false, CharacterAiBranch.Emergency, "Run Emergency Decision", error, blackboard);
+                return CharacterAiDecisionRules.Result(false, CharacterAiBranch.Emergency, "Run Emergency Decision", error, blackboard);
             }
         }
 
@@ -640,15 +504,16 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 return RunDeprivationBreakdown(actor);
             }
 
-            if (deprivationRuntime != null
-                && deprivationRuntime.TryRunSafeEmergencyRelief(actor, out string reliefStatus))
+            if (deprivationCommands.TryRunSafeEmergencyRelief(
+                    actor,
+                    out string reliefStatus))
             {
                 blackboard.SetIntent(
                     CharacterAiBranch.Emergency,
                     reliefStatus,
                     "Run Safe Emergency Relief",
                     reliefStatus);
-                return Result(true, CharacterAiBranch.Emergency, "Run Safe Emergency Relief", reliefStatus, blackboard);
+                return CharacterAiDecisionRules.Result(true, CharacterAiBranch.Emergency, "Run Safe Emergency Relief", reliefStatus, blackboard);
             }
         }
 
@@ -666,7 +531,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
 
         if (context.EmergencyScore < 0.58f)
         {
-            return Result(
+            return CharacterAiDecisionRules.Result(
                 false,
                 CharacterAiBranch.Emergency,
                 "Run Emergency Decision",
@@ -696,9 +561,9 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
     {
         using (RoutineDecisionMarker.Auto())
         {
-        if (!TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
+        if (!CharacterAiDecisionRules.TryPrepare(actor, out CharacterBlackboard blackboard, out string error))
         {
-            return Result(false, CharacterAiBranch.RoutineUtility, "Run Routine Utility", error, blackboard);
+            return CharacterAiDecisionRules.Result(false, CharacterAiBranch.RoutineUtility, "Run Routine Utility", error, blackboard);
         }
 
         CharacterAiDecisionContext context = GetDecisionContext(
@@ -768,7 +633,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             return result;
         }
 
-        return Result(false, CharacterAiBranch.RoutineUtility, "Run Routine Utility", failure, blackboard);
+        return CharacterAiDecisionRules.Result(false, CharacterAiBranch.RoutineUtility, "Run Routine Utility", failure, blackboard);
         }
     }
 
@@ -780,7 +645,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
     {
         CharacterBlackboard blackboard = actor != null ? actor.Blackboard : null;
         blackboard?.RecordBtDecisionTrace(taskName, status);
-        return Result(actor != null, branch, taskName, status, blackboard);
+        return CharacterAiDecisionRules.Result(actor != null, branch, taskName, status, blackboard);
     }
 
     public bool HasMacroGoalType(CharacterActor actor, CharacterMacroGoalType goalType)
@@ -805,7 +670,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         if (actor == null || actor.Brain == null)
         {
             failureSummary = "AIBrain is missing.";
-            return Result(false, branchOverride, taskName, failureSummary, blackboard);
+            return CharacterAiDecisionRules.Result(false, branchOverride, taskName, failureSummary, blackboard);
         }
 
         CharacterAiJobCandidate bestCandidate = default;
@@ -862,7 +727,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                     && actor.Brain.IsActionScoringPending)
                 {
                     failureSummary = "행동 후보를 나누어 평가하는 중";
-                    return Result(
+                    return CharacterAiDecisionRules.Result(
                         true,
                         branchOverride,
                         taskName,
@@ -908,7 +773,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             failureSummary = captureDetails && rejectedCandidateBuffer.Count > 0
                 ? string.Join(" / ", rejectedCandidateBuffer.Take(3))
                 : "No valid utility candidates.";
-            return Result(false, branchOverride, taskName, failureSummary, blackboard);
+            return CharacterAiDecisionRules.Result(false, branchOverride, taskName, failureSummary, blackboard);
         }
 
         blackboard.RecordSelectedJobGiverUtility(bestCandidate);
@@ -916,7 +781,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         {
             blackboard.ReportActionFailure(null, failure);
             failureSummary = failure.ToString();
-            return Result(false, branchOverride, taskName, failureSummary, blackboard);
+            return CharacterAiDecisionRules.Result(false, branchOverride, taskName, failureSummary, blackboard);
         }
 
         CharacterAiDecisionTickResult runResult = RunSelectedAction(actor, taskName, branchOverride);
@@ -930,7 +795,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
             CharacterAiUtilityText.GetIntention(bestCandidate.Branch),
             status,
             0.1f);
-        return Result(runResult.Handled, branchOverride, taskName, status, blackboard);
+        return CharacterAiDecisionRules.Result(runResult.Handled, branchOverride, taskName, status, blackboard);
     }
 
     private CharacterAiDecisionTickResult TrySelectAndRunHierarchicalJobGiver(
@@ -1041,7 +906,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                     && actor.Brain.IsActionScoringPending)
                 {
                     failureSummary = "행동 후보를 나누어 평가하는 중";
-                    return Result(
+                    return CharacterAiDecisionRules.Result(
                         true,
                         branchOverride,
                         taskName,
@@ -1086,7 +951,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
                 GetActionLabel(actor.Brain.bestAction?.actionset),
                 0.1f);
             failureSummary = string.Empty;
-            return Result(
+            return CharacterAiDecisionRules.Result(
                 runResult.Handled,
                 branchOverride,
                 taskName,
@@ -1097,7 +962,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         failureSummary = lastFailure.HasFailure
             ? lastFailure.ToString()
             : "No valid utility candidates.";
-        return Result(
+        return CharacterAiDecisionRules.Result(
             false,
             branchOverride,
             taskName,
@@ -1161,22 +1026,30 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
     {
         ICharacterAiJobGiverCatalog catalog = RequireJobGiverCatalog(actor);
         jobGiverBuffer.Clear();
-        if (context.HungerUrgency >= SecondaryEmergencyNeedThreshold)
+        if (CharacterNeedAiThresholds.IsEmergency(
+                actor,
+                CharacterCondition.HUNGER))
         {
             AddUniqueJobGiver(catalog.GetFood);
         }
 
-        if (context.ExcretionUrgency >= SecondaryEmergencyNeedThreshold)
+        if (CharacterNeedAiThresholds.IsEmergency(
+                actor,
+                CharacterCondition.EXCRETION))
         {
             AddUniqueJobGiver(catalog.Toilet);
         }
 
-        if (context.HygieneUrgency >= SecondaryEmergencyNeedThreshold)
+        if (CharacterNeedAiThresholds.IsEmergency(
+                actor,
+                CharacterCondition.HYGIENE))
         {
             AddUniqueJobGiver(catalog.Hygiene);
         }
 
-        if (context.SleepUrgency >= SecondaryEmergencyNeedThreshold
+        if (CharacterNeedAiThresholds.IsEmergency(
+                actor,
+                CharacterCondition.SLEEP)
             || context.InjuryUrgency > 0.35f
             || context.HealthUrgency > 0.45f)
         {
@@ -1214,6 +1087,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         ICharacterAiJobGiverCatalog catalog = RequireJobGiverCatalog(actor);
         jobGiverBuffer.Clear();
         AddUniqueJobGiver(catalog.GetFood);
+        AddUniqueJobGiver(catalog.Drink);
         AddUniqueJobGiver(catalog.Toilet);
         AddUniqueJobGiver(catalog.Hygiene);
         AddUniqueJobGiver(catalog.Rest);
@@ -1253,6 +1127,7 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         CharacterAiBranch group = jobBranch switch
         {
             CharacterAiBranch.Eat => CharacterAiBranch.SurvivalNeeds,
+            CharacterAiBranch.Drink => CharacterAiBranch.SurvivalNeeds,
             CharacterAiBranch.Rest => CharacterAiBranch.SurvivalNeeds,
             CharacterAiBranch.Toilet => CharacterAiBranch.SurvivalNeeds,
             CharacterAiBranch.Hygiene => CharacterAiBranch.SurvivalNeeds,
@@ -1273,283 +1148,36 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         return Mathf.Lerp(0.45f, 1.2f, Mathf.Clamp01(priority / 100f));
     }
 
-    private CharacterAiDecisionTickResult RunMacroJobGiverDecision(
-        CharacterActor actor,
-        CharacterBlackboard blackboard,
-        CharacterMacroGoal goal,
-        string label,
-        params CharacterAiJobGiver[] jobGivers)
-    {
-        string taskName = $"Macro {label} JobGiver";
-        if (!TryPrepare(actor, out blackboard, out string error))
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, taskName, error, blackboard);
-        }
-
-        if (goal == null || !blackboard.HasActiveMacroGoal())
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, taskName, "Macro goal is missing.", blackboard);
-        }
-
-        CharacterAiJobCandidate bestCandidate = default;
-        bool hasCandidate = false;
-        string lastFailure = "No JobGiver candidates.";
-        if (jobGivers != null)
-        {
-            foreach (CharacterAiJobGiver jobGiver in jobGivers)
-            {
-                if (jobGiver == null)
-                {
-                    continue;
-                }
-
-                if (jobGiver.TryEvaluate(actor, out CharacterAiJobCandidate candidate))
-                {
-                    if (!hasCandidate || candidate.Utility > bestCandidate.Utility)
-                    {
-                        bestCandidate = candidate;
-                        hasCandidate = true;
-                    }
-
-                    continue;
-                }
-
-                lastFailure = candidate.DebugSummary;
-            }
-        }
-
-        if (!hasCandidate)
-        {
-            blackboard.ClearMacroGoal($"{label} macro could not find a JobGiver candidate: {lastFailure}");
-            return Result(false, CharacterAiBranch.MacroGoal, taskName, lastFailure, blackboard);
-        }
-
-        blackboard.RecordSelectedJobGiverUtility(bestCandidate);
-        if (!actor.Brain.TryCommitActionCandidate(bestCandidate.ActionCandidate, out AIActionFailure failure))
-        {
-            blackboard.ReportActionFailure(null, failure);
-            blackboard.ClearMacroGoal($"{label} macro could not commit candidate: {failure}");
-            return Result(false, CharacterAiBranch.MacroGoal, taskName, failure.ToString(), blackboard);
-        }
-
-        CharacterAiDecisionTickResult runResult = RunSelectedAction(
-            actor,
-            $"Run {label} Macro Action",
-            CharacterAiBranch.MacroGoal);
-        string status = $"{runResult.Status} | {bestCandidate.DebugSummary}";
-        if (runResult.Handled)
-        {
-            string reason = goal != null && !string.IsNullOrWhiteSpace(goal.reason)
-                ? goal.reason
-                : $"{label} macro consumed.";
-            blackboard.ClearMacroGoal(reason);
-        }
-        else
-        {
-            blackboard.ClearMacroGoal($"{label} macro action failed: {runResult.Status}");
-        }
-
-        return Result(
-            runResult.Handled,
-            CharacterAiBranch.MacroGoal,
-            $"Run {label} Macro Action",
-            status,
-            blackboard);
-    }
-
-    public CharacterAiDecisionTickResult ClearContinueMacro(CharacterActor actor)
-    {
-        CharacterBlackboard blackboard = actor != null ? actor.Blackboard : null;
-        if (blackboard == null || !blackboard.HasActiveMacroGoal())
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "ContinueMacro", "No active macro goal.", blackboard);
-        }
-
-        blackboard.ClearMacroGoal("Macro goal requested Continue.");
-        return Result(false, CharacterAiBranch.MacroGoal, "ContinueMacro", "Continue.", blackboard);
-    }
+    public CharacterAiDecisionTickResult ClearContinueMacro(CharacterActor actor) =>
+        macroDecisions.ClearContinue(actor);
 
     public CharacterAiDecisionTickResult RunComplainMacro(
         CharacterActor actor,
         CharacterBlackboard blackboard,
-        CharacterMacroGoal goal)
-    {
-        if (!TryPrepare(actor, out blackboard, out string error))
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "Complain", error, blackboard);
-        }
-
-        goal ??= blackboard.ActiveMacroGoal;
-        if (goal == null)
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "Complain", "Macro goal is missing.", blackboard);
-        }
-
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Social,
-            CharacterActivityOutcomes.Responded,
-            $"불만을 털어놓았다: {goal.reason}",
-            actionId: "macro:complain",
-            reasonCode: goal.reason,
-            sentiment: -0.65f,
-            bubbleEligible: true));
-        blackboard.ClearMacroGoal("Complain emitted.");
-        return Result(true, CharacterAiBranch.MacroGoal, "Complain", "Complain.", blackboard);
-    }
+        CharacterMacroGoal goal) =>
+        macroDecisions.RunComplain(actor, blackboard, goal);
 
     public CharacterAiDecisionTickResult ApplyAvoidFacility(
         CharacterActor actor,
         CharacterBlackboard blackboard,
-        CharacterMacroGoal goal)
-    {
-        if (!TryPrepare(actor, out blackboard, out string error))
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "AvoidFacility", error, blackboard);
-        }
-
-        if (goal == null)
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "AvoidFacility", "Macro goal is missing.", blackboard);
-        }
-
-        BuildableObject target = FindFacility(actor, goal.targetFacilityId, goal.targetFacilityTag);
-        if (target == null)
-        {
-            blackboard.ClearMacroGoal("AvoidFacility target not found.");
-            return Result(false, CharacterAiBranch.MacroGoal, "AvoidFacility", "Target facility not found.", blackboard);
-        }
-
-        blackboard.PutFacilityOnCooldown(target, goal.reason);
-        blackboard.ClearMacroGoal("AvoidFacility cooldown applied.");
-        return Result(true, CharacterAiBranch.MacroGoal, "AvoidFacility", target.name, blackboard);
-    }
+        CharacterMacroGoal goal) =>
+        macroDecisions.ApplyAvoidFacility(actor, blackboard, goal);
 
     public CharacterAiDecisionTickResult RunExitDungeonMacro(
         CharacterActor actor,
         CharacterBlackboard blackboard,
-        CharacterMacroGoal goal)
-    {
-        if (!TryPrepare(actor, out blackboard, out string error))
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "ExitDungeon", error, blackboard);
-        }
-
-        if (goal == null)
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "ExitDungeon", "Macro goal is missing.", blackboard);
-        }
-
-        if (!actor.TryGetAbility(out AbilityMove move))
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "ExitDungeon", "AbilityMove is missing.", blackboard);
-        }
-
-        if (CharacterWorkRoleUtility.TryGetWork(actor, out _))
-        {
-            blackboard.ClearMacroGoal("Workers cannot exit through ordinary mood macros.");
-            return Result(false, CharacterAiBranch.MacroGoal, "ExitDungeon", "Worker exit is handled by staff systems.", blackboard);
-        }
-
-        actor.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Lifecycle,
-            CharacterActivityOutcomes.Departed,
-            $"던전을 떠나기로 했다: {goal.reason}",
-            actionId: "macro:exit-dungeon",
-            reasonCode: goal.reason,
-            sentiment: -0.8f,
-            bubbleEligible: true));
-        blackboard.ClearCommitment(CharacterAiInterruptReason.MacroGoalChanged, "ExitDungeon macro.");
-        blackboard.ClearMacroGoal("ExitDungeon started.");
-        if (actor.Brain != null)
-        {
-            actor.Brain.isBestActionEnd = false;
-        }
-
-        move.StartExitDungeon();
-        return Result(true, CharacterAiBranch.MacroGoal, "ExitDungeon", "Exit started.", blackboard);
-    }
+        CharacterMacroGoal goal) =>
+        macroDecisions.RunExitDungeon(actor, blackboard, goal);
 
     public CharacterAiDecisionTickResult RunVandalizeMacro(
         CharacterActor actor,
         CharacterBlackboard blackboard,
-        CharacterMacroGoal goal)
-    {
-        if (!TryPrepare(actor, out blackboard, out string error))
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "Vandalize", error, blackboard);
-        }
+        CharacterMacroGoal goal) =>
+        macroDecisions.RunVandalize(actor, blackboard, goal);
 
-        if (goal == null)
-        {
-            return Result(false, CharacterAiBranch.MacroGoal, "Vandalize", "Macro goal is missing.", blackboard);
-        }
-
-        BuildableObject target = FindFacility(actor, goal.targetFacilityId, goal.targetFacilityTag);
-        if (target == null)
-        {
-            blackboard.ClearMacroGoal("Vandalize target not found.");
-            actor.AddActivity(CharacterActivityEvent.InternalAi(
-                CharacterActivityOutcomes.Failed,
-                "vandalize-target-missing",
-                $"AI macro vandalize failed: target not found - {goal.reason}"));
-            return Result(false, CharacterAiBranch.MacroGoal, "Vandalize", "Target facility not found.", blackboard);
-        }
-
-        if (!CanVandalize(target, out string failureReason))
-        {
-            blackboard.ClearMacroGoal($"Vandalize target rejected: {failureReason}");
-            actor.AddActivity(CharacterActivityEvent.InternalAi(
-                CharacterActivityOutcomes.Failed,
-                "vandalize-target-rejected",
-                $"AI macro vandalize failed: {failureReason}"));
-            return Result(false, CharacterAiBranch.MacroGoal, "Vandalize", failureReason, blackboard);
-        }
-
-        target.SetDamaged(true);
-        blackboard.ClearCommitment(CharacterAiInterruptReason.MacroGoalChanged, "Vandalize macro executed.");
-        blackboard.ClearMacroGoal("Vandalize completed.");
-        actor.AddActivity(CharacterActivityEvent.Facility(
-            CharacterActivityKinds.Combat,
-            CharacterActivityOutcomes.Damaged,
-            $"{GetBuildingLabel(target)}을 파손했다",
-            target,
-            actionId: "macro:vandalize",
-            reasonCode: goal.reason,
-            value: 1f,
-            bubbleEligible: true));
-        return Result(true, CharacterAiBranch.MacroGoal, "Vandalize", GetBuildingLabel(target), blackboard);
-    }
-
-    private static BuildableObject FindFacility(CharacterActor actor, int id, string tag)
-    {
-        return RequireFacilityLookup(actor).FindFacility(id, tag);
-    }
-
-    public static bool MatchesFacility(BuildableObject building, int id, string tag)
-    {
-        if (building == null)
-        {
-            return false;
-        }
-
-        if (id >= 0 && building.id == id)
-        {
-            return true;
-        }
-
-        return building.HasSemanticTag(tag);
-    }
-
-    private static ICharacterAiFacilityLookup RequireFacilityLookup(CharacterActor actor)
-    {
-        if (actor == null || actor.Brain == null)
-        {
-            throw new InvalidOperationException(
-                $"{nameof(CharacterAiDecisionPipeline)} requires an actor with {nameof(AIBrain)} for facility lookup.");
-        }
-
-        return actor.Brain.RequireFacilityLookup();
-    }
+    public static bool MatchesFacility(BuildableObject building, int id, string tag) =>
+        building != null
+        && ((id >= 0 && building.id == id) || building.HasSemanticTag(tag));
 
     private static ICharacterAiJobGiverCatalog RequireJobGiverCatalog(CharacterActor actor)
     {
@@ -1562,107 +1190,10 @@ public sealed class CharacterAiDecisionPipeline : ICharacterAiDecisionPipeline
         return actor.Brain.RequireJobGiverCatalog();
     }
 
-    private static bool CanVandalize(BuildableObject target, out string failureReason)
-    {
-        failureReason = string.Empty;
-        if (target == null)
-        {
-            failureReason = "Target facility is missing.";
-            return false;
-        }
+    public static CharacterAiBranch GetBranchForActionSet(AIActionSet actionSet) =>
+        actionSet?.Branch ?? CharacterAiBranch.None;
 
-        if (target.isDestroy)
-        {
-            failureReason = "Target facility is destroyed.";
-            return false;
-        }
+    public static string GetActionLabel(AIActionSet actionSet) =>
+        actionSet != null ? actionSet.GetDisplayLabel() : "None";
 
-        if (target.IsDamaged)
-        {
-            failureReason = "Target facility is already damaged.";
-            return false;
-        }
-
-        if (target.IsGridMovement)
-        {
-            failureReason = "Movement buildings cannot be vandalized.";
-            return false;
-        }
-
-        if (target.Facility == null)
-        {
-            failureReason = "Target is not a facility.";
-            return false;
-        }
-
-        return true;
-    }
-
-    private static string GetBuildingLabel(BuildableObject building)
-    {
-        if (building == null)
-        {
-            return "None";
-        }
-
-        return building.BuildingData != null && !string.IsNullOrWhiteSpace(building.BuildingData.objectName)
-            ? building.BuildingData.objectName
-            : building.name;
-    }
-
-    public static CharacterAiBranch GetBranchForActionSet(AIActionSet actionSet)
-    {
-        return actionSet?.Branch ?? CharacterAiBranch.None;
-    }
-
-    public static string GetActionLabel(AIActionSet actionSet)
-    {
-        if (actionSet == null)
-        {
-            return "None";
-        }
-
-        return actionSet.GetDisplayLabel();
-    }
-
-    private static bool TryPrepare(
-        CharacterActor actor,
-        out CharacterBlackboard blackboard,
-        out string error,
-        bool requireCanRunAi = true)
-    {
-        blackboard = actor != null ? actor.Blackboard : null;
-        error = string.Empty;
-        if (actor == null)
-        {
-            error = "Actor is missing.";
-            return false;
-        }
-
-        if (blackboard == null)
-        {
-            error = "CharacterBlackboard is missing.";
-            Debug.LogError($"{actor.name}: {error}", actor);
-            return false;
-        }
-
-        if (requireCanRunAi && !actor.CanRunAi)
-        {
-            error = $"AI cannot run in state {actor.CurrentLifecycleState}.";
-            return false;
-        }
-
-        return true;
-    }
-
-    private static CharacterAiDecisionTickResult Result(
-        bool handled,
-        CharacterAiBranch branch,
-        string task,
-        string status,
-        CharacterBlackboard blackboard)
-    {
-        blackboard?.RecordBtStatus(branch, task, status);
-        return new CharacterAiDecisionTickResult(handled, branch, task, status);
-    }
 }

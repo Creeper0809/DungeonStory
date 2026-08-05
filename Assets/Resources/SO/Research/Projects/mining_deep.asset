@@ -27,13 +27,24 @@ MonoBehaviour:
   description: "\uC5F0\uB8CC\uC640 \uC720\uC9C0\uBCF4\uC218\uB97C \uB300\uAC00\uB85C
     \uAE4A\uC740 \uAD11\uB9E5\uC744 \uD310\uB2E4."
   field: 8
-  requiredWork: 144
+  requiredWork: 132
   prerequisites:
   - {fileID: 11400000, guid: 7d420104e4fd2744bbbd51a9c1e5e9cb, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:mining:sorting
+    prerequisite: {fileID: 11400000, guid: 7d420104e4fd2744bbbd51a9c1e5e9cb, type: 2}
+    kind: 2
+    reason: "\uAD11\uC11D \uC120\uBCC4\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC2EC\uBD80 \uCC44\uAD74 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items: []
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2

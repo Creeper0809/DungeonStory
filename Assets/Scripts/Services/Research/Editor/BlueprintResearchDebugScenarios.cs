@@ -95,7 +95,7 @@ public static class BlueprintResearchDebugScenarios
     private static bool VerifyBlueprintPurchaseDoesNotQueueResearch()
     {
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_CommercialBasics");
-        GameData gameData = CreateGameData(500);
+        GameSessionState gameData = CreateGameData(500);
         FacilityShopUnlockState state = new FacilityShopUnlockState();
         FacilityShopOffer offer = new FacilityBlueprintOffer(blueprint, 100, blueprint.rarity, true);
         GameObject runtimeObject = new GameObject("BlueprintResearchRuntime_Purchase_Test");
@@ -105,14 +105,28 @@ public static class BlueprintResearchDebugScenarios
         runtime.Construct(
             new FixedFacilityShopUnlockStateService(state),
             new EditorFacilityShopCatalog(),
-            new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry),
-            new DungeonWorkforceReplanService(CharacterAiEditorTestDependencies.WorldRegistry),
-            gameEvents);
+            new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null),
+            new DungeonWorkforceReplanService(CharacterAiEditorTestDependencies.WorldRegistry, facilityCandidateCache: null),
+            gameEvents,
+            itemStackRuntime: null,
+            projectCoordinator: new BlueprintResearchProjectCoordinator(
+                new ResourceResearchProjectCatalog(
+                    Array.Empty<ResearchProjectSO>()),
+                UnavailableResearchBlueprintArchiveQuery.Instance,
+                UnrestrictedResearchFacilityCapacityQuery.Instance),
+            worldDropZoneQuery: null,
+            aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
+            debugRules: DisabledDungeonDebugRuleQuery.Instance,
+            uiClock: new DungeonStory.Foundation.UnityUiClock());
 
         bool purchased = FacilityShopService.TryPurchaseOffer(
-            gameData,
+            new EditorGameMoneyAccount(gameData),
             offer,
             state,
+            new EconomyTransactionContext(
+                EconomyTransactionKind.ShopPurchase,
+                "blueprint-research-debug"),
+            DisabledDungeonDebugRuleQuery.Instance,
             out FacilityShopPurchaseResult result,
             purchase => gameEvents.Publish(new FacilityShopPurchasedEvent(purchase)));
         bool valid = purchased
@@ -124,7 +138,6 @@ public static class BlueprintResearchDebugScenarios
             && runtime.State.Projects.Queue.Count == 0;
 
         Object.DestroyImmediate(runtimeObject);
-        Object.DestroyImmediate(gameData);
         return valid;
     }
 
@@ -160,11 +173,15 @@ public static class BlueprintResearchDebugScenarios
         BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(2, 0));
         CharacterActor researcher = world.CreateCharacter("Species_Vampire", "Trait_Researcher");
         BuildingSO tacticalMap = LoadModularBuilding("G04_전술지도탁자");
-        GameData dayOne = CreateGameData(500);
+        GameSessionState dayOne = CreateGameData(500);
         ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
         bool assetUnlockBefore = tacticalMap != null && tacticalMap.unlocked;
         bool blockedBeforeResearch = tacticalMap != null
-            && !FacilityProgression.IsUnlocked(tacticalMap, dayOne);
+            && !FacilityProgression.IsUnlocked(
+                tacticalMap,
+                dayOne,
+                unlockState: null,
+                DisabledDungeonDebugRuleQuery.Instance);
 
         CompletePrerequisitesForTest(runtime, project);
         runtime.EnqueueBlueprint(blueprint);
@@ -172,10 +189,13 @@ public static class BlueprintResearchDebugScenarios
         bool valid = result.Completed
             && tacticalMap != null
             && runtime.State.IsBuildingUnlocked(tacticalMap.id)
-            && FacilityProgression.IsUnlocked(tacticalMap, dayOne, runtime.State)
+            && FacilityProgression.IsUnlocked(
+                tacticalMap,
+                dayOne,
+                runtime.State,
+                DisabledDungeonDebugRuleQuery.Instance)
             && tacticalMap.unlocked == assetUnlockBefore
             && blockedBeforeResearch;
-        Object.DestroyImmediate(dayOne);
         return valid;
     }
 
@@ -281,7 +301,10 @@ public static class BlueprintResearchDebugScenarios
             search,
             out _);
 
-        runtime.EnqueueBlueprint(LoadBlueprint("BP_SupportBasics"));
+        FacilityBlueprintSO blueprint = LoadBlueprint("BP_SupportBasics");
+        ResearchProjectSO project = LoadProject(blueprint.TargetResearchProjectId);
+        CompletePrerequisitesForTest(runtime, project);
+        runtime.EnqueueBlueprint(blueprint);
 
         bool acceptedWithBlueprint = work.TrySetPriorityWorkTarget(
             lab,
@@ -339,10 +362,9 @@ public static class BlueprintResearchDebugScenarios
             $"Assets/Resources/SO/Building/Modular/{assetName}.asset");
     }
 
-    private static GameData CreateGameData(int holdingMoney)
+    private static GameSessionState CreateGameData(int holdingMoney)
     {
-        GameData gameData = ScriptableObject.CreateInstance<GameData>();
-        gameData.holdingMoney = new Data<int>();
+        GameSessionState gameData = new GameSessionState();
         gameData.holdingMoney.Initialize(holdingMoney);
         return gameData;
     }
@@ -398,6 +420,7 @@ public static class BlueprintResearchDebugScenarios
         private readonly GridSystemManager previousGridSystem;
         private readonly List<GameObject> objects = new List<GameObject>();
         private readonly List<ScriptableObject> scriptableObjects = new List<ScriptableObject>();
+        private BlueprintResearchRuntime researchRuntime;
 
         public ResearchScenarioWorld()
         {
@@ -430,18 +453,26 @@ public static class BlueprintResearchDebugScenarios
             runtime.Construct(
                 new FixedFacilityShopUnlockStateService(shopRuntime.UnlockState),
                 new EditorFacilityShopCatalog(),
-                new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry),
+                new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null),
                 new DungeonWorkforceReplanService(
-                    CharacterAiEditorTestDependencies.WorldRegistry),
+                    CharacterAiEditorTestDependencies.WorldRegistry, facilityCandidateCache: null),
                 new DungeonStory.Foundation.GameEventBus(),
-                projectCatalog: new ResourceResearchProjectCatalog(
+                itemStackRuntime: null,
+                projectCoordinator: new BlueprintResearchProjectCoordinator(
+                    new ResourceResearchProjectCatalog(
                         AssetDatabase.FindAssets(
-                            "t:ResearchProjectSO",
-                            new[] { "Assets/Resources/SO/Research/Projects" })
-                        .Select(AssetDatabase.GUIDToAssetPath)
-                        .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
-                        .Where(project => project != null)),
-                blueprintArchiveQuery: new AlwaysArchivedBlueprintQuery());
+                                "t:ResearchProjectSO",
+                                new[] { "Assets/Resources/SO/Research/Projects" })
+                            .Select(AssetDatabase.GUIDToAssetPath)
+                            .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
+                            .Where(project => project != null)),
+                    new AlwaysArchivedBlueprintQuery(),
+                    UnrestrictedResearchFacilityCapacityQuery.Instance),
+                worldDropZoneQuery: null,
+                aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
+                debugRules: DisabledDungeonDebugRuleQuery.Instance,
+                uiClock: new DungeonStory.Foundation.UnityUiClock());
+            researchRuntime = runtime;
             return runtime;
         }
 
@@ -461,7 +492,14 @@ public static class BlueprintResearchDebugScenarios
             }
 
             objects.Add(building.gameObject);
-            CharacterAiEditorTestDependencies.Inject(building);
+            if (researchRuntime != null)
+            {
+                CharacterAiEditorTestDependencies.Inject(building, researchRuntime);
+            }
+            else
+            {
+                CharacterAiEditorTestDependencies.Inject(building);
+            }
             if (building is Shop shop)
             {
                 CharacterAiEditorTestDependencies.InjectShop(shop);
@@ -491,7 +529,14 @@ public static class BlueprintResearchDebugScenarios
             AIBrain brain = obj.AddComponent<AIBrain>();
             brain.availableActions = AiDebugScenarioActionFactory.CreateStaffActions();
             CharacterActor character = obj.AddComponent<CharacterActor>();
-            CharacterAiEditorTestDependencies.Inject(obj);
+            if (researchRuntime != null)
+            {
+                CharacterAiEditorTestDependencies.Inject(obj, researchRuntime);
+            }
+            else
+            {
+                CharacterAiEditorTestDependencies.Inject(obj);
+            }
             CharacterAwakeMethod?.Invoke(character, null);
 
             CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();

@@ -28,21 +28,42 @@ MonoBehaviour:
     \uC2E0\uC120\uB3C4\uB97C \uC720\uC9C0\uD558\uB294 \uC800\uC628 \uBCF4\uAD00\uBC95\uC744
     \uD655\uB9BD\uD55C\uB2E4."
   field: 14
-  requiredWork: 188
+  requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: a43694aaa3ed9fd4eb3061371f0c5a56, type: 2}
   - {fileID: 11400000, guid: 81003f66b70835f44b6e4ed6dd7bb783, type: 2}
   - {fileID: 11400000, guid: 969470a77353b3d45a9026b935c6c7bd, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:medical:surgery
+    prerequisite: {fileID: 11400000, guid: a43694aaa3ed9fd4eb3061371f0c5a56, type: 2}
+    kind: 2
+    reason: "\uC678\uACFC\uC220\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC7A5\uAE30
+      \uBCF4\uC874 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:pharmacology:antiseptic
+    prerequisite: {fileID: 11400000, guid: 81003f66b70835f44b6e4ed6dd7bb783, type: 2}
+    kind: 2
+    reason: "\uC18C\uB3C5\xB7\uBD95\uB300\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC7A5\uAE30 \uBCF4\uC874 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:survival:preservation
+    prerequisite: {fileID: 11400000, guid: 969470a77353b3d45a9026b935c6c7bd, type: 2}
+    kind: 2
+    reason: "\uC2DD\uB7C9 \uBCF4\uC874\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC7A5\uAE30 \uBCF4\uC874 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563257777393516
+    - rid: 7737211730927813217
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 2
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563257777393516
+    - rid: 7737211730927813217
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9508

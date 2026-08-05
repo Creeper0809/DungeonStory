@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: survival_cooked_meal
+  m_EditorClassIdentifier: Assembly-CSharp::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: survival:cooked_meal
+  displayName: "\uC870\uB9AC \uC2DD\uB7C9"
+  description: "\uBC14\uB85C \uBA39\uC744 \uC218 \uC788\uB294 \uC2DD\uB7C9\uC785\uB2C8\uB2E4.
+    \uD3EC\uB9CC\uAC10\uACFC \uAE30\uBD84 \uD68C\uBCF5\uC5D0 \uC88B\uC2B5\uB2C8\uB2E4."
+  stockCategory: 0
+  unitWeight: 0.55
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 6
+  features:
+  - rid: 7737211673752633612
+  - rid: 7737211673752633613
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673752633612
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 2
+        ingredientTags: 0
+        sharedIntermediate: 0
+    - rid: 7737211673752633613
+      type: {class: FoodItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        quality: 0
+        nutrition: 10
+        mood: 0
+        freshnessSeconds: 600
+        preserved: 0

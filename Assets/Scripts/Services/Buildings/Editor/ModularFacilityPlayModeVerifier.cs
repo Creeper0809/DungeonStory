@@ -70,7 +70,7 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
     private bool cameraLockCaptured;
     private Mouse originalMouse;
     private Mouse verificationMouse;
-    private GameData gameData;
+    private GameSessionState gameData;
     private int originalDay;
     private int originalMoney;
     private bool gameDataCaptured;
@@ -389,9 +389,9 @@ public sealed class ModularFacilityPlayModeVerificationRunner : MonoBehaviour
             : null;
         bool valid = label != null
             && part.GetConstructionMaterials()
-                .Where(pair => pair.Value > 0)
-                .All(pair => label.text.Contains(
-                    pair.Value.ToString(),
+                .Where(material => material.Amount > 0)
+                .All(material => label.text.Contains(
+                    material.Amount.ToString(),
                     StringComparison.Ordinal))
             && label.text.Contains($"P{part.GetUnlockPhase()}", StringComparison.Ordinal);
         Check(valid,

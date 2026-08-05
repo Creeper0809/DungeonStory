@@ -20,15 +20,19 @@ public sealed class CropPlotBuildingPanelPresenter :
 {
     private readonly ICropPlotRuntime cropPlots;
     private readonly IResourceEconomyContentCatalog catalog;
+    private readonly IItemDefinitionCatalog itemDefinitions;
     private readonly Dictionary<string, string> feedbackByPlot =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
     public CropPlotBuildingPanelPresenter(
         ICropPlotRuntime cropPlots,
-        IResourceEconomyContentCatalog catalog)
+        IResourceEconomyContentCatalog catalog,
+        IItemDefinitionCatalog itemDefinitions)
     {
         this.cropPlots = cropPlots ?? throw new ArgumentNullException(nameof(cropPlots));
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        this.itemDefinitions = itemDefinitions
+            ?? throw new ArgumentNullException(nameof(itemDefinitions));
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -160,22 +164,22 @@ public sealed class CropPlotBuildingPanelPresenter :
                     requirement.Key,
                     out ResourceItemDefinitionSO item)
                         ? item.DisplayName
-                        : FormatBuiltInItem(requirement.Key);
+                        : FormatAuthoredItem(requirement.Key);
                 return $"{name} {delivered}/{requirement.Value}";
             }));
     }
 
-    private static string FormatBuiltInItem(string itemId)
+    private string FormatAuthoredItem(string itemId)
     {
-        if (DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
-                itemId,
-                out StockCategory category))
+        if (itemDefinitions.TryGet(
+                (ItemDefinitionId)itemId,
+                out ItemDefinitionSO definition))
         {
-            return category switch
+            return definition.StockCategory switch
             {
                 StockCategory.Water => "물",
                 StockCategory.Fuel => "연료",
-                _ => category.ToString()
+                _ => definition.StockCategory.ToString()
             };
         }
 

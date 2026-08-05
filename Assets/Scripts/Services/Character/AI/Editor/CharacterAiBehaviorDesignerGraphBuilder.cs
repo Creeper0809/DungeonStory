@@ -333,21 +333,26 @@ public static class CharacterAiBehaviorDesignerGraphBuilder
                 "Get Food",
                 "Eat Action",
                 new Vector2(440f, 270f)),
+            CreateJobGiverBranch<DrinkJobGiverBranch, SelectDrinkAction>(
+                ref id,
+                "Drink",
+                "Drink Action",
+                new Vector2(720f, 270f)),
             CreateJobGiverBranch<ToiletJobGiverBranch, SelectToiletAction>(
                 ref id,
                 "Toilet",
                 "Toilet Action",
-                new Vector2(720f, 270f)),
+                new Vector2(1000f, 270f)),
             CreateJobGiverBranch<RestJobGiverBranch, SelectRestAction>(
                 ref id,
                 "Rest",
                 "Rest Action",
-                new Vector2(1000f, 270f)),
+                new Vector2(1280f, 270f)),
             CreateJobGiverBranch<HygieneJobGiverBranch, SelectHygieneAction>(
                 ref id,
                 "Hygiene",
                 "Hygiene Action",
-                new Vector2(1280f, 270f)));
+                new Vector2(1560f, 270f)));
         return branch;
     }
 

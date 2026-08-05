@@ -23,15 +23,6 @@ public enum DoorAccessGroup
         | CaptiveWildlife
 }
 
-public enum DoorAccessOverrideKind
-{
-    None = 0,
-    DirectCommand = 1,
-    EscortPass = 2,
-    CaptiveEscape = 3,
-    IntruderBreach = 4
-}
-
 public enum DoorAccessIndividualRule
 {
     GroupDefault = 0,
@@ -235,8 +226,8 @@ public readonly struct DoorAccessSubjectRef : IEquatable<DoorAccessSubjectRef>
     public DoorAccessSubjectRef(
         string persistentId,
         DoorAccessGroup group,
-        CharacterActor character = null,
-        WildlifeActor wildlife = null)
+        UnityEngine.Object character = null,
+        UnityEngine.Object wildlife = null)
     {
         PersistentId = persistentId?.Trim() ?? string.Empty;
         Group = group;
@@ -246,8 +237,8 @@ public readonly struct DoorAccessSubjectRef : IEquatable<DoorAccessSubjectRef>
 
     public string PersistentId { get; }
     public DoorAccessGroup Group { get; }
-    public CharacterActor Character { get; }
-    public WildlifeActor Wildlife { get; }
+    public UnityEngine.Object Character { get; }
+    public UnityEngine.Object Wildlife { get; }
     public bool IsValid => PersistentId.Length > 0 && Group != DoorAccessGroup.None;
 
     public bool Equals(DoorAccessSubjectRef other)
@@ -272,72 +263,11 @@ public readonly struct DoorAccessSubjectRef : IEquatable<DoorAccessSubjectRef>
     }
 }
 
-public readonly struct GridTraversalContext : IEquatable<GridTraversalContext>
+public interface IDoorAccessQuery : IGridTraversalAccessQuery
 {
-    public GridTraversalContext(
-        CharacterActor character,
-        WildlifeActor wildlife,
-        DoorAccessOverrideKind overrideKind = DoorAccessOverrideKind.None)
-    {
-        Character = character;
-        Wildlife = wildlife;
-        OverrideKind = overrideKind;
-    }
-
-    public CharacterActor Character { get; }
-    public WildlifeActor Wildlife { get; }
-    public DoorAccessOverrideKind OverrideKind { get; }
-    public bool HasSubject => Character != null || Wildlife != null;
-
-    public static GridTraversalContext ForCharacter(
-        CharacterActor actor,
-        DoorAccessOverrideKind overrideKind = DoorAccessOverrideKind.None)
-    {
-        return new GridTraversalContext(actor, null, overrideKind);
-    }
-
-    public static GridTraversalContext ForWildlife(
-        WildlifeActor actor,
-        DoorAccessOverrideKind overrideKind = DoorAccessOverrideKind.None)
-    {
-        return new GridTraversalContext(null, actor, overrideKind);
-    }
-
-    public bool Equals(GridTraversalContext other)
-    {
-        return ReferenceEquals(Character, other.Character)
-            && ReferenceEquals(Wildlife, other.Wildlife)
-            && OverrideKind == other.OverrideKind;
-    }
-
-    public override bool Equals(object obj)
-    {
-        return obj is GridTraversalContext other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        unchecked
-        {
-            int hash = Character != null ? Character.GetInstanceID() : 0;
-            hash = (hash * 397) ^ (Wildlife != null ? Wildlife.GetInstanceID() : 0);
-            hash = (hash * 397) ^ (int)OverrideKind;
-            return hash;
-        }
-    }
-}
-
-public interface IDoorAccessQuery
-{
-    int DoorAccessVersion { get; }
     DoorAccessSubjectRef ResolveSubject(GridTraversalContext context);
     bool CanUse(
         Door door,
-        GridTraversalContext context,
-        out string denialReason);
-    bool CanTraverse(
-        Grid grid,
-        Vector2Int position,
         GridTraversalContext context,
         out string denialReason);
 }
@@ -363,6 +293,8 @@ public interface IDoorAccessSubjectRegistry
 {
     void SetCaptive(string persistentId, bool captive);
     void SetCapturedWildlife(string wildlifeId, bool captured);
+    void ReplaceCaptiveSubjects(IEnumerable<string> persistentIds);
+    void ReplaceCapturedWildlifeSubjects(IEnumerable<string> wildlifeIds);
 }
 
 public interface IDoorAccessStateChangeSink

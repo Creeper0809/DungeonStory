@@ -23,15 +23,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Shop, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 7
       Data: 1|System.Collections.Generic.Dictionary`2[[GridTexture+TilemapLayer,
@@ -111,6 +102,7 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: f41ffe3f383993b02a41de863d9339fb, type: 3}
   abilityModules:
     items:
+    - rid: 8800000000000000005
     - rid: 7302562978982527661
     - rid: 7302562985835495571
     - rid: 7302562985835495572
@@ -122,6 +114,7 @@ MonoBehaviour:
   category: 2
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 2
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -130,6 +123,18 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 8800000000000000005
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 48
+        repairWorkRequired: 20
+        cleanWorkRequired: 12.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:lumber
+          amount: 4
     - rid: 7302562978982527661
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:

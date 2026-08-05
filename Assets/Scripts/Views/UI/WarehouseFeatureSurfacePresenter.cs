@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DungeonStory.Foundation;
 using UnityEngine;
 
 public sealed class WarehouseFeatureSurfaceModel
@@ -109,10 +108,89 @@ public interface IWarehouseFeatureCommandService
     WarehouseFeatureCommandResult CancelGrandProject();
 }
 
+public sealed class WarehouseFeatureSessionContext
+{
+    public WarehouseFeatureSessionContext(
+        IBuildingManagementSummaryService summaryService,
+        IGameSessionStateProvider gameDataProvider,
+        IRunVariableRuntimeReader runVariableReader)
+    {
+        SummaryService = summaryService
+            ?? throw new ArgumentNullException(nameof(summaryService));
+        GameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        RunVariableReader = runVariableReader
+            ?? throw new ArgumentNullException(nameof(runVariableReader));
+    }
+
+    public IBuildingManagementSummaryService SummaryService { get; }
+    public IGameSessionStateProvider GameDataProvider { get; }
+    public IRunVariableRuntimeReader RunVariableReader { get; }
+}
+
+public sealed class WarehouseFeatureWorldContext
+{
+    public WarehouseFeatureWorldContext(
+        IWorldItemStackRuntime worldItemStackRuntime,
+        IWarehouseWorldQuery warehouseWorld,
+        IBuildingWorldQuery buildingWorld,
+        ICharacterWorldQuery characterWorld)
+    {
+        WorldItemStackRuntime = worldItemStackRuntime
+            ?? throw new ArgumentNullException(nameof(worldItemStackRuntime));
+        WarehouseWorld = warehouseWorld
+            ?? throw new ArgumentNullException(nameof(warehouseWorld));
+        BuildingWorld = buildingWorld
+            ?? throw new ArgumentNullException(nameof(buildingWorld));
+        CharacterWorld = characterWorld
+            ?? throw new ArgumentNullException(nameof(characterWorld));
+    }
+
+    public IWorldItemStackRuntime WorldItemStackRuntime { get; }
+    public IWarehouseWorldQuery WarehouseWorld { get; }
+    public IBuildingWorldQuery BuildingWorld { get; }
+    public ICharacterWorldQuery CharacterWorld { get; }
+}
+
+public sealed class WarehouseFeatureEconomyContext
+{
+    public WarehouseFeatureEconomyContext(
+        IResourceEconomyForecastService forecastService,
+        IResourceStockPolicyRuntime stockPolicies,
+        IRegionalSupplyContractRuntime contracts,
+        IGrandProjectRuntime grandProjects,
+        IResourceEconomyContentCatalog economyCatalog,
+        IItemDefinitionCatalog itemDefinitions,
+        IStockCategoryDefinitionCatalog stockCategoryCatalog)
+    {
+        ForecastService = forecastService
+            ?? throw new ArgumentNullException(nameof(forecastService));
+        StockPolicies = stockPolicies
+            ?? throw new ArgumentNullException(nameof(stockPolicies));
+        Contracts = contracts ?? throw new ArgumentNullException(nameof(contracts));
+        GrandProjects = grandProjects
+            ?? throw new ArgumentNullException(nameof(grandProjects));
+        EconomyCatalog = economyCatalog
+            ?? throw new ArgumentNullException(nameof(economyCatalog));
+        ItemDefinitions = itemDefinitions
+            ?? throw new ArgumentNullException(nameof(itemDefinitions));
+        StockCategoryCatalog = stockCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
+    }
+
+    public IResourceEconomyForecastService ForecastService { get; }
+    public IResourceStockPolicyRuntime StockPolicies { get; }
+    public IRegionalSupplyContractRuntime Contracts { get; }
+    public IGrandProjectRuntime GrandProjects { get; }
+    public IResourceEconomyContentCatalog EconomyCatalog { get; }
+    public IItemDefinitionCatalog ItemDefinitions { get; }
+    public IStockCategoryDefinitionCatalog StockCategoryCatalog { get; }
+}
+
 public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
 {
     private readonly IBuildingManagementSummaryService summaryService;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IRunVariableRuntimeReader runVariableReader;
     private readonly IWorldItemStackRuntime worldItemStackRuntime;
     private readonly IWarehouseWorldQuery warehouseWorld;
@@ -123,42 +201,31 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
     private readonly IRegionalSupplyContractRuntime contracts;
     private readonly IGrandProjectRuntime grandProjects;
     private readonly IResourceEconomyContentCatalog economyCatalog;
+    private readonly IItemDefinitionCatalog itemDefinitions;
+    private readonly IStockCategoryDefinitionCatalog stockCategoryCatalog;
 
     public WarehouseFeatureQueryService(
-        IBuildingManagementSummaryService summaryService,
-        IGameDataProvider gameDataProvider,
-        IRunVariableRuntimeReader runVariableReader,
-        IWorldItemStackRuntime worldItemStackRuntime,
-        IWarehouseWorldQuery warehouseWorld,
-        IBuildingWorldQuery buildingWorld,
-        ICharacterWorldQuery characterWorld,
-        IResourceEconomyForecastService forecastService,
-        IResourceStockPolicyRuntime stockPolicies,
-        IRegionalSupplyContractRuntime contracts,
-        IGrandProjectRuntime grandProjects,
-        IResourceEconomyContentCatalog economyCatalog)
+        WarehouseFeatureSessionContext session,
+        WarehouseFeatureWorldContext world,
+        WarehouseFeatureEconomyContext economy)
     {
-        this.summaryService = summaryService ?? throw new ArgumentNullException(nameof(summaryService));
-        this.gameDataProvider = gameDataProvider ?? throw new ArgumentNullException(nameof(gameDataProvider));
-        this.runVariableReader = runVariableReader ?? throw new ArgumentNullException(nameof(runVariableReader));
-        this.worldItemStackRuntime = worldItemStackRuntime
-            ?? throw new ArgumentNullException(nameof(worldItemStackRuntime));
-        this.warehouseWorld = warehouseWorld
-            ?? throw new ArgumentNullException(nameof(warehouseWorld));
-        this.buildingWorld = buildingWorld
-            ?? throw new ArgumentNullException(nameof(buildingWorld));
-        this.characterWorld = characterWorld
-            ?? throw new ArgumentNullException(nameof(characterWorld));
-        this.forecastService = forecastService
-            ?? throw new ArgumentNullException(nameof(forecastService));
-        this.stockPolicies = stockPolicies
-            ?? throw new ArgumentNullException(nameof(stockPolicies));
-        this.contracts = contracts
-            ?? throw new ArgumentNullException(nameof(contracts));
-        this.grandProjects = grandProjects
-            ?? throw new ArgumentNullException(nameof(grandProjects));
-        this.economyCatalog = economyCatalog
-            ?? throw new ArgumentNullException(nameof(economyCatalog));
+        session = session ?? throw new ArgumentNullException(nameof(session));
+        world = world ?? throw new ArgumentNullException(nameof(world));
+        economy = economy ?? throw new ArgumentNullException(nameof(economy));
+        summaryService = session.SummaryService;
+        gameDataProvider = session.GameDataProvider;
+        runVariableReader = session.RunVariableReader;
+        worldItemStackRuntime = world.WorldItemStackRuntime;
+        warehouseWorld = world.WarehouseWorld;
+        buildingWorld = world.BuildingWorld;
+        characterWorld = world.CharacterWorld;
+        forecastService = economy.ForecastService;
+        stockPolicies = economy.StockPolicies;
+        contracts = economy.Contracts;
+        grandProjects = economy.GrandProjects;
+        economyCatalog = economy.EconomyCatalog;
+        itemDefinitions = economy.ItemDefinitions;
+        stockCategoryCatalog = economy.StockCategoryCatalog;
     }
 
     public WarehouseFeatureSurfaceModel Capture()
@@ -168,7 +235,10 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
         BuildableObject[] restockTargets = FindRestockTargets();
         int money = ResolveMoney();
         IReadOnlyList<StockDeliveryOffer> offers =
-            StockSupplyService.CreateDailyDeliveryOffers(ResolveCurrentDay(), runVariableReader);
+            StockSupplyService.CreateDailyDeliveryOffers(
+                ResolveCurrentDay(),
+                runVariableReader,
+                stockCategoryCatalog);
         ResourceEconomyForecast forecast = forecastService.Capture(3);
 
         return new WarehouseFeatureSurfaceModel
@@ -190,7 +260,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
                 {
                     Index = index,
                     Offer = offer,
-                    Name = $"{StockCategoryCatalog.GetDisplayName(offer.category)} {offer.amount}개",
+                    Name = $"{stockCategoryCatalog.GetDisplayName(offer.category)} {offer.amount}개",
                     Detail = $"{offer.sourceLabel} / 비용 {offer.cost} / 현재 자금 {FormatMoney(money)}"
                 })
                 .ToArray(),
@@ -223,9 +293,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
             forecast.Shortages
                 .Concat(forecast.Surpluses)
                 .Where(row => economyCatalog.TryGetItem(row.ItemId, out _)
-                    || DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
-                        row.ItemId,
-                        out _))
+                    || TryGetAuthoredStockCategory(row.ItemId, out _))
                 .GroupBy(row => row.ItemId, StringComparer.Ordinal)
                 .Select(group => group.First())
                 .OrderByDescending(row =>
@@ -257,6 +325,22 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
                 };
             })
             .ToArray();
+    }
+
+    private bool TryGetAuthoredStockCategory(
+        string itemId,
+        out StockCategory category)
+    {
+        if (itemDefinitions.TryGet(
+                (ItemDefinitionId)itemId,
+                out ItemDefinitionSO definition))
+        {
+            category = definition.StockCategory;
+            return true;
+        }
+
+        category = default;
+        return false;
     }
 
     private WarehouseFeatureContractRow CreateContractRow(
@@ -405,6 +489,10 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
             {
                 facilityBuffer += stack.Quantity;
             }
+            else if (stack.State == WorldItemStackState.FacilityOutputBuffer)
+            {
+                facilityBuffer += stack.Quantity;
+            }
         }
 
         int carried = characterWorld.Characters
@@ -419,7 +507,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
 
     private int ResolveCurrentDay()
     {
-        return gameDataProvider.TryGetGameData(out GameData gameData)
+        return gameDataProvider.TryGetSessionState(out GameSessionState gameData)
             && gameData != null
             && gameData.day != null
             ? Mathf.Max(1, gameData.day.Value)
@@ -428,7 +516,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
 
     private int ResolveMoney()
     {
-        return gameDataProvider.TryGetGameData(out GameData gameData)
+        return gameDataProvider.TryGetSessionState(out GameSessionState gameData)
             && gameData != null
             && gameData.holdingMoney != null
             ? gameData.holdingMoney.Value
@@ -470,7 +558,7 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
         return money >= 0 ? money.ToString() : "없음";
     }
 
-    private static string FormatStockAmounts(
+    private string FormatStockAmounts(
         Func<StockCategory, int> getStock,
         bool useShortNames)
     {
@@ -478,248 +566,12 @@ public sealed class WarehouseFeatureQueryService : IWarehouseFeatureQueryService
             ? string.Empty
             : string.Join(
                 " / ",
-                StockCategoryCatalog.All.Select((definition) =>
+                stockCategoryCatalog.All.Select((definition) =>
                     $"{(useShortNames ? definition.ShortName : definition.DisplayName)} " +
                     $"{getStock(definition.Category)}"));
     }
 }
 
-public sealed class WarehouseFeatureCommandService : IWarehouseFeatureCommandService
-{
-    private readonly IGameDataProvider gameDataProvider;
-    private readonly IWorldItemStackRuntime worldItemStackRuntime;
-    private readonly IWarehouseWorldQuery warehouseWorld;
-    private readonly IBuildingWorldQuery buildingWorld;
-    private readonly IGameEventBus gameEventBus;
-    private readonly IResourceStockPolicyRuntime stockPolicies;
-    private readonly IRegionalSupplyContractRuntime contracts;
-    private readonly IGrandProjectRuntime grandProjects;
-
-    public WarehouseFeatureCommandService(
-        IGameDataProvider gameDataProvider,
-        IWorldItemStackRuntime worldItemStackRuntime,
-        IWarehouseWorldQuery warehouseWorld,
-        IBuildingWorldQuery buildingWorld,
-        IGameEventBus gameEventBus,
-        IResourceStockPolicyRuntime stockPolicies,
-        IRegionalSupplyContractRuntime contracts,
-        IGrandProjectRuntime grandProjects)
-    {
-        this.gameDataProvider = gameDataProvider ?? throw new ArgumentNullException(nameof(gameDataProvider));
-        this.worldItemStackRuntime = worldItemStackRuntime
-            ?? throw new ArgumentNullException(nameof(worldItemStackRuntime));
-        this.warehouseWorld = warehouseWorld
-            ?? throw new ArgumentNullException(nameof(warehouseWorld));
-        this.buildingWorld = buildingWorld
-            ?? throw new ArgumentNullException(nameof(buildingWorld));
-        this.gameEventBus = gameEventBus
-            ?? throw new ArgumentNullException(nameof(gameEventBus));
-        this.stockPolicies = stockPolicies
-            ?? throw new ArgumentNullException(nameof(stockPolicies));
-        this.contracts = contracts
-            ?? throw new ArgumentNullException(nameof(contracts));
-        this.grandProjects = grandProjects
-            ?? throw new ArgumentNullException(nameof(grandProjects));
-    }
-
-    public WarehouseFeatureCommandResult Restock(int targetRuntimeId, int amount)
-    {
-        BuildableObject target = buildingWorld.Buildings
-            .FirstOrDefault((building) =>
-                building != null && building.GetInstanceID() == targetRuntimeId);
-        if (!(target is IRestockableFacility facility))
-        {
-            return new WarehouseFeatureCommandResult(false, "보충할 시설을 찾지 못했습니다.");
-        }
-
-        IWarehouseFacility[] warehouses = FindWarehouses();
-        int beforeShop = facility.CurrentStock;
-        int beforeWarehouse = warehouses.Sum((warehouse) => warehouse.Inventory.TotalStock);
-        int moved = facility.RestockFrom(
-            warehouses,
-            Mathf.Min(Mathf.Max(0, amount), facility.MissingStock),
-            out string message);
-        int afterWarehouse = warehouses.Sum((warehouse) => warehouse.Inventory.TotalStock);
-        string result =
-            $"보충 {(moved > 0 ? "성공" : "실패")}: {GetBuildingName(target)} {message} / " +
-            $"상점 {beforeShop}->{facility.CurrentStock}, 창고 {beforeWarehouse}->{afterWarehouse}";
-        return new WarehouseFeatureCommandResult(moved > 0, result);
-    }
-
-    public WarehouseFeatureCommandResult PurchaseDelivery(StockDeliveryOffer offer)
-    {
-        if (!gameDataProvider.TryGetGameData(out GameData gameData) || gameData == null)
-        {
-            return new WarehouseFeatureCommandResult(false, "게임 자금 정보를 찾지 못했습니다.");
-        }
-
-        IWarehouseFacility[] warehouses = FindWarehouses();
-        int beforeMoney = GetHoldingMoney(gameData);
-        int beforeStock = warehouses.Sum((warehouse) => warehouse.Inventory.TotalStock);
-        bool success = StockSupplyService.TryPurchaseDelivery(
-            gameData,
-            warehouses,
-            worldItemStackRuntime,
-            offer,
-            out StockSupplyResult result,
-            PublishSupplyResult);
-        int afterStock = warehouses.Sum((warehouse) => warehouse.Inventory.TotalStock);
-        string message =
-            $"납품 {(success ? "성공" : "실패")}: {result.ToSummaryText()} / " +
-            $"자금 {beforeMoney}->{GetHoldingMoney(gameData)}, 창고 {beforeStock}->{afterStock}";
-        return new WarehouseFeatureCommandResult(success, message);
-    }
-
-    public WarehouseFeatureCommandResult CycleStockPolicy(string itemId)
-    {
-        ResourceStockPolicyData policy = stockPolicies.GetOrCreate(itemId);
-        if (policy.surplusDisposition
-                 < StockSurplusDisposition.Dismantle)
-        {
-            policy.surplusDisposition++;
-        }
-        else
-        {
-            policy.surplusDisposition = StockSurplusDisposition.Hold;
-        }
-
-        bool succeeded = stockPolicies.SetPolicy(
-            policy,
-            out string failureReason);
-        return new WarehouseFeatureCommandResult(
-            succeeded,
-            succeeded
-                ? $"초과 처리: {FormatDisposition(policy.surplusDisposition)}"
-                : failureReason);
-    }
-
-    public WarehouseFeatureCommandResult ToggleStockPolicy(string itemId)
-    {
-        ResourceStockPolicyData policy = stockPolicies.GetOrCreate(itemId);
-        policy.enabled = !policy.enabled;
-        bool succeeded = stockPolicies.SetPolicy(policy, out string failureReason);
-        return new WarehouseFeatureCommandResult(
-            succeeded,
-            succeeded
-                ? $"재고 정책을 {(policy.enabled ? "켰습니다." : "껐습니다.")}"
-                : failureReason);
-    }
-
-    public WarehouseFeatureCommandResult AdjustStockPolicy(
-        string itemId,
-        ResourceStockThreshold threshold,
-        int delta)
-    {
-        ResourceStockPolicyData policy = stockPolicies.GetOrCreate(itemId);
-        int amount = Mathf.Clamp(delta, -100, 100);
-        switch (threshold)
-        {
-            case ResourceStockThreshold.Minimum:
-                policy.minimumStock = Mathf.Max(0, policy.minimumStock + amount);
-                policy.targetStock = Mathf.Max(
-                    policy.minimumStock,
-                    policy.targetStock);
-                policy.maximumStock = Mathf.Max(
-                    policy.targetStock,
-                    policy.maximumStock);
-                break;
-            case ResourceStockThreshold.Target:
-                policy.targetStock = Mathf.Max(
-                    policy.minimumStock,
-                    policy.targetStock + amount);
-                policy.maximumStock = Mathf.Max(
-                    policy.targetStock,
-                    policy.maximumStock);
-                break;
-            case ResourceStockThreshold.Maximum:
-                policy.maximumStock = Mathf.Max(
-                    policy.targetStock,
-                    policy.maximumStock + amount);
-                break;
-            default:
-                return new WarehouseFeatureCommandResult(
-                    false,
-                    "알 수 없는 재고 기준입니다.");
-        }
-
-        bool succeeded = stockPolicies.SetPolicy(policy, out string failureReason);
-        return new WarehouseFeatureCommandResult(
-            succeeded,
-            succeeded
-                ? $"재고 기준 {policy.minimumStock}/{policy.targetStock}/{policy.maximumStock}"
-                : failureReason);
-    }
-
-    public WarehouseFeatureCommandResult AcceptContract(string contractId)
-    {
-        bool succeeded = contracts.Accept(contractId, out string message);
-        return new WarehouseFeatureCommandResult(succeeded, message);
-    }
-
-    public WarehouseFeatureCommandResult DeclineContract(string contractId)
-    {
-        bool succeeded = contracts.Decline(contractId, out string message);
-        return new WarehouseFeatureCommandResult(succeeded, message);
-    }
-
-    public WarehouseFeatureCommandResult StartGrandProject(string projectId)
-    {
-        bool succeeded = grandProjects.Start(projectId, out string message);
-        return new WarehouseFeatureCommandResult(succeeded, message);
-    }
-
-    public WarehouseFeatureCommandResult CancelGrandProject()
-    {
-        bool succeeded = grandProjects.CancelActive(out string message);
-        return new WarehouseFeatureCommandResult(succeeded, message);
-    }
-
-    private static string FormatDisposition(
-        StockSurplusDisposition disposition)
-    {
-        return disposition switch
-        {
-            StockSurplusDisposition.Sell => "판매",
-            StockSurplusDisposition.Process => "가공",
-            StockSurplusDisposition.Compost => "퇴비화",
-            StockSurplusDisposition.Dismantle => "해체",
-            _ => "보관"
-        };
-    }
-
-    private void PublishSupplyResult(StockSupplyResult result)
-    {
-        gameEventBus.Publish(new StockSupplyEvent(result));
-    }
-
-    private IWarehouseFacility[] FindWarehouses()
-    {
-        return warehouseWorld.Warehouses
-            .Where((warehouse) =>
-                warehouse != null && warehouse.HasWarehouseInventory && warehouse.Inventory != null)
-            .ToArray();
-    }
-
-    private static int GetHoldingMoney(GameData gameData)
-    {
-        return gameData != null && gameData.holdingMoney != null
-            ? gameData.holdingMoney.Value
-            : -1;
-    }
-
-    private static string GetBuildingName(BuildableObject building)
-    {
-        if (building == null)
-        {
-            return "시설";
-        }
-
-        return building.BuildingData != null
-            && !string.IsNullOrWhiteSpace(building.BuildingData.objectName)
-            ? building.BuildingData.objectName
-            : building.name;
-    }
-}
 
 public sealed class WarehouseFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
 {

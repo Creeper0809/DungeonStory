@@ -1,0 +1,26 @@
+{
+  "name": "DungeonStory.Economy",
+  "rootNamespace": "DungeonStory.Economy",
+  "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.Combat",
+    "DungeonStory.Environment",
+    "DungeonStory.Foundation",
+    "DungeonStory.Items",
+    "DungeonStory.Production",
+    "DungeonStory.Species",
+    "DungeonStory.Survival",
+    "DungeonStory.Wildlife",
+    "DungeonStory.Work",
+    "VContainer"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

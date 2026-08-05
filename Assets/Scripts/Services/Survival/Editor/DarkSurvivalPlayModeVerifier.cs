@@ -70,7 +70,18 @@ public static class DarkSurvivalPlayModeVerifier
 
     private static void OnEditorUpdate()
     {
-        if (!File.Exists(RequestPath) || EditorApplication.isPlayingOrWillChangePlaymode)
+        if (!File.Exists(RequestPath))
+        {
+            return;
+        }
+
+        if (EditorApplication.isPlaying)
+        {
+            EnsureRunnerCreated();
+            return;
+        }
+
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
         {
             return;
         }
@@ -91,14 +102,12 @@ public static class DarkSurvivalPlayModeVerifier
             return;
         }
 
-        if (change != PlayModeStateChange.EnteredPlayMode || runnerCreated || !File.Exists(RequestPath))
+        if (change != PlayModeStateChange.EnteredPlayMode || !File.Exists(RequestPath))
         {
             return;
         }
 
-        runnerCreated = true;
-        new GameObject("Dark Survival PlayMode Verification Runner")
-            .AddComponent<DarkSurvivalPlayModeVerificationRunner>();
+        EnsureRunnerCreated();
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -106,6 +115,18 @@ public static class DarkSurvivalPlayModeVerifier
     {
         if (!File.Exists(RequestPath)
             || UnityEngine.Object.FindFirstObjectByType<DarkSurvivalPlayModeVerificationRunner>() != null)
+        {
+            return;
+        }
+
+        EnsureRunnerCreated();
+    }
+
+    private static void EnsureRunnerCreated()
+    {
+        if (runnerCreated
+            && UnityEngine.Object.FindFirstObjectByType<
+                DarkSurvivalPlayModeVerificationRunner>() != null)
         {
             return;
         }
@@ -290,6 +311,11 @@ public sealed class DarkSurvivalPlayModeVerificationRunner : MonoBehaviour
             "SAFE_WATER_PRIORITY",
             $"water={before:0.##}->{afterPreferred:0.##}; thirst={preferredThirst:0.#}; pos={actor.GetNowXY()}");
 
+        // The need is recovered before the coroutine's finally block releases
+        // its per-actor execution slot. Keep the next scenario independent.
+        yield return null;
+        yield return null;
+
         BuildableObject[] waterFacilities = UnityEngine.Object
             .FindObjectsByType<BuildableObject>(
                 FindObjectsInactive.Exclude,
@@ -302,6 +328,45 @@ public sealed class DarkSurvivalPlayModeVerificationRunner : MonoBehaviour
         {
             facility.gameObject.SetActive(false);
         }
+
+        IWorldItemStackRuntime itemStacks = ResolveService<IWorldItemStackRuntime>();
+        List<WorldItemStockCandidate> safeWaterStacks = new();
+        itemStacks?.CopyAvailableStockCandidates(
+            StockCategory.Water,
+            safeWaterStacks);
+        int removedSafeWater = 0;
+        foreach (WorldItemStockCandidate candidate in safeWaterStacks)
+        {
+            if (candidate.IsValid
+                && itemStacks.TryConsumeStackQuantity(
+                    candidate.StackId,
+                    candidate.Quantity,
+                    out _))
+            {
+                removedSafeWater += candidate.Quantity;
+            }
+        }
+        safeWaterStacks.Clear();
+        itemStacks?.CopyAvailableStockCandidates(
+            StockCategory.Water,
+            safeWaterStacks);
+        Check(
+            itemStacks != null && safeWaterStacks.Count == 0,
+            "EXTERIOR_SAFE_WATER_EXHAUSTED",
+            $"removed={removedSafeWater}; remaining={safeWaterStacks.Count}");
+
+        bool scenarioSourceCreated = water.DebugCreateSource(
+            actor.GetNowXY(),
+            WorldWaterQuality.Unsafe,
+            12f,
+            GridCellTerrainType.ShallowWater,
+            out string scenarioSourceId);
+        Check(
+            scenarioSourceCreated,
+            "EXTERIOR_WATER_SCENARIO_SOURCE",
+            scenarioSourceCreated
+                ? $"{scenarioSourceId}@{actor.GetNowXY()}"
+                : $"failed@{actor.GetNowXY()}");
 
         float infectionBefore = deprivation.TryGetSnapshot(actor, out CharacterDeprivationSnapshot beforeSnapshot)
             ? beforeSnapshot.InfectionBurden
@@ -344,7 +409,7 @@ public sealed class DarkSurvivalPlayModeVerificationRunner : MonoBehaviour
     {
         ResolveService<DungeonStory.Foundation.IGameEventBus>()?.ShowInfo(actor);
         yield return null;
-        CharacterSummeryInfo summary = FindFirstObjectByType<CharacterSummeryInfo>(FindObjectsInactive.Include);
+        CharacterSummaryInfo summary = FindFirstObjectByType<CharacterSummaryInfo>(FindObjectsInactive.Include);
         summary?.ShowHealthTab();
         yield return new WaitForSecondsRealtime(0.35f);
 
@@ -375,6 +440,11 @@ public sealed class DarkSurvivalPlayModeVerificationRunner : MonoBehaviour
         CharacterActor actor,
         ICharacterDeprivationRuntime deprivation)
     {
+        SetBreakdown(
+            deprivation,
+            actor,
+            DeprivationKind.MentalInstability,
+            CharacterBreakdownKind.ViolentImpulse);
         float healthBefore = actor.CurrentHealth;
         bool applied = deprivation.ApplySuppression(actor, 100f, out bool ended);
         float healthAfter = actor.CurrentHealth;
@@ -395,10 +465,11 @@ public sealed class DarkSurvivalPlayModeVerificationRunner : MonoBehaviour
     {
         DungeonDarkSurvivalSaveData save = runtime.Capture();
         string id = GetPersistentId(actor);
-        CharacterDeprivationState state = save.characters.FirstOrDefault(entry => entry.persistentId == id);
+        CharacterDeprivationState state = save.characters.FirstOrDefault(
+            entry => entry.characterId == id);
         if (state == null)
         {
-            state = new CharacterDeprivationState { persistentId = id };
+            state = new CharacterDeprivationState { characterId = id };
             save.characters.Add(state);
         }
 
@@ -422,7 +493,10 @@ public sealed class DarkSurvivalPlayModeVerificationRunner : MonoBehaviour
             suppressionResistance = 35f,
             lastReplanReason = "PlayMode 검증"
         };
-        runtime.Restore(save);
+        state.breakdownGeneration = Math.Max(1, state.breakdownGeneration + 1);
+        state.dispatchedBreakdownGeneration = state.breakdownGeneration;
+        runtime.PublishRestoreCandidate(
+            runtime.BuildRestoreCandidate(save));
     }
 
     private static void FocusWorldCamera(CharacterActor actor)

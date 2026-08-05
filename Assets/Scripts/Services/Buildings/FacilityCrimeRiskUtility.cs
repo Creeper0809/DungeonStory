@@ -5,7 +5,7 @@ using UnityEngine;
 public readonly struct FacilityCrimeRiskContext
 {
     public readonly BuildableObject building;
-    public readonly CharacterActor actor;
+    public readonly IBuildingVisitorPort actor;
     public readonly bool hasServingWorker;
     public readonly bool hasWaitingCheckout;
     public readonly int currentUserCount;
@@ -16,7 +16,7 @@ public readonly struct FacilityCrimeRiskContext
 
     public FacilityCrimeRiskContext(
         BuildableObject building,
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         bool hasServingWorker,
         bool hasWaitingCheckout,
         int currentUserCount,
@@ -72,7 +72,7 @@ public sealed class FacilityCrimeRiskEvaluator : IFacilityCrimeRiskEvaluator
         pressure += GetCartValuePressure(context, settings);
         pressure += GetFacilityStatePressure(context, settings);
         pressure = ApplyBuildingModifiers(context, pressure);
-        pressure *= context.actor != null ? context.actor.GetCrimeRiskMultiplier() : 1f;
+        pressure *= context.actor?.VisitorSnapshot.CrimeRiskMultiplier ?? 1f;
         return Mathf.Clamp01(pressure);
     }
 
@@ -129,18 +129,18 @@ public sealed class FacilityCrimeRiskEvaluator : IFacilityCrimeRiskEvaluator
         FacilityCrimeRiskContext context,
         FacilityCrimeSettingsSO settings)
     {
-        CharacterStats stats = context.actor != null ? context.actor.Stats : null;
-        if (stats == null)
+        if (context.actor == null)
         {
             return 0f;
         }
 
-        float mood = GetStat(stats, CharacterCondition.MOOD, 50f);
-        float hunger = GetStat(stats, CharacterCondition.HUNGER, 50f);
-        float fun = GetStat(stats, CharacterCondition.FUN, 50f);
-        float sleep = GetStat(stats, CharacterCondition.SLEEP, 50f);
-        float excretion = GetStat(stats, CharacterCondition.EXCRETION, 50f);
-        float hygiene = GetStat(stats, CharacterCondition.HYGIENE, 50f);
+        BuildingVisitorSnapshot visitor = context.actor.VisitorSnapshot;
+        float mood = visitor.Mood;
+        float hunger = visitor.Hunger;
+        float fun = visitor.Fun;
+        float sleep = visitor.Sleep;
+        float excretion = visitor.Excretion;
+        float hygiene = visitor.Hygiene;
 
         float lowMoodPressure = settings.LowMoodCrimeRiskWeight
             * LowStatPressure(mood, comfortable: 65f, critical: 15f);
@@ -223,11 +223,6 @@ public sealed class FacilityCrimeRiskEvaluator : IFacilityCrimeRiskEvaluator
         }
 
         return Mathf.Max(0f, result);
-    }
-
-    private static float GetStat(CharacterStats stats, CharacterCondition condition, float defaultValue)
-    {
-        return stats.Stats.TryGetValue(condition, out float value) ? Mathf.Clamp(value, 0f, 100f) : defaultValue;
     }
 
     private static float LowStatPressure(float value, float comfortable, float critical)

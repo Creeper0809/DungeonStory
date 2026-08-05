@@ -65,6 +65,7 @@ internal static class CharacterAiPlanDebugFixtures
         brain.availableActions = AiDebugScenarioActionFactory.CreateCustomerActions();
         actorObject.SetActive(true);
         CharacterAiEditorTestDependencies.Inject(actorObject);
+        CharacterAiEditorTestDependencies.EnsureCharacterProgression(actorObject);
         return actorObject;
     }
 
@@ -83,6 +84,7 @@ internal static class CharacterAiPlanDebugFixtures
         }
 
         CharacterAiEditorTestDependencies.Inject(actorObject);
+        CharacterAiEditorTestDependencies.EnsureCharacterProgression(actorObject);
         return actorObject;
     }
 

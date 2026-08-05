@@ -26,21 +26,35 @@ MonoBehaviour:
   displayName: "\uC6D0\uBAA9"
   description: "\uBAA9\uC7AC, \uC22F, \uD65C\uACFC \uAC00\uAD6C\uC758 \uC6D0\uB8CC."
   stockCategory: 1
-  kind: 0
-  ingredientTags: 256
-  unitPrice: 3
-  marketSaleRate: 0.6
   unitWeight: 1.8
   maxStack: 40
   sprite: {fileID: 0}
-  requiredResearchId: research:forestry:logging
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 3
+  features:
+  - rid: 7737211674039681167
+  - rid: 7737211674039681168
+  - rid: 7737211674039681169
+  - rid: 7737211674039681170
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681167
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:forestry:logging
+    - rid: 7737211674039681168
+      type: {class: FacilitySupplyItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        fuelValue: 10
+        nutritionValue: 0
+        feedEligible: 0
+    - rid: 7737211674039681169
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 0
+        ingredientTags: 256
+        sharedIntermediate: 0
+    - rid: 7737211674039681170
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

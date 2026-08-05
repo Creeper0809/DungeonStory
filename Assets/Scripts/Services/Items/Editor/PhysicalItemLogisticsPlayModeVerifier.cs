@@ -23,7 +23,6 @@ public static class PhysicalItemLogisticsPlayModeVerifier
     public const string ReportPath = "Artifacts/QA/physical-item-logistics-playmode-report.txt";
     public const string CarryCapturePath = "Artifacts/QA/physical-item-carry-ui.png";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
-
     private static bool runnerCreated;
 
     static PhysicalItemLogisticsPlayModeVerifier()
@@ -84,6 +83,8 @@ public static class PhysicalItemLogisticsPlayModeVerifier
 
 public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehaviour
 {
+    private const string PreservedRationItemId = "food:preserved-ration";
+    private const string DaggerItemId = "equipment-item:weapon:dagger";
     private const string DaggerId = "weapon:dagger";
     private const string BreastplateId = "armor:breastplate";
     private const float HaulTimeoutSeconds = 18f;
@@ -197,9 +198,9 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
             }
 
             ClearInventory(warehouse.Inventory);
-            Check(warehouse.Inventory.Deposit(StockCategory.General, 20) == 20
-                    && warehouse.Inventory.Deposit(StockCategory.Weapon, 20) == 20
-                    && warehouse.Inventory.Deposit(StockCategory.Food, 5) == 5,
+            Check(warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.General, 20) == 20
+                    && warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Weapon, 20) == 20
+                    && warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 5) == 5,
                 "TEMP_WAREHOUSE_SEEDED",
                 $"food={warehouse.Inventory.GetStock(StockCategory.Food)}; general={warehouse.Inventory.GetStock(StockCategory.General)}; weapon={warehouse.Inventory.GetStock(StockCategory.Weapon)}");
             Check(SeedStoredCraftMaterial(
@@ -211,7 +212,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                     out string materialSeedDetails),
                 "TEMP_WAREHOUSE_IRON_SEEDED",
                 materialSeedDetails);
-            warehouse.Inventory.Withdraw(StockCategory.Food, 5);
+            warehouse.Inventory.ConsumePhysicalStockForTest(StockCategory.Food, 5);
 
             yield return VerifyLooseStackToWarehouse(itemRuntime, grid, hauler, warehouse, positions[2]);
             yield return VerifyFacilityInputDelivery(itemRuntime, hauler, warehouse, bench);
@@ -256,7 +257,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         int before = GetTotalWarehouseStock(StockCategory.Food);
         int targetBefore = warehouse.Inventory.GetStock(StockCategory.Food);
         bool spawned = itemRuntime.SpawnItemAt(
-            DungeonItemCatalogSO.StockItemId(StockCategory.Food),
+            PreservedRationItemId,
             3,
             itemPosition,
             WorldItemStackState.Loose,
@@ -272,7 +273,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 GetTotalWarehouseStock(StockCategory.Food) >= before + 3
                 && !itemRuntime.GetAllStacks().Any(stack =>
                     stack.State == WorldItemStackState.Loose
-                    && string.Equals(stack.ItemId, DungeonItemCatalogSO.StockItemId(StockCategory.Food), StringComparison.Ordinal)));
+                    && string.Equals(stack.ItemId, PreservedRationItemId, StringComparison.Ordinal)));
         }
         finally
         {
@@ -367,16 +368,18 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         building.layer = GridLayer.Building;
         building.category = BuildingCategory.Shop;
         building.unlocked = true;
-        building.AbilityModules.Add(new BuildingWorkAmountAbility
+        BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
         {
             constructionWorkRequired = 5f,
             repairWorkRequired = 3f,
             cleanWorkRequired = 2f,
-            researchWorkRequired = 6f,
-            constructionMaterialCategory = StockCategory.General,
-            constructionMaterialAmount = materialAmount,
-            materialUnitsPerConstructionCost = 0f
+            researchWorkRequired = 6f
+        };
+        workAmount.SetConstructionMaterials(new[]
+        {
+            new ItemAmountDefinition("material:lumber", materialAmount)
         });
+        building.AbilityModules.Add(workAmount);
 
         GameObject siteObject = new GameObject("QA_Physical_Logistics_ConstructionSite");
         temporaryObjects.Add(siteObject);
@@ -452,8 +455,8 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                         site,
                         BuiltInWorkTypeIds.Construct,
                         out WorkOrderProgressState deliveredOrder)
-                    && deliveredOrder.DeliveredMaterials.TryGetValue(
-                        StockCategory.General,
+                    && deliveredOrder.DeliveredItemMaterials.TryGetValue(
+                        "material:lumber",
                         out int deliveredAmount)
                     && deliveredAmount >= materialAmount);
             }
@@ -471,11 +474,11 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                         BuiltInWorkTypeIds.Construct,
                         out order)
                     && order.Status == WorkOrderStatus.Ready
-                    && order.DeliveredMaterials.TryGetValue(StockCategory.General, out int delivered)
+                    && order.DeliveredItemMaterials.TryGetValue("material:lumber", out int delivered)
                     && delivered == materialAmount,
                 "CONSTRUCTION_READY_AFTER_PHYSICAL_DELIVERY",
                 order != null
-                    ? $"status={order.Status}; delivered={order.DeliveredMaterials.GetValueOrDefault(StockCategory.General)}"
+                    ? $"status={order.Status}; delivered={order.DeliveredItemMaterials.GetValueOrDefault("material:lumber")}"
                     : "order missing");
         }
         finally
@@ -547,11 +550,14 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                    && string.Equals(item.definitionId, DaggerId, StringComparison.Ordinal))
                && guard++ < 40)
         {
-            ModularFacilityRuntimeEffects.ApplyWorkCompleted(hauler, bench, BuiltInWorkTypeIds.Craft);
+            ModularFacilityRuntimeEffects.ApplyWorkCompleted(
+                hauler.BuildingVisitor,
+                bench,
+                BuiltInWorkTypeIds.Craft);
             yield return null;
         }
 
-        string outputItemId = DungeonItemCatalogSO.EquipmentItemId(DaggerId);
+        string outputItemId = PhysicalItemIds.ForEquipment(DaggerId);
         WorldItemStackSnapshot output = itemRuntime.GetAllStacks().FirstOrDefault(stack =>
             stack.State == WorldItemStackState.FacilityBuffer
             && string.Equals(stack.ItemId, outputItemId, StringComparison.Ordinal));
@@ -640,7 +646,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 $"{WorldItemStackRuntime.WarehouseStorageDestinationPrefix}"
                 + $"{warehouse.GridId}:{warehouse.centerPos.x}:{warehouse.centerPos.y}";
             bool stackSpawned = itemRuntime.SpawnUniqueItemAt(
-                DungeonItemCatalogSO.EquipmentItemId(BreastplateId),
+                PhysicalItemIds.ForEquipment(BreastplateId),
                 warehouse.centerPos,
                 WorldItemStackState.Stored,
                 warehouseDestinationId,
@@ -697,7 +703,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                         StringComparison.Ordinal)
                     && string.Equals(
                         stack.DestinationId,
-                        order.facilityDestinationId,
+                        order.FacilityDestinationId,
                         StringComparison.Ordinal)
                     && stack.HasDestinationPosition
                     && stack.DestinationPosition == maintenanceFacility.centerPos);
@@ -721,7 +727,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
                 .Where(stack => stack != null
                     && string.Equals(
                         stack.DestinationId,
-                        order.facilityDestinationId,
+                        order.FacilityDestinationId,
                         StringComparison.Ordinal)
                     && string.Equals(
                         stack.ItemId,
@@ -847,7 +853,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         IWorldItemStackRuntime itemRuntime,
         Facility warehouse)
     {
-        warehouse.Inventory.Deposit(StockCategory.Food, 4);
+        warehouse.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 4);
         OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
         loadout.Add(OffenseSupplyType.Rations, 2);
         string packageId = "qa-package-" + Guid.NewGuid().ToString("N");
@@ -880,7 +886,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
         Check(carry != null
                 && carry.TryAdd(
                     "qa-carry-ui",
-                    DungeonItemCatalogSO.StockItemId(StockCategory.Weapon),
+                    DaggerItemId,
                     2,
                     itemRuntime.CatalogProvider,
                     itemRuntime.HaulingSettingsProvider,
@@ -1026,7 +1032,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
     private void RestoreRuntimeState(IWorldItemStackRuntime itemRuntime, ICombatEquipmentRuntime equipment)
     {
-        CharacterSummeryInfo summary = UnityEngine.Object.FindFirstObjectByType<CharacterSummeryInfo>(
+        CharacterSummaryInfo summary = UnityEngine.Object.FindFirstObjectByType<CharacterSummaryInfo>(
             FindObjectsInactive.Include);
         summary?.OnClose();
 
@@ -1045,7 +1051,8 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
         if (equipmentSnapshot != null)
         {
-            equipment.Restore(equipmentSnapshot);
+            equipment.PublishRestoreCandidate(
+                equipment.BuildRestoreCandidate(equipmentSnapshot));
         }
     }
 
@@ -1211,7 +1218,7 @@ public sealed class PhysicalItemLogisticsPlayModeVerificationRunner : MonoBehavi
 
         foreach (KeyValuePair<StockCategory, int> pair in inventory.EnumerateStock().ToArray())
         {
-            inventory.Withdraw(pair.Key, pair.Value);
+            inventory.ConsumePhysicalStockForTest(pair.Key, pair.Value);
         }
     }
 

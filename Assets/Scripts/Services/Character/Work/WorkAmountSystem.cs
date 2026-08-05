@@ -7,112 +7,57 @@ using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 
-public enum WorkOrderStatus
+public sealed class WorkOrderRestoreCandidate :
+    IDungeonDiscardableRestoreCandidate
 {
-    WaitingForMaterials = 0,
-    Ready = 1,
-    InProgress = 2,
-    Blocked = 3,
-    Completed = 4,
-    Cancelled = 5
+    private List<WorkOrderConstructionSiteRestoreCandidate> sites;
+
+    internal WorkOrderRestoreCandidate(
+        WorkOrderAggregateState state,
+        List<WorkOrderConstructionSiteRestoreCandidate> sites)
+    {
+        State = state ?? throw new ArgumentNullException(nameof(state));
+        this.sites = sites ?? throw new ArgumentNullException(nameof(sites));
+    }
+
+    internal WorkOrderAggregateState State { get; }
+
+    internal List<WorkOrderConstructionSiteRestoreCandidate> TakeSites()
+    {
+        List<WorkOrderConstructionSiteRestoreCandidate> result = sites
+            ?? throw new InvalidOperationException(
+                "Work-order restore candidate ownership was already transferred or discarded.");
+        sites = null;
+        return result;
+    }
+
+    public void Discard()
+    {
+        WorkOrderRuntime.DiscardSiteCandidates(sites);
+        sites = null;
+    }
 }
 
-[Serializable]
-public sealed class WorkOrderMaterialSaveData
+internal sealed class WorkOrderConstructionSiteRestoreCandidate
 {
-    public StockCategory category = StockCategory.General;
-    public int required;
-    public int delivered;
+    internal WorkOrderConstructionSiteRestoreCandidate(
+        string orderId,
+        ConstructionSite site)
+    {
+        OrderId = orderId
+            ?? throw new ArgumentNullException(nameof(orderId));
+        Site = site ?? throw new ArgumentNullException(nameof(site));
+    }
+
+    internal string OrderId { get; }
+    internal ConstructionSite Site { get; }
 }
 
-[Serializable]
-public sealed class WorkOrderItemMaterialSaveData
-{
-    public string itemId = string.Empty;
-    public int required;
-    public int delivered;
-}
-
-[Serializable]
-public sealed class WorkOrderSaveData
-{
-    public string workOrderId = string.Empty;
-    public string workTypeId = string.Empty;
-    public int targetBuildingId;
-    public int gridX;
-    public int gridY;
-    public float requiredWork;
-    public float completedWork;
-    public string materialDestinationId = string.Empty;
-    public string reservedWorkerPersistentId = string.Empty;
-    public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
-    public List<WorkOrderMaterialSaveData> materials = new List<WorkOrderMaterialSaveData>();
-    public List<WorkOrderItemMaterialSaveData> itemMaterials =
-        new List<WorkOrderItemMaterialSaveData>();
-}
-
-[Serializable]
-public sealed class DungeonWorkOrderSaveData
-{
-    public const int CurrentVersion = 2;
-
-    public int version = CurrentVersion;
-    public int nextOrderSequence = 1;
-    public List<WorkOrderSaveData> orders = new List<WorkOrderSaveData>();
-}
-
-public sealed class WorkOrderProgressState
-{
-    public string WorkOrderId { get; set; }
-    public WorkTypeId WorkTypeId { get; set; }
-    public int TargetBuildingId { get; set; }
-    public Vector2Int Position { get; set; }
-    public float RequiredWork { get; set; }
-    public float CompletedWork { get; set; }
-    public string MaterialDestinationId { get; set; }
-    public string ReservedWorkerPersistentId { get; set; }
-    public WorkOrderStatus Status { get; set; }
-    public IReadOnlyDictionary<StockCategory, int> MaterialRequirements { get; set; }
-    public IReadOnlyDictionary<StockCategory, int> DeliveredMaterials { get; set; }
-    public IReadOnlyDictionary<string, int> ItemMaterialRequirements { get; set; }
-    public IReadOnlyDictionary<string, int> DeliveredItemMaterials { get; set; }
-    public float ProgressRatio => RequiredWork <= 0f ? 1f : Mathf.Clamp01(CompletedWork / RequiredWork);
-}
-
-public interface IWorkOrderRuntime
-{
-    int WorkOrderCandidateVersion { get; }
-    DungeonWorkOrderSaveData Capture();
-    void Restore(DungeonWorkOrderSaveData snapshot, DungeonGameRestoreReport report);
-    bool TryCreateConstructionOrder(ConstructionSite site, BuildingSO building, Vector2Int position, out string orderId, out string failureReason);
-    bool TryGetOrderFor(BuildableObject target, WorkTypeId workTypeId, out WorkOrderProgressState order);
-    bool ApplyWork(CharacterActor worker, BuildableObject target, WorkTypeId workTypeId, float amount, out bool completed, out bool appliedCompletionEffects, out string message);
-    bool RefreshMaterialsReady(ConstructionSite site);
-    bool CancelOrder(string orderId, bool refundDeliveredMaterials);
-    bool DebugCompleteOrder(string orderId, out string message);
-    int DebugCompleteAllOrders();
-}
-
-internal sealed class WorkOrderRecord
-{
-    public string workOrderId = string.Empty;
-    public WorkTypeId workTypeId;
-    public int targetBuildingId;
-    public Vector2Int position;
-    public float requiredWork;
-    public float completedWork;
-    public string materialDestinationId = string.Empty;
-    public string reservedWorkerPersistentId = string.Empty;
-    public WorkOrderStatus status = WorkOrderStatus.WaitingForMaterials;
-    public readonly Dictionary<StockCategory, int> requiredMaterials = new Dictionary<StockCategory, int>();
-    public readonly Dictionary<StockCategory, int> deliveredMaterials = new Dictionary<StockCategory, int>();
-    public readonly Dictionary<string, int> requiredItemMaterials =
-        new Dictionary<string, int>(StringComparer.Ordinal);
-    public readonly Dictionary<string, int> deliveredItemMaterials =
-        new Dictionary<string, int>(StringComparer.Ordinal);
-}
-
-public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
+public sealed class WorkOrderRuntime :
+    IWorkOrderRuntime,
+    IWorkOrderQuery,
+    ITickable,
+    IDungeonRestoreTransactionParticipant
 {
     private static readonly ProfilerMarker TickProfilerMarker =
         new ProfilerMarker("WorkOrderRuntime.Tick");
@@ -126,31 +71,48 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
     private readonly IWorkforceReplanService workforceReplanService;
     private readonly IGameClock gameClock;
     private readonly IUiClock uiClock;
-    private readonly Dictionary<string, WorkOrderRecord> ordersById =
-        new Dictionary<string, WorkOrderRecord>(StringComparer.Ordinal);
+    private readonly WorkOrderAggregateStateStore stateStore;
+    private readonly IDungeonDebugRuleQuery debugRules;
     private readonly Dictionary<ConstructionSite, string> orderIdBySite =
         new Dictionary<ConstructionSite, string>();
-    private int nextOrderSequence = 1;
+    private List<WorkOrderConstructionSiteRestoreCandidate> stagedSiteCandidates;
+    private PublishedWorkOrderSites publishedSites;
+    private bool restoreTransactionActive;
+    private bool restoreCandidatePrepared;
     private float nextReadyConstructionReplanAt;
-    public int WorkOrderCandidateVersion { get; private set; }
+
+    public string ParticipantId => "150.world.construction-sites";
+    public int WorkOrderCandidateVersion => CurrentState.CandidateVersion;
+    public int Version => CurrentState.CandidateVersion;
+    public IReadOnlyList<WorkOrderProgressState> ActiveOrders => ordersById.Values
+        .Where(order => order != null
+            && order.status != WorkOrderStatus.Completed
+            && order.status != WorkOrderStatus.Cancelled)
+        .OrderBy(order => order.workOrderId, StringComparer.Ordinal)
+        .Select(ToProgressState)
+        .ToArray();
 
     public WorkOrderRuntime(
         IGridSystemProvider gridSystemProvider,
         IWorldItemStackRuntime itemStackRuntime,
         IBuildingDefinitionLookup buildingDefinitionLookup,
-        IWorkforceReplanService workforceReplanService,
-        IGameClock gameClock,
-        IObjectResolver objectResolver = null,
-        IUiClock uiClock = null)
+        IObjectResolver objectResolver,
+        WorkOrderExecutionServices executionServices,
+        WorkOrderAggregateStateStore stateStore)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.itemStackRuntime = itemStackRuntime ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.buildingDefinitionLookup = buildingDefinitionLookup ?? throw new ArgumentNullException(nameof(buildingDefinitionLookup));
-        this.objectResolver = objectResolver;
-        this.workforceReplanService = workforceReplanService
-            ?? throw new ArgumentNullException(nameof(workforceReplanService));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
-        this.uiClock = uiClock;
+        this.objectResolver = objectResolver
+            ?? throw new ArgumentNullException(nameof(objectResolver));
+        WorkOrderExecutionServices execution = executionServices
+            ?? throw new ArgumentNullException(nameof(executionServices));
+        workforceReplanService = execution.Workforce;
+        gameClock = execution.GameClock;
+        uiClock = execution.UiClock;
+        debugRules = execution.DebugRules;
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
     public void Tick()
@@ -163,7 +125,7 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
 
     private void TickRuntime()
     {
-        float cadenceTime = uiClock?.Time ?? gameClock.Time;
+        float cadenceTime = uiClock.Time;
         if (gameClock.IsPaused || cadenceTime < nextReadyConstructionReplanAt)
         {
             return;
@@ -200,11 +162,12 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
 
     public DungeonWorkOrderSaveData Capture()
     {
+        WorkOrderAggregateState state = CurrentState;
         return new DungeonWorkOrderSaveData
         {
             version = DungeonWorkOrderSaveData.CurrentVersion,
-            nextOrderSequence = Mathf.Max(1, nextOrderSequence),
-            orders = ordersById.Values
+            nextOrderSequence = Mathf.Max(1, state.NextOrderSequence),
+            orders = state.OrdersById.Values
                 .Where(order => order.status != WorkOrderStatus.Completed && order.status != WorkOrderStatus.Cancelled)
                 .OrderBy(order => order.workOrderId, StringComparer.Ordinal)
                 .Select(ToSaveData)
@@ -212,48 +175,197 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
         };
     }
 
-    public void Restore(DungeonWorkOrderSaveData snapshot, DungeonGameRestoreReport report)
+    public void ValidateRestorePayload(DungeonWorkOrderSaveData snapshot)
     {
-        ClearRuntimeSites();
-        ordersById.Clear();
-        orderIdBySite.Clear();
-        BumpWorkOrderCandidates();
-
-        snapshot ??= new DungeonWorkOrderSaveData();
-        if (snapshot.version < 1
-            || snapshot.version > DungeonWorkOrderSaveData.CurrentVersion)
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        WorkOrderSaveValidation.Validate(
+            snapshot,
+            report,
+            TryGetBuilding,
+            ItemDefinitionExists);
+        if (!report.Success)
         {
-            report?.AddWarning($"Unsupported work order snapshot version {snapshot.version}; work orders were discarded.");
-            nextOrderSequence = 1;
+            throw new InvalidOperationException(
+                "Work-order restore candidate is invalid: "
+                + string.Join(" | ", report.Errors));
+        }
+    }
+
+    public WorkOrderRestoreCandidate PrepareRestoreCandidate(
+        DungeonWorkOrderSaveData snapshot)
+    {
+        ValidateRestorePayload(snapshot);
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+
+        WorkOrderAggregateState restored = BuildRestoredState(snapshot);
+        if (!stateStore.TryGetRestoreGrid(out Grid restoreGrid))
+        {
+            throw new InvalidOperationException(
+                "Work-order restore requires the detached facility grid candidate.");
+        }
+
+        List<WorkOrderConstructionSiteRestoreCandidate> candidates =
+            new List<WorkOrderConstructionSiteRestoreCandidate>();
+        foreach (WorkOrderRecord order in restored.OrdersById.Values
+                     .Where(order => order.workTypeId == BuiltInWorkTypeIds.Construct)
+                     .OrderBy(order => order.workOrderId, StringComparer.Ordinal))
+        {
+            if (!TryPrepareConstructionSiteCandidate(
+                    restoreGrid,
+                    order,
+                    report,
+                    out WorkOrderConstructionSiteRestoreCandidate candidate))
+            {
+                DiscardSiteCandidates(candidates);
+                throw new InvalidOperationException(
+                    "Work-order restore candidate could not prepare its detached construction sites: "
+                    + string.Join(" | ", report.Errors));
+            }
+
+            candidates.Add(candidate);
+        }
+
+        return new WorkOrderRestoreCandidate(restored, candidates);
+    }
+
+    public void PublishRestoreCandidate(WorkOrderRestoreCandidate candidate)
+    {
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
+        }
+        if (!restoreTransactionActive)
+        {
+            throw new InvalidOperationException(
+                "Work-order publish requires the V18 save registry transaction boundary.");
+        }
+        if (restoreCandidatePrepared || stagedSiteCandidates.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "A work-order restore candidate was staged more than once.");
+        }
+
+        stateStore.Replace(candidate.State);
+        stagedSiteCandidates.AddRange(candidate.TakeSites());
+        restoreCandidatePrepared = true;
+    }
+
+    public void BeginRestoreCandidate()
+    {
+        if (restoreTransactionActive || publishedSites != null)
+        {
+            throw new InvalidOperationException(
+                "A work-order restore candidate is already active.");
+        }
+
+        restoreTransactionActive = true;
+        restoreCandidatePrepared = false;
+        stagedSiteCandidates = new List<WorkOrderConstructionSiteRestoreCandidate>();
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (!restoreTransactionActive || !restoreCandidatePrepared)
+        {
+            throw new InvalidOperationException(
+                "No work-order restore candidate is ready to publish.");
+        }
+
+        Dictionary<ConstructionSite, string> publishedSites =
+            new Dictionary<ConstructionSite, string>();
+        foreach (WorkOrderConstructionSiteRestoreCandidate candidate in
+                 stagedSiteCandidates)
+        {
+            if (candidate?.Site == null
+                || !candidate.Site.IsDetachedRestoreCandidate
+                || candidate.Site.gameObject.activeSelf)
+            {
+                throw new InvalidOperationException(
+                    "A construction-site restore candidate is not detached and inactive.");
+            }
+
+            publishedSites.Add(candidate.Site, candidate.OrderId);
+        }
+
+        PublishedWorkOrderSites publication = new PublishedWorkOrderSites(
+            new Dictionary<ConstructionSite, string>(orderIdBySite),
+            stagedSiteCandidates);
+        this.publishedSites = publication;
+        orderIdBySite.Clear();
+        foreach (KeyValuePair<ConstructionSite, string> pair in
+                  publishedSites)
+        {
+            orderIdBySite.Add(pair.Key, pair.Value);
+        }
+
+        stagedSiteCandidates = null;
+        restoreCandidatePrepared = false;
+        restoreTransactionActive = false;
+    }
+
+    public void RollbackPublishedRestoreCandidate()
+    {
+        PublishedWorkOrderSites publication = publishedSites;
+        if (publication == null)
+        {
+            DiscardRestoreCandidate();
             return;
         }
 
-        nextOrderSequence = Mathf.Max(1, snapshot.nextOrderSequence);
-        foreach (WorkOrderSaveData source in snapshot.orders ?? new List<WorkOrderSaveData>())
+        orderIdBySite.Clear();
+        foreach (KeyValuePair<ConstructionSite, string> pair in
+                 publication.PreviousSites)
         {
-            if (source == null || string.IsNullOrWhiteSpace(source.workOrderId))
-            {
-                continue;
-            }
+            orderIdBySite.Add(pair.Key, pair.Value);
+        }
 
-            if (ordersById.ContainsKey(source.workOrderId))
-            {
-                report?.AddError($"Duplicate work order id {source.workOrderId}.");
-                continue;
-            }
+        DiscardSiteCandidates(publication.Candidates);
+        publishedSites = null;
+        stagedSiteCandidates = null;
+        restoreCandidatePrepared = false;
+        restoreTransactionActive = false;
+    }
 
-            WorkOrderRecord order = FromSaveData(source, report);
-            if (order == null)
-            {
-                continue;
-            }
+    public void CompleteRestoreCandidate()
+    {
+        PublishedWorkOrderSites publication = publishedSites;
+        if (publication == null)
+        {
+            return;
+        }
 
-            ordersById[order.workOrderId] = order;
-            if (order.workTypeId == BuiltInWorkTypeIds.Construct)
+        foreach (WorkOrderConstructionSiteRestoreCandidate candidate in
+                 publication.Candidates)
+        {
+            if (candidate?.Site == null
+                || !candidate.Site.IsDetachedRestoreCandidate
+                || candidate.Site.gameObject.activeSelf)
             {
-                RestoreConstructionSite(order, report);
+                throw new InvalidOperationException(
+                    "A published construction-site candidate is no longer detached and inactive.");
             }
         }
+
+        ClearRuntimeSites(publication.PreviousSites.Keys);
+        foreach (WorkOrderConstructionSiteRestoreCandidate candidate in
+                 publication.Candidates)
+        {
+            candidate.Site.PublishDetachedRestore();
+            candidate.Site.gameObject.SetActive(true);
+        }
+
+        publishedSites = null;
+        stagedSiteCandidates = null;
+        restoreCandidatePrepared = false;
+        restoreTransactionActive = false;
+    }
+
+    public void DiscardRestoreCandidate()
+    {
+        DiscardSiteCandidates(stagedSiteCandidates);
+        stagedSiteCandidates = null;
+        restoreCandidatePrepared = false;
+        restoreTransactionActive = false;
     }
 
     public bool TryCreateConstructionOrder(
@@ -292,19 +404,17 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
         }
         else
         {
-            foreach (KeyValuePair<StockCategory, int> pair
+            foreach (ItemAmountDefinition material
                      in building.GetConstructionMaterials())
             {
-                if (pair.Value > 0)
-                {
-                    order.requiredMaterials[pair.Key] = pair.Value;
-                    order.deliveredMaterials[pair.Key] = 0;
-                }
+                order.requiredItemMaterials.Add(
+                    material.ItemId,
+                    material.Amount);
+                order.deliveredItemMaterials.Add(material.ItemId, 0);
             }
         }
 
-        if (order.requiredMaterials.Count == 0
-            && order.requiredItemMaterials.Count == 0)
+        if (order.requiredItemMaterials.Count == 0)
         {
             order.status = WorkOrderStatus.Ready;
         }
@@ -318,12 +428,8 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
         site.ConfigureWorkOrderRuntime(this);
         orderId = order.workOrderId;
         BumpWorkOrderCandidates();
-        if (DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.InstantConstruction))
+        if (debugRules.IsEnabled(DungeonDebugCheat.InstantConstruction))
         {
-            foreach (StockCategory category in order.requiredMaterials.Keys.ToArray())
-            {
-                order.deliveredMaterials[category] = order.requiredMaterials[category];
-            }
             foreach (string itemId in order.requiredItemMaterials.Keys.ToArray())
             {
                 order.deliveredItemMaterials[itemId] =
@@ -390,9 +496,9 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
 
         order.status = WorkOrderStatus.InProgress;
         order.reservedWorkerPersistentId = worker?.Identity?.PersistentId ?? string.Empty;
-        if (DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.InstantWork)
+        if (debugRules.IsEnabled(DungeonDebugCheat.InstantWork)
             || (workTypeId == BuiltInWorkTypeIds.Construct
-                && DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.InstantConstruction)))
+                && debugRules.IsEnabled(DungeonDebugCheat.InstantConstruction)))
         {
             amount = order.requiredWork;
         }
@@ -619,23 +725,10 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
     private bool EnsureMaterialsReady(WorkOrderRecord order, out string failureReason)
     {
         failureReason = string.Empty;
-        if (order.requiredMaterials.Count == 0
-            && order.requiredItemMaterials.Count == 0)
+        if (order.requiredItemMaterials.Count == 0)
         {
             order.status = WorkOrderStatus.Ready;
             return true;
-        }
-
-        Dictionary<StockCategory, int> missing =
-            new Dictionary<StockCategory, int>();
-        foreach (KeyValuePair<StockCategory, int> pair in order.requiredMaterials)
-        {
-            order.deliveredMaterials.TryGetValue(pair.Key, out int delivered);
-            int remaining = pair.Value - delivered;
-            if (remaining > 0)
-            {
-                missing[pair.Key] = remaining;
-            }
         }
 
         Dictionary<string, int> missingItems =
@@ -649,28 +742,6 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             if (remaining > 0)
             {
                 missingItems[pair.Key] = remaining;
-            }
-        }
-
-        if (missing.Count > 0)
-        {
-            if (!itemStackRuntime.TryConsumeFacilityBuffer(
-                    order.materialDestinationId,
-                    missing,
-                    out failureReason))
-            {
-                order.status = WorkOrderStatus.WaitingForMaterials;
-                return false;
-            }
-
-            foreach (KeyValuePair<StockCategory, int> pair in missing)
-            {
-                order.deliveredMaterials[pair.Key] =
-                    order.deliveredMaterials.TryGetValue(
-                        pair.Key,
-                        out int current)
-                        ? current + pair.Value
-                        : pair.Value;
             }
         }
 
@@ -704,35 +775,12 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
     private void RequestMissingMaterials(WorkOrderRecord order)
     {
         if (order == null
-            || (order.requiredMaterials.Count == 0
-                && order.requiredItemMaterials.Count == 0))
+            || order.requiredItemMaterials.Count == 0)
         {
             return;
         }
 
         bool requestedAny = false;
-        foreach (KeyValuePair<StockCategory, int> pair in order.requiredMaterials)
-        {
-            int delivered = order.deliveredMaterials.TryGetValue(pair.Key, out int currentDelivered)
-                ? currentDelivered
-                : 0;
-            int pending = CountPendingDestinationStock(order, pair.Key);
-            int remaining = Mathf.Max(0, pair.Value - delivered - pending);
-            if (remaining <= 0)
-            {
-                continue;
-            }
-
-            itemStackRuntime.TryRequestFacilityDelivery(
-                pair.Key,
-                remaining,
-                order.position,
-                order.materialDestinationId,
-                out int requested,
-                out _);
-            requestedAny |= requested > 0;
-        }
-
         foreach (KeyValuePair<string, int> pair in order.requiredItemMaterials)
         {
             int delivered = order.deliveredItemMaterials.TryGetValue(
@@ -778,19 +826,6 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
         }
     }
 
-    private int CountPendingDestinationStock(WorkOrderRecord order, StockCategory category)
-    {
-        return itemStackRuntime.GetAllStacks()
-            .Where(stack => stack != null
-                && string.Equals(stack.DestinationId, order.materialDestinationId, StringComparison.Ordinal)
-                && stack.StockCategory == category
-                && (stack.State == WorldItemStackState.Loose
-                    || stack.State == WorldItemStackState.FacilityBuffer
-                    || (stack.State == WorldItemStackState.Stored
-                        && !string.IsNullOrWhiteSpace(stack.SourceStorageDestinationId))))
-            .Sum(stack => stack.Quantity);
-    }
-
     private int CountPendingDestinationItem(
         WorkOrderRecord order,
         string itemId)
@@ -831,46 +866,94 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
                 || stack.State == WorldItemStackState.Stored));
     }
 
-    private void RestoreConstructionSite(WorkOrderRecord order, DungeonGameRestoreReport report)
+    private bool TryPrepareConstructionSiteCandidate(
+        Grid grid,
+        WorkOrderRecord order,
+        DungeonGameRestoreReport report,
+        out WorkOrderConstructionSiteRestoreCandidate candidate)
     {
-        if (!gridSystemProvider.TryGetGrid(out Grid grid))
+        candidate = null;
+        if (grid == null)
         {
-            report?.AddWarning($"Cannot restore construction site {order.workOrderId}: grid missing.");
-            return;
+            report.AddError(
+                $"Cannot prepare construction site {order.workOrderId}: restore grid missing.");
+            return false;
         }
 
         BuildingSO building = TryGetBuilding(order.targetBuildingId);
         if (building == null)
         {
-            report?.AddWarning($"Cannot restore construction site {order.workOrderId}: building {order.targetBuildingId} missing.");
-            return;
+            report.AddError(
+                $"Cannot prepare construction site {order.workOrderId}: building {order.targetBuildingId} missing.");
+            return false;
         }
 
-        GameObject siteObject = new GameObject($"ConstructionSite_{building.objectName}_{order.position.x}_{order.position.y}");
+        IReadOnlyList<Vector2Int> positions =
+            building.GetGridPosList(order.position);
+        if (positions == null
+            || positions.Count == 0
+            || positions.Any(position => !grid.IsValidGridPos(position)))
+        {
+            report.AddError(
+                $"Cannot prepare construction site {order.workOrderId}: footprint is outside the restore grid.");
+            return false;
+        }
+
+        GameObject siteObject = new GameObject(
+            $"ConstructionSite_{building.objectName}_{order.position.x}_{order.position.y}");
+        siteObject.SetActive(false);
         DungeonRuntimeHierarchy.Parent(siteObject, DungeonRuntimeHierarchy.Construction);
         ConstructionSite site = siteObject.AddComponent<ConstructionSite>();
-        objectResolver?.Inject(site);
-        site.transform.position = grid.GetWorldPos(order.position);
-        site.SetGrid(grid);
-        site.Initialization(building, order.position);
-        site.ConfigureWorkOrderRuntime(this);
-        site.ConfigureSite(
-            order.workOrderId,
-            () => TryPlaceFinalBuildingOnRestore(grid, building, order.position),
-            () => RemoveSiteFromGrid(grid, site));
-
-        if (!grid.RegisterOccupant(
-                site,
-                GridLayer.Construction,
-                building.GetGridPosList(order.position),
-                false))
+        try
         {
-            UnityEngine.Object.Destroy(siteObject);
-            report?.AddWarning($"Cannot restore construction site {order.workOrderId}: grid occupied.");
-            return;
-        }
+            site.PrepareForDetachedRestore();
+            objectResolver.Inject(site);
+            site.RestorePersistentIdentity(
+                (BuildingInstanceId)$"building:construction:{order.workOrderId}");
+            site.transform.position = grid.GetWorldPos(order.position);
+            site.SetGrid(grid);
+            site.Initialization(building, order.position);
+            site.ConfigureWorkOrderRuntime(this);
+            site.ConfigureSite(
+                order.workOrderId,
+                () => TryPlaceFinalBuildingOnRestore(
+                    grid,
+                    building,
+                    order.position),
+                () => RemoveSiteFromGrid(grid, site));
 
-        orderIdBySite[site] = order.workOrderId;
+            if (!grid.RegisterOccupant(
+                    site,
+                    GridLayer.Construction,
+                    positions,
+                    false))
+            {
+                site.DiscardDetachedRestore();
+                report.AddError(
+                    $"Cannot prepare construction site {order.workOrderId}: grid occupied.");
+                return false;
+            }
+
+            candidate = new WorkOrderConstructionSiteRestoreCandidate(
+                order.workOrderId,
+                site);
+            return true;
+        }
+        catch (Exception exception)
+        {
+            if (site != null && site.IsDetachedRestoreCandidate)
+            {
+                site.DiscardDetachedRestore();
+            }
+            else if (siteObject != null)
+            {
+                UnityEngine.Object.DestroyImmediate(siteObject);
+            }
+
+            report.AddError(
+                $"Cannot prepare construction site {order.workOrderId}: {exception.Message}");
+            return false;
+        }
     }
 
     private bool TryPlaceFinalBuildingOnRestore(Grid grid, BuildingSO building, Vector2Int position)
@@ -886,35 +969,97 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             out _);
     }
 
-    private void ClearRuntimeSites()
+    private static void ClearRuntimeSites(
+        IEnumerable<ConstructionSite> sites)
     {
-        foreach (ConstructionSite site in orderIdBySite.Keys.ToArray())
+        foreach (ConstructionSite site in
+                 (sites ?? Enumerable.Empty<ConstructionSite>()).ToArray())
         {
             if (site == null)
             {
                 continue;
             }
 
-            RemoveSiteFromGrid(site.Grid, site);
-            UnityEngine.Object.Destroy(site.gameObject);
+            site.RetireForWorldReplacement();
+        }
+    }
+
+    private sealed class PublishedWorkOrderSites
+    {
+        internal PublishedWorkOrderSites(
+            IReadOnlyDictionary<ConstructionSite, string> previousSites,
+            IReadOnlyList<WorkOrderConstructionSiteRestoreCandidate> candidates)
+        {
+            PreviousSites = previousSites
+                ?? throw new ArgumentNullException(nameof(previousSites));
+            Candidates = candidates
+                ?? throw new ArgumentNullException(nameof(candidates));
+        }
+
+        internal IReadOnlyDictionary<ConstructionSite, string> PreviousSites
+        {
+            get;
+        }
+
+        internal IReadOnlyList<WorkOrderConstructionSiteRestoreCandidate>
+            Candidates
+        {
+            get;
         }
     }
 
     private static void RemoveSiteFromGrid(Grid grid, ConstructionSite site)
     {
-        if (grid == null || site == null)
+        if (site == null)
         {
             return;
         }
 
-        grid.RemoveOccupant(
-            site,
-            GridLayer.Construction,
-            site.buildPoses,
-            false);
-        if (site != null)
+        grid?.RemoveOccupant(
+                site,
+                GridLayer.Construction,
+                site.buildPoses,
+                false);
+        DestroyUnityObject(site.gameObject);
+    }
+
+    internal static void DiscardSiteCandidates(
+        IEnumerable<WorkOrderConstructionSiteRestoreCandidate> candidates)
+    {
+        foreach (WorkOrderConstructionSiteRestoreCandidate candidate in
+                 candidates ?? Enumerable.Empty<WorkOrderConstructionSiteRestoreCandidate>())
         {
-            UnityEngine.Object.Destroy(site.gameObject);
+            ConstructionSite site = candidate?.Site;
+            if (site == null)
+            {
+                continue;
+            }
+
+            if (site.IsDetachedRestoreCandidate)
+            {
+                site.DiscardDetachedRestore();
+            }
+            else
+            {
+                site.RetireForWorldReplacement();
+            }
+        }
+    }
+
+    private static void DestroyUnityObject(UnityEngine.Object value)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            UnityEngine.Object.Destroy(value);
+        }
+        else
+        {
+            UnityEngine.Object.DestroyImmediate(value);
         }
     }
 
@@ -930,26 +1075,67 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
         }
     }
 
+    private bool ItemDefinitionExists(string itemId)
+    {
+        return !string.IsNullOrWhiteSpace(itemId)
+            && itemStackRuntime.CatalogProvider != null
+            && itemStackRuntime.CatalogProvider.TryGetDefinition(
+                itemId,
+                out _);
+    }
+
     private string NextOrderId()
     {
-        return $"work:{nextOrderSequence++:D6}";
+        WorkOrderAggregateState state = WritableState;
+        return $"work:{state.NextOrderSequence++:D6}";
     }
 
     private void BumpWorkOrderCandidates()
     {
         unchecked
         {
-            WorkOrderCandidateVersion++;
+            WritableState.CandidateVersion++;
         }
     }
+
+    private WorkOrderAggregateState CurrentState => stateStore.Current;
+    private WorkOrderAggregateState WritableState => stateStore.Writable;
+    private Dictionary<string, WorkOrderRecord> ordersById =>
+        WritableState.OrdersById;
 
     private static string BuildConstructionDestinationId(BuildingSO building, Vector2Int position)
     {
         return $"{ConstructionDestinationPrefix}{building.id}:{position.x}:{position.y}";
     }
 
+    private WorkOrderAggregateState BuildRestoredState(
+        DungeonWorkOrderSaveData snapshot)
+    {
+        int nextCandidateVersion = CurrentState.CandidateVersion;
+        unchecked
+        {
+            nextCandidateVersion++;
+        }
+
+        WorkOrderAggregateState restored = new WorkOrderAggregateState
+        {
+            NextOrderSequence = snapshot.nextOrderSequence,
+            CandidateVersion = nextCandidateVersion
+        };
+        foreach (WorkOrderSaveData source in snapshot.orders)
+        {
+            WorkOrderRecord order = FromSaveData(source);
+            restored.OrdersById.Add(order.workOrderId, order);
+        }
+
+        return restored;
+    }
+
     private static WorkOrderSaveData ToSaveData(WorkOrderRecord order)
     {
+        WorkOrderStatus durableStatus = order.status == WorkOrderStatus.InProgress
+            ? WorkOrderStatus.Ready
+            : order.status;
         return new WorkOrderSaveData
         {
             workOrderId = order.workOrderId,
@@ -960,17 +1146,8 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             requiredWork = order.requiredWork,
             completedWork = order.completedWork,
             materialDestinationId = order.materialDestinationId,
-            reservedWorkerPersistentId = order.reservedWorkerPersistentId,
-            status = order.status,
-            materials = order.requiredMaterials
-                .OrderBy(pair => (int)pair.Key)
-                .Select(pair => new WorkOrderMaterialSaveData
-                {
-                    category = pair.Key,
-                    required = pair.Value,
-                    delivered = order.deliveredMaterials.TryGetValue(pair.Key, out int delivered) ? delivered : 0
-                })
-                .ToList(),
+            reservedWorkerPersistentId = string.Empty,
+            status = durableStatus,
             itemMaterials = order.requiredItemMaterials
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => new WorkOrderItemMaterialSaveData
@@ -987,16 +1164,11 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
         };
     }
 
-    private static WorkOrderRecord FromSaveData(
-        WorkOrderSaveData source,
-        DungeonGameRestoreReport report)
+    private static WorkOrderRecord FromSaveData(WorkOrderSaveData source)
     {
-        if (!WorkTypeCatalog.TryGet(source.workTypeId, out WorkTypeDefinition definition))
-        {
-            report?.AddWarning(
-                $"Cannot restore work order {source.workOrderId}: work type '{source.workTypeId}' is not registered.");
-            return null;
-        }
+        WorkTypeCatalog.TryGet(
+            source.workTypeId,
+            out WorkTypeDefinition definition);
 
         WorkOrderRecord order = new WorkOrderRecord
         {
@@ -1010,25 +1182,6 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             reservedWorkerPersistentId = source.reservedWorkerPersistentId ?? string.Empty,
             status = source.status
         };
-        if (order.status == WorkOrderStatus.Ready
-            || order.status == WorkOrderStatus.InProgress)
-        {
-            // Runtime AI actions and scene reservations are rebuilt after load.
-            // Keep durable progress, but require a fresh worker reservation.
-            order.status = WorkOrderStatus.Ready;
-            order.reservedWorkerPersistentId = string.Empty;
-        }
-
-        foreach (WorkOrderMaterialSaveData material in source.materials ?? new List<WorkOrderMaterialSaveData>())
-        {
-            if (material == null || material.required <= 0)
-            {
-                continue;
-            }
-
-            order.requiredMaterials[material.category] = material.required;
-            order.deliveredMaterials[material.category] = Mathf.Clamp(material.delivered, 0, material.required);
-        }
 
         foreach (WorkOrderItemMaterialSaveData material
                  in source.itemMaterials
@@ -1063,8 +1216,6 @@ public sealed class WorkOrderRuntime : IWorkOrderRuntime, ITickable
             MaterialDestinationId = order.materialDestinationId,
             ReservedWorkerPersistentId = order.reservedWorkerPersistentId,
             Status = order.status,
-            MaterialRequirements = new Dictionary<StockCategory, int>(order.requiredMaterials),
-            DeliveredMaterials = new Dictionary<StockCategory, int>(order.deliveredMaterials),
             ItemMaterialRequirements = new Dictionary<string, int>(
                 order.requiredItemMaterials,
                 StringComparer.Ordinal),

@@ -27,20 +27,36 @@ MonoBehaviour:
   description: "\uD3D0\uC218\uC5D0\uC11C \uC7AC\uC774\uC6A9\uC218\uC640 \uC2AC\uB7EC\uC9C0\uB97C
     \uBD84\uB9AC\uD55C\uB2E4."
   field: 16
-  requiredWork: 204
+  requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: d7600d92baff8d94d95c73c967471b72, type: 2}
   - {fileID: 11400000, guid: e8304218a91814b44bbdc6fb4d4705b2, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:agriculture:compost
+    prerequisite: {fileID: 11400000, guid: d7600d92baff8d94d95c73c967471b72, type: 2}
+    kind: 2
+    reason: "\uD1F4\uBE44\xB7\uC724\uC791\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC624\uC218 \uCE68\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:plumbing:sewer
+    prerequisite: {fileID: 11400000, guid: e8304218a91814b44bbdc6fb4d4705b2, type: 2}
+    kind: 2
+    reason: "\uD558\uC218 \uBC30\uAD00\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC624\uC218 \uCE68\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687357
+    - rid: 7737211730927813074
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687357
+    - rid: 7737211730927813074
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9820

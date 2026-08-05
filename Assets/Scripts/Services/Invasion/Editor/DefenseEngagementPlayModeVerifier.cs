@@ -210,14 +210,19 @@ public static class DefenseEngagementPlayModeVerifier
         Vector2Int guardCell = before.GuardCell;
         int exchangeCount = before.ExchangeCount;
         string policyId = runtime.PolicyRuntime.GetAssignedPolicyId(before.LeadGuard);
-        DefenseResponsePolicySaveSnapshot policies = runtime.PolicyRuntime.Capture();
         OwnerEvacuationSaveSnapshot owner = runtime.OwnerEvacuation.Capture();
-        DefenseEngagementSaveSnapshot engagements = runtime.Capture();
-        List<string> warnings = new List<string>();
-
-        runtime.PolicyRuntime.Restore(policies, warnings);
-        runtime.OwnerEvacuation.Restore(owner, warnings);
-        runtime.Restore(engagements, warnings);
+        IDungeonGameSaveService saveService =
+            ResolveService<IDungeonGameSaveService>();
+        if (saveService == null)
+        {
+            return "FAIL: V18 저장 서비스를 찾지 못했습니다.";
+        }
+        DungeonGameSaveData saveData = saveService.Capture();
+        if (!saveService.TryRestore(saveData, out DungeonGameRestoreReport report))
+        {
+            return "FAIL: V18 원자 복원 실패 · "
+                + string.Join(" | ", report.Errors);
+        }
 
         DefenseEngagement after = runtime.ActiveEngagements.FirstOrDefault(item =>
             item != null && string.Equals(item.Id, engagementId, StringComparison.Ordinal));
@@ -236,7 +241,7 @@ public static class DefenseEngagementPlayModeVerifier
                 StringComparison.Ordinal)
             && runtime.OwnerEvacuation.IsEvacuating == owner.active
             && runtime.OwnerEvacuation.TargetCell == new Vector2Int(owner.targetX, owner.targetY)
-            && warnings.Count == 0;
+            && report.Warnings.Count == 0;
         Time.timeScale = 0f;
         return $"{(valid ? "PASS" : "FAIL")}: id={after?.Id}; "
             + $"lead={after?.LeadGuard?.Identity?.PersistentId}; "
@@ -245,7 +250,7 @@ public static class DefenseEngagementPlayModeVerifier
             + $"hold={(after != null && runtime.ShouldHoldIntruder(after.Intruder))}; "
             + $"policy={runtime.PolicyRuntime.GetAssignedPolicyId(after?.LeadGuard)}; "
             + $"owner={runtime.OwnerEvacuation.IsEvacuating}/{runtime.OwnerEvacuation.TargetCell}; "
-            + $"warnings=[{string.Join(" | ", warnings)}]";
+            + $"warnings=[{string.Join(" | ", report.Warnings)}]";
     }
 
     public static string ResumeOwnerEvacuationProbe()
@@ -555,8 +560,8 @@ public static class DefenseEngagementPlayModeVerifier
         private InvasionIntruderRuntime intruder;
         private IDefenseEngagementRuntime engagementRuntime;
         private IInvasionOwnerEvacuationService ownerEvacuation;
-        private ICharacterMedicalRuntime medicalRuntime;
-        private ICharacterBodyHealthRuntime bodyHealthRuntime;
+        private ICharacterMedicalQuery medicalQuery;
+        private CharacterBodyHealthRuntime bodyHealthRuntime;
         private ICharacterDeprivationRuntime deprivationRuntime;
         private ICharacterCombatCommandRuntime combatCommandRuntime;
         private ICombatAmmoResupplyRuntime ammoResupplyRuntime;
@@ -638,14 +643,14 @@ public static class DefenseEngagementPlayModeVerifier
             DisableNaturalThreatForVerification();
             engagementRuntime ??= ResolveRuntime();
             ownerEvacuation ??= engagementRuntime?.OwnerEvacuation;
-            medicalRuntime ??= ResolveService<ICharacterMedicalRuntime>();
-            bodyHealthRuntime ??= ResolveService<ICharacterBodyHealthRuntime>();
+            medicalQuery ??= ResolveService<ICharacterMedicalQuery>();
+            bodyHealthRuntime ??= ResolveService<CharacterBodyHealthRuntime>();
             deprivationRuntime ??= ResolveService<ICharacterDeprivationRuntime>();
             combatCommandRuntime ??= ResolveService<ICharacterCombatCommandRuntime>();
             ammoResupplyRuntime ??= ResolveService<ICombatAmmoResupplyRuntime>();
             if (director == null
                 || engagementRuntime == null
-                || medicalRuntime == null
+                || medicalQuery == null
                 || bodyHealthRuntime == null
                 || deprivationRuntime == null
                 || combatCommandRuntime == null)
@@ -944,7 +949,7 @@ public static class DefenseEngagementPlayModeVerifier
 
         private void ObserveMedicalProgress()
         {
-            if (medicalRuntime == null)
+            if (medicalQuery == null)
             {
                 return;
             }
@@ -952,15 +957,15 @@ public static class DefenseEngagementPlayModeVerifier
             CharacterMedicalOrder order = null;
             if (!string.IsNullOrWhiteSpace(medicalOrderId))
             {
-                medicalRuntime.TryGetOrder(medicalOrderId, out order);
+                medicalQuery.TryGetOrder(medicalOrderId, out order);
             }
 
             if (order == null)
             {
-                foreach (CharacterMedicalOrder candidate in medicalRuntime.ActiveOrders)
+                foreach (CharacterMedicalOrder candidate in medicalQuery.ActiveOrders)
                 {
                     if (candidate == null
-                        || !medicalRuntime.TryGetPatient(candidate, out CharacterActor patient)
+                        || !medicalQuery.TryGetPatient(candidate, out CharacterActor patient)
                         || patient == null
                         || patient == intruder?.IntruderActor)
                     {
@@ -975,7 +980,7 @@ public static class DefenseEngagementPlayModeVerifier
             }
 
             if (order == null
-                || !medicalRuntime.TryGetPatient(order, out CharacterActor currentPatient)
+                || !medicalQuery.TryGetPatient(order, out CharacterActor currentPatient)
                 || currentPatient == null)
             {
                 return;
@@ -1090,14 +1095,14 @@ public static class DefenseEngagementPlayModeVerifier
             CharacterMedicalOrder order = null;
             if (!string.IsNullOrWhiteSpace(medicalOrderId))
             {
-                medicalRuntime?.TryGetOrder(medicalOrderId, out order);
+                medicalQuery?.TryGetOrder(medicalOrderId, out order);
             }
 
             return $"downed={observedDowned}; stabilization={observedStabilization}; "
                 + $"carry={observedPhysicalCarry}; treatment={observedTreatment}; "
                 + $"recovery={observedRecovery}; order={order?.state.ToString() ?? "none"}; "
                 + $"medicalTrigger={(controlledMedicalTriggerUsed ? "controlled-post-combat" : "natural-combat")}; "
-                + $"status={order?.status ?? "none"}";
+                + $"status={order?.statusCode.ToString() ?? "none"}";
         }
 
         private bool TryCreateControlledPostCombatInjury(out string failureReason)
@@ -1189,7 +1194,7 @@ public static class DefenseEngagementPlayModeVerifier
             string patientId = !string.IsNullOrWhiteSpace(patient.Identity?.PersistentId)
                 ? patient.Identity.PersistentId
                 : $"scene-actor:{patient.GetInstanceID()}";
-            CharacterMedicalOrder createdOrder = medicalRuntime?.ActiveOrders.FirstOrDefault(order =>
+            CharacterMedicalOrder createdOrder = medicalQuery?.ActiveOrders.FirstOrDefault(order =>
                 order != null
                 && order.IsActive
                 && string.Equals(order.patientId, patientId, StringComparison.Ordinal));
@@ -1207,7 +1212,7 @@ public static class DefenseEngagementPlayModeVerifier
 
         public string DescribeRecoveryRuntime()
         {
-            int activeMedicalOrders = medicalRuntime?.ActiveOrders?.Count ?? 0;
+            int activeMedicalOrders = medicalQuery?.ActiveOrders?.Count ?? 0;
             List<string> actorStates = FindObjectsByType<CharacterActor>(
                     FindObjectsInactive.Exclude,
                     FindObjectsSortMode.None)
@@ -1219,7 +1224,7 @@ public static class DefenseEngagementPlayModeVerifier
                     AbilityWork work = actor.GetAbility<AbilityWork>();
                     AbilityRescue rescue = AbilityRescue.Ensure(actor);
                     bool canRescue = rescue != null
-                        && rescue.CanStartRescue(out string _);
+                        && rescue.CanStartRescue(out DomainFailure _);
                     bool combatStance = combatCommandRuntime?.IsInCombatStance(actor) == true;
                     bool resupplying = ammoResupplyRuntime?.IsResupplying(actor) == true;
                     return $"{actor.Identity?.DisplayName ?? actor.name}:"
@@ -1356,7 +1361,7 @@ public static class DefenseEngagementPlayModeVerifier
             foreach (IWarehouseFacility warehouse in warehouseQuery?.Warehouses
                          ?? Array.Empty<IWarehouseFacility>())
             {
-                warehouse?.Inventory?.AddStock(StockCategory.Medicine, 12);
+                warehouse?.Inventory?.SeedPhysicalStockForTest(StockCategory.Medicine, 12);
             }
         }
     }

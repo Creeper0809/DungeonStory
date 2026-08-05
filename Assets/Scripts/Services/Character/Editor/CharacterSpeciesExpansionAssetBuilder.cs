@@ -95,7 +95,9 @@ public static class CharacterSpeciesExpansionAssetBuilder
             asset.defaultWorkPriorities = WorkPriorityProfile.CreateDefault();
             foreach (FacilityWorkType type in EnumerateFlags(spec.StrongWork))
             {
-                if (WorkTypeCatalog.TryGet(type, out WorkTypeDefinition definition))
+                if (FacilityWorkTypeMap.TryGet(
+                        type,
+                        out WorkTypeDefinition definition))
                 {
                     asset.defaultWorkPriorities.SetPriority(
                         definition.WorkTypeId,
@@ -187,7 +189,7 @@ public static class CharacterSpeciesExpansionAssetBuilder
                 Passive("species-passive:slime", "유동 신체",
                     "좁은 물류 동선과 부식 방어시설 운용에 능하다.", "물류", "부식")),
             Existing(
-                2, "Orc", "오크", "anatomy:humanoid",
+                2, "Orc", "오크", "anatomy:orc",
                 CharacterSpeciesIncidentIds.OrcRampage,
                 "오크 난동", FacilityRole.Training | FacilityRole.Security,
                 new[] { "소음", "혼잡", "야외" },
@@ -196,7 +198,7 @@ public static class CharacterSpeciesExpansionAssetBuilder
                 Passive("species-passive:orc", "전선 본능",
                     "전선 저지와 물리·화염 시설 운용에 강하다.", "저지", "물리")),
             Existing(
-                3, "Vampire", "뱀파이어", "anatomy:humanoid",
+                3, "Vampire", "뱀파이어", "anatomy:vampire",
                 CharacterSpeciesIncidentIds.VampireFear,
                 "흡혈 공포", FacilityRole.Rest | FacilityRole.Entertainment,
                 new[] { "고급", "마력", "암흑" },
@@ -206,7 +208,7 @@ public static class CharacterSpeciesExpansionAssetBuilder
                     "독·냉기·공포 방어시설의 통제력이 높다.", "공포", "야간")),
             NewSpecies(
                 4, "Beastkin", "수인", "붉은발 역참",
-                "anatomy:humanoid",
+                "anatomy:beastkin",
                 Needs(1.35f, 1.15f, MealDietClass.Carnivore, 1.4f),
                 Env(10, 29, -4, 40, -12, 48, 70),
                 FacilityWorkType.Haul | FacilityWorkType.Restock
@@ -227,7 +229,7 @@ public static class CharacterSpeciesExpansionAssetBuilder
                 "라카", 8, 5, 4, 7, 7, 120, 320, 5),
             NewSpecies(
                 5, "Demon", "데몬", "잿불 계약정",
-                "anatomy:humanoid",
+                "anatomy:demon",
                 Needs(1f, 0.9f, MealDietClass.Mixed, 0.8f),
                 Env(20, 34, 10, 46, -2, 56, 60),
                 FacilityWorkType.Research | FacilityWorkType.Guard,
@@ -247,7 +249,7 @@ public static class CharacterSpeciesExpansionAssetBuilder
                 "아자라", 8, 7, 8, 5, 6, 300, 650, 4),
             NewSpecies(
                 6, "Kobold", "코볼트", "심층 톱니굴",
-                "anatomy:humanoid",
+                "anatomy:kobold",
                 Needs(0.85f, 0.9f, MealDietClass.Mixed, 0.9f),
                 Env(11, 28, -2, 40, -10, 48, 60),
                 FacilityWorkType.Quarry | FacilityWorkType.Repair
@@ -365,6 +367,13 @@ public static class CharacterSpeciesExpansionAssetBuilder
             IncidentDescription = string.Empty,
             IncidentMitigatingRoles = mitigation,
             IncidentTriggerTags = new[] { "discontent" },
+            CrimeRiskMultiplier = tag switch
+            {
+                "Slime" => 1.05f,
+                "Orc" => 1.2f,
+                "Vampire" => 1.1f,
+                _ => 1f
+            },
             Passive = passive,
             ActiveName = $"{name} 종족기",
             ActiveDescription = $"{name}의 고유 전투 능력",
@@ -592,7 +601,7 @@ public static class CharacterSpeciesExpansionAssetBuilder
     private static string[] WorkIds(FacilityWorkType flags)
     {
         return EnumerateFlags(flags)
-            .Select(type => WorkTypeCatalog.TryGet(
+            .Select(type => FacilityWorkTypeMap.TryGet(
                     type,
                     out WorkTypeDefinition definition)
                 ? definition.Id

@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
+  m_Name: procedure_vampire-night-eye
+  m_EditorClassIdentifier: DungeonStory.Medical::SurgicalProcedureSO
+  procedureId: procedure:vampire-night-eye
+  displayName: "\uC57C\uAC04\uC548 \uC774\uC2DD"
+  description: "\uC57C\uAC04\uC548 \uC774\uC2DD\uC744(\uB97C) \uC885\uC871 \uD574\uBD80
+    \uAD6C\uC870\uC5D0 \uB9DE\uCDB0 \uC2DC\uD589\uD55C\uB2E4."
+  kind: 13
+  family: 5
+  urgency: 1
+  allowedAnatomyFamilies:
+  - humanoid
+  allowedSpeciesIds:
+  - vampire
+  operatorRequirement:
+    stats: []
+    minimumWeightedScore: 3
+  targetNodeId: 
+  requiredResearchId: research:medical:bloodcraft-augmentation
+  requiredFacilityTags: 12
+  requiredWork: 34
+  difficultyPenalty: 0.12
+  baseInfectionRisk: 0.08
+  baseBleedingRisk: 0.08
+  requiresAnesthesia: 0
+  requiresRestraintForUnwilling: 0
+  allowsLivingSubject: 1
+  allowsCorpseSubject: 0
+  allowsWildlife: 0
+  materials:
+  - itemId: medicine:standard
+    quantity: 1
+    optional: 0
+  effects:
+  - rid: 7737211730889015544
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730889015544
+      type: {class: HealSurgicalNodeEffect, ns: , asm: DungeonStory.Medical}
+      data:
+        effectId: HealSurgicalNodeEffect
+        health: 24
+        infectionReduction: 10

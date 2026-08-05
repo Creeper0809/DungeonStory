@@ -20,6 +20,7 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
     private readonly ICaptivityRuntime captivity;
     private readonly IWildlifeCaptureRuntime wildlife;
     private readonly IExternalInfluenceRuntime externalInfluence;
+    private readonly IDomainFailureLocalizer failureLocalizer;
     private readonly Dictionary<string, CircusLethalityPolicy> selectedLethality =
         new Dictionary<string, CircusLethalityPolicy>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> panelStatus =
@@ -31,13 +32,16 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
         ICircusRuntime circus,
         ICaptivityRuntime captivity,
         IWildlifeCaptureRuntime wildlife,
-        IExternalInfluenceRuntime externalInfluence)
+        IExternalInfluenceRuntime externalInfluence,
+        IDomainFailureLocalizer failureLocalizer)
     {
         this.circus = circus ?? throw new ArgumentNullException(nameof(circus));
         this.captivity = captivity ?? throw new ArgumentNullException(nameof(captivity));
         this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
         this.externalInfluence = externalInfluence
             ?? throw new ArgumentNullException(nameof(externalInfluence));
+        this.failureLocalizer = failureLocalizer
+            ?? throw new ArgumentNullException(nameof(failureLocalizer));
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -108,10 +112,10 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
             () =>
             {
                 bool armed = externalInfluence.TryArmDreadDefense(
-                    out string failureReason);
+                    out DomainFailure failure);
                 panelStatus[stageKey] = armed
                     ? "공포 15를 예약했습니다. 다음 일반 침입은 이동·공격 -10%, 집결 +10초, 보스는 -5%, +5초이며 침입 시작 시 1회 소모됩니다."
-                    : failureReason;
+                    : failureLocalizer.Localize(failure);
                 refresh?.Invoke();
             });
 
@@ -323,12 +327,12 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
             method,
             out float reduced,
             out int cost,
-            out string failureReason);
+            out DomainFailure failure);
         panelStatus[stageKey] = succeeded
             ? $"소문 수습 완료 · {before:0.#} → "
                 + $"{externalInfluence.HostileRumor:0.#}"
                 + $" · {FormatMitigationMethod(method)} {cost} 사용"
-            : failureReason;
+            : failureLocalizer.Localize(failure);
         refresh?.Invoke();
     }
 
@@ -464,6 +468,6 @@ public sealed class CircusBuildingPanelPresenter : ICircusBuildingPanelPresenter
 
     private static string GetStageKey(BuildableObject building)
     {
-        return $"{building.id}:{building.centerPos.x}:{building.centerPos.y}";
+        return building.RequirePersistentInstanceId().Value;
     }
 }

@@ -1,7 +1,10 @@
 {
   "name": "DungeonStory.Items",
   "rootNamespace": "DungeonStory.Items",
-  "references": [],
+  "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.Foundation"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

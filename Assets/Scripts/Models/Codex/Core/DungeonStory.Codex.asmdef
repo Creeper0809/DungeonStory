@@ -1,0 +1,18 @@
+{
+  "name": "DungeonStory.Codex",
+  "rootNamespace": "DungeonStory.Codex",
+  "references": [
+    "DungeonStory.Foundation",
+    "DungeonStory.Operation",
+    "VContainer"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

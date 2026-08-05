@@ -291,7 +291,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         bool isStockItem = TryGetWarehouseStockCategory(
             stack.itemId,
             out StockCategory category);
-        bool isEquipmentItem = DungeonItemCatalogSO.TryGetEquipmentIdFromItemId(
+        bool isEquipmentItem = PhysicalItemIds.TryGetEquipmentDefinitionId(
             stack.itemId,
             out _);
         if (!isStockItem && !isEquipmentItem)
@@ -606,7 +606,7 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
         bool isStockItem = TryGetWarehouseStockCategory(
             stack.itemId,
             out StockCategory category);
-        bool isEquipmentItem = DungeonItemCatalogSO.TryGetEquipmentIdFromItemId(
+        bool isEquipmentItem = PhysicalItemIds.TryGetEquipmentDefinitionId(
             stack.itemId,
             out _);
         if (!isStockItem && !isEquipmentItem)
@@ -716,22 +716,15 @@ public sealed class WorldItemHaulPlanningService : IWorldItemHaulPlanningService
             && !string.IsNullOrWhiteSpace(stack.destinationId);
     }
 
-    private static bool TryGetWarehouseStockCategory(
+    private bool TryGetWarehouseStockCategory(
         string itemId,
         out StockCategory category)
     {
-        if (DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
+        if (catalogProvider.TryGetDefinition(
                 itemId,
-                out category))
+                out DungeonItemDefinition definition))
         {
-            return true;
-        }
-
-        if (CombatItemDefinitions.TryGetDefinition(
-                itemId,
-                out DungeonItemDefinition ammunition))
-        {
-            category = ammunition.StockCategory;
+            category = definition.StockCategory;
             return true;
         }
 

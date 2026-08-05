@@ -16,7 +16,8 @@ public enum OffenseExpeditionPhase
     Defeated,
     Traveling,
     AwaitingDecision,
-    Returning
+    Returning,
+    Stranded
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -36,7 +37,14 @@ public enum OffenseSupplyType
     Rations,
     Medicine,
     Tools,
-    ManaLantern
+    ManaLantern,
+    FieldEmergencyKit,
+    RuneSlimePatch,
+    MycelialCulturePack,
+    WingSplintKit,
+    TemporaryPowerBypass,
+    BloodSealKit,
+    ManaCoreRestraint
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -45,17 +53,6 @@ public enum OffenseFormationSlot
     Front,
     Middle,
     Rear
-}
-
-[Flags]
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public enum OffenseFormationMask
-{
-    None = 0,
-    Front = 1 << 0,
-    Middle = 1 << 1,
-    Rear = 1 << 2,
-    Any = Front | Middle | Rear
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

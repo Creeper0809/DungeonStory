@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa401bda1083a0a49abbc7ea825b25a0, type: 3}
+  m_Name: W17_MatchlockPistol
+  m_EditorClassIdentifier: Assembly-CSharp::CombatWeaponSO
+  equipmentId: weapon:matchlock-pistol
+  displayName: "\uD654\uC2B9 \uAD8C\uCD1D"
+  description: "\uD654\uC2B9 \uAD8C\uCD1D \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:weapon:matchlock-pistol
+  weight: 2.6
+  occupiedHands: 1
+  maxDurability: 100
+  requiredCraftWork: 6
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 2
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:growth-frame
+    amount: 1
+  - itemId: component:machine-parts
+    amount: 1
+  - itemId: component:precision-parts
+    amount: 1
+  - itemId: component:engineering-drawing
+    amount: 1
+  requiredResearchId: research:equipment:ignition-mechanisms
+  era: 2
+  tier: 2
+  slotProfile: 3
+  lineageKind: 0
+  growthEquipment: 1
+  growthBaseStatMultiplier: 0.88
+  verbs:
+  - rid: 7737211765905949113
+  rangeProfiles:
+  - band: 1
+    accuracyMultiplier: 0.8
+    damageMultiplier: 1.2
+  - band: 2
+    accuracyMultiplier: 0.48
+    damageMultiplier: 0.9
+  maximumRange: 14
+  compatibleAmmunitionItemIds:
+  - ammo:paper-cartridge
+  magazineCapacity: 1
+  reloadSeconds: 6
+  supportsAimed: 1
+  supportsRapid: 0
+  supportsSuppressive: 1
+  gunpowderWeapon: 1
+  maximumMisfireChance: 0.2
+  smokeExposure: 10
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211765905949113
+      type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
+      data:
+        attackTime: 1.4
+        baseDamage: 24
+        penetration: 22
+        damageType: 1
+        tracking: 0.025
+        projectileSpeed: 14

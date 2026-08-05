@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using DungeonStory.Factions;
 using UnityEditor;
 using UnityEngine;
 

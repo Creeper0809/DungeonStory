@@ -27,19 +27,28 @@ MonoBehaviour:
   description: "\uC11D\uC7AC\uB97C \uC9C0\uC18D\uC801\uC73C\uB85C \uCE90\uBA70 \uD76C\uADC0
     \uAD11\uB9E5\uC744 \uD0D0\uC0C9\uD55C\uB2E4."
   field: 8
-  requiredWork: 56
+  requiredWork: 60
   prerequisites:
   - {fileID: 11400000, guid: 9fce6367650d81e48a5379ad21080807, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:mining:surface
+    prerequisite: {fileID: 11400000, guid: 9fce6367650d81e48a5379ad21080807, type: 2}
+    kind: 2
+    reason: "\uB178\uCC9C \uCC44\uC11D\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uCC44\uC11D\uC7A5 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563231102140548
+    - rid: 7737211730927813042
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563231102140548
+    - rid: 7737211730927813042
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1094

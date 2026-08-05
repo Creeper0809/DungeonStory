@@ -85,6 +85,7 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
     private Mouse verificationMouse;
     private Keyboard originalKeyboard;
     private Keyboard verificationKeyboard;
+    private DungeonAutomationInputTestCapability automationInput;
     private InputSettings.EditorInputBehaviorInPlayMode originalInputBehavior;
     private int originalGameViewSizeIndex = -1;
     private IDungeonUserSettingsService settings;
@@ -97,6 +98,10 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         Application.logMessageReceived += CaptureLog;
         originalGameViewSizeIndex = GameViewResolutionController.SelectedSizeIndex;
         ConfigureInput();
+
+        yield return CompleteOwnerSelectionIfVisible();
+        yield return StartPartyPlayModeTestDriver.CompleteIfVisible(45f);
+        yield return ClearBlockingRunOverlays();
 
         yield return SelectResolution(1600, 900);
         DungeonRuntimeLifetimeScope scope = null;
@@ -121,17 +126,18 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         settings = container.Resolve<IDungeonUserSettingsService>();
         timeScaleController = container.Resolve<IGameTimeScaleController>();
         IResearchProjectCatalog catalog = container.Resolve<IResearchProjectCatalog>();
-        IBlueprintResearchRuntimeProvider runtimeProvider =
-            container.Resolve<IBlueprintResearchRuntimeProvider>();
+        BlueprintResearchRuntime runtime = container
+            .Resolve<ProgressionSceneRuntimeReferences>()
+            .BlueprintResearch;
         gameManager = FindObjectsByType<GameManager>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None)
             .FirstOrDefault();
 
-        Check(catalog.Projects.Count == 24,
+        Check(catalog.Projects.Count == 168,
             "CATALOG_COUNT",
             $"projects={catalog.Projects.Count}");
-        Check(runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime),
+        Check(runtime != null,
             "RUNTIME",
             "research runtime resolved");
         if (runtime == null)
@@ -157,7 +163,7 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
                 && (gameManager == null || !gameManager.isPause),
             "DEFAULT_NO_PAUSE",
             $"timeScale={Time.timeScale:0.##}; paused={gameManager != null && gameManager.isPause}");
-        Check(CountNodeButtons(window) == 24,
+        Check(CountNodeButtons(window) == 168,
             "ALL_NODES_VISIBLE",
             $"nodes={CountNodeButtons(window)}");
         Check(FindChild(window.transform, "GraphViewport") != null
@@ -177,12 +183,16 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
             ResearchProjectSO candidate = catalog.Projects
                 .Where(project => !queuedIds.Contains(project.ProjectId.Value))
                 .Where(project => runtime.GetNodeState(project, out _) == ResearchNodeState.Available)
-                .FirstOrDefault(project => IsButtonVisibleInGraph(
-                    FindButton($"Node_{project.ProjectId.Value}"),
-                    FindChild(window.transform, "GraphViewport") as RectTransform));
+                .FirstOrDefault();
+            if (candidate != null)
+            {
+                window.CenterProject(candidate);
+                yield return null;
+                yield return null;
+            }
             Check(candidate != null,
                 $"QUEUE_CANDIDATE_{iteration + 1}",
-                candidate != null ? candidate.ProjectId.Value : "no visible available project");
+                candidate != null ? candidate.ProjectId.Value : "no available project");
             if (candidate == null)
             {
                 break;
@@ -297,6 +307,72 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         settings.Update(data => data.pauseOnResearchTree = false);
         SetRunningState(1f);
         Finish();
+    }
+
+    private IEnumerator CompleteOwnerSelectionIfVisible()
+    {
+        float deadline = Time.realtimeSinceStartup + 10f;
+        Button owner = null;
+        while (Time.realtimeSinceStartup < deadline)
+        {
+            owner = Resources.FindObjectsOfTypeAll<Button>()
+                .Where(button => button != null
+                    && button.gameObject.scene.IsValid()
+                    && button.gameObject.activeInHierarchy
+                    && button.interactable
+                    && button.name.StartsWith(
+                        "OwnerOption_",
+                        StringComparison.Ordinal))
+                .OrderBy(button => button.name, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (owner != null
+                || FindButton("StartPartyConfirm") != null
+                || FindButton("PreparationStartRunButton") != null)
+            {
+                break;
+            }
+            yield return null;
+        }
+
+        if (owner != null)
+        {
+            yield return Click(owner);
+        }
+    }
+
+    private IEnumerator ClearBlockingRunOverlays()
+    {
+        OwnerRunManager ownerManager = FindFirstObjectByType<OwnerRunManager>();
+        Check(ownerManager != null && ownerManager.CurrentOwnerActor != null,
+            "PLAYABLE_RUN_READY",
+            ownerManager?.CurrentOwnerActor != null
+                ? "owner=" + ownerManager.CurrentOwnerActor.name
+                : "owner or committed party missing");
+
+        foreach (GameObject overlay in Resources
+                     .FindObjectsOfTypeAll<GameObject>()
+                     .Where(candidate => candidate != null
+                         && candidate.scene.IsValid()
+                         && candidate.activeInHierarchy
+                         && (candidate.name == "OwnerSelectionSurface"
+                             || candidate.name == "OwnerSelectionPanel")))
+        {
+            overlay.SetActive(false);
+        }
+
+        yield return null;
+        bool blockingOverlayVisible = Resources
+            .FindObjectsOfTypeAll<GameObject>()
+            .Any(candidate => candidate != null
+                && candidate.scene.IsValid()
+                && candidate.activeInHierarchy
+                && (candidate.name == "OwnerSelectionSurface"
+                    || candidate.name == "OwnerSelectionPanel"));
+        Check(!blockingOverlayVisible,
+            "RUN_OVERLAYS_CLEARED",
+            blockingOverlayVisible
+                ? "owner selection overlay remained visible"
+                : "owner selection overlays cleared");
     }
 
     private void SetRunningState(float scale)
@@ -504,14 +580,13 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         verificationKeyboard = InputSystem.AddDevice<Keyboard>("ResearchTreeVerificationKeyboard");
         verificationMouse.MakeCurrent();
         verificationKeyboard.MakeCurrent();
-        DungeonAutomationInputState.Enable(
-            new DungeonStory.Foundation.UnityGameClock(),
-            new DungeonStory.Foundation.UnityUiClock());
+        automationInput = new DungeonAutomationInputTestCapability();
+        automationInput.Enable();
     }
 
     private void QueueMouse(MouseState state)
     {
-        DungeonAutomationInputState.MovePointer(state.position);
+        automationInput.MovePointer(state.position);
         verificationMouse.MakeCurrent();
         InputSystem.QueueStateEvent(verificationMouse, state);
         InputSystem.Update();
@@ -519,7 +594,8 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
 
     private void TeardownInput()
     {
-        DungeonAutomationInputState.Disable();
+        automationInput?.Dispose();
+        automationInput = null;
         if (verificationMouse != null && verificationMouse.added)
         {
             InputSystem.RemoveDevice(verificationMouse);

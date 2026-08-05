@@ -27,13 +27,26 @@ MonoBehaviour:
   description: "\uD608\uC5FD\uACFC \uB9C8\uB098\uB85C \uC804\uD22C\xB7\uC791\uC5C5
     \uCD09\uC9C4\uC81C\uB97C \uB9CC\uB4E0\uB2E4."
   field: 13
-  requiredWork: 154
+  requiredWork: 132
   prerequisites:
   - {fileID: 11400000, guid: 5d24ff7a48d2e42439661cde8f81fdae, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:pharmacology:anesthesia
+    prerequisite: {fileID: 11400000, guid: 5d24ff7a48d2e42439661cde8f81fdae, type: 2}
+    kind: 2
+    reason: "\uC9C4\uD1B5\xB7\uB9C8\uCDE8\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uAC01\uC131\uC81C \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items: []
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 4
+    requiredCount: 1
+  - capability: 5
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2

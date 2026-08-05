@@ -10,7 +10,7 @@ public static class GridVisualDebugScenarios
     private static readonly IWorldInfoClickSelector WorldInfoClickSelector =
         new NoopWorldInfoClickSelector();
     private static readonly IFacilityCandidateCache FacilityCandidateCacheService =
-        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
     private static readonly IRoomFacilityPolicy RoomFacilityPolicyService =
         new RoomFacilityPolicyService(RoomRegistry.EditorCache);
 
@@ -115,7 +115,7 @@ public static class GridVisualDebugScenarios
             null,
             null,
             new GridBuildingFactory(InjectBuildingDependencies),
-            new BuildingPlacementValidator());
+            new BuildingPlacementValidator(), workOrderRuntime: null);
         Vector2Int wallPosition = new Vector2Int(2, 0);
         bool placed = placement.TryPlaceBuilding(wall, wallPosition, out _);
         BuildableObject placedWall = grid.GetGridCell(wallPosition)?.GetBuildingInlayer(GridLayer.Building);
@@ -236,7 +236,7 @@ public static class GridVisualDebugScenarios
             hallway,
             null,
             new GridBuildingFactory(InjectBuildingDependencies),
-            new BuildingPlacementValidator());
+            new BuildingPlacementValidator(), workOrderRuntime: null);
         bool leftPlaced = placement.TryPlaceBuilding(hallway, new Vector2Int(1, 0), out _);
         bool wallPlaced = placement.TryPlaceBuilding(wall, new Vector2Int(2, 0), out _);
         bool rightPlaced = placement.TryPlaceBuilding(hallway, new Vector2Int(3, 0), out _);
@@ -308,7 +308,7 @@ public static class GridVisualDebugScenarios
             || hallway == null
             || !door.IsDoor
             || door.IsInteriorDoor
-            || door.type != typeof(Door)
+            || door.runtimeArchetype != BuildingRuntimeArchetypeKind.Door
             || door.width != 3
             || door.height != 1
             || !hasDoorTile
@@ -316,7 +316,7 @@ public static class GridVisualDebugScenarios
             || doorTile.sprite == null)
         {
             Debug.Log($"Dungeon door asset header invalid: door={door != null},hallway={hallway != null},"
-                + $"isDoor={door?.IsDoor},interior={door?.IsInteriorDoor},type={door?.type?.Name},"
+                + $"isDoor={door?.IsDoor},interior={door?.IsInteriorDoor},archetype={door?.runtimeArchetype},"
                 + $"size={door?.width}x{door?.height},unlocked={door?.unlocked},"
                 + $"tiles={door?.tiles?.Count ?? -1},tile={doorTile != null},sprite={doorTile?.sprite != null}");
             return false;
@@ -362,7 +362,7 @@ public static class GridVisualDebugScenarios
             hallway,
             null,
             new GridBuildingFactory(InjectBuildingDependencies),
-            new BuildingPlacementValidator());
+            new BuildingPlacementValidator(), workOrderRuntime: null);
         Vector2Int doorCenter = new Vector2Int(3, 0);
         placement.PlaceInitialBuildings(new[]
         {
@@ -521,7 +521,7 @@ public static class GridVisualDebugScenarios
         if (door == null
             || !door.IsDoor
             || !door.IsInteriorDoor
-            || door.type != typeof(InteriorDoor)
+            || door.runtimeArchetype != BuildingRuntimeArchetypeKind.InteriorDoor
             || door.width != 1
             || door.height != 1
             || !door.unlocked
@@ -575,7 +575,7 @@ public static class GridVisualDebugScenarios
             null,
             null,
             new GridBuildingFactory(InjectBuildingDependencies),
-            new BuildingPlacementValidator());
+            new BuildingPlacementValidator(), workOrderRuntime: null);
         Vector2Int target = new Vector2Int(2, 0);
         bool wallPlaced = placement.TryPlaceBuilding(wall, target, out _);
         bool doorPlaced = placement.TryPlaceBuilding(door, target, out _);
@@ -633,10 +633,9 @@ public static class GridVisualDebugScenarios
     private static void InjectBuildingDependencies(BuildableObject building)
     {
         building.ConstructBuildableObject(
-            BlueprintResearchWorkService,
-            WorldInfoClickSelector,
+            new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
             FacilityCandidateCacheService,
-            RoomFacilityPolicyService);
+            RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
     }
 
     private static bool VerifySpriteTileTransform(

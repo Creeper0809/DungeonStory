@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using FacilityEvolutionDomain = DungeonStory.FacilityEvolution;
 
 public enum FacilityGenerationCandidateKind
 {
@@ -27,7 +28,7 @@ public sealed class FacilityGenerationCandidate
     public string benefitModuleId = string.Empty;
     public string burdenModuleId = string.Empty;
     public string catalystFamily = string.Empty;
-    public int minimumCatalystPotency;
+    public int minimumCatalystProgressionLevel;
     public string historyHash = string.Empty;
     public EvolutionModuleActivationRule activationRule =
         new EvolutionModuleActivationRule();
@@ -42,7 +43,9 @@ public sealed class FacilityGenerationCandidate
             benefitModuleId = benefitModuleId ?? string.Empty,
             burdenModuleId = burdenModuleId ?? string.Empty,
             catalystFamily = catalystFamily ?? string.Empty,
-            minimumCatalystPotency = Mathf.Max(0, minimumCatalystPotency),
+            minimumCatalystProgressionLevel = Mathf.Max(
+                0,
+                minimumCatalystProgressionLevel),
             historyHash = historyHash ?? string.Empty,
             activationRule = activationRule?.Clone() ??
                 new EvolutionModuleActivationRule()
@@ -243,32 +246,35 @@ public static class FacilityEvolutionProgression
 {
     public static float GetRequiredMastery(int generation)
     {
-        return 120f + 60f * Mathf.Max(0, generation);
+        return FacilityEvolutionDomain.FacilityEvolutionProgressionRules
+            .RequiredMastery(generation);
     }
 
     public static float GetModificationWork(
         float baseConstructionWork,
         int generation)
     {
-        int normalizedGeneration = Mathf.Max(0, generation);
-        return Mathf.Max(1f, baseConstructionWork)
-            * (0.5f + 0.15f * Mathf.Sqrt(normalizedGeneration + 1f));
+        return FacilityEvolutionDomain.FacilityEvolutionProgressionRules
+            .ModificationWork(baseConstructionWork, generation);
     }
 
     public static float GetRecalibrationWork(
         float baseConstructionWork,
         int generation)
     {
-        return GetModificationWork(baseConstructionWork, generation) * 0.75f;
+        return FacilityEvolutionDomain.FacilityEvolutionProgressionRules
+            .RecalibrationWork(baseConstructionWork, generation);
     }
 
     public static float GetRelocationDismantleWork(float baseConstructionWork)
     {
-        return Mathf.Max(1f, baseConstructionWork) * 0.25f;
+        return FacilityEvolutionDomain.FacilityEvolutionProgressionRules
+            .RelocationDismantleWork(baseConstructionWork);
     }
 
     public static float GetRelocationReinstallWork(float baseConstructionWork)
     {
-        return Mathf.Max(1f, baseConstructionWork) * 0.5f;
+        return FacilityEvolutionDomain.FacilityEvolutionProgressionRules
+            .RelocationReinstallWork(baseConstructionWork);
     }
 }

@@ -7,6 +7,8 @@ using Object = UnityEngine.Object;
 
 public static class RegularCustomerDebugScenarios
 {
+    public static bool RunStrictSaveBoundary() => VerifyStrictSaveBoundary();
+
     [MenuItem("DungeonStory/Debug/Recruitment/Run P2 Regular Customer Scenarios")]
     public static void RunFromMenu()
     {
@@ -19,6 +21,7 @@ public static class RegularCustomerDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
+        RecruitmentRulesDebugScenarios.Validate();
         List<string> errors = new List<string>();
 
         RunScenario("방문 횟수와 평균 만족도 기록", VerifyVisitCountAndAverageSatisfaction, errors);
@@ -31,6 +34,7 @@ public static class RegularCustomerDebugScenarios
 
         RunScenario("offense reward promotes known visitors into recruit candidates", VerifyOffenseRewardPromotesCandidates, errors);
         RunScenario("visit event keeps an immutable customer snapshot", VerifyVisitEventSnapshotDoesNotDrift, errors);
+        RunScenario("strict regular-customer save boundary", VerifyStrictSaveBoundary, errors);
 
         if (errors.Count > 0)
         {
@@ -298,6 +302,258 @@ public static class RegularCustomerDebugScenarios
         }
     }
 
+    private static bool VerifyStrictSaveBoundary()
+    {
+        CharacterActor customer = CreateCustomer(
+            112,
+            "Save Fixture Customer",
+            "Slime",
+            75f);
+        GameObject sourceObject = new GameObject("RegularCustomerSave_Source");
+        GameObject targetObject = new GameObject("RegularCustomerSave_Target");
+        RegularCustomerRuntime source =
+            sourceObject.AddComponent<RegularCustomerRuntime>();
+        RegularCustomerRuntime target =
+            targetObject.AddComponent<RegularCustomerRuntime>();
+        DungeonRuntimeAggregateRootStore sourceRoot =
+            new DungeonRuntimeAggregateRootStore();
+        DungeonRuntimeAggregateRootStore targetRoot =
+            new DungeonRuntimeAggregateRootStore();
+        source.ConstructRestoreRootForDebug(sourceRoot);
+        target.ConstructRestoreRootForDebug(targetRoot);
+        FixedRunCharacterCatalog catalog =
+            new FixedRunCharacterCatalog(customer.data);
+
+        try
+        {
+            source.ReplaceStateForDebug(new[]
+            {
+                new RegularCustomerRecord(
+                    "customer:save-fixture",
+                    "Save Fixture Customer",
+                    "Slime",
+                    customer.data,
+                    2,
+                    75f,
+                    isRegular: true,
+                    isRecruitCandidate: true,
+                    isRecruited: false,
+                    RecruitCapability.All)
+            });
+            RegularCustomerPersistenceAdapter sourceAdapter =
+                new RegularCustomerPersistenceAdapter(source, catalog);
+            RegularCustomerSaveSection sourceSection =
+                new RegularCustomerSaveSection(sourceAdapter, sourceAdapter);
+            string canonicalJson = sourceSection.Capture();
+
+            RegularCustomerPersistenceAdapter targetAdapter =
+                new RegularCustomerPersistenceAdapter(target, catalog);
+            RegularCustomerSaveSection targetSection =
+                new RegularCustomerSaveSection(targetAdapter, targetAdapter);
+            DungeonGameRestoreReport validReport =
+                new DungeonGameRestoreReport();
+            targetSection.Restore(
+                canonicalJson,
+                targetSection.SectionVersion,
+                validReport);
+            object sectionContract = targetSection;
+            if (!validReport.Success
+                || target.State.Records.Count != 1
+                || !string.Equals(
+                    targetSection.Capture(),
+                    canonicalJson,
+                    StringComparison.Ordinal)
+                || sectionContract is not IDungeonSaveSectionPreflight
+                || sectionContract is not IDungeonRollbackFreeSaveSection
+                || sectionContract is IOptionalDungeonSaveSection
+                || sectionContract is IDungeonStagedOptionalSaveSection)
+            {
+                Debug.LogError(
+                    "Regular-customer strict restore detail: phase=valid; "
+                    + $"report={validReport.Success}; "
+                    + $"records={target.State.Records.Count}; "
+                    + $"canonical={string.Equals(targetSection.Capture(), canonicalJson, StringComparison.Ordinal)}; "
+                    + $"preflight={sectionContract is IDungeonSaveSectionPreflight}; "
+                    + $"rollbackFree={sectionContract is IDungeonRollbackFreeSaveSection}; "
+                    + $"optional={sectionContract is IOptionalDungeonSaveSection}; "
+                    + $"stagedOptional={sectionContract is IDungeonStagedOptionalSaveSection}; "
+                    + $"errors={string.Join(" | ", validReport.Errors)}");
+                return false;
+            }
+
+            string beforeInvalid = targetSection.Capture();
+            DungeonRegularCustomerSaveData legacy =
+                JsonUtility.FromJson<DungeonRegularCustomerSaveData>(
+                    canonicalJson);
+            legacy.version = DungeonRegularCustomerSaveData.CurrentVersion - 1;
+            if (!RejectsRegularCustomerPayloadWithoutMutation(
+                    targetSection,
+                    JsonUtility.ToJson(legacy),
+                    beforeInvalid))
+            {
+                Debug.LogError(
+                    "Regular-customer strict restore detail: "
+                    + "phase=legacy-payload; payload was accepted or live state changed.");
+                return false;
+            }
+
+            string missingRecordsJson =
+                $"{{\"version\":{DungeonRegularCustomerSaveData.CurrentVersion},"
+                + "\"records\":null}";
+            if (!RejectsRegularCustomerPayloadWithoutMutation(
+                    targetSection,
+                    missingRecordsJson,
+                    beforeInvalid))
+            {
+                Debug.LogError(
+                    "Regular-customer strict restore detail: "
+                    + "phase=null-records; explicit null records were accepted "
+                    + "or live state changed.");
+                return false;
+            }
+
+            IDungeonSaveRestoreStage stagedForDiscard = targetSection.StageRestore(
+                canonicalJson,
+                targetSection.SectionVersion,
+                new DungeonGameRestoreReport());
+            if (stagedForDiscard is not IDungeonDiscardableSaveRestoreStage
+                    discardable)
+            {
+                Debug.LogError(
+                    "Regular-customer strict restore detail: phase=stage-only; "
+                    + $"stageType={stagedForDiscard?.GetType().Name ?? "null"}; "
+                    + "discardable=false");
+                return false;
+            }
+            discardable.Discard();
+            if (!string.Equals(
+                    targetSection.Capture(),
+                    beforeInvalid,
+                    StringComparison.Ordinal))
+            {
+                Debug.LogError(
+                    "Regular-customer strict restore detail: phase=stage-only; "
+                    + "discarded candidate changed the live capture.");
+                return false;
+            }
+
+            DungeonRegularCustomerSaveData invalid =
+                JsonUtility.FromJson<DungeonRegularCustomerSaveData>(
+                    canonicalJson);
+            invalid.records[0].isRegular = false;
+            DungeonGameRestoreReport invalidReport =
+                new DungeonGameRestoreReport();
+            bool invalidRejected = false;
+            try
+            {
+                targetSection.Restore(
+                    JsonUtility.ToJson(invalid),
+                    targetSection.SectionVersion,
+                    invalidReport);
+            }
+            catch (InvalidOperationException)
+            {
+                invalidRejected = true;
+            }
+            if (!invalidRejected
+                || target.State.Records.Count != 1
+                || !string.Equals(
+                    targetSection.Capture(),
+                    beforeInvalid,
+                    StringComparison.Ordinal))
+            {
+                Debug.LogError(
+                    "Regular-customer strict restore detail: phase=status-hierarchy; "
+                    + $"rejected={invalidRejected}; "
+                    + $"records={target.State.Records.Count}; "
+                    + $"unchanged={string.Equals(targetSection.Capture(), beforeInvalid, StringComparison.Ordinal)}; "
+                    + $"errors={string.Join(" | ", invalidReport.Errors)}");
+                return false;
+            }
+
+            target.ReplaceWithEmptyStateForDebug();
+            string beforeLateFailure = targetSection.Capture();
+            RegularCustomerFailureSection lateFailure =
+                new RegularCustomerFailureSection();
+            int revisionBefore = targetRoot.PublishedRestoreRevision;
+            DungeonSaveSectionRegistry registry =
+                new DungeonSaveSectionRegistry(
+                    new IDungeonSaveSection[] { targetSection, lateFailure },
+                    targetRoot);
+            List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
+            foreach (DungeonSaveSectionEnvelope envelope in envelopes)
+            {
+                if (string.Equals(
+                        envelope.sectionId,
+                        RegularCustomerSaveSection.Id,
+                        StringComparison.Ordinal))
+                {
+                    envelope.payloadJson = canonicalJson;
+                }
+            }
+            DungeonGameRestoreReport restoreReport =
+                new DungeonGameRestoreReport();
+            bool restored = registry.RestoreAll(envelopes, restoreReport);
+            bool injectedFailureReported = restoreReport.Errors.Any(error =>
+                error.Contains(
+                    RegularCustomerFailureSection.FailureMessage,
+                    StringComparison.Ordinal));
+            bool valid = !restored
+                && !restoreReport.Success
+                && injectedFailureReported
+                && lateFailure.CommitAttempts == 1
+                && target.State.Records.Count == 0
+                && string.Equals(
+                    targetSection.Capture(),
+                    beforeLateFailure,
+                    StringComparison.Ordinal)
+                && !targetRoot.IsRestoreStaging
+                && targetRoot.PublishedRestoreRevision == revisionBefore;
+            if (!valid)
+            {
+                Debug.LogError(
+                    "Regular-customer late failure atomicity detail: "
+                    + $"restored={restored}; reportSuccess={restoreReport.Success}; "
+                    + $"injectedFailure={injectedFailureReported}; "
+                    + $"commitAttempts={lateFailure.CommitAttempts}; "
+                    + $"records={target.State.Records.Count}; "
+                    + $"unchanged={string.Equals(targetSection.Capture(), beforeLateFailure, StringComparison.Ordinal)}; "
+                    + $"staging={targetRoot.IsRestoreStaging}; "
+                    + $"revision={targetRoot.PublishedRestoreRevision}/{revisionBefore}; "
+                    + $"errors={string.Join(" | ", restoreReport.Errors)}");
+            }
+            return valid;
+        }
+        finally
+        {
+            Object.DestroyImmediate(sourceObject);
+            Object.DestroyImmediate(targetObject);
+            DestroyCustomer(customer);
+        }
+    }
+
+    private static bool RejectsRegularCustomerPayloadWithoutMutation(
+        RegularCustomerSaveSection section,
+        string payloadJson,
+        string expectedLiveJson)
+    {
+        try
+        {
+            section.Restore(
+                payloadJson,
+                section.SectionVersion,
+                new DungeonGameRestoreReport());
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return string.Equals(
+                section.Capture(),
+                expectedLiveJson,
+                StringComparison.Ordinal);
+        }
+    }
+
     private static RegularCustomerRules CreateTestRules()
     {
         return new RegularCustomerRules
@@ -314,6 +570,7 @@ public static class RegularCustomerDebugScenarios
     {
         GameObject obj = new GameObject(name);
         obj.AddComponent<SpriteRenderer>();
+        CharacterAiEditorTestDependencies.EnsureCharacterProgression(obj);
         CharacterActor character = obj.AddComponent<CharacterActor>();
 
         CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
@@ -339,6 +596,7 @@ public static class RegularCustomerDebugScenarios
     {
         GameObject obj = new GameObject("Regular Customer Facility");
         BuildableObject facility = obj.AddComponent<BuildableObject>();
+        facility.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
         BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
         data.id = 9106;
         data.objectName = "Regular Customer Facility";
@@ -351,6 +609,7 @@ public static class RegularCustomerDebugScenarios
             capacity = 1
         };
         data.Facility.SetSupportedWorkTypeIds(new[] { BuiltInWorkTypeIds.Operate });
+        CharacterAiEditorTestDependencies.Inject(facility);
         facility.Initialization(data, Vector2Int.zero);
         return facility;
     }
@@ -389,6 +648,58 @@ public static class RegularCustomerDebugScenarios
 
             message = "activated";
             return actor != null;
+        }
+    }
+
+    private sealed class FixedRunCharacterCatalog : IRunCharacterCatalog
+    {
+        public FixedRunCharacterCatalog(params CharacterSO[] characters)
+        {
+            Characters = characters ?? Array.Empty<CharacterSO>();
+        }
+
+        public IReadOnlyCollection<CharacterSO> Characters { get; }
+    }
+
+    private sealed class RegularCustomerFailureSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        public const string FailureMessage =
+            "Injected late regular-customer restore failure.";
+        public string SectionId => "regular-customer.debug.late-failure";
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.Presentation;
+        public IReadOnlyList<string> DependsOn =>
+            new[] { RegularCustomerSaveSection.Id };
+        public int CommitAttempts { get; private set; }
+        public string Capture() => "{}";
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+        }
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            return new DungeonDelegateSaveRestoreStage(
+                SectionId,
+                commitReport =>
+                {
+                    CommitAttempts++;
+                    commitReport.AddError(FailureMessage);
+                });
         }
     }
 }

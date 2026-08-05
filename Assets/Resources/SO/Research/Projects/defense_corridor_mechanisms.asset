@@ -27,20 +27,36 @@ MonoBehaviour:
   description: "\uCE68\uC785 \uAC10\uC9C0\uAE30\uC640 \uBB38 \uC5F0\uB3D9 \uB099\uD558\uBB38\uC73C\uB85C
     \uC881\uC740 \uD1B5\uB85C\uC758 \uBC1C\uB3D9 \uC21C\uC11C\uB97C \uC124\uACC4\uD55C\uB2E4."
   field: 2
-  requiredWork: 142
+  requiredWork: 132
   prerequisites:
   - {fileID: 11400000, guid: 2594e67f84c3f1444a2738ea7ce0f81f, type: 2}
   - {fileID: 11400000, guid: 2a6b0ed0e88929c4dabd29e4462697af, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:defense:supply
+    prerequisite: {fileID: 11400000, guid: 2594e67f84c3f1444a2738ea7ce0f81f, type: 2}
+    kind: 2
+    reason: "\uBC29\uC5B4 \uBCF4\uAE09\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBCF5\uB3C4 \uAE30\uAD6C\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:metallurgy:iron
+    prerequisite: {fileID: 11400000, guid: 2a6b0ed0e88929c4dabd29e4462697af, type: 2}
+    kind: 2
+    reason: "\uCCA0\uC81C \uAC00\uACF5\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBCF5\uB3C4 \uAE30\uAD6C\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563312817144288
+    - rid: 7737211730927813073
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563312817144288
+    - rid: 7737211730927813073
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1804

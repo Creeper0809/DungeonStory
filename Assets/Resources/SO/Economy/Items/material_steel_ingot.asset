@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uACE0\uAE09 \uBB34\uAE30\uC640 \uBC29\uC5B4\uAD6C\uC5D0 \uC4F0\uB294
     \uAC15\uD55C \uAE08\uC18D."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 512
-  unitPrice: 16
-  marketSaleRate: 0.6
   unitWeight: 0.85
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:metallurgy:steel
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 16
+  features:
+  - rid: 7737211674039681024
+  - rid: 7737211674039681025
+  - rid: 7737211674039681026
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681024
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:metallurgy:steel
+    - rid: 7737211674039681025
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 512
+        sharedIntermediate: 1
+    - rid: 7737211674039681026
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

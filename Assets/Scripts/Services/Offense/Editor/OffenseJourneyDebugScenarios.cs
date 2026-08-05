@@ -1,11 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 
 public static class OffenseJourneyDebugScenarios
 {
+    private const string AppraisalFacilityPath =
+        "Assets/Resources/SO/Building/ResearchOverhaul/RF42_부품_감정대.asset";
+    private const string RestorationFacilityPath =
+        "Assets/Resources/SO/Building/ResearchOverhaul/RF43_부품_복원_작업대.asset";
+    private const string PrecisionFittingFacilityPath =
+        "Assets/Resources/SO/Building/ResearchOverhaul/RF44_정밀_장착대.asset";
+
     [MenuItem("DungeonStory/Debug/Offense/Run Journey Scenarios")]
     public static void RunFromMenu()
     {
@@ -20,6 +28,9 @@ public static class OffenseJourneyDebugScenarios
         Run("camp recovery and formation", VerifyCampRecoveryAndFormation, errors);
         Run("experience pacing", VerifyExperiencePacing, errors);
         Run("return recovery readiness", VerifyReturnRecoveryReadiness, errors);
+        Run("expedition death loses equipment modules together",
+            VerifyExpeditionDeathLosesEquipmentModulesTogether,
+            errors);
         Run("journey state restore", VerifyJourneyStateRestore, errors);
         Run("offense save payload round trip", VerifySavePayloadRoundTrip, errors);
 
@@ -100,6 +111,7 @@ public static class OffenseJourneyDebugScenarios
         Require(run.TryResolveCurrentNode(true, out _, out _), "Camp supply choice failed.");
         Require(first.Actor.CurrentHealth > healthBeforeCamp, "Camp did not heal the injured member.");
         Require(run.MemberStates.All(member => member.Stress < 15f), "Camp did not recover stress.");
+        run.MemberStates[1].Restore(OffenseFormationSlot.Rear, 0f, 0f);
         Require(run.TrySwapFormation(0, 1, out _), "Formation swap failed between nodes.");
         Require(run.MemberStates[0].Actor == second.Actor
             && run.MemberStates[0].Formation == OffenseFormationSlot.Front,
@@ -195,6 +207,130 @@ public static class OffenseJourneyDebugScenarios
         return true;
     }
 
+    private static bool VerifyExpeditionDeathLosesEquipmentModulesTogether()
+    {
+        using ActorFixture fixture = new ActorFixture("Equipment Loss Tester");
+        WorldItemStackRuntime physicalItems =
+            PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture(
+                out _,
+                out CombatEquipmentRuntime equipment);
+        physicalItems.Start();
+        List<GameObject> facilityObjects = new List<GameObject>();
+        BuildableObject appraisal = CreateProgressionFacility(
+            AppraisalFacilityPath,
+            "OffenseJourney_Appraisal",
+            new Vector2Int(60, 60),
+            facilityObjects);
+        BuildableObject restoration = CreateProgressionFacility(
+            RestorationFacilityPath,
+            "OffenseJourney_Restoration",
+            new Vector2Int(62, 60),
+            facilityObjects);
+        BuildableObject fitting = CreateProgressionFacility(
+            PrecisionFittingFacilityPath,
+            "OffenseJourney_Fitting",
+            new Vector2Int(64, 60),
+            facilityObjects);
+
+        CombatEquipmentInstance weapon = equipment.CreateInstance(
+            "weapon:greatsword",
+            CombatEquipmentQuality.Good);
+        EquipmentModuleInstance module = equipment.CreateExpeditionModule(
+            "module:weapon:balanced-core",
+            3,
+            appraisal.centerPos,
+            WorldItemStackState.FacilityBuffer,
+            appraisal.RequirePersistentInstanceId().Value);
+        Require(equipment.TryAppraiseModule(
+                module.instanceId,
+                appraisal,
+                out DomainFailure appraiseFailure),
+            $"expedition module appraisal failed: {appraiseFailure.Code}");
+        Require(physicalItems.TryRouteStackToDestination(
+                module.sourceStackId,
+                WorldItemStackState.FacilityBuffer,
+                restoration.RequirePersistentInstanceId().Value,
+                restoration.centerPos,
+                out string restorationRouteFailure),
+            $"expedition module restoration routing failed: {restorationRouteFailure}");
+        Require(equipment.TryRestoreModule(
+                module.instanceId,
+                restoration,
+                out DomainFailure restoreFailure),
+            $"expedition module restoration failed: {restoreFailure.Code}");
+        Require(physicalItems.TryRouteStackToDestination(
+                module.sourceStackId,
+                WorldItemStackState.FacilityBuffer,
+                fitting.RequirePersistentInstanceId().Value,
+                fitting.centerPos,
+                out string fittingRouteFailure),
+            $"expedition module fitting routing failed: {fittingRouteFailure}");
+        Require(physicalItems.SpawnExistingUniqueItemAt(
+                PhysicalItemIds.ForEquipment(weapon.definitionId),
+                (ItemInstanceId)weapon.instanceId,
+                fitting.centerPos,
+                WorldItemStackState.FacilityBuffer,
+                fitting.RequirePersistentInstanceId().Value,
+                out string weaponStackId)
+                && equipment.TryLinkToWorldStack(
+                    weapon.instanceId,
+                    weaponStackId,
+                    CombatEquipmentWorldState.Stored),
+            "expedition equipment was not materialized in the fitting buffer");
+        Require(equipment.TryInstallModule(
+                weapon.instanceId,
+                module.instanceId,
+                0,
+                fitting,
+                out DomainFailure installFailure),
+            $"expedition module installation failed: {installFailure.Code}");
+
+        string characterId = fixture.Actor.Identity.PersistentId;
+        Require(equipment.TryAssignToCharacter(
+                characterId,
+                weapon.instanceId,
+                out string assignFailure),
+            $"expedition equipment assignment failed: {assignFailure}");
+
+        OffenseExpeditionReturnPort returnPort = new OffenseExpeditionReturnPort(
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IOffensePreparationService>(),
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IExpeditionReturnService>(),
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IOffenseReturnArrivalRuntime>(),
+            equipment,
+            BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                .Create<IGameMoneyAccount>(),
+            new GameEventBus());
+        returnPort.HandleMemberDeath(fixture.Actor);
+
+        Require(equipment.TryGetInstance(
+                weapon.instanceId,
+                out CombatEquipmentInstance lostEquipment)
+            && lostEquipment.worldState == CombatEquipmentWorldState.Lost
+            && string.IsNullOrWhiteSpace(lostEquipment.ownerCharacterId)
+            && lostEquipment.moduleSlots.Any(slot => slot != null
+                && slot.moduleInstanceId == module.instanceId),
+            "actual expedition death path did not lose the equipped item with its slot payload");
+        Require(equipment.ModuleInstances.Any(candidate => candidate != null
+                && candidate.instanceId == module.instanceId
+                && candidate.state == EquipmentModuleProcessState.Lost
+                && Mathf.Approximately(candidate.condition, 0f)
+                && string.IsNullOrWhiteSpace(candidate.attachedEquipmentInstanceId)),
+            "installed module did not become lost with its expedition equipment");
+        CharacterCombatLoadoutProfile loadout = equipment.GetActiveProfileSnapshot(characterId);
+        Require(loadout == null
+                || !loadout.weaponInstanceIds.Contains(weapon.instanceId),
+            "lost expedition equipment remained in the character loadout");
+        physicalItems.Dispose();
+        foreach (GameObject facilityObject in facilityObjects)
+        {
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+        }
+        return true;
+    }
+
     private static bool VerifyJourneyStateRestore()
     {
         using ActorFixture fixture = new ActorFixture("Restore Tester");
@@ -247,12 +383,23 @@ public static class OffenseJourneyDebugScenarios
         try
         {
             OffenseExpeditionRuntime runtime = runtimeObject.AddComponent<OffenseExpeditionRuntime>();
-            runtime.RestorePersistentState(new[] { run }, Array.Empty<OffenseExpeditionResult>());
+            OffenseWorldMapRuntime worldMap = runtimeObject.AddComponent<OffenseWorldMapRuntime>();
+            OffenseRewardRuntime rewards = runtimeObject.AddComponent<OffenseRewardRuntime>();
+            runtime.PublishRestoreCandidate(
+                runtime.BuildRestoreCandidate(
+                    new List<OffenseExpeditionRun> { run },
+                    new List<OffenseExpeditionResult>()));
             FakeCharacterSaveService characterSave = new FakeCharacterSaveService(fixture.Actor, "actor:save-test");
             OffenseSaveService service = new OffenseSaveService(
-                new EmptyWorldMapProvider(),
-                new EmptyRewardProvider(),
-                new FixedExpeditionProvider(runtime),
+                new OffenseSceneRuntimeReferences(
+                    worldMap,
+                    rewards,
+                    runtime,
+                    null,
+                    null),
+                new ResourceOffenseCampaignCatalog(
+                    new ResourceGameContentCatalog(
+                        new UnityGameContentRootLoader())),
                 characterSave,
                 new EmptyBattleRuntime());
 
@@ -262,7 +409,7 @@ public static class OffenseJourneyDebugScenarios
             DungeonOffenseExpeditionRunSaveData saved = restored.activeExpeditions.Single();
             DungeonOffenseExpeditionMemberStateSaveData savedMember = saved.memberStates.Single();
 
-            Require(saved.journeyVersion == 1, "Journey save version was not written.");
+            Require(saved.journeyVersion == 2, "Journey save version was not written.");
             Require(saved.phase == run.Phase && saved.currentNodeId == run.CurrentNodeId,
                 "Journey phase or current node did not round-trip.");
             Require(Mathf.Approximately(saved.light, run.Light), "Journey light did not round-trip.");
@@ -332,6 +479,24 @@ public static class OffenseJourneyDebugScenarios
         }
     }
 
+    private static BuildableObject CreateProgressionFacility(
+        string assetPath,
+        string objectName,
+        Vector2Int position,
+        ICollection<GameObject> created)
+    {
+        BuildingSO definition = AssetDatabase.LoadAssetAtPath<BuildingSO>(assetPath)
+            ?? throw new InvalidOperationException(
+                $"Missing progression facility asset '{assetPath}'.");
+        GameObject facilityObject = new GameObject(objectName);
+        created.Add(facilityObject);
+        BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
+        facility.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+        CharacterAiEditorTestDependencies.Inject(facility);
+        facility.Initialization(definition, position);
+        return facility;
+    }
+
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
@@ -355,11 +520,18 @@ public static class OffenseJourneyDebugScenarios
 
             gameObject = new GameObject(name);
             gameObject.AddComponent<SpriteRenderer>();
+            // CharacterActor binds its required progression component during
+            // Awake. Configure that component first so the fixture exercises
+            // the same complete-at-creation dependency contract as composition.
+            CharacterAiEditorTestDependencies.EnsureCharacterProgression(
+                gameObject);
             Actor = gameObject.AddComponent<CharacterActor>();
             gameObject.AddComponent<AbilityMove>();
             gameObject.AddComponent<AbilityWork>();
             Actor.RefreshAbilityCache();
             CharacterAiEditorTestDependencies.Inject(gameObject);
+            Actor.Identity.SetPersistentId(
+                new GuidPersistentIdGenerator().NewCharacterId());
             Actor.Initialization(data);
             Actor.SetLifecycleState(CharacterLifecycleState.Active);
         }
@@ -370,40 +542,6 @@ public static class OffenseJourneyDebugScenarios
         {
             UnityEngine.Object.DestroyImmediate(gameObject);
             UnityEngine.Object.DestroyImmediate(data);
-        }
-    }
-
-    private sealed class EmptyWorldMapProvider : IOffenseWorldMapRuntimeProvider
-    {
-        public bool TryGetRuntime(out OffenseWorldMapRuntime runtime)
-        {
-            runtime = null;
-            return false;
-        }
-    }
-
-    private sealed class EmptyRewardProvider : IOffenseRewardRuntimeProvider
-    {
-        public bool TryGetRuntime(out OffenseRewardRuntime runtime)
-        {
-            runtime = null;
-            return false;
-        }
-    }
-
-    private sealed class FixedExpeditionProvider : IOffenseExpeditionRuntimeProvider
-    {
-        private readonly OffenseExpeditionRuntime runtime;
-
-        public FixedExpeditionProvider(OffenseExpeditionRuntime runtime)
-        {
-            this.runtime = runtime;
-        }
-
-        public bool TryGetRuntime(out OffenseExpeditionRuntime value)
-        {
-            value = runtime;
-            return value != null;
         }
     }
 
@@ -419,8 +557,15 @@ public static class OffenseJourneyDebugScenarios
         }
 
         public DungeonCharacterWorldSaveData Capture(Grid grid) => new DungeonCharacterWorldSaveData();
-        public void PrepareForWorldRestore() { }
-        public int Restore(Grid grid, DungeonCharacterWorldSaveData source, DungeonGameRestoreReport report) => 0;
+        public void ValidateRestorePayload(
+            Grid grid,
+            DungeonCharacterWorldSaveData source) { }
+        public CharacterWorldRestoreCandidate PrepareRestoreCandidate(
+            Grid grid,
+            DungeonCharacterWorldSaveData source) =>
+            throw new NotSupportedException();
+        public void StageRestoreCandidate(
+            CharacterWorldRestoreCandidate candidate) { }
         public bool TryGetPersistentId(CharacterActor candidate, out string value)
         {
             value = ReferenceEquals(candidate, actor) ? persistentId : string.Empty;

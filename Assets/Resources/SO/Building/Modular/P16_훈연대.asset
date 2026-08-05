@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,23 +33,26 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 086a22d292bbab54087fec9224902c9a, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239038812836
-    - rid: 7302563239038812837
-    - rid: 7302563239038812838
-    - rid: 7302563239038812839
-    - rid: 7302563239038812840
-    - rid: 7302563313663345577
-    - rid: 7302563313663345578
-    - rid: 7302563313663345579
-    - rid: 7302563313663345580
-    - rid: 7302563313663345581
-    - rid: 7302563313672520060
+    - rid: 7737211730538791646
+    - rid: 7737211730538791647
+    - rid: 7737211730538791649
+    - rid: 7737211730538791650
+    - rid: 7737211730538791651
+    - rid: 7737211730538791652
+    - rid: 7737211730889015706
+    - rid: 7737211730889015707
+    - rid: 7737211730889015708
+    - rid: 7737211730889015709
+    - rid: 7737211730889015710
+    - rid: 7737211730889016281
+    - rid: 7737211730889016282
   width: 2
   height: 1
   layer: 1
   category: 5
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -67,27 +61,39 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239038812836
+    - rid: 7737211730538791646
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P16
-    - rid: 7302563239038812837
+    - rid: 7737211730538791647
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - smoker
-    - rid: 7302563239038812838
+    - rid: 7737211730538791649
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 135
+        constructionValue: 135
+        constructionCost: 0
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302563239038812839
+    - rid: 7737211730538791650
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 26.7
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 7
+    - rid: 7737211730538791651
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -98,7 +104,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 536887300
           disabledWhenDamaged: 1
-    - rid: 7302563239038812840
+    - rid: 7737211730538791652
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -113,14 +119,14 @@ MonoBehaviour:
           - key: Preservation
             value: 2
           metrics: []
-    - rid: 7302563313663345577
+    - rid: 7737211730889015706
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563313663345578
+    - rid: 7737211730889015707
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -131,21 +137,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563313663345579
+    - rid: 7737211730889015708
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7302563313663345580
+    - rid: 7737211730889015709
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563313663345581
+    - rid: 7737211730889015710
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility
@@ -155,8 +161,29 @@ MonoBehaviour:
         wastewaterPerCycle: 0.25
         minimumQuality: 0
         allowsManualWaterFallback: 1
-    - rid: 7302563313672520060
+    - rid: 7737211730889016281
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:smoker
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211730889016282
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16

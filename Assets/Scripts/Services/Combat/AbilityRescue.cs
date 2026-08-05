@@ -7,7 +7,8 @@ public sealed class AbilityRescue : MonoBehaviour
 {
     private CharacterActor actor;
     private AbilityMove move;
-    private ICharacterMedicalRuntime medicalRuntime;
+    private ICharacterMedicalQuery medicalQuery;
+    private ICharacterMedicalCommand medicalCommands;
     private IGameClock gameClock;
     private Coroutine rescueRoutine;
     private CharacterMedicalOrder activeOrder;
@@ -34,38 +35,51 @@ public sealed class AbilityRescue : MonoBehaviour
 
         ability?.CacheReferences();
         if (ability != null
-            && targetActor.MedicalRuntime != null
+            && targetActor.MedicalQuery != null
+            && targetActor.MedicalCommands != null
             && targetActor.GameClock != null)
         {
-            ability.Configure(targetActor.MedicalRuntime, targetActor.GameClock);
+            ability.Configure(
+                targetActor.MedicalQuery,
+                targetActor.MedicalCommands,
+                targetActor.GameClock);
         }
 
         return ability;
     }
 
     public void Configure(
-        ICharacterMedicalRuntime medicalRuntime,
+        ICharacterMedicalQuery medicalQuery,
+        ICharacterMedicalCommand medicalCommands,
         IGameClock gameClock)
     {
-        this.medicalRuntime = medicalRuntime
-            ?? throw new System.ArgumentNullException(nameof(medicalRuntime));
+        this.medicalQuery = medicalQuery
+            ?? throw new System.ArgumentNullException(nameof(medicalQuery));
+        this.medicalCommands = medicalCommands
+            ?? throw new System.ArgumentNullException(nameof(medicalCommands));
         this.gameClock = gameClock
             ?? throw new System.ArgumentNullException(nameof(gameClock));
     }
 
-    public bool CanStartRescue(out string failureReason)
+    public bool CanStartRescue(out DomainFailure failure)
     {
         CacheReferences();
-        failureReason = string.Empty;
-        if (actor == null || move == null || medicalRuntime == null || gameClock == null)
+        failure = DomainFailure.None;
+        if (actor == null
+            || move == null
+            || medicalQuery == null
+            || medicalCommands == null
+            || gameClock == null)
         {
-            failureReason = "의료 시스템이 준비되지 않았습니다.";
+            failure = new DomainFailure(
+                FailureCode.CharacterMedicalRuntimeUnavailable);
             return false;
         }
 
-        if (!medicalRuntime.HasAvailableRescueOrder(actor))
+        if (!medicalQuery.HasAvailableRescueOrder(actor))
         {
-            failureReason = "구조할 환자가 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.CharacterMedicalPatientUnavailable);
             return false;
         }
 
@@ -75,17 +89,26 @@ public sealed class AbilityRescue : MonoBehaviour
     public void StartRescue()
     {
         CacheReferences();
-        StopRescue("재시작");
-        string failureReason = string.Empty;
+        StopRescue(CharacterMedicalStatusCode.Restarted);
+        DomainFailure failure = DomainFailure.None;
+        CharacterMedicalOrder order = null;
         if (actor == null
             || move == null
-            || medicalRuntime == null
-            || !medicalRuntime.TryReserveBestOrder(
+            || medicalCommands == null
+            || !medicalCommands.TryReserveBestOrder(
                 actor,
-                out CharacterMedicalOrder order,
-                out failureReason))
+                out order,
+                out failure))
         {
-            actor?.Brain?.SetActionPhase("구조 대기", null, failureReason);
+            if (!failure.IsFailure)
+            {
+                failure = new DomainFailure(
+                    FailureCode.CharacterMedicalRuntimeUnavailable);
+            }
+            actor?.Brain?.SetActionPhase(
+                CharacterMedicalStatusCode.AwaitingRescue.ToString(),
+                null,
+                failure.Code.ToString());
             EndAiAction();
             return;
         }
@@ -97,19 +120,28 @@ public sealed class AbilityRescue : MonoBehaviour
     public void StartRescue(CharacterActor patient)
     {
         CacheReferences();
-        StopRescue("직접 구조 명령");
-        string failureReason = string.Empty;
+        StopRescue(CharacterMedicalStatusCode.ManualRescueAssigned);
+        DomainFailure failure = DomainFailure.None;
+        CharacterMedicalOrder order = null;
         if (actor == null
             || move == null
             || patient == null
-            || medicalRuntime == null
-            || !medicalRuntime.TryReserveOrderForPatient(
+            || medicalCommands == null
+            || !medicalCommands.TryReserveOrderForPatient(
                 actor,
                 patient,
-                out CharacterMedicalOrder order,
-                out failureReason))
+                out order,
+                out failure))
         {
-            actor?.Brain?.SetActionPhase("구조 대기", null, failureReason);
+            if (!failure.IsFailure)
+            {
+                failure = new DomainFailure(
+                    FailureCode.CharacterMedicalParticipantsInvalid);
+            }
+            actor?.Brain?.SetActionPhase(
+                CharacterMedicalStatusCode.AwaitingRescue.ToString(),
+                null,
+                failure.Code.ToString());
             EndAiAction();
             return;
         }
@@ -118,7 +150,7 @@ public sealed class AbilityRescue : MonoBehaviour
         rescueRoutine = StartCoroutine(RescueRoutine(order, enforceAiAction: false));
     }
 
-    public void StopRescue(string reason)
+    public void StopRescue(CharacterMedicalStatusCode releaseStatus)
     {
         if (rescueRoutine != null)
         {
@@ -126,12 +158,13 @@ public sealed class AbilityRescue : MonoBehaviour
             rescueRoutine = null;
         }
 
-        if (activeOrder != null && medicalRuntime != null)
+        if (activeOrder != null && medicalCommands != null)
         {
-            medicalRuntime.ReleaseReservation(
+            medicalCommands.TryReleaseReservation(
                 activeOrder.orderId,
                 actor,
-                reason);
+                releaseStatus,
+                out _);
         }
 
         activeOrder = null;
@@ -142,17 +175,23 @@ public sealed class AbilityRescue : MonoBehaviour
         bool enforceAiAction)
     {
         if (!TryGetGrid(out Grid grid)
-            || medicalRuntime == null
-            || !medicalRuntime.TryGetPatient(order, out CharacterActor patient))
+            || medicalQuery == null
+            || medicalCommands == null
+            || !medicalQuery.TryGetPatient(order, out CharacterActor patient))
         {
             EndAiAction();
             yield break;
         }
 
         AIAction expectedAction = enforceAiAction ? actor.Brain?.bestAction : null;
-        if (!MoveToCell(grid, patient.GetNowXY(), expectedAction, "환자에게 이동", out Queue<GridMoveStep> patientPath))
+        if (!MoveToCell(
+                grid,
+                patient.GetNowXY(),
+                expectedAction,
+                CharacterMedicalStatusCode.PreparingStabilization.ToString(),
+                out Queue<GridMoveStep> patientPath))
         {
-            Fail(order, "환자에게 갈 수 없습니다.");
+            Fail(order, CharacterMedicalStatusCode.PatientPathUnavailable);
             yield break;
         }
 
@@ -165,82 +204,96 @@ public sealed class AbilityRescue : MonoBehaviour
 
         if (IsActionCancelled(expectedAction))
         {
-            Fail(order, "구조 중단");
+            Fail(order, CharacterMedicalStatusCode.RescueInterrupted);
             yield break;
         }
 
         while (!order.stabilized)
         {
             actor.Brain?.SetActionPhase(
-                $"현장 안정화 {ProgressPercent(order.completedStabilizationWork, order.requiredStabilizationWork)}%",
+                $"{CharacterMedicalStatusCode.Stabilizing}:{ProgressPercent(order.completedStabilizationWork, order.requiredStabilizationWork)}",
                 null,
                 patient.Identity?.DisplayName);
             float work = actor.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Treat) * gameClock.DeltaTime;
-            medicalRuntime.AdvanceStabilization(order.orderId, actor, work);
+            medicalCommands.AdvanceStabilization(order.orderId, actor, work);
             if (IsActionCancelled(expectedAction))
             {
-                Fail(order, "안정화 중단");
+                Fail(order, CharacterMedicalStatusCode.StabilizationInterrupted);
                 yield break;
             }
 
             yield return null;
         }
 
-        if (!medicalRuntime.TryBeginCarrying(
+        if (!medicalCommands.TryBeginCarrying(
                 order.orderId,
                 actor,
-                out string carryFailure))
+                out DomainFailure carryFailure))
         {
-            actor.Brain?.SetActionPhase("치료 침상 대기", null, carryFailure);
-            Fail(order, carryFailure);
+            actor.Brain?.SetActionPhase(
+                CharacterMedicalStatusCode.AwaitingBed.ToString(),
+                null,
+                carryFailure.Code.ToString());
+            Fail(
+                order,
+                carryFailure.Code == FailureCode.CharacterMedicalBedUnavailable
+                    ? CharacterMedicalStatusCode.AwaitingBed
+                    : CharacterMedicalStatusCode.RescueInterrupted);
             yield break;
         }
 
-        if (!medicalRuntime.TryGetTreatmentFacility(
+        if (!medicalQuery.TryGetTreatmentFacility(
                 order,
                 out BuildableObject facility)
             || !MoveToCell(
                 grid,
                 facility.centerPos,
                 expectedAction,
-                "환자 이송",
+                CharacterMedicalStatusCode.Carrying.ToString(),
                 out Queue<GridMoveStep> bedPath))
         {
-            Fail(order, "치료 침상으로 갈 수 없습니다.");
+            Fail(order, CharacterMedicalStatusCode.TreatmentPathUnavailable);
             yield break;
         }
 
-        actor.Brain?.SetActionPhase("환자 이송", null, patient.Identity?.DisplayName);
+        actor.Brain?.SetActionPhase(
+            CharacterMedicalStatusCode.Carrying.ToString(),
+            null,
+            patient.Identity?.DisplayName);
         if (bedPath.Count > 0)
         {
             yield return move.MoveByPath(bedPath);
         }
 
-        string placementFailure = string.Empty;
+        DomainFailure placementFailure = DomainFailure.None;
         if (IsActionCancelled(expectedAction)
-            || !medicalRuntime.TryPlaceAtTreatmentDestination(
+            || !medicalCommands.TryPlaceAtTreatmentDestination(
                 order.orderId,
                 actor,
                 out placementFailure))
         {
-            Fail(order, placementFailure);
+            Fail(
+                order,
+                placementFailure.Code == FailureCode.CharacterMedicalDestinationUnavailable
+                    ? CharacterMedicalStatusCode.AwaitingBed
+                    : CharacterMedicalStatusCode.RescueInterrupted);
             yield break;
         }
 
-        while (medicalRuntime.TryGetOrder(order.orderId, out order)
+        while (medicalQuery.TryGetOrder(order.orderId, out order)
             && order.IsActive
-            && medicalRuntime.TryGetPatient(order, out patient)
+            && medicalQuery.TryGetPatient(order, out patient)
             && patient.CurrentLifecycleState == CharacterLifecycleState.Downed)
         {
             actor.Brain?.SetActionPhase(
-                $"병상 치료 {ProgressPercent(order.completedTreatmentWork, order.requiredTreatmentWork)}%",
+                $"{CharacterMedicalStatusCode.Treating}:{ProgressPercent(order.completedTreatmentWork, order.requiredTreatmentWork)}",
                 null,
                 patient.Identity?.DisplayName);
             float work = actor.GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Treat) * gameClock.DeltaTime;
-            medicalRuntime.AdvanceTreatment(order.orderId, actor, work);
+            medicalCommands.AdvanceTreatment(order.orderId, actor, work);
             if (IsActionCancelled(expectedAction))
             {
-                Fail(order, "치료 중단");
+                Fail(order, CharacterMedicalStatusCode.TreatmentInterrupted);
                 yield break;
             }
 
@@ -273,9 +326,18 @@ public sealed class AbilityRescue : MonoBehaviour
         return path != null && path.Count > 0 && !IsActionCancelled(expectedAction);
     }
 
-    private void Fail(CharacterMedicalOrder order, string reason)
+    private void Fail(
+        CharacterMedicalOrder order,
+        CharacterMedicalStatusCode statusCode)
     {
-        medicalRuntime?.ReleaseReservation(order?.orderId, actor, reason);
+        if (medicalCommands != null && order != null)
+        {
+            medicalCommands.TryReleaseReservation(
+                order.orderId,
+                actor,
+                statusCode,
+                out _);
+        }
         activeOrder = null;
         rescueRoutine = null;
         EndAiAction();

@@ -81,7 +81,7 @@ public static class CombatCoverAssetBuilder
         building.category = BuildingCategory.Special;
         building.horizontalDraggable = false;
         building.verticalDraggable = false;
-        building.type = typeof(BuildableObject);
+        building.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
         building.tiles = null;
         building.movementAnchorOffset = Vector2.zero;
         building.unlocked = true;
@@ -114,17 +114,23 @@ public static class CombatCoverAssetBuilder
             facingDirection = Vector2Int.left,
             coverHitPoints = hitPoints
         });
-        abilities.Add(new BuildingWorkAmountAbility
+        BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
         {
             constructionWorkRequired = constructionWork,
             repairWorkRequired = Mathf.Max(8f, constructionWork * 0.35f),
             cleanWorkRequired = 4f,
             researchWorkRequired = 6f,
-            operateWorkRequired = 10f,
-            constructionMaterialCategory = StockCategory.General,
-            constructionMaterialAmount = materialAmount,
-            materialUnitsPerConstructionCost = 0f
+            operateWorkRequired = 10f
+        };
+        workAmount.SetConstructionMaterials(new[]
+        {
+            new ItemAmountDefinition(
+                string.Equals(fileName, "C02_SackBulwark", StringComparison.Ordinal)
+                    ? "material:cloth"
+                    : "material:lumber",
+                materialAmount)
         });
+        abilities.Add(workAmount);
         building.ReplaceAbilities(abilities);
         building.ValidateAbilitiesOrThrow();
         EditorUtility.SetDirty(building);

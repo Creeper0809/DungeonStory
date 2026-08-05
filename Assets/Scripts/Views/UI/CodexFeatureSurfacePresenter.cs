@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Operation;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -74,29 +75,37 @@ public interface ICodexFeatureCommandService
 
 public sealed class CodexFeatureQueryService : ICodexFeatureQueryService
 {
-    private readonly ICodexRuntimeProvider codexProvider;
-    private readonly IInvasionCombatReportRuntimeProvider invasionReportProvider;
-    private readonly IOffenseExpeditionRuntimeProvider expeditionProvider;
-    private readonly IOperatingDaySettlementRuntimeProvider settlementProvider;
-    private readonly IEventAlertRuntimeProvider eventAlertProvider;
+    private readonly CodexRuntime codex;
+    private readonly InvasionCombatReportRuntime invasionReports;
+    private readonly IOffenseQuery offense;
+    private readonly OperatingDaySettlementRuntime settlement;
+    private readonly EventAlertRuntime eventAlerts;
 
     public CodexFeatureQueryService(
-        ICodexRuntimeProvider codexProvider,
-        IInvasionCombatReportRuntimeProvider invasionReportProvider,
-        IOffenseExpeditionRuntimeProvider expeditionProvider,
-        IOperatingDaySettlementRuntimeProvider settlementProvider,
-        IEventAlertRuntimeProvider eventAlertProvider)
+        FacilityFeatureSceneRuntimeReferences facilityRuntimes,
+        InvasionSceneRuntimeReferences invasionRuntimes,
+        IOffenseQuery offense,
+        DungeonSceneRuntimeReferences sceneRuntimes)
     {
-        this.codexProvider = codexProvider
-            ?? throw new ArgumentNullException(nameof(codexProvider));
-        this.invasionReportProvider = invasionReportProvider
-            ?? throw new ArgumentNullException(nameof(invasionReportProvider));
-        this.expeditionProvider = expeditionProvider
-            ?? throw new ArgumentNullException(nameof(expeditionProvider));
-        this.settlementProvider = settlementProvider
-            ?? throw new ArgumentNullException(nameof(settlementProvider));
-        this.eventAlertProvider = eventAlertProvider
-            ?? throw new ArgumentNullException(nameof(eventAlertProvider));
+        codex = (facilityRuntimes
+                ?? throw new ArgumentNullException(nameof(facilityRuntimes)))
+            .Codex
+            ?? throw new InvalidOperationException(
+                $"{nameof(CodexFeatureQueryService)} requires a loaded {nameof(CodexRuntime)}.");
+        invasionReports = (invasionRuntimes
+                ?? throw new ArgumentNullException(nameof(invasionRuntimes)))
+            .CombatReport
+            ?? throw new InvalidOperationException(
+                $"{nameof(CodexFeatureQueryService)} requires a loaded {nameof(InvasionCombatReportRuntime)}.");
+        this.offense = offense ?? throw new ArgumentNullException(nameof(offense));
+        settlement = (sceneRuntimes
+                ?? throw new ArgumentNullException(nameof(sceneRuntimes)))
+            .Settlement
+            ?? throw new InvalidOperationException(
+                $"{nameof(CodexFeatureQueryService)} requires a loaded {nameof(OperatingDaySettlementRuntime)}.");
+        eventAlerts = sceneRuntimes.Alerts
+            ?? throw new InvalidOperationException(
+                $"{nameof(CodexFeatureQueryService)} requires a loaded {nameof(EventAlertRuntime)}.");
     }
 
     public CodexFeatureSurfaceModel Capture(
@@ -115,7 +124,8 @@ public sealed class CodexFeatureQueryService : ICodexFeatureQueryService
 
     private CodexFeatureSurfaceModel CaptureCodex(CodexEntryCategory category)
     {
-        if (!codexProvider.TryGetRuntime(out CodexRuntime runtime))
+        CodexRuntime runtime = codex;
+        if (runtime == null)
         {
             return new CodexFeatureSurfaceModel
             {
@@ -143,9 +153,9 @@ public sealed class CodexFeatureQueryService : ICodexFeatureQueryService
 
     private CodexFeatureSurfaceModel CaptureReports()
     {
-        invasionReportProvider.TryGetRuntime(out InvasionCombatReportRuntime invasion);
-        expeditionProvider.TryGetRuntime(out OffenseExpeditionRuntime offense);
-        settlementProvider.TryGetRuntime(out OperatingDaySettlementRuntime operation);
+        InvasionCombatReportRuntime invasion = invasionReports;
+        OffenseCampaignSnapshot offenseCampaign = offense.Capture();
+        OperatingDaySettlementRuntime operation = settlement;
         List<CodexFeatureReportRow> reports = new List<CodexFeatureReportRow>();
 
         if (invasion?.ReportHistory.FirstOrDefault()
@@ -160,7 +170,7 @@ public sealed class CodexFeatureQueryService : ICodexFeatureQueryService
             });
         }
 
-        if (offense?.ResultHistory.FirstOrDefault()
+        if (offenseCampaign.ResultHistory.FirstOrDefault()
             is OffenseExpeditionResult offenseResult)
         {
             reports.Add(new CodexFeatureReportRow
@@ -189,7 +199,7 @@ public sealed class CodexFeatureQueryService : ICodexFeatureQueryService
             RuntimeAvailable = true,
             Summary =
                 $"침공 {invasion?.ReportHistory.Count ?? 0} / " +
-                $"원정 {offense?.ResultHistory.Count ?? 0} / " +
+                $"원정 {offenseCampaign.ResultHistory.Count} / " +
                 $"운영 {operation?.ReportHistory.Count ?? 0}",
             Reports = reports
         };
@@ -198,13 +208,7 @@ public sealed class CodexFeatureQueryService : ICodexFeatureQueryService
     private CodexFeatureSurfaceModel CaptureEvents(
         EventAlertImportance? eventImportance)
     {
-        if (!eventAlertProvider.TryGetRuntime(out EventAlertRuntime runtime))
-        {
-            return new CodexFeatureSurfaceModel
-            {
-                Summary = "이벤트 알림 런타임이 현재 씬에 없습니다."
-            };
-        }
+        EventAlertRuntime runtime = eventAlerts;
 
         EventAlertRecord[] records = runtime.EventLog
             .Where(record => record != null
@@ -236,25 +240,28 @@ public sealed class CodexFeatureQueryService : ICodexFeatureQueryService
 
 public sealed class CodexFeatureCommandService : ICodexFeatureCommandService
 {
-    private readonly IEventAlertRuntimeProvider eventAlertProvider;
+    private readonly EventAlertRuntime eventAlerts;
     private readonly IKnowledgeResidueProcessingRuntime knowledgeProcessing;
 
     public CodexFeatureCommandService(
-        IEventAlertRuntimeProvider eventAlertProvider,
+        DungeonSceneRuntimeReferences sceneRuntimes,
         IKnowledgeResidueProcessingRuntime knowledgeProcessing)
     {
-        this.eventAlertProvider = eventAlertProvider
-            ?? throw new ArgumentNullException(nameof(eventAlertProvider));
+        eventAlerts = (sceneRuntimes
+                ?? throw new ArgumentNullException(nameof(sceneRuntimes)))
+            .Alerts
+            ?? throw new InvalidOperationException(
+                $"{nameof(CodexFeatureCommandService)} requires a loaded {nameof(EventAlertRuntime)}.");
         this.knowledgeProcessing = knowledgeProcessing
             ?? throw new ArgumentNullException(nameof(knowledgeProcessing));
     }
 
     public CodexFeatureCommandResult OpenEvent(int recordId)
     {
-        eventAlertProvider.TryGetRuntime(out EventAlertRuntime runtime);
-        EventAlertRecord record = runtime?.EventLog.FirstOrDefault(
+        EventAlertRuntime runtime = eventAlerts;
+        EventAlertRecord record = runtime.EventLog.FirstOrDefault(
             candidate => candidate != null && candidate.Id == recordId);
-        if (runtime == null || record == null)
+        if (record == null)
         {
             return new CodexFeatureCommandResult(
                 false,

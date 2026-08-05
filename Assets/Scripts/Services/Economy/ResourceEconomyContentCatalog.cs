@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 using VContainer;
 
 public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatalog
@@ -9,21 +10,21 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
     private readonly IReadOnlyList<ProductionRecipeSO> recipes;
     private readonly IReadOnlyList<CropDefinitionSO> crops;
     private readonly IReadOnlyList<CraftMaterialDefinitionSO> materials;
-    private readonly IReadOnlyList<SubstanceDefinitionSO> substances;
+    private readonly IReadOnlyList<SubstanceDefinitionView> substances;
     private readonly IReadOnlyDictionary<string, ResourceItemDefinitionSO> itemsById;
     private readonly IReadOnlyDictionary<string, ProductionRecipeSO> recipesById;
     private readonly IReadOnlyDictionary<string, CropDefinitionSO> cropsById;
     private readonly IReadOnlyDictionary<string, CraftMaterialDefinitionSO> materialsById;
-    private readonly IReadOnlyDictionary<string, SubstanceDefinitionSO> substancesById;
+    private readonly IReadOnlyDictionary<string, SubstanceDefinitionView> substancesById;
 
     [Inject]
-    public ResourceEconomyContentCatalog(IResourcesAssetLoader loader)
+    public ResourceEconomyContentCatalog(IGameContentCatalog content)
         : this(
-            loader?.LoadAllOptional<ResourceItemDefinitionSO>(ResourceItemDefinitionSO.ResourcePath),
-            loader?.LoadAllOptional<ProductionRecipeSO>(ProductionRecipeSO.ResourcePath),
-            loader?.LoadAllOptional<CropDefinitionSO>(CropDefinitionSO.ResourcePath),
-            loader?.LoadAllOptional<CraftMaterialDefinitionSO>(CraftMaterialDefinitionSO.ResourcePath),
-            loader?.LoadAllOptional<SubstanceDefinitionSO>(SubstanceDefinitionSO.ResourcePath))
+            (content ?? throw new ArgumentNullException(nameof(content)))
+                .Items.Definitions.OfType<ResourceItemDefinitionSO>(),
+            content.GetAll<ProductionRecipeSO>(),
+            content.GetAll<CropDefinitionSO>(),
+            content.GetAll<CraftMaterialDefinitionSO>())
     {
     }
 
@@ -31,8 +32,7 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
         IEnumerable<ResourceItemDefinitionSO> itemDefinitions,
         IEnumerable<ProductionRecipeSO> recipeDefinitions,
         IEnumerable<CropDefinitionSO> cropDefinitions,
-        IEnumerable<CraftMaterialDefinitionSO> materialDefinitions,
-        IEnumerable<SubstanceDefinitionSO> substanceDefinitions)
+        IEnumerable<CraftMaterialDefinitionSO> materialDefinitions)
     {
         items = Normalize(
             itemDefinitions,
@@ -51,9 +51,11 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
             material => material.MaterialId,
             "craft material");
         substances = Normalize(
-            substanceDefinitions,
+            items
+                .Where(item => item.TryGetFeature(out SubstanceItemFeature _))
+                .Select(CreateSubstanceView),
             substance => substance.SubstanceId,
-            "substance");
+            "item substance feature");
 
         itemsById = items.ToDictionary(item => item.ItemId, StringComparer.Ordinal);
         recipesById = recipes.ToDictionary(recipe => recipe.RecipeId, StringComparer.Ordinal);
@@ -68,7 +70,7 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
     public IReadOnlyList<ProductionRecipeSO> Recipes => recipes;
     public IReadOnlyList<CropDefinitionSO> Crops => crops;
     public IReadOnlyList<CraftMaterialDefinitionSO> Materials => materials;
-    public IReadOnlyList<SubstanceDefinitionSO> Substances => substances;
+    public IReadOnlyList<SubstanceDefinitionView> Substances => substances;
 
     public bool TryGetItem(string itemId, out ResourceItemDefinitionSO definition)
     {
@@ -90,9 +92,35 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
         return materialsById.TryGetValue(materialId?.Trim() ?? string.Empty, out definition);
     }
 
-    public bool TryGetSubstance(string substanceId, out SubstanceDefinitionSO definition)
+    public bool TryGetSubstance(string substanceId, out SubstanceDefinitionView definition)
     {
         return substancesById.TryGetValue(substanceId?.Trim() ?? string.Empty, out definition);
+    }
+
+    private static SubstanceDefinitionView CreateSubstanceView(
+        ResourceItemDefinitionSO item)
+    {
+        if (item == null
+            || !item.TryGetFeature(out SubstanceItemFeature feature))
+        {
+            throw new InvalidOperationException(
+                "A substance projection requires an authored item substance feature.");
+        }
+
+        return new SubstanceDefinitionView(
+            feature.substanceId,
+            item.ItemId,
+            item.DisplayName,
+            feature.useClass,
+            feature.addictionChance,
+            feature.overdoseChance,
+            feature.toleranceGain,
+            feature.withdrawalPerHour,
+            feature.moodEffect,
+            feature.workSpeedEffect,
+            feature.combatEffect,
+            feature.durationSeconds,
+            item.RequiredResearchId);
     }
 
     private static IReadOnlyList<T> Normalize<T>(
@@ -126,10 +154,14 @@ public sealed class ResourceEconomyContentCatalog : IResourceEconomyContentCatal
     }
 }
 
-public sealed class ResourceUsageIndex : IResourceUsageIndex
+public sealed class ResourceUsageIndex :
+    IResourceUsageIndex,
+    IProductionDependencyCatalog
 {
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly IWorldItemStackRuntime itemRuntime;
+    private readonly ICombatEquipmentCatalog equipmentCatalog;
+    private readonly IGameContentCatalog content;
     private readonly Dictionary<string, StaticUsage> staticEntries =
         new Dictionary<string, StaticUsage>(StringComparer.Ordinal);
     private readonly Dictionary<string, int> reservationCache =
@@ -138,10 +170,15 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
 
     public ResourceUsageIndex(
         IResourceEconomyContentCatalog catalog,
-        IWorldItemStackRuntime itemRuntime)
+        IWorldItemStackRuntime itemRuntime,
+        ICombatEquipmentCatalog equipmentCatalog,
+        IGameContentCatalog content)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         this.itemRuntime = itemRuntime ?? throw new ArgumentNullException(nameof(itemRuntime));
+        this.equipmentCatalog = equipmentCatalog
+            ?? throw new ArgumentNullException(nameof(equipmentCatalog));
+        this.content = content ?? throw new ArgumentNullException(nameof(content));
         BuildStaticIndex();
     }
 
@@ -161,9 +198,20 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
             ProducerIds = usage.Producers,
             ConsumerIds = usage.Consumers,
             RequiredResearchIds = usage.ResearchIds,
-            ReservedQuantity = reserved
+            ReservedQuantity = reserved,
+            ConsumerLinks = usage.ConsumerLinks,
+            DirectBranchCount = usage.ConsumerLinks.Count(link => link.IsRealConsumer),
+            LongestProductionDepth = GetLongestProductionDepth(normalized)
         };
     }
+
+    public ResourceUsageEntry GetDependency(string itemId) => Get(itemId);
+
+    public IReadOnlyList<ProductionConsumerLink> GetConsumers(string itemId) =>
+        Get(itemId).ConsumerLinks;
+
+    public IReadOnlyList<string> ValidateProductionGraph() =>
+        ValidateContentGraph();
 
     public IReadOnlyList<string> ValidateContentGraph()
     {
@@ -181,11 +229,15 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
 
             foreach (ItemAmountDefinition input in recipe.Inputs)
             {
+                if (input != null
+                    && input.ItemId.StartsWith("stock-item:", StringComparison.Ordinal))
+                {
+                    errors.Add(
+                        $"{recipe.RecipeId}: abstract recipe input '{input.ItemId}' is forbidden.");
+                    continue;
+                }
                 if (input == null
-                    || (!itemIds.Contains(input.ItemId)
-                        && !DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
-                            input.ItemId,
-                            out _)))
+                    || !itemIds.Contains(input.ItemId))
                 {
                     errors.Add($"{recipe.RecipeId}: 알 수 없는 입력 아이템 '{input?.ItemId}'.");
                 }
@@ -216,15 +268,23 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
                 errors.Add($"{item.ItemId}: 생산처가 없습니다.");
             }
 
-            int minimumConsumers = item.Kind is ResourceItemKind.Raw
-                or ResourceItemKind.AnimalProduct
-                    ? 2
-                    : 1;
-            if (usage.Consumers.Count < minimumConsumers)
+            int minimumConsumers = item.Kind == ResourceItemKind.Intermediate
+                ? 2
+                : 1;
+            int realConsumers = usage.ConsumerLinks.Count(link =>
+                link.IsRealConsumer);
+            if (realConsumers < minimumConsumers)
             {
                 errors.Add(
                     $"{item.ItemId}: 사용처가 {usage.Consumers.Count}개뿐입니다. "
                     + $"최소 {minimumConsumers}개가 필요합니다.");
+            }
+
+            int depth = GetLongestProductionDepth(item.ItemId);
+            if (depth > 4)
+            {
+                errors.Add(
+                    $"{item.ItemId}: production depth {depth} exceeds four transformations.");
             }
         }
 
@@ -236,7 +296,7 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
             }
         }
 
-        foreach (SubstanceDefinitionSO substance in catalog.Substances)
+        foreach (SubstanceDefinitionView substance in catalog.Substances)
         {
             if (!itemIds.Contains(substance.ItemId))
             {
@@ -244,7 +304,122 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
             }
         }
 
+        foreach (BuildingSO building in content.GetAll<BuildingSO>())
+        {
+            if (building == null)
+            {
+                continue;
+            }
+
+            BuildingWorkAmountAbility workAmount =
+                building.GetAbility<BuildingWorkAmountAbility>();
+            if (workAmount == null)
+            {
+                errors.Add(
+                    $"building:{building.id}: construction material authority is missing.");
+                continue;
+            }
+
+            IReadOnlyList<ItemAmountDefinition> constructionMaterials =
+                workAmount.ConstructionMaterials;
+            if (constructionMaterials == null || constructionMaterials.Count == 0)
+            {
+                errors.Add(
+                    $"building:{building.id}: at least one concrete construction material is required.");
+                continue;
+            }
+
+            HashSet<string> materialIds = new(StringComparer.Ordinal);
+            foreach (ItemAmountDefinition material in constructionMaterials)
+            {
+                string materialId = material?.ItemId?.Trim() ?? string.Empty;
+                if (material == null
+                    || material.Amount <= 0
+                    || materialId.Length == 0
+                    || materialId.StartsWith("stock-item:", StringComparison.Ordinal)
+                    || !itemIds.Contains(materialId))
+                {
+                    errors.Add(
+                        $"building:{building.id}: invalid concrete construction material '{materialId}'.");
+                    continue;
+                }
+
+                if (!materialIds.Add(materialId))
+                {
+                    errors.Add(
+                        $"building:{building.id}: duplicate construction material '{materialId}'.");
+                }
+            }
+        }
+
         return errors;
+    }
+
+    public int GetLongestProductionDepth(string itemId)
+    {
+        string normalized = itemId?.Trim() ?? string.Empty;
+        Dictionary<string, int> memo = new Dictionary<string, int>(
+            StringComparer.Ordinal);
+        return MeasureProductionDepth(
+            normalized,
+            memo,
+            new HashSet<string>(StringComparer.Ordinal));
+    }
+
+    private int MeasureProductionDepth(
+        string itemId,
+        IDictionary<string, int> memo,
+        ISet<string> visiting)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            return 0;
+        }
+        if (catalog.TryGetItem(itemId, out ResourceItemDefinitionSO item)
+            && item.Kind == ResourceItemKind.Raw)
+        {
+            return 0;
+        }
+        if (memo.TryGetValue(itemId, out int cached))
+        {
+            return cached;
+        }
+        if (!visiting.Add(itemId))
+        {
+            return 5;
+        }
+
+        ProductionRecipeSO[] producers = catalog.Recipes
+            .Where(recipe => recipe.Outputs.Any(output =>
+                output != null
+                && string.Equals(
+                    output.ItemId,
+                    itemId,
+                    StringComparison.Ordinal)))
+            .ToArray();
+        if (producers.Length > 0
+            && producers.All(producer => producer.RecipeId.StartsWith(
+                "source:",
+                StringComparison.Ordinal)))
+        {
+            visiting.Remove(itemId);
+            memo[itemId] = 0;
+            return 0;
+        }
+        int depth = 0;
+        foreach (ProductionRecipeSO producer in producers)
+        {
+            int inputDepth = producer.Inputs.Count == 0
+                ? 0
+                : producer.Inputs.Max(input => input == null
+                    ? 0
+                    : MeasureProductionDepth(input.ItemId, memo, visiting));
+            depth = Mathf.Max(depth, inputDepth + 1);
+        }
+
+        visiting.Remove(itemId);
+        memo[itemId] = depth;
+        return depth;
     }
 
     public void InvalidateReservations()
@@ -265,7 +440,11 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
             {
                 if (input != null && staticEntries.TryGetValue(input.ItemId, out StaticUsage usage))
                 {
-                    usage.AddConsumer(recipe.RecipeId, recipe.RequiredResearchId);
+                    usage.AddConsumer(
+                        recipe.RecipeId,
+                        recipe.RequiredResearchId,
+                        ProductionConsumerKind.RecipeInput,
+                        recipe.DisplayName);
                 }
             }
 
@@ -286,19 +465,320 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
             }
         }
 
-        foreach (CraftMaterialDefinitionSO material in catalog.Materials)
+        foreach (CombatEquipmentDefinitionSO equipment in
+                 equipmentCatalog?.All
+                 ?? Array.Empty<CombatEquipmentDefinitionSO>())
         {
-            if (staticEntries.TryGetValue(material.ItemId, out StaticUsage usage))
+            foreach (CraftMaterialDefinitionSO material in catalog.Materials
+                         .Where(equipment.AllowsMaterial))
             {
-                usage.AddConsumer(
-                    $"sink:equipment-material:{material.MaterialId}",
-                    material.RequiredResearchId);
+                if (staticEntries.TryGetValue(
+                        material.ItemId,
+                        out StaticUsage materialUsage))
+                {
+                    materialUsage.AddConsumer(
+                        $"equipment:{equipment.EquipmentId}",
+                        equipment.RequiredResearchId,
+                        ProductionConsumerKind.EquipmentMaterial,
+                        equipment.DisplayName);
+                }
+            }
+
+            foreach (ItemAmountDefinition component in
+                     equipment.RequiredComponentInputs)
+            {
+                if (component != null
+                    && staticEntries.TryGetValue(
+                        component.ItemId,
+                        out StaticUsage componentUsage))
+                {
+                    componentUsage.AddConsumer(
+                        $"equipment:{equipment.EquipmentId}",
+                        equipment.RequiredResearchId,
+                        ProductionConsumerKind.EquipmentMaterial,
+                        equipment.DisplayName);
+                }
+            }
+
+            if (equipment is CombatWeaponSO weapon)
+            {
+                foreach (ItemDefinitionId ammunitionItemId in
+                         weapon.CompatibleAmmunitionItemIds)
+                {
+                    if (!staticEntries.TryGetValue(
+                            ammunitionItemId.Value,
+                            out StaticUsage ammunitionUsage))
+                    {
+                        continue;
+                    }
+
+                    ammunitionUsage.AddConsumer(
+                        $"equipment-ammunition:{weapon.EquipmentId}",
+                        weapon.RequiredResearchId,
+                        ProductionConsumerKind.DefenseAmmunition,
+                        weapon.DisplayName);
+                }
+            }
+        }
+
+        foreach (SurgicalProcedureSO procedure in content.GetAll<SurgicalProcedureSO>())
+        {
+            foreach (SurgicalMaterialRequirement requirement in procedure.Materials)
+            {
+                if (requirement != null
+                    && staticEntries.TryGetValue(
+                        requirement.itemId?.Trim() ?? string.Empty,
+                        out StaticUsage usage))
+                {
+                    usage.AddConsumer(
+                        $"medical:{procedure.ProcedureId}",
+                        procedure.RequiredResearchId,
+                        ProductionConsumerKind.MedicalProcedure,
+                        procedure.DisplayName);
+                }
+            }
+        }
+
+        foreach (EnvironmentalWorkwearSO workwear in
+                 content.GetAll<EnvironmentalWorkwearSO>())
+        {
+            if (workwear != null
+                && staticEntries.TryGetValue(
+                    workwear.ItemDefinitionId,
+                    out StaticUsage workwearUsage))
+            {
+                workwearUsage.AddConsumer(
+                    $"environment-workwear:{workwear.WorkwearId}",
+                    workwear.RequiredResearchId,
+                    ProductionConsumerKind.EquipmentUse,
+                    workwear.DisplayName);
             }
         }
 
         foreach (ResourceItemDefinitionSO item in catalog.Items)
         {
+            if (item != null
+                && item.TryGetFeature(out SubstanceItemFeature substance)
+                && staticEntries.TryGetValue(item.ItemId, out StaticUsage usage))
+            {
+                usage.AddConsumer(
+                    $"substance:{substance.substanceId}",
+                    item.RequiredResearchId,
+                    ProductionConsumerKind.CharacterConsumption,
+                    item.DisplayName);
+            }
+        }
+
+        foreach (BuildingSO building in content.GetAll<BuildingSO>())
+        {
+            if (building == null)
+            {
+                continue;
+            }
+
+            BuildingWorkAmountAbility workAmount =
+                building.GetAbility<BuildingWorkAmountAbility>();
+            foreach (ItemAmountDefinition material in
+                     workAmount?.ConstructionMaterials
+                     ?? Array.Empty<ItemAmountDefinition>())
+            {
+                if (material != null
+                    && staticEntries.TryGetValue(
+                        material.ItemId,
+                        out StaticUsage constructionUsage))
+                {
+                    constructionUsage.AddConsumer(
+                        $"construction:{building.id}",
+                        string.Empty,
+                        ProductionConsumerKind.ConstructionMaterial,
+                        string.IsNullOrWhiteSpace(building.objectName)
+                            ? $"Building {building.id}"
+                            : building.objectName);
+                }
+            }
+
+            BuildingProductionWorkstationAbility workstation =
+                building.GetProductionWorkstationAbility();
+            if (workstation != null
+                && staticEntries.TryGetValue(
+                    workstation.StockSensorInstallationItemId,
+                    out StaticUsage stockSensorUsage))
+            {
+                stockSensorUsage.AddConsumer(
+                    $"production-stock-sensor:{building.id}",
+                    string.Empty,
+                    ProductionConsumerKind.FacilitySupply,
+                    string.IsNullOrWhiteSpace(building.objectName)
+                        ? $"Building {building.id} stock sensor"
+                        : $"{building.objectName} stock sensor");
+            }
+
+            BuildingCropPlotAbility cropPlot =
+                building.GetAbility<BuildingCropPlotAbility>();
+            foreach (ItemAmountDefinition cycleSupply in
+                     cropPlot?.CycleSupplyInputs
+                     ?? Array.Empty<ItemAmountDefinition>())
+            {
+                if (cycleSupply != null
+                    && staticEntries.TryGetValue(
+                        cycleSupply.ItemId,
+                        out StaticUsage cropSupplyUsage))
+                {
+                    cropSupplyUsage.AddConsumer(
+                        $"crop-cycle-supply:{building.id}",
+                        string.Empty,
+                        ProductionConsumerKind.FacilitySupply,
+                        string.IsNullOrWhiteSpace(building.objectName)
+                            ? $"Building {building.id} crop supply"
+                            : $"{building.objectName} crop supply");
+                }
+            }
+
+            BuildingEquipmentMaintenanceAbility maintenance =
+                building.GetAbility<BuildingEquipmentMaintenanceAbility>();
+            if (maintenance != null
+                && staticEntries.TryGetValue(
+                    maintenance.RepairSupplyItemId,
+                    out StaticUsage maintenanceUsage))
+            {
+                maintenanceUsage.AddConsumer(
+                    $"equipment-maintenance:{building.id}",
+                    string.Empty,
+                    ProductionConsumerKind.FacilitySupply,
+                    string.IsNullOrWhiteSpace(building.objectName)
+                        ? $"Building {building.id} maintenance"
+                        : $"{building.objectName} maintenance");
+            }
+
+            DefenseFacilityData defense = building.Defense;
+            if (defense?.UsesPhysicalSupply == true
+                && staticEntries.TryGetValue(
+                    defense.supplyItemId?.Trim() ?? string.Empty,
+                    out StaticUsage defenseSupplyUsage))
+            {
+                defenseSupplyUsage.AddConsumer(
+                    $"defense-supply:{building.id}",
+                    string.Empty,
+                    ProductionConsumerKind.DefenseAmmunition,
+                    string.IsNullOrWhiteSpace(building.objectName)
+                        ? $"Building {building.id} defense supply"
+                        : $"{building.objectName} defense supply");
+            }
+
+            BuildingFacilitySupplyAbility supply =
+                building.GetAbility<BuildingFacilitySupplyAbility>();
+            if (supply?.profiles == null)
+            {
+                continue;
+            }
+
+            foreach (FacilitySupplyProfile profile in supply.profiles)
+            {
+                if (profile == null)
+                {
+                    continue;
+                }
+
+                foreach (ResourceItemDefinitionSO item in catalog.Items)
+                {
+                    if (item == null
+                        || !profile.Allows(item)
+                        || !staticEntries.TryGetValue(
+                            item.ItemId,
+                            out StaticUsage usage))
+                    {
+                        continue;
+                    }
+
+                    usage.AddConsumer(
+                        $"facility:{building.id}:supply:{profile.kind.ToString().ToLowerInvariant()}",
+                        string.Empty,
+                        ProductionConsumerKind.FacilitySupply,
+                        string.IsNullOrWhiteSpace(building.objectName)
+                            ? $"Building {building.id} {profile.kind}"
+                            : $"{building.objectName} {profile.kind}");
+                }
+            }
+        }
+
+        string expeditionToolItemId = OffenseSupplyCatalog.GetPhysicalItemId(
+            OffenseSupplyType.Tools);
+        if (staticEntries.TryGetValue(
+                expeditionToolItemId,
+                out StaticUsage expeditionToolUsage))
+        {
+            expeditionToolUsage.AddConsumer(
+                "offense-supply:tools",
+                string.Empty,
+                ProductionConsumerKind.FacilitySupply,
+                "Expedition field tools");
+        }
+
+        foreach (ResourceItemDefinitionSO item in catalog.Items)
+        {
             StaticUsage usage = staticEntries[item.ItemId];
+            if (item.TryGetFeature(out FoodItemFeature _))
+            {
+                usage.AddConsumer(
+                    $"item-consumption:{item.ItemId}",
+                    item.RequiredResearchId,
+                    ProductionConsumerKind.CharacterConsumption,
+                    item.DisplayName);
+            }
+            if (item.TryGetFeature(out MedicineItemFeature medicine)
+                && (medicine.supportsInjuryTreatment
+                    || medicine.treatmentPotency > 0f
+                    || medicine.infectionReduction > 0f
+                    || medicine.detoxReduction > 0f
+                    || medicine.painReduction > 0f))
+            {
+                usage.AddConsumer(
+                    $"item-treatment:{item.ItemId}",
+                    item.RequiredResearchId,
+                    ProductionConsumerKind.MedicalProcedure,
+                    item.DisplayName);
+            }
+            if (item.TryGetFeature(out InstallationItemFeature installation)
+                && installation.buildingDefinitionId >= 0)
+            {
+                usage.AddConsumer(
+                    $"building-installation:{installation.buildingDefinitionId}",
+                    item.RequiredResearchId,
+                    ProductionConsumerKind.Installation,
+                    item.DisplayName);
+            }
+            if (item.TryGetFeature(out BlueprintItemFeature blueprint)
+                && !string.IsNullOrWhiteSpace(blueprint.targetResearchId))
+            {
+                usage.AddConsumer(
+                    $"research-blueprint:{blueprint.targetResearchId.Trim()}",
+                    item.RequiredResearchId,
+                    ProductionConsumerKind.Installation,
+                    item.DisplayName);
+            }
+            if (item.Kind != ResourceItemKind.Intermediate
+                && item.TryGetFeature(out MarketItemFeature market)
+                && market.saleRate > 0f
+                && item.UnitPrice > 0)
+            {
+                usage.AddConsumer(
+                    $"market-sale:{item.ItemId}",
+                    item.RequiredResearchId,
+                    ProductionConsumerKind.MarketSale,
+                    item.DisplayName);
+            }
+            if (string.Equals(
+                item.ItemId,
+                EquipmentProgressionItemIds.LineageSeal,
+                StringComparison.Ordinal))
+            {
+                usage.AddConsumer(
+                    "equipment-lineage:history-transfer",
+                    item.RequiredResearchId,
+                    ProductionConsumerKind.LineageTransfer,
+                    item.DisplayName);
+            }
+
             if (string.Equals(
                 item.ItemId,
                 "offense:unappraised-loot",
@@ -318,43 +798,6 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
                     "research:husbandry:capture");
             }
 
-            foreach (string sink in GetBuiltInSinks(item))
-            {
-                usage.AddConsumer(sink, item.RequiredResearchId);
-            }
-        }
-    }
-
-    private static IEnumerable<string> GetBuiltInSinks(ResourceItemDefinitionSO item)
-    {
-        if (item.Kind == ResourceItemKind.Food)
-        {
-            yield return "sink:character-meal";
-            yield return "sink:guest-meal";
-        }
-        if (item.Kind == ResourceItemKind.Medicine)
-        {
-            yield return "sink:medical-treatment";
-        }
-        if (item.Kind == ResourceItemKind.Substance)
-        {
-            yield return "sink:substance-policy";
-        }
-        if (item.Kind == ResourceItemKind.Ammunition)
-        {
-            yield return "sink:combat-ammunition";
-        }
-        if (item.Kind == ResourceItemKind.FinishedGood)
-        {
-            yield return "sink:trade-contract";
-        }
-        if ((item.IngredientTags & ResourceIngredientTag.Fuel) != 0)
-        {
-            yield return "sink:facility-fuel";
-        }
-        if ((item.IngredientTags & ResourceIngredientTag.Spoiled) != 0)
-        {
-            yield return "sink:waste-policy";
         }
     }
 
@@ -384,19 +827,40 @@ public sealed class ResourceUsageIndex : IResourceUsageIndex
         private readonly HashSet<string> producers = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> consumers = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> researchIds = new HashSet<string>(StringComparer.Ordinal);
+        private readonly Dictionary<string, ProductionConsumerLink> consumerLinks =
+            new Dictionary<string, ProductionConsumerLink>(StringComparer.Ordinal);
 
         public IReadOnlyList<string> Producers => producers.OrderBy(id => id, StringComparer.Ordinal).ToArray();
         public IReadOnlyList<string> Consumers => consumers.OrderBy(id => id, StringComparer.Ordinal).ToArray();
         public IReadOnlyList<string> ResearchIds => researchIds.OrderBy(id => id, StringComparer.Ordinal).ToArray();
+        public IReadOnlyList<ProductionConsumerLink> ConsumerLinks => consumerLinks.Values
+            .OrderBy(link => link.kind)
+            .ThenBy(link => link.consumerId, StringComparer.Ordinal)
+            .ToArray();
 
         public void AddProducer(string id, string researchId)
         {
             Add(producers, id, researchId);
         }
 
-        public void AddConsumer(string id, string researchId)
+        public void AddConsumer(
+            string id,
+            string researchId,
+            ProductionConsumerKind kind = ProductionConsumerKind.RecipeInput,
+            string displayName = "")
         {
             Add(consumers, id, researchId);
+            string normalized = id?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(normalized))
+            {
+                consumerLinks[normalized] = new ProductionConsumerLink
+                {
+                    consumerId = normalized,
+                    kind = kind,
+                    requiredResearchId = researchId?.Trim() ?? string.Empty,
+                    displayName = displayName?.Trim() ?? string.Empty
+                };
+            }
         }
 
         private void Add(ISet<string> target, string id, string researchId)

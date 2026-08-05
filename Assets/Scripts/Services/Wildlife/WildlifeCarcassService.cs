@@ -1,24 +1,78 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 public interface IWildlifeCarcassService
 {
     IReadOnlyList<WildlifeCarcassFreshnessSaveData> CaptureFreshness();
-    void RestoreFreshness(IEnumerable<WildlifeCarcassFreshnessSaveData> entries);
+    void ReplaceFreshnessValidated(
+        IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries);
+    WildlifeCarcassFreshnessRestoreTransaction ApplyFreshnessRestoreCandidate(
+        IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries);
+    void RollbackFreshnessRestore(
+        WildlifeCarcassFreshnessRestoreTransaction transaction);
+    void CompleteFreshnessRestore(
+        WildlifeCarcassFreshnessRestoreTransaction transaction);
     bool TryGetFreshness(
         string stackId,
         out float remainingFreshnessSeconds);
     void SpawnCarcass(WildlifeActor target);
     void TickFreshness(float deltaTime);
     bool TryButcherNextCarcass(
-        CharacterActor butcher,
+        IBuildingVisitorPort butcher,
         BuildableObject building,
         out int produced,
         out string message);
     bool HasButcherWorkAvailable(BuildableObject building);
     float GetButcherWorkUrgency();
+}
+
+public sealed class WildlifeCarcassFreshnessRestoreTransaction
+{
+    private readonly WildlifeCarcassService owner;
+    private Action rollback;
+    private Action complete;
+
+    internal WildlifeCarcassFreshnessRestoreTransaction(
+        WildlifeCarcassService owner,
+        Action rollback,
+        Action complete)
+    {
+        this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
+        this.rollback = rollback ?? throw new ArgumentNullException(nameof(rollback));
+        this.complete = complete ?? throw new ArgumentNullException(nameof(complete));
+    }
+
+    internal void Rollback(WildlifeCarcassService expectedOwner)
+    {
+        Action action = RequireActive(expectedOwner, rollback);
+        action();
+        rollback = null;
+        complete = null;
+    }
+
+    internal void Complete(WildlifeCarcassService expectedOwner)
+    {
+        Action action = RequireActive(expectedOwner, complete);
+        action();
+        complete = null;
+        rollback = null;
+    }
+
+    private Action RequireActive(
+        WildlifeCarcassService expectedOwner,
+        Action action)
+    {
+        if (!ReferenceEquals(owner, expectedOwner) || action == null)
+        {
+            throw new InvalidOperationException(
+                "Wildlife carcass freshness restore transaction has the wrong owner or is already finished.");
+        }
+
+        return action;
+    }
 }
 
 public sealed class WildlifeCarcassService : IWildlifeCarcassService
@@ -27,8 +81,8 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
 
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
-    private readonly ICharacterDeprivationRuntime deprivationRuntime;
-    private readonly Dictionary<string, WildlifeCarcassFreshnessSaveData> freshnessByStackId =
+    private readonly IGameEventBus gameEventBus;
+    private Dictionary<string, WildlifeCarcassFreshnessSaveData> freshnessByStackId =
         new Dictionary<string, WildlifeCarcassFreshnessSaveData>(StringComparer.Ordinal);
 
     private WorldItemStackSnapshot cachedBestButcherCarcass;
@@ -37,38 +91,132 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
     public WildlifeCarcassService(
         IWorldItemStackRuntime itemStackRuntime,
         IWildlifeSpeciesCatalogProvider speciesCatalog,
-        ICharacterDeprivationRuntime deprivationRuntime = null)
+        IGameEventBus gameEventBus)
     {
         this.itemStackRuntime = itemStackRuntime
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
         this.speciesCatalog = speciesCatalog
             ?? throw new ArgumentNullException(nameof(speciesCatalog));
-        this.deprivationRuntime = deprivationRuntime;
+        this.gameEventBus = gameEventBus
+            ?? throw new ArgumentNullException(nameof(gameEventBus));
     }
 
     public IReadOnlyList<WildlifeCarcassFreshnessSaveData> CaptureFreshness()
     {
+        Dictionary<string, WorldItemStackSnapshot> stacksById =
+            itemStackRuntime.GetAllStacks()
+                .Where(stack => stack != null
+                    && !string.IsNullOrWhiteSpace(stack.StackId))
+                .GroupBy(stack => stack.StackId, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.First(),
+                    StringComparer.Ordinal);
         return freshnessByStackId.Values
-            .Where(entry => entry != null && !string.IsNullOrWhiteSpace(entry.stackId))
+            .Where(entry => entry != null
+                && !string.IsNullOrWhiteSpace(entry.stackId)
+                && stacksById.TryGetValue(
+                    entry.stackId,
+                    out WorldItemStackSnapshot stack)
+                && WildlifeItemDefinitions.TryGetSpeciesIdFromCarcass(
+                    stack.ItemId,
+                    out string speciesId)
+                && string.Equals(
+                    speciesId,
+                    entry.speciesId,
+                    StringComparison.Ordinal))
             .Select(Clone)
             .ToArray();
     }
 
-    public void RestoreFreshness(IEnumerable<WildlifeCarcassFreshnessSaveData> entries)
+    public void ReplaceFreshnessValidated(
+        IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries)
     {
-        freshnessByStackId.Clear();
-        foreach (WildlifeCarcassFreshnessSaveData entry in entries
-                     ?? Enumerable.Empty<WildlifeCarcassFreshnessSaveData>())
-        {
-            if (entry == null || string.IsNullOrWhiteSpace(entry.stackId))
-            {
-                continue;
-            }
+        WildlifeCarcassFreshnessRestoreTransaction transaction =
+            ApplyFreshnessRestoreCandidate(entries);
+        CompleteFreshnessRestore(transaction);
+    }
 
-            freshnessByStackId[entry.stackId] = Clone(entry);
+    public WildlifeCarcassFreshnessRestoreTransaction ApplyFreshnessRestoreCandidate(
+        IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries)
+    {
+        if (entries == null)
+        {
+            throw new ArgumentNullException(nameof(entries));
         }
 
+        Dictionary<string, WildlifeCarcassFreshnessSaveData> restored =
+            BuildFreshnessState(entries);
+        Dictionary<string, WildlifeCarcassFreshnessSaveData> previous =
+            freshnessByStackId;
+        WorldItemStackSnapshot previousCachedBest = cachedBestButcherCarcass;
+        int previousCachedVersion = cachedBestButcherCarcassVersion;
+        WildlifeCarcassFreshnessRestoreTransaction transaction =
+            new WildlifeCarcassFreshnessRestoreTransaction(
+                this,
+                rollback: () =>
+                {
+                    RequireAppliedFreshness(restored);
+                    freshnessByStackId = previous;
+                    cachedBestButcherCarcass = previousCachedBest;
+                    cachedBestButcherCarcassVersion = previousCachedVersion;
+                },
+                complete: () => RequireAppliedFreshness(restored));
+
+        freshnessByStackId = restored;
         InvalidateButcherCache();
+        return transaction;
+    }
+
+    public void RollbackFreshnessRestore(
+        WildlifeCarcassFreshnessRestoreTransaction transaction)
+    {
+        (transaction ?? throw new ArgumentNullException(nameof(transaction)))
+            .Rollback(this);
+    }
+
+    public void CompleteFreshnessRestore(
+        WildlifeCarcassFreshnessRestoreTransaction transaction)
+    {
+        (transaction ?? throw new ArgumentNullException(nameof(transaction)))
+            .Complete(this);
+    }
+
+    private static Dictionary<string, WildlifeCarcassFreshnessSaveData>
+        BuildFreshnessState(
+            IReadOnlyList<WildlifeCarcassFreshnessSaveData> entries)
+    {
+        Dictionary<string, WildlifeCarcassFreshnessSaveData> restored =
+            new Dictionary<string, WildlifeCarcassFreshnessSaveData>(
+                StringComparer.Ordinal);
+        foreach (WildlifeCarcassFreshnessSaveData entry in entries)
+        {
+            if (entry == null
+                || !((ItemStackId)entry.stackId).IsValid
+                || string.IsNullOrWhiteSpace(entry.speciesId)
+                || float.IsNaN(entry.remainingFreshnessSeconds)
+                || float.IsInfinity(entry.remainingFreshnessSeconds)
+                || entry.remainingFreshnessSeconds < 0f
+                || restored.ContainsKey(entry.stackId))
+            {
+                throw new InvalidOperationException(
+                    "Validated wildlife carcass candidate contains invalid state.");
+            }
+
+            restored.Add(entry.stackId, Clone(entry));
+        }
+
+        return restored;
+    }
+
+    private void RequireAppliedFreshness(
+        Dictionary<string, WildlifeCarcassFreshnessSaveData> expected)
+    {
+        if (!ReferenceEquals(freshnessByStackId, expected))
+        {
+            throw new InvalidOperationException(
+                "Wildlife carcass freshness restore transaction is no longer the active state.");
+        }
     }
 
     public bool TryGetFreshness(
@@ -179,7 +327,7 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
     }
 
     public bool TryButcherNextCarcass(
-        CharacterActor butcher,
+        IBuildingVisitorPort butcher,
         BuildableObject building,
         out int produced,
         out string message)
@@ -242,16 +390,20 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             }
         }
 
-        butcher?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Butcher,
-            produced > 0 ? CharacterActivityOutcomes.Completed : CharacterActivityOutcomes.Failed,
-            produced > 0
-                ? $"{species.DisplayName} 사체 손질을 마쳤다."
-                : $"{species.DisplayName} 사체 손질에 실패했다.",
+        butcher?.RecordActivity(
             building,
-            reasonCode: "wildlife-butchered",
-            quantity: produced,
-            bubbleEligible: produced <= 0));
+            new BuildingActivitySnapshot(
+                BuildingActivityKinds.Work,
+                produced > 0 ? BuildingActivityOutcomes.Completed : BuildingActivityOutcomes.Failed,
+                produced > 0
+                    ? $"{species.DisplayName} 사체 손질을 마쳤다."
+                    : $"{species.DisplayName} 사체 손질에 실패했다.",
+                BuiltInWorkTypeIds.Butcher.Value,
+                string.Empty,
+                "wildlife-butchered",
+                0f,
+                produced,
+                produced <= 0));
         message = produced > 0 ? "손질 완료" : "손질 산출물 없음";
         return produced > 0;
     }
@@ -275,7 +427,7 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
     }
 
     private bool TryButcherHumanoidCorpse(
-        CharacterActor butcher,
+        IBuildingVisitorPort butcher,
         BuildableObject building,
         WorldItemStackSnapshot carcass,
         out int produced,
@@ -325,12 +477,14 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
     }
 
     private void ApplyHumanoidButcheryConsequences(
-        CharacterActor butcher,
+        IBuildingVisitorPort butcherPort,
         WorldItemStackSnapshot carcass,
         Vector2Int outputPosition,
         int produced)
     {
-        if (butcher == null)
+        if (!CharacterBuildingVisitorAdapter.TryGetActor(
+                butcherPort,
+                out CharacterActor butcher))
         {
             return;
         }
@@ -349,9 +503,12 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
         string sourceName = string.IsNullOrWhiteSpace(carcass.SourceDisplayName)
             ? "이름 모를 자"
             : carcass.SourceDisplayName;
-        deprivationRuntime?.RecordTaboo(
+        gameEventBus.Publish(new CharacterTabooIncidentEvent<CharacterActor>(
             butcher,
-            $"{sourceName}의 사체를 비상 도축했다");
+            outputPosition,
+            $"{sourceName}의 사체를 비상 도축했다",
+            "인간형 사체의 비상 도축을 목격함",
+            sameSpecies ? -10f : -7f));
         butcher.Progression?.RecordNarrative(
             CharacterNarrativeDomain.Survival,
             "survival/taboo-butchery",
@@ -359,11 +516,6 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
             sameSpecies ? "same-species" : "humanoid",
             produced,
             0);
-        deprivationRuntime?.RecordTabooWitnesses(
-            butcher,
-            outputPosition,
-            "인간형 사체의 비상 도축을 목격함",
-            sameSpecies ? -10f : -7f);
     }
 
     private WorldItemStackSnapshot FindBestButcherCarcass()
@@ -410,7 +562,7 @@ public sealed class WildlifeCarcassService : IWildlifeCarcassService
         {
             stackId = source.stackId,
             speciesId = source.speciesId,
-            remainingFreshnessSeconds = Mathf.Max(0f, source.remainingFreshnessSeconds)
+            remainingFreshnessSeconds = source.remainingFreshnessSeconds
         };
     }
 }

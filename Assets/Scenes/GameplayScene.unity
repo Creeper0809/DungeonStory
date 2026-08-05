@@ -453,8 +453,7 @@ MonoBehaviour:
     - Name: 
       Entry: 8
       Data: 
-  gameData: {fileID: 11400000, guid: 599972c5ef69a5b428956bcdae86d44b, type: 2}
-  isPause: 0
+  gameDataSettings: {fileID: 11400000, guid: 599972c5ef69a5b428956bcdae86d44b, type: 2}
 --- !u!1 &89780697
 GameObject:
   m_ObjectHideFlags: 0
@@ -4648,21 +4647,6 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
---- !u!115 &217243786
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: FacilitySynthesisRuntime
-  m_Namespace: 
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &220103371
 GameObject:
   m_ObjectHideFlags: 0
@@ -4727,21 +4711,6 @@ MonoBehaviour:
   blockedColor: {r: 1, g: 0, b: 0, a: 1}
   previewSortingLayerName: DungeonFrontObject
   previewSortingOrder: 200
---- !u!115 &221504594
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: OffenseRewardRuntime
-  m_Namespace: 
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &234600706
 GameObject:
   m_ObjectHideFlags: 0
@@ -4770,12 +4739,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1202567951}
-  - {fileID: 1998538838}
-  - {fileID: 2039835496}
-  - {fileID: 1633852206}
-  - {fileID: 1920907963}
+  m_Children: []
   m_Father: {fileID: 584781560}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &253026789
@@ -7010,21 +6974,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!115 &517385465
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: StaffDiscontentRuntime
-  m_Namespace: 
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -7316,21 +7265,6 @@ MonoBehaviour:
   m_Spacing: {x: 0, y: 0}
   m_Constraint: 0
   m_ConstraintCount: 2
---- !u!115 &555832860
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: OperatingDaySettlementRuntime
-  m_Namespace: 
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &567467389
 GameObject:
   m_ObjectHideFlags: 0
@@ -7437,6 +7371,604 @@ Transform:
   - {fileID: 1814919682}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &613357406
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 613357407}
+  - component: {fileID: 613357431}
+  - component: {fileID: 613357430}
+  - component: {fileID: 613357429}
+  - component: {fileID: 613357428}
+  - component: {fileID: 613357427}
+  - component: {fileID: 613357426}
+  - component: {fileID: 613357425}
+  - component: {fileID: 613357424}
+  - component: {fileID: 613357423}
+  - component: {fileID: 613357422}
+  - component: {fileID: 613357421}
+  - component: {fileID: 613357420}
+  - component: {fileID: 613357419}
+  - component: {fileID: 613357418}
+  - component: {fileID: 613357417}
+  - component: {fileID: 613357416}
+  - component: {fileID: 613357415}
+  - component: {fileID: 613357414}
+  - component: {fileID: 613357413}
+  - component: {fileID: 613357412}
+  - component: {fileID: 613357411}
+  - component: {fileID: 613357410}
+  - component: {fileID: 613357409}
+  - component: {fileID: 613357408}
+  m_Layer: 0
+  m_Name: DungeonRuntimeSystems
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &613357407
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1899055601}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &613357408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fba80135c3bde64468face1c336a7ea2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DungeonStory.Codex::CodexRuntime
+  importReferenceDataOnAwake: 1
+--- !u!114 &613357409
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84408efe412f7694da82f9f1871335fb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonRuntimeLifetimeScope
+  parentReference:
+    TypeName: 
+  autoRun: 1
+  autoInjectGameObjects: []
+--- !u!114 &613357410
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b1adf50a83a4c34ca5c8a3a2b98f2dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StaffDiscontentRuntime
+  rules:
+    lowMoodThreshold: 50
+    efficiencyDropMoodThreshold: 35
+    workDisruptionMoodThreshold: 25
+    departureMoodThreshold: 15
+    rebellionMoodThreshold: 8
+    sustainedLowMoodForEfficiencyDrop: 2
+    sustainedLowMoodForWorkDisruption: 3
+    sustainedLowMoodForDeparture: 4
+    ownerThreatEscalationDays: 2
+    calmMoodRecovery: 25
+    lowSatisfactionMultiplier: 0.95
+    efficiencyDropMultiplier: 0.8
+    workDisruptionMultiplier: 0.6
+--- !u!114 &613357411
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d1dacdc2986d4642857c24bbbfdd202, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RegularCustomerRuntime
+  rules:
+    regularVisitThreshold: 2
+    regularAverageSatisfactionThreshold: 65
+    recruitCandidateVisitThreshold: 2
+    recruitCandidateAverageSatisfactionThreshold: 65
+    defaultRecruitCapabilities: 7
+--- !u!114 &613357412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eaca2159a2d54814b9e9d81fb100d3eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FacilityEvolutionRecordRuntime
+  highTurnoverVisitStep: 5
+  cleanServiceMinVisits: 3
+  highValueRevenueThreshold: 30
+--- !u!114 &613357413
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3d716abeba113f44b96f7fe633deb38, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FacilityEvolutionRuntime
+  raiseAlertOnEvolution: 1
+  enableLlmProposals: 1
+--- !u!114 &613357414
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a3952bddcb3f1b4685d5ba800427c98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FacilitySynthesisRuntime
+--- !u!114 &613357415
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 005c6480247fb65a0b7a585d5036a90a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BlueprintResearchRuntime
+  raiseAlertOnResearchComplete: 1
+--- !u!114 &613357416
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: befae88fe8ee68f43bd13c8db78623e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DailyFacilityShopRuntime
+  raiseAlertOnRefresh: 1
+--- !u!114 &613357417
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 567e3373e4d68b74f897d3642ad12f41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InvasionCombatReportRuntime
+  showActivationNotice: 1
+  maxActivationNoticeLength: 64
+--- !u!114 &613357418
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 261391cb74bf366458abac716aa73a38, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InvasionDirectorRuntime
+  intruderData: {fileID: 0}
+  intruderPrefab: {fileID: 0}
+  intruderSettings:
+    patternId: invasion:pattern:hunter
+    rallyDurationSeconds: 12
+    secondsToFullFocus: 30
+    repathIntervalSeconds: 1.5
+    facilityDamageIntervalSeconds: 5
+    structureAttackIntervalSeconds: 1.25
+    finalCombatDamage: 45
+    finalCombatWindupSeconds: 0.7
+    healthMultiplier: 1
+    meleeDamageMultiplier: 1
+    attackSpeedMultiplier: 1
+    riskTolerance: 0.55
+    routeCommitmentSeconds: 2
+    structureDamageMultiplier: 1
+    retreatHealthRatio: 0
+    operationKind: 0
+    raidId: 
+  normalOwnerBreachDamage: 10
+  bossOwnerBreachDamage: 90
+--- !u!114 &613357419
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37a99df531ab4ae4c8ac24e8ae72675f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InvasionThreatRuntime
+  settings:
+    warningThreshold: 70
+    candidateThreshold: 100
+    warningCooldownSeconds: 45
+    initialSafetyDurationSeconds: 180
+    safetyDurationSeconds: 30
+    minCandidateDelaySeconds: 5
+    maxCandidateDelaySeconds: 12
+    baseRisePerSecond: 0.025
+    dungeonValueRiseWeight: 0.012
+    reputationRiseWeight: 0.018
+    timeRiseWeight: 0.01
+    riskRiseWeight: 0.04
+    difficulty: 1
+    easyMultiplier: 0.65
+    normalMultiplier: 1
+    hardMultiplier: 1.45
+--- !u!114 &613357420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d577ed6425ec47ed8e60f245ce07336a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseExpeditionRuntime
+--- !u!114 &613357421
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b079fc6ab9aefb24093d29a2df71a54f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseRewardRuntime
+--- !u!114 &613357422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ffb4b524c504e57aaa4509e228a2704, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseWorldMapRuntime
+  preciseIntel: 0
+--- !u!114 &613357423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e3c5a79ac052948456cbd1e91b7940f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MetaProgressionRuntime
+  showRunResultPanel: 1
+--- !u!114 &613357424
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa8ccd98c9b327cacfa7e525d167b5ad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunVariableRuntime
+  initialRunSeed: 0
+  raiseAlerts: 1
+--- !u!114 &613357425
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c45a49d3697d4faa8ebb633b40956a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OperatingDayReportAlertBridge
+--- !u!114 &613357426
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eeba23d0ee48dd3058b9f9704a815d90, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EventAlertRuntime
+  buttonRoot: {fileID: 0}
+  detailPanel: {fileID: 0}
+  detailText: {fileID: 0}
+--- !u!114 &613357427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe55553ff0f3f2b48b60bb58d9ad024d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SocialReputationRuntime
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  actorScanIntervalSeconds: 1
+  minSecondsBetweenActorRequests: 4
+  rumorSpreadDistance: 8
+  globalReputationBlend: 0.3
+  maxFacilityUtilityBias: 0.18
+  maxPromptCharacters: 2400
+  appliedRumorCount: 0
+  heardRumorCount: 0
+  lastRequestDebug: 'Interpret a DungeonStory NPC event as social rumor/reputation
+    data.
+
+    Return exactly one JSON object with rumorType, targetType, targetFacilityId,
+    targetFacilityTag, targetCharacterId, targetCharacterName, sentiment, summary,
+    spreadChance, trustImpact, validSeconds.
+
+    Allowed rumorType values: None,
+    Complaint, Recommendation, Warning, Praise.
+
+    Allowed targetType values: None,
+    Facility, Character.
+
+    All numeric fields must be raw JSON numbers, never
+    strings, words, or null.
+
+    targetFacilityId must be an integer. targetCharacterId
+    must be a persistent-ID string. Use -1 and an empty string when not used. Never
+    output null.
+
+    sentiment and trustImpact must be numbers between -1 and 1.
+    spreadChance must be a number between 0 and 1.
+
+    validSeconds must be a number
+    between 0 and 1800. Use 600 for normal rumors. Never output 3600 or higher.
+
+    Actionable
+    Complaint, Recommendation, Warning, and Praise rumors must use spreadChance between
+    0.35 and 1.0.
+
+    For blocked path, no destination, or occupied destination
+    warnings, use spreadChance 1.0.
+
+    Use rumorType None only when no NPC should
+    share this event.
+
+    Use rumorType None and targetType None when this event
+    should not become a rumor. Do not invent targets outside candidateFacilities.
+
+    Speaker:
+
+    name:
+    Social Retry Customer
+
+    species: Slime
+
+    role: Regular
+
+    Event:
+
+    tag:
+    activity:social
+
+    count: 1
+
+    message: A tense encounter ended badly.
+
+    candidateFacilities:
+
+    Example:
+    {"rumorType":"Recommendation","targetType":"Facility","targetFacilityId":12,"targetFacilityTag":"Rest","targetCharacterId":"","targetCharacterName":"","sentiment":0.6,"summary":"rest
+    facility visit was good","spreadChance":0.55,"trustImpact":0.05,"validSeconds":600}
+
+'
+  lastRumorDebug: 
+  lastError: 
+  actorLogEventCountForDebug: 0
+  lastActorLogDebug: 
+  lastRequestSkipDebug: cooldown
+  suppressWarningLogsForDebug: 0
+  suppressActorLogRequestsForDebug: 0
+  actorLogRequestOnlyForDebug: {fileID: 0}
+  globalFacilityRumors: []
+  facilityReputationDebug: []
+--- !u!114 &613357428
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1492ca6c080a5240b63ca8f48a9f4f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AiDirectorRuntime
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  evaluationIntervalSeconds: 8
+  maxActorsEvaluatedPerTick: 8
+  lowMoodThreshold: 18
+  routineMacroGoalIntervalSeconds: 30
+  routineMoodThreshold: 75
+  routineNeedThreshold: 85
+  moodImpulseThreshold: 55
+  moodImpulseIntervalSeconds: 20
+  moodImpulseMacroPromotionStrength: 0.76
+  repeatedFailureThreshold: 3
+  maxPromptCharacters: 1800
+  nextEvaluationTime: 0
+  lastRequestDebug: 
+  lastAppliedMacroGoalType: 0
+  lastAppliedMacroActorName: 
+  lastAppliedMacroGoalDebug: 
+  lastAppliedMoodImpulseType: 0
+  lastAppliedMoodImpulseActorName: 
+  lastAppliedMoodImpulseDebug: 
+  lastError: 
+  suppressWarningLogsForDebug: 0
+--- !u!114 &613357429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a44c87c175fffb940ab2e63c22982546, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalLlmRequestQueue
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  endpointUrl: http://localhost:11434/v1/chat/completions
+  modelName: llama3.1
+  enableJsonMode: 1
+  maxQueueSize: 64
+  maxConcurrentRequests: 2
+  personaTimeoutSeconds: 20
+  characterSkillTimeoutSeconds: 60
+  macroGoalTimeoutSeconds: 12
+  moodImpulseTimeoutSeconds: 8
+  socialRumorTimeoutSeconds: 8
+  facilityEvolutionTimeoutSeconds: 10
+  characterRecordTimeoutSeconds: 8
+  bubbleTimeoutSeconds: 4
+  bubbleMaxQueueAgeSeconds: 3
+  droppedEphemeralRequestCount: 0
+  timeoutCount: 0
+  lastError: 
+  lastCompletionDiagnostic: 
+  suppressWarningLogsForDebug: 0
+--- !u!114 &613357430
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2d294a9f7470f643b470a47c1585713, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterAiScheduler
+  driveCharacterUpdates: 1
+  driveBehaviorDesignerTrees: 1
+  registerExistingSceneCharacters: 1
+  characterAiExternalBehavior: {fileID: 11400000, guid: 5ca7280068555f246b5c33db28a1d1e3, type: 2}
+  limitPathSearches: 1
+  limitFeedbackToVisibleCharacters: 1
+  adaptBudgetsToFrameCost: 1
+  maxDecisionsPerFrame: 16
+  maxPathSearchesPerFrame: 8
+  minDecisionsPerFrame: 4
+  minPathSearchesPerFrame: 2
+  targetAiMilliseconds: 4
+  targetFrameMilliseconds: 16.667
+  frameHeadroomShare: 0.45
+  baselineBudgetRatio: 0.2
+  minimumUsefulSliceMilliseconds: 0.1
+  maximumDecisionDeferralSeconds: 2
+  overdraftCooldownTicks: 4
+  registrationSpreadSeconds: 1.5
+  ownerDecisionInterval: 0.2
+  visibleDecisionInterval: 0.35
+  offscreenDecisionInterval: 1.5
+  retryDelay: 0.05
+  decisionIntervalJitterRatio: 0.16
+  viewportMargin: 0.15
+  offscreenMovementFrameStride: 3
+--- !u!114 &613357431
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 613357406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aaaeaede56d6b7c4a9c327c95d8ddf30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OperatingDaySettlementRuntime
 --- !u!1 &618798439
 GameObject:
   m_ObjectHideFlags: 0
@@ -7932,21 +8464,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 626488172}
   m_CullTransparentMesh: 1
---- !u!115 &630269413
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: DailyFacilityShopRuntime
-  m_Namespace: 
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &636457278
 GameObject:
   m_ObjectHideFlags: 0
@@ -8024,21 +8541,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 636457278}
   m_CullTransparentMesh: 1
---- !u!115 &669525129
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: BlueprintResearchRuntime
-  m_Namespace: 
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &675861691
 GameObject:
   m_ObjectHideFlags: 0
@@ -9914,7 +10416,6 @@ MonoBehaviour:
   holdingMoneyText: {fileID: 146844611}
   gameSpeedText: {fileID: 1488538271}
   touchGaurd: {fileID: 2111720679}
-  gameData: {fileID: 11400000, guid: 599972c5ef69a5b428956bcdae86d44b, type: 2}
 --- !u!114 &908615686
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11173,21 +11674,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1024346807}
   m_CullTransparentMesh: 1
---- !u!115 &1046849920
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: CharacterActorPresentationBridge
-  m_Namespace: 
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &1064017011
 GameObject:
   m_ObjectHideFlags: 0
@@ -12049,814 +12535,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1198085631}
   m_CullTransparentMesh: 1
---- !u!1 &1202567933
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1202567951}
-  - component: {fileID: 1202567950}
-  - component: {fileID: 1202567949}
-  - component: {fileID: 1202567948}
-  - component: {fileID: 1202567947}
-  - component: {fileID: 1202567946}
-  - component: {fileID: 1202567945}
-  - component: {fileID: 1202567944}
-  - component: {fileID: 1202567943}
-  - component: {fileID: 1202567942}
-  - component: {fileID: 1202567941}
-  - component: {fileID: 1202567940}
-  - component: {fileID: 1202567939}
-  - component: {fileID: 1202567938}
-  - component: {fileID: 1202567937}
-  - component: {fileID: 1202567936}
-  - component: {fileID: 1202567935}
-  - component: {fileID: 1202567934}
-  m_Layer: 0
-  m_Name: Slime Regular
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1202567934
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1046849920}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorPresentationBridge
---- !u!114 &1202567935
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2b63709a2cbc4afba40dc3f451c10746, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorRuntimeBridge
---- !u!114 &1202567936
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e39f730361f44bb874d5ceba8f31a70, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActor
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  noExit: {fileID: 0}
-  identity: {fileID: 1202567949}
-  progression: {fileID: 1202567948}
-  abilityCache: {fileID: 1202567947}
-  characterStats: {fileID: 1202567946}
-  visual: {fileID: 1202567945}
-  lifecycle: {fileID: 1202567944}
-  characterLog: {fileID: 1202567943}
-  blackboard: {fileID: 1202567942}
-  personaRuntime: {fileID: 1202567941}
-  dialogueRuntime: {fileID: 1202567940}
-  socialMemory: {fileID: 1202567939}
-  aiMemory: {fileID: 1202567938}
-  behaviorTree: {fileID: 1202567937}
-  runtimeBridge: {fileID: 1202567935}
-  presentationBridge: {fileID: 1202567934}
---- !u!114 &1202567937
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d7b55c7ecdb49a4a89fa5e6f9022861, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BehaviorDesigner.Runtime.BehaviorTree
-  startWhenEnabled: 0
-  asynchronousLoad: 0
-  pauseWhenDisabled: 0
-  restartWhenComplete: 0
-  logTaskChanges: 0
-  group: 0
-  resetValuesOnRestart: 0
-  externalBehavior: {fileID: 0}
-  mBehaviorSource:
-    behaviorName: Behavior
-    behaviorDescription: 
-    mTaskData:
-      types: []
-      parentIndex: 
-      startIndex: 
-      variableStartIndex: 
-      JSONSerialization: 
-      fieldSerializationData:
-        typeName: []
-        fieldNameHash: 
-        startIndex: 
-        dataPosition: 
-        unityObjects: []
-        byteData: 
-        byteDataArray: 
-      Version: 
-  gizmoViewMode: 2
-  showBehaviorDesignerGizmo: 1
-  useDungeonStoryManualRuntime: 1
-  alsoTickSerializedBehaviorGraph: 0
-  dungeonStoryBranch: 
-  dungeonStoryTask: 
-  dungeonStoryStatus: 
-  dungeonStoryTickCount: 0
---- !u!114 &1202567938
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fcb5dff113b596b41abc64d9f21b3c77, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAiMemoryRuntime
-  actor: {fileID: 0}
-  recentEntries: []
---- !u!114 &1202567939
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0bd118b6c6f78a48b2e74433b086279, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSocialMemory
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  maxRumorMemory: 24
-  newRumorBlend: 0.35
-  actor: {fileID: 0}
-  recentRumors: []
-  facilitySentimentDebug: []
-  characterSentimentDebug: []
-  sourceTrustDebug: []
---- !u!114 &1202567940
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c6a78d0990139cb4cae1c4ca96e3e064, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterDialogueRuntime
-  localOffset: {x: 0, y: 1.75, z: 0}
-  visibleDuration: 2.5
-  minSecondsBetweenRequests: 1.5
-  text: {fileID: 0}
-  lastBubbleLine: 
-  lastGeneratedBubbleLine: 
-  lastError: 
---- !u!114 &1202567941
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4fca749f75945445969bf949a8c8ec8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CustomerPersonaRuntime
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  persona:
-    traitName: 
-    flavorText: 
-    selfCareMultiplier: 1
-    curiosityMultiplier: 1
-    shoppingMultiplier: 1
-    patienceMultiplier: 1
-    hungerCurveMultiplier: 1
-    funCurveMultiplier: 1
-    moodCurveMultiplier: 1
-    preferredFacilityTags: []
-  hasGeneratedPersona: 0
-  personaRequestInProgress: 0
-  lastPrompt: 
-  lastError: 
---- !u!114 &1202567942
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c3f8682ee848f740803f3c183828bcb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterBlackboard
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: failedBuildingCooldowns
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[BuildableObject, Assembly-CSharp],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.ObjectEqualityComparer`1[[BuildableObject,
-        Assembly-CSharp]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: recentFailureCounts
-      Entry: 7
-      Data: 2|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Int32,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 3|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
-        mscorlib]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: jobGiverUtilityScores
-      Entry: 7
-      Data: 4|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 5|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
-        DungeonStory.AI]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: routineGroupPriorityScores
-      Entry: 7
-      Data: 6|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 9
-      Data: 5
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 0}
-  currentBranch: 0
-  currentIntent: 
-  currentTask: 
-  currentStatus: 
-  committedAction: {fileID: 0}
-  committedDestination: {fileID: 0}
-  minCommitUntil: 0
-  softLockIntent:
-    branch: 0
-    intention: 0
-    label: 
-    targetGridId: -1
-    startedAt: 0
-    minUntil: 0
-    expiresAt: 0
-    interruptible: 1
-    lastBreakReason: 
-  activeMacroGoal:
-    type: 0
-    reason: 
-    targetFacilityId: -1
-    targetFacilityTag: 
-    validUntil: 0
-    source: 
-  activeMoodImpulse:
-    type: 0
-    strength: 0
-    targetFacilityId: -1
-    targetFacilityTag: 
-    reason: 
-    validUntil: 0
-    source: 
-  lastJobGiverUtilitySummary: 
-  selectedJobGiverUtilitySummary: 
-  lastRoutineGroupPrioritySummary: 
-  lastUtilityBreakdownSummary: 
-  lastDecisionContextSummary: 
-  topUtilityBreakdowns: []
-  recentDecisionTrace: []
-  lastCommitBreakReason: 
-  lastFailureReason: 
-  failureCooldownSeconds: 8
-  defaultCommitSeconds: 1.75
-  commitmentScoreBonus: 0.16
---- !u!114 &1202567943
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0cca4ee66954a83883ab1960c9f38f3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLog
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  log: []
-  activities: []
---- !u!114 &1202567944
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2bdc73416af4a03957afa7af3b16a93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLifecycle
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  identity: {fileID: 0}
-  abilityCache: {fileID: 0}
-  visual: {fileID: 0}
-  stats: {fileID: 0}
-  log: {fileID: 0}
-  lifecycleState: 0
-  aiPaused: 0
-  expeditionRecovery:
-    stress: 0
---- !u!114 &1202567945
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0edcfbf181864d57a360af5cac92a165, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  identity: {fileID: 0}
-  lifecycle: {fileID: 0}
-  visualRoot: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  autoAlignVisualToFeet: 1
---- !u!114 &1202567946
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 39c201ae6b75466f9b7c1012e3eedaca, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: stats
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[CharacterCondition, DungeonStory.Characters],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.EnumEqualityComparer`1[[CharacterCondition,
-        DungeonStory.Characters]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 7
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 0
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 1
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 2
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 3
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 5
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 6
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 4
-    - Name: $v
-      Entry: 4
-      Data: 55
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 1202567936}
-  identity: {fileID: 1202567949}
-  visual: {fileID: 1202567945}
-  lifecycle: {fileID: 1202567944}
-  log: {fileID: 1202567943}
-  maxHealth: 100
-  currentHealth: 100
-  injurySeverity: 0
-  baseMood: 55
-  interactionMoodFactors: []
---- !u!114 &1202567947
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8558ac78fc94bffa1bc661255ddf0c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAbilityCache
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
---- !u!114 &1202567948
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: badabbf33eed2ae46b77a5f13883bc2d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterProgression
-  level: 1
-  currentExperience: 0
-  growthState:
-    initialized: 0
-    autoChooseDrafts: 0
-    potentialGrade: 0
-    generationSeed: 0
-    origin: 
-    displayName: 
-    initialBaseStats:
-      entries:
-      - statId: stat:attack
-        value: 5
-      - statId: stat:shooting
-        value: 5
-      - statId: stat:evasion
-        value: 5
-      - statId: stat:sales
-        value: 5
-      - statId: stat:research
-        value: 5
-      - statId: stat:move-speed
-        value: 5
-      - statId: stat:strength
-        value: 5
-      - statId: stat:toughness
-        value: 5
-      - statId: stat:dexterity
-        value: 5
-      - statId: stat:cleaning
-        value: 5
-      - statId: stat:endurance
-        value: 5
-    levelGrowthStats:
-      entries: []
-    traitIds: 
-    activeSkills: []
-    passiveSkills: []
-    ultimate:
-      id: 
-      displayName: 
-      description: 
-      narrativeReason: 
-      kind: 0
-      rarity: 0
-      trigger: 0
-      target: 0
-      ultimateDomain: 0
-      cooldownTurns: 0
-      usableFrom: 7
-      targetPositions: 7
-      modules: []
-      requestKey: 
-    drafts: []
-    pendingRequestKeys: []
-    allocationRecords: []
-    useLimits:
-      offenseBattleSerial: -1
-      defenseInvasionSerial: -1
-      managementOperatingDay: -1
-    allocatedGrowthPoints: 0
-    nextActiveDraftHasPity: 0
-    skillGenerationRevision: 0
-  narrativeLedger:
-    facts: []
---- !u!114 &1202567949
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc6a8254fadf4c03954390ade8b3d8ab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterIdentity
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: profile
-      Entry: 6
-      Data: 
-  actor: {fileID: 1202567936}
-  data: {fileID: 0}
-  characterType: 1
-  role: 0
-  persistentId: 
---- !u!212 &1202567950
-SpriteRenderer:
-  serializedVersion: 2
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 0
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_Sprite: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
-  m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
-  m_AdaptiveModeThreshold: 0.5
-  m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
-  m_SpriteSortPoint: 0
---- !u!4 &1202567951
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202567933}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 234600707}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1242032068
 GameObject:
   m_ObjectHideFlags: 0
@@ -14113,21 +13791,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1540158300}
   m_CullTransparentMesh: 1
---- !u!115 &1559308343
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: CodexRuntime
-  m_Namespace: 
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &1568447526
 GameObject:
   m_ObjectHideFlags: 0
@@ -14793,6 +14456,7 @@ MonoBehaviour:
   isDestroy: 0
   isDamaged: 0
   facilityLevel: 1
+  persistentInstanceId: 
   facilityState:
     completedUses: 0
     completedWorkCycles: 0
@@ -14880,814 +14544,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 584781560}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1633852188
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1633852206}
-  - component: {fileID: 1633852205}
-  - component: {fileID: 1633852204}
-  - component: {fileID: 1633852203}
-  - component: {fileID: 1633852202}
-  - component: {fileID: 1633852201}
-  - component: {fileID: 1633852200}
-  - component: {fileID: 1633852199}
-  - component: {fileID: 1633852198}
-  - component: {fileID: 1633852197}
-  - component: {fileID: 1633852196}
-  - component: {fileID: 1633852195}
-  - component: {fileID: 1633852194}
-  - component: {fileID: 1633852193}
-  - component: {fileID: 1633852192}
-  - component: {fileID: 1633852191}
-  - component: {fileID: 1633852190}
-  - component: {fileID: 1633852189}
-  m_Layer: 0
-  m_Name: Reward Visitor A
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1633852189
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1046849920}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorPresentationBridge
---- !u!114 &1633852190
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2b63709a2cbc4afba40dc3f451c10746, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorRuntimeBridge
---- !u!114 &1633852191
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e39f730361f44bb874d5ceba8f31a70, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActor
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  noExit: {fileID: 0}
-  identity: {fileID: 1633852204}
-  progression: {fileID: 1633852203}
-  abilityCache: {fileID: 1633852202}
-  characterStats: {fileID: 1633852201}
-  visual: {fileID: 1633852200}
-  lifecycle: {fileID: 1633852199}
-  characterLog: {fileID: 1633852198}
-  blackboard: {fileID: 1633852197}
-  personaRuntime: {fileID: 1633852196}
-  dialogueRuntime: {fileID: 1633852195}
-  socialMemory: {fileID: 1633852194}
-  aiMemory: {fileID: 1633852193}
-  behaviorTree: {fileID: 1633852192}
-  runtimeBridge: {fileID: 1633852190}
-  presentationBridge: {fileID: 1633852189}
---- !u!114 &1633852192
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d7b55c7ecdb49a4a89fa5e6f9022861, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BehaviorDesigner.Runtime.BehaviorTree
-  startWhenEnabled: 0
-  asynchronousLoad: 0
-  pauseWhenDisabled: 0
-  restartWhenComplete: 0
-  logTaskChanges: 0
-  group: 0
-  resetValuesOnRestart: 0
-  externalBehavior: {fileID: 0}
-  mBehaviorSource:
-    behaviorName: Behavior
-    behaviorDescription: 
-    mTaskData:
-      types: []
-      parentIndex: 
-      startIndex: 
-      variableStartIndex: 
-      JSONSerialization: 
-      fieldSerializationData:
-        typeName: []
-        fieldNameHash: 
-        startIndex: 
-        dataPosition: 
-        unityObjects: []
-        byteData: 
-        byteDataArray: 
-      Version: 
-  gizmoViewMode: 2
-  showBehaviorDesignerGizmo: 1
-  useDungeonStoryManualRuntime: 1
-  alsoTickSerializedBehaviorGraph: 0
-  dungeonStoryBranch: 
-  dungeonStoryTask: 
-  dungeonStoryStatus: 
-  dungeonStoryTickCount: 0
---- !u!114 &1633852193
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fcb5dff113b596b41abc64d9f21b3c77, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAiMemoryRuntime
-  actor: {fileID: 0}
-  recentEntries: []
---- !u!114 &1633852194
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0bd118b6c6f78a48b2e74433b086279, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSocialMemory
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  maxRumorMemory: 24
-  newRumorBlend: 0.35
-  actor: {fileID: 0}
-  recentRumors: []
-  facilitySentimentDebug: []
-  characterSentimentDebug: []
-  sourceTrustDebug: []
---- !u!114 &1633852195
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c6a78d0990139cb4cae1c4ca96e3e064, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterDialogueRuntime
-  localOffset: {x: 0, y: 1.75, z: 0}
-  visibleDuration: 2.5
-  minSecondsBetweenRequests: 1.5
-  text: {fileID: 0}
-  lastBubbleLine: 
-  lastGeneratedBubbleLine: 
-  lastError: 
---- !u!114 &1633852196
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4fca749f75945445969bf949a8c8ec8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CustomerPersonaRuntime
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  persona:
-    traitName: 
-    flavorText: 
-    selfCareMultiplier: 1
-    curiosityMultiplier: 1
-    shoppingMultiplier: 1
-    patienceMultiplier: 1
-    hungerCurveMultiplier: 1
-    funCurveMultiplier: 1
-    moodCurveMultiplier: 1
-    preferredFacilityTags: []
-  hasGeneratedPersona: 0
-  personaRequestInProgress: 0
-  lastPrompt: 
-  lastError: 
---- !u!114 &1633852197
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c3f8682ee848f740803f3c183828bcb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterBlackboard
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: failedBuildingCooldowns
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[BuildableObject, Assembly-CSharp],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.ObjectEqualityComparer`1[[BuildableObject,
-        Assembly-CSharp]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: recentFailureCounts
-      Entry: 7
-      Data: 2|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Int32,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 3|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
-        mscorlib]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: jobGiverUtilityScores
-      Entry: 7
-      Data: 4|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 5|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
-        DungeonStory.AI]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: routineGroupPriorityScores
-      Entry: 7
-      Data: 6|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 9
-      Data: 5
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 0}
-  currentBranch: 0
-  currentIntent: 
-  currentTask: 
-  currentStatus: 
-  committedAction: {fileID: 0}
-  committedDestination: {fileID: 0}
-  minCommitUntil: 0
-  softLockIntent:
-    branch: 0
-    intention: 0
-    label: 
-    targetGridId: -1
-    startedAt: 0
-    minUntil: 0
-    expiresAt: 0
-    interruptible: 1
-    lastBreakReason: 
-  activeMacroGoal:
-    type: 0
-    reason: 
-    targetFacilityId: -1
-    targetFacilityTag: 
-    validUntil: 0
-    source: 
-  activeMoodImpulse:
-    type: 0
-    strength: 0
-    targetFacilityId: -1
-    targetFacilityTag: 
-    reason: 
-    validUntil: 0
-    source: 
-  lastJobGiverUtilitySummary: 
-  selectedJobGiverUtilitySummary: 
-  lastRoutineGroupPrioritySummary: 
-  lastUtilityBreakdownSummary: 
-  lastDecisionContextSummary: 
-  topUtilityBreakdowns: []
-  recentDecisionTrace: []
-  lastCommitBreakReason: 
-  lastFailureReason: 
-  failureCooldownSeconds: 8
-  defaultCommitSeconds: 1.75
-  commitmentScoreBonus: 0.16
---- !u!114 &1633852198
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0cca4ee66954a83883ab1960c9f38f3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLog
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  log: []
-  activities: []
---- !u!114 &1633852199
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2bdc73416af4a03957afa7af3b16a93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLifecycle
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  identity: {fileID: 0}
-  abilityCache: {fileID: 0}
-  visual: {fileID: 0}
-  stats: {fileID: 0}
-  log: {fileID: 0}
-  lifecycleState: 0
-  aiPaused: 0
-  expeditionRecovery:
-    stress: 0
---- !u!114 &1633852200
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0edcfbf181864d57a360af5cac92a165, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  identity: {fileID: 0}
-  lifecycle: {fileID: 0}
-  visualRoot: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  autoAlignVisualToFeet: 1
---- !u!114 &1633852201
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 39c201ae6b75466f9b7c1012e3eedaca, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: stats
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[CharacterCondition, DungeonStory.Characters],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.EnumEqualityComparer`1[[CharacterCondition,
-        DungeonStory.Characters]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 7
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 0
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 1
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 2
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 3
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 5
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 6
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 4
-    - Name: $v
-      Entry: 4
-      Data: 55
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 1633852191}
-  identity: {fileID: 1633852204}
-  visual: {fileID: 1633852200}
-  lifecycle: {fileID: 1633852199}
-  log: {fileID: 1633852198}
-  maxHealth: 100
-  currentHealth: 100
-  injurySeverity: 0
-  baseMood: 55
-  interactionMoodFactors: []
---- !u!114 &1633852202
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8558ac78fc94bffa1bc661255ddf0c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAbilityCache
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
---- !u!114 &1633852203
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: badabbf33eed2ae46b77a5f13883bc2d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterProgression
-  level: 1
-  currentExperience: 0
-  growthState:
-    initialized: 0
-    autoChooseDrafts: 0
-    potentialGrade: 0
-    generationSeed: 0
-    origin: 
-    displayName: 
-    initialBaseStats:
-      entries:
-      - statId: stat:attack
-        value: 5
-      - statId: stat:shooting
-        value: 5
-      - statId: stat:evasion
-        value: 5
-      - statId: stat:sales
-        value: 5
-      - statId: stat:research
-        value: 5
-      - statId: stat:move-speed
-        value: 5
-      - statId: stat:strength
-        value: 5
-      - statId: stat:toughness
-        value: 5
-      - statId: stat:dexterity
-        value: 5
-      - statId: stat:cleaning
-        value: 5
-      - statId: stat:endurance
-        value: 5
-    levelGrowthStats:
-      entries: []
-    traitIds: 
-    activeSkills: []
-    passiveSkills: []
-    ultimate:
-      id: 
-      displayName: 
-      description: 
-      narrativeReason: 
-      kind: 0
-      rarity: 0
-      trigger: 0
-      target: 0
-      ultimateDomain: 0
-      cooldownTurns: 0
-      usableFrom: 7
-      targetPositions: 7
-      modules: []
-      requestKey: 
-    drafts: []
-    pendingRequestKeys: []
-    allocationRecords: []
-    useLimits:
-      offenseBattleSerial: -1
-      defenseInvasionSerial: -1
-      managementOperatingDay: -1
-    allocatedGrowthPoints: 0
-    nextActiveDraftHasPity: 0
-    skillGenerationRevision: 0
-  narrativeLedger:
-    facts: []
---- !u!114 &1633852204
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc6a8254fadf4c03954390ade8b3d8ab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterIdentity
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: profile
-      Entry: 6
-      Data: 
-  actor: {fileID: 1633852191}
-  data: {fileID: 0}
-  characterType: 1
-  role: 0
-  persistentId: 
---- !u!212 &1633852205
-SpriteRenderer:
-  serializedVersion: 2
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 0
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_Sprite: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
-  m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
-  m_AdaptiveModeThreshold: 0.5
-  m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
-  m_SpriteSortPoint: 0
---- !u!4 &1633852206
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1633852188}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 234600707}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1645449953
 GameObject:
@@ -15780,21 +14636,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!115 &1649149679
-MonoScript:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  serializedVersion: 7
-  m_DefaultReferences: {}
-  m_Icon: {fileID: 0}
-  m_Type: 0
-  m_ExecutionOrder: 0
-  m_ClassName: RegularCustomerRuntime
-  m_Namespace: 
-  m_AssemblyName: Assembly-CSharp
 --- !u!1 &1664605843
 GameObject:
   m_ObjectHideFlags: 0
@@ -16091,611 +14932,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1682971362}
   m_CullTransparentMesh: 1
---- !u!1 &1687591075
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1687591099}
-  - component: {fileID: 1687591098}
-  - component: {fileID: 1687591097}
-  - component: {fileID: 1687591096}
-  - component: {fileID: 1687591095}
-  - component: {fileID: 1687591094}
-  - component: {fileID: 1687591093}
-  - component: {fileID: 1687591092}
-  - component: {fileID: 1687591091}
-  - component: {fileID: 1687591090}
-  - component: {fileID: 1687591089}
-  - component: {fileID: 1687591088}
-  - component: {fileID: 1687591087}
-  - component: {fileID: 1687591086}
-  - component: {fileID: 1687591085}
-  - component: {fileID: 1687591084}
-  - component: {fileID: 1687591083}
-  - component: {fileID: 1687591082}
-  - component: {fileID: 1687591081}
-  - component: {fileID: 1687591080}
-  - component: {fileID: 1687591079}
-  - component: {fileID: 1687591078}
-  - component: {fileID: 1687591077}
-  - component: {fileID: 1687591076}
-  - component: {fileID: 1687591100}
-  m_Layer: 0
-  m_Name: DungeonRuntimeSystems
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1687591076
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 517385465}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StaffDiscontentRuntime
-  rules:
-    lowMoodThreshold: 50
-    efficiencyDropMoodThreshold: 35
-    workDisruptionMoodThreshold: 25
-    departureMoodThreshold: 15
-    rebellionMoodThreshold: 8
-    sustainedLowMoodForEfficiencyDrop: 2
-    sustainedLowMoodForWorkDisruption: 3
-    sustainedLowMoodForDeparture: 4
-    ownerThreatEscalationDays: 2
-    calmMoodRecovery: 25
-    lowSatisfactionMultiplier: 0.95
-    efficiencyDropMultiplier: 0.8
-    workDisruptionMultiplier: 0.6
---- !u!114 &1687591077
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1649149679}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RegularCustomerRuntime
-  rules:
-    regularVisitThreshold: 2
-    regularAverageSatisfactionThreshold: 65
-    recruitCandidateVisitThreshold: 2
-    recruitCandidateAverageSatisfactionThreshold: 65
-    defaultRecruitCapabilities: 7
---- !u!114 &1687591078
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1559308343}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CodexRuntime
-  importReferenceDataOnAwake: 1
---- !u!114 &1687591079
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eaca2159a2d54814b9e9d81fb100d3eb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FacilityEvolutionRecordRuntime
-  highTurnoverVisitStep: 5
-  cleanServiceMinVisits: 3
-  highValueRevenueThreshold: 30
---- !u!114 &1687591080
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a3d716abeba113f44b96f7fe633deb38, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FacilityEvolutionRuntime
-  raiseAlertOnEvolution: 1
-  enableLlmProposals: 1
---- !u!114 &1687591081
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 217243786}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FacilitySynthesisRuntime
---- !u!114 &1687591082
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 669525129}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BlueprintResearchRuntime
-  raiseAlertOnResearchComplete: 1
---- !u!114 &1687591083
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 630269413}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DailyFacilityShopRuntime
-  raiseAlertOnRefresh: 1
---- !u!114 &1687591084
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 567e3373e4d68b74f897d3642ad12f41, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InvasionCombatReportRuntime
-  showActivationNotice: 1
-  maxActivationNoticeLength: 64
---- !u!114 &1687591085
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2e989e12e22d7e193b84c5b18f9dbef6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InvasionDirectorRuntime
-  intruderData: {fileID: 0}
-  intruderPrefab: {fileID: 0}
-  intruderSettings:
-    patternId: invasion:pattern:hunter
-    rallyDurationSeconds: 12
-    secondsToFullFocus: 30
-    repathIntervalSeconds: 1.5
-    facilityDamageIntervalSeconds: 5
-    finalCombatDamage: 45
-    finalCombatWindupSeconds: 0.7
-    healthMultiplier: 1
-    meleeDamageMultiplier: 1
-    attackSpeedMultiplier: 1
-  normalOwnerBreachDamage: 15
-  bossOwnerBreachDamage: 90
---- !u!114 &1687591086
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 37a99df531ab4ae4c8ac24e8ae72675f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::InvasionThreatRuntime
-  settings:
-    warningThreshold: 70
-    candidateThreshold: 100
-    warningCooldownSeconds: 45
-    initialSafetyDurationSeconds: 180
-    safetyDurationSeconds: 30
-    minCandidateDelaySeconds: 5
-    maxCandidateDelaySeconds: 12
-    baseRisePerSecond: 0.025
-    dungeonValueRiseWeight: 0.012
-    reputationRiseWeight: 0.018
-    timeRiseWeight: 0.01
-    riskRiseWeight: 0.04
-    difficulty: 1
-    easyMultiplier: 0.65
-    normalMultiplier: 1
-    hardMultiplier: 1.45
---- !u!114 &1687591087
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d577ed6425ec47ed8e60f245ce07336a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OffenseExpeditionRuntime
---- !u!114 &1687591088
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 221504594}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OffenseRewardRuntime
---- !u!114 &1687591089
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8ffb4b524c504e57aaa4509e228a2704, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OffenseWorldMapRuntime
-  configuredTargets: []
-  preciseIntel: 0
-  references:
-    version: 2
-    RefIds: []
---- !u!114 &1687591090
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3e3c5a79ac052948456cbd1e91b7940f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MetaProgressionRuntime
-  showRunResultPanel: 1
---- !u!114 &1687591091
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fa8ccd98c9b327cacfa7e525d167b5ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RunVariableRuntime
-  runSeed: 0
-  raiseAlerts: 1
---- !u!114 &1687591092
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c45a49d3697d4faa8ebb633b40956a41, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OperatingDayReportAlertBridge
---- !u!114 &1687591093
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: eeba23d0ee48dd3058b9f9704a815d90, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EventAlertRuntime
-  buttonRoot: {fileID: 0}
-  detailPanel: {fileID: 0}
-  detailText: {fileID: 0}
---- !u!114 &1687591094
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe55553ff0f3f2b48b60bb58d9ad024d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SocialReputationRuntime
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actorScanIntervalSeconds: 1
-  minSecondsBetweenActorRequests: 4
-  rumorSpreadDistance: 8
-  globalReputationBlend: 0.3
-  maxFacilityUtilityBias: 0.18
-  maxPromptCharacters: 2400
-  appliedRumorCount: 0
-  heardRumorCount: 0
-  lastRequestDebug: 'Interpret a DungeonStory NPC event as social rumor/reputation
-    data.
-
-    Return exactly one JSON object with rumorType, targetType, targetFacilityId,
-    targetFacilityTag, targetCharacterId, targetCharacterName, sentiment, summary,
-    spreadChance, trustImpact, validSeconds.
-
-    Allowed rumorType values: None,
-    Complaint, Recommendation, Warning, Praise.
-
-    Allowed targetType values: None,
-    Facility, Character.
-
-    All numeric fields must be raw JSON numbers, never
-    strings, words, or null.
-
-    targetFacilityId must be an integer. targetCharacterId
-    must be a persistent-ID string. Use -1 and an empty string when not used. Never
-    output null.
-
-    sentiment and trustImpact must be numbers between -1 and 1.
-    spreadChance must be a number between 0 and 1.
-
-    validSeconds must be a number
-    between 0 and 1800. Use 600 for normal rumors. Never output 3600 or higher.
-
-    Actionable
-    Complaint, Recommendation, Warning, and Praise rumors must use spreadChance between
-    0.35 and 1.0.
-
-    For blocked path, no destination, or occupied destination
-    warnings, use spreadChance 1.0.
-
-    Use rumorType None only when no NPC should
-    share this event.
-
-    Use rumorType None and targetType None when this event
-    should not become a rumor. Do not invent targets outside candidateFacilities.
-
-    Speaker:
-
-    name:
-    Social Retry Customer
-
-    species: Slime
-
-    role: Regular
-
-    Event:
-
-    tag:
-    activity:social
-
-    count: 1
-
-    message: A tense encounter ended badly.
-
-    candidateFacilities:
-
-    -
-    id=0; name=CharacterSpawner; tag=
-
-    Example: {"rumorType":"Recommendation","targetType":"Facility","targetFacilityId":12,"targetFacilityTag":"Rest","targetCharacterId":"","targetCharacterName":"","sentiment":0.6,"summary":"rest
-    facility visit was good","spreadChance":0.55,"trustImpact":0.05,"validSeconds":600}
-
-'
-  lastRumorDebug: 
-  lastError: 
-  actorLogEventCountForDebug: 0
-  lastActorLogDebug: 
-  lastRequestSkipDebug: cooldown
-  suppressWarningLogsForDebug: 0
-  suppressActorLogRequestsForDebug: 0
-  actorLogRequestOnlyForDebug: {fileID: 0}
-  globalFacilityRumors: []
-  facilityReputationDebug: []
---- !u!114 &1687591095
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1492ca6c080a5240b63ca8f48a9f4f3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AiDirectorRuntime
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  evaluationIntervalSeconds: 8
-  maxActorsEvaluatedPerTick: 8
-  lowMoodThreshold: 18
-  routineMacroGoalIntervalSeconds: 30
-  routineMoodThreshold: 75
-  routineNeedThreshold: 85
-  moodImpulseThreshold: 55
-  moodImpulseIntervalSeconds: 20
-  moodImpulseMacroPromotionStrength: 0.76
-  repeatedFailureThreshold: 3
-  maxPromptCharacters: 1800
-  nextEvaluationTime: 0
-  lastRequestDebug: 
-  lastAppliedMacroGoalType: 0
-  lastAppliedMacroActorName: 
-  lastAppliedMacroGoalDebug: 
-  lastAppliedMoodImpulseType: 0
-  lastAppliedMoodImpulseActorName: 
-  lastAppliedMoodImpulseDebug: 
-  lastError: 
-  suppressWarningLogsForDebug: 0
---- !u!114 &1687591096
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a44c87c175fffb940ab2e63c22982546, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LocalLlmRequestQueue
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  endpointUrl: http://localhost:11434/v1/chat/completions
-  modelName: llama3.1
-  enableJsonMode: 1
-  maxQueueSize: 64
-  maxConcurrentRequests: 2
-  personaTimeoutSeconds: 20
-  characterSkillTimeoutSeconds: 60
-  macroGoalTimeoutSeconds: 12
-  moodImpulseTimeoutSeconds: 8
-  socialRumorTimeoutSeconds: 8
-  facilityEvolutionTimeoutSeconds: 10
-  characterRecordTimeoutSeconds: 8
-  bubbleTimeoutSeconds: 4
-  bubbleMaxQueueAgeSeconds: 3
-  droppedEphemeralRequestCount: 0
-  timeoutCount: 0
-  lastError: 
-  lastCompletionDiagnostic: 
-  suppressWarningLogsForDebug: 0
---- !u!114 &1687591097
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2d294a9f7470f643b470a47c1585713, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAiScheduler
-  driveCharacterUpdates: 1
-  driveBehaviorDesignerTrees: 1
-  registerExistingSceneCharacters: 1
-  characterAiExternalBehavior: {fileID: 11400000, guid: 5ca7280068555f246b5c33db28a1d1e3, type: 2}
-  limitPathSearches: 1
-  limitFeedbackToVisibleCharacters: 1
-  adaptBudgetsToFrameCost: 1
-  maxDecisionsPerFrame: 16
-  maxPathSearchesPerFrame: 8
-  minDecisionsPerFrame: 4
-  minPathSearchesPerFrame: 2
-  targetAiMilliseconds: 4
-  targetFrameMilliseconds: 16.667
-  frameHeadroomShare: 0.45
-  baselineBudgetRatio: 0.2
-  minimumUsefulSliceMilliseconds: 0.1
-  maximumDecisionDeferralSeconds: 2
-  overdraftCooldownTicks: 4
-  registrationSpreadSeconds: 1.5
-  ownerDecisionInterval: 0.2
-  visibleDecisionInterval: 0.35
-  offscreenDecisionInterval: 1.5
-  retryDelay: 0.05
-  decisionIntervalJitterRatio: 0.16
-  viewportMargin: 0.15
-  offscreenMovementFrameStride: 3
---- !u!114 &1687591098
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 555832860}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::OperatingDaySettlementRuntime
-  economySettings:
-    baseStaffWage: 35
-    workingStaffBonus: 10
-    emergencyFundingAmount: 1000
-    emergencyFundingDebt: 1200
-    unpaidWageMoodPenaltyPerDay: 4
-    unpaidWageMoodDurationSeconds: 180
-    breakdownAfterShortfallDays: 2
---- !u!4 &1687591099
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1899055601}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1687591100
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1687591075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84408efe412f7694da82f9f1871335fb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DungeonRuntimeLifetimeScope
-  parentReference:
-    TypeName: 
-  autoRun: 1
-  autoInjectGameObjects: []
 --- !u!1 &1695512160
 GameObject:
   m_ObjectHideFlags: 0
@@ -18610,816 +16846,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1687591099}
+  - {fileID: 613357407}
   m_Father: {fileID: 149263100}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1920907945
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1920907963}
-  - component: {fileID: 1920907962}
-  - component: {fileID: 1920907961}
-  - component: {fileID: 1920907960}
-  - component: {fileID: 1920907959}
-  - component: {fileID: 1920907958}
-  - component: {fileID: 1920907957}
-  - component: {fileID: 1920907956}
-  - component: {fileID: 1920907955}
-  - component: {fileID: 1920907954}
-  - component: {fileID: 1920907953}
-  - component: {fileID: 1920907952}
-  - component: {fileID: 1920907951}
-  - component: {fileID: 1920907950}
-  - component: {fileID: 1920907949}
-  - component: {fileID: 1920907948}
-  - component: {fileID: 1920907947}
-  - component: {fileID: 1920907946}
-  m_Layer: 0
-  m_Name: Snapshot Customer
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1920907946
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1046849920}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorPresentationBridge
---- !u!114 &1920907947
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2b63709a2cbc4afba40dc3f451c10746, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorRuntimeBridge
---- !u!114 &1920907948
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e39f730361f44bb874d5ceba8f31a70, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActor
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  noExit: {fileID: 0}
-  identity: {fileID: 1920907961}
-  progression: {fileID: 1920907960}
-  abilityCache: {fileID: 1920907959}
-  characterStats: {fileID: 1920907958}
-  visual: {fileID: 1920907957}
-  lifecycle: {fileID: 1920907956}
-  characterLog: {fileID: 1920907955}
-  blackboard: {fileID: 1920907954}
-  personaRuntime: {fileID: 1920907953}
-  dialogueRuntime: {fileID: 1920907952}
-  socialMemory: {fileID: 1920907951}
-  aiMemory: {fileID: 1920907950}
-  behaviorTree: {fileID: 1920907949}
-  runtimeBridge: {fileID: 1920907947}
-  presentationBridge: {fileID: 1920907946}
---- !u!114 &1920907949
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d7b55c7ecdb49a4a89fa5e6f9022861, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BehaviorDesigner.Runtime.BehaviorTree
-  startWhenEnabled: 0
-  asynchronousLoad: 0
-  pauseWhenDisabled: 0
-  restartWhenComplete: 0
-  logTaskChanges: 0
-  group: 0
-  resetValuesOnRestart: 0
-  externalBehavior: {fileID: 0}
-  mBehaviorSource:
-    behaviorName: Behavior
-    behaviorDescription: 
-    mTaskData:
-      types: []
-      parentIndex: 
-      startIndex: 
-      variableStartIndex: 
-      JSONSerialization: 
-      fieldSerializationData:
-        typeName: []
-        fieldNameHash: 
-        startIndex: 
-        dataPosition: 
-        unityObjects: []
-        byteData: 
-        byteDataArray: 
-      Version: 
-  gizmoViewMode: 2
-  showBehaviorDesignerGizmo: 1
-  useDungeonStoryManualRuntime: 1
-  alsoTickSerializedBehaviorGraph: 0
-  dungeonStoryBranch: 
-  dungeonStoryTask: 
-  dungeonStoryStatus: 
-  dungeonStoryTickCount: 0
---- !u!114 &1920907950
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fcb5dff113b596b41abc64d9f21b3c77, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAiMemoryRuntime
-  actor: {fileID: 0}
-  recentEntries: []
---- !u!114 &1920907951
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0bd118b6c6f78a48b2e74433b086279, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSocialMemory
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  maxRumorMemory: 24
-  newRumorBlend: 0.35
-  actor: {fileID: 0}
-  recentRumors: []
-  facilitySentimentDebug: []
-  characterSentimentDebug: []
-  sourceTrustDebug: []
---- !u!114 &1920907952
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c6a78d0990139cb4cae1c4ca96e3e064, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterDialogueRuntime
-  localOffset: {x: 0, y: 1.75, z: 0}
-  visibleDuration: 2.5
-  minSecondsBetweenRequests: 1.5
-  text: {fileID: 0}
-  lastBubbleLine: 
-  lastGeneratedBubbleLine: 
-  lastError: 
---- !u!114 &1920907953
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4fca749f75945445969bf949a8c8ec8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CustomerPersonaRuntime
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  persona:
-    traitName: 
-    flavorText: 
-    selfCareMultiplier: 1
-    curiosityMultiplier: 1
-    shoppingMultiplier: 1
-    patienceMultiplier: 1
-    hungerCurveMultiplier: 1
-    funCurveMultiplier: 1
-    moodCurveMultiplier: 1
-    preferredFacilityTags: []
-  hasGeneratedPersona: 0
-  personaRequestInProgress: 0
-  lastPrompt: 
-  lastError: 
---- !u!114 &1920907954
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c3f8682ee848f740803f3c183828bcb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterBlackboard
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: failedBuildingCooldowns
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[BuildableObject, Assembly-CSharp],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.ObjectEqualityComparer`1[[BuildableObject,
-        Assembly-CSharp]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: recentFailureCounts
-      Entry: 7
-      Data: 2|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Int32,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 3|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
-        mscorlib]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: jobGiverUtilityScores
-      Entry: 7
-      Data: 4|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 5|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
-        DungeonStory.AI]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: routineGroupPriorityScores
-      Entry: 7
-      Data: 6|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 9
-      Data: 5
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 0}
-  currentBranch: 0
-  currentIntent: 
-  currentTask: 
-  currentStatus: 
-  committedAction: {fileID: 0}
-  committedDestination: {fileID: 0}
-  minCommitUntil: 0
-  softLockIntent:
-    branch: 0
-    intention: 0
-    label: 
-    targetGridId: -1
-    startedAt: 0
-    minUntil: 0
-    expiresAt: 0
-    interruptible: 1
-    lastBreakReason: 
-  activeMacroGoal:
-    type: 0
-    reason: 
-    targetFacilityId: -1
-    targetFacilityTag: 
-    validUntil: 0
-    source: 
-  activeMoodImpulse:
-    type: 0
-    strength: 0
-    targetFacilityId: -1
-    targetFacilityTag: 
-    reason: 
-    validUntil: 0
-    source: 
-  lastJobGiverUtilitySummary: 
-  selectedJobGiverUtilitySummary: 
-  lastRoutineGroupPrioritySummary: 
-  lastUtilityBreakdownSummary: 
-  lastDecisionContextSummary: 
-  topUtilityBreakdowns: []
-  recentDecisionTrace: []
-  lastCommitBreakReason: 
-  lastFailureReason: 
-  failureCooldownSeconds: 8
-  defaultCommitSeconds: 1.75
-  commitmentScoreBonus: 0.16
---- !u!114 &1920907955
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0cca4ee66954a83883ab1960c9f38f3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLog
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  log: []
-  activities: []
---- !u!114 &1920907956
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2bdc73416af4a03957afa7af3b16a93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLifecycle
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  identity: {fileID: 0}
-  abilityCache: {fileID: 0}
-  visual: {fileID: 0}
-  stats: {fileID: 0}
-  log: {fileID: 0}
-  lifecycleState: 0
-  aiPaused: 0
-  expeditionRecovery:
-    stress: 0
---- !u!114 &1920907957
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0edcfbf181864d57a360af5cac92a165, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  identity: {fileID: 0}
-  lifecycle: {fileID: 0}
-  visualRoot: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  autoAlignVisualToFeet: 1
---- !u!114 &1920907958
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 39c201ae6b75466f9b7c1012e3eedaca, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: stats
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[CharacterCondition, DungeonStory.Characters],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.EnumEqualityComparer`1[[CharacterCondition,
-        DungeonStory.Characters]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 7
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 0
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 1
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 2
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 3
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 5
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 6
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 4
-    - Name: $v
-      Entry: 4
-      Data: 55
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 1920907948}
-  identity: {fileID: 1920907961}
-  visual: {fileID: 1920907957}
-  lifecycle: {fileID: 1920907956}
-  log: {fileID: 1920907955}
-  maxHealth: 100
-  currentHealth: 100
-  injurySeverity: 0
-  baseMood: 55
-  interactionMoodFactors: []
---- !u!114 &1920907959
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8558ac78fc94bffa1bc661255ddf0c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAbilityCache
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
---- !u!114 &1920907960
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: badabbf33eed2ae46b77a5f13883bc2d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterProgression
-  level: 1
-  currentExperience: 0
-  growthState:
-    initialized: 0
-    autoChooseDrafts: 0
-    potentialGrade: 0
-    generationSeed: 0
-    origin: 
-    displayName: 
-    initialBaseStats:
-      entries:
-      - statId: stat:attack
-        value: 5
-      - statId: stat:shooting
-        value: 5
-      - statId: stat:evasion
-        value: 5
-      - statId: stat:sales
-        value: 5
-      - statId: stat:research
-        value: 5
-      - statId: stat:move-speed
-        value: 5
-      - statId: stat:strength
-        value: 5
-      - statId: stat:toughness
-        value: 5
-      - statId: stat:dexterity
-        value: 5
-      - statId: stat:cleaning
-        value: 5
-      - statId: stat:endurance
-        value: 5
-    levelGrowthStats:
-      entries: []
-    traitIds: 
-    activeSkills: []
-    passiveSkills: []
-    ultimate:
-      id: 
-      displayName: 
-      description: 
-      narrativeReason: 
-      kind: 0
-      rarity: 0
-      trigger: 0
-      target: 0
-      ultimateDomain: 0
-      cooldownTurns: 0
-      usableFrom: 7
-      targetPositions: 7
-      modules: []
-      requestKey: 
-    drafts: []
-    pendingRequestKeys: []
-    allocationRecords: []
-    useLimits:
-      offenseBattleSerial: -1
-      defenseInvasionSerial: -1
-      managementOperatingDay: -1
-    allocatedGrowthPoints: 0
-    nextActiveDraftHasPity: 0
-    skillGenerationRevision: 0
-  narrativeLedger:
-    facts: []
---- !u!114 &1920907961
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc6a8254fadf4c03954390ade8b3d8ab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterIdentity
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: profile
-      Entry: 6
-      Data: 
-  actor: {fileID: 1920907948}
-  data: {fileID: 0}
-  characterType: 1
-  role: 0
-  persistentId: 
---- !u!212 &1920907962
-SpriteRenderer:
-  serializedVersion: 2
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 0
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_Sprite: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
-  m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
-  m_AdaptiveModeThreshold: 0.5
-  m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
-  m_SpriteSortPoint: 0
---- !u!4 &1920907963
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1920907945}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 234600707}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1923780163
 PrefabInstance:
@@ -19743,814 +17171,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1972155272}
   m_CullTransparentMesh: 1
---- !u!1 &1998538820
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1998538838}
-  - component: {fileID: 1998538837}
-  - component: {fileID: 1998538836}
-  - component: {fileID: 1998538835}
-  - component: {fileID: 1998538834}
-  - component: {fileID: 1998538833}
-  - component: {fileID: 1998538832}
-  - component: {fileID: 1998538831}
-  - component: {fileID: 1998538830}
-  - component: {fileID: 1998538829}
-  - component: {fileID: 1998538828}
-  - component: {fileID: 1998538827}
-  - component: {fileID: 1998538826}
-  - component: {fileID: 1998538825}
-  - component: {fileID: 1998538824}
-  - component: {fileID: 1998538823}
-  - component: {fileID: 1998538822}
-  - component: {fileID: 1998538821}
-  m_Layer: 0
-  m_Name: Orc Regular
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1998538821
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1046849920}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorPresentationBridge
---- !u!114 &1998538822
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2b63709a2cbc4afba40dc3f451c10746, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorRuntimeBridge
---- !u!114 &1998538823
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e39f730361f44bb874d5ceba8f31a70, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActor
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  noExit: {fileID: 0}
-  identity: {fileID: 1998538836}
-  progression: {fileID: 1998538835}
-  abilityCache: {fileID: 1998538834}
-  characterStats: {fileID: 1998538833}
-  visual: {fileID: 1998538832}
-  lifecycle: {fileID: 1998538831}
-  characterLog: {fileID: 1998538830}
-  blackboard: {fileID: 1998538829}
-  personaRuntime: {fileID: 1998538828}
-  dialogueRuntime: {fileID: 1998538827}
-  socialMemory: {fileID: 1998538826}
-  aiMemory: {fileID: 1998538825}
-  behaviorTree: {fileID: 1998538824}
-  runtimeBridge: {fileID: 1998538822}
-  presentationBridge: {fileID: 1998538821}
---- !u!114 &1998538824
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d7b55c7ecdb49a4a89fa5e6f9022861, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BehaviorDesigner.Runtime.BehaviorTree
-  startWhenEnabled: 0
-  asynchronousLoad: 0
-  pauseWhenDisabled: 0
-  restartWhenComplete: 0
-  logTaskChanges: 0
-  group: 0
-  resetValuesOnRestart: 0
-  externalBehavior: {fileID: 0}
-  mBehaviorSource:
-    behaviorName: Behavior
-    behaviorDescription: 
-    mTaskData:
-      types: []
-      parentIndex: 
-      startIndex: 
-      variableStartIndex: 
-      JSONSerialization: 
-      fieldSerializationData:
-        typeName: []
-        fieldNameHash: 
-        startIndex: 
-        dataPosition: 
-        unityObjects: []
-        byteData: 
-        byteDataArray: 
-      Version: 
-  gizmoViewMode: 2
-  showBehaviorDesignerGizmo: 1
-  useDungeonStoryManualRuntime: 1
-  alsoTickSerializedBehaviorGraph: 0
-  dungeonStoryBranch: 
-  dungeonStoryTask: 
-  dungeonStoryStatus: 
-  dungeonStoryTickCount: 0
---- !u!114 &1998538825
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fcb5dff113b596b41abc64d9f21b3c77, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAiMemoryRuntime
-  actor: {fileID: 0}
-  recentEntries: []
---- !u!114 &1998538826
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0bd118b6c6f78a48b2e74433b086279, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSocialMemory
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  maxRumorMemory: 24
-  newRumorBlend: 0.35
-  actor: {fileID: 0}
-  recentRumors: []
-  facilitySentimentDebug: []
-  characterSentimentDebug: []
-  sourceTrustDebug: []
---- !u!114 &1998538827
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c6a78d0990139cb4cae1c4ca96e3e064, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterDialogueRuntime
-  localOffset: {x: 0, y: 1.75, z: 0}
-  visibleDuration: 2.5
-  minSecondsBetweenRequests: 1.5
-  text: {fileID: 0}
-  lastBubbleLine: 
-  lastGeneratedBubbleLine: 
-  lastError: 
---- !u!114 &1998538828
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4fca749f75945445969bf949a8c8ec8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CustomerPersonaRuntime
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  persona:
-    traitName: 
-    flavorText: 
-    selfCareMultiplier: 1
-    curiosityMultiplier: 1
-    shoppingMultiplier: 1
-    patienceMultiplier: 1
-    hungerCurveMultiplier: 1
-    funCurveMultiplier: 1
-    moodCurveMultiplier: 1
-    preferredFacilityTags: []
-  hasGeneratedPersona: 0
-  personaRequestInProgress: 0
-  lastPrompt: 
-  lastError: 
---- !u!114 &1998538829
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c3f8682ee848f740803f3c183828bcb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterBlackboard
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: failedBuildingCooldowns
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[BuildableObject, Assembly-CSharp],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.ObjectEqualityComparer`1[[BuildableObject,
-        Assembly-CSharp]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: recentFailureCounts
-      Entry: 7
-      Data: 2|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Int32,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 3|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
-        mscorlib]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: jobGiverUtilityScores
-      Entry: 7
-      Data: 4|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 5|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
-        DungeonStory.AI]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: routineGroupPriorityScores
-      Entry: 7
-      Data: 6|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 9
-      Data: 5
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 0}
-  currentBranch: 0
-  currentIntent: 
-  currentTask: 
-  currentStatus: 
-  committedAction: {fileID: 0}
-  committedDestination: {fileID: 0}
-  minCommitUntil: 0
-  softLockIntent:
-    branch: 0
-    intention: 0
-    label: 
-    targetGridId: -1
-    startedAt: 0
-    minUntil: 0
-    expiresAt: 0
-    interruptible: 1
-    lastBreakReason: 
-  activeMacroGoal:
-    type: 0
-    reason: 
-    targetFacilityId: -1
-    targetFacilityTag: 
-    validUntil: 0
-    source: 
-  activeMoodImpulse:
-    type: 0
-    strength: 0
-    targetFacilityId: -1
-    targetFacilityTag: 
-    reason: 
-    validUntil: 0
-    source: 
-  lastJobGiverUtilitySummary: 
-  selectedJobGiverUtilitySummary: 
-  lastRoutineGroupPrioritySummary: 
-  lastUtilityBreakdownSummary: 
-  lastDecisionContextSummary: 
-  topUtilityBreakdowns: []
-  recentDecisionTrace: []
-  lastCommitBreakReason: 
-  lastFailureReason: 
-  failureCooldownSeconds: 8
-  defaultCommitSeconds: 1.75
-  commitmentScoreBonus: 0.16
---- !u!114 &1998538830
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0cca4ee66954a83883ab1960c9f38f3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLog
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  log: []
-  activities: []
---- !u!114 &1998538831
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2bdc73416af4a03957afa7af3b16a93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLifecycle
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  identity: {fileID: 0}
-  abilityCache: {fileID: 0}
-  visual: {fileID: 0}
-  stats: {fileID: 0}
-  log: {fileID: 0}
-  lifecycleState: 0
-  aiPaused: 0
-  expeditionRecovery:
-    stress: 0
---- !u!114 &1998538832
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0edcfbf181864d57a360af5cac92a165, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  identity: {fileID: 0}
-  lifecycle: {fileID: 0}
-  visualRoot: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  autoAlignVisualToFeet: 1
---- !u!114 &1998538833
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 39c201ae6b75466f9b7c1012e3eedaca, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: stats
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[CharacterCondition, DungeonStory.Characters],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.EnumEqualityComparer`1[[CharacterCondition,
-        DungeonStory.Characters]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 7
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 0
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 1
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 2
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 3
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 5
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 6
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 4
-    - Name: $v
-      Entry: 4
-      Data: 55
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 1998538823}
-  identity: {fileID: 1998538836}
-  visual: {fileID: 1998538832}
-  lifecycle: {fileID: 1998538831}
-  log: {fileID: 1998538830}
-  maxHealth: 100
-  currentHealth: 100
-  injurySeverity: 0
-  baseMood: 55
-  interactionMoodFactors: []
---- !u!114 &1998538834
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8558ac78fc94bffa1bc661255ddf0c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAbilityCache
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
---- !u!114 &1998538835
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: badabbf33eed2ae46b77a5f13883bc2d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterProgression
-  level: 1
-  currentExperience: 0
-  growthState:
-    initialized: 0
-    autoChooseDrafts: 0
-    potentialGrade: 0
-    generationSeed: 0
-    origin: 
-    displayName: 
-    initialBaseStats:
-      entries:
-      - statId: stat:attack
-        value: 5
-      - statId: stat:shooting
-        value: 5
-      - statId: stat:evasion
-        value: 5
-      - statId: stat:sales
-        value: 5
-      - statId: stat:research
-        value: 5
-      - statId: stat:move-speed
-        value: 5
-      - statId: stat:strength
-        value: 5
-      - statId: stat:toughness
-        value: 5
-      - statId: stat:dexterity
-        value: 5
-      - statId: stat:cleaning
-        value: 5
-      - statId: stat:endurance
-        value: 5
-    levelGrowthStats:
-      entries: []
-    traitIds: 
-    activeSkills: []
-    passiveSkills: []
-    ultimate:
-      id: 
-      displayName: 
-      description: 
-      narrativeReason: 
-      kind: 0
-      rarity: 0
-      trigger: 0
-      target: 0
-      ultimateDomain: 0
-      cooldownTurns: 0
-      usableFrom: 7
-      targetPositions: 7
-      modules: []
-      requestKey: 
-    drafts: []
-    pendingRequestKeys: []
-    allocationRecords: []
-    useLimits:
-      offenseBattleSerial: -1
-      defenseInvasionSerial: -1
-      managementOperatingDay: -1
-    allocatedGrowthPoints: 0
-    nextActiveDraftHasPity: 0
-    skillGenerationRevision: 0
-  narrativeLedger:
-    facts: []
---- !u!114 &1998538836
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc6a8254fadf4c03954390ade8b3d8ab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterIdentity
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: profile
-      Entry: 6
-      Data: 
-  actor: {fileID: 1998538823}
-  data: {fileID: 0}
-  characterType: 1
-  role: 0
-  persistentId: 
---- !u!212 &1998538837
-SpriteRenderer:
-  serializedVersion: 2
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 0
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_Sprite: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
-  m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
-  m_AdaptiveModeThreshold: 0.5
-  m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
-  m_SpriteSortPoint: 0
---- !u!4 &1998538838
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1998538820}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 234600707}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2025819522
 GameObject:
   m_ObjectHideFlags: 0
@@ -20615,7 +17235,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   background: {fileID: 183780937}
   light2D: {fileID: 619394801}
-  gameData: {fileID: 11400000, guid: 599972c5ef69a5b428956bcdae86d44b, type: 2}
 --- !u!114 &2025819525
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20633,814 +17252,6 @@ MonoBehaviour:
   groundTilemap: {fileID: 210129473}
   horizontalPaddingTiles: {x: 8, y: 8}
   cameraViewportPadding: 2
---- !u!1 &2039835478
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2039835496}
-  - component: {fileID: 2039835495}
-  - component: {fileID: 2039835494}
-  - component: {fileID: 2039835493}
-  - component: {fileID: 2039835492}
-  - component: {fileID: 2039835491}
-  - component: {fileID: 2039835490}
-  - component: {fileID: 2039835489}
-  - component: {fileID: 2039835488}
-  - component: {fileID: 2039835487}
-  - component: {fileID: 2039835486}
-  - component: {fileID: 2039835485}
-  - component: {fileID: 2039835484}
-  - component: {fileID: 2039835483}
-  - component: {fileID: 2039835482}
-  - component: {fileID: 2039835481}
-  - component: {fileID: 2039835480}
-  - component: {fileID: 2039835479}
-  m_Layer: 0
-  m_Name: Low Mood Customer
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2039835479
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1046849920}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorPresentationBridge
---- !u!114 &2039835480
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2b63709a2cbc4afba40dc3f451c10746, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActorRuntimeBridge
---- !u!114 &2039835481
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5e39f730361f44bb874d5ceba8f31a70, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterActor
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  noExit: {fileID: 0}
-  identity: {fileID: 2039835494}
-  progression: {fileID: 2039835493}
-  abilityCache: {fileID: 2039835492}
-  characterStats: {fileID: 2039835491}
-  visual: {fileID: 2039835490}
-  lifecycle: {fileID: 2039835489}
-  characterLog: {fileID: 2039835488}
-  blackboard: {fileID: 2039835487}
-  personaRuntime: {fileID: 2039835486}
-  dialogueRuntime: {fileID: 2039835485}
-  socialMemory: {fileID: 2039835484}
-  aiMemory: {fileID: 2039835483}
-  behaviorTree: {fileID: 2039835482}
-  runtimeBridge: {fileID: 2039835480}
-  presentationBridge: {fileID: 2039835479}
---- !u!114 &2039835482
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8d7b55c7ecdb49a4a89fa5e6f9022861, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BehaviorDesigner.Runtime.BehaviorTree
-  startWhenEnabled: 0
-  asynchronousLoad: 0
-  pauseWhenDisabled: 0
-  restartWhenComplete: 0
-  logTaskChanges: 0
-  group: 0
-  resetValuesOnRestart: 0
-  externalBehavior: {fileID: 0}
-  mBehaviorSource:
-    behaviorName: Behavior
-    behaviorDescription: 
-    mTaskData:
-      types: []
-      parentIndex: 
-      startIndex: 
-      variableStartIndex: 
-      JSONSerialization: 
-      fieldSerializationData:
-        typeName: []
-        fieldNameHash: 
-        startIndex: 
-        dataPosition: 
-        unityObjects: []
-        byteData: 
-        byteDataArray: 
-      Version: 
-  gizmoViewMode: 2
-  showBehaviorDesignerGizmo: 1
-  useDungeonStoryManualRuntime: 1
-  alsoTickSerializedBehaviorGraph: 0
-  dungeonStoryBranch: 
-  dungeonStoryTask: 
-  dungeonStoryStatus: 
-  dungeonStoryTickCount: 0
---- !u!114 &2039835483
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fcb5dff113b596b41abc64d9f21b3c77, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAiMemoryRuntime
-  actor: {fileID: 0}
-  recentEntries: []
---- !u!114 &2039835484
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0bd118b6c6f78a48b2e74433b086279, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSocialMemory
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  maxRumorMemory: 24
-  newRumorBlend: 0.35
-  actor: {fileID: 0}
-  recentRumors: []
-  facilitySentimentDebug: []
-  characterSentimentDebug: []
-  sourceTrustDebug: []
---- !u!114 &2039835485
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c6a78d0990139cb4cae1c4ca96e3e064, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterDialogueRuntime
-  localOffset: {x: 0, y: 1.75, z: 0}
-  visibleDuration: 2.5
-  minSecondsBetweenRequests: 1.5
-  text: {fileID: 0}
-  lastBubbleLine: 
-  lastGeneratedBubbleLine: 
-  lastError: 
---- !u!114 &2039835486
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4fca749f75945445969bf949a8c8ec8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CustomerPersonaRuntime
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  persona:
-    traitName: 
-    flavorText: 
-    selfCareMultiplier: 1
-    curiosityMultiplier: 1
-    shoppingMultiplier: 1
-    patienceMultiplier: 1
-    hungerCurveMultiplier: 1
-    funCurveMultiplier: 1
-    moodCurveMultiplier: 1
-    preferredFacilityTags: []
-  hasGeneratedPersona: 0
-  personaRequestInProgress: 0
-  lastPrompt: 
-  lastError: 
---- !u!114 &2039835487
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c3f8682ee848f740803f3c183828bcb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterBlackboard
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: failedBuildingCooldowns
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[BuildableObject, Assembly-CSharp],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.ObjectEqualityComparer`1[[BuildableObject,
-        Assembly-CSharp]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: recentFailureCounts
-      Entry: 7
-      Data: 2|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Int32,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 3|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
-        mscorlib]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: jobGiverUtilityScores
-      Entry: 7
-      Data: 4|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 5|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
-        DungeonStory.AI]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: routineGroupPriorityScores
-      Entry: 7
-      Data: 6|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 9
-      Data: 5
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 0}
-  currentBranch: 0
-  currentIntent: 
-  currentTask: 
-  currentStatus: 
-  committedAction: {fileID: 0}
-  committedDestination: {fileID: 0}
-  minCommitUntil: 0
-  softLockIntent:
-    branch: 0
-    intention: 0
-    label: 
-    targetGridId: -1
-    startedAt: 0
-    minUntil: 0
-    expiresAt: 0
-    interruptible: 1
-    lastBreakReason: 
-  activeMacroGoal:
-    type: 0
-    reason: 
-    targetFacilityId: -1
-    targetFacilityTag: 
-    validUntil: 0
-    source: 
-  activeMoodImpulse:
-    type: 0
-    strength: 0
-    targetFacilityId: -1
-    targetFacilityTag: 
-    reason: 
-    validUntil: 0
-    source: 
-  lastJobGiverUtilitySummary: 
-  selectedJobGiverUtilitySummary: 
-  lastRoutineGroupPrioritySummary: 
-  lastUtilityBreakdownSummary: 
-  lastDecisionContextSummary: 
-  topUtilityBreakdowns: []
-  recentDecisionTrace: []
-  lastCommitBreakReason: 
-  lastFailureReason: 
-  failureCooldownSeconds: 8
-  defaultCommitSeconds: 1.75
-  commitmentScoreBonus: 0.16
---- !u!114 &2039835488
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d0cca4ee66954a83883ab1960c9f38f3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLog
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  log: []
-  activities: []
---- !u!114 &2039835489
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2bdc73416af4a03957afa7af3b16a93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterLifecycle
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  actor: {fileID: 0}
-  identity: {fileID: 0}
-  abilityCache: {fileID: 0}
-  visual: {fileID: 0}
-  stats: {fileID: 0}
-  log: {fileID: 0}
-  lifecycleState: 0
-  aiPaused: 0
-  expeditionRecovery:
-    stress: 0
---- !u!114 &2039835490
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0edcfbf181864d57a360af5cac92a165, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterVisual
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
-  identity: {fileID: 0}
-  lifecycle: {fileID: 0}
-  visualRoot: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  autoAlignVisualToFeet: 1
---- !u!114 &2039835491
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 39c201ae6b75466f9b7c1012e3eedaca, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterStats
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: stats
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[CharacterCondition, DungeonStory.Characters],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.EnumEqualityComparer`1[[CharacterCondition,
-        DungeonStory.Characters]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 7
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 0
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 1
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 2
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 3
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 5
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 6
-    - Name: $v
-      Entry: 4
-      Data: 100
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 7
-      Data: 
-    - Name: $k
-      Entry: 3
-      Data: 4
-    - Name: $v
-      Entry: 4
-      Data: 55
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-  actor: {fileID: 2039835481}
-  identity: {fileID: 2039835494}
-  visual: {fileID: 2039835490}
-  lifecycle: {fileID: 2039835489}
-  log: {fileID: 2039835488}
-  maxHealth: 100
-  currentHealth: 100
-  injurySeverity: 0
-  baseMood: 55
-  interactionMoodFactors: []
---- !u!114 &2039835492
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8558ac78fc94bffa1bc661255ddf0c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterAbilityCache
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes: []
---- !u!114 &2039835493
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: badabbf33eed2ae46b77a5f13883bc2d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterProgression
-  level: 1
-  currentExperience: 0
-  growthState:
-    initialized: 0
-    autoChooseDrafts: 0
-    potentialGrade: 0
-    generationSeed: 0
-    origin: 
-    displayName: 
-    initialBaseStats:
-      entries:
-      - statId: stat:attack
-        value: 5
-      - statId: stat:shooting
-        value: 5
-      - statId: stat:evasion
-        value: 5
-      - statId: stat:sales
-        value: 5
-      - statId: stat:research
-        value: 5
-      - statId: stat:move-speed
-        value: 5
-      - statId: stat:strength
-        value: 5
-      - statId: stat:toughness
-        value: 5
-      - statId: stat:dexterity
-        value: 5
-      - statId: stat:cleaning
-        value: 5
-      - statId: stat:endurance
-        value: 5
-    levelGrowthStats:
-      entries: []
-    traitIds: 
-    activeSkills: []
-    passiveSkills: []
-    ultimate:
-      id: 
-      displayName: 
-      description: 
-      narrativeReason: 
-      kind: 0
-      rarity: 0
-      trigger: 0
-      target: 0
-      ultimateDomain: 0
-      cooldownTurns: 0
-      usableFrom: 7
-      targetPositions: 7
-      modules: []
-      requestKey: 
-    drafts: []
-    pendingRequestKeys: []
-    allocationRecords: []
-    useLimits:
-      offenseBattleSerial: -1
-      defenseInvasionSerial: -1
-      managementOperatingDay: -1
-    allocatedGrowthPoints: 0
-    nextActiveDraftHasPity: 0
-    skillGenerationRevision: 0
-  narrativeLedger:
-    facts: []
---- !u!114 &2039835494
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bc6a8254fadf4c03954390ade8b3d8ab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterIdentity
-  serializationData:
-    SerializedFormat: 2
-    SerializedBytes: 
-    ReferencedUnityObjects: []
-    SerializedBytesString: 
-    Prefab: {fileID: 0}
-    PrefabModificationsReferencedUnityObjects: []
-    PrefabModifications: []
-    SerializationNodes:
-    - Name: profile
-      Entry: 6
-      Data: 
-  actor: {fileID: 2039835481}
-  data: {fileID: 0}
-  characterType: 1
-  role: 0
-  persistentId: 
---- !u!212 &2039835495
-SpriteRenderer:
-  serializedVersion: 2
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 0
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_Sprite: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
-  m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
-  m_AdaptiveModeThreshold: 0.5
-  m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
-  m_SpriteSortPoint: 0
---- !u!4 &2039835496
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2039835478}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 234600707}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2044097973
 PrefabInstance:
   m_ObjectHideFlags: 0

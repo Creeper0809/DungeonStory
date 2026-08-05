@@ -2,7 +2,11 @@
   "name": "DungeonStory.Combat",
   "rootNamespace": "DungeonStory.Combat",
   "references": [
-    "DungeonStory.Evolution"
+    "DungeonStory.Characters",
+    "DungeonStory.Evolution",
+    "DungeonStory.Foundation",
+    "DungeonStory.Items",
+    "VContainer"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.Scripting.APIUpdating;
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
@@ -34,43 +35,141 @@ public interface IDungeonSaveSlotCatalog
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonGameSaveData
 {
-    public const int CurrentVersion = 17;
+    public const int CurrentVersion = 18;
 
     public int version = CurrentVersion;
     public string savedAtUtc = string.Empty;
     public string sceneName = string.Empty;
+    public DungeonSaveManifestData manifest;
     public List<DungeonSaveSectionEnvelope> sections = new List<DungeonSaveSectionEnvelope>();
 }
 
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public sealed class DungeonSaveSlotInfo
+[Serializable]
+public sealed class DungeonSaveManifestData
 {
-    public DungeonSaveSlotInfo(
-        string slotId,
-        string path,
-        string savedAtUtc = "",
-        string sceneName = "",
-        int day = 1,
-        int money = 0,
-        bool isValid = false,
-        bool debugModified = false)
+    public int compatibilityGeneration;
+    public List<DungeonSaveManifestSectionData> sections =
+        new List<DungeonSaveManifestSectionData>();
+}
+
+[Serializable]
+public sealed class DungeonSaveManifestSectionData
+{
+    public string sectionId = string.Empty;
+    public int sectionVersion;
+    public bool optional;
+}
+
+public static class DungeonSaveManifest
+{
+    public static DungeonSaveManifestData Capture(
+        IReadOnlyList<DungeonSaveSectionEnvelope> envelopes)
     {
-        SlotId = slotId ?? string.Empty;
-        Path = path ?? string.Empty;
-        SavedAtUtc = savedAtUtc ?? string.Empty;
-        SceneName = sceneName ?? string.Empty;
-        Day = day;
-        Money = money;
-        IsValid = isValid;
-        DebugModified = debugModified;
+        return new DungeonSaveManifestData
+        {
+            compatibilityGeneration = DungeonGameSaveData.CurrentVersion,
+            sections = (envelopes ?? Array.Empty<DungeonSaveSectionEnvelope>())
+                .Where(envelope => envelope != null)
+                .OrderBy(envelope => envelope.sectionId, StringComparer.Ordinal)
+                .Select(envelope => new DungeonSaveManifestSectionData
+                {
+                    sectionId = envelope.sectionId?.Trim() ?? string.Empty,
+                    sectionVersion = envelope.sectionVersion,
+                    optional = envelope.optional
+                })
+                .ToList()
+        };
     }
 
-    public string SlotId { get; }
-    public string Path { get; }
-    public string SavedAtUtc { get; }
-    public string SceneName { get; }
-    public int Day { get; }
-    public int Money { get; }
-    public bool IsValid { get; }
-    public bool DebugModified { get; }
+    public static bool TryValidate(
+        DungeonSaveManifestData manifest,
+        IReadOnlyList<DungeonSaveSectionEnvelope> envelopes,
+        out string reason)
+    {
+        if (manifest == null
+            || manifest.compatibilityGeneration != DungeonGameSaveData.CurrentVersion)
+        {
+            reason = "V18 save manifest is missing or has an incompatible generation.";
+            return false;
+        }
+
+        Dictionary<string, DungeonSaveManifestSectionData> declared =
+            new Dictionary<string, DungeonSaveManifestSectionData>(StringComparer.Ordinal);
+        foreach (DungeonSaveManifestSectionData section in manifest.sections
+                     ?? new List<DungeonSaveManifestSectionData>())
+        {
+            string id = section?.sectionId?.Trim() ?? string.Empty;
+            if (id.Length == 0 || !declared.TryAdd(id, section))
+            {
+                reason = "V18 save manifest contains an empty or duplicate section id.";
+                return false;
+            }
+        }
+
+        Dictionary<string, DungeonSaveSectionEnvelope> payloads =
+            new Dictionary<string, DungeonSaveSectionEnvelope>(StringComparer.Ordinal);
+        foreach (DungeonSaveSectionEnvelope envelope in envelopes
+                     ?? Array.Empty<DungeonSaveSectionEnvelope>())
+        {
+            string id = envelope?.sectionId?.Trim() ?? string.Empty;
+            if (id.Length == 0 || !payloads.TryAdd(id, envelope))
+            {
+                reason = "V18 save payload contains an empty or duplicate section id.";
+                return false;
+            }
+        }
+
+        foreach (KeyValuePair<string, DungeonSaveManifestSectionData> pair in declared)
+        {
+            if (!payloads.TryGetValue(pair.Key, out DungeonSaveSectionEnvelope payload))
+            {
+                if (!pair.Value.optional)
+                {
+                    reason = $"V18 save is missing manifest-required section '{pair.Key}'.";
+                    return false;
+                }
+
+                continue;
+            }
+
+            if (payload.sectionVersion != pair.Value.sectionVersion
+                || payload.optional != pair.Value.optional)
+            {
+                reason = $"V18 save section '{pair.Key}' does not match its manifest.";
+                return false;
+            }
+        }
+
+        string undeclared = payloads.Keys.FirstOrDefault(id => !declared.ContainsKey(id));
+        if (!string.IsNullOrEmpty(undeclared))
+        {
+            reason = $"V18 save contains undeclared section '{undeclared}'.";
+            return false;
+        }
+
+        reason = string.Empty;
+        return true;
+    }
+}
+
+public static class DungeonSaveCompatibility
+{
+    public const string PreV18IncompatibilityReason =
+        "대규모 데이터·식별자·저장 구조 개편 이전 저장 — 새 게임 필요";
+
+    public static bool TryGetIncompatibilityReason(
+        int version,
+        out string incompatibilityReason)
+    {
+        if (version == DungeonGameSaveData.CurrentVersion)
+        {
+            incompatibilityReason = string.Empty;
+            return false;
+        }
+
+        incompatibilityReason = version < DungeonGameSaveData.CurrentVersion
+            ? PreV18IncompatibilityReason
+            : $"현재 빌드보다 새로운 저장 버전입니다. 저장 V{version}, 지원 V{DungeonGameSaveData.CurrentVersion}";
+        return true;
+    }
 }

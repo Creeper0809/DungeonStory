@@ -27,20 +27,38 @@ MonoBehaviour:
   description: "\uACF5\uAE09\uACFC \uCD9C\uB825\uC774 \uD655\uBCF4\uB41C \uBC18\uBCF5
     \uC8FC\uBB38\uC744 \uBB34\uC778\uC73C\uB85C \uC9C4\uD589\uD55C\uB2E4."
   field: 15
-  requiredWork: 168
+  requiredWork: 960
   prerequisites:
   - {fileID: 11400000, guid: c34ef262e09f44d4e84bf04c8ca5153f, type: 2}
   - {fileID: 11400000, guid: edaf98ccfa45c53459e9b78c28f5cd45, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:industry:assisted-processing
+    prerequisite: {fileID: 11400000, guid: c34ef262e09f44d4e84bf04c8ca5153f, type: 2}
+    kind: 2
+    reason: "\uB3D9\uB825 \uBCF4\uC870 \uAC00\uACF5\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC790\uB3D9 \uC0DD\uC0B0 \uC8FC\uBB38 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:ports
+    prerequisite: {fileID: 11400000, guid: edaf98ccfa45c53459e9b78c28f5cd45, type: 2}
+    kind: 2
+    reason: "\uC785\uCD9C\uB825 \uD3EC\uD2B8\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC790\uB3D9 \uC0DD\uC0B0 \uC8FC\uBB38 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687352
+    - rid: 7737211730927813047
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687352
+    - rid: 7737211730927813047
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9860

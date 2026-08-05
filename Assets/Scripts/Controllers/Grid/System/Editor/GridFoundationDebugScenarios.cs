@@ -11,7 +11,7 @@ public static class GridFoundationDebugScenarios
     private static readonly IWorldInfoClickSelector WorldInfoClickSelector =
         new NoopWorldInfoClickSelector();
     private static readonly IFacilityCandidateCache FacilityCandidateCacheService =
-        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
     private static readonly IRoomFacilityPolicy RoomFacilityPolicyService =
         new RoomFacilityPolicyService(RoomRegistry.EditorCache);
 
@@ -123,7 +123,7 @@ public static class GridFoundationDebugScenarios
         GridPathSearchResult result = grid.SearchPathTo(
             start,
             destination,
-            costPolicy: new FastTestStairCostPolicy());
+            costPolicy: new FastTestStairCostPolicy(), traversalFilter: null);
         Queue<GridMoveStep> path = result.GetMovePath(
             position => position == destination);
 
@@ -164,7 +164,7 @@ public static class GridFoundationDebugScenarios
         }
 
         TestGameClock clock = new TestGameClock();
-        GridPathSearchBroker broker = new GridPathSearchBroker(clock);
+        GridPathSearchBroker broker = new GridPathSearchBroker(clock, doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
         Vector2Int start = Vector2Int.zero;
 
         broker.BeginFrame(8, true);
@@ -200,7 +200,7 @@ public static class GridFoundationDebugScenarios
         }
 
         TestGameClock clock = new TestGameClock();
-        GridPathSearchBroker broker = new GridPathSearchBroker(clock);
+        GridPathSearchBroker broker = new GridPathSearchBroker(clock, doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
         broker.BeginFrame(2, true);
 
         int completed = 0;
@@ -232,7 +232,7 @@ public static class GridFoundationDebugScenarios
         }
 
         TestGameClock clock = new TestGameClock();
-        GridPathSearchBroker broker = new GridPathSearchBroker(clock);
+        GridPathSearchBroker broker = new GridPathSearchBroker(clock, doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
         Vector2Int start = Vector2Int.zero;
         Vector2Int destination = new Vector2Int(cellCount - 1, 0);
 
@@ -321,8 +321,11 @@ public static class GridFoundationDebugScenarios
         Queue<GridMoveStep> stalePath = grid.GetMovePath(
             new Vector2Int(0, 0),
             pos => pos == new Vector2Int(2, 0));
-        BuildableObject placedWall = new GridBuildingFactory().Create(grid, wall, wallPosition);
+        BuildableObject placedWall = new GridBuildingFactory(
+            InjectBuildingDependencies).Create(grid, wall, wallPosition);
         placedWall.SetGrid(grid);
+        placedWall.RestorePersistentIdentity(
+            new BuildingInstanceId("building:test:grid-wall"));
         placedWall.Initialization(wall, wallPosition);
         bool registered = grid.RegisterOccupant(
             placedWall,
@@ -426,6 +429,8 @@ public static class GridFoundationDebugScenarios
         if (building != null)
         {
             building.SetGrid(grid);
+            building.RestorePersistentIdentity(
+                new BuildingInstanceId("building:test:grid-replacement-original"));
             building.Initialization(lab, center);
         }
 
@@ -441,6 +446,8 @@ public static class GridFoundationDebugScenarios
         if (replacement != null)
         {
             replacement.SetGrid(grid);
+            replacement.RestorePersistentIdentity(
+                new BuildingInstanceId("building:test:grid-replacement-new"));
             replacement.Initialization(lab, center);
         }
 
@@ -551,8 +558,8 @@ public static class GridFoundationDebugScenarios
             grid,
             hallway,
             null,
-            new GridBuildingFactory(),
-            new BuildingPlacementValidator());
+            new GridBuildingFactory(InjectBuildingDependencies),
+            new BuildingPlacementValidator(), workOrderRuntime: null);
 
         List<InitialBuildInfo> placements = new List<InitialBuildInfo>
         {
@@ -638,7 +645,7 @@ public static class GridFoundationDebugScenarios
             null,
             null,
             new GridBuildingFactory(InjectBuildingDependencies),
-            new BuildingPlacementValidator());
+            new BuildingPlacementValidator(), workOrderRuntime: null);
         Vector2Int target = new Vector2Int(3, 0);
         bool emptyCellRejected = !service.CanPlaceBuilding(door, new Vector2Int(2, 0));
 
@@ -694,7 +701,7 @@ public static class GridFoundationDebugScenarios
             "Assets/Resources/SO/Building/Door.asset");
         BuildingSO hallway = AssetDatabase.LoadAssetAtPath<BuildingSO>(
             "Assets/Resources/SO/Building/Hallway.asset");
-        if (door == null || hallway == null || door.type != typeof(Door) || door.width != 3)
+        if (door == null || hallway == null || door.runtimeArchetype != BuildingRuntimeArchetypeKind.Door || door.width != 3)
         {
             return false;
         }
@@ -705,7 +712,7 @@ public static class GridFoundationDebugScenarios
             hallway,
             null,
             new GridBuildingFactory(InjectBuildingDependencies),
-            new BuildingPlacementValidator());
+            new BuildingPlacementValidator(), workOrderRuntime: null);
         Vector2Int doorCenter = new Vector2Int(2, 0);
         Vector2Int configuredInsidePosition = new Vector2Int(4, 0);
         service.PlaceInitialBuildings(new[]
@@ -717,8 +724,10 @@ public static class GridFoundationDebugScenarios
             }
         });
         bool placed = grid.GetGridCell(doorCenter)?.GetBuildingInlayer(GridLayer.Building) is Door;
-        bool resolved = DungeonEntranceGridResolver.TryResolve(
+        CharacterSpawnerSceneApplicationAdapter entranceAdapter = new();
+        bool resolved = entranceAdapter.TryResolveEntrance(
             grid,
+            null,
             configuredInsidePosition,
             out Door entrance);
         Vector3 doorWorldPosition = resolved
@@ -763,11 +772,11 @@ public static class GridFoundationDebugScenarios
 
     private static void InjectBuildingDependencies(BuildableObject building)
     {
+        building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
         building.ConstructBuildableObject(
-            BlueprintResearchWorkService,
-            WorldInfoClickSelector,
+            new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
             FacilityCandidateCacheService,
-            RoomFacilityPolicyService);
+            RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
     }
 
     private static TestOccupant AddHallway(Grid grid, Vector2Int position)

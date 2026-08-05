@@ -25,7 +25,6 @@ public static class PhysicalItemPilePlayModeVerifier
     public const string PriorityCapturePath = "Artifacts/QA/physical-item-character-priority.png";
     public const string AltCapturePath = "Artifacts/QA/physical-item-alt-select.png";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
-
     private static bool runnerCreated;
 
     static PhysicalItemPilePlayModeVerifier()
@@ -108,6 +107,11 @@ public static class PhysicalItemPilePlayModeVerifier
 
 public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
 {
+    private const string PreservedRationItemId = "food:preserved-ration";
+    private const string DaggerItemId = "equipment-item:weapon:dagger";
+    private const string ManaCrystalItemId = "resource:mana-crystal";
+    private const string LumberItemId = "material:lumber";
+
     private readonly List<string> report = new List<string>();
     private readonly List<string> failures = new List<string>();
     private readonly List<string> capturedErrors = new List<string>();
@@ -118,6 +122,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
     private bool inputBehaviorCaptured;
     private Mouse originalMouse;
     private Mouse verificationMouse;
+    private DungeonAutomationInputTestCapability automationInput;
     private int verificationMouseSerial;
     private Vector2 originalMousePosition;
     private float originalTimeScale;
@@ -137,9 +142,8 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
         SetupInput();
         originalTimeScale = Time.timeScale;
         Time.timeScale = 0f;
-        DungeonAutomationInputState.Enable(
-            new DungeonStory.Foundation.UnityGameClock(),
-            new DungeonStory.Foundation.UnityUiClock());
+        automationInput = new DungeonAutomationInputTestCapability();
+        automationInput.Enable();
 
         yield return null;
         yield return null;
@@ -150,15 +154,15 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
         Grid grid = gridSystem != null ? gridSystem.grid : null;
         Camera camera = Camera.main;
         ItemPileInfoPanel itemPanel = UnityEngine.Object.FindFirstObjectByType<ItemPileInfoPanel>(FindObjectsInactive.Include);
-        CharacterSummeryInfo characterSummary =
-            UnityEngine.Object.FindFirstObjectByType<CharacterSummeryInfo>(FindObjectsInactive.Include);
+        CharacterSummaryInfo characterSummary =
+            UnityEngine.Object.FindFirstObjectByType<CharacterSummaryInfo>(FindObjectsInactive.Include);
 
         Check(scope != null && scope.Container != null, "SCOPE_READY", "gameplay LifetimeScope resolved");
         Check(itemRuntime != null, "ITEM_RUNTIME_READY", "IWorldItemStackRuntime resolved");
         Check(grid != null, "GRID_READY", "GridSystemManager grid resolved");
         Check(camera != null, "CAMERA_READY", "main camera resolved");
         Check(itemPanel != null, "ITEM_PANEL_READY", "ItemPileInfoPanel resolved");
-        Check(characterSummary != null, "CHARACTER_PANEL_READY", "CharacterSummeryInfo resolved");
+        Check(characterSummary != null, "CHARACTER_PANEL_READY", "CharacterSummaryInfo resolved");
 
         if (scope == null || itemRuntime == null || grid == null || camera == null || itemPanel == null)
         {
@@ -259,9 +263,9 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
 
     private void SpawnPile(IWorldItemStackRuntime itemRuntime, Vector2Int position)
     {
-        SpawnItem(itemRuntime, DungeonItemCatalogSO.StockItemId(StockCategory.Food), 12, position);
-        SpawnItem(itemRuntime, DungeonItemCatalogSO.StockItemId(StockCategory.Weapon), 4, position);
-        SpawnItem(itemRuntime, DungeonItemCatalogSO.StockItemId(StockCategory.Mana), 2, position);
+        SpawnItem(itemRuntime, PreservedRationItemId, 12, position);
+        SpawnItem(itemRuntime, DaggerItemId, 4, position);
+        SpawnItem(itemRuntime, ManaCrystalItemId, 2, position);
     }
 
     private void SpawnItem(IWorldItemStackRuntime itemRuntime, string itemId, int amount, Vector2Int position)
@@ -292,7 +296,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
         }
 
         bool spawned = itemRuntime.SpawnItemAt(
-            DungeonItemCatalogSO.StockItemId(StockCategory.General),
+            LumberItemId,
             7,
             storedPosition,
             WorldItemStackState.Stored,
@@ -339,7 +343,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
             $"toggle={itemRuntime.StoredItemMarkersVisible}");
     }
 
-    private IEnumerator VerifyCharacterPriority(Camera camera, CharacterSummeryInfo characterSummary)
+    private IEnumerator VerifyCharacterPriority(Camera camera, CharacterSummaryInfo characterSummary)
     {
         CloseKnownPopups();
         yield return null;
@@ -388,9 +392,9 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
         yield return null;
 
         ApplyMouseState(new MouseState { position = pileScreenPoint });
-        DungeonAutomationInputState.MovePointer(pileScreenPoint);
-        DungeonAutomationInputState.HoldKey(KeyCode.LeftAlt, 0.5f);
-        DungeonAutomationInputState.ClickPointer(0);
+        automationInput.MovePointer(pileScreenPoint);
+        automationInput.HoldKey(KeyCode.LeftAlt, 0.5f);
+        automationInput.ClickPointer(0);
         yield return null;
         yield return null;
         yield return new WaitForSecondsRealtime(0.15f);
@@ -399,7 +403,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
             "ALT_CLICK_FORCES_ITEM",
             $"itemPanel={IsItemPanelOpen()}; rows={FindStackRowButtons().Length}");
         yield return CaptureScreen(PhysicalItemPilePlayModeVerifier.AltCapturePath);
-        DungeonAutomationInputState.ReleaseKey(KeyCode.LeftAlt);
+        automationInput.ReleaseKey(KeyCode.LeftAlt);
     }
 
     private IEnumerator EnsurePlayableRun()
@@ -483,7 +487,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
     private IEnumerator HoverWorldPoint(Vector2 screenPoint)
     {
         ApplyMouseState(new MouseState { position = screenPoint });
-        DungeonAutomationInputState.MovePointer(screenPoint);
+        automationInput.MovePointer(screenPoint);
         yield return null;
         yield return null;
     }
@@ -491,7 +495,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
     private IEnumerator PressMouse(Vector2 screenPoint)
     {
         ApplyMouseState(new MouseState { position = screenPoint }.WithButton(MouseButton.Left, true));
-        DungeonAutomationInputState.MovePointer(screenPoint);
+        automationInput.MovePointer(screenPoint);
         yield return null;
         yield return null;
     }
@@ -499,7 +503,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
     private IEnumerator ReleaseMouse(Vector2 screenPoint)
     {
         ApplyMouseState(new MouseState { position = screenPoint });
-        DungeonAutomationInputState.MovePointer(screenPoint);
+        automationInput.MovePointer(screenPoint);
         yield return null;
         yield return null;
     }
@@ -590,7 +594,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
             panel.OnClose();
         }
 
-        foreach (CharacterSummeryInfo panel in UnityEngine.Object.FindObjectsByType<CharacterSummeryInfo>(
+        foreach (CharacterSummaryInfo panel in UnityEngine.Object.FindObjectsByType<CharacterSummaryInfo>(
                      FindObjectsInactive.Include,
                      FindObjectsSortMode.None))
         {
@@ -708,7 +712,7 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
                     .Any(collider => collider != null && collider.enabled));
     }
 
-    private static bool IsCharacterPanelOpen(CharacterSummeryInfo characterSummary)
+    private static bool IsCharacterPanelOpen(CharacterSummaryInfo characterSummary)
     {
         return characterSummary != null
             && characterSummary.UI != null
@@ -838,7 +842,8 @@ public sealed class PhysicalItemPilePlayModeVerificationRunner : MonoBehaviour
         }
 
         actorStateCaptured = false;
-        DungeonAutomationInputState.Disable();
+        automationInput?.Dispose();
+        automationInput = null;
         if (verificationMouse != null && verificationMouse.added)
         {
             InputSystem.RemoveDevice(verificationMouse);

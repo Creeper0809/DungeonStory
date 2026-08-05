@@ -2,47 +2,41 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public sealed class RegularCustomerSaveSection :
-    DungeonJsonSaveSection<DungeonRegularCustomerSaveData>
+public sealed class RegularCustomerPersistenceAdapter :
+    IRegularCustomerPersistence,
+    IRecruitmentCharacterDefinitionCatalog
 {
-    public const string Id = "recruitment.regular-customers";
-
-    private readonly IRegularCustomerRuntimeProvider runtimeProvider;
+    private readonly RegularCustomerRuntime runtime;
     private readonly IRunCharacterCatalog characterCatalog;
 
-    public RegularCustomerSaveSection(
-        IRegularCustomerRuntimeProvider runtimeProvider,
+    public RegularCustomerPersistenceAdapter(
+        RegularCustomerRuntime runtime,
         IRunCharacterCatalog characterCatalog)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new ArgumentNullException(nameof(runtimeProvider));
+        this.runtime = runtime
+            ?? throw new ArgumentNullException(nameof(runtime));
         this.characterCatalog = characterCatalog
             ?? throw new ArgumentNullException(nameof(characterCatalog));
     }
 
-    public override string SectionId => Id;
-    public override DungeonSaveRestorePhase RestorePhase =>
-        DungeonSaveRestorePhase.LateRuntimeState;
+    public IReadOnlyCollection<int> CharacterDefinitionIds => characterCatalog
+        .Characters
+        .Where(character => character != null)
+        .Select(character => character.id)
+        .Distinct()
+        .OrderBy(id => id)
+        .ToArray();
 
-    protected override DungeonRegularCustomerSaveData CapturePayload()
+    public DungeonRegularCustomerSaveData CaptureState() => new()
     {
-        DungeonRegularCustomerSaveData destination =
-            new DungeonRegularCustomerSaveData();
-        if (!runtimeProvider.TryGetRuntime(out RegularCustomerRuntime runtime))
-        {
-            return destination;
-        }
-
-        destination.records = runtime.State.Records
-            .OrderBy(record => record.CustomerId)
+        records = runtime.State.Records
+            .OrderBy(record => record.CustomerId, StringComparer.Ordinal)
             .Select(record => new DungeonRegularCustomerRecordSaveData
             {
                 customerId = record.CustomerId,
                 displayName = record.DisplayName,
                 speciesTag = record.SpeciesTag,
-                sourceDataId = record.SourceData != null
-                    ? record.SourceData.id
-                    : -1,
+                sourceDataId = record.SourceData != null ? record.SourceData.id : -1,
                 visitCount = record.VisitCount,
                 averageSatisfaction = record.AverageSatisfaction,
                 isRegular = record.IsRegular,
@@ -50,36 +44,24 @@ public sealed class RegularCustomerSaveSection :
                 isRecruited = record.IsRecruited,
                 recruitCapabilities = record.RecruitCapabilities
             })
-            .ToList();
-        return destination;
-    }
+            .ToList()
+    };
 
-    protected override void RestorePayload(
-        DungeonRegularCustomerSaveData source,
-        DungeonGameRestoreReport report)
+    public RegularCustomerRestoreCandidate PrepareRestore(
+        DungeonRegularCustomerSaveData snapshot)
     {
-        if (!runtimeProvider.TryGetRuntime(out RegularCustomerRuntime runtime))
+        if (snapshot?.records == null)
         {
-            report.AddWarning(
-                "Regular customer runtime was not present; customer history was skipped.");
-            return;
+            throw new ArgumentNullException(nameof(snapshot));
         }
-
         Dictionary<int, CharacterSO> characters = characterCatalog.Characters
             .Where(character => character != null)
             .GroupBy(character => character.id)
             .ToDictionary(group => group.Key, group => group.First());
-        List<RegularCustomerRecord> records = new List<RegularCustomerRecord>();
-        foreach (DungeonRegularCustomerRecordSaveData saved in source.records
-                     ?? new List<DungeonRegularCustomerRecordSaveData>())
+        return runtime.PrepareRestoreCandidate(snapshot.records.Select(saved =>
         {
-            if (saved == null || string.IsNullOrWhiteSpace(saved.customerId))
-            {
-                continue;
-            }
-
             characters.TryGetValue(saved.sourceDataId, out CharacterSO sourceData);
-            records.Add(new RegularCustomerRecord(
+            return new RegularCustomerRecord(
                 saved.customerId,
                 saved.displayName,
                 saved.speciesTag,
@@ -89,9 +71,13 @@ public sealed class RegularCustomerSaveSection :
                 saved.isRegular,
                 saved.isRecruitCandidate,
                 saved.isRecruited,
-                saved.recruitCapabilities));
-        }
+                saved.recruitCapabilities);
+        }));
+    }
 
-        runtime.State.Restore(records);
+    public void PublishRestore(RegularCustomerRestoreCandidate candidate)
+    {
+        runtime.PublishRestoreCandidate(candidate
+            ?? throw new ArgumentNullException(nameof(candidate)));
     }
 }

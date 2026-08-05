@@ -8,7 +8,16 @@ public interface IGridSystemProvider
     bool TryGetGrid(out Grid grid);
 }
 
-public sealed class GridSystemProvider : IGridSystemProvider
+public interface IGridSystemPublisher
+{
+    bool TryPublishGrid(
+        Grid expectedCurrent,
+        Grid replacement,
+        out string failureReason);
+    void CompleteGridPublication();
+}
+
+public sealed class GridSystemProvider : IGridSystemProvider, IGridSystemPublisher
 {
     private readonly DungeonSceneRuntimeReferences runtimeReferences;
 
@@ -68,5 +77,27 @@ public sealed class GridSystemProvider : IGridSystemProvider
 
         grid = resolvedManager.grid;
         return true;
+    }
+
+    public bool TryPublishGrid(
+        Grid expectedCurrent,
+        Grid replacement,
+        out string failureReason)
+    {
+        if (!TryGetManager(out GridSystemManager manager))
+        {
+            failureReason = "The dungeon grid manager is not loaded.";
+            return false;
+        }
+
+        return manager.TryPublishGrid(
+            expectedCurrent,
+            replacement,
+            out failureReason);
+    }
+
+    public void CompleteGridPublication()
+    {
+        Manager.CompleteGridPublication();
     }
 }

@@ -29,7 +29,7 @@ public sealed class GrandProjectWorkExecutionHandler :
     {
         GrandProjectWorkSnapshot work = default;
         bool available = workTypeId == BuiltInWorkTypeIds.GrandProject
-            && runtime.TryGetWork(target, actor, out work)
+            && runtime.TryGetWork(GetFacilityId(target), out work)
             && work.Available;
         reason = available ? string.Empty : work.UnavailableReason;
         return available;
@@ -42,8 +42,7 @@ public sealed class GrandProjectWorkExecutionHandler :
     {
         return workTypeId == BuiltInWorkTypeIds.GrandProject
             && runtime.TryGetWork(
-                target,
-                actor,
+                GetFacilityId(target),
                 out GrandProjectWorkSnapshot work)
             && work.Available
                 ? 52f
@@ -55,8 +54,7 @@ public sealed class GrandProjectWorkExecutionHandler :
         WorkExecutionResult result)
     {
         if (!runtime.TryGetWork(
-                context.Target,
-                context.Actor,
+                GetFacilityId(context.Target),
                 out GrandProjectWorkSnapshot work)
             || !work.Available)
         {
@@ -73,8 +71,7 @@ public sealed class GrandProjectWorkExecutionHandler :
             delta =>
             {
                 bool succeeded = runtime.ApplyWork(
-                    context.Target,
-                    context.Actor,
+                    GetFacilityId(context.Target),
                     delta,
                     out bool projectCompleted);
                 progressApplied &= succeeded;
@@ -85,4 +82,7 @@ public sealed class GrandProjectWorkExecutionHandler :
         result.CompletedSuccessfully = progressApplied && completed;
         result.CompletionEffectsAlreadyApplied = completed;
     }
+
+    private static BuildingInstanceId GetFacilityId(BuildableObject target) =>
+        target != null ? target.PersistentInstanceId : default;
 }

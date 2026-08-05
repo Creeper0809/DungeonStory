@@ -9,12 +9,12 @@ using VContainer;
 
 public static class V16IntegrationDebugScenarios
 {
-    [MenuItem("DungeonStory/Debug/V16/Run Integration Contracts")]
+    [MenuItem("DungeonStory/Debug/Strategic/Run Integration Contracts")]
     public static void RunFromMenu()
     {
         if (!RunAll(true))
         {
-            Debug.LogError("V16 integration contracts failed.");
+            Debug.LogError("Strategic integration contracts failed.");
         }
     }
 
@@ -22,9 +22,9 @@ public static class V16IntegrationDebugScenarios
     {
         List<string> failures = new List<string>();
         Check(
-            DungeonGameSaveData.CurrentVersion == 16,
+            DungeonGameSaveData.CurrentVersion == 18,
             "save version",
-            $"expected 16, got {DungeonGameSaveData.CurrentVersion}",
+            $"expected 18, got {DungeonGameSaveData.CurrentVersion}",
             failures);
         CheckLegacyEquipmentRemoved(failures);
         CheckGameplaySceneComposition(failures);
@@ -44,7 +44,7 @@ public static class V16IntegrationDebugScenarios
         {
             foreach (string failure in failures)
             {
-                Debug.LogError($"[V16] {failure}");
+                Debug.LogError($"[Strategic] {failure}");
             }
 
             return false;
@@ -52,7 +52,7 @@ public static class V16IntegrationDebugScenarios
 
         if (logSuccess)
         {
-            Debug.Log("V16 integration contracts passed.");
+            Debug.Log("Strategic integration contracts passed.");
         }
 
         return true;
@@ -167,7 +167,8 @@ public static class V16IntegrationDebugScenarios
 
         DungeonOffenseRegionSaveData saved = runtime.Capture();
         OffenseRegionRuntime restored = new OffenseRegionRuntime();
-        restored.Restore(saved);
+        restored.PublishRestoreCandidate(
+            restored.BuildRestoreCandidate(saved));
         Check(
             Mathf.Approximately(
                 restored.GetPressureForTarget(peerTarget).Logistics,
@@ -200,7 +201,9 @@ public static class V16IntegrationDebugScenarios
             failures);
 
         IReadOnlyList<OffenseTargetDefinition> targets =
-            OffenseWorldMapService.CreateDefaultTargets();
+            new ResourceOffenseCampaignCatalog(
+                new ResourceGameContentCatalog(
+                    new UnityGameContentRootLoader())).Targets;
         bool ordinaryTargetsHavePressure = targets
             .Where(target => target != null && !target.revealsTruth)
             .All(target => target.rewards.Any(reward =>
@@ -312,6 +315,7 @@ public static class V16IntegrationDebugScenarios
         {
             orderId = "medical-v16",
             treatmentSupply = CharacterMedicalSupplyKind.ExtractedBlood,
+            statusCode = CharacterMedicalStatusCode.TreatingWithExtractedBlood,
             treatmentSupplyConsumed = true,
             treatmentMaterialDestinationId =
                 "facility-input:medical:medical-v16"
@@ -320,6 +324,7 @@ public static class V16IntegrationDebugScenarios
             JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
                 JsonUtility.ToJson(new DungeonCharacterMedicalSaveData
                 {
+                    version = DungeonCharacterMedicalSaveData.CurrentVersion,
                     orders = new List<CharacterMedicalOrder> { savedOrder }
                 }));
         CharacterMedicalOrder restoredOrder =
@@ -328,6 +333,8 @@ public static class V16IntegrationDebugScenarios
             restoredOrder != null
             && restoredOrder.treatmentSupply
                 == CharacterMedicalSupplyKind.ExtractedBlood
+            && restoredOrder.statusCode
+                == CharacterMedicalStatusCode.TreatingWithExtractedBlood
             && restoredOrder.treatmentSupplyConsumed
             && string.Equals(
                 restoredOrder.treatmentMaterialDestinationId,
@@ -382,8 +389,7 @@ public static class V16IntegrationDebugScenarios
         string[] requiredSections =
         {
             CombatEquipmentSaveSection.Id,
-            OffenseRegionSaveSection.Id,
-            OffenseReturnArrivalSaveSection.Id,
+            OffenseAggregateSaveSection.Id,
             ExteriorActivitySaveSection.Id,
             BlueprintResearchSaveSection.Id,
             CaptivitySaveSection.Id,

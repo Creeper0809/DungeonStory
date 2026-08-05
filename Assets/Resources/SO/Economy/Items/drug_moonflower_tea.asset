@@ -27,21 +27,42 @@ MonoBehaviour:
   description: "\uC758\uC874\uC131 \uC5C6\uC774 \uC9D1\uC911\uACFC \uAE30\uBD84\uC744
     \uC870\uAE08 \uB192\uC774\uB294 \uCC28."
   stockCategory: 5
-  kind: 4
-  ingredientTags: 1025
-  unitPrice: 9
-  marketSaleRate: 0.6
   unitWeight: 0.25
   maxStack: 40
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:herbalism
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 9
+  features:
+  - rid: 7737211674039681102
+  - rid: 7737211674039681103
+  - rid: 7737211674039681104
+  - rid: 7737211674039681105
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681102
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:herbalism
+    - rid: 7737211674039681103
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 4
+        ingredientTags: 1025
+        sharedIntermediate: 0
+    - rid: 7737211674039681104
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211674039681105
+      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        substanceId: substance:moonflower-tea
+        useClass: 1
+        addictionChance: 0
+        overdoseChance: 0.002
+        toleranceGain: 0
+        withdrawalPerHour: 0
+        moodEffect: 3
+        workSpeedEffect: 0.04
+        combatEffect: 0
+        durationSeconds: 180

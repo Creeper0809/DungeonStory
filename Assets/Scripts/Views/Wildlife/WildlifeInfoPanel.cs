@@ -13,7 +13,8 @@ public sealed class WildlifeInfoPanel : UIPopUp
     private IDungeonItemCatalogProvider itemCatalogProvider;
     private IWildlifeHuntCommandService huntCommandService;
     private IWildlifeCaptureRuntime captureRuntime;
-    private IAnimalHusbandryRuntime husbandryRuntime;
+    private IAnimalHusbandryQuery husbandryQuery;
+    private IAnimalHusbandryCommand husbandryCommands;
     private ICharacterAiWorldRegistry worldRegistry;
     private ISurgeryPlanningWindowService surgeryWindowService;
     private GameObject uiRoot;
@@ -37,7 +38,8 @@ public sealed class WildlifeInfoPanel : UIPopUp
         IDungeonItemCatalogProvider itemCatalogProvider,
         IWildlifeHuntCommandService huntCommandService,
         IWildlifeCaptureRuntime captureRuntime,
-        IAnimalHusbandryRuntime husbandryRuntime,
+        IAnimalHusbandryQuery husbandryQuery,
+        IAnimalHusbandryCommand husbandryCommands,
         ICharacterAiWorldRegistry worldRegistry,
         ISurgeryPlanningWindowService surgeryWindowService)
     {
@@ -49,8 +51,10 @@ public sealed class WildlifeInfoPanel : UIPopUp
             ?? throw new ArgumentNullException(nameof(huntCommandService));
         this.captureRuntime = captureRuntime
             ?? throw new ArgumentNullException(nameof(captureRuntime));
-        this.husbandryRuntime = husbandryRuntime
-            ?? throw new ArgumentNullException(nameof(husbandryRuntime));
+        this.husbandryQuery = husbandryQuery
+            ?? throw new ArgumentNullException(nameof(husbandryQuery));
+        this.husbandryCommands = husbandryCommands
+            ?? throw new ArgumentNullException(nameof(husbandryCommands));
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
         this.surgeryWindowService = surgeryWindowService
@@ -327,8 +331,8 @@ public sealed class WildlifeInfoPanel : UIPopUp
     private void ToggleSlaughter()
     {
         if (current == null
-            || !husbandryRuntime.TryGetAnimal(
-                current.WildlifeId,
+            || !husbandryQuery.TryGetAnimal(
+                new WildlifeInstanceId(current.WildlifeId),
                 out HusbandryAnimalState state))
         {
             actionMessage = "우리에서 관리 중인 동물만 도축 지정할 수 있습니다.";
@@ -336,14 +340,14 @@ public sealed class WildlifeInfoPanel : UIPopUp
             return;
         }
 
-        actionMessage = husbandryRuntime.DesignateSlaughter(
-            current.WildlifeId,
-            !state.slaughterDesignated,
-            out string failureReason)
-                ? state.slaughterDesignated
+        actionMessage = husbandryCommands.DesignateSlaughter(
+            new WildlifeInstanceId(current.WildlifeId),
+            !state.SlaughterDesignated,
+            out AnimalHusbandryFailure failure)
+                ? state.SlaughterDesignated
                     ? "도축 지정을 해제했습니다."
                     : "도축 작업으로 지정했습니다."
-                : failureReason;
+                : failure.Code.ToString();
         Render();
     }
 
@@ -366,38 +370,38 @@ public sealed class WildlifeInfoPanel : UIPopUp
 
     private string FormatHusbandryState(string wildlifeId)
     {
-        if (!husbandryRuntime.TryGetAnimal(
-                wildlifeId,
+        if (!husbandryQuery.TryGetAnimal(
+                new WildlifeInstanceId(wildlifeId),
                 out HusbandryAnimalState state))
         {
             return string.Empty;
         }
 
         AnimalPenCompatibilityResult compatibility =
-            husbandryRuntime.EvaluatePen(state.penId);
-        string sex = state.sex == AnimalSex.Female ? "암컷" : "수컷";
+            husbandryQuery.EvaluatePen(state.PenId);
+        string sex = state.Sex == AnimalSex.Female ? "암컷" : "수컷";
         string growth = current?.Species != null
-            && state.ageDays < current.Species.Husbandry.AdultAgeDays
+            && state.AgeDays < current.Species.Husbandry.AdultAgeDays
                 ? "새끼"
                 : "성체";
-        string pregnancy = state.pregnant
+        string pregnancy = state.Pregnant
             ? current?.Species?.Husbandry.LaysEggs == true
                 ? " · 부화 준비 중"
                 : " · 임신 중"
             : string.Empty;
-        string products = state.products != null
+        string products = state.Products != null
             ? string.Join(
                 ", ",
-                state.products
-                    .Where(product => product != null && product.readyCycles > 0)
-                    .Select(product => $"{product.itemId} {product.readyCycles}회"))
+                state.Products
+                    .Where(product => product != null && product.ReadyCycles > 0)
+                    .Select(product => $"{product.ItemId.Value} {product.ReadyCycles}회"))
             : string.Empty;
-        return $"\n축산 {sex} · {growth} · {state.ageDays:0.0}일"
-            + $" · {(state.tamed ? "길들임 완료" : $"길들임 {state.tamingProgress:P0}")}"
+        return $"\n축산 {sex} · {growth} · {state.AgeDays:0.0}일"
+            + $" · {(state.Tamed ? "길들임 완료" : $"길들임 {state.TamingProgress:P0}")}"
             + pregnancy
             + $"\n우리 위험 {compatibility.Risk:P0}"
             + (products.Length > 0 ? $" · 수거 대기 {products}" : string.Empty)
-            + (state.slaughterDesignated ? " · 도축 지정" : string.Empty);
+            + (state.SlaughterDesignated ? " · 도축 지정" : string.Empty);
     }
 
     private string FormatCaptureState(string wildlifeId)

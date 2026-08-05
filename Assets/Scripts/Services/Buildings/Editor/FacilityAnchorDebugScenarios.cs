@@ -181,7 +181,7 @@ public static class FacilityAnchorDebugScenarios
             Data.height = 1;
             Data.layer = GridLayer.Building;
             Data.category = BuildingCategory.Special;
-            Data.type = typeof(Facility);
+            Data.runtimeArchetype = BuildingRuntimeArchetypeKind.Facility;
             Data.Facility = new FacilityData();
 
             buildingObject = new GameObject("Anchor Scenario Facility");

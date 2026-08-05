@@ -24,7 +24,6 @@ public interface IEquipmentOverclockRuntime
         string targetId);
     float GetOverload(OverclockTargetKind targetKind, string targetId);
     EquipmentOverclockSaveData Capture();
-    void Restore(EquipmentOverclockSaveData saveData);
 }
 
 public interface IFacilityOverclockRuntime
@@ -47,20 +46,23 @@ public sealed class EquipmentOverclockRuntime :
 
     private readonly IGameClock clock;
     private readonly IRandomStream random;
-    private readonly IGameMoneyRuntime money;
+    private readonly IGameMoneyAccount money;
     private readonly ICombatEquipmentRuntime equipment;
     private readonly IWorldItemStackRuntime worldItems;
     private readonly IFacilityEvolutionStateComponentFactory facilityStates;
-    private readonly Dictionary<string, OverclockState> states =
-        new Dictionary<string, OverclockState>(StringComparer.Ordinal);
+    private readonly TreasuryEconomyAggregateStateStore stateStore;
+
+    private Dictionary<string, OverclockState> states =>
+        stateStore.Current.OverclockStates;
 
     public EquipmentOverclockRuntime(
         IGameClock clock,
         IRandomStreamProvider randomStreams,
-        IGameMoneyRuntime money,
+        IGameMoneyAccount money,
         ICombatEquipmentRuntime equipment,
         IWorldItemStackRuntime worldItems,
-        IFacilityEvolutionStateComponentFactory facilityStates)
+        IFacilityEvolutionStateComponentFactory facilityStates,
+        TreasuryEconomyAggregateStateStore stateStore)
     {
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         random = (randomStreams
@@ -73,6 +75,8 @@ public sealed class EquipmentOverclockRuntime :
             ?? throw new ArgumentNullException(nameof(worldItems));
         this.facilityStates = facilityStates
             ?? throw new ArgumentNullException(nameof(facilityStates));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
     public IReadOnlyList<OverclockState> States => states.Values
@@ -267,9 +271,12 @@ public sealed class EquipmentOverclockRuntime :
         };
     }
 
-    public void Restore(EquipmentOverclockSaveData saveData)
+    internal void PopulateRestoreState(
+        TreasuryEconomyAggregateState target,
+        EquipmentOverclockSaveData saveData)
     {
-        states.Clear();
+        target = target ?? throw new ArgumentNullException(nameof(target));
+        target.OverclockStates.Clear();
         foreach (OverclockState source in saveData?.states
                      ?? new List<OverclockState>())
         {
@@ -291,7 +298,7 @@ public sealed class EquipmentOverclockRuntime :
                 state.tier = OverclockTier.None;
             }
 
-            states[Key(state.targetKind, targetId)] = state;
+            target.OverclockStates[Key(state.targetKind, targetId)] = state;
         }
     }
 

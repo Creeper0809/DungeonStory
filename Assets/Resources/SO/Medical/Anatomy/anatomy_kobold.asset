@@ -1,0 +1,176 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
+  m_Name: anatomy_kobold
+  m_EditorClassIdentifier: DungeonStory.Medical::AnatomyProfileSO
+  profileId: anatomy:kobold
+  displayName: "\uCF54\uBCFC\uD2B8 \uD574\uBD80 \uAD6C\uC870"
+  anatomyFamily: humanoid
+  speciesIds:
+  - Kobold
+  nodes:
+  - nodeId: head
+    displayName: "\uBA38\uB9AC"
+    parentNodeId: 
+    kind: 0
+    functions: 6
+    maxHealth: 14
+    capacityWeight: 0.25
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: brain
+    displayName: "\uB1CC"
+    parentNodeId: head
+    kind: 1
+    functions: 2
+    maxHealth: 9
+    capacityWeight: 0.55
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: eyes
+    displayName: "\uB450 \uB208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 9
+    capacityWeight: 0.45
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: muzzle
+    displayName: "\uC8FC\uB465\uC774"
+    parentNodeId: head
+    kind: 0
+    functions: 16
+    maxHealth: 11
+    capacityWeight: 0.2
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: torso
+    displayName: "\uBAB8\uD1B5"
+    parentNodeId: 
+    kind: 4
+    functions: 1
+    maxHealth: 34
+    capacityWeight: 0.55
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 1
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: heart
+    displayName: "\uC2EC\uC7A5"
+    parentNodeId: torso
+    kind: 1
+    functions: 1
+    maxHealth: 11
+    capacityWeight: 0.45
+    vital: 1
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: lungs
+    displayName: "\uD3D0"
+    parentNodeId: torso
+    kind: 1
+    functions: 8
+    maxHealth: 16
+    capacityWeight: 1
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: hand:left
+    displayName: "\uC67C\uC190"
+    parentNodeId: torso
+    kind: 3
+    functions: 64
+    maxHealth: 18
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: hands
+    legacyBodyPart: 2
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: hand:right
+    displayName: "\uC624\uB978\uC190"
+    parentNodeId: torso
+    kind: 3
+    functions: 64
+    maxHealth: 18
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: hands
+    legacyBodyPart: 3
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: leg:left
+    displayName: "\uC67C\uB2E4\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 20
+    capacityWeight: 0.4
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 4
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: leg:right
+    displayName: "\uC624\uB978\uB2E4\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 20
+    capacityWeight: 0.4
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 5
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: balance-tail
+    displayName: "\uADE0\uD615 \uAF2C\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 18
+    capacityWeight: 0.2
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []

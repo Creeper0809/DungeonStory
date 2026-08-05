@@ -27,29 +27,38 @@ MonoBehaviour:
   description: "\uAC04\uC774 \uC11C\uBE44\uC2A4\uB97C \uC811\uC218\xB7\uB300\uAE30\xB7\uC774\uC6A9\xB7\uACB0\uC81C\uB85C
     \uB098\uB204\uC5B4 \uAD00\uB9AC\uD615\uC73C\uB85C \uC6B4\uC601\uD55C\uB2E4."
   field: 1
-  requiredWork: 68
+  requiredWork: 60
   prerequisites:
   - {fileID: 11400000, guid: b3b38e91925a91943b4303ee3edc9533, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:commerce:logistics
+    prerequisite: {fileID: 11400000, guid: b3b38e91925a91943b4303ee3edc9533, type: 2}
+    kind: 4
+    reason: "\uCC3D\uACE0 \uAD6C\uD68D\uC758 \uC6B4\uC6A9 \uC808\uCC28\uC774(\uAC00)
+      \uC11C\uBE44\uC2A4 \uB3D9\uC120 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563309877986115
-    - rid: 7302563309877986116
-    - rid: 7302563309877986117
+    - rid: 7737211730927813218
+    - rid: 7737211730927813219
+    - rid: 7737211730927813220
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563309877986115
+    - rid: 7737211730927813218
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1703
-    - rid: 7302563309877986116
+    - rid: 7737211730927813219
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1712
-    - rid: 7302563309877986117
+    - rid: 7737211730927813220
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1713

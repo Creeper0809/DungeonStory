@@ -1,12 +1,19 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
-public sealed class WorkOrdersSaveSection : IDungeonSaveSection
+public sealed class WorkOrdersSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonWorkOrderSaveData,
+        WorkOrderRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "work.orders";
 
-    private static readonly string[] Dependencies = { PhysicalItemsSaveSection.Id };
+    private static readonly string[] Dependencies =
+    {
+        ModularFacilityWorldSaveSection.Id,
+        PhysicalItemsSaveSection.Id
+    };
     private readonly IWorkOrderRuntime runtime;
 
     public WorkOrdersSaveSection(IWorkOrderRuntime runtime)
@@ -14,31 +21,32 @@ public sealed class WorkOrdersSaveSection : IDungeonSaveSection
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => DungeonWorkOrderSaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
-    public IReadOnlyList<string> DependsOn => Dependencies;
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonWorkOrderSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.RuntimeState;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
+    protected override DungeonWorkOrderSaveData CapturePayload()
     {
-        return JsonUtility.ToJson(runtime.Capture());
+        return runtime.Capture();
     }
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
+    protected override void ValidateParsedPayload(
+        DungeonWorkOrderSaveData payload)
     {
-        if (sectionVersion != SectionVersion)
-        {
-            report.AddError(
-                $"Unsupported work-order section version {sectionVersion}; expected {SectionVersion}.");
-            return;
-        }
+        runtime.ValidateRestorePayload(payload);
+    }
 
-        runtime.Restore(
-            JsonUtility.FromJson<DungeonWorkOrderSaveData>(payloadJson)
-                ?? new DungeonWorkOrderSaveData(),
-            report);
+    protected override WorkOrderRestoreCandidate BuildRestoreCandidate(
+        DungeonWorkOrderSaveData payload)
+    {
+        return runtime.PrepareRestoreCandidate(payload);
+    }
+
+    protected override void PublishRestoreCandidate(
+        WorkOrderRestoreCandidate candidate)
+    {
+        runtime.PublishRestoreCandidate(candidate);
     }
 }

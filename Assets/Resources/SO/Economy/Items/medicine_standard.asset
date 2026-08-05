@@ -27,21 +27,37 @@ MonoBehaviour:
   description: "\uCE58\uB8CC \uD6A8\uC728\uACFC \uD68C\uBCF5 \uC18D\uB3C4\uB97C \uB192\uC774\uB294
     \uC57D\uD488."
   stockCategory: 5
-  kind: 3
-  ingredientTags: 3
-  unitPrice: 20
-  marketSaleRate: 0.6
   unitWeight: 0.16
   maxStack: 40
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:distillation
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 1
-  treatmentPotency: 1
-  infectionReduction: 8
-  detoxReduction: 2
-  painReduction: 8
+  unitPrice: 20
+  features:
+  - rid: 7737211674039681279
+  - rid: 7737211674039681280
+  - rid: 7737211674039681281
+  - rid: 7737211674039681282
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681279
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:distillation
+    - rid: 7737211674039681280
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 3
+        ingredientTags: 3
+        sharedIntermediate: 0
+    - rid: 7737211674039681281
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211674039681282
+      type: {class: MedicineItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        supportsInjuryTreatment: 1
+        treatmentPotency: 1
+        infectionReduction: 8
+        detoxReduction: 2
+        painReduction: 8

@@ -4,7 +4,7 @@ using System.Diagnostics;
 using DungeonStory.Foundation;
 using UnityEngine;
 
-public interface IFacilityCandidateCache
+public interface IFacilityCandidateCache : IBuildingFacilityStateChangePort
 {
     int DynamicStateVersion { get; }
     IReadOnlyList<BuildableObject> GetCandidates(Grid grid, FacilityRole role);
@@ -22,11 +22,12 @@ public interface IFacilityCandidateCache
     bool HasPendingIndexBuild { get; }
     int CandidateIndexVersion { get; }
     int AdvanceIndex(double budgetMilliseconds);
-    void MarkDynamicStateDirty();
     void Clear();
 }
 
-public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
+public sealed class FacilityCandidateCacheStore :
+    IFacilityCandidateCache,
+    IBuildingFacilityStateChangePort
 {
     private sealed class GridFacilityCache
     {
@@ -118,7 +119,7 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
 
     public FacilityCandidateCacheStore(
         ICharacterAiWorldRegistry worldRegistry,
-        IDynamicFrameWorkBudget frameWorkBudget = null)
+        IDynamicFrameWorkBudget frameWorkBudget)
     {
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
@@ -497,10 +498,12 @@ public sealed class FacilityCandidateCacheStore : IFacilityCandidateCache
         }
 
         GetOrCreateWorkList(cache, FacilityWorkType.None).Add(building);
-        foreach (WorkTypeDefinition definition in WorkTypeCatalog.Enumerate(
+        foreach (WorkTypeDefinition definition in FacilityWorkTypeMap.Enumerate(
                      supportedTypes))
         {
-            GetOrCreateWorkList(cache, definition.Type).Add(building);
+            GetOrCreateWorkList(
+                cache,
+                FacilityWorkTypeMap.GetRequired(definition)).Add(building);
         }
     }
 

@@ -6,16 +6,15 @@ public sealed class ResourceCharacterAiPerfSettingsProvider : ICharacterAiPerfSe
 {
     public const string ResourcePath = "Config/CharacterAiPerfSettings";
 
-    private readonly IResourcesAssetLoader assetLoader;
-    private CharacterAiPerfSettingsSO settings;
+    private readonly CharacterAiPerfSettingsSO settings;
 
-    public ResourceCharacterAiPerfSettingsProvider(IResourcesAssetLoader assetLoader)
+    public ResourceCharacterAiPerfSettingsProvider(IGameContentCatalog content)
     {
-        this.assetLoader = assetLoader ?? throw new ArgumentNullException(nameof(assetLoader));
+        settings = (content ?? throw new ArgumentNullException(nameof(content)))
+            .RequireSingle<CharacterAiPerfSettingsSO>();
     }
 
-    public CharacterAiPerfSettingsSO Settings =>
-        settings ??= assetLoader.LoadRequired<CharacterAiPerfSettingsSO>(ResourcePath);
+    public CharacterAiPerfSettingsSO Settings => settings;
 }
 
 public sealed class CharacterAiPerformanceRecorder : ICharacterAiPerformanceRecorder
@@ -113,7 +112,8 @@ public sealed class CharacterAiPerformanceRecorder : ICharacterAiPerformanceReco
         "Facility.Availability"
     };
 
-    private readonly IDungeonDebugModeService debugMode;
+    private readonly IDungeonUserSettingsService userSettings;
+    private readonly ICharacterAiPerformanceCaptureScope captureScope;
     private readonly CharacterAiPerfSettingsSO settings;
     private readonly SampleRing[] samples;
     private readonly bool commandLineDetailedCollection;
@@ -122,10 +122,14 @@ public sealed class CharacterAiPerformanceRecorder : ICharacterAiPerformanceReco
     private int pathBudgetDeferrals;
 
     public CharacterAiPerformanceRecorder(
-        IDungeonDebugModeService debugMode,
-        ICharacterAiPerfSettingsProvider settingsProvider)
+        IDungeonUserSettingsService userSettings,
+        ICharacterAiPerfSettingsProvider settingsProvider,
+        ICharacterAiPerformanceCaptureScope captureScope)
     {
-        this.debugMode = debugMode ?? throw new ArgumentNullException(nameof(debugMode));
+        this.userSettings = userSettings
+            ?? throw new ArgumentNullException(nameof(userSettings));
+        this.captureScope = captureScope
+            ?? throw new ArgumentNullException(nameof(captureScope));
         settings = settingsProvider?.Settings
             ?? throw new ArgumentNullException(nameof(settingsProvider));
         commandLineDetailedCollection = Array.Exists(
@@ -144,8 +148,24 @@ public sealed class CharacterAiPerformanceRecorder : ICharacterAiPerformanceReco
 
     public bool DetailedCollectionEnabled =>
         commandLineDetailedCollection
-        || CharacterAiPerformanceCaptureControl.IsDetailedCaptureRequested
-        || debugMode.IsDeveloperModeEnabled;
+        || captureScope.IsDetailedCaptureRequested
+        || userSettings.Current.developerMode;
+    public bool SlowTraceEnabled => captureScope.SlowTraceEnabled;
+
+    public void RecordSlowOperation(
+        string stage,
+        CharacterActor actor,
+        AIActionSet actionSet,
+        Consideration consideration,
+        double elapsedMilliseconds)
+    {
+        captureScope.RecordSlowOperation(
+            stage,
+            actor,
+            actionSet,
+            consideration,
+            elapsedMilliseconds);
+    }
 
     public void Record(
         AiPerformanceCategory category,
@@ -164,6 +184,11 @@ public sealed class CharacterAiPerformanceRecorder : ICharacterAiPerformanceReco
         }
 
         samples[index].Add(elapsedMilliseconds, gcBytes);
+    }
+
+    public void RecordGridPathSearch(double elapsedMilliseconds)
+    {
+        Record(AiPerformanceCategory.PathSearch, elapsedMilliseconds);
     }
 
     public void RecordPathCounters(int searches, int cacheHits, int budgetDeferrals)

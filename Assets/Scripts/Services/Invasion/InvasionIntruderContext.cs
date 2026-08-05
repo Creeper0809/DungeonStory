@@ -1,27 +1,13 @@
 using System;
 using UnityEngine;
 
-public readonly struct InvasionIntruderEntry
-{
-    public InvasionIntruderEntry(
-        Vector2Int gridPosition,
-        Vector3 outsidePosition,
-        Vector3 doorPosition)
-    {
-        GridPosition = gridPosition;
-        OutsidePosition = outsidePosition;
-        DoorPosition = doorPosition;
-    }
-
-    public Vector2Int GridPosition { get; }
-    public Vector3 OutsidePosition { get; }
-    public Vector3 DoorPosition { get; }
-}
-
 public interface IInvasionIntruderContext
 {
     bool TryGetGrid(out Grid grid);
     bool TryGetOwner(out CharacterActor owner);
+    bool TryResolveBuilding(
+        BuildingInstanceId id,
+        out BuildableObject building);
     bool TryResolveEntry(out InvasionIntruderEntry entry);
     InvasionIntruderSettings ApplyRunVariables(InvasionIntruderSettings source);
 }
@@ -33,13 +19,15 @@ public sealed class InvasionIntruderContext : IInvasionIntruderContext
     private readonly IRunVariableRuntimeReader runVariableReader;
     private readonly ICharacterSpawnerProvider spawnerProvider;
     private readonly IOwnerRunManagerProvider ownerProvider;
+    private readonly IBuildingWorldQuery buildingWorld;
 
     public InvasionIntruderContext(
         IGridSystemProvider gridSystemProvider,
         IWorldDropZoneQuery worldDropZoneQuery,
         IRunVariableRuntimeReader runVariableReader,
         ICharacterSpawnerProvider spawnerProvider,
-        IOwnerRunManagerProvider ownerProvider)
+        IOwnerRunManagerProvider ownerProvider,
+        IBuildingWorldQuery buildingWorld)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -51,6 +39,8 @@ public sealed class InvasionIntruderContext : IInvasionIntruderContext
             ?? throw new ArgumentNullException(nameof(spawnerProvider));
         this.ownerProvider = ownerProvider
             ?? throw new ArgumentNullException(nameof(ownerProvider));
+        this.buildingWorld = buildingWorld
+            ?? throw new ArgumentNullException(nameof(buildingWorld));
     }
 
     public bool TryGetGrid(out Grid grid)
@@ -74,6 +64,33 @@ public sealed class InvasionIntruderContext : IInvasionIntruderContext
         return owner != null;
     }
 
+    public bool TryResolveBuilding(
+        BuildingInstanceId id,
+        out BuildableObject building)
+    {
+        building = null;
+        if (!id.IsValid)
+        {
+            return false;
+        }
+
+        foreach (BuildableObject candidate in buildingWorld.Buildings
+                     ?? Array.Empty<BuildableObject>())
+        {
+            if (candidate == null || !candidate.PersistentInstanceId.Equals(id))
+            {
+                continue;
+            }
+            if (building != null)
+            {
+                building = null;
+                return false;
+            }
+            building = candidate;
+        }
+        return building != null;
+    }
+
     public bool TryResolveEntry(out InvasionIntruderEntry entry)
     {
         if (worldDropZoneQuery.TryGetVisitorEntryPoint(out WorldGridEntryPoint entryPoint))
@@ -87,7 +104,7 @@ public sealed class InvasionIntruderContext : IInvasionIntruderContext
 
         TryGetGrid(out Grid grid);
         spawnerProvider.TryGetSpawner(out CharacterSpawner spawner);
-        return InvasionIntruderEntryResolver.TryResolve(spawner, grid, out entry);
+        return InvasionIntruderEntrySceneAdapter.TryResolve(spawner, grid, out entry);
     }
 
     public InvasionIntruderSettings ApplyRunVariables(InvasionIntruderSettings source)

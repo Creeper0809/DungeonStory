@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I12_\uBB34\uADE0_\uCC9C"
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8912
+  itemId: textile:sterile-cloth
+  displayName: "\uBB34\uADE0 \uCC9C"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uBB34\uADE0 \uCC9C."
+  stockCategory: 1
+  unitWeight: 0.58
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 34
+  features:
+  - rid: 7737211730927813377
+  - rid: 7737211730927813378
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730927813377
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:medical:surgery
+    - rid: 7737211730927813378
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 128
+        sharedIntermediate: 1

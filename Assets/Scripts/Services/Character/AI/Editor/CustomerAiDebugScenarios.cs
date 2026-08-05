@@ -119,7 +119,9 @@ public static class CustomerAiDebugScenarios
             AbilityShopping shopping = customer.GetAbility<AbilityShopping>();
             List<Stock> stocks = shop.GetStock();
             bool canBuy = shopping.CanBuyFrom(shop, out string buyReason);
-            bool canServe = shop.CanServeCustomer(actor, out string serveReason);
+            bool canServe = shop.CanServeCustomer(
+                actor.BuildingVisitor,
+                out string serveReason);
             report.AppendLine(
                 $"shop\tgeneral\tactive={shop.ActiveStockCategory}; current={shop.CurrentStock}; stocks={stocks.Count}; canBuy={canBuy}; buyReason={buyReason}; canServe={canServe}; serveReason={serveReason}; prices={string.Join(",", stocks.Select((stock) => $"{stock.id}:{stock.cost}"))}");
         }
@@ -338,8 +340,8 @@ public static class CustomerAiDebugScenarios
         CharacterActor customer = world.CreateCustomer("Slime", Vector2Int.zero, 90f, 90f, 90f, 90f);
         SetStats(customer, 90f, 90f, 90f, 90f, 5f, 10f);
 
-        toiletFacility?.ApplyConfiguredUseRecovery(CharacterActor.From(customer));
-        washroomFacility?.ApplyConfiguredUseRecovery(CharacterActor.From(customer));
+        toiletFacility?.ApplyConfiguredUseRecovery(customer.BuildingVisitor);
+        washroomFacility?.ApplyConfiguredUseRecovery(customer.BuildingVisitor);
 
         return restFacility != null
             && toiletFacility != null
@@ -388,17 +390,34 @@ public static class CustomerAiDebugScenarios
         List<BuildableObject> restCandidates = FacilityCandidateScorer.GetCandidates(CharacterActor.From(customer), searchResult, FacilityRole.Rest);
         List<BuildableObject> interestCandidates = FacilityCandidateScorer.GetCandidates(CharacterActor.From(customer), searchResult, CharacterVisitPolicy.CustomerInterestRoles);
 
+        string stockReason = string.Empty;
+        string damageReason = string.Empty;
+        string moneyReason = string.Empty;
         bool stockRejected = !mealCandidates.Contains(lowFood)
-            && !lowFood.CanVisit(CharacterActor.From(customer), out string stockReason)
+            && !lowFood.CanVisit(CharacterActor.From(customer), out stockReason)
             && stockReason == "재고 없음";
         bool damageRejected = !restCandidates.Contains(rest)
-            && !rest.CanVisit(CharacterActor.From(customer), out string damageReason)
+            && !rest.CanVisit(CharacterActor.From(customer), out damageReason)
             && damageReason == "시설 파손";
         bool moneyRejected = !interestCandidates.Contains(general)
-            && customer.GetAbility<AbilityShopping>().CanBuyFrom((Shop)general, out string moneyReason) == false
+            && customer.GetAbility<AbilityShopping>().CanBuyFrom((Shop)general, out moneyReason) == false
             && moneyReason == "소지금 부족";
 
-        return stockRejected && damageRejected && moneyRejected;
+        bool valid = stockRejected && damageRejected && moneyRejected;
+        if (!valid)
+        {
+            Debug.LogError(
+                "Unavailable facility exclusion detail: "
+                + $"stockRejected={stockRejected}, stockReason={stockReason}, "
+                + $"stock={((Shop)lowFood).CurrentStock}, "
+                + $"damageRejected={damageRejected}, damageReason={damageReason}, "
+                + $"moneyRejected={moneyRejected}, moneyReason={moneyReason}, "
+                + $"mealCandidates={string.Join(",", mealCandidates.Select(Name))}, "
+                + $"restCandidates={string.Join(",", restCandidates.Select(Name))}, "
+                + $"interestCandidates={string.Join(",", interestCandidates.Select(Name))}");
+        }
+
+        return valid;
     }
 
     private static bool VerifySelfServiceCheckoutWithoutWorker()
@@ -414,7 +433,7 @@ public static class CustomerAiDebugScenarios
         int stockBefore = shop != null ? shop.CurrentStock : -1;
         bool waitsWithoutWorker = shop != null
             && !shop.HasServingWorker
-            && !shop.CanServeCustomer(CharacterActor.From(customer), out string workerReason)
+            && !shop.CanServeCustomer(customer.BuildingVisitor, out string workerReason)
             && workerReason == "직원 없음";
         bool candidateWithoutWorker = shopping.CanBuyFrom(shop, out _)
             && FacilityCandidateScorer
@@ -450,11 +469,15 @@ public static class CustomerAiDebugScenarios
         int selfServiceCost = selfServiceStocks != null && selfServiceStocks.Count > 0
             ? selfServiceStocks[0].cost
             : -1;
-        float unstaffedCrimeChance = shop != null ? shop.GetCheckoutCrimeChance(customer, 1, selfServiceCost) : 0f;
-        float calmCrimeChance = shop != null ? shop.GetCheckoutCrimeChance(calmCustomer, 1, selfServiceCost) : 0f;
+        float unstaffedCrimeChance = shop != null
+            ? shop.GetCheckoutCrimeChance(customer.BuildingVisitor, 1, selfServiceCost)
+            : 0f;
+        float calmCrimeChance = shop != null
+            ? shop.GetCheckoutCrimeChance(calmCustomer.BuildingVisitor, 1, selfServiceCost)
+            : 0f;
         bool availableWithoutWorker = shop != null
             && !shop.HasServingWorker
-            && shop.CanServeCustomer(CharacterActor.From(customer), out string workerReason)
+            && shop.CanServeCustomer(customer.BuildingVisitor, out string workerReason)
             && string.IsNullOrEmpty(workerReason);
         bool candidateWithoutWorker = shopping.CanBuyFrom(shop, out _)
             && FacilityCandidateScorer
@@ -466,7 +489,9 @@ public static class CustomerAiDebugScenarios
         int staffedCost = staffedStocks != null && staffedStocks.Count > 0
             ? staffedStocks[0].cost
             : -1;
-        float staffedCrimeChance = shop != null ? shop.GetCheckoutCrimeChance(customer, 1, staffedCost) : 0f;
+        float staffedCrimeChance = shop != null
+            ? shop.GetCheckoutCrimeChance(customer.BuildingVisitor, 1, staffedCost)
+            : 0f;
         bool availableWithWorker = shop != null
             && shop.HasServingWorker
             && shopping.CanBuyFrom(shop, out _)
@@ -566,32 +591,54 @@ public static class CustomerAiDebugScenarios
         shopping.BeginVisitInteraction(shop);
         float moodBefore = customer.Mood.Value;
 
-        Type sessionType = typeof(Shop).GetNestedType(
+        PropertyInfo interactionProperty = typeof(Shop).GetProperty(
+            "CustomerInteraction",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        object interaction = interactionProperty?.GetValue(shop);
+        Type sessionType = typeof(Shop).Assembly.GetType(
             "CheckoutWaitSession",
-            BindingFlags.NonPublic);
-        MethodInfo waitMethod = typeof(Shop).GetMethod(
+            throwOnError: false);
+        MethodInfo waitMethod = interaction?.GetType().GetMethod(
             "WaitForServingWorkerWithPatience",
             BindingFlags.Instance | BindingFlags.NonPublic);
-        if (sessionType == null || waitMethod == null)
+        if (interaction == null || sessionType == null || waitMethod == null)
         {
+            Debug.LogError(
+                "Checkout wait fixture could not resolve the authoritative "
+                + $"interaction service: interaction={interaction != null}, "
+                + $"session={sessionType != null}, method={waitMethod != null}.");
             return false;
         }
 
         object session = Activator.CreateInstance(sessionType);
-        IEnumerator routine = waitMethod.Invoke(shop, new[] { customer, session }) as IEnumerator;
+        IEnumerator routine = waitMethod.Invoke(
+            interaction,
+            new object[] { customer.BuildingVisitor, session }) as IEnumerator;
         int steps = 0;
         while (routine != null && routine.MoveNext() && steps++ < 200)
         {
         }
 
         bool abandoned = (bool)(sessionType.GetProperty("Abandoned")?.GetValue(session) ?? false);
-        return routine != null
+        bool valid = routine != null
             && steps < 200
             && abandoned
             && shopping.LastVisitOutcome == ShoppingVisitOutcome.Abandoned
             && shop.WaitingCheckoutCount == 0
             && customer.Mood.Value < moodBefore
             && customer.SocialMemory.GetFacilitySentiment(shop) < 0f;
+        if (!valid)
+        {
+            Debug.LogError(
+                "Checkout abandonment coroutine detail: "
+                + $"routine={routine != null}, steps={steps}, "
+                + $"abandoned={abandoned}, outcome={shopping.LastVisitOutcome}, "
+                + $"waiting={shop.WaitingCheckoutCount}, "
+                + $"mood={moodBefore:0.###}->{customer.Mood.Value:0.###}, "
+                + $"sentiment={customer.SocialMemory.GetFacilitySentiment(shop):0.###}.");
+        }
+
+        return valid;
     }
 
     private static bool VerifyUnaffordableShopEndsVisitCycle()
@@ -844,8 +891,14 @@ public static class CustomerAiDebugScenarios
 
     private static void ClearShopStock(BuildableObject building)
     {
-        FieldInfo field = typeof(Shop).GetField("stocks", BindingFlags.Instance | BindingFlags.NonPublic);
-        field?.SetValue(building, new List<RemainStock>());
+        if (building is not Shop shop)
+        {
+            throw new InvalidOperationException(
+                "The customer AI stock fixture requires a Shop.");
+        }
+
+        shop.DebugClearStock();
+        FacilityCandidateCache.MarkDynamicStateDirty();
     }
 
     private static void SetConsiderations(AIActionSet actionSet, params Consideration[] considerations)
@@ -1239,9 +1292,9 @@ public static class CustomerAiDebugScenarios
             buildingData.height = 1;
             buildingData.layer = GridLayer.Building;
             buildingData.category = category;
-            buildingData.type = category == BuildingCategory.Movement
-                ? typeof(Door)
-                : typeof(BuildableObject);
+            buildingData.runtimeArchetype = category == BuildingCategory.Movement
+                ? BuildingRuntimeArchetypeKind.Door
+                : BuildingRuntimeArchetypeKind.Generic;
             buildingData.unlocked = true;
             buildingData.Facility = new FacilityData();
 
@@ -1308,7 +1361,7 @@ public static class CustomerAiDebugScenarios
             }
 
             CharacterActor worker = CreateStaff($"Worker {building.name}", building.centerPos);
-            ShopWorkerField?.SetValue(shop, worker);
+            ShopWorkerField?.SetValue(shop, worker.BuildingVisitor);
             FacilityCandidateCache.MarkDynamicStateDirty();
         }
 

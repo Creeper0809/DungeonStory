@@ -47,7 +47,6 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private const string ConveyorDestination = "qa:industrial-output";
     private const string NormalStackIdPrefix = "qa:normal-stack";
     private const string OverflowPayloadPrefix = "qa:overflow-payload:";
-    private const string OverflowStackPrefix = "qa:overflow-stack:";
     private const float TimeoutSeconds = 12f;
 
     private readonly List<BuildableObject> createdBuildings =
@@ -57,13 +56,21 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     private DungeonRuntimeLifetimeScope scope;
     private Grid grid;
     private IGridBuildingObjectFactory buildingFactory;
-    private IElectricalNetworkRuntime power;
-    private IWaterNetworkRuntime water;
-    private IWastewaterNetworkRuntime wastewater;
+    private IPowerInfrastructureQuery power;
+    private IPowerInfrastructurePersistence powerPersistence;
+    private IFluidInfrastructureQuery water;
+    private IFluidInfrastructurePersistence fluidPersistence;
+    private IFluidWastewaterTransaction wastewater;
     private IWaterFixtureUseRuntime fixtures;
-    private IConveyorCommandService conveyor;
-    private IAutomationRuntime automation;
+    private IConveyorInfrastructureQuery conveyor;
+    private IConveyorInfrastructureCommand conveyorCommands;
+    private IConveyorPayloadTransaction conveyorTransactions;
+    private IConveyorInfrastructurePersistence conveyorPersistence;
+    private IAutomationInfrastructureQuery automation;
+    private IAutomationInfrastructureCommand automationCommands;
+    private IAutomationInfrastructurePersistence automationPersistence;
     private IWorldItemStackRuntime items;
+    private IItemTransferService itemTransfers;
     private IGameClock clock;
     private GameManager gameManager;
     private OwnerSelectionPanel ownerSelection;
@@ -116,6 +123,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     {
             yield return ResolveRuntime();
             CaptureOriginalState();
+            VerifyDetachedRestorePreparation();
             ConfigureVerificationTime();
             SetOwnerSelectionVisible(false);
 
@@ -215,13 +223,30 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
         buildingFactory =
             scope.Container.Resolve<IGridBuildingObjectFactory>();
-        power = scope.Container.Resolve<IElectricalNetworkRuntime>();
-        water = scope.Container.Resolve<IWaterNetworkRuntime>();
-        wastewater = scope.Container.Resolve<IWastewaterNetworkRuntime>();
+        power = scope.Container.Resolve<IPowerInfrastructureQuery>();
+        powerPersistence =
+            scope.Container.Resolve<IPowerInfrastructurePersistence>();
+        water = scope.Container.Resolve<IFluidInfrastructureQuery>();
+        fluidPersistence =
+            scope.Container.Resolve<IFluidInfrastructurePersistence>();
+        wastewater =
+            scope.Container.Resolve<IFluidWastewaterTransaction>();
         fixtures = scope.Container.Resolve<IWaterFixtureUseRuntime>();
-        conveyor = scope.Container.Resolve<IConveyorCommandService>();
-        automation = scope.Container.Resolve<IAutomationRuntime>();
+        conveyor = scope.Container.Resolve<IConveyorInfrastructureQuery>();
+        conveyorCommands =
+            scope.Container.Resolve<IConveyorInfrastructureCommand>();
+        conveyorTransactions =
+            scope.Container.Resolve<IConveyorPayloadTransaction>();
+        conveyorPersistence =
+            scope.Container.Resolve<IConveyorInfrastructurePersistence>();
+        automation =
+            scope.Container.Resolve<IAutomationInfrastructureQuery>();
+        automationCommands =
+            scope.Container.Resolve<IAutomationInfrastructureCommand>();
+        automationPersistence =
+            scope.Container.Resolve<IAutomationInfrastructurePersistence>();
         items = scope.Container.Resolve<IWorldItemStackRuntime>();
+        itemTransfers = scope.Container.Resolve<IItemTransferService>();
         clock = scope.Container.Resolve<IGameClock>();
         gameManager = UnityEngine.Object.FindFirstObjectByType<GameManager>();
         ownerSelection =
@@ -231,10 +256,10 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private void CaptureOriginalState()
     {
-        originalPower = power.Capture();
-        originalFluid = water.Capture();
-        originalConveyor = conveyor.Capture();
-        originalAutomation = automation.Capture();
+        originalPower = powerPersistence.Capture();
+        originalFluid = fluidPersistence.Capture();
+        originalConveyor = conveyorPersistence.Capture();
+        originalAutomation = automationPersistence.Capture();
         originalItems = items.Capture();
         originalTimeScale = Time.timeScale;
         originalPause = gameManager != null && gameManager.isPause;
@@ -245,6 +270,43 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             originalCameraPosition = mainCamera.transform.position;
             originalCameraSize = mainCamera.orthographicSize;
         }
+    }
+
+    private void VerifyDetachedRestorePreparation()
+    {
+        string powerBefore = JsonUtility.ToJson(powerPersistence.Capture());
+        string fluidBefore = JsonUtility.ToJson(fluidPersistence.Capture());
+        string conveyorBefore = JsonUtility.ToJson(
+            conveyorPersistence.Capture());
+        string automationBefore = JsonUtility.ToJson(
+            automationPersistence.Capture());
+
+        Require(powerPersistence.PrepareRestore(originalPower) != null
+                && fluidPersistence.PrepareRestore(originalFluid) != null
+                && conveyorPersistence.PrepareRestore(originalConveyor) != null
+                && automationPersistence.PrepareRestore(originalAutomation)
+                    != null,
+            "Industrial restore preparation did not produce detached candidates.");
+        Require(powerBefore == JsonUtility.ToJson(powerPersistence.Capture())
+                && fluidBefore == JsonUtility.ToJson(
+                    fluidPersistence.Capture())
+                && conveyorBefore == JsonUtility.ToJson(
+                    conveyorPersistence.Capture())
+                && automationBefore == JsonUtility.ToJson(
+                    automationPersistence.Capture()),
+            "Industrial restore preparation mutated live runtime state.");
+
+        ConveyorInfrastructureSaveSection section =
+            new ConveyorInfrastructureSaveSection(conveyorPersistence);
+        DungeonGameRestoreReport invalid = new DungeonGameRestoreReport();
+        section.ValidatePayload(
+            string.Empty,
+            DungeonConveyorInfrastructureSaveData.CurrentVersion,
+            invalid);
+        Require(!invalid.Success
+                && conveyorBefore == JsonUtility.ToJson(
+                    conveyorPersistence.Capture()),
+            "Invalid conveyor preflight mutated live runtime state.");
     }
 
     private void ConfigureVerificationTime()
@@ -393,7 +455,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             PlaceBuilding(asset, position);
         }
 
-        conveyor.MarkTopologyDirty();
+        conveyorCommands.MarkTopologyDirty();
         report.Add($"origin={origin.x},{origin.y}");
         report.Add($"placedBuildings={createdBuildings.Count}");
     }
@@ -516,9 +578,9 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         Require(fixtures.TryBeginUse(
                 shower,
                 out WaterFixtureUseTicket ticket,
-                out string fixtureFailure),
+                out DomainFailure fixtureFailure),
             "샤워 시설의 실제 급수 사용을 시작하지 못했습니다: "
-            + fixtureFailure);
+            + fixtureFailure.Code);
         Require(ticket.SupplyKind == WaterFixtureSupplyKind.Piped,
             "배관 연결 샤워가 수동 물통으로 처리됐습니다.");
         fixtures.CompleteUse(shower, ticket);
@@ -533,7 +595,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
         PowerNetworkSnapshot poweredNetwork = power.Networks.First(
             network => network.Nodes.Any(node =>
-                node.NodeId == GetNodeId(generator)));
+                node.BuildingId.Equals(
+                    generator.RequirePersistentInstanceId())));
         FluidNetworkSnapshot cleanNetwork = water.Networks.First(
             network => network.Channel == UtilityChannel.CleanWater
                 && network.CleanWater > 0f);
@@ -551,16 +614,16 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
     {
         BuildableObject input = FindBuilding("C02");
         BuildableObject output = FindBuilding("C03");
-        Require(conveyor.SetPortDestination(
+        Require(conveyorCommands.SetPortDestination(
                 input,
                 ConveyorDestination).Succeeded,
             "컨베이어 입력 목적지를 설정하지 못했습니다.");
-        Require(conveyor.SetPortDestination(
+        Require(conveyorCommands.SetPortDestination(
                 output,
                 ConveyorDestination).Succeeded,
             "컨베이어 출력 목적지를 설정하지 못했습니다.");
         Require(items.SpawnItemAt(
-                "stock-item:General",
+                "material:lumber",
                 3,
                 input.centerPos,
                 WorldItemStackState.Loose,
@@ -570,19 +633,19 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
             "컨베이어 입력 칸에 실제 물리 스택을 생성하지 못했습니다.");
         WorldItemStackSnapshot source = items.GetStacksAt(input.centerPos)
             .FirstOrDefault(stack =>
-                stack.ItemId == "stock-item:General");
+                stack.ItemId == "material:lumber");
         Require(source != null,
             "컨베이어 입력 스택 ID를 확인하지 못했습니다.");
 
         string originalStackId = source.StackId;
-        Require(conveyor.TryLoadStack(
-                originalStackId,
+        Require(conveyorTransactions.TryLoadStack(
+                new ItemStackId(originalStackId),
                 input,
                 ConveyorDestination,
                 out string payloadId,
-                out string loadFailure),
+                out DomainFailure loadFailure),
             "실제 물리 스택을 컨베이어에 적재하지 못했습니다: "
-            + loadFailure);
+            + loadFailure.Code);
         Require(!string.IsNullOrWhiteSpace(payloadId),
             "컨베이어 화물 ID가 생성되지 않았습니다.");
 
@@ -607,12 +670,12 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         BuildableObject facility = createdBuildings.First(building =>
             building.BuildingData.GetAbility<
                 BuildingAutomationAbility>() != null);
-        InfrastructureCommandResult command = automation.SetMode(
+        InfrastructureCommandResult command = automationCommands.SetMode(
             facility,
             AutomationMode.Automatic);
         Require(command.Succeeded,
             "실제 생산 시설을 자동 모드로 전환하지 못했습니다: "
-            + command.Message);
+            + command.Failure.Code);
         yield return WaitUntil(
             () => automation.TryGetFacility(
                     facility,
@@ -628,7 +691,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         report.Add(
             $"automation={result.Mode};"
             + $"workRate={result.WorkRate:0.###};"
-            + $"reason={result.BlockedReason}");
+            + $"status={result.Status.Code}");
     }
 
     private IEnumerator VerifyDeadlockAndOverflow()
@@ -646,14 +709,14 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 network.IsCyclic
                 && network.Nodes.Any(node =>
                     string.Equals(
-                        node.NodeId,
+                        node.BuildingId.Value,
                         loopNodeId,
                         StringComparison.Ordinal)));
         Require(targetNetwork != null,
             "배치한 순환 벨트의 실제 네트워크를 찾지 못했습니다.");
         List<string> nodeIds = targetNetwork.Nodes
             .SelectMany(node => Enumerable.Repeat(
-                node.NodeId,
+                node.BuildingId.Value,
                 Mathf.Max(1, node.Capacity)))
             .ToList();
         int splitterIndex = nodeIds.FindIndex(nodeId =>
@@ -667,42 +730,53 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         nodeIds.Insert(0, splitterNodeId);
         DungeonConveyorInfrastructureSaveData snapshot =
             new DungeonConveyorInfrastructureSaveData();
+        List<string> transitStackIds = new List<string>(nodeIds.Count);
         for (int index = 0; index < nodeIds.Count; index++)
         {
+            BuildableObject nodeBuilding = createdBuildings.First(building =>
+                string.Equals(
+                    GetNodeId(building),
+                    nodeIds[index],
+                    StringComparison.Ordinal));
+            Require(items.SpawnItemAt(
+                    "material:lumber",
+                    1,
+                    nodeBuilding.centerPos,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawned)
+                && spawned == 1,
+                "교착 검증용 물리 스택을 생성하지 못했습니다.");
+            WorldItemStackSnapshot physicalStack = items
+                .GetStacksAt(nodeBuilding.centerPos)
+                .Last(stack => stack.ItemId == "material:lumber"
+                    && stack.State == WorldItemStackState.Loose);
+            string payloadId = OverflowPayloadPrefix + index;
+            ItemStackId stackId = new ItemStackId(physicalStack.StackId);
+            Require(itemTransfers.TryBeginTransit(
+                    stackId,
+                    nodeBuilding.centerPos,
+                    payloadId,
+                    out _,
+                    out DomainFailure transitFailure),
+                "교착 검증용 스택의 transit 전환 실패: "
+                + transitFailure.Code);
+            transitStackIds.Add(stackId.Value);
             snapshot.payloads.Add(new ConveyorPayloadSaveData
             {
-                payloadId = OverflowPayloadPrefix + index,
-                segmentNodeId = nodeIds[index],
+                payloadId = payloadId,
+                itemStackId = stackId.Value,
+                segmentBuildingInstanceId = nodeIds[index],
                 destinationId = "qa:unreachable",
-                    lastMovedAt = 0f,
+                lastMovedAt = 0f,
                 stalledSince = 0f,
-                routeVersion = 0,
-                stack = new WorldItemStackSaveData
-                {
-                    stackId = OverflowStackPrefix + index,
-                    itemId = index == 0
-                        ? "dark:humanoid_corpse"
-                        : "stock-item:General",
-                    quantity = 1,
-                    sourceCharacterId = index == 0
-                        ? "qa:overflow-donor"
-                        : string.Empty,
-                    sourceDisplayName = index == 0
-                        ? "교착 검증 대상"
-                        : string.Empty,
-                    sourceSpeciesTag = index == 0
-                        ? "human"
-                        : string.Empty,
-                    sourceDeathReason = index == 0
-                        ? "industrial-test"
-                        : string.Empty,
-                    emergencyButcheryAllowed = index == 0
-                }
+                routeVersion = 0
             });
         }
 
-        conveyor.Restore(snapshot);
-        Require(conveyor.SetOverflowPolicy(
+        conveyorPersistence.Restore(
+            conveyorPersistence.PrepareRestore(snapshot));
+        Require(conveyorCommands.SetOverflowPolicy(
                 overflow,
                 ConveyorOverflowPolicy.ManualApproval,
                 string.Empty).Succeeded,
@@ -746,7 +820,7 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
                 + string.Join(
                     "|",
                     observedNetwork.Nodes.Select(node =>
-                        $"{node.NodeId}:{node.Capacity}")));
+                        $"{node.BuildingId.Value}:{node.Capacity}")));
             report.Add(
                 "deadlockPayloadReasons="
                 + string.Join(
@@ -761,21 +835,20 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         Require(
             IsExpectedDeadlock(),
             "30게임초 동안 막힌 실제 순환 벨트가 Deadlocked로 전환되지 않았습니다.");
-        Require(conveyor.ApproveOverflow(
+        Require(conveyorCommands.ApproveOverflow(
                 OverflowPayloadPrefix + "0").Succeeded,
             "가장 오래 정지한 화물의 오버플로 배출을 승인하지 못했습니다.");
         yield return WaitUntil(
             () => items.GetAllStacks().Any(stack =>
-                stack.StackId == OverflowStackPrefix + "0"),
+                stack.StackId == transitStackIds[0]),
             "승인한 교착 화물이 loose stack으로 배출되지 않았습니다.");
 
         WorldItemStackSnapshot restored = items.GetAllStacks().First(
-            stack => stack.StackId == OverflowStackPrefix + "0");
+            stack => stack.StackId == transitStackIds[0]);
         Require(restored.State == WorldItemStackState.Loose
-                && restored.SourceCharacterId == "qa:overflow-donor"
-                && restored.SourceDisplayName == "교착 검증 대상"
-                && restored.EmergencyButcheryAllowed,
-            "오버플로 배출 중 고유 사체 메타데이터가 손실됐습니다.");
+                && restored.ItemId == "material:lumber"
+                && restored.Quantity == 1,
+            "오버플로 배출 중 물리 스택 권위가 손실됐습니다.");
         Require(conveyor.Networks.All(network =>
                 network.State != ConveyorNetworkState.Deadlocked),
             "오버플로 배출 후 순환 교착이 해소되지 않았습니다.");
@@ -845,15 +918,8 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
 
     private static string GetNodeId(BuildableObject building)
     {
-        FacilityEvolutionStateComponent evolution =
-            building?.GetComponent<FacilityEvolutionStateComponent>();
-        string persistent =
-            evolution?.FacilityPersistentId?.Trim() ?? string.Empty;
-        return !string.IsNullOrWhiteSpace(persistent)
-            ? persistent
-            : $"facility:{building?.id ?? 0}:"
-                + $"{building?.centerPos.x ?? 0}:"
-                + $"{building?.centerPos.y ?? 0}";
+        return building?.RequirePersistentInstanceId().Value
+            ?? string.Empty;
     }
 
     private void FocusCamera(Vector2Int origin)
@@ -924,11 +990,27 @@ public sealed class IndustrialInfrastructurePlayModeVerificationRunner :
         }
 
         createdBuildings.Clear();
-        power?.Restore(originalPower);
-        water?.Restore(originalFluid);
-        conveyor?.Restore(originalConveyor);
-        automation?.Restore(originalAutomation);
+        if (powerPersistence != null && originalPower != null)
+        {
+            powerPersistence.Restore(
+                powerPersistence.PrepareRestore(originalPower));
+        }
+        if (fluidPersistence != null && originalFluid != null)
+        {
+            fluidPersistence.Restore(
+                fluidPersistence.PrepareRestore(originalFluid));
+        }
         items?.Restore(originalItems);
+        if (conveyorPersistence != null && originalConveyor != null)
+        {
+            conveyorPersistence.Restore(
+                conveyorPersistence.PrepareRestore(originalConveyor));
+        }
+        if (automationPersistence != null && originalAutomation != null)
+        {
+            automationPersistence.Restore(
+                automationPersistence.PrepareRestore(originalAutomation));
+        }
     }
 
     private static void Require(bool condition, string message)

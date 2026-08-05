@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
   m_Name: Species_Myconid
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  m_EditorClassIdentifier: DungeonStory.Species::CharacterSpeciesSO
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -149,12 +149,12 @@ MonoBehaviour:
     - "\uC81C\uB3C5"
   combatAbilities:
     abilities:
-    - rid: 7302563310531248889
+    - rid: 7302563319989403749
   references:
     version: 2
     RefIds:
-    - rid: 7302563310531248889
-      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+    - rid: 7302563319989403749
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: DungeonStory.Combat}
       data:
         id: species-active:myconid
         displayName: "\uD68C\uBCF5 \uD3EC\uC790"
@@ -165,9 +165,9 @@ MonoBehaviour:
         usableFrom: 7
         targetPositions: 7
         effects:
-        - rid: 7302563310531248890
-    - rid: 7302563310531248890
-      type: {class: OffenseHealEffect, ns: , asm: Assembly-CSharp}
+        - rid: 7302563319989403750
+    - rid: 7302563319989403750
+      type: {class: OffenseHealEffect, ns: , asm: DungeonStory.Combat}
       data:
         flatAmount: 12
         damageDealtRatio: 0

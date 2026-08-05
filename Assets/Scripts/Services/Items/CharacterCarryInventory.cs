@@ -2,21 +2,190 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using VContainer;
+
+public interface ICharacterCarryInventoryRegistry
+{
+    void Register(CharacterCarryInventory inventory);
+    void Unregister(CharacterCarryInventory inventory);
+    CharacterCarryInventory Find(CharacterId characterId);
+}
+
+public sealed class CharacterCarryInventoryRegistry :
+    ICharacterRuntimeTransientStateRegistry,
+    IDisposable
+{
+    private sealed class CharacterSkillState
+    {
+        public readonly HashSet<string> ExecutingKeys =
+            new HashSet<string>(StringComparer.Ordinal);
+        public readonly HashSet<string> ExecutedEventKeys =
+            new HashSet<string>(StringComparer.Ordinal);
+        public WorkTypeId ActiveWorkTypeId;
+        public float WorkSpeedMultiplier = 1f;
+    }
+
+    private readonly HashSet<CharacterCarryInventory> activeInventories =
+        new HashSet<CharacterCarryInventory>();
+    private readonly Dictionary<CharacterId, CharacterSkillState> skillStates =
+        new Dictionary<CharacterId, CharacterSkillState>();
+    private bool disposed;
+
+    public void Register(CharacterCarryInventory inventory)
+    {
+        if (!disposed && inventory != null) activeInventories.Add(inventory);
+    }
+
+    public void Unregister(CharacterCarryInventory inventory)
+    {
+        if (!disposed && inventory != null) activeInventories.Remove(inventory);
+    }
+
+    public CharacterCarryInventory Find(CharacterId characterId)
+    {
+        if (disposed || !characterId.IsValid) return null;
+        activeInventories.RemoveWhere(inventory => inventory == null);
+        return activeInventories.FirstOrDefault(inventory =>
+            inventory.CharacterId.Equals(characterId));
+    }
+
+    public bool TryEnter(CharacterId characterId, string key)
+    {
+        ThrowIfDisposed();
+        RequireCharacterId(characterId);
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return false;
+        }
+
+        CharacterSkillState state = GetOrCreateSkillState(characterId);
+        if (state.ExecutingKeys.Contains(key)
+            || state.ExecutedEventKeys.Contains(key))
+        {
+            return false;
+        }
+
+        state.ExecutingKeys.Add(key);
+        state.ExecutedEventKeys.Add(key);
+        return true;
+    }
+
+    public void Exit(CharacterId characterId, string key)
+    {
+        ThrowIfDisposed();
+        if (!characterId.IsValid || string.IsNullOrWhiteSpace(key))
+        {
+            return;
+        }
+
+        if (skillStates.TryGetValue(characterId, out CharacterSkillState state))
+        {
+            state.ExecutingKeys.Remove(key);
+        }
+    }
+
+    public void BeginWork(
+        CharacterId characterId,
+        WorkTypeId workTypeId,
+        float speedMultiplier)
+    {
+        ThrowIfDisposed();
+        RequireCharacterId(characterId);
+        CharacterSkillState state = GetOrCreateSkillState(characterId);
+        state.ActiveWorkTypeId = workTypeId;
+        state.WorkSpeedMultiplier = Mathf.Max(0.1f, speedMultiplier);
+    }
+
+    public void EndWork(CharacterId characterId)
+    {
+        ThrowIfDisposed();
+        if (!characterId.IsValid
+            || !skillStates.TryGetValue(characterId, out CharacterSkillState state))
+        {
+            return;
+        }
+
+        state.ActiveWorkTypeId = default;
+        state.WorkSpeedMultiplier = 1f;
+    }
+
+    public float GetWorkSpeedMultiplier(CharacterId characterId)
+    {
+        ThrowIfDisposed();
+        return characterId.IsValid
+            && skillStates.TryGetValue(characterId, out CharacterSkillState state)
+            && state.ActiveWorkTypeId.IsValid
+                ? Mathf.Max(0.1f, state.WorkSpeedMultiplier)
+                : 1f;
+    }
+
+    public void Reset(CharacterId characterId)
+    {
+        ThrowIfDisposed();
+        if (characterId.IsValid)
+        {
+            skillStates.Remove(characterId);
+        }
+    }
+
+    public void ResetAll()
+    {
+        ThrowIfDisposed();
+        skillStates.Clear();
+    }
+
+    public void Dispose()
+    {
+        if (disposed) return;
+        activeInventories.Clear();
+        skillStates.Clear();
+        disposed = true;
+    }
+
+    private CharacterSkillState GetOrCreateSkillState(CharacterId characterId)
+    {
+        if (!skillStates.TryGetValue(characterId, out CharacterSkillState state))
+        {
+            state = new CharacterSkillState();
+            skillStates.Add(characterId, state);
+        }
+
+        return state;
+    }
+
+    private static void RequireCharacterId(CharacterId characterId)
+    {
+        if (!characterId.IsValid)
+        {
+            throw new InvalidOperationException(
+                "Character skill execution state requires a persistent character ID.");
+        }
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (disposed)
+        {
+            throw new ObjectDisposedException(nameof(CharacterCarryInventoryRegistry));
+        }
+    }
+}
 
 [DisallowMultipleComponent]
-public sealed class CharacterCarryInventory : MonoBehaviour
+public sealed class CharacterCarryInventory : MonoBehaviour, ICombatAmmunitionInventory
 {
-    private static readonly HashSet<CharacterCarryInventory> ActiveInventories =
-        new HashSet<CharacterCarryInventory>();
     [SerializeField] private List<CharacterCarriedItemSaveData> carriedItems =
         new List<CharacterCarriedItemSaveData>();
 
     private CharacterActor actor;
     private IDungeonItemCatalogProvider catalogProvider;
     private IItemHaulingSettingsProvider haulingSettingsProvider;
+    private ICharacterCarryInventoryRegistry registry;
 
     public IReadOnlyList<CharacterCarriedItemSaveData> Items => carriedItems;
     public bool HasItems => carriedItems.Any(item => item != null && item.quantity > 0);
+    internal CharacterId CharacterId => actor?.Identity?.TypedPersistentId ?? default;
+    public event Action Changed;
 
     private void Awake()
     {
@@ -25,33 +194,21 @@ public sealed class CharacterCarryInventory : MonoBehaviour
 
     private void OnEnable()
     {
-        ActiveInventories.Add(this);
+        registry?.Register(this);
     }
 
     private void OnDisable()
     {
-        ActiveInventories.Remove(this);
+        registry?.Unregister(this);
     }
 
-    public static CharacterCarryInventory FindByCharacterId(string characterId)
+    [Inject]
+    public void Construct(ICharacterCarryInventoryRegistry registry)
     {
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            return null;
-        }
-
-        return ActiveInventories.FirstOrDefault(inventory =>
-        {
-            if (inventory == null)
-            {
-                return false;
-            }
-
-            return string.Equals(
-                inventory.actor?.Identity?.PersistentId,
-                characterId,
-                StringComparison.Ordinal);
-        });
+        this.registry?.Unregister(this);
+        this.registry = registry
+            ?? throw new ArgumentNullException(nameof(registry));
+        if (isActiveAndEnabled) registry.Register(this);
     }
 
     public static CharacterCarryInventory Ensure(CharacterActor actor)
@@ -72,12 +229,14 @@ public sealed class CharacterCarryInventory : MonoBehaviour
 
     public void Configure(
         IDungeonItemCatalogProvider catalogProvider,
-        IItemHaulingSettingsProvider haulingSettingsProvider)
+        IItemHaulingSettingsProvider haulingSettingsProvider,
+        ICharacterCarryInventoryRegistry registry)
     {
         this.catalogProvider = catalogProvider
             ?? throw new ArgumentNullException(nameof(catalogProvider));
         this.haulingSettingsProvider = haulingSettingsProvider
             ?? throw new ArgumentNullException(nameof(haulingSettingsProvider));
+        Construct(registry);
     }
 
     public float GetBaseCarryLimit()
@@ -88,17 +247,24 @@ public sealed class CharacterCarryInventory : MonoBehaviour
         return 8f + (strength * 1.5f) + (endurance * 0.75f);
     }
 
-    public float GetMaxAllowedWeight(IItemHaulingSettingsProvider settingsProvider = null)
+    public float GetMaxAllowedWeight(IItemHaulingSettingsProvider settingsProvider)
     {
-        IItemHaulingSettingsProvider resolvedSettings = settingsProvider ?? haulingSettingsProvider;
-        float multiplier = resolvedSettings != null
-            ? resolvedSettings.MaxCarryMultiplier
-            : Mathf.Clamp(DungeonUserSettingsRuntime.Current.maxCarryMultiplier, 1f, 2.5f);
+        float multiplier = (settingsProvider
+            ?? throw new ArgumentNullException(nameof(settingsProvider)))
+            .MaxCarryMultiplier;
         return GetBaseCarryLimit() * Mathf.Clamp(multiplier, 1f, 2.5f);
     }
 
-    public float GetCurrentWeight(IDungeonItemCatalogProvider catalogProvider = null)
+    public float GetMaxAllowedWeight() =>
+        GetMaxAllowedWeight(RequireHaulingSettings());
+
+    public float GetCurrentWeight(IDungeonItemCatalogProvider catalogProvider)
     {
+        if (catalogProvider == null)
+        {
+            throw new ArgumentNullException(nameof(catalogProvider));
+        }
+
         float total = 0f;
         foreach (CharacterCarriedItemSaveData item in carriedItems)
         {
@@ -109,16 +275,18 @@ public sealed class CharacterCarryInventory : MonoBehaviour
 
             DungeonItemDefinition definition = ResolveDefinition(
                 item.itemId,
-                catalogProvider ?? this.catalogProvider);
+                catalogProvider);
             total += definition.UnitWeight * Mathf.Max(0, item.quantity);
         }
 
         return total;
     }
 
+    public float GetCurrentWeight() => GetCurrentWeight(RequireCatalog());
+
     public float GetMoveSpeedMultiplier(
-        IDungeonItemCatalogProvider catalogProvider = null,
-        IItemHaulingSettingsProvider settingsProvider = null)
+        IDungeonItemCatalogProvider catalogProvider,
+        IItemHaulingSettingsProvider settingsProvider)
     {
         float baseLimit = Mathf.Max(0.01f, GetBaseCarryLimit());
         float maxAllowed = Mathf.Max(baseLimit, GetMaxAllowedWeight(settingsProvider));
@@ -132,13 +300,28 @@ public sealed class CharacterCarryInventory : MonoBehaviour
         return Mathf.Lerp(1f, 0.45f, Mathf.Clamp01(t));
     }
 
+    public float GetMoveSpeedMultiplier() =>
+        GetMoveSpeedMultiplier(RequireCatalog(), RequireHaulingSettings());
+
     public float GetLoadRatio(
-        IDungeonItemCatalogProvider catalogProvider = null,
-        IItemHaulingSettingsProvider settingsProvider = null)
+        IDungeonItemCatalogProvider catalogProvider,
+        IItemHaulingSettingsProvider settingsProvider)
     {
         float maxAllowed = Mathf.Max(0.01f, GetMaxAllowedWeight(settingsProvider));
         return Mathf.Clamp01(GetCurrentWeight(catalogProvider) / maxAllowed);
     }
+
+    public float GetLoadRatio() =>
+        GetLoadRatio(RequireCatalog(), RequireHaulingSettings());
+
+    private IDungeonItemCatalogProvider RequireCatalog() => catalogProvider
+        ?? throw new InvalidOperationException(
+            $"{nameof(CharacterCarryInventory)} requires an item catalog.");
+
+    private IItemHaulingSettingsProvider RequireHaulingSettings() =>
+        haulingSettingsProvider
+        ?? throw new InvalidOperationException(
+            $"{nameof(CharacterCarryInventory)} requires hauling settings.");
 
     public int GetMaxAcceptableQuantity(
         string itemId,
@@ -211,7 +394,45 @@ public sealed class CharacterCarryInventory : MonoBehaviour
         out int acceptedQuantity,
         out string failureReason)
     {
+        return TryAddPartialStack(
+            sourceStackId,
+            string.Empty,
+            itemId,
+            quantity,
+            catalogProvider,
+            settingsProvider,
+            wasteOrigin,
+            contamination,
+            null,
+            out acceptedQuantity,
+            out failureReason);
+    }
+
+    public bool TryAddPartialStack(
+        string sourceStackId,
+        string itemInstanceId,
+        string itemId,
+        int quantity,
+        IDungeonItemCatalogProvider catalogProvider,
+        IItemHaulingSettingsProvider settingsProvider,
+        WasteOriginKind wasteOrigin,
+        float contamination,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out int acceptedQuantity,
+        out string failureReason)
+    {
         failureReason = string.Empty;
+        ItemInstanceId typedInstanceId = (ItemInstanceId)itemInstanceId;
+        DungeonItemDefinition definition = ResolveDefinition(
+            itemId,
+            catalogProvider ?? this.catalogProvider);
+        if (!string.IsNullOrWhiteSpace(itemInstanceId)
+            && (!typedInstanceId.IsValid || definition.MaxStack != 1 || quantity != 1))
+        {
+            acceptedQuantity = 0;
+            failureReason = "invalid unique item identity";
+            return false;
+        }
         acceptedQuantity = GetMaxAcceptableQuantity(itemId, quantity, catalogProvider, settingsProvider);
         if (acceptedQuantity <= 0)
         {
@@ -219,20 +440,33 @@ public sealed class CharacterCarryInventory : MonoBehaviour
             return false;
         }
 
+        string incomingSignature = typedInstanceId.IsValid
+            ? $"{ItemStackSignature.Create(itemId, components)}#instance={typedInstanceId.Value}"
+            : ItemStackSignature.Create(itemId, components);
         CharacterCarriedItemSaveData existing = carriedItems.FirstOrDefault(item => item != null
             && string.Equals(item.itemId, itemId, StringComparison.Ordinal)
             && string.Equals(item.sourceStackId, sourceStackId, StringComparison.Ordinal)
+            && string.Equals(item.itemInstanceId, typedInstanceId.Value, StringComparison.Ordinal)
             && item.wasteOrigin == wasteOrigin
-            && Mathf.Abs(item.contamination - contamination) < 0.01f);
+            && Mathf.Abs(item.contamination - contamination) < 0.01f
+            && string.Equals(
+                item.GetStackSignature(),
+                incomingSignature,
+                StringComparison.Ordinal));
         if (existing == null)
         {
             carriedItems.Add(new CharacterCarriedItemSaveData
             {
                 sourceStackId = sourceStackId ?? string.Empty,
+                itemInstanceId = typedInstanceId.IsValid ? typedInstanceId.Value : string.Empty,
                 itemId = itemId ?? string.Empty,
                 quantity = acceptedQuantity,
                 wasteOrigin = wasteOrigin,
-                contamination = Mathf.Clamp(contamination, 0f, 100f)
+                contamination = Mathf.Clamp(contamination, 0f, 100f),
+                components = (components ?? Array.Empty<ItemInstanceComponentSaveData>())
+                    .Where(component => component != null)
+                    .Select(component => component.Clone())
+                    .ToList()
             });
         }
         else
@@ -245,6 +479,7 @@ public sealed class CharacterCarryInventory : MonoBehaviour
             failureReason = "carry limit";
         }
 
+        Changed?.Invoke();
         return acceptedQuantity > 0;
     }
 
@@ -289,12 +524,19 @@ public sealed class CharacterCarryInventory : MonoBehaviour
             }
         }
 
-        return remaining == 0;
+        bool consumedAll = remaining == 0;
+        if (consumedAll)
+        {
+            Changed?.Invoke();
+        }
+
+        return consumedAll;
     }
 
     public bool TryConsumeSourceStack(string sourceStackId, string itemId, int quantity = 1)
     {
         int remaining = Mathf.Max(0, quantity);
+        int requested = remaining;
         if (remaining <= 0 || string.IsNullOrWhiteSpace(sourceStackId))
         {
             return false;
@@ -321,7 +563,13 @@ public sealed class CharacterCarryInventory : MonoBehaviour
             }
         }
 
-        return remaining == 0;
+        bool consumedAll = remaining == 0;
+        if (remaining < requested)
+        {
+            Changed?.Invoke();
+        }
+
+        return consumedAll;
     }
 
     public List<CharacterCarriedItemSaveData> RemoveAllItems()
@@ -331,13 +579,22 @@ public sealed class CharacterCarryInventory : MonoBehaviour
             .Select(item => new CharacterCarriedItemSaveData
             {
                 sourceStackId = item.sourceStackId,
+                itemInstanceId = item.itemInstanceId,
                 itemId = item.itemId,
                 quantity = item.quantity,
                 wasteOrigin = item.wasteOrigin,
-                contamination = item.contamination
+                contamination = item.contamination,
+                components = (item.components ?? new List<ItemInstanceComponentSaveData>())
+                    .Where(component => component != null)
+                    .Select(component => component.Clone())
+                    .ToList()
             })
             .ToList();
-        carriedItems.Clear();
+        if (carriedItems.Count > 0)
+        {
+            carriedItems.Clear();
+            Changed?.Invoke();
+        }
         return result;
     }
 
@@ -350,10 +607,15 @@ public sealed class CharacterCarryInventory : MonoBehaviour
                 .Select(item => new CharacterCarriedItemSaveData
                 {
                     sourceStackId = item.sourceStackId,
+                    itemInstanceId = item.itemInstanceId,
                     itemId = item.itemId,
                     quantity = Mathf.Max(0, item.quantity),
                     wasteOrigin = item.wasteOrigin,
-                    contamination = item.contamination
+                    contamination = item.contamination,
+                    components = (item.components ?? new List<ItemInstanceComponentSaveData>())
+                        .Where(component => component != null)
+                        .Select(component => component.Clone())
+                        .ToList()
                 })
                 .ToList()
         };
@@ -362,6 +624,7 @@ public sealed class CharacterCarryInventory : MonoBehaviour
     public void Restore(CharacterCarryInventorySaveData snapshot)
     {
         carriedItems.Clear();
+        HashSet<string> restoredInstanceIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (CharacterCarriedItemSaveData item in snapshot?.items ?? new List<CharacterCarriedItemSaveData>())
         {
             if (item == null || item.quantity <= 0 || string.IsNullOrWhiteSpace(item.itemId))
@@ -369,34 +632,43 @@ public sealed class CharacterCarryInventory : MonoBehaviour
                 continue;
             }
 
+            ItemInstanceId itemInstanceId = (ItemInstanceId)item.itemInstanceId;
+            if (!string.IsNullOrWhiteSpace(item.itemInstanceId)
+                && (!itemInstanceId.IsValid
+                    || item.quantity != 1
+                    || !restoredInstanceIds.Add(itemInstanceId.Value)))
+            {
+                throw new InvalidOperationException(
+                    $"Invalid or duplicate carried item-instance ID '{item.itemInstanceId}'.");
+            }
+
             carriedItems.Add(new CharacterCarriedItemSaveData
             {
                 sourceStackId = item.sourceStackId ?? string.Empty,
+                itemInstanceId = itemInstanceId.IsValid
+                    ? itemInstanceId.Value
+                    : string.Empty,
                 itemId = item.itemId.Trim(),
                 quantity = Mathf.Max(0, item.quantity),
                 wasteOrigin = item.wasteOrigin,
-                contamination = Mathf.Clamp(item.contamination, 0f, 100f)
+                contamination = Mathf.Clamp(item.contamination, 0f, 100f),
+                components = (item.components ?? new List<ItemInstanceComponentSaveData>())
+                    .Where(component => component != null)
+                    .Select(component => component.Clone())
+                    .ToList()
             });
         }
+
+        Changed?.Invoke();
     }
 
     private static DungeonItemDefinition ResolveDefinition(
         string itemId,
         IDungeonItemCatalogProvider catalogProvider)
     {
-        if (catalogProvider != null)
-        {
-            return catalogProvider.GetDefinition(itemId);
-        }
-
-        return new DungeonItemDefinition(
-            itemId,
-            itemId,
-            string.Empty,
-            StockCategory.General,
-            0,
-            null,
-            1f,
-            1);
+        return (catalogProvider
+                ?? throw new InvalidOperationException(
+                    "Character carry inventory requires an item catalog."))
+            .GetDefinition(itemId);
     }
 }

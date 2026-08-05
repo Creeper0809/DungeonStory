@@ -7,7 +7,7 @@ using VContainer.Unity;
 
 internal sealed class CropPlotState
 {
-    public string PlotId = string.Empty;
+    public BuildingInstanceId PlotId;
     public BuildableObject Building;
     public BuildingCropPlotAbility Ability;
     public string CropId = string.Empty;
@@ -20,8 +20,74 @@ internal sealed class CropPlotState
     public string BlockedReason = string.Empty;
 }
 
+internal sealed class CropPlotAggregateState
+{
+    internal Dictionary<BuildingInstanceId, CropPlotState> States { get; } =
+        new();
+    internal Dictionary<BuildableObject, CropPlotState> StatesByBuilding { get; } =
+        new();
+    internal List<CropPlotSnapshot> Snapshots { get; } = new();
+    internal int ObservedBuildingVersion { get; set; } = -1;
+    internal float NextMaterialRequestTime { get; set; }
+    internal bool SnapshotsDirty { get; set; } = true;
+    internal int Version { get; set; }
+}
+
+public sealed class CropPlotWorldDependencies
+{
+    public CropPlotWorldDependencies(
+        IBuildingWorldQuery buildingWorld,
+        IResourceEconomyContentCatalog catalog,
+        IProductionItemGateway items,
+        IFacilityCandidateCache facilityCandidates,
+        IWorkforceReplanService workforce)
+    {
+        BuildingWorld = buildingWorld
+            ?? throw new ArgumentNullException(nameof(buildingWorld));
+        Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        Items = items ?? throw new ArgumentNullException(nameof(items));
+        FacilityCandidates = facilityCandidates
+            ?? throw new ArgumentNullException(nameof(facilityCandidates));
+        Workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
+    }
+
+    public IBuildingWorldQuery BuildingWorld { get; }
+    public IResourceEconomyContentCatalog Catalog { get; }
+    public IProductionItemGateway Items { get; }
+    public IFacilityCandidateCache FacilityCandidates { get; }
+    public IWorkforceReplanService Workforce { get; }
+}
+
+public sealed class CropPlotSimulationDependencies
+{
+    public CropPlotSimulationDependencies(
+        IGameClock gameClock,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
+        IGameSessionStateProvider gameDataProvider,
+        ISurvivalEnvironmentQuery environmentQuery,
+        IGrandProjectBenefitQuery grandProjectBenefits)
+    {
+        GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        ProgressionRuntimes = progressionRuntimes
+            ?? throw new ArgumentNullException(nameof(progressionRuntimes));
+        GameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        EnvironmentQuery = environmentQuery
+            ?? throw new ArgumentNullException(nameof(environmentQuery));
+        GrandProjectBenefits = grandProjectBenefits
+            ?? throw new ArgumentNullException(nameof(grandProjectBenefits));
+    }
+
+    public IGameClock GameClock { get; }
+    public ProgressionSceneRuntimeReferences ProgressionRuntimes { get; }
+    public IGameSessionStateProvider GameDataProvider { get; }
+    public ISurvivalEnvironmentQuery EnvironmentQuery { get; }
+    public IGrandProjectBenefitQuery GrandProjectBenefits { get; }
+}
+
 public sealed class CropPlotRuntime :
     ICropPlotRuntime,
+    ICropPlotPersistence,
     IInitializable,
     ITickable,
     IDisposable
@@ -29,56 +95,72 @@ public sealed class CropPlotRuntime :
     private const float SecondsPerGameHour = 7.5f;
     private const float MaterialRequestInterval = 0.5f;
     private const string CompostItemId = "material:compost";
+    private const string CleanWaterItemId = "resource:clean-water";
 
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IResourceEconomyContentCatalog catalog;
     private readonly IProductionItemGateway items;
     private readonly IGameClock gameClock;
-    private readonly IBlueprintResearchRuntimeProvider researchProvider;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly BlueprintResearchRuntime research;
+    private readonly IGameSessionStateProvider gameDataProvider;
     private readonly ISurvivalEnvironmentQuery environmentQuery;
     private readonly IFacilityCandidateCache facilityCandidates;
     private readonly IWorkforceReplanService workforce;
     private readonly IGrandProjectBenefitQuery grandProjectBenefits;
-    private readonly Dictionary<string, CropPlotState> states =
-        new Dictionary<string, CropPlotState>(StringComparer.Ordinal);
-    private readonly Dictionary<BuildableObject, CropPlotState> statesByBuilding =
-        new Dictionary<BuildableObject, CropPlotState>();
-    private readonly List<CropPlotSnapshot> snapshots =
-        new List<CropPlotSnapshot>();
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
 
-    private DungeonCropPlotSaveData pendingRestore;
-    private int observedBuildingVersion = -1;
-    private float nextMaterialRequestTime;
-    private bool snapshotsDirty = true;
-
-    public CropPlotRuntime(
-        IBuildingWorldQuery buildingWorld,
-        IResourceEconomyContentCatalog catalog,
-        IProductionItemGateway items,
-        IGameClock gameClock,
-        IFacilityCandidateCache facilityCandidates,
-        IBlueprintResearchRuntimeProvider researchProvider = null,
-        IGameDataProvider gameDataProvider = null,
-        ISurvivalEnvironmentQuery environmentQuery = null,
-        IWorkforceReplanService workforce = null,
-        IGrandProjectBenefitQuery grandProjectBenefits = null)
+    private CropPlotAggregateState aggregateState =>
+        aggregateRootStore.GetOrCreate(() => new CropPlotAggregateState());
+    private Dictionary<BuildingInstanceId, CropPlotState> states =>
+        aggregateState.States;
+    private Dictionary<BuildableObject, CropPlotState> statesByBuilding =>
+        aggregateState.StatesByBuilding;
+    private List<CropPlotSnapshot> snapshots => aggregateState.Snapshots;
+    private int observedBuildingVersion
     {
-        this.buildingWorld = buildingWorld
-            ?? throw new ArgumentNullException(nameof(buildingWorld));
-        this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
-        this.facilityCandidates = facilityCandidates
-            ?? throw new ArgumentNullException(nameof(facilityCandidates));
-        this.researchProvider = researchProvider;
-        this.gameDataProvider = gameDataProvider;
-        this.environmentQuery = environmentQuery;
-        this.workforce = workforce;
-        this.grandProjectBenefits = grandProjectBenefits;
+        get => aggregateState.ObservedBuildingVersion;
+        set => aggregateState.ObservedBuildingVersion = value;
+    }
+    private float nextMaterialRequestTime
+    {
+        get => aggregateState.NextMaterialRequestTime;
+        set => aggregateState.NextMaterialRequestTime = value;
+    }
+    private bool snapshotsDirty
+    {
+        get => aggregateState.SnapshotsDirty;
+        set => aggregateState.SnapshotsDirty = value;
     }
 
-    public int Version { get; private set; }
+    public CropPlotRuntime(
+        CropPlotWorldDependencies world,
+        CropPlotSimulationDependencies simulation,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
+    {
+        world = world ?? throw new ArgumentNullException(nameof(world));
+        simulation = simulation ?? throw new ArgumentNullException(nameof(simulation));
+        buildingWorld = world.BuildingWorld;
+        catalog = world.Catalog;
+        items = world.Items;
+        facilityCandidates = world.FacilityCandidates;
+        workforce = world.Workforce;
+        gameClock = simulation.GameClock;
+        research = simulation.ProgressionRuntimes
+            .BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(CropPlotRuntime)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
+        gameDataProvider = simulation.GameDataProvider;
+        environmentQuery = simulation.EnvironmentQuery;
+        grandProjectBenefits = simulation.GrandProjectBenefits;
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+    }
+
+    public int Version
+    {
+        get => aggregateState.Version;
+        private set => aggregateState.Version = value;
+    }
 
     public IReadOnlyList<CropPlotSnapshot> Plots
     {
@@ -107,7 +189,7 @@ public sealed class CropPlotRuntime :
             }
 
             destination.Add(new CropPlotVisualState(
-                state.PlotId,
+                state.PlotId.Value,
                 state.Building,
                 state.CropId,
                 state.Phase,
@@ -220,7 +302,7 @@ public sealed class CropPlotRuntime :
             bool available = state.Phase is CropPlotPhase.ReadyToSow
                 or CropPlotPhase.Sowing;
             snapshot = new CropPlotWorkSnapshot(
-                state.PlotId,
+                state.PlotId.Value,
                 workTypeId,
                 $"{crop.DisplayName} 파종",
                 crop.SowWork,
@@ -235,7 +317,7 @@ public sealed class CropPlotRuntime :
             bool available = state.Phase is CropPlotPhase.ReadyToHarvest
                 or CropPlotPhase.Harvesting;
             snapshot = new CropPlotWorkSnapshot(
-                state.PlotId,
+                state.PlotId.Value,
                 workTypeId,
                 $"{crop.DisplayName} 수확",
                 crop.HarvestWork,
@@ -293,8 +375,8 @@ public sealed class CropPlotRuntime :
             {
                 float outputMultiplier = state.Ability != null
                     && state.Ability.Indoor
-                        ? grandProjectBenefits?.GetProductionOutputMultiplier(
-                            "crop-indoor") ?? 1f
+                        ? grandProjectBenefits.GetProductionOutputMultiplier(
+                            "crop-indoor")
                         : 1f;
                 items.SpawnOutput(
                     crop.HarvestItemId,
@@ -317,20 +399,16 @@ public sealed class CropPlotRuntime :
     {
         DungeonCropPlotSaveData data = new DungeonCropPlotSaveData();
         foreach (CropPlotState state in states.Values
-                     .OrderBy(entry => entry.PlotId, StringComparer.Ordinal))
+                     .OrderBy(entry => entry.PlotId.Value, StringComparer.Ordinal))
         {
             data.plots.Add(new CropPlotSaveData
             {
-                plotId = state.PlotId,
-                buildingId = state.Building != null ? state.Building.id : 0,
-                gridX = state.Building != null ? state.Building.centerPos.x : 0,
-                gridY = state.Building != null ? state.Building.centerPos.y : 0,
+                buildingInstanceId = state.PlotId.Value,
                 cropId = state.CropId,
                 phase = state.Phase,
                 sowWork = state.SowWork,
                 growthHours = state.GrowthHours,
                 harvestWork = state.HarvestWork,
-                materialDestinationId = state.MaterialDestinationId,
                 materialsConsumed = state.MaterialsConsumed
             });
         }
@@ -338,11 +416,45 @@ public sealed class CropPlotRuntime :
         return data;
     }
 
-    public void Restore(DungeonCropPlotSaveData snapshot)
+    public CropPlotRestoreCandidate BuildRestore(
+        DungeonCropPlotSaveData snapshot)
     {
-        pendingRestore = snapshot ?? new DungeonCropPlotSaveData();
-        SynchronizePlots(force: true);
-        ApplyPendingRestore();
+        RequireSaveRoot(snapshot);
+        CropPlotAggregateState restored = new()
+        {
+            ObservedBuildingVersion = -1,
+            NextMaterialRequestTime = gameClock.Time,
+            SnapshotsDirty = true,
+            Version = aggregateState.Version + 1
+        };
+        HashSet<BuildingInstanceId> seen = new();
+        foreach (CropPlotSaveData saved in snapshot.plots)
+        {
+            BuildingInstanceId plotId = RequireRestorePlotId(saved, seen);
+            CropDefinitionSO crop = RequireCrop(saved);
+            ValidateRestoreProgress(saved, crop);
+            restored.States.Add(plotId, new CropPlotState
+            {
+                PlotId = plotId,
+                CropId = crop.CropId,
+                Phase = saved.phase,
+                SowWork = saved.sowWork,
+                GrowthHours = saved.growthHours,
+                HarvestWork = saved.harvestWork,
+                MaterialDestinationId = BuildDestinationId(plotId),
+                MaterialsConsumed = saved.materialsConsumed,
+                BlockedReason = string.Empty
+            });
+        }
+
+        return new CropPlotRestoreCandidate(restored);
+    }
+
+    public void Restore(CropPlotRestoreCandidate candidate)
+    {
+        aggregateRootStore.Replace(
+            (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+            .State);
     }
 
     private void TickState(CropPlotState state, bool requestMaterials)
@@ -475,7 +587,7 @@ public sealed class CropPlotRuntime :
         if (requestedAny)
         {
             items.PrioritizeDestination(state.MaterialDestinationId);
-            workforce?.RequestOneHaulerToReplan(forceInterrupt: false);
+            workforce.RequestOneHaulerToReplan(forceInterrupt: false);
             MarkChanged(replan: false);
         }
     }
@@ -488,7 +600,7 @@ public sealed class CropPlotRuntime :
             new Dictionary<string, int>(StringComparer.Ordinal);
         float waterRate = state.Ability.WaterMultiplier;
         if (!state.Ability.Indoor
-            && environmentQuery?.GetEnvironmentSnapshot().Weather
+            && environmentQuery.GetEnvironmentSnapshot().Weather
                 is SurvivalWeatherType.Rain or SurvivalWeatherType.Storm)
         {
             waterRate *= 0.5f;
@@ -504,8 +616,13 @@ public sealed class CropPlotRuntime :
                     * waterRate));
         if (water > 0)
         {
-            requirements[DungeonItemCatalogSO.StockItemId(StockCategory.Water)] =
-                water;
+            if (!catalog.TryGetItem(CleanWaterItemId, out _))
+            {
+                throw new InvalidOperationException(
+                    $"Crop plot '{state.PlotId}' requires missing authored item '{CleanWaterItemId}'.");
+            }
+
+            requirements[CleanWaterItemId] = water;
         }
 
         if (state.Ability.CompostPerCycle > 0)
@@ -515,11 +632,46 @@ public sealed class CropPlotRuntime :
 
         if (state.Ability.FuelPerCycle > 0)
         {
-            requirements[DungeonItemCatalogSO.StockItemId(StockCategory.Fuel)] =
-                state.Ability.FuelPerCycle;
+            string fuelItemId = ResolveFacilityFuelItemId(
+                state.MaterialDestinationId);
+            requirements[fuelItemId] = state.Ability.FuelPerCycle;
+        }
+
+        foreach (ItemAmountDefinition supply in
+                 state.Ability.CycleSupplyInputs)
+        {
+            requirements.TryGetValue(supply.ItemId, out int current);
+            requirements[supply.ItemId] = current + supply.Amount;
         }
 
         return requirements;
+    }
+
+    private string ResolveFacilityFuelItemId(string excludedDestinationId)
+    {
+        FacilitySupplyProfile fuelProfile = new()
+        {
+            kind = FacilitySupplyKind.Fuel,
+            requiredTags = ResourceIngredientTag.Fuel,
+            minimumValue = 0.01f,
+        };
+        ResourceItemDefinitionSO[] candidates = catalog.Items
+            .Where(fuelProfile.Allows)
+            .ToArray();
+        ResourceItemDefinitionSO[] available = candidates
+            .Where(item => items.CountAvailableStock(
+                item.ItemId,
+                excludedDestinationId) > 0)
+            .ToArray();
+        ResourceItemDefinitionSO selected = (available.Length > 0
+                ? available
+                : candidates)
+            .OrderBy(item => item.UnitPrice / Mathf.Max(0.01f, item.FuelValue))
+            .ThenBy(item => item.ItemId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        return selected?.ItemId
+            ?? throw new InvalidOperationException(
+                "Crop plot requires an authored fuel-tagged item, but the item catalog has none.");
     }
 
     private float ResolveGrowthMultiplier(
@@ -534,13 +686,7 @@ public sealed class CropPlotRuntime :
         }
 
         SurvivalEnvironmentSnapshot environment =
-            environmentQuery?.GetEnvironmentSnapshot()
-            ?? new SurvivalEnvironmentSnapshot(
-                SurvivalWeatherType.Clear,
-                18f,
-                0f,
-                0f,
-                0f);
+            environmentQuery.GetEnvironmentSnapshot();
         Vector2 range = crop.TemperatureRange;
         if (environment.OutdoorTemperature < range.x)
         {
@@ -564,8 +710,7 @@ public sealed class CropPlotRuntime :
             _ => 1f
         };
         float dayMultiplier = 1f;
-        if (gameDataProvider != null
-            && gameDataProvider.TryGetGameData(out GameData data)
+        if (gameDataProvider.TryGetSessionState(out GameSessionState data)
             && data?.timeOfDay?.Value == TimeOfDay.Night)
         {
             dayMultiplier = 0.55f;
@@ -584,7 +729,7 @@ public sealed class CropPlotRuntime :
         }
 
         observedBuildingVersion = buildingWorld.BuildingVersion;
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
+        HashSet<BuildingInstanceId> seen = new();
         statesByBuilding.Clear();
         foreach (BuildableObject building in buildingWorld.Buildings)
         {
@@ -597,7 +742,7 @@ public sealed class CropPlotRuntime :
                 continue;
             }
 
-            string plotId = BuildPlotId(building);
+            BuildingInstanceId plotId = BuildPlotId(building);
             seen.Add(plotId);
             if (!states.TryGetValue(plotId, out CropPlotState state))
             {
@@ -613,7 +758,7 @@ public sealed class CropPlotRuntime :
             statesByBuilding[building] = state;
         }
 
-        foreach (string removedId in states.Keys
+        foreach (BuildingInstanceId removedId in states.Keys
                      .Where(id => !seen.Contains(id))
                      .ToArray())
         {
@@ -621,14 +766,13 @@ public sealed class CropPlotRuntime :
             states.Remove(removedId);
         }
 
-        ApplyPendingRestore();
         MarkChanged();
     }
 
     private CropPlotState CreateState(
         BuildableObject building,
         BuildingCropPlotAbility ability,
-        string plotId)
+        BuildingInstanceId plotId)
     {
         CropDefinitionSO crop = ResolveDefaultCrop(ability);
         return new CropPlotState
@@ -688,9 +832,7 @@ public sealed class CropPlotRuntime :
             return true;
         }
 
-        if (researchProvider == null
-            || !researchProvider.TryGetRuntime(out BlueprintResearchRuntime runtime)
-            || !runtime.State.Projects.IsCompleted(
+        if (!research.State.Projects.IsCompleted(
                 new ResearchProjectId(crop.RequiredResearchId)))
         {
             reason = $"연구 필요: {crop.RequiredResearchId}";
@@ -700,46 +842,125 @@ public sealed class CropPlotRuntime :
         return true;
     }
 
-    private void ApplyPendingRestore()
+    private static void RequireSaveRoot(DungeonCropPlotSaveData snapshot)
     {
-        if (pendingRestore?.plots == null)
+        if (snapshot == null)
         {
-            return;
+            throw new InvalidOperationException("Crop-plot payload is null.");
+        }
+        if (snapshot.version != DungeonCropPlotSaveData.CurrentVersion)
+        {
+            throw new InvalidOperationException(
+                $"Crop-plot payload version {snapshot.version} is not current V{DungeonCropPlotSaveData.CurrentVersion}.");
+        }
+        if (snapshot.plots == null || snapshot.plots.Count > 512)
+        {
+            throw new InvalidOperationException(
+                "Crop-plot payload must contain at most 512 non-null plot records.");
+        }
+    }
+
+    private static BuildingInstanceId RequireRestorePlotId(
+        CropPlotSaveData saved,
+        ISet<BuildingInstanceId> seen)
+    {
+        if (saved == null)
+        {
+            throw new InvalidOperationException(
+                "Crop-plot payload contains a null plot record.");
         }
 
-        foreach (CropPlotSaveData saved in pendingRestore.plots)
+        BuildingInstanceId buildingId =
+            (BuildingInstanceId)saved.buildingInstanceId;
+        if (!buildingId.IsValid
+            || !string.Equals(
+                buildingId.Value,
+                saved.buildingInstanceId,
+                StringComparison.Ordinal))
         {
-            if (saved == null
-                || !states.TryGetValue(
-                    saved.plotId ?? string.Empty,
-                    out CropPlotState state)
-                || !catalog.TryGetCrop(saved.cropId, out CropDefinitionSO crop)
-                || (state.Ability.Indoor && !crop.IndoorAllowed))
-            {
-                continue;
-            }
+            throw new InvalidOperationException(
+                $"Crop-plot building instance ID '{saved.buildingInstanceId}' is not canonical.");
+        }
+        if (!seen.Add(buildingId))
+        {
+            throw new InvalidOperationException(
+                $"Crop-plot building instance ID '{buildingId.Value}' is duplicated.");
+        }
+        return buildingId;
+    }
 
-            state.CropId = crop.CropId;
-            state.Phase = saved.phase;
-            state.SowWork = Mathf.Clamp(saved.sowWork, 0f, crop.SowWork);
-            state.GrowthHours = Mathf.Clamp(
-                saved.growthHours,
-                0f,
-                crop.GrowthHours);
-            state.HarvestWork = Mathf.Clamp(
-                saved.harvestWork,
-                0f,
-                crop.HarvestWork);
-            state.MaterialDestinationId =
-                string.IsNullOrWhiteSpace(saved.materialDestinationId)
-                    ? BuildDestinationId(state.PlotId)
-                    : saved.materialDestinationId;
-            state.MaterialsConsumed = saved.materialsConsumed;
-            state.BlockedReason = string.Empty;
+    private CropDefinitionSO RequireCrop(CropPlotSaveData saved)
+    {
+        if (string.IsNullOrWhiteSpace(saved.cropId)
+            || !string.Equals(saved.cropId, saved.cropId.Trim(), StringComparison.Ordinal)
+            || !catalog.TryGetCrop(saved.cropId, out CropDefinitionSO crop))
+        {
+            throw new InvalidOperationException(
+                $"Crop-plot payload references unknown crop '{saved.cropId}'.");
+        }
+        return crop;
+    }
+
+    private static void ValidateRestoreProgress(
+        CropPlotSaveData saved,
+        CropDefinitionSO crop)
+    {
+        if (!Enum.IsDefined(typeof(CropPlotPhase), saved.phase))
+        {
+            throw new InvalidOperationException(
+                $"Crop-plot payload contains unknown phase {(int)saved.phase}.");
+        }
+        RequireFiniteRange(saved.sowWork, 0f, crop.SowWork, "sow work");
+        RequireFiniteRange(saved.growthHours, 0f, crop.GrowthHours, "growth hours");
+        RequireFiniteRange(saved.harvestWork, 0f, crop.HarvestWork, "harvest work");
+
+        bool requiresConsumedMaterials = saved.phase is
+            CropPlotPhase.ReadyToSow
+            or CropPlotPhase.Sowing
+            or CropPlotPhase.Growing
+            or CropPlotPhase.ReadyToHarvest
+            or CropPlotPhase.Harvesting;
+        bool requiresUnconsumedMaterials = saved.phase is
+            CropPlotPhase.Empty or CropPlotPhase.WaitingForMaterials;
+        if ((requiresConsumedMaterials && !saved.materialsConsumed)
+            || (requiresUnconsumedMaterials && saved.materialsConsumed))
+        {
+            throw new InvalidOperationException(
+                $"Crop-plot phase {saved.phase} contradicts materialsConsumed={saved.materialsConsumed}.");
         }
 
-        pendingRestore = null;
-        MarkChanged();
+        const float Epsilon = 0.001f;
+        if (saved.phase is CropPlotPhase.Growing
+                or CropPlotPhase.ReadyToHarvest
+                or CropPlotPhase.Harvesting
+            && saved.sowWork + Epsilon < crop.SowWork)
+        {
+            throw new InvalidOperationException(
+                "Crop-plot post-sowing phase has incomplete sow work.");
+        }
+        if (saved.phase is CropPlotPhase.ReadyToHarvest
+                or CropPlotPhase.Harvesting
+            && saved.growthHours + Epsilon < crop.GrowthHours)
+        {
+            throw new InvalidOperationException(
+                "Crop-plot harvest phase has incomplete growth.");
+        }
+    }
+
+    private static void RequireFiniteRange(
+        float value,
+        float minimum,
+        float maximum,
+        string label)
+    {
+        if (float.IsNaN(value)
+            || float.IsInfinity(value)
+            || value < minimum
+            || value > maximum)
+        {
+            throw new InvalidOperationException(
+                $"Crop-plot {label} {value} is outside [{minimum}, {maximum}].");
+        }
     }
 
     private void ResetForNextCycle(CropPlotState state)
@@ -789,7 +1010,7 @@ public sealed class CropPlotRuntime :
         facilityCandidates.MarkDynamicStateDirty();
         if (replan)
         {
-            workforce?.RequestIdleWorkersToReplan();
+            workforce.RequestIdleWorkersToReplan();
         }
     }
 
@@ -802,7 +1023,7 @@ public sealed class CropPlotRuntime :
 
         snapshots.Clear();
         foreach (CropPlotState state in states.Values
-                     .OrderBy(entry => entry.PlotId, StringComparer.Ordinal))
+                     .OrderBy(entry => entry.PlotId.Value, StringComparer.Ordinal))
         {
             if (!catalog.TryGetCrop(state.CropId, out CropDefinitionSO crop))
             {
@@ -819,7 +1040,7 @@ public sealed class CropPlotRuntime :
                 StringComparer.Ordinal);
             snapshots.Add(new CropPlotSnapshot
             {
-                PlotId = state.PlotId,
+                PlotId = state.PlotId.Value,
                 BuildingId = state.Building != null ? state.Building.id : 0,
                 Position = state.Building != null
                     ? state.Building.centerPos
@@ -892,15 +1113,20 @@ public sealed class CropPlotRuntime :
         };
     }
 
-    private static string BuildPlotId(BuildableObject plot)
+    private static BuildingInstanceId BuildPlotId(BuildableObject plot)
     {
         return plot == null
-            ? string.Empty
-            : $"crop-plot:{plot.id}:{plot.centerPos.x}:{plot.centerPos.y}";
+            ? default
+            : plot.RequirePersistentInstanceId();
     }
 
-    private static string BuildDestinationId(string plotId)
+    private static string BuildDestinationId(BuildingInstanceId plotId)
     {
-        return $"crop-materials:{plotId}";
+        if (!plotId.IsValid)
+        {
+            throw new InvalidOperationException(
+                "Crop material destination requires a BuildingInstanceId.");
+        }
+        return $"crop-materials:{plotId.Value}";
     }
 }

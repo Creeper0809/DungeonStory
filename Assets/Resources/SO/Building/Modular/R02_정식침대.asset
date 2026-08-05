@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,22 +33,24 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 645c990c09527084b9807ae529b4fb50, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239038813068
-    - rid: 7302563239038813069
-    - rid: 7302563239038813070
-    - rid: 7302563239038813071
-    - rid: 7302563239038813072
-    - rid: 7302563239038813073
-    - rid: 7302563239038813074
-    - rid: 7302563239038813075
-    - rid: 7302563239038813076
-    - rid: 7302563313672519987
+    - rid: 7737211730834227272
+    - rid: 7737211730834227273
+    - rid: 7737211730834227274
+    - rid: 7737211730834227275
+    - rid: 7737211730834227276
+    - rid: 7737211730834227277
+    - rid: 7737211730834227278
+    - rid: 7737211730834227279
+    - rid: 7737211730834227280
+    - rid: 7737211730834227281
+    - rid: 7737211730889016162
   width: 2
   height: 1
   layer: 1
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -66,21 +59,33 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239038813068
+    - rid: 7737211730834227272
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: R02
-    - rid: 7302563239038813069
+    - rid: 7737211730834227273
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 135
+        constructionValue: 135
+        constructionCost: 0
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302563239038813070
+    - rid: 7737211730834227274
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 26.7
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 7
+    - rid: 7737211730834227275
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -91,11 +96,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 32900
           disabledWhenDamaged: 1
-    - rid: 7302563239038813071
+    - rid: 7737211730834227276
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563239038813072
+    - rid: 7737211730834227277
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -110,7 +115,7 @@ MonoBehaviour:
           - key: Luxury
             value: 3
           metrics: []
-    - rid: 7302563239038813073
+    - rid: 7737211730834227278
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -121,28 +126,28 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 0
-    - rid: 7302563239038813074
+    - rid: 7737211730834227279
       type: {class: BuildingExpeditionRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingExpeditionRecoveryAbility
         healthHealRatio: 0.22
         injuryReduction: 0.08
         stressRecovery: 22
-    - rid: 7302563239038813075
+    - rid: 7737211730834227280
       type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.2
         severityReduction: 0.38
         requiresMedicine: 1
-    - rid: 7302563239038813076
+    - rid: 7737211730834227281
       type: {class: BuildingTemperatureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingTemperatureAbility
         roomTemperatureOffset: 1
         coldProtection: 5
         heatProtection: 3
-    - rid: 7302563313672519987
+    - rid: 7737211730889016162
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

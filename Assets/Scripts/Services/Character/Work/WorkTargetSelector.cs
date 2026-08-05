@@ -32,57 +32,11 @@ public sealed class WorkTargetSelector
     private const int CandidateScanMinimumBatch = 1;
     private const int CompletedCandidateRefreshFrames = 180;
 
-    private readonly struct CandidateCacheEntry
-    {
-        public CandidateCacheEntry(
-            bool found,
-            WorkTargetCandidate candidate,
-            WorkTargetCandidate rejected)
-        {
-            Found = found;
-            Candidate = candidate;
-            Rejected = rejected;
-        }
-
-        public bool Found { get; }
-        public WorkTargetCandidate Candidate { get; }
-        public WorkTargetCandidate Rejected { get; }
-    }
-
-    private readonly struct ActorWorkScore
-    {
-        public ActorWorkScore(float preference, float speed)
-        {
-            Preference = preference;
-            Speed = speed;
-        }
-
-        public float Preference { get; }
-        public float Speed { get; }
-    }
-
-    private sealed class IncrementalCandidateScan
-    {
-        public IReadOnlyList<BuildableObject> Source;
-        public int CandidateIndexVersion;
-        public int DynamicStateVersion;
-        public int GridVersion;
-        public int BuildingVersion;
-        public int WorkOrderVersion;
-        public int StartOffset;
-        public int EvaluatedCount;
-        public int CompletedFrame = -1;
-        public int LastAdvancedFrame = -1;
-        public WorkTargetCandidate Best;
-        public WorkTargetCandidate MostUrgent;
-        public WorkTargetCandidate Rejected;
-        public bool Complete;
-    }
 
     private readonly AbilityWork work;
     private readonly IWorkPolicyRegistry workPolicyRegistry;
-    private readonly ICaptiveLaborQuery captiveLaborQuery;
-    private readonly IEnvironmentWorkPolicy environmentWorkPolicy;
+    private readonly WorkTargetEnvironmentPolicy targetEnvironment;
+    private readonly WorkTargetEvaluator targetEvaluator;
     private readonly Dictionary<FacilityWorkType, CandidateCacheEntry> candidateCache =
         new Dictionary<FacilityWorkType, CandidateCacheEntry>();
     private readonly Dictionary<FacilityWorkType, IncrementalCandidateScan> incrementalScans =
@@ -104,14 +58,23 @@ public sealed class WorkTargetSelector
 
     public WorkTargetSelector(
         AbilityWork work,
-        IWorkPolicyRegistry workPolicyRegistry = null,
-        ICaptiveLaborQuery captiveLaborQuery = null,
-        IEnvironmentWorkPolicy environmentWorkPolicy = null)
+        IWorkPolicyRegistry workPolicyRegistry,
+        ICaptiveLaborQuery captiveLaborQuery,
+        IEnvironmentWorkPolicy environmentWorkPolicy)
     {
         this.work = work;
         this.workPolicyRegistry = workPolicyRegistry;
-        this.captiveLaborQuery = captiveLaborQuery;
-        this.environmentWorkPolicy = environmentWorkPolicy;
+        targetEnvironment = new WorkTargetEnvironmentPolicy(
+            work,
+            environmentWorkPolicy);
+        targetEvaluator = new WorkTargetEvaluator(
+            work,
+            workPolicyRegistry,
+            captiveLaborQuery,
+            targetEnvironment,
+            FindReachableWarehouses,
+            BuildCandidate,
+            WorkTargetSelectionRules.IsReachable);
     }
 
     public void SeedDecisionContext(
@@ -138,14 +101,17 @@ public sealed class WorkTargetSelector
         WorkTypeId requestedWorkTypeId)
     {
         return WorkTypeCatalog.TryGet(requestedWorkTypeId, out WorkTypeDefinition definition)
-            && TryAssignWorkWithLegacyType(searchResult, definition.Type);
+            && TryAssignWorkWithLegacyType(
+                searchResult,
+                FacilityWorkTypeMap.GetRequired(definition));
     }
 
     private bool TryAssignWorkWithLegacyType(
         GridPathSearchResult searchResult,
         FacilityWorkType requestedWorkType)
     {
-        if (work.HasPrioritySuppressTarget && CanUseSuppressFor(requestedWorkType))
+        if (work.HasPrioritySuppressTarget
+            && WorkTargetSelectionRules.CanUseSuppressFor(requestedWorkType))
         {
             work.AssignWork(null, FacilityWorkType.Guard);
             return true;
@@ -221,7 +187,9 @@ public sealed class WorkTargetSelector
         }
 
         TryGetBestCandidateWithLegacyType(requestedWorkType, searchResult, out WorkTargetCandidate best);
-        work.AssignWork(best.Building, best.WorkType);
+        work.AssignWork(
+            WorkTargetCandidateRuntimeAdapter.ResolveBuilding(best),
+            best.WorkType);
         return work.assignedShop != null;
     }
 
@@ -275,7 +243,9 @@ public sealed class WorkTargetSelector
         WorkTypeId requestedWorkTypeId)
     {
         return WorkTypeCatalog.TryGet(requestedWorkTypeId, out WorkTypeDefinition definition)
-            && HasUrgentAvailableWorkWithLegacyType(searchResult, definition.Type);
+            && HasUrgentAvailableWorkWithLegacyType(
+                searchResult,
+                FacilityWorkTypeMap.GetRequired(definition));
     }
 
     private bool TryGetBestCandidateWithLegacyType(
@@ -566,7 +536,8 @@ public sealed class WorkTargetSelector
             return 0;
         }
 
-        uint stableId = unchecked((uint)actor.GetInstanceID());
+        CharacterId characterId = CharacterPersistentIdentity.Require(actor);
+        uint stableId = PersistentEntityId.GetStableHash32(characterId);
         return (int)(stableId % (uint)candidateCount);
     }
 
@@ -584,7 +555,10 @@ public sealed class WorkTargetSelector
     {
         best = default;
         return WorkTypeCatalog.TryGet(requestedWorkTypeId, out WorkTypeDefinition definition)
-            && TryGetBestCandidateWithLegacyType(definition.Type, searchResult, out best);
+            && TryGetBestCandidateWithLegacyType(
+                FacilityWorkTypeMap.GetRequired(definition),
+                searchResult,
+                out best);
     }
 
     private float GetUtilityScoreWithLegacyType(FacilityWorkType requestedWorkType, GridPathSearchResult searchResult)
@@ -605,7 +579,9 @@ public sealed class WorkTargetSelector
     public float GetUtilityScore(WorkTypeId requestedWorkTypeId, GridPathSearchResult searchResult)
     {
         return WorkTypeCatalog.TryGet(requestedWorkTypeId, out WorkTypeDefinition definition)
-            ? GetUtilityScoreWithLegacyType(definition.Type, searchResult)
+            ? GetUtilityScoreWithLegacyType(
+                FacilityWorkTypeMap.GetRequired(definition),
+                searchResult)
             : 0f;
     }
 
@@ -751,291 +727,15 @@ public sealed class WorkTargetSelector
         bool ignorePriority,
         out WorkTargetCandidate bestCandidate)
     {
-        bestCandidate = WorkTargetCandidate.Invalid(
+        bool found = targetEvaluator.TryEvaluate(
             building,
-            "현재 작업할 수 없는 시설입니다",
-            AIActionFailureKind.NoWork);
-        WorkPriorityProfile priorities = work.WorkPriorities ?? WorkPriorityProfile.CreateDefault();
-
-        if (building == null || building.isDestroy)
-        {
-            bestCandidate = WorkTargetCandidate.Invalid(
-                building,
-                "시설이 없습니다",
-                building != null && building.isDestroy
-                    ? AIActionFailureKind.Destroyed
-                    : AIActionFailureKind.NoDestination);
-            LastRejectedCandidate = bestCandidate;
-            return false;
-        }
-
-        if (building is not IWorkableFacility workable)
-        {
-            bestCandidate = WorkTargetCandidate.Invalid(
-                building,
-                "작업 가능한 시설이 아닙니다",
-                AIActionFailureKind.Unsupported);
-            LastRejectedCandidate = bestCandidate;
-            return false;
-        }
-
-        FacilityWorkType supportedTypes = building is ConstructionSite
-            ? FacilityWorkType.Construct
-            : building.Facility != null
-                ? WildlifeButcherFacilityUtility.AddFallbackWorkTypes(building, building.Facility.supportedWorkTypes)
-                : FacilityWorkType.None;
-        supportedTypes = SurvivalFacilityUtility.AddFallbackWorkTypes(building, supportedTypes);
-        supportedTypes = CombatEquipmentMaintenanceFacilityUtility.AddFallbackWorkTypes(
-            building,
-            supportedTypes);
-        supportedTypes = FacilityEvolutionWorkUtility.AddFallbackWorkTypes(
-            building,
-            supportedTypes);
-        supportedTypes = RuntimeWorkCapabilityUtility.AddFallbackWorkTypes(
-            building,
-            supportedTypes);
-        if (supportedTypes == FacilityWorkType.None)
-        {
-            bestCandidate = WorkTargetCandidate.Invalid(
-                building,
-                "지원하는 작업이 없습니다",
-                AIActionFailureKind.Unsupported);
-            LastRejectedCandidate = bestCandidate;
-            return false;
-        }
-
-        FacilityAssignmentStatus workerStatus = workable.GetWorkerAssignmentStatus(work.WorkerActor);
-        if (!workerStatus.IsAllowed)
-        {
-            bestCandidate = WorkTargetCandidate.Invalid(
-                building,
-                workerStatus.Reason,
-                workerStatus.FailureKind.ToAiActionFailureKind());
-            LastRejectedCandidate = bestCandidate;
-            return false;
-        }
-
-        if (building is ConstructionSite safetySite)
-        {
-            ConstructionSafetyResult safety = safetySite.GetConstructionSafetyState(
-                work.WorkerActor,
-                forced: ignorePriority);
-            if (!safety.IsSafe)
-            {
-                bestCandidate = WorkTargetCandidate.Invalid(
-                    building,
-                    safety.Message,
-                    safety.Reason == ConstructionSafetyReason.WorkerEscapeBlocked
-                        || safety.Reason == ConstructionSafetyReason.EntranceBlocked
-                            ? AIActionFailureKind.NoPath
-                            : AIActionFailureKind.NoWork);
-                LastRejectedCandidate = bestCandidate;
-                return false;
-            }
-        }
-
-        if (searchResult != null && !IsReachableWorkBuilding(building, searchResult))
-        {
-            bestCandidate = WorkTargetCandidate.Invalid(
-                building,
-                "도달할 수 없는 대상입니다",
-                AIActionFailureKind.NoPath);
-            LastRejectedCandidate = bestCandidate;
-            return false;
-        }
-
-        AIActionFailure lastWorkTypeFailure = AIActionFailure.None;
-        IReadOnlyList<WorkTypeDefinition> workTypeDefinitions =
-            WorkTypeCatalog.All;
-        for (int definitionIndex = 0;
-            definitionIndex < workTypeDefinitions.Count;
-            definitionIndex++)
-        {
-            WorkTypeDefinition definition =
-                workTypeDefinitions[definitionIndex];
-            if ((supportedTypes & definition.Type) == 0)
-            {
-                continue;
-            }
-
-            FacilityWorkType workType = definition.Type;
-            WorkTypeId workTypeId = definition.WorkTypeId;
-            if (forcedWorkType != FacilityWorkType.None && workType != forcedWorkType)
-            {
-                continue;
-            }
-
-            if (forcedWorkType == FacilityWorkType.None && work.ShouldThrottleRoutineWork(workTypeId))
-            {
-                continue;
-            }
-
-            if (captiveLaborQuery != null
-                && !captiveLaborQuery.IsWorkAllowed(
-                    work.WorkerActor,
-                    workTypeId,
-                    out string captiveWorkReason))
-            {
-                lastWorkTypeFailure = AIActionFailure.Create(
-                    AIActionFailureKind.Unsupported,
-                    captiveWorkReason,
-                    building);
-                continue;
-            }
-
-            if (workType == FacilityWorkType.Restock)
-            {
-                if (building is not IRestockableFacility restockable)
-                {
-                    lastWorkTypeFailure = AIActionFailure.Create(
-                        AIActionFailureKind.Unsupported,
-                        "재고를 보충할 수 없는 시설입니다",
-                        building);
-                    continue;
-                }
-
-                if (!restockable.NeedsRestock)
-                {
-                    continue;
-                }
-
-                bool hasRestockSupply;
-                string supplyFailureReason;
-                IReadOnlyList<IWarehouseFacility> registeredWarehouses =
-                    searchResult == null
-                        ? work.WorkerActor?.WorldRegistry?.Warehouses
-                        : null;
-                if (registeredWarehouses != null)
-                {
-                    hasRestockSupply = restockable.HasRestockSupply(
-                        registeredWarehouses,
-                        out supplyFailureReason);
-                }
-                else
-                {
-                    hasRestockSupply = restockable.HasRestockSupply(
-                        FindReachableWarehouses(searchResult),
-                        out supplyFailureReason);
-                }
-
-                if (!hasRestockSupply)
-                {
-                    lastWorkTypeFailure = AIActionFailure.Create(
-                        AIActionFailureKind.NoWork,
-                        supplyFailureReason,
-                        building);
-                    continue;
-                }
-            }
-
-            if (workPolicyRegistry != null
-                && !workPolicyRegistry.IsAvailable(
-                    workTypeId,
-                    work.WorkerActor,
-                    building,
-                    out _))
-            {
-                continue;
-            }
-
-            if (HasExteriorWorkRuntime(building, workTypeId)
-                && !IsExteriorWorkAvailable(building, work.WorkerActor, workTypeId))
-            {
-                continue;
-            }
-
-            WorkPriorityLevel priority = ignorePriority
-                ? WorkPriorityLevel.Priority1
-                : priorities.GetPriority(workTypeId);
-            if (priority == WorkPriorityLevel.Off)
-            {
-                continue;
-            }
-
-            FacilityAssignmentStatus workStatus = building is ConstructionSite constructionSite
-                ? constructionSite.GetConstructionWorkStatus()
-                : building.GetWorkAssignmentStatus(workTypeId);
-            if (!workStatus.IsAllowed)
-            {
-                lastWorkTypeFailure = AIActionFailure.Create(
-                    workStatus.FailureKind.ToAiActionFailureKind(),
-                    workStatus.Reason,
-                    building);
-                continue;
-            }
-
-            if (environmentWorkPolicy != null)
-            {
-                EnvironmentalWorkKind environmentKind =
-                    ResolveEnvironmentWorkKind(workTypeId);
-                WorkEnvironmentAssessment environmentAssessment =
-                    environmentWorkPolicy.Assess(
-                        work.WorkerActor,
-                        building.centerPos,
-                        EstimateRemainingWorkSeconds(
-                            building,
-                            workTypeId),
-                        environmentKind,
-                        forced: ignorePriority);
-                if (!environmentAssessment.CanStart)
-                {
-                    lastWorkTypeFailure = AIActionFailure.Create(
-                        AIActionFailureKind.NoWork,
-                        environmentAssessment.Reason,
-                        building);
-                    continue;
-                }
-            }
-
-            WorkTargetCandidate candidate = BuildCandidate(building, definition, priority, searchResult);
-            if (!bestCandidate.IsValid || candidate.Score > bestCandidate.Score)
-            {
-                bestCandidate = candidate;
-            }
-        }
-
-        if (!bestCandidate.IsValid)
-        {
-            string reason = forcedWorkType != FacilityWorkType.None
-                ? $"{WorkTaskCatalog.GetLegacyDisplayName(forcedWorkType)} 작업을 수행할 수 없습니다"
-                : "켜진 작업 우선순위가 없습니다";
-            bestCandidate = WorkTargetCandidate.Invalid(
-                building,
-                lastWorkTypeFailure.HasFailure ? lastWorkTypeFailure.ToString() : reason,
-                lastWorkTypeFailure.HasFailure ? lastWorkTypeFailure.Kind : AIActionFailureKind.NoWork);
-            LastRejectedCandidate = bestCandidate;
-            return false;
-        }
-
-        if (environmentWorkPolicy != null)
-        {
-            GridMoveStep[] route = searchResult?
-                .GetMovePathTo(bestCandidate.Building.centerPos)
-                .ToArray()
-                ?? System.Array.Empty<GridMoveStep>();
-            WorkEnvironmentAssessment preciseAssessment =
-                environmentWorkPolicy.AssessStart(
-                    work.WorkerActor,
-                    bestCandidate.Building.centerPos,
-                    route,
-                    EstimateRemainingWorkSeconds(
-                        bestCandidate.Building,
-                        bestCandidate.WorkTypeId),
-                    ResolveEnvironmentWorkKind(bestCandidate.WorkTypeId),
-                    forced: ignorePriority);
-            if (!preciseAssessment.CanStart)
-            {
-                bestCandidate = WorkTargetCandidate.Invalid(
-                    building,
-                    preciseAssessment.Reason,
-                    AIActionFailureKind.NoWork);
-                LastRejectedCandidate = bestCandidate;
-                return false;
-            }
-        }
-
-        LastRejectedCandidate = default;
-        return true;
+            searchResult,
+            forcedWorkType,
+            ignorePriority,
+            out bestCandidate,
+            out WorkTargetCandidate rejectedCandidate);
+        LastRejectedCandidate = rejectedCandidate;
+        return found;
     }
 
     internal bool RequiresForcedEnvironmentConfirmation(
@@ -1044,107 +744,11 @@ public sealed class WorkTargetSelector
         GridPathSearchResult searchResult,
         out string warning)
     {
-        warning = string.Empty;
-        if (environmentWorkPolicy == null
-            || building == null
-            || !workTypeId.IsValid
-            || work.WorkerActor == null)
-        {
-            return false;
-        }
-
-        GridPathSearchResult resolvedSearch = searchResult;
-        if (resolvedSearch == null)
-        {
-            Grid grid = work.WorkGridResolver.ResolveActiveGrid(work, null);
-            resolvedSearch = grid?.SearchPath(work.WorkerActor.GetNowXY());
-        }
-
-        GridMoveStep[] route = resolvedSearch?
-            .GetMovePathTo(building.centerPos)
-            .ToArray()
-            ?? System.Array.Empty<GridMoveStep>();
-        WorkEnvironmentAssessment assessment =
-            environmentWorkPolicy.AssessStart(
-                work.WorkerActor,
-                building.centerPos,
-                route,
-                EstimateRemainingWorkSeconds(building, workTypeId),
-                ResolveEnvironmentWorkKind(workTypeId),
-                forced: true);
-        bool requiresConfirmation =
-            assessment.Projection.HasLethalChannel
-            || assessment.Projection.WorstBand
-                >= EnvironmentalExposureBand.Critical;
-        if (requiresConfirmation)
-        {
-            warning = assessment.Reason
-                + " 붕괴 시 안전 셀 대피와 치료는 가능하지만 캐릭터 손실 위험이 있습니다. "
-                + "같은 명령을 다시 실행하면 이 위험을 감수합니다.";
-        }
-
-        return requiresConfirmation;
-    }
-
-    private float EstimateRemainingWorkSeconds(
-        BuildableObject building,
-        WorkTypeId workTypeId)
-    {
-        if (building == null || !workTypeId.IsValid)
-        {
-            return 60f;
-        }
-
-        float remainingWork = 0f;
-        if (work.WorkOrderRuntime != null
-            && work.WorkOrderRuntime.TryGetOrderFor(
-                building,
-                workTypeId,
-                out WorkOrderProgressState order))
-        {
-            remainingWork = Mathf.Max(
-                0f,
-                order.RequiredWork - order.CompletedWork);
-        }
-        else
-        {
-            remainingWork = Mathf.Max(
-                0f,
-                building.BuildingData != null
-                    ? building.BuildingData.GetRequiredWork(workTypeId)
-                    : 0f);
-        }
-
-        if (remainingWork <= 0f)
-        {
-            return 60f;
-        }
-
-        float speed = work.WorkerActor != null
-            ? Mathf.Max(
-                0.05f,
-                work.WorkerActor.GetWorkSpeedMultiplier(workTypeId))
-            : 1f;
-        return Mathf.Clamp(remainingWork / speed, 0.1f, 3600f);
-    }
-
-    private static EnvironmentalWorkKind ResolveEnvironmentWorkKind(
-        WorkTypeId workTypeId)
-    {
-        string id = workTypeId.Value ?? string.Empty;
-        if (id.IndexOf("research", System.StringComparison.OrdinalIgnoreCase)
-            >= 0
-            || id.IndexOf("craft", System.StringComparison.OrdinalIgnoreCase)
-            >= 0
-            || id.IndexOf("medical", System.StringComparison.OrdinalIgnoreCase)
-            >= 0
-            || id.IndexOf("treat", System.StringComparison.OrdinalIgnoreCase)
-            >= 0)
-        {
-            return EnvironmentalWorkKind.Precision;
-        }
-
-        return EnvironmentalWorkKind.General;
+        return targetEnvironment.RequiresForcedConfirmation(
+            building,
+            workTypeId,
+            searchResult,
+            out warning);
     }
 
     private WorkTargetCandidate BuildCandidate(
@@ -1153,7 +757,7 @@ public sealed class WorkTargetSelector
         WorkPriorityLevel priority,
         GridPathSearchResult searchResult)
     {
-        FacilityWorkType workType = definition.Type;
+        FacilityWorkType workType = FacilityWorkTypeMap.GetRequired(definition);
         WorkTypeId workTypeId = definition.WorkTypeId;
         CharacterActor actor = work.WorkerActor;
         float urgency;
@@ -1163,7 +767,10 @@ public sealed class WorkTargetSelector
             urgency = Mathf.Max(
                 urgency,
                 workPolicyRegistry?.GetAdditionalUrgency(workTypeId, actor, building) ?? 0f);
-            urgency += GetExteriorWorkUrgency(building, actor, workTypeId);
+            urgency += WorkTargetExteriorRules.GetUrgency(
+                building,
+                actor,
+                workTypeId);
         }
 
         float preferenceScore;
@@ -1235,7 +842,8 @@ public sealed class WorkTargetSelector
         float queueBonus = Mathf.Clamp01(1f - signals.QueuePressure) * 8f;
         float pathConfidenceBonus = signals.PathConfidence * 9f;
         float scheduleBonus = signals.ScheduleScore * 8f;
-        float weatherPenalty = signals.WeatherPressure * (IsExteriorWorkType(workType) ? 12f : 4f);
+        float weatherPenalty = signals.WeatherPressure
+            * (WorkTargetSelectionRules.IsExteriorWorkType(workType) ? 12f : 4f);
         float failurePenalty = signals.RecentFailurePressure * 10f;
         float movementPenalty = signals.RecentMovementPressure * 8f * fatigueScale;
         float softLockBonus = actor != null
@@ -1269,8 +877,8 @@ public sealed class WorkTargetSelector
         if (captureDetails)
         {
             CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
-                GetWorkIntention(workType),
-                $"{GetBuildingLabel(building)} {definition.DisplayName}",
+                WorkTargetSelectionRules.GetIntention(workType),
+                $"{WorkTargetSelectionRules.GetBuildingLabel(building)} {definition.DisplayName}",
                 true);
             breakdown.Add(CharacterAiUtilityFactorKind.Priority, Mathf.Clamp01(priority.GetBaseScore() / 300f), 0.28f, priority.ToDisplayText());
             breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Clamp01(urgency / 100f), 0.22f, "긴급도");
@@ -1320,17 +928,19 @@ public sealed class WorkTargetSelector
             return;
         }
 
-        if (candidate.Building == lastRecordedBreakdownBuilding
+        BuildableObject building =
+            WorkTargetCandidateRuntimeAdapter.ResolveBuilding(candidate);
+        if (building == lastRecordedBreakdownBuilding
             && candidate.WorkTypeId == lastRecordedBreakdownWorkTypeId)
         {
             return;
         }
 
-        lastRecordedBreakdownBuilding = candidate.Building;
+        lastRecordedBreakdownBuilding = building;
         lastRecordedBreakdownWorkTypeId = candidate.WorkTypeId;
         CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
-            GetWorkIntention(candidate.WorkType),
-            $"{GetBuildingLabel(candidate.Building)} {candidate.DisplayName}");
+            WorkTargetSelectionRules.GetIntention(candidate.WorkType),
+            $"{WorkTargetSelectionRules.GetBuildingLabel(building)} {candidate.DisplayName}");
         breakdown.Add(CharacterAiUtilityFactorKind.Priority, Mathf.Clamp01(candidate.Priority.GetBaseScore() / 300f), 0.35f, candidate.Priority.ToDisplayText());
         breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Clamp01(candidate.UrgencyScore / 100f), 0.3f, "긴급도");
         breakdown.Add(CharacterAiUtilityFactorKind.Reservation, 1f, 0.2f, "예약 가능");
@@ -1489,8 +1099,9 @@ public sealed class WorkTargetSelector
 
         try
         {
-            FacilityRoomOperationalProfile profile = building.GetRoomOperationalProfile();
-            if (profile == null || profile.Room == null)
+            BuildingRoomOperationalSnapshot profile =
+                building.GetRoomOperationalProfile();
+            if (profile == null || !profile.HasRoom)
             {
                 return 8f;
             }
@@ -1500,7 +1111,7 @@ public sealed class WorkTargetSelector
                 return building.BuildingData.RequiresRoomRole() ? -15f : 0f;
             }
 
-            return Mathf.Lerp(8f, 28f, profile.Room.GetQualityScore());
+            return Mathf.Lerp(8f, 28f, profile.QualityScore);
         }
         catch (System.InvalidOperationException)
         {
@@ -1554,144 +1165,6 @@ public sealed class WorkTargetSelector
         };
     }
 
-    private static CharacterAiIntentionType GetWorkIntention(FacilityWorkType workType)
-    {
-        return workType switch
-        {
-            FacilityWorkType.Haul => CharacterAiIntentionType.Logistics,
-            FacilityWorkType.Hunt => CharacterAiIntentionType.Hunt,
-            FacilityWorkType.Guard => CharacterAiIntentionType.Guard,
-            FacilityWorkType.Rest => CharacterAiIntentionType.Recover,
-            _ => CharacterAiIntentionType.Work
-        };
-    }
-
-    private static bool IsExteriorWorkType(FacilityWorkType workType)
-    {
-        return workType == FacilityWorkType.Haul
-            || workType == FacilityWorkType.Hunt
-            || workType == FacilityWorkType.Guard
-            || workType == FacilityWorkType.Reception
-            || workType == FacilityWorkType.Clean
-            || workType == FacilityWorkType.Repair;
-    }
-
-    private static string GetBuildingLabel(BuildableObject building)
-    {
-        if (building == null)
-        {
-            return "시설 없음";
-        }
-
-        return building.BuildingData != null && !string.IsNullOrWhiteSpace(building.BuildingData.objectName)
-            ? building.BuildingData.objectName
-            : building.name;
-    }
-
-    private static bool CanUseSuppressFor(FacilityWorkType requestedWorkType)
-    {
-        return requestedWorkType == FacilityWorkType.None || requestedWorkType == FacilityWorkType.Guard;
-    }
-
-    private static bool IsReachableWorkBuilding(BuildableObject building, GridPathSearchResult searchResult)
-    {
-        if (building == null || searchResult == null)
-        {
-            return false;
-        }
-
-        if (searchResult.ContainsVisitableOccupant(building))
-        {
-            return true;
-        }
-
-        if (building.Grid == searchResult.sourceGrid)
-        {
-            IReadOnlyList<Vector2Int> positions = building.buildPoses;
-            for (int index = 0; index < positions.Count; index++)
-            {
-                if (searchResult.ContainsPosition(positions[index]))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return building is ExteriorZoneMarker marker
-            && searchResult.ContainsPosition(marker.GridPosition);
-    }
-
-    private static bool HasExteriorWorkRuntime(BuildableObject building, WorkTypeId workTypeId)
-    {
-        IReadOnlyList<BuildingAbility> abilities =
-            building?.BuildingData?.Abilities;
-        if (abilities == null)
-        {
-            return false;
-        }
-
-        for (int index = 0; index < abilities.Count; index++)
-        {
-            if (abilities[index] is IBuildingExteriorWorkRuntimeAbility ability
-                && ability.SupportsExteriorWork(workTypeId))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool IsExteriorWorkAvailable(
-        BuildableObject building,
-        CharacterActor actor,
-        WorkTypeId workTypeId)
-    {
-        if (building?.BuildingData == null)
-        {
-            return false;
-        }
-
-        IReadOnlyList<BuildingAbility> abilities =
-            building.BuildingData.Abilities;
-        for (int index = 0; index < abilities.Count; index++)
-        {
-            if (abilities[index] is IBuildingExteriorWorkRuntimeAbility ability
-                && ability.SupportsExteriorWork(workTypeId)
-                && ability.IsExteriorWorkAvailable(actor, building, workTypeId))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static float GetExteriorWorkUrgency(
-        BuildableObject building,
-        CharacterActor actor,
-        WorkTypeId workTypeId)
-    {
-        if (building?.BuildingData == null)
-        {
-            return 0f;
-        }
-
-        float urgency = 0f;
-        IReadOnlyList<BuildingAbility> abilities =
-            building.BuildingData.Abilities;
-        for (int index = 0; index < abilities.Count; index++)
-        {
-            if (abilities[index] is IBuildingExteriorWorkRuntimeAbility ability
-                && ability.SupportsExteriorWork(workTypeId)
-                && ability.IsExteriorWorkAvailable(actor, building, workTypeId))
-            {
-                urgency += Mathf.Max(0f, ability.GetExteriorWorkUrgency(actor, building, workTypeId));
-            }
-        }
-
-        return urgency;
-    }
 
     private static double GetElapsedMilliseconds(long started)
     {

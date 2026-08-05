@@ -83,12 +83,12 @@ public static class IndustrialInfrastructureStressProbe
         Require(topology.ConveyorNodesByNetwork.Count == height,
             "컨베이어 행 연결망 수가 결정적으로 생성되지 않았습니다.");
 
-        WorldItemStackSaveData stack = new WorldItemStackSaveData
-        {
-            stackId = "stress-stack",
-            itemId = "stock-item:General",
-            quantity = 1
-        };
+        ItemTransitStackSnapshot stack = new ItemTransitStackSnapshot(
+            new ItemStackId("stress-stack"),
+            "material:lumber",
+            1,
+            false,
+            0f);
         int successfulRoutes = 0;
         long routeAllocatedAtStart =
             GC.GetAllocatedBytesForCurrentThread();

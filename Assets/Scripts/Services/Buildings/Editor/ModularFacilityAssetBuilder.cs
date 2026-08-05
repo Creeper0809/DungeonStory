@@ -405,7 +405,8 @@ public static class ModularFacilityAssetBuilder
         building.category = spec.Category;
         building.horizontalDraggable = false;
         building.verticalDraggable = false;
-        building.type = spec.RuntimeType;
+        building.runtimeArchetype =
+            BuildingRuntimeArchetypeKindExtensions.FromComponentType(spec.RuntimeType);
         building.tiles = null;
         building.movementAnchorOffset = Vector2.zero;
         building.movementTravelTime = 2f;
@@ -443,6 +444,7 @@ public static class ModularFacilityAssetBuilder
             : null);
         AddAbility(abilities, CreateProductionWorkstationAbility(spec.Code));
         AddAbility(abilities, EnsureEconomyAbility(spec));
+        AddAbility(abilities, CreateWorkAmountAbility(spec));
         AddAbility(abilities, spec.Core || hasSurvivalWork
             ? new BuildingFacilityAbility { settings = CreateFacilityData(spec) }
             : null);
@@ -529,7 +531,9 @@ public static class ModularFacilityAssetBuilder
             ? null
             : new BuildingProductionWorkstationAbility
             {
-                workstationTag = tag
+                workstationTag = tag,
+                stockSensorInstallationItemId =
+                    "component:stock-sensor-panel"
             };
     }
 
@@ -592,7 +596,13 @@ public static class ModularFacilityAssetBuilder
                     growthRate: 1f,
                     waterRate: 1f,
                     compost: 0,
-                    fuel: 0);
+                    fuel: 0,
+                    supplies: new[]
+                    {
+                        new ItemAmountDefinition(
+                            "supply:nitrate-fertilizer",
+                            1)
+                    });
                 return ability;
             case "P24":
                 ability = new BuildingCropPlotAbility();
@@ -601,7 +611,16 @@ public static class ModularFacilityAssetBuilder
                     growthRate: 1.25f,
                     waterRate: 0.85f,
                     compost: 1,
-                    fuel: 1);
+                    fuel: 1,
+                    supplies: new[]
+                    {
+                        new ItemAmountDefinition(
+                            "supply:nitrate-fertilizer",
+                            1),
+                        new ItemAmountDefinition(
+                            "supply:mushroom-substrate",
+                            1)
+                    });
                 return ability;
             default:
                 return null;
@@ -648,6 +667,51 @@ public static class ModularFacilityAssetBuilder
             unlockPhase = Mathf.Clamp(spec.Phase, 1, 3),
             demolitionRefundRate = 0.5f
         };
+    }
+
+    private static BuildingWorkAmountAbility CreateWorkAmountAbility(
+        FacilityPartSpec spec)
+    {
+        int constructionValue = GetConstructionCost(spec);
+        int cells = Mathf.Max(1, spec.Width);
+        BuildingWorkAmountAbility ability = new BuildingWorkAmountAbility
+        {
+            constructionWorkRequired = Mathf.Clamp(
+                12f + cells * 6f + constructionValue * 0.02f,
+                12f,
+                120f),
+            repairWorkRequired = Mathf.Clamp(8f + cells * 2f, 6f, 35f),
+            cleanWorkRequired = Mathf.Clamp(5f + cells * 1.25f, 4f, 24f),
+            researchWorkRequired = 6f,
+            operateWorkRequired = 10f
+        };
+        List<ItemAmountDefinition> constructionMaterials = new()
+        {
+            new ItemAmountDefinition(
+                spec.Phase >= 3
+                    ? "component:machine-parts"
+                    : spec.Phase == 2
+                        ? "material:stone-block"
+                        : "material:lumber",
+                Mathf.Max(1, Mathf.CeilToInt(constructionValue * 0.05f)))
+        };
+        string[] installationItems = spec.Code switch
+        {
+            "M04" => new[] { "craft:dreamweave-ritual-banner" },
+            "P08" => new[] { "tool:alloy-crucible" },
+            "P10" => new[] { "tool:mana-probe" },
+            "P21" => new[] { "tool:powered-tool-head" },
+            "P22" => new[]
+            {
+                "tool:deep-shaft-hoist",
+                "tool:prospecting-kit"
+            },
+            _ => Array.Empty<string>()
+        };
+        constructionMaterials.AddRange(installationItems.Select(
+            itemId => new ItemAmountDefinition(itemId, 1)));
+        ability.SetConstructionMaterials(constructionMaterials);
+        return ability;
     }
 
     private static BuildingNeedRecoveryAbility EnsureNeedRecoveryAbility(FacilityPartSpec spec)
@@ -1352,6 +1416,9 @@ public static class ModularFacilityAssetBuilder
             item = ScriptableObject.CreateInstance<SaleItem>();
             AssetDatabase.CreateAsset(item, assetPath);
         }
+
+        item.SetItemDefinitionId("tool:field-repair-kit");
+
 
         item.id = 4000;
         item.itemName = "모험용품";

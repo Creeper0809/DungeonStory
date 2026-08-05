@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: DefenseFacility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -38,10 +29,11 @@ MonoBehaviour:
       Data: 
   id: 58
   objectName: "3\uC131 \uD3ED\uB8B0 \uBD84\uC0AC\uAD6C"
-  sprite: {fileID: 21300000, guid: b33c8658c081b41f9f1d74b95cad8f42, type: 3}
-  icon: {fileID: 21300000, guid: b33c8658c081b41f9f1d74b95cad8f42, type: 3}
+  sprite: {fileID: 21300000, guid: acc488cd90ad6b741bf558d28a1aa953, type: 3}
+  icon: {fileID: 21300000, guid: acc488cd90ad6b741bf558d28a1aa953, type: 3}
   abilityModules:
     items:
+    - rid: 8800000000000000058
     - rid: 7302562978982527616
     - rid: 7302562987322638810
     - rid: 7302562987322638811
@@ -51,6 +43,7 @@ MonoBehaviour:
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 7
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -60,7 +53,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7302562978982527616
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -98,21 +91,21 @@ MonoBehaviour:
           - {fileID: 11400000, guid: b776411c4b7a6b93a8470da56c96992a, type: 2}
           - {fileID: 11400000, guid: 8dd434bad5603c15cb84614b321eae95, type: 2}
           - {fileID: 11400000, guid: f51751280a6ebbe8c8ed42f996d233de, type: 2}
-          supplyKind: 5
-          supplyItemId: 
-          supplyCategory: 3
-          supplyCapacity: 0
-          supplyPerActivation: 0
-          initialSupply: 0
-          requiresPower: 1
-          powerDemand: 3
-          conditionLossPerActivation: 1
+          supplyKind: 4
+          supplyItemId: ammo:blasting-charge
+          supplyCategory: 7
+          supplyCapacity: 4
+          supplyPerActivation: 1
+          initialSupply: 1
+          requiresPower: 0
+          powerDemand: 0
+          conditionLossPerActivation: 1.4
           baseJamChance: 0.01
-          baseMisfireChance: 0.005
-          facilityFamilyId: defense:elemental
+          baseMisfireChance: 0.02
+          facilityFamilyId: defense:blast-trap
           affinityTags:
-          - defense:lightning
-          - species:beastkin
+          - defense:blast
+          - species:kobold
           - species:demon
           growth:
             capacityLevel: 0
@@ -121,3 +114,15 @@ MonoBehaviour:
             detectionRangeLevel: 0
             identificationLevel: 0
             outageResistanceLevel: 0
+    - rid: 8800000000000000058
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 30
+        repairWorkRequired: 14
+        cleanWorkRequired: 9
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 1

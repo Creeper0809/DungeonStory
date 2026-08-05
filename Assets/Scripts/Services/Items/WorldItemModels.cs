@@ -11,6 +11,7 @@ using VContainer.Unity;
 public sealed class WorldItemStackSnapshot
 {
     public string StackId { get; set; }
+    public string ItemInstanceId { get; set; }
     public string ItemId { get; set; }
     public string DisplayName { get; set; }
     public string Description { get; set; }
@@ -34,6 +35,9 @@ public sealed class WorldItemStackSnapshot
     public bool EmergencyButcheryAllowed { get; set; }
     public WasteOriginKind WasteOrigin { get; set; }
     public float Contamination { get; set; }
+    public IReadOnlyList<ItemInstanceComponentSaveData> Components { get; set; } =
+        Array.Empty<ItemInstanceComponentSaveData>();
+    public string StackSignature => ItemStackSignature.Create(ItemId, Components);
     public bool IsWaste => WasteOrigin != WasteOriginKind.Unknown;
     public bool HasUniqueMetadata => !string.IsNullOrWhiteSpace(SourceCharacterId);
     public float TotalWeight => UnitWeight * Quantity;
@@ -217,7 +221,133 @@ public readonly struct WorldItemHaulJob
         && (DestinationKind == WorldItemHaulDestinationKind.FacilityBuffer || Warehouse != null);
 }
 
-public interface IWorldItemStackRuntime
+public interface IEquipmentPhysicalItemGateway
+{
+    bool SpawnItemAt(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        out int spawned);
+    bool SpawnExistingUniqueItemAt(
+        string itemId,
+        ItemInstanceId itemInstanceId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        out string stackId);
+    bool TryAbsorbUniqueItemStack(
+        string stackId,
+        ItemInstanceId expectedInstanceId);
+    bool TryRequestItemDelivery(
+        string itemId,
+        int amount,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int requested,
+        out string failureReason);
+    IReadOnlyList<WorldItemStackSnapshot> GetAllStacks();
+    bool TryConsumeFacilityItemBuffer(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        out string failureReason);
+    bool DeleteStack(string stackId);
+    bool TryConsumeStackQuantity(
+        string stackId,
+        int quantity,
+        out WorldItemStackSnapshot consumed);
+    bool TrySetInstanceComponent(
+        string stackId,
+        ItemInstanceComponentSaveData component);
+    int ReleaseStacksByDestination(
+        string destinationId,
+        Vector2Int releasePosition);
+}
+
+public sealed class UnavailableEquipmentPhysicalItemGateway :
+    IEquipmentPhysicalItemGateway
+{
+    public static readonly UnavailableEquipmentPhysicalItemGateway Instance = new();
+
+    private UnavailableEquipmentPhysicalItemGateway()
+    {
+    }
+
+    public bool SpawnItemAt(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        out int spawned)
+    {
+        spawned = 0;
+        return false;
+    }
+
+    public bool SpawnExistingUniqueItemAt(
+        string itemId,
+        ItemInstanceId itemInstanceId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        out string stackId)
+    {
+        stackId = string.Empty;
+        return false;
+    }
+
+    public bool TryAbsorbUniqueItemStack(
+        string stackId,
+        ItemInstanceId expectedInstanceId) => false;
+
+    public bool TryRequestItemDelivery(
+        string itemId,
+        int amount,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int requested,
+        out string failureReason)
+    {
+        requested = 0;
+        failureReason = "physical item capability unavailable";
+        return false;
+    }
+
+    public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
+        Array.Empty<WorldItemStackSnapshot>();
+
+    public bool TryConsumeFacilityItemBuffer(
+        string destinationId,
+        IReadOnlyDictionary<string, int> costs,
+        out string failureReason)
+    {
+        failureReason = "physical item capability unavailable";
+        return false;
+    }
+
+    public bool DeleteStack(string stackId) => false;
+
+    public bool TryConsumeStackQuantity(
+        string stackId,
+        int quantity,
+        out WorldItemStackSnapshot consumed)
+    {
+        consumed = null;
+        return false;
+    }
+
+    public bool TrySetInstanceComponent(
+        string stackId,
+        ItemInstanceComponentSaveData component) => false;
+
+    public int ReleaseStacksByDestination(
+        string destinationId,
+        Vector2Int releasePosition) => 0;
+}
+
+public interface IWorldItemStackRuntime : IEquipmentPhysicalItemGateway
 {
     IDungeonItemCatalogProvider CatalogProvider { get; }
     IItemHaulingSettingsProvider HaulingSettingsProvider { get; }
@@ -240,7 +370,7 @@ public interface IWorldItemStackRuntime
         StockCategory category,
         int amount,
         out int spawned);
-    bool SpawnItemAt(
+    new bool SpawnItemAt(
         string itemId,
         int amount,
         Vector2Int position,
@@ -267,6 +397,13 @@ public interface IWorldItemStackRuntime
         string destinationId,
         Vector2Int destinationPosition,
         out string stackId);
+    new bool SpawnExistingUniqueItemAt(
+        string itemId,
+        ItemInstanceId itemInstanceId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        out string stackId);
     bool SpawnHumanoidCorpse(
         CharacterActor source,
         Vector2Int position,
@@ -279,7 +416,7 @@ public interface IWorldItemStackRuntime
         string destinationId,
         out int requested,
         out string failureReason);
-    bool TryRequestItemDelivery(
+    new bool TryRequestItemDelivery(
         string itemId,
         int amount,
         Vector2Int destinationPosition,
@@ -299,7 +436,7 @@ public interface IWorldItemStackRuntime
         out ItemPileInfoTarget target,
         out UnityEngine.Object markerObject);
     IReadOnlyList<WorldItemStackSnapshot> GetStacksAt(Vector2Int position, bool includeStored = false);
-    IReadOnlyList<WorldItemStackSnapshot> GetAllStacks();
+    new IReadOnlyList<WorldItemStackSnapshot> GetAllStacks();
     bool TryFindNearestAvailableStock(
         Vector2Int origin,
         StockCategory category,
@@ -348,7 +485,7 @@ public interface IWorldItemStackRuntime
         string destinationId,
         IReadOnlyDictionary<StockCategory, int> costs,
         out string failureReason);
-    bool TryConsumeFacilityItemBuffer(
+    new bool TryConsumeFacilityItemBuffer(
         string destinationId,
         IReadOnlyDictionary<string, int> costs,
         out string failureReason);
@@ -367,16 +504,19 @@ public interface IWorldItemStackRuntime
         string destinationId,
         Vector2Int destinationPosition,
         out string failureReason);
-    bool DeleteStack(string stackId);
-    bool TryConsumeStackQuantity(string stackId, int quantity, out WorldItemStackSnapshot consumed);
+    new bool DeleteStack(string stackId);
+    new bool TrySetInstanceComponent(
+        string stackId,
+        ItemInstanceComponentSaveData component);
     bool SetEmergencyButcheryAllowed(string stackId, bool allowed);
     int RemoveStacksByStateAndDestination(WorldItemStackState state, string destinationId);
-    int ReleaseStacksByDestination(string destinationId, Vector2Int releasePosition);
+    new int ReleaseStacksByDestination(string destinationId, Vector2Int releasePosition);
 }
 
 internal sealed class WorldItemStackRecord
 {
     public string stackId = string.Empty;
+    public string itemInstanceId = string.Empty;
     public string itemId = string.Empty;
     public int quantity;
     public WorldItemStackState state;
@@ -394,4 +534,5 @@ internal sealed class WorldItemStackRecord
     public bool emergencyButcheryAllowed;
     public WasteOriginKind wasteOrigin;
     public float contamination;
+    public List<ItemInstanceComponentSaveData> components = new();
 }

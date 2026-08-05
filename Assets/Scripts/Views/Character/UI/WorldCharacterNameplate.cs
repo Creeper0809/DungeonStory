@@ -17,7 +17,7 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
     [SerializeField] private Color woundedHealthColor = new Color(1f, 0.75f, 0.25f, 0.82f);
     [SerializeField] private Color criticalHealthColor = new Color(1f, 0.28f, 0.25f, 0.88f);
 
-    private static Material sharedLineMaterial;
+    [RuntimeRebuildableCache] private static Material sharedLineMaterial;
 
     private CharacterActor actor;
     private CharacterIdentity identity;
@@ -42,9 +42,7 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
     private IDynamicFrameWorkBudget frameWorkBudget;
     private ITmpKoreanFontService tmpKoreanFontService;
 
-    public static WorldCharacterNameplate Ensure(
-        CharacterActor owner,
-        ITmpKoreanFontService tmpKoreanFontService = null)
+    public static WorldCharacterNameplate Ensure(CharacterActor owner)
     {
         if (owner == null)
         {
@@ -59,7 +57,7 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
         nameplate.Bind(
             owner,
             owner.MainCameraProvider,
-            tmpKoreanFontService ?? owner.TmpKoreanFontService);
+            owner.TmpKoreanFontService);
         return nameplate;
     }
 
@@ -447,8 +445,8 @@ public sealed class WorldCharacterNameplate : MonoBehaviour
             return;
         }
 
-        if (actor?.DeprivationRuntime == null
-            || !actor.DeprivationRuntime.TryGetDisplayState(
+        if (actor?.DeprivationQuery == null
+            || !actor.DeprivationQuery.TryGetDisplayState(
                 actor,
                 out CharacterDeprivationDisplayState displayState)
             || (displayState.HighestBurden < 40f && !displayState.BreakdownActive))

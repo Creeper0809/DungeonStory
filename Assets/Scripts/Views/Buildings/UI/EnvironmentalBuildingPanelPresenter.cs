@@ -17,13 +17,21 @@ public interface IEnvironmentalBuildingPanelPresenter
 public sealed class EnvironmentalBuildingPanelPresenter :
     IEnvironmentalBuildingPanelPresenter
 {
-    private readonly IEnvironmentalFieldRuntime field;
+    private readonly IEnvironmentalFieldQuery query;
+    private readonly IEnvironmentalFieldCommand commands;
+    private readonly IDomainFailureLocalizer failureLocalizer;
 
     public EnvironmentalBuildingPanelPresenter(
-        IEnvironmentalFieldRuntime field)
+        IEnvironmentalFieldQuery query,
+        IEnvironmentalFieldCommand commands,
+        IDomainFailureLocalizer failureLocalizer)
     {
-        this.field = field
-            ?? throw new ArgumentNullException(nameof(field));
+        this.query = query
+            ?? throw new ArgumentNullException(nameof(query));
+        this.commands = commands
+            ?? throw new ArgumentNullException(nameof(commands));
+        this.failureLocalizer = failureLocalizer
+            ?? throw new ArgumentNullException(nameof(failureLocalizer));
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -39,7 +47,7 @@ public sealed class EnvironmentalBuildingPanelPresenter :
                 ?.GetAbility<BuildingThermalEmitterAbility>();
         if (parent == null
             || emitter?.playerConfigurable != true
-            || !field.TryGetTargetTemperature(
+            || !query.TryGetTargetTemperature(
                 building.centerPos,
                 out float target))
         {
@@ -66,11 +74,11 @@ public sealed class EnvironmentalBuildingPanelPresenter :
         Action<string> setStatus,
         Action refresh)
     {
-        if (field.TrySetTargetTemperature(
+        if (commands.TrySetTargetTemperature(
             building.centerPos,
             target,
-            out string failureReason)
-            && field.TryGetTargetTemperature(
+            out DomainFailure failure)
+            && query.TryGetTargetTemperature(
                 building.centerPos,
                 out float applied))
         {
@@ -78,7 +86,7 @@ public sealed class EnvironmentalBuildingPanelPresenter :
         }
         else
         {
-            setStatus?.Invoke(failureReason);
+            setStatus?.Invoke(failureLocalizer.Localize(failure));
         }
 
         refresh?.Invoke();

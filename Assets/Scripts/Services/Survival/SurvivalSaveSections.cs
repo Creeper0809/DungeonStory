@@ -1,89 +1,80 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
-public sealed class SurvivalResourcesSaveSection : IDungeonSaveSection
+public sealed class SurvivalResourcesSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonSurvivalSaveData,
+        SurvivalFoodRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "survival.resources";
 
     private static readonly string[] Dependencies =
     {
+        CharacterWorldSaveSection.Id,
         PhysicalItemsSaveSection.Id,
         WildlifeSaveSection.Id
     };
-    private readonly ISurvivalFoodRuntime runtime;
+    private readonly ISurvivalFoodPersistence runtime;
 
-    public SurvivalResourcesSaveSection(ISurvivalFoodRuntime runtime)
+    public SurvivalResourcesSaveSection(ISurvivalFoodPersistence runtime)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => DungeonSurvivalSaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => Dependencies;
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonSurvivalSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.LateRuntimeState;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
-    {
-        return JsonUtility.ToJson(runtime.Capture());
-    }
+    protected override DungeonSurvivalSaveData CapturePayload() =>
+        runtime.Capture();
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        if (sectionVersion != SectionVersion)
-        {
-            report.AddError(
-                $"Unsupported survival section version {sectionVersion}; expected {SectionVersion}.");
-            return;
-        }
+    protected override SurvivalFoodRestoreCandidate BuildRestoreCandidate(
+        DungeonSurvivalSaveData payload) =>
+        runtime.BuildRestoreCandidate(payload);
 
-        runtime.Restore(JsonUtility.FromJson<DungeonSurvivalSaveData>(payloadJson)
-            ?? new DungeonSurvivalSaveData());
-    }
+    protected override void PublishRestoreCandidate(
+        SurvivalFoodRestoreCandidate candidate) =>
+        runtime.PublishRestoreCandidate(candidate);
 }
 
-public sealed class DarkSurvivalSaveSection : IDungeonSaveSection
+public sealed class DarkSurvivalSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonDarkSurvivalSaveData,
+        DarkSurvivalRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "survival.deprivation";
 
     private static readonly string[] Dependencies =
     {
+        CharacterWorldSaveSection.Id,
         PhysicalItemsSaveSection.Id,
         SurvivalResourcesSaveSection.Id
     };
-    private readonly ICharacterDeprivationRuntime runtime;
+    private readonly ICharacterDeprivationPersistence runtime;
 
-    public DarkSurvivalSaveSection(ICharacterDeprivationRuntime runtime)
+    public DarkSurvivalSaveSection(ICharacterDeprivationPersistence runtime)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => DungeonDarkSurvivalSaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => Dependencies;
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonDarkSurvivalSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.LateRuntimeState;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
-    {
-        return JsonUtility.ToJson(runtime.Capture());
-    }
+    protected override DungeonDarkSurvivalSaveData CapturePayload() =>
+        runtime.Capture();
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        if (sectionVersion != SectionVersion)
-        {
-            report.AddError(
-                $"Unsupported deprivation section version {sectionVersion}; expected {SectionVersion}.");
-            return;
-        }
+    protected override DarkSurvivalRestoreCandidate BuildRestoreCandidate(
+        DungeonDarkSurvivalSaveData payload) =>
+        runtime.BuildRestoreCandidate(payload);
 
-        runtime.Restore(JsonUtility.FromJson<DungeonDarkSurvivalSaveData>(payloadJson)
-            ?? new DungeonDarkSurvivalSaveData());
-    }
+    protected override void PublishRestoreCandidate(
+        DarkSurvivalRestoreCandidate candidate) =>
+        runtime.PublishRestoreCandidate(candidate);
 }

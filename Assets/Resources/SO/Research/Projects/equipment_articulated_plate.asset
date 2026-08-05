@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: equipment_articulated_plate
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7229
+  projectId: research:equipment:articulated-plate
+  displayName: "\uAD00\uC808\uC2DD \uD310\uAE08"
+  description: "\uC81C\uAC15 \uD310\uC7AC\uC640 \uC0AC\uC2AC \uC5F0\uACB0\uBD80\uB97C
+    \uAD00\uC808 \uAD6C\uC870\uB85C \uC870\uB9BD\uD55C\uB2E4."
+  field: 10
+  requiredWork: 252
+  prerequisites:
+  - {fileID: 11400000, guid: ec657baa6adfda94d991f5df80a7780e, type: 2}
+  - {fileID: 11400000, guid: 00b8c28931f47544faecc8b510851912, type: 2}
+  - {fileID: 11400000, guid: 4736dc67de517194bba2ecc8eb663cc3, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:equipment:mail-weaving
+    prerequisite: {fileID: 11400000, guid: ec657baa6adfda94d991f5df80a7780e, type: 2}
+    kind: 2
+    reason: "\uC0AC\uC2AC \uD3B8\uC870\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uAD00\uC808\uC2DD \uD310\uAE08 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:metallurgy:advanced
+    prerequisite: {fileID: 11400000, guid: 00b8c28931f47544faecc8b510851912, type: 2}
+    kind: 2
+    reason: "\uACE0\uAE09 \uB2E8\uC870\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uAD00\uC808\uC2DD \uD310\uAE08 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:metallurgy:steel
+    prerequisite: {fileID: 11400000, guid: 4736dc67de517194bba2ecc8eb663cc3, type: 2}
+    kind: 2
+    reason: "\uC81C\uAC15\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uAD00\uC808\uC2DD
+      \uD310\uAE08 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211730927812983
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730927812983
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 8839

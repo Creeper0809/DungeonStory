@@ -11,10 +11,15 @@ public sealed class SurgicalPartProductionOutputHandler :
         SurgeryItemDefinitions.GetProstheticItemId("eye:left");
 
     private readonly ISurgicalPartRuntime parts;
+    private readonly IItemDefinitionCatalog itemCatalog;
 
-    public SurgicalPartProductionOutputHandler(ISurgicalPartRuntime parts)
+    public SurgicalPartProductionOutputHandler(
+        ISurgicalPartRuntime parts,
+        IItemDefinitionCatalog itemCatalog)
     {
         this.parts = parts ?? throw new ArgumentNullException(nameof(parts));
+        this.itemCatalog = itemCatalog
+            ?? throw new ArgumentNullException(nameof(itemCatalog));
     }
 
     public bool CanHandle(string itemId)
@@ -28,11 +33,19 @@ public sealed class SurgicalPartProductionOutputHandler :
         ProductionOutputContext context,
         out string failureReason)
     {
+        if (!CanHandle(context.ItemId))
+        {
+            failureReason = FailureCode.SurgeryPartUnavailable.ToString();
+            return false;
+        }
+
         ResolveDefinition(
             context.ItemId,
             out string nodeId,
-            out string displayName,
             out SurgicalPartKind kind);
+        string displayName = itemCatalog
+            .GetRequired(new ItemDefinitionId(context.ItemId))
+            .DisplayName;
         for (int index = 0; index < context.Amount; index++)
         {
             if (!parts.TryCreateCraftedPart(
@@ -42,8 +55,9 @@ public sealed class SurgicalPartProductionOutputHandler :
                     ResolveQuality(context.Worker),
                     context.Facility.centerPos,
                     out _,
-                    out failureReason))
+                    out DomainFailure failure))
             {
+                failureReason = failure.Code.ToString();
                 return false;
             }
         }
@@ -55,7 +69,6 @@ public sealed class SurgicalPartProductionOutputHandler :
     private static void ResolveDefinition(
         string itemId,
         out string nodeId,
-        out string displayName,
         out SurgicalPartKind kind)
     {
         kind = SurgicalPartKind.Prosthetic;
@@ -65,7 +78,6 @@ public sealed class SurgicalPartProductionOutputHandler :
                 StringComparison.Ordinal))
         {
             nodeId = "leg:left";
-            displayName = "철제 의족";
             return;
         }
 
@@ -75,13 +87,11 @@ public sealed class SurgicalPartProductionOutputHandler :
                 StringComparison.Ordinal))
         {
             nodeId = "eye:left";
-            displayName = "인공 안구";
             kind = SurgicalPartKind.Implant;
             return;
         }
 
         nodeId = "arm:left";
-        displayName = "철제 의수";
     }
 
     private static float ResolveQuality(CharacterActor worker)

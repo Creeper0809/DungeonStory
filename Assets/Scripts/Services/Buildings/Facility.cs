@@ -5,33 +5,43 @@ using VContainer;
 
 public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWarehouseFacility
 {
-    private CharacterActor worker;
+    private IBuildingVisitorPort worker;
     private WarehouseInventory warehouseInventory;
     private IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
     private IMealConsumptionRuntime mealConsumptionRuntime;
     private IWaterFixtureUseRuntime waterFixtureUseRuntime;
-    private IWastewaterNetworkRuntime wastewaterNetworkRuntime;
+    private IFluidWastewaterTransaction wastewaterNetworkRuntime;
     private IServiceSessionRuntime serviceSessionRuntime;
     private IServiceRoomLinkRuntime serviceRoomLinkRuntime;
+    private IStockQuery stockQuery;
+    private IStockCategoryDefinitionCatalog stockCategoryCatalog;
 
     public WarehouseInventory Inventory => warehouseInventory;
+    public IWarehouseInventoryPort InventoryPort => warehouseInventory;
     public bool HasWarehouseInventory => warehouseInventory != null;
 
     [Inject]
     public void ConstructFacility(
         IRoomEnvironmentExperienceService roomEnvironmentExperienceService,
-        IMealConsumptionRuntime mealConsumptionRuntime = null,
-        IWaterFixtureUseRuntime waterFixtureUseRuntime = null,
-        IWastewaterNetworkRuntime wastewaterNetworkRuntime = null,
-        IServiceSessionRuntime serviceSessionRuntime = null,
-        IServiceRoomLinkRuntime serviceRoomLinkRuntime = null)
+        IStockQuery stockQuery,
+        IMealConsumptionRuntime mealConsumptionRuntime,
+        IWaterFixtureUseRuntime waterFixtureUseRuntime,
+        IFluidWastewaterTransaction wastewaterNetworkRuntime,
+        IServiceSessionRuntime serviceSessionRuntime,
+        IServiceRoomLinkRuntime serviceRoomLinkRuntime,
+        IStockCategoryDefinitionCatalog stockCategoryCatalog)
     {
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
+        this.stockQuery = stockQuery ?? throw new System.ArgumentNullException(nameof(stockQuery));
         this.mealConsumptionRuntime = mealConsumptionRuntime;
         this.waterFixtureUseRuntime = waterFixtureUseRuntime;
-        this.wastewaterNetworkRuntime = wastewaterNetworkRuntime;
+        this.wastewaterNetworkRuntime = wastewaterNetworkRuntime
+            ?? throw new System.ArgumentNullException(
+                nameof(wastewaterNetworkRuntime));
         this.serviceSessionRuntime = serviceSessionRuntime;
         this.serviceRoomLinkRuntime = serviceRoomLinkRuntime;
+        this.stockCategoryCatalog = stockCategoryCatalog
+            ?? throw new System.ArgumentNullException(nameof(stockCategoryCatalog));
     }
 
     public override void Initialization(BuildingSO buildingSO, Vector2Int buildPos)
@@ -46,11 +56,6 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 storageCapacity,
                 this.GetStorageCategory(),
                 restrictCategory);
-            if (this.StoresAllCategories())
-            {
-                warehouseInventory.ApplySnapshot(
-                    WarehouseInventory.CreateSeeded(storageCapacity).CreateSnapshot());
-            }
         }
         else
         {
@@ -58,25 +63,30 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             warehouseInventory = Facility != null
                 && Facility.SupportsRole(FacilityRole.Logistics)
                 && internalStockCapacity > 0
-                    ? WarehouseInventory.CreateSeeded(internalStockCapacity)
+                    ? new WarehouseInventory(internalStockCapacity)
                     : null;
         }
 
         if (warehouseInventory != null)
         {
+            warehouseInventory.BindPhysicalStock(
+                stockQuery ?? throw new System.InvalidOperationException(
+                    "Facility warehouse requires IStockQuery before initialization."),
+                RequirePersistentInstanceId(),
+                stockCategoryCatalog ?? throw new System.InvalidOperationException(
+                    "Facility warehouse requires the authored stock-category catalog."));
             RegisterStateModule(new WarehouseInventoryStateModule(this));
         }
     }
 
-    public IEnumerator Interact(CharacterActor actor)
+    public IEnumerator Interact(IBuildingVisitorPort actor)
     {
         if (!CanVisit(actor, out string visitFailure))
         {
-            actor?.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.FacilityUse,
-                CharacterActivityOutcomes.Failed,
+            actor?.RecordActivity(this, new BuildingActivitySnapshot(
+                BuildingActivityKinds.FacilityUse,
+                BuildingActivityOutcomes.Failed,
                 $"{objectNameOrDefault()} 이용 실패: {visitFailure}",
-                this,
                 reasonCode: visitFailure,
                 bubbleEligible: true));
             yield break;
@@ -97,14 +107,14 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     AdvertisedDemand = !Shop.IsInternalStaffUse(actor)
                 },
                 out serviceSession,
-                out string serviceFailure))
+                out DomainFailure serviceFailure))
         {
-            actor?.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.FacilityUse,
-                CharacterActivityOutcomes.Failed,
-                $"{objectNameOrDefault()} 이용 실패: {serviceFailure}",
-                this,
-                reasonCode: serviceFailure,
+            string serviceFailureCode = serviceFailure.Code.ToString();
+            actor?.RecordActivity(this, new BuildingActivitySnapshot(
+                BuildingActivityKinds.FacilityUse,
+                BuildingActivityOutcomes.Failed,
+                $"{objectNameOrDefault()} 이용 실패",
+                reasonCode: serviceFailureCode,
                 bubbleEligible: true));
             yield break;
         }
@@ -113,25 +123,24 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         BuildingWaterFixtureAbility waterFixture =
             BuildingData?.GetAbility<BuildingWaterFixtureAbility>();
         if (waterFixture != null
-            && wastewaterNetworkRuntime != null
             && waterFixture.wastewaterPerUse > 0f
             && !wastewaterNetworkRuntime.CanAcceptWastewater(
                 this,
                 waterFixture.wastewaterPerUse,
-                out string drainFailure))
+                out DomainFailure drainFailure))
         {
+            string drainFailureCode = drainFailure.Code.ToString();
             if (serviceSession != null)
             {
                 serviceSessionRuntime.CancelSession(
                     serviceSession.SessionId,
-                    drainFailure);
+                    drainFailureCode);
             }
-            actor?.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.FacilityUse,
-                CharacterActivityOutcomes.Failed,
-                $"{objectNameOrDefault()} 이용 실패: {drainFailure}",
-                this,
-                reasonCode: drainFailure,
+            actor?.RecordActivity(this, new BuildingActivitySnapshot(
+                BuildingActivityKinds.FacilityUse,
+                BuildingActivityOutcomes.Failed,
+                $"{objectNameOrDefault()} 이용 실패: {drainFailureCode}",
+                reasonCode: drainFailureCode,
                 bubbleEligible: true));
             yield break;
         }
@@ -140,20 +149,20 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             && !waterFixtureUseRuntime.TryBeginUse(
                 this,
                 out fixtureUseTicket,
-                out string plumbingFailure))
+                out DomainFailure plumbingFailure))
         {
+            string plumbingFailureCode = plumbingFailure.Code.ToString();
             if (serviceSession != null)
             {
                 serviceSessionRuntime.CancelSession(
                     serviceSession.SessionId,
-                    plumbingFailure);
+                    plumbingFailureCode);
             }
-            actor?.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.FacilityUse,
-                CharacterActivityOutcomes.Failed,
-                $"{objectNameOrDefault()} 이용 실패: {plumbingFailure}",
-                this,
-                reasonCode: plumbingFailure,
+            actor?.RecordActivity(this, new BuildingActivitySnapshot(
+                BuildingActivityKinds.FacilityUse,
+                BuildingActivityOutcomes.Failed,
+                $"{objectNameOrDefault()} 이용 실패: {plumbingFailureCode}",
+                reasonCode: plumbingFailureCode,
                 bubbleEligible: true));
             yield break;
         }
@@ -166,18 +175,16 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     serviceSession.SessionId,
                     failureReason);
             }
-            actor?.AddActivity(CharacterActivityEvent.Facility(
-                CharacterActivityKinds.FacilityUse,
-                CharacterActivityOutcomes.Failed,
+            actor?.RecordActivity(this, new BuildingActivitySnapshot(
+                BuildingActivityKinds.FacilityUse,
+                BuildingActivityOutcomes.Failed,
                 $"{objectNameOrDefault()} 이용 실패: {failureReason}",
-                this,
                 reasonCode: failureReason,
                 bubbleEligible: true));
             yield break;
         }
 
-        AbilityMove moveable = actor != null ? actor.GetAbility<AbilityMove>() : null;
-        if (moveable == null)
+        if (actor == null || !actor.VisitorSnapshot.CanMove)
         {
             if (serviceSession != null)
             {
@@ -189,13 +196,13 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             yield break;
         }
 
-        AIAction currentAction = actor != null && actor.Brain != null
-            ? actor.Brain.bestAction
-            : null;
-        Vector3 usePosition = GetFacilityAnchorWorldPosition(FacilityAnchorPurposeIds.Use, actor.transform.position);
-        actor?.Brain?.SetActionPhase("\uC2DC\uC124 \uC811\uADFC", this);
-        yield return moveable.Move2PosBySpeed(usePosition, 0.7f, currentAction);
-        actor?.Brain?.SetActionPhase("\uC790\uB9AC \uC7A1\uAE30", this);
+        object currentAction = actor.CurrentActionToken;
+        Vector3 usePosition = GetFacilityAnchorWorldPosition(
+            FacilityAnchorPurposeIds.Use,
+            actor.VisitorSnapshot.Position);
+        actor.SetActionPhase("\uC2DC\uC124 \uC811\uADFC", this);
+        yield return actor.MoveTo(usePosition, 0.7f, currentAction);
+        actor.SetActionPhase("\uC790\uB9AC \uC7A1\uAE30", this);
         yield return Linger(actor, 0.12f, currentAction);
         if (serviceSession != null
             && serviceSession.Contract != null)
@@ -207,7 +214,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     serviceSession.SessionId,
                     ServiceSessionStage.Reception,
                     out _);
-                actor?.Brain?.SetActionPhase("서비스 접수", this);
+                actor.SetActionPhase("서비스 접수", this);
                 yield return Linger(
                     actor,
                     serviceSession.Contract.receptionSeconds,
@@ -220,7 +227,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                     serviceSession.SessionId,
                     ServiceSessionStage.Waiting,
                     out _);
-                actor?.Brain?.SetActionPhase("서비스 대기", this);
+                actor.SetActionPhase("서비스 대기", this);
                 yield return Linger(
                     actor,
                     serviceSession.Contract.waitingSeconds,
@@ -235,11 +242,11 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 out BuildableObject seat,
                 out _))
         {
-            actor?.Brain?.SetActionPhase("좌석으로 이동", seat);
-            yield return moveable.Move2PosBySpeed(
+            actor.SetActionPhase("좌석으로 이동", seat);
+            yield return actor.MoveTo(
                 seat.GetFacilityAnchorWorldPosition(
                     FacilityAnchorPurposeIds.Use,
-                    actor.transform.position),
+                    actor.VisitorSnapshot.Position),
                 0.7f,
                 currentAction);
         }
@@ -249,12 +256,9 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             : Facility != null
                 ? Facility.useDuration
                 : 1f;
-        if (actor != null && actor.Stats != null)
-        {
-            duration *= actor.Stats.GetStayDurationMultiplier();
-        }
+        duration *= actor.VisitorSnapshot.StayDurationMultiplier;
 
-        actor?.Brain?.SetActionPhase("\uC2DC\uC124 \uC774\uC6A9", this, $"{duration:0.#}s");
+        actor.SetActionPhase("\uC2DC\uC124 \uC774\uC6A9", this, $"{duration:0.#}s");
         if (serviceSession != null)
         {
             serviceSessionRuntime.TrySetStage(
@@ -267,31 +271,29 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             yield return Linger(actor, duration, currentAction);
         }
 
-        MealConsumptionResult mealResult = default;
+        BuildingMealUseSnapshot mealResult = default;
         if (Facility != null && Facility.SupportsRole(FacilityRole.Meal))
         {
             if (mealConsumptionRuntime == null
-                || !mealConsumptionRuntime.TryConsumeMeal(
-                    actor,
+                || !actor.TryConsumeMeal(
+                    mealConsumptionRuntime,
                     this,
                     out mealResult))
             {
-                string reason = mealResult.FailureReason;
+                string failureCode = mealConsumptionRuntime == null
+                    ? "InvalidCommand"
+                    : mealResult.FailureCode;
                 if (serviceSession != null)
                 {
                     serviceSessionRuntime.CancelSession(
                         serviceSession.SessionId,
-                        string.IsNullOrWhiteSpace(reason)
-                            ? "제공할 음식이 없습니다."
-                            : reason);
+                        failureCode);
                 }
-                actor?.AddActivity(CharacterActivityEvent.Facility(
-                    CharacterActivityKinds.FacilityUse,
-                    CharacterActivityOutcomes.Failed,
-                    $"{objectNameOrDefault()} 식사 실패: "
-                    + (string.IsNullOrWhiteSpace(reason) ? "메뉴 없음" : reason),
-                    this,
-                    reasonCode: reason,
+                actor.RecordActivity(this, new BuildingActivitySnapshot(
+                    BuildingActivityKinds.FacilityUse,
+                    BuildingActivityOutcomes.Failed,
+                    failureCode,
+                    reasonCode: failureCode,
                     bubbleEligible: true));
                 EndUse(actor);
                 yield break;
@@ -303,12 +305,9 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         }
 
         waterFixtureUseRuntime?.CompleteUse(this, fixtureUseTicket);
-        ModularFacilityRuntimeEffects.ApplyUseCompleted(actor, this);
-        roomEnvironmentExperienceService?.Apply(new RoomEnvironmentExperienceEvent(
-            actor,
-            this,
-            RoomExperienceActivity.FacilityUse));
-        actor?.Brain?.SetActionPhase("\uC774\uC6A9 \uC815\uB9AC", this);
+        actor.ApplyFacilityUseCompleted(this);
+        actor.ApplyRoomExperience(roomEnvironmentExperienceService, this, "facility-use");
+        actor.SetActionPhase("\uC774\uC6A9 \uC815\uB9AC", this);
         if (serviceSession?.Contract != null
             && (serviceSession.Contract.activeStages
                 & ServiceProcessStageMask.Payment) != 0)
@@ -317,7 +316,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 serviceSession.SessionId,
                 ServiceSessionStage.Payment,
                 out _);
-            actor?.Brain?.SetActionPhase("서비스 결제", this);
+            actor.SetActionPhase("서비스 결제", this);
             yield return Linger(
                 actor,
                 serviceSession.Contract.paymentSeconds,
@@ -331,7 +330,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 serviceSession.SessionId,
                 ServiceSessionStage.Cleanup,
                 out _);
-            actor?.Brain?.SetActionPhase("서비스 정리", this);
+            actor.SetActionPhase("서비스 정리", this);
             yield return Linger(
                 actor,
                 serviceSession.Contract.cleanupSeconds,
@@ -341,27 +340,26 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         {
             yield return Linger(actor, 0.12f, currentAction);
         }
-        actor?.AddActivity(CharacterActivityEvent.Facility(
-            CharacterActivityKinds.FacilityUse,
-            CharacterActivityOutcomes.Completed,
+        actor.RecordActivity(this, new BuildingActivitySnapshot(
+            BuildingActivityKinds.FacilityUse,
+            BuildingActivityOutcomes.Completed,
             mealResult.Success
                 ? $"{mealResult.DisplayName} 식사 완료"
-                : $"{objectNameOrDefault()} 이용 완료",
-            this));
+                : $"{objectNameOrDefault()} 이용 완료"));
         if (serviceSession != null
             && !serviceSessionRuntime.TryCompleteSession(
                 serviceSession.SessionId,
                 out _,
-                out string completionFailure))
+                out DomainFailure completionFailure))
         {
             serviceSessionRuntime.CancelSession(
                 serviceSession.SessionId,
-                completionFailure);
+                completionFailure.Code.ToString());
         }
         EndUse(actor);
     }
 
-    public FacilityAssignmentStatus GetWorkerAssignmentStatus(CharacterActor actor)
+    public FacilityAssignmentStatus GetWorkerAssignmentStatus(IBuildingVisitorPort actor)
     {
         PruneInvalidWorker();
         FacilityAssignmentStatus workStatus = FacilityAssignmentStatus.Rejected(
@@ -373,7 +371,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
                 Facility != null
                     ? Facility.supportedWorkTypes
                     : FacilityWorkType.None);
-        foreach (WorkTypeDefinition definition in WorkTypeCatalog.Enumerate(
+        foreach (WorkTypeDefinition definition in FacilityWorkTypeMap.Enumerate(
                      supported))
         {
             workStatus = GetWorkAssignmentStatus(definition.WorkTypeId);
@@ -405,14 +403,14 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         return FacilityAssignmentStatus.Allowed();
     }
 
-    public bool CanAssignWorker(CharacterActor actor, out string failureReason)
+    public bool CanAssignWorker(IBuildingVisitorPort actor, out string failureReason)
     {
         FacilityAssignmentStatus status = GetWorkerAssignmentStatus(actor);
         failureReason = status.Reason;
         return status.IsAllowed;
     }
 
-    public IEnumerator AllocateWorker(CharacterActor actor)
+    public IEnumerator AllocateWorker(IBuildingVisitorPort actor)
     {
         PruneInvalidWorker();
         if (!CanAssignWorker(actor, out _))
@@ -422,22 +420,24 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
 
         worker = actor;
         ReleaseWorkerReservation(actor);
-        AbilityMove moveable = actor != null ? actor.GetAbility<AbilityMove>() : null;
-        if (moveable == null) yield break;
+        if (actor == null || !actor.VisitorSnapshot.CanMove) yield break;
 
-        AIAction currentAction = actor != null && actor.Brain != null
-            ? actor.Brain.bestAction
-            : null;
-        Vector3 workPosition = GetFacilityAnchorWorldPosition(FacilityAnchorPurposeIds.Work, actor.transform.position);
-        actor?.Brain?.SetActionPhase("\uC791\uC5C5\uB300 \uC811\uADFC", this);
-        yield return moveable.Move2PosBySpeed(workPosition, 1f, currentAction);
+        object currentAction = actor.CurrentActionToken;
+        Vector3 workPosition = GetFacilityAnchorWorldPosition(
+            FacilityAnchorPurposeIds.Work,
+            actor.VisitorSnapshot.Position);
+        actor.SetActionPhase("\uC791\uC5C5\uB300 \uC811\uADFC", this);
+        yield return actor.MoveTo(workPosition, 1f, currentAction);
         actor.ChangeLayer("DungeonMiddleObject");
-        yield return moveable.Move2PosBySpeed(workPosition + new Vector3(0f, 0.15f), 3f, currentAction);
-        actor?.Brain?.SetActionPhase("\uC791\uC5C5 \uC790\uC138", this);
-        actor.Flip(CharacterFacing.RIGHT);
+        yield return actor.MoveTo(
+            workPosition + new Vector3(0f, 0.15f),
+            3f,
+            currentAction);
+        actor.SetActionPhase("\uC791\uC5C5 \uC790\uC138", this);
+        actor.FaceRight();
     }
 
-    public void DeallocateWorker(CharacterActor actor)
+    public void DeallocateWorker(IBuildingVisitorPort actor)
     {
         if (actor == null)
         {
@@ -448,20 +448,21 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         if (worker != actor) return;
 
         worker = null;
-        actor.Brain?.SetActionPhase("\uC2DC\uC124 \uD1F4\uC7A5", this);
-        actor.transform.position -= new Vector3(0f, 0.15f);
+        actor.SetActionPhase("\uC2DC\uC124 \uD1F4\uC7A5", this);
+        Vector3 actorPosition = actor.VisitorSnapshot.Position - new Vector3(0f, 0.15f);
+        actor.SetWorldPosition(actorPosition);
         Vector2Int actorGridPosition = grid != null
-            ? grid.GetXY(actor.transform.position)
+            ? grid.GetXY(actorPosition)
             : centerPos;
         if (!ContainsGridPosition(actorGridPosition)
-            && TryGetFacilityOccupiedWorldPosition(actor.transform.position, out Vector3 exitPosition))
+            && TryGetFacilityOccupiedWorldPosition(actorPosition, out Vector3 exitPosition))
         {
-            actor.transform.position = exitPosition;
+            actor.SetWorldPosition(exitPosition);
         }
         actor.ChangeLayer("Default");
     }
 
-    private IEnumerator Linger(CharacterActor actor, float seconds, AIAction expectedAction)
+    private IEnumerator Linger(IBuildingVisitorPort actor, float seconds, object expectedAction)
     {
         if (seconds <= 0f)
         {
@@ -473,9 +474,8 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         {
             if (expectedAction != null
                 && (actor == null
-                    || actor.Brain == null
-                    || actor.Brain.bestAction != expectedAction
-                    || actor.Brain.isBestActionEnd))
+                    || !actor.IsCurrentAction(expectedAction)
+                    || actor.IsCurrentActionEnded))
             {
                 yield break;
             }
@@ -494,9 +494,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
 
         try
         {
-            if (worker.gameObject == null
-                || !worker.gameObject.scene.IsValid()
-                || !worker.gameObject.activeInHierarchy)
+            if (!worker.VisitorSnapshot.IsRuntimeActive)
             {
                 worker = null;
             }
@@ -518,7 +516,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
         return grid.GetWorldPos(new Vector2(endX, centerPos.y));
     }
 
-    public void ApplyConfiguredUseRecovery(CharacterActor actor)
+    public void ApplyConfiguredUseRecovery(IBuildingVisitorPort actor)
     {
         if (actor == null || Facility == null)
         {
@@ -591,7 +589,7 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
     }
 
     private void ApplyRecovery(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         float sleep,
         float mood,
         float fun,
@@ -609,27 +607,15 @@ public class Facility : BuildableObject, IInteractable, IWorkableFacility, IWare
             return;
         }
 
-        if (mood != 0f)
-        {
-            actor.ApplyMoodFactor(
-                $"facility:{GetInstanceID()}",
-                $"{objectNameOrDefault()} 이용",
-                mood,
-                180f,
-                2);
-        }
-
-        if (actor.TryGetAbility(out AbilityWork work))
-        {
-            work.RecoverOffDuty(sleep, 0f, fun, hunger, excretion, hygiene);
-            return;
-        }
-
-        if (sleep != 0f) actor.ChangesStat(CharacterCondition.SLEEP, sleep);
-        if (fun != 0f) actor.ChangesStat(CharacterCondition.FUN, fun);
-        if (hunger != 0f) actor.ChangesStat(CharacterCondition.HUNGER, hunger);
-        if (excretion != 0f) actor.ChangesStat(CharacterCondition.EXCRETION, excretion);
-        if (hygiene != 0f) actor.ChangesStat(CharacterCondition.HYGIENE, hygiene);
+        actor.ApplyNeedRecovery(new BuildingNeedRecoverySnapshot(
+            sleep,
+            mood,
+            fun,
+            hunger,
+            excretion,
+            hygiene,
+            $"facility:{RequirePersistentInstanceId().Value}",
+            $"{objectNameOrDefault()} 이용"));
     }
 
     private string objectNameOrDefault()

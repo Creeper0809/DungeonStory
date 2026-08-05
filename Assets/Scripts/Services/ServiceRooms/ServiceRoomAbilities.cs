@@ -1,50 +1,6 @@
 using System;
 using UnityEngine;
 
-public enum ServiceCategory
-{
-    Dining = 0,
-    Retail = 1,
-    Lodging = 2,
-    Bathing = 3,
-    Medical = 4
-}
-
-public enum ServiceOperationMode
-{
-    Direct = 0,
-    Managed = 1,
-    Automated = 2
-}
-
-[Flags]
-public enum ServiceOperationModeMask
-{
-    None = 0,
-    Direct = 1 << 0,
-    Managed = 1 << 1,
-    Automated = 1 << 2,
-    All = Direct | Managed | Automated
-}
-
-public enum ServicePaymentPolicy
-{
-    Free = 0,
-    PayAfterCompletion = 1,
-    InternalStaffFree = 2
-}
-
-public enum ServiceSupportModifierType
-{
-    Stage = 0,
-    Capacity = 1,
-    WorkSpeed = 2,
-    Satisfaction = 3,
-    Revenue = 4,
-    Security = 5,
-    Cleanup = 6
-}
-
 [Serializable]
 [BuildingAbilityDisplayName("서비스 허브")]
 public sealed class BuildingServiceHubAbility : BuildingAbility

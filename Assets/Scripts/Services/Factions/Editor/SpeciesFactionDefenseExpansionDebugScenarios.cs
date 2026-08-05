@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Factions;
+using DungeonStory.Infrastructure;
 using UnityEditor;
 using UnityEngine;
 
@@ -19,7 +21,13 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
 
     private static readonly string[] RequiredAnatomies =
     {
+        "anatomy:human",
         "anatomy:humanoid",
+        "anatomy:orc",
+        "anatomy:vampire",
+        "anatomy:beastkin",
+        "anatomy:demon",
+        "anatomy:kobold",
         "anatomy:quadruped",
         "anatomy:slime",
         "anatomy:fungal",
@@ -63,6 +71,7 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
         ValidateSpecies(errors);
         ValidateAnatomy(errors);
         ValidateFactions(errors);
+        ValidateFactionSaveBoundary(errors);
         ValidateHumanBranches(errors);
         ValidateDefense(errors);
         ValidateResearch(errors);
@@ -79,8 +88,9 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
 
         Debug.Log(
             "Species/faction/defense expansion validation passed: "
-            + "9 species, 6 dungeon factions, 5 human branches, "
-            + "19 defense facilities, 135 research projects.");
+            + "9 species, 12 anatomy profiles, 6 dungeon factions, "
+            + "5 human branches, "
+            + "19 defense facilities, 168 research projects.");
     }
 
     private static void ValidateSpecies(ICollection<string> errors)
@@ -146,19 +156,21 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
     {
         AnatomyProfileSO[] profiles = FindAssets<AnatomyProfileSO>(
             "Assets/Resources/SO/Medical/Anatomy");
-        if (profiles.Length != 6)
+        if (profiles.Length != 12)
         {
             errors.Add(
-                $"Expected 6 anatomy profile assets, found {profiles.Length}.");
+                $"Expected 12 anatomy profile assets, found {profiles.Length}.");
         }
 
         HashSet<string> ids = profiles
             .Where(value => value != null)
             .Select(value => value.ProfileId)
             .ToHashSet(StringComparer.Ordinal);
-        if (ids.Count != 6)
+        if (ids.Count != RequiredAnatomies.Length)
         {
-            errors.Add($"Expected 6 unique anatomy IDs, found {ids.Count}.");
+            errors.Add(
+                $"Expected {RequiredAnatomies.Length} unique anatomy IDs, "
+                + $"found {ids.Count}.");
         }
 
         foreach (string required in RequiredAnatomies)
@@ -166,6 +178,18 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             if (!ids.Contains(required))
             {
                 errors.Add($"Missing anatomy profile '{required}'.");
+            }
+        }
+
+        CharacterSpeciesSO[] species = FindAssets<CharacterSpeciesSO>(
+            "Assets/Resources/SO/Character/Species");
+        foreach (CharacterSpeciesSO value in species.Where(value => value != null))
+        {
+            if (!ids.Contains(value.anatomyProfileId))
+            {
+                errors.Add(
+                    $"Species '{value.speciesTag}' references missing anatomy "
+                    + $"profile '{value.anatomyProfileId}'.");
             }
         }
     }
@@ -206,6 +230,209 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
                 errors.Add($"{factionId} has no physical trade cargo.");
             if (faction.supplyCargo == null || faction.supplyCargo.Count == 0)
                 errors.Add($"{factionId} has no physical supply cargo.");
+        }
+    }
+
+    private static void ValidateFactionSaveBoundary(ICollection<string> errors)
+    {
+        DungeonFactionDefinitionSO[] definitions =
+            FindAssets<DungeonFactionDefinitionSO>(
+                    "Assets/Resources/SO/Factions/Dungeons")
+                .OrderBy(value => value.StableId, StringComparer.Ordinal)
+                .ToArray();
+        DungeonFactionSaveData valid = new DungeonFactionSaveData
+        {
+            currentDay = 3,
+            routeSequence = 1,
+            factions = definitions
+                .Select(value => new DungeonFactionState
+                {
+                    factionId = value.StableId,
+                    homeQ = 4,
+                    homeR = -2
+                })
+                .ToList(),
+            routes = new List<FactionRouteState>
+            {
+                new FactionRouteState
+                {
+                    routeId = "faction-route:1",
+                    factionId = definitions.FirstOrDefault()?.StableId
+                        ?? string.Empty,
+                    kind = FactionRouteKind.TradeCaravan,
+                    status = FactionRouteStatus.Traveling,
+                    path = new List<FactionHexCoordSaveData>
+                    {
+                        new FactionHexCoordSaveData { q = 4, r = -2 },
+                        new FactionHexCoordSaveData { q = 3, r = -1 }
+                    },
+                    pathIndex = 0,
+                    segmentProgress = 0.25f,
+                    delaySeconds = 0f,
+                    strength = 100,
+                    createdDay = 1,
+                    estimatedArrivalDay = 2,
+                    reinforcementActorIds = new List<string>(),
+                    cargo = new List<FactionCargoLine>
+                    {
+                        new FactionCargoLine
+                        {
+                            itemId = "material:iron-ingot",
+                            amount = 2
+                        }
+                    }
+                }
+            }
+        };
+        StrictFactionSaveRuntime runtime =
+            new StrictFactionSaveRuntime(definitions, valid);
+        FactionSaveSection section = new FactionSaveSection(
+            runtime,
+            EditorItemCatalogFactory.Create());
+        string canonicalJson = JsonUtility.ToJson(valid);
+        DungeonGameRestoreReport validReport = new DungeonGameRestoreReport();
+        section.Restore(
+            canonicalJson,
+            DungeonFactionSaveData.CurrentVersion,
+            validReport);
+        object sectionContract = section;
+        if (!validReport.Success
+            || runtime.RestoreCount != 1
+            || !string.Equals(section.Capture(), canonicalJson, StringComparison.Ordinal)
+            || sectionContract is not IDungeonSaveSectionPreflight
+            || sectionContract is not IDungeonStagedSaveSection
+            || sectionContract is not IDungeonRollbackFreeSaveSection
+            || sectionContract is IOptionalDungeonSaveSection
+            || sectionContract is IDungeonStagedOptionalSaveSection)
+        {
+            errors.Add("Faction strict save boundary rejected a canonical payload.");
+            return;
+        }
+
+        DungeonFactionSaveData invalid = JsonUtility.FromJson<DungeonFactionSaveData>(
+            canonicalJson);
+        invalid.factions.Reverse();
+        invalid.routes[0].cargo[0].itemId = "item:missing-faction-cargo";
+        string beforeInvalid = section.Capture();
+        if (!RejectsStrictWithoutMutation(
+                section,
+                JsonUtility.ToJson(invalid),
+                section.SectionVersion,
+                beforeInvalid)
+            || !RejectsStrictWithoutMutation(
+                section,
+                canonicalJson,
+                section.SectionVersion - 1,
+                beforeInvalid)
+            || !RejectsStrictWithoutMutation(
+                section,
+                string.Empty,
+                section.SectionVersion,
+                beforeInvalid))
+        {
+            errors.Add(
+                "Faction strict save boundary accepted invalid, legacy, or empty state.");
+        }
+        DungeonFactionSaveData legacy =
+            JsonUtility.FromJson<DungeonFactionSaveData>(canonicalJson);
+        legacy.version--;
+        if (!RejectsStrictWithoutMutation(
+                section,
+                JsonUtility.ToJson(legacy),
+                section.SectionVersion,
+                beforeInvalid)
+            || runtime.RestoreCount != 1)
+        {
+            errors.Add(
+                "Faction strict save boundary accepted a legacy payload version.");
+        }
+
+        ValidateFactionLateFailureDiscard(
+            errors,
+            definitions,
+            valid,
+            canonicalJson);
+    }
+
+    private static void ValidateFactionLateFailureDiscard(
+        ICollection<string> errors,
+        IReadOnlyList<DungeonFactionDefinitionSO> definitions,
+        DungeonFactionSaveData valid,
+        string canonicalJson)
+    {
+        DungeonRuntimeAggregateRootStore store = new();
+        StrictFactionSaveRuntime runtime = new(definitions, valid, store);
+        FactionSaveSection section = new(
+            runtime,
+            EditorItemCatalogFactory.Create());
+        RequiredDependencyStubSection offense = new(
+            OffenseAggregateSaveSection.Id,
+            DungeonSaveRestorePhase.LateRuntimeState);
+        RequiredDependencyStubSection items = new(
+            PhysicalItemsSaveSection.Id,
+            DungeonSaveRestorePhase.Items);
+        FinalFailingSection finalFailure = new(section.SectionId);
+        IDungeonSaveSection[] sections =
+        {
+            items,
+            offense,
+            section,
+            finalFailure
+        };
+        DungeonSaveSectionRegistry registry = new(sections, store);
+        string before = section.Capture();
+        int revisionBefore = store.PublishedRestoreRevision;
+        DungeonFactionSaveData incoming =
+            JsonUtility.FromJson<DungeonFactionSaveData>(canonicalJson);
+        incoming.factions[0].trust = 1;
+        List<DungeonSaveSectionEnvelope> envelopes = sections
+            .Select(candidate => new DungeonSaveSectionEnvelope
+            {
+                sectionId = candidate.SectionId,
+                sectionVersion = candidate.SectionVersion,
+                restorePhase = candidate.RestorePhase,
+                optional = false,
+                payloadJson = string.Equals(
+                    candidate.SectionId,
+                    section.SectionId,
+                    StringComparison.Ordinal)
+                    ? JsonUtility.ToJson(incoming)
+                    : candidate.Capture()
+            })
+            .ToList();
+        DungeonGameRestoreReport report = new();
+        bool restored = registry.RestoreAll(envelopes, report);
+        if (restored
+            || report.Success
+            || !finalFailure.WasCommitted
+            || store.PublishedRestoreRevision != revisionBefore
+            || !string.Equals(section.Capture(), before, StringComparison.Ordinal))
+        {
+            errors.Add(
+                "Faction staged Aggregate leaked after a registry late failure.");
+        }
+    }
+
+    private static bool RejectsStrictWithoutMutation(
+        IDungeonSaveSection section,
+        string payloadJson,
+        int sectionVersion,
+        string before)
+    {
+        try
+        {
+            ((IDungeonStagedSaveSection)section).StageRestore(
+                payloadJson,
+                sectionVersion,
+                new DungeonGameRestoreReport());
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return string.Equals(
+                section.Capture(),
+                before,
+                StringComparison.Ordinal);
         }
     }
 
@@ -268,10 +495,24 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
         foreach (BuildingSO building in defenses)
         {
             DefenseFacilityData defense = building.Defense;
+            if (building.sprite == null)
+                errors.Add($"Defense building {building.id} has no sprite.");
             if (defense.growth == null)
                 errors.Add($"Defense building {building.id} has no growth state.");
             if (defense.conditionLossPerActivation < 0f)
                 errors.Add($"Defense building {building.id} has invalid wear.");
+        }
+
+        int distinctSpritePaths = defenses
+            .Select(value => AssetDatabase.GetAssetPath(value.sprite))
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        if (distinctSpritePaths != defenses.Length)
+        {
+            errors.Add(
+                $"Expected 19 distinct defense silhouettes, found "
+                + $"{distinctSpritePaths} sprite assets.");
         }
     }
 
@@ -279,19 +520,19 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
     {
         ResearchProjectSO[] projects = FindAssets<ResearchProjectSO>(
             "Assets/Resources/SO/Research/Projects");
-        if (projects.Length != 135)
+        if (projects.Length != 168)
         {
             errors.Add(
-                $"Expected 135 research assets, found {projects.Length}.");
+                $"Expected 168 research assets, found {projects.Length}.");
         }
 
         Dictionary<string, ResearchProjectSO> byId = projects
             .Where(value => value != null && value.ProjectId.IsValid)
             .GroupBy(value => value.ProjectId.Value, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First());
-        if (byId.Count != 135)
+        if (byId.Count != 168)
         {
-            errors.Add($"Expected 135 research projects, found {byId.Count}.");
+            errors.Add($"Expected 168 research projects, found {byId.Count}.");
         }
 
         foreach (string id in NewResearchIds)
@@ -299,6 +540,289 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             if (!byId.ContainsKey(id))
                 errors.Add($"Missing defense research '{id}'.");
         }
+    }
+
+    private sealed class StrictFactionSaveRuntime : IFactionRuntime
+    {
+        private readonly DungeonRuntimeAggregateRootStore store;
+        private DungeonFactionSaveData localData;
+
+        public StrictFactionSaveRuntime(
+            IReadOnlyList<DungeonFactionDefinitionSO> definitions,
+            DungeonFactionSaveData data,
+            DungeonRuntimeAggregateRootStore store = null)
+        {
+            if (definitions == null)
+                throw new ArgumentNullException(nameof(definitions));
+            Definitions = definitions
+                .Where(value => value != null)
+                .Select(value => value.ToSnapshot())
+                .ToArray();
+            this.store = store;
+            Data = Clone(data ?? throw new ArgumentNullException(nameof(data)));
+        }
+
+        private DungeonFactionSaveData Data
+        {
+            get => store != null
+                ? store.GetOrCreate(() => new DungeonFactionSaveData())
+                : localData;
+            set
+            {
+                if (store != null)
+                {
+                    store.Replace(value);
+                }
+                else
+                {
+                    localData = value;
+                }
+            }
+        }
+
+        public IReadOnlyList<FactionDefinitionSnapshot> Definitions { get; }
+        public IReadOnlyList<DungeonFactionState> Factions => Data.factions;
+        public IReadOnlyList<FactionRouteState> Routes => Data.routes;
+        public int RestoreCount { get; private set; }
+
+        public bool TryGetFaction(
+            string factionId,
+            out DungeonFactionState faction)
+        {
+            faction = Data.factions.FirstOrDefault(value =>
+                string.Equals(value.factionId, factionId, StringComparison.Ordinal));
+            return faction != null;
+        }
+
+        public bool IsContractUnlocked(
+            string factionId,
+            FactionContractKind contract) => false;
+
+        public bool TryAdjustTrust(
+            string factionId,
+            int amount,
+            string reason,
+            out string message)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        public bool TryOfferGoodwill(
+            string factionId,
+            int physicalValue,
+            out string message)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        public bool TryCompleteAllianceProject(
+            string factionId,
+            out string message)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        public bool TryRequestTrade(
+            string factionId,
+            out string routeId,
+            out string message) => FailRoute(out routeId, out message);
+
+        public bool TryRequestSupply(
+            string factionId,
+            out string routeId,
+            out string message) => FailRoute(out routeId, out message);
+
+        public bool TryRequestReinforcement(
+            string factionId,
+            out string routeId,
+            out string message) => FailRoute(out routeId, out message);
+
+        public bool TryApplyRouteAmbush(
+            string routeId,
+            int strengthLoss,
+            float delaySeconds,
+            out string message)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        public bool TryBetray(
+            string factionId,
+            int stolenValue,
+            out string message)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        public bool TryPayRestitution(
+            string factionId,
+            int physicalValue,
+            out string message)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        public bool TryCompleteRecoveryEvent(
+            string factionId,
+            out string message)
+        {
+            message = string.Empty;
+            return false;
+        }
+
+        public void RecordReinforcementLoss(
+            string factionId,
+            int deaths,
+            int equipmentLosses)
+        {
+        }
+
+        public DungeonFactionSaveData Capture() => Clone(Data);
+
+        public FactionRestoreCandidate PrepareRestoreCandidate(
+            DungeonFactionSaveData restored)
+        {
+            DungeonFactionSaveData payload = Clone(restored);
+            FactionAggregateState candidateState = new()
+            {
+                CurrentDay = payload.currentDay,
+                RouteSequence = payload.routeSequence
+            };
+            foreach (DungeonFactionState faction in payload.factions)
+            {
+                candidateState.Factions.Add(faction.factionId, faction);
+            }
+            candidateState.Routes.AddRange(payload.routes);
+            return new FactionRestoreCandidate(candidateState, payload);
+        }
+
+        public void PublishRestoreCandidate(FactionRestoreCandidate candidate)
+        {
+            Data = candidate.Payload;
+            if (store == null)
+            {
+                RestoreCount++;
+            }
+        }
+
+        public void Reset()
+        {
+        }
+
+        private static bool FailRoute(
+            out string routeId,
+            out string message)
+        {
+            routeId = string.Empty;
+            message = string.Empty;
+            return false;
+        }
+
+        private static DungeonFactionSaveData Clone(
+            DungeonFactionSaveData source) =>
+            JsonUtility.FromJson<DungeonFactionSaveData>(
+                JsonUtility.ToJson(source));
+    }
+
+    private sealed class RequiredDependencyStubSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        public RequiredDependencyStubSection(
+            string sectionId,
+            DungeonSaveRestorePhase restorePhase)
+        {
+            SectionId = sectionId;
+            RestorePhase = restorePhase;
+        }
+
+        public string SectionId { get; }
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase { get; }
+        public IReadOnlyList<string> DependsOn => Array.Empty<string>();
+        public string Capture() => "{}";
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            if (sectionVersion != 1 || string.IsNullOrWhiteSpace(payloadJson))
+            {
+                report.AddError("Invalid faction dependency payload.");
+            }
+        }
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            ValidatePayload(payloadJson, sectionVersion, report);
+            return new DungeonDelegateSaveRestoreStage(SectionId, _ => { });
+        }
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+    }
+
+    private sealed class FinalFailingSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        private readonly string dependency;
+
+        public FinalFailingSection(string dependency)
+        {
+            this.dependency = dependency;
+        }
+
+        public bool WasCommitted { get; private set; }
+        public string SectionId => "faction.debug.late-failure";
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.Presentation;
+        public IReadOnlyList<string> DependsOn => new[] { dependency };
+        public string Capture() => "{}";
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            if (sectionVersion != 1 || string.IsNullOrWhiteSpace(payloadJson))
+            {
+                report.AddError("Invalid faction final payload.");
+            }
+        }
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            ValidatePayload(payloadJson, sectionVersion, report);
+            return new DungeonDelegateSaveRestoreStage(
+                SectionId,
+                commitReport =>
+                {
+                    WasCommitted = true;
+                    commitReport.AddError("Injected faction final failure.");
+                });
+        }
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
     }
 
     private static T[] FindAssets<T>(string root)

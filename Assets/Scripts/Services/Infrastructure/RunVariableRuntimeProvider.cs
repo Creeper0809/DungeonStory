@@ -2,11 +2,6 @@ using System;
 using System.Collections.Generic;
 using VContainer;
 
-public interface IRunVariableRuntimeProvider
-{
-    bool TryGetRuntime(out RunVariableRuntime runtime);
-}
-
 public interface IRunVariableRuntimeReader
 {
     int GetInitialShopSeed();
@@ -17,7 +12,13 @@ public interface IRunVariableRuntimeReader
     float GetBlueprintCostMultiplier(FacilityBlueprintSO blueprint);
     float GetThreatRiseMultiplier();
     float GetWarningThresholdMultiplier();
+    DungeonSurvivalPressure GetSurvivalPressure();
     InvasionIntruderSettings ApplyInvasionSettings(InvasionIntruderSettings source);
+}
+
+public interface IRunSeedProvider
+{
+    int RunSeed { get; }
 }
 
 public interface IOwnerRunDataProvider
@@ -35,112 +36,88 @@ public interface IOwnerRunLifecycleService
     void HandleOwnerDeath(CharacterActor owner, string reason);
 }
 
-public sealed class RunVariableRuntimeProvider :
-    IRunVariableRuntimeProvider
+public sealed class RunVariableRuntimeReader :
+    IRunVariableRuntimeReader,
+    IRunSeedProvider,
+    ISurvivalPressureProvider
 {
-    private readonly DungeonSceneRuntimeReferences runtimeReferences;
-
-    public RunVariableRuntimeProvider(
-        DungeonSceneRuntimeReferences runtimeReferences)
-    {
-        this.runtimeReferences = runtimeReferences
-            ?? throw new ArgumentNullException(nameof(runtimeReferences));
-    }
-
-    public bool TryGetRuntime(out RunVariableRuntime resolvedRuntime)
-    {
-        resolvedRuntime = runtimeReferences.RunVariables;
-        return resolvedRuntime != null;
-    }
-}
-
-public sealed class RunVariableRuntimeReader : IRunVariableRuntimeReader
-{
-    private readonly IRunVariableRuntimeProvider provider;
+    private readonly RunVariableRuntime runtime;
     private readonly IMetaProgressionRuntimeReader metaProgressionReader;
-
-    public RunVariableRuntimeReader(IRunVariableRuntimeProvider provider)
-        : this(provider, null)
-    {
-    }
 
     [Inject]
     public RunVariableRuntimeReader(
-        IRunVariableRuntimeProvider provider,
+        DungeonSceneRuntimeReferences runtimeReferences,
         IMetaProgressionRuntimeReader metaProgressionReader)
     {
-        this.provider = provider
-            ?? throw new ArgumentNullException(nameof(provider));
-        this.metaProgressionReader = metaProgressionReader;
+        runtime = (runtimeReferences
+                ?? throw new ArgumentNullException(nameof(runtimeReferences)))
+            .RunVariables
+            ?? throw new InvalidOperationException(
+                $"{nameof(RunVariableRuntimeReader)} requires a loaded {nameof(RunVariableRuntime)}.");
+        this.metaProgressionReader = metaProgressionReader
+            ?? throw new ArgumentNullException(nameof(metaProgressionReader));
     }
+
+    public int RunSeed => runtime.RunSeed;
 
     public int GetInitialShopSeed()
     {
-        return provider.TryGetRuntime(out RunVariableRuntime runtime)
-            && runtime.State.StartVariables != null
+        return runtime.State.StartVariables != null
             ? runtime.State.StartVariables.initialShopSeed
             : 0;
     }
 
     public IReadOnlyList<int> GetStartingBlueprintCandidateIds()
     {
-        return provider.TryGetRuntime(out RunVariableRuntime runtime)
-            && runtime.State.StartVariables != null
+        return runtime.State.StartVariables != null
             ? runtime.State.StartVariables.startingBlueprintCandidateIds
             : Array.Empty<int>();
     }
 
     public float GetGuestDemandMultiplier(string speciesTag)
     {
-        return provider.TryGetRuntime(out RunVariableRuntime runtime)
-            ? runtime.GetGuestDemandMultiplier(speciesTag)
-            : 1f;
+        return runtime.GetGuestDemandMultiplier(speciesTag);
     }
 
     public float GetStockCostMultiplier(StockCategory category)
     {
-        float runMultiplier = provider.TryGetRuntime(out RunVariableRuntime runtime)
-            ? runtime.GetStockCostMultiplier(category)
-            : 1f;
-        float metaMultiplier = metaProgressionReader?.GetCommerceStockCostMultiplier(category) ?? 1f;
+        float runMultiplier = runtime.GetStockCostMultiplier(category);
+        float metaMultiplier = metaProgressionReader.GetCommerceStockCostMultiplier(category);
         return Math.Max(0.05f, runMultiplier * metaMultiplier);
     }
 
     public float GetFacilityShopCostMultiplier(BuildingSO building)
     {
-        float runMultiplier = provider.TryGetRuntime(out RunVariableRuntime runtime)
-            ? runtime.GetFacilityShopCostMultiplier(building)
-            : 1f;
-        float metaMultiplier = metaProgressionReader?.GetFortressFacilityCostMultiplier(building) ?? 1f;
+        float runMultiplier = runtime.GetFacilityShopCostMultiplier(building);
+        float metaMultiplier = metaProgressionReader.GetFortressFacilityCostMultiplier(building);
         return Math.Max(0.05f, runMultiplier * metaMultiplier);
     }
 
     public float GetBlueprintCostMultiplier(FacilityBlueprintSO blueprint)
     {
-        return provider.TryGetRuntime(out RunVariableRuntime runtime)
-            ? runtime.GetBlueprintCostMultiplier(blueprint)
-            : 1f;
+        return runtime.GetBlueprintCostMultiplier(blueprint);
     }
 
     public float GetThreatRiseMultiplier()
     {
-        return provider.TryGetRuntime(out RunVariableRuntime runtime)
-            ? runtime.GetThreatRiseMultiplier()
-            : 1f;
+        return runtime.GetThreatRiseMultiplier();
     }
 
     public float GetWarningThresholdMultiplier()
     {
-        return provider.TryGetRuntime(out RunVariableRuntime runtime)
-            ? runtime.GetWarningThresholdMultiplier()
-            : 1f;
+        return runtime.GetWarningThresholdMultiplier();
+    }
+
+    public DungeonSurvivalPressure GetSurvivalPressure()
+    {
+        return runtime.State.StartVariables != null
+            ? runtime.State.StartVariables.survivalPressure
+            : DungeonSurvivalPressure.Standard;
     }
 
     public InvasionIntruderSettings ApplyInvasionSettings(InvasionIntruderSettings source)
     {
-        return provider.TryGetRuntime(out RunVariableRuntime runtime)
-            ? runtime.ApplyInvasionSettings(source)
-            : source;
+        return runtime.ApplyInvasionSettings(source);
     }
 }
 

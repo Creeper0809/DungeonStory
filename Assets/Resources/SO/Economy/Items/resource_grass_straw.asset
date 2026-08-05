@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uC0AC\uB8CC, \uD1F4\uBE44, \uAE54\uC9DA\uACFC \uC800\uAE09 \uC5F0\uB8CC\uC5D0
     \uC4F0\uB294 \uC12C\uC720\uC9C8."
   stockCategory: 1
-  kind: 0
-  ingredientTags: 129
-  unitPrice: 1
-  marketSaleRate: 0.6
   unitWeight: 0.08
   maxStack: 100
   sprite: {fileID: 0}
-  requiredResearchId: research:agriculture:gathering
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 1
+  features:
+  - rid: 7737211673962611550
+  - rid: 7737211673962611551
+  - rid: 7737211673962611552
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611550
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:agriculture:gathering
+    - rid: 7737211673962611551
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 0
+        ingredientTags: 129
+        sharedIntermediate: 0
+    - rid: 7737211673962611552
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

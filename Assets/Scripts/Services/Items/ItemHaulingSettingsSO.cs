@@ -18,47 +18,46 @@ public interface IItemHaulingSettingsProvider
     void Restore(ItemHaulingSettingsSnapshot snapshot);
 }
 
+internal sealed class ItemHaulingSettingsRuntimeState
+{
+    internal float? RestoredMultiplier { get; set; }
+}
+
 public sealed class ResourceItemHaulingSettingsProvider : IItemHaulingSettingsProvider
 {
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
-    private ItemHaulingSettingsSO settings;
-    private float? restoredMultiplier;
+    private readonly ItemHaulingSettingsSO settings;
+    private readonly IDungeonUserSettingsService userSettings;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
 
-    public ResourceItemHaulingSettingsProvider(IResourcesAssetLoader resourcesAssetLoader = null)
+    private ItemHaulingSettingsRuntimeState state =>
+        aggregateRootStore.GetOrCreate(() => new ItemHaulingSettingsRuntimeState());
+
+    public ResourceItemHaulingSettingsProvider(
+        IGameContentCatalog content,
+        IDungeonUserSettingsService userSettings,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
-        this.resourcesAssetLoader = resourcesAssetLoader ?? new UnityResourcesAssetLoader();
+        settings = (content ?? throw new ArgumentNullException(nameof(content)))
+            .RequireSingle<ItemHaulingSettingsSO>();
+        this.userSettings = userSettings
+            ?? throw new ArgumentNullException(nameof(userSettings));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
 
     public float MaxCarryMultiplier
     {
         get
         {
-            float value = DungeonUserSettingsRuntime.Current.maxCarryMultiplier;
-            if (value <= 0f && restoredMultiplier.HasValue)
-            {
-                value = restoredMultiplier.Value;
-            }
+            float value = state.RestoredMultiplier
+                ?? userSettings.Current.maxCarryMultiplier;
 
             if (value <= 0f)
             {
-                value = SettingsAsset != null ? SettingsAsset.MaxCarryMultiplier : 1.5f;
+                value = settings.MaxCarryMultiplier;
             }
 
             return Mathf.Clamp(Mathf.Round(value / 0.05f) * 0.05f, 1f, 2.5f);
-        }
-    }
-
-    private ItemHaulingSettingsSO SettingsAsset
-    {
-        get
-        {
-            if (settings == null)
-            {
-                settings = resourcesAssetLoader.LoadOptional<ItemHaulingSettingsSO>(
-                    ItemHaulingSettingsSO.ResourcePath);
-            }
-
-            return settings;
         }
     }
 
@@ -74,14 +73,14 @@ public sealed class ResourceItemHaulingSettingsProvider : IItemHaulingSettingsPr
     {
         if (snapshot == null)
         {
-            restoredMultiplier = null;
+            aggregateRootStore.Replace(new ItemHaulingSettingsRuntimeState());
             return;
         }
 
         snapshot.Normalize();
-        restoredMultiplier = snapshot.maxCarryMultiplier;
-        DungeonUserSettingsData current = DungeonUserSettingsRuntime.Current.Clone();
-        current.maxCarryMultiplier = restoredMultiplier.Value;
-        DungeonUserSettingsRuntime.Publish(current);
+        aggregateRootStore.Replace(new ItemHaulingSettingsRuntimeState
+        {
+            RestoredMultiplier = snapshot.maxCarryMultiplier
+        });
     }
 }

@@ -2,15 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[Flags]
-public enum UtilityChannel
-{
-    None = 0,
-    Power = 1 << 0,
-    CleanWater = 1 << 1,
-    Wastewater = 1 << 2
-}
-
 public enum PowerPriority
 {
     Critical = 1,
@@ -18,20 +9,6 @@ public enum PowerPriority
     Essential = 3,
     Production = 4,
     Optional = 5
-}
-
-public enum AutomationMode
-{
-    Manual = 0,
-    PoweredAssist = 1,
-    Automatic = 2
-}
-
-public enum WaterContainerTransferMode
-{
-    Disabled = 0,
-    BottleFromNetwork = 1,
-    FeedNetwork = 2
 }
 
 public enum ConveyorPortMode
@@ -112,7 +89,7 @@ public static class ConveyorNetworkStateEvaluator
 [Serializable]
 public sealed class PowerNodeSaveData
 {
-    public string nodeId = string.Empty;
+    public string buildingInstanceId = string.Empty;
     public int priority = (int)PowerPriority.Production;
     public float storedPower;
     public float fuelSeconds;
@@ -124,7 +101,7 @@ public sealed class PowerNodeSaveData
 [Serializable]
 public sealed class DungeonPowerInfrastructureSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
     public int version = CurrentVersion;
     public List<PowerNodeSaveData> nodes = new List<PowerNodeSaveData>();
 }
@@ -132,7 +109,7 @@ public sealed class DungeonPowerInfrastructureSaveData
 [Serializable]
 public sealed class FluidNodeSaveData
 {
-    public string nodeId = string.Empty;
+    public string buildingInstanceId = string.Empty;
     public float cleanWater;
     public float unsafeWater;
     public float foulWater;
@@ -148,7 +125,7 @@ public sealed class FluidNodeSaveData
 [Serializable]
 public sealed class DungeonFluidInfrastructureSaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
     public int version = CurrentVersion;
     public List<FluidNodeSaveData> nodes = new List<FluidNodeSaveData>();
 }
@@ -192,21 +169,21 @@ public sealed class ConveyorFilterSaveData
 public sealed class ConveyorPayloadSaveData
 {
     public string payloadId = string.Empty;
-    public string segmentNodeId = string.Empty;
-    public string previousNodeId = string.Empty;
+    public string itemStackId = string.Empty;
+    public string segmentBuildingInstanceId = string.Empty;
+    public string previousBuildingInstanceId = string.Empty;
     public string destinationId = string.Empty;
     public float progress;
     public float lastMovedAt;
     public float stalledSince;
     public int routeVersion;
     public ConveyorStallReason stallReason;
-    public WorldItemStackSaveData stack = new WorldItemStackSaveData();
 }
 
 [Serializable]
 public sealed class ConveyorNodeSaveData
 {
-    public string nodeId = string.Empty;
+    public string buildingInstanceId = string.Empty;
     public bool enabled = true;
     public string destinationId = string.Empty;
     public ConveyorOverflowPolicy overflowPolicy =
@@ -218,7 +195,7 @@ public sealed class ConveyorNodeSaveData
 [Serializable]
 public sealed class DungeonConveyorInfrastructureSaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     public int version = CurrentVersion;
     public int nextPayloadSequence = 1;
     public List<ConveyorNodeSaveData> nodes =
@@ -227,27 +204,9 @@ public sealed class DungeonConveyorInfrastructureSaveData
         new List<ConveyorPayloadSaveData>();
 }
 
-[Serializable]
-public sealed class AutomationFacilitySaveData
-{
-    public string facilityId = string.Empty;
-    public AutomationMode mode;
-    public float maintenance;
-    public float fault;
-}
-
-[Serializable]
-public sealed class DungeonAutomationSaveData
-{
-    public const int CurrentVersion = 1;
-    public int version = CurrentVersion;
-    public List<AutomationFacilitySaveData> facilities =
-        new List<AutomationFacilitySaveData>();
-}
-
 public sealed class PowerNodeSnapshot
 {
-    public string NodeId { get; set; } = string.Empty;
+    public BuildingInstanceId BuildingId { get; set; }
     public string NetworkId { get; set; } = string.Empty;
     public PowerPriority Priority { get; set; }
     public bool Powered { get; set; }
@@ -274,36 +233,22 @@ public sealed class PowerNetworkSnapshot
         Array.Empty<PowerNodeSnapshot>();
 }
 
-public sealed class FluidNetworkSnapshot
-{
-    public string NetworkId { get; set; } = string.Empty;
-    public UtilityChannel Channel { get; set; }
-    public float CleanWater { get; set; }
-    public float UnsafeWater { get; set; }
-    public float FoulWater { get; set; }
-    public float Wastewater { get; set; }
-    public float Capacity { get; set; }
-    public float Blockage { get; set; }
-    public float Leak { get; set; }
-    public bool HasOverflowRisk { get; set; }
-}
-
 public sealed class WaterTransferFacilitySnapshot
 {
-    public string FacilityId { get; set; } = string.Empty;
+    public BuildingInstanceId BuildingId { get; set; }
     public WaterContainerTransferMode Mode { get; set; }
     public bool Powered { get; set; }
     public float Progress01 { get; set; }
-    public string BlockedReason { get; set; } = string.Empty;
+    public InfrastructureStatus Status { get; set; }
 }
 
 public sealed class ConveyorPayloadSnapshot
 {
     public string PayloadId { get; set; } = string.Empty;
-    public string StackId { get; set; } = string.Empty;
+    public ItemStackId StackId { get; set; }
     public string ItemId { get; set; } = string.Empty;
     public int Quantity { get; set; }
-    public string SegmentNodeId { get; set; } = string.Empty;
+    public BuildingInstanceId SegmentBuildingId { get; set; }
     public string DestinationId { get; set; } = string.Empty;
     public float Progress { get; set; }
     public float StalledSeconds { get; set; }
@@ -312,7 +257,7 @@ public sealed class ConveyorPayloadSnapshot
 
 public sealed class ConveyorNodeSnapshot
 {
-    public string NodeId { get; set; } = string.Empty;
+    public BuildingInstanceId BuildingId { get; set; }
     public int Capacity { get; set; }
     public bool Enabled { get; set; }
     public string DestinationId { get; set; } = string.Empty;
@@ -331,54 +276,44 @@ public sealed class ConveyorNetworkSnapshot
     public bool IsCyclic { get; set; }
     public float LongestStallSeconds { get; set; }
     public ConveyorStallReason PrimaryReason { get; set; }
-    public string PlannedOverflowNodeId { get; set; } = string.Empty;
+    public BuildingInstanceId PlannedOverflowBuildingId { get; set; }
     public IReadOnlyList<ConveyorPayloadSnapshot> Payloads { get; set; } =
         Array.Empty<ConveyorPayloadSnapshot>();
     public IReadOnlyList<ConveyorNodeSnapshot> Nodes { get; set; } =
         Array.Empty<ConveyorNodeSnapshot>();
 }
 
-public sealed class AutomationFacilitySnapshot
-{
-    public string FacilityId { get; set; } = string.Empty;
-    public AutomationMode Mode { get; set; }
-    public bool Powered { get; set; }
-    public bool Operational { get; set; }
-    public float WorkRate { get; set; }
-    public float Maintenance { get; set; }
-    public float Fault { get; set; }
-    public string BlockedReason { get; set; } = string.Empty;
-}
-
 public readonly struct InfrastructureCommandResult
 {
-    public InfrastructureCommandResult(bool succeeded, string message)
+    public InfrastructureCommandResult(bool succeeded, DomainFailure failure)
     {
         Succeeded = succeeded;
-        Message = message ?? string.Empty;
+        Failure = failure;
     }
 
     public bool Succeeded { get; }
-    public string Message { get; }
+    public DomainFailure Failure { get; }
 
-    public static InfrastructureCommandResult Success(string message = "") =>
-        new InfrastructureCommandResult(true, message);
+    public static InfrastructureCommandResult Success() =>
+        new InfrastructureCommandResult(true, DomainFailure.None);
 
-    public static InfrastructureCommandResult Failure(string message) =>
-        new InfrastructureCommandResult(false, message);
+    public static InfrastructureCommandResult Failed(
+        FailureCode code,
+        params string[] parameters) =>
+        new InfrastructureCommandResult(
+            false,
+            new DomainFailure(code, parameters));
 }
 
-public interface IElectricalNetworkRuntime
+public interface IPowerInfrastructureQuery
 {
     int Version { get; }
     IReadOnlyList<PowerNetworkSnapshot> Networks { get; }
     bool IsPowered(BuildableObject building);
     bool TryGetNode(BuildableObject building, out PowerNodeSnapshot snapshot);
-    DungeonPowerInfrastructureSaveData Capture();
-    void Restore(DungeonPowerInfrastructureSaveData snapshot);
 }
 
-public interface IPowerPriorityCommandService
+public interface IPowerInfrastructureCommand
 {
     InfrastructureCommandResult SetPriority(
         BuildableObject building,
@@ -386,21 +321,41 @@ public interface IPowerPriorityCommandService
     InfrastructureCommandResult ResetBreaker(BuildableObject building);
 }
 
-public interface IWaterNetworkRuntime
+public interface IPowerInfrastructurePersistence
+{
+    DungeonPowerInfrastructureSaveData Capture();
+    ElectricalNetworkRestoreCandidate PrepareRestore(
+        DungeonPowerInfrastructureSaveData snapshot);
+    void Restore(ElectricalNetworkRestoreCandidate candidate);
+}
+
+public interface IFluidInfrastructureQuery
 {
     int Version { get; }
     IReadOnlyList<FluidNetworkSnapshot> Networks { get; }
+    bool TryGetNetwork(
+        BuildableObject building,
+        out FluidNetworkSnapshot snapshot);
+    IReadOnlyList<WaterTransferFacilitySnapshot> WaterTransfers { get; }
+    bool TryGetMaintenance(
+        BuildableObject building,
+        out float blockage,
+        out float leak);
+}
+
+public interface IFluidInfrastructureTransaction
+{
     bool TryConsume(
         BuildableObject consumer,
         WorldWaterQuality minimumQuality,
         float amount,
         out WorldWaterQuality consumedQuality,
-        out string failureReason);
+        out DomainFailure failure);
     bool CanConsume(
         BuildableObject consumer,
         WorldWaterQuality minimumQuality,
         float amount,
-        out string failureReason);
+        out DomainFailure failure);
     bool TryAdd(
         BuildableObject producer,
         WorldWaterQuality quality,
@@ -410,21 +365,16 @@ public interface IWaterNetworkRuntime
         BuildableObject consumer,
         string destinationId,
         float amount,
-        out string failureReason);
-    bool TryGetNetwork(
-        BuildableObject building,
-        out FluidNetworkSnapshot snapshot);
-    DungeonFluidInfrastructureSaveData Capture();
-    void Restore(DungeonFluidInfrastructureSaveData snapshot);
+        out DomainFailure failure);
 }
 
-public interface IWastewaterNetworkRuntime
+public interface IFluidWastewaterTransaction
 {
     bool TryAddWastewater(
         BuildableObject fixture,
         float amount,
         out float accepted,
-        out string failureReason);
+        out DomainFailure failure);
     bool TryConsumeWastewater(
         BuildableObject processor,
         float amount,
@@ -432,21 +382,24 @@ public interface IWastewaterNetworkRuntime
     bool CanAcceptWastewater(
         BuildableObject fixture,
         float amount,
-        out string failureReason);
+        out DomainFailure failure);
 }
 
-public interface IPlumbingCommandService
+public interface IFluidInfrastructureCommand
 {
-    IReadOnlyList<WaterTransferFacilitySnapshot> WaterTransfers { get; }
-    bool TryGetMaintenance(
-        BuildableObject building,
-        out float blockage,
-        out float leak);
     InfrastructureCommandResult SetWaterTransferMode(
         BuildableObject building,
         WaterContainerTransferMode mode);
     InfrastructureCommandResult ClearBlockage(BuildableObject building);
     InfrastructureCommandResult RepairLeak(BuildableObject building);
+}
+
+public interface IFluidInfrastructurePersistence
+{
+    DungeonFluidInfrastructureSaveData Capture();
+    FluidNetworkRestoreCandidate PrepareRestore(
+        DungeonFluidInfrastructureSaveData snapshot);
+    void Restore(FluidNetworkRestoreCandidate candidate);
 }
 
 public enum WaterFixtureSupplyKind
@@ -460,20 +413,20 @@ public enum WaterFixtureSupplyKind
 public readonly struct WaterFixtureUseTicket
 {
     public WaterFixtureUseTicket(
-        string fixtureId,
+        BuildingInstanceId fixtureId,
         WaterFixtureSupplyKind supplyKind,
         float wastewaterAmount)
     {
-        FixtureId = fixtureId ?? string.Empty;
+        FixtureId = fixtureId;
         SupplyKind = supplyKind;
         WastewaterAmount = Mathf.Max(0f, wastewaterAmount);
     }
 
-    public string FixtureId { get; }
+    public BuildingInstanceId FixtureId { get; }
     public WaterFixtureSupplyKind SupplyKind { get; }
     public float WastewaterAmount { get; }
     public bool IsValid =>
-        !string.IsNullOrWhiteSpace(FixtureId)
+        FixtureId.IsValid
         && SupplyKind != WaterFixtureSupplyKind.None;
 }
 
@@ -482,7 +435,7 @@ public interface IWaterFixtureUseRuntime
     bool TryBeginUse(
         BuildableObject fixture,
         out WaterFixtureUseTicket ticket,
-        out string failureReason);
+        out DomainFailure failure);
     void CompleteUse(
         BuildableObject fixture,
         WaterFixtureUseTicket ticket);
@@ -493,26 +446,34 @@ public interface IProcessFluidUseRuntime
     bool TryConsumeCycle(
         BuildableObject facility,
         WorkTypeId workTypeId,
-        out string failureReason);
+        out DomainFailure failure);
     bool TryConsumeCycle(
         BuildableObject facility,
         WorkTypeId workTypeId,
         float cleanWater,
         float wastewater,
         bool allowsManualWaterFallback,
-        out string failureReason);
+        out DomainFailure failure);
 }
 
-public interface IConveyorRuntime
+public interface IConveyorInfrastructureQuery
 {
     int Version { get; }
     IReadOnlyList<ConveyorNetworkSnapshot> Networks { get; }
+}
+
+public interface IConveyorPayloadTransaction
+{
     bool TryLoadStack(
-        string stackId,
+        ItemStackId stackId,
         BuildableObject inputPort,
         string destinationId,
         out string payloadId,
-        out string failureReason);
+        out DomainFailure failure);
+}
+
+public interface IConveyorInfrastructureCommand
+{
     InfrastructureCommandResult SetNodeEnabled(
         BuildableObject segment,
         bool enabled);
@@ -533,36 +494,48 @@ public interface IConveyorRuntime
         ConveyorFilterCriteria criteria);
     InfrastructureCommandResult ApproveOverflow(string payloadId);
     void MarkTopologyDirty();
-    DungeonConveyorInfrastructureSaveData Capture();
-    void Restore(DungeonConveyorInfrastructureSaveData snapshot);
 }
 
 public interface IConveyorRoutingService
 {
     bool TryFindRoute(
-        string fromNodeId,
+        BuildingInstanceId fromBuildingId,
         string destinationId,
-        WorldItemStackSaveData stack,
-        out IReadOnlyList<string> nodeIds,
+        ItemStackId stackId,
+        out IReadOnlyList<BuildingInstanceId> buildingIds,
         out ConveyorStallReason failureReason);
 }
 
-public interface IConveyorCommandService : IConveyorRuntime
+public interface IConveyorInfrastructurePersistence
 {
+    DungeonConveyorInfrastructureSaveData Capture();
+    ConveyorRestoreState PrepareRestore(
+        DungeonConveyorInfrastructureSaveData snapshot);
+    void Restore(ConveyorRestoreState candidate);
 }
 
-public interface IAutomationRuntime
+public interface IAutomationInfrastructureQuery
 {
     int Version { get; }
     IReadOnlyList<AutomationFacilitySnapshot> Facilities { get; }
     bool TryGetFacility(
         BuildableObject facility,
         out AutomationFacilitySnapshot snapshot);
+    float GetWorkSpeedMultiplier(BuildableObject facility);
+}
+
+public interface IAutomationInfrastructureCommand
+{
     InfrastructureCommandResult SetMode(
         BuildableObject facility,
         AutomationMode mode);
     InfrastructureCommandResult Maintain(BuildableObject facility, float amount);
-    float GetWorkSpeedMultiplier(BuildableObject facility);
+}
+
+public interface IAutomationInfrastructurePersistence
+{
     DungeonAutomationSaveData Capture();
-    void Restore(DungeonAutomationSaveData snapshot);
+    AutomationRestoreCandidate PrepareRestore(
+        DungeonAutomationSaveData snapshot);
+    void Restore(AutomationRestoreCandidate candidate);
 }

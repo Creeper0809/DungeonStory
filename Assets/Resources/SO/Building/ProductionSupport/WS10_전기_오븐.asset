@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: BuildableObject, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,15 +33,18 @@ MonoBehaviour:
   icon: {fileID: 0}
   abilityModules:
     items:
-    - rid: 7302563313672520063
-    - rid: 7302563313672520064
-    - rid: 7302563313672520065
+    - rid: 7737211730889016286
+    - rid: 7737211730889016287
+    - rid: 7737211730889016288
+    - rid: 7737211730889016289
+    - rid: 7737211730889016290
   width: 1
   height: 1
   layer: 1
   category: 5
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 0
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -59,19 +53,40 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563313672520063
+    - rid: 7737211730889016286
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS10
-    - rid: 7302563313672520064
+    - rid: 7737211730889016287
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 60
+        constructionCost: 0
+        maintenance: 2
+        unlockPhase: 3
+        demolitionRefundRate: 0.5
+    - rid: 7737211730889016288
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 19.2
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: component:machine-parts
+          amount: 3
+    - rid: 7737211730889016289
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:oven
-    - rid: 7302563313672520065
+    - rid: 7737211730889016290
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility

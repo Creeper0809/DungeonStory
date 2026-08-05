@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using VContainer;
 
 public class BackgroundManager : MonoBehaviour
 {
@@ -33,14 +34,23 @@ public class BackgroundManager : MonoBehaviour
 
     public SpriteRenderer background;
     public Light2D light2D;
-    public GameData gameData;
+    private GameSessionState gameData;
+    private IGameSessionStateProvider sessionStateProvider;
 
-    private void OnEnable()
+    [Inject]
+    public void Construct(IGameSessionStateProvider sessionStateProvider)
     {
-        if (gameData == null || gameData.curTime == null)
+        this.sessionStateProvider = sessionStateProvider
+            ?? throw new System.ArgumentNullException(nameof(sessionStateProvider));
+    }
+
+    private void Start()
+    {
+        if (!sessionStateProvider.TryGetSessionState(out gameData)
+            || gameData == null)
         {
-            Debug.LogError($"{nameof(BackgroundManager)} requires initialized {nameof(GameData.curTime)} data.", this);
-            return;
+            throw new System.InvalidOperationException(
+                $"{nameof(BackgroundManager)} requires an active game session state.");
         }
 
         ApplyCurrentTime();

@@ -22,6 +22,7 @@ public static class FacilitySynthesisDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
+        FacilitySynthesisRulesDebugScenarios.Validate();
         P1FacilitySynthesisAssetBuilder.EnsureP1SynthesisAssets();
 
         List<string> errors = new List<string>();

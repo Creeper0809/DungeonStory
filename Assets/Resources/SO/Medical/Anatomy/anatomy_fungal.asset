@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
   m_Name: anatomy_fungal
-  m_EditorClassIdentifier: Assembly-CSharp::AnatomyProfileSO
+  m_EditorClassIdentifier: DungeonStory.Medical::AnatomyProfileSO
   profileId: anatomy:fungal
   displayName: "\uADE0\uC0AC \uAD70\uCCB4 \uAD6C\uC870"
   anatomyFamily: fungal
@@ -30,6 +30,7 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 1
+    axisContributions: []
   - nodeId: spore-sac
     displayName: "\uD3EC\uC790\uB0AD"
     parentNodeId: head
@@ -42,6 +43,7 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
+    axisContributions: []
   - nodeId: torso
     displayName: "\uADE0\uC0AC \uBAB8\uD1B5"
     parentNodeId: 
@@ -54,6 +56,7 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 1
     mapsToLegacyBodyPart: 1
+    axisContributions: []
   - nodeId: hypha-core
     displayName: "\uC911\uC2EC \uADE0\uD575"
     parentNodeId: torso
@@ -66,6 +69,7 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
+    axisContributions: []
   - nodeId: arm:left
     displayName: "\uC67C\uCABD \uADE0\uC0AC\uD314"
     parentNodeId: torso
@@ -78,6 +82,7 @@ MonoBehaviour:
     pairedGroupId: arms
     legacyBodyPart: 2
     mapsToLegacyBodyPart: 1
+    axisContributions: []
   - nodeId: arm:right
     displayName: "\uC624\uB978\uCABD \uADE0\uC0AC\uD314"
     parentNodeId: torso
@@ -90,6 +95,7 @@ MonoBehaviour:
     pairedGroupId: arms
     legacyBodyPart: 3
     mapsToLegacyBodyPart: 1
+    axisContributions: []
   - nodeId: leg:left
     displayName: "\uC67C\uCABD \uADE0\uC0AC\uB2E4\uB9AC"
     parentNodeId: torso
@@ -102,6 +108,7 @@ MonoBehaviour:
     pairedGroupId: legs
     legacyBodyPart: 4
     mapsToLegacyBodyPart: 1
+    axisContributions: []
   - nodeId: leg:right
     displayName: "\uC624\uB978\uCABD \uADE0\uC0AC\uB2E4\uB9AC"
     parentNodeId: torso
@@ -114,3 +121,4 @@ MonoBehaviour:
     pairedGroupId: legs
     legacyBodyPart: 5
     mapsToLegacyBodyPart: 1
+    axisContributions: []

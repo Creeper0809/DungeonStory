@@ -27,30 +27,46 @@ MonoBehaviour:
   description: "\uB9C8\uCDE8, \uC808\uAC1C\uC640 \uBD09\uD569\uC744 \uD45C\uC900\uD654\uD574
     \uC0DD\uCCB4 \uC218\uC220\uC744 \uAC00\uB2A5\uD558\uAC8C \uD55C\uB2E4."
   field: 14
-  requiredWork: 138
+  requiredWork: 132
   prerequisites:
   - {fileID: 11400000, guid: db52b6c4042583d41a582bd0c7d9d6a3, type: 2}
   - {fileID: 11400000, guid: 5d24ff7a48d2e42439661cde8f81fdae, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:medical:anatomy
+    prerequisite: {fileID: 11400000, guid: db52b6c4042583d41a582bd0c7d9d6a3, type: 2}
+    kind: 2
+    reason: "\uD574\uBD80\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC678\uACFC\uC220
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:pharmacology:anesthesia
+    prerequisite: {fileID: 11400000, guid: 5d24ff7a48d2e42439661cde8f81fdae, type: 2}
+    kind: 2
+    reason: "\uC9C4\uD1B5\xB7\uB9C8\uCDE8\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC678\uACFC\uC220 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563257777393513
-    - rid: 7302563257777393514
-    - rid: 7302563257777393515
+    - rid: 7737211730927812791
+    - rid: 7737211730927812792
+    - rid: 7737211730927812793
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 2
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563257777393513
+    - rid: 7737211730927812791
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9503
-    - rid: 7302563257777393514
+    - rid: 7737211730927812792
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9504
-    - rid: 7302563257777393515
+    - rid: 7737211730927812793
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9505

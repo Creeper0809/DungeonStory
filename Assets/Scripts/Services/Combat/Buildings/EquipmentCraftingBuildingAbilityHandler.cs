@@ -17,13 +17,14 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
     public EquipmentCraftingBuildingAbilityHandler(
         ICombatEquipmentRuntime combatRuntime,
         ICombatEquipmentCatalog combatCatalog,
-        ICharacterEnvironmentStatusQuery environmentStatus = null)
+        ICharacterEnvironmentStatusQuery environmentStatus)
     {
         this.combatRuntime = combatRuntime
             ?? throw new ArgumentNullException(nameof(combatRuntime));
         this.combatCatalog = combatCatalog
             ?? throw new ArgumentNullException(nameof(combatCatalog));
-        this.environmentStatus = environmentStatus;
+        this.environmentStatus = environmentStatus
+            ?? throw new ArgumentNullException(nameof(environmentStatus));
     }
 
     public IReadOnlyCollection<Type> AbilityTypes => Types;
@@ -36,7 +37,7 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
     }
 
     private int ApplyCrafting(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         BuildingEquipmentCraftingAbility ability,
         WorkTypeId workTypeId)
@@ -45,7 +46,8 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             || ability == null
             || workTypeId != BuiltInWorkTypeIds.Craft
             || !building.TryGetCombatEquipmentRuntime(
-                out ICombatEquipmentRuntime equipmentRuntime))
+                out IBuildingEquipmentCraftingRuntimePort runtimePort)
+            || runtimePort is not ICombatEquipmentRuntime equipmentRuntime)
         {
             return 0;
         }
@@ -72,30 +74,35 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
                 out CombatEquipmentDefinitionSO definition)
                 ? definition.DisplayName
                 : completedEquipmentId;
-        actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Craft,
-            completed > 0
-                ? CharacterActivityOutcomes.Completed
-                : CharacterActivityOutcomes.Progress,
-            completed > 0
-                ? $"{targetName} 제작을 마쳤다."
-                : $"{GetBuildingName(building)}에서 제작을 진행했다.",
+        actor?.RecordActivity(
             building,
-            reasonCode: completed > 0
-                ? "equipment-crafted"
-                : "equipment-crafting-progress",
-            quantity: completed));
+            new BuildingActivitySnapshot(
+                BuildingActivityKinds.Work,
+                completed > 0
+                    ? BuildingActivityOutcomes.Completed
+                    : BuildingActivityOutcomes.Progress,
+                completed > 0
+                    ? $"{targetName} 제작을 마쳤다."
+                    : $"{GetBuildingName(building)}에서 제작을 진행했다.",
+                BuiltInWorkTypeIds.Craft.Value,
+                string.Empty,
+                completed > 0
+                    ? "equipment-crafted"
+                    : "equipment-crafting-progress",
+                0f,
+                completed,
+                false));
         return completed;
     }
 
     private bool SpawnCraftedOutput(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         string completedEquipmentId,
         string completedMaterialId,
         int completed)
     {
-        IWorldItemStackRuntime itemRuntime = building.WorldItemStackRuntime;
+        IBuildingItemStackPort itemRuntime = building.WorldItemStackRuntime;
         if (completedEquipmentId == CombatItemDefinitions.ArrowBundleRecipeId
             || completedEquipmentId == CombatItemDefinitions.BoltBundleRecipeId)
         {
@@ -108,31 +115,34 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
                     ? 20
                     : 12;
             return itemRuntime != null
-                && itemRuntime.SpawnItemAt(
+                && itemRuntime.SpawnFacilityBufferItem(
                     ammunitionItemId,
                     outputAmount,
                     building.centerPos,
-                    WorldItemStackState.FacilityBuffer,
-                    $"craft:{building.GetInstanceID()}",
+                    $"craft:{building.RequirePersistentInstanceId().Value}",
                     out int spawned)
                 && spawned == outputAmount;
         }
 
         if (combatCatalog.TryGet(completedEquipmentId, out _)
             && completed == 1
-            && itemRuntime != null
-            && itemRuntime.SpawnUniqueItemAt(
-                DungeonItemCatalogSO.EquipmentItemId(completedEquipmentId),
-                building.centerPos,
-                WorldItemStackState.FacilityBuffer,
-                $"craft:{building.GetInstanceID()}",
-                out string outputStackId))
+            && itemRuntime != null)
         {
             CombatEquipmentInstance instance = combatRuntime.CreateInstance(
                 completedEquipmentId,
                 ResolveCraftedQuality(actor, building),
                 CombatEquipmentWorldState.Loose,
                 completedMaterialId);
+            if (!itemRuntime.SpawnExistingFacilityBufferUniqueItem(
+                    PhysicalItemIds.ForEquipment(completedEquipmentId),
+                    (ItemInstanceId)instance.instanceId,
+                    building.centerPos,
+                    $"craft:{building.RequirePersistentInstanceId().Value}",
+                    out string outputStackId))
+            {
+                throw new InvalidOperationException(
+                    $"Failed to materialize crafted equipment '{instance.instanceId}'.");
+            }
             combatRuntime.TryLinkToWorldStack(
                 instance.instanceId,
                 outputStackId,
@@ -144,13 +154,12 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
     }
 
     private CombatEquipmentQuality ResolveCraftedQuality(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building)
     {
-        int dexterity =
-            actor?.Stats?.GetCharacterStat(CharacterStatType.Dexterity) ?? 5;
-        int research =
-            actor?.Stats?.GetCharacterStat(CharacterStatType.Research) ?? 5;
+        BuildingVisitorSnapshot visitor = actor?.VisitorSnapshot ?? default;
+        int dexterity = actor != null ? visitor.Dexterity : 5;
+        int research = actor != null ? visitor.Research : 5;
         int score = dexterity
             + research
             + Mathf.Max(1, building?.FacilityLevel ?? 1) * 2;
@@ -164,13 +173,11 @@ public sealed class EquipmentCraftingBuildingAbilityHandler :
             <= 34 => CombatEquipmentQuality.Masterwork,
             _ => CombatEquipmentQuality.Legendary
         };
-        string characterId = actor?.Identity?.PersistentId;
+        CharacterId characterId = new(visitor.PersistentId);
         EnvironmentalExposureBand band =
             (EnvironmentalExposureBand)Mathf.Max(
-                (int)(environmentStatus?.GetPhysiologicalBand(characterId)
-                    ?? EnvironmentalExposureBand.Stable),
-                (int)(environmentStatus?.GetVisualBand(characterId)
-                    ?? EnvironmentalExposureBand.Stable));
+                (int)environmentStatus.GetPhysiologicalBand(characterId),
+                (int)environmentStatus.GetVisualBand(characterId));
         return band >= EnvironmentalExposureBand.Impaired
             ? (CombatEquipmentQuality)Mathf.Max(
                 (int)CombatEquipmentQuality.Awful,

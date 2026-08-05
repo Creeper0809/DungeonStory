@@ -20,14 +20,18 @@ public sealed class ServiceRoomBuildingPanelPresenter :
 {
     private readonly IServiceSessionRuntime sessions;
     private readonly IServiceRoomLinkRuntime links;
+    private readonly IDomainFailureLocalizer failureLocalizer;
 
     public ServiceRoomBuildingPanelPresenter(
         IServiceSessionRuntime sessions,
-        IServiceRoomLinkRuntime links)
+        IServiceRoomLinkRuntime links,
+        IDomainFailureLocalizer failureLocalizer)
     {
         this.sessions = sessions
             ?? throw new ArgumentNullException(nameof(sessions));
         this.links = links ?? throw new ArgumentNullException(nameof(links));
+        this.failureLocalizer = failureLocalizer
+            ?? throw new ArgumentNullException(nameof(failureLocalizer));
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -87,9 +91,12 @@ public sealed class ServiceRoomBuildingPanelPresenter :
             58f,
             created);
 
-        if (!string.IsNullOrWhiteSpace(snapshot.BlockedReason))
+        if (snapshot.BlockedFailure.IsFailure)
         {
-            AddText(parent, $"일시 중단: {snapshot.BlockedReason}", font,
+            AddText(
+                parent,
+                $"일시 중단: {failureLocalizer.Localize(snapshot.BlockedFailure)}",
+                font,
                 14f, DungeonUiTheme.Warning, 42f, created);
         }
 
@@ -178,7 +185,9 @@ public sealed class ServiceRoomBuildingPanelPresenter :
         {
             ServiceModeChangeResult result =
                 sessions.SetMode(building, target);
-            showFeedback?.Invoke(result.Message);
+            showFeedback?.Invoke(result.Succeeded
+                ? "신규 손님부터 새 운영 모드를 적용합니다."
+                : failureLocalizer.Localize(result.Failure));
             refresh?.Invoke();
         });
 

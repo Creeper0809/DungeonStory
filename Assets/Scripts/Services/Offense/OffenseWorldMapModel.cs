@@ -4,13 +4,6 @@ using System.Linq;
 using UnityEngine;
 
 [Serializable]
-public abstract class OffenseRewardGrantSpec
-{
-    public abstract string RewardTypeId { get; }
-    public abstract OffenseRewardCategory Category { get; }
-}
-
-[Serializable]
 public sealed class OffenseMoneyRewardSpec : OffenseRewardGrantSpec
 {
     public override string RewardTypeId => OffenseRewardTypeIds.Money;
@@ -150,36 +143,6 @@ public sealed class OffenseSpecialMonsterRewardSpec : OffenseRewardGrantSpec
 }
 
 [Serializable]
-public sealed class OffenseRewardPreview
-{
-    [SerializeReference] private OffenseRewardGrantSpec grantSpec;
-    [SerializeField] private string displayLabel;
-    [SerializeField, Min(0)] private int configuredAmount;
-
-    public OffenseRewardPreview(
-        string label,
-        int amount,
-        OffenseRewardGrantSpec grantSpec)
-    {
-        displayLabel = label ?? string.Empty;
-        configuredAmount = Mathf.Max(0, amount);
-        this.grantSpec = grantSpec ?? throw new ArgumentNullException(nameof(grantSpec));
-    }
-
-    public OffenseRewardGrantSpec GrantSpec => grantSpec;
-    public OffenseRewardCategory category => grantSpec?.Category ?? OffenseRewardCategory.Money;
-    public string label => displayLabel;
-    public int amount => Mathf.Max(0, configuredAmount);
-    public bool IsConfigured => grantSpec != null && !string.IsNullOrWhiteSpace(grantSpec.RewardTypeId);
-
-    public string ToSummaryText()
-    {
-        string name = string.IsNullOrWhiteSpace(label) ? category.ToString() : label;
-        return amount > 0 ? $"{name} x{amount}" : name;
-    }
-}
-
-[Serializable]
 public class OffenseTargetDefinition
 {
     public string id;
@@ -209,7 +172,7 @@ public class OffenseTargetDefinition
 
     public OffenseTargetSnapshot ToSnapshot(
         bool preciseIntel,
-        IOffenseWorldMapStateView campaignState = null)
+        IOffenseWorldMapStateView campaignState)
     {
         bool completed = campaignState != null && campaignState.IsTargetCompleted(id);
         bool prerequisiteMet = string.IsNullOrWhiteSpace(prerequisiteTargetId)

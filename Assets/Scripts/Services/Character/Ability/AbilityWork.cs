@@ -52,11 +52,13 @@ public class AbilityWork : CharacterAbility
     private IExteriorZoneQuery exteriorZoneQuery;
     private IWorkExecutionHandlerRegistry workExecutionHandlerRegistry;
     private IWorkPolicyRegistry workPolicyRegistry;
+    private ICharacterNeedDefinitionCatalog needDefinitionCatalog;
     private IWorkOrderRuntime workOrderRuntime;
     private IPaidFacilityContractRuntime paidFacilityContracts;
     private IEnvironmentWorkPolicy environmentWorkPolicy;
-    private ICharacterEnvironmentRuntime characterEnvironmentRuntime;
-    private IEnvironmentalWorkwearRuntime environmentalWorkwearRuntime;
+    private IDungeonDebugRuleQuery debugRules;
+    private ICharacterEnvironmentWorkContext characterEnvironment;
+    private IEnvironmentalWorkwearCommand environmentalWorkwearCommands;
     private IWorkAmountCalculator workAmountCalculator;
     private ICaptiveLaborQuery captiveLaborQuery;
     private IGameClock gameClock;
@@ -91,20 +93,30 @@ public class AbilityWork : CharacterAbility
     public AbilityMove WorkerMove => move;
     public Grid CachedGrid => grid;
     internal IBlueprintResearchWorkService BlueprintResearchWorkService =>
-        RuntimeDependency.Require(blueprintResearchWorkService, this);
+        blueprintResearchWorkService
+        ?? throw MissingDependency(nameof(IBlueprintResearchWorkService));
     internal IStaffDiscontentRuntimeService StaffDiscontentRuntimeService =>
-        RuntimeDependency.Require(staffDiscontentRuntimeService, this);
+        staffDiscontentRuntimeService
+        ?? throw MissingDependency(nameof(IStaffDiscontentRuntimeService));
     internal IFloatingIconFeedbackService FloatingIconFeedbackService => floatingIconFeedbackService
         ?? FallbackFloatingIconFeedbackService;
-    internal IWorkGridResolver WorkGridResolver => RuntimeDependency.Require(workGridResolver, this);
+    internal IWorkGridResolver WorkGridResolver => workGridResolver
+        ?? throw MissingDependency(nameof(IWorkGridResolver));
     internal IFacilityCandidateCache FacilityCandidateCacheService =>
-        RuntimeDependency.Require(facilityCandidateCache, this);
+        facilityCandidateCache
+        ?? throw MissingDependency(nameof(IFacilityCandidateCache));
     internal IRoomEnvironmentQuery RoomEnvironmentQuery => roomEnvironmentQuery;
     internal IExteriorZoneQuery ExteriorZoneQuery => exteriorZoneQuery;
     internal IWorkExecutionHandlerRegistry WorkExecutionHandlerRegistry =>
         workExecutionHandlerRegistry;
     internal IWorkOrderRuntime WorkOrderRuntime => workOrderRuntime;
     internal IGameClock GameClock => gameClock;
+
+    private InvalidOperationException MissingDependency(string dependencyName)
+    {
+        return new InvalidOperationException(
+            $"{nameof(AbilityWork)} requires {dependencyName} injection before use.");
+    }
 
     public void SeedDecisionContext(
         in CharacterAiDecisionContext context)
@@ -123,7 +135,7 @@ public class AbilityWork : CharacterAbility
     {
         definition = null;
         return assignedWorkType != FacilityWorkType.None
-            && WorkTypeCatalog.TryGet(assignedWorkType, out definition);
+            && FacilityWorkTypeMap.TryGet(assignedWorkType, out definition);
     }
 
     public bool IsAssignedWork(WorkTypeId workTypeId)
@@ -136,14 +148,27 @@ public class AbilityWork : CharacterAbility
         return workTypeId.IsValid && PriorityWorkTypeId == workTypeId;
     }
 
-    internal float RestProtectionSleepThreshold => restProtectionSleepThreshold;
-    internal float RestProtectionResumeSleepThreshold => Mathf.Max(
-        restProtectionSleepThreshold,
-        restProtectionResumeSleepThreshold);
+    internal float RestProtectionSleepThreshold =>
+        ResolveNeedResponse(
+            CharacterCondition.SLEEP,
+            restProtectionSleepThreshold).emergencyStart;
+    internal float RestProtectionResumeSleepThreshold =>
+        ResolveNeedResponse(
+            CharacterCondition.SLEEP,
+            restProtectionResumeSleepThreshold).resumeTarget;
     internal float MinimumRestProtectionSeconds => minimumRestProtectionSeconds;
-    internal float OffDutySleepThreshold => offDutySleepThreshold;
-    internal float ReturnToWorkSleepThreshold => returnToWorkSleepThreshold;
-    internal float HungerWorkInterruptThreshold => hungerWorkInterruptThreshold;
+    internal float OffDutySleepThreshold =>
+        ResolveNeedResponse(
+            CharacterCondition.SLEEP,
+            offDutySleepThreshold).emergencyStart;
+    internal float ReturnToWorkSleepThreshold =>
+        ResolveNeedResponse(
+            CharacterCondition.SLEEP,
+            returnToWorkSleepThreshold).resumeTarget;
+    internal float HungerWorkInterruptThreshold =>
+        ResolveNeedResponse(
+            CharacterCondition.HUNGER,
+            hungerWorkInterruptThreshold).emergencyStart;
     internal float OffDutyMoodThreshold => offDutyMoodThreshold;
     internal float ReturnToWorkMoodThreshold => returnToWorkMoodThreshold;
     internal float MinimumOffDutySeconds => minimumOffDutySeconds;
@@ -153,6 +178,21 @@ public class AbilityWork : CharacterAbility
     internal float SuppressAttackInterval => suppressAttackInterval;
     internal float RoutineOperateShiftSeconds => routineOperateShiftSeconds;
     internal bool LastWorkRunCompleted => DutyController.LastWorkRunCompleted;
+
+    private CharacterNeedResponseProfile ResolveNeedResponse(
+        CharacterCondition condition,
+        float fallback)
+    {
+        if (WorkerActor?.Stats != null)
+        {
+            return WorkerActor.Stats.GetNeedResponse(condition);
+        }
+
+        return new CharacterNeedResponseProfile(
+            fallback,
+            fallback,
+            fallback);
+    }
 
     private WorkTargetSelector TargetSelector
     {
@@ -205,19 +245,21 @@ public class AbilityWork : CharacterAbility
         IWorkGridResolver workGridResolver,
         IFacilityCandidateCache facilityCandidateCache,
         IRoomEnvironmentQuery roomEnvironmentQuery,
-        IExteriorZoneQuery exteriorZoneQuery = null,
-        IWorkExecutionHandlerRegistry workExecutionHandlerRegistry = null,
-        IWorkPolicyRegistry workPolicyRegistry = null,
-        IWorkOrderRuntime workOrderRuntime = null,
-        IWorkAmountCalculator workAmountCalculator = null,
-        ICaptiveLaborQuery captiveLaborQuery = null,
-        IGameClock gameClock = null,
-        IDefenseEngagementRuntime defenseEngagementRuntime = null,
-        IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
-        IPaidFacilityContractRuntime paidFacilityContracts = null,
-        IEnvironmentWorkPolicy environmentWorkPolicy = null,
-        ICharacterEnvironmentRuntime characterEnvironmentRuntime = null,
-        IEnvironmentalWorkwearRuntime environmentalWorkwearRuntime = null)
+        IExteriorZoneQuery exteriorZoneQuery,
+        IWorkExecutionHandlerRegistry workExecutionHandlerRegistry,
+        IWorkPolicyRegistry workPolicyRegistry,
+        IWorkOrderRuntime workOrderRuntime,
+        IWorkAmountCalculator workAmountCalculator,
+        ICaptiveLaborQuery captiveLaborQuery,
+        IGameClock gameClock,
+        IDefenseEngagementRuntime defenseEngagementRuntime,
+        IRoomEnvironmentExperienceService roomEnvironmentExperienceService,
+        IPaidFacilityContractRuntime paidFacilityContracts,
+        IEnvironmentWorkPolicy environmentWorkPolicy,
+        ICharacterEnvironmentWorkContext characterEnvironment,
+        IEnvironmentalWorkwearCommand environmentalWorkwearCommands,
+        ICharacterNeedDefinitionCatalog needDefinitionCatalog,
+        IDungeonDebugRuleQuery debugRules)
     {
         this.blueprintResearchWorkService = blueprintResearchWorkService
             ?? throw new ArgumentNullException(nameof(blueprintResearchWorkService));
@@ -241,10 +283,16 @@ public class AbilityWork : CharacterAbility
         this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
         this.paidFacilityContracts = paidFacilityContracts;
         this.environmentWorkPolicy = environmentWorkPolicy;
-        this.characterEnvironmentRuntime = characterEnvironmentRuntime;
-        this.environmentalWorkwearRuntime = environmentalWorkwearRuntime;
+        this.characterEnvironment = characterEnvironment
+            ?? throw new ArgumentNullException(nameof(characterEnvironment));
+        this.environmentalWorkwearCommands = environmentalWorkwearCommands
+            ?? throw new ArgumentNullException(nameof(environmentalWorkwearCommands));
+        this.needDefinitionCatalog = needDefinitionCatalog
+            ?? throw new ArgumentNullException(nameof(needDefinitionCatalog));
+        this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
         targetSelector = null;
         taskExecutor = null;
+        dutyController = null;
         commandHandler = null;
     }
 
@@ -390,7 +438,7 @@ public class AbilityWork : CharacterAbility
         FacilityWorkType requestedWorkType = WorkTypeCatalog.TryGet(
                 requestedWorkTypeId,
                 out WorkTypeDefinition definition)
-            ? definition.Type
+            ? FacilityWorkTypeMap.GetRequired(definition)
             : FacilityWorkType.None;
         StartWorkingWithLegacyType(requestedWorkType, preferredTarget);
     }
@@ -418,7 +466,7 @@ public class AbilityWork : CharacterAbility
         FacilityWorkType requestedWorkType = WorkTypeCatalog.TryGet(
                 requestedWorkTypeId,
                 out WorkTypeDefinition definition)
-            ? definition.Type
+            ? FacilityWorkTypeMap.GetRequired(definition)
             : FacilityWorkType.None;
         return TryAssignWorkTargetWithLegacyType(target, requestedWorkType, searchResult);
     }
@@ -486,7 +534,7 @@ public class AbilityWork : CharacterAbility
     {
         workPriorities ??= WorkPriorityProfile.CreateDefault();
         WorkTypeId workTypeId = definition.WorkTypeId;
-        FacilityWorkType workType = definition.Type;
+        FacilityWorkType workType = FacilityWorkTypeMap.GetRequired(definition);
         WorkPriorityLevel previousPriority = workPriorities.GetPriority(workTypeId);
         workPriorities.SetPriority(workTypeId, priority);
 
@@ -534,7 +582,7 @@ public class AbilityWork : CharacterAbility
         AIBrain brain,
         GridPathSearchResult searchResult)
     {
-        FacilityWorkType workType = requestedDefinition.Type;
+        FacilityWorkType workType = FacilityWorkTypeMap.GetRequired(requestedDefinition);
         WorkTypeId workTypeId = requestedDefinition.WorkTypeId;
         if (brain == null
             || actor == null
@@ -605,7 +653,9 @@ public class AbilityWork : CharacterAbility
             return TryAssignAnyWork(searchResult);
         }
 
-        return WorkTypeCatalog.TryGet(requestedWorkType, out WorkTypeDefinition definition)
+        return FacilityWorkTypeMap.TryGet(
+                requestedWorkType,
+                out WorkTypeDefinition definition)
             && TryAssignWork(definition.WorkTypeId, searchResult);
     }
 
@@ -726,7 +776,7 @@ public class AbilityWork : CharacterAbility
 
         if (assignedShop is IWorkableFacility facility)
         {
-            facility.DeallocateWorker(actor);
+            facility.DeallocateWorker(actor?.BuildingVisitor);
         }
 
         AIAction currentAction = actor != null && actor.Brain != null
@@ -857,6 +907,11 @@ public class AbilityWork : CharacterAbility
 
     private void EnsureWorkModules()
     {
+        if (needDefinitionCatalog == null)
+        {
+            return;
+        }
+
         if (targetSelector != null
             && taskExecutor != null
             && dutyController != null
@@ -871,18 +926,24 @@ public class AbilityWork : CharacterAbility
             captiveLaborQuery,
             environmentWorkPolicy);
         taskExecutor ??= new WorkTaskExecutor(
+            new WorkTaskCoreDependencies(
+                this,
+                targetSelector,
+                gameClock,
+                debugRules),
+            new WorkTaskExecutionDependencies(
+                workExecutionHandlerRegistry,
+                workOrderRuntime,
+                workAmountCalculator,
+                paidFacilityContracts),
+            new WorkTaskEnvironmentDependencies(
+                roomEnvironmentExperienceService,
+                characterEnvironment,
+                environmentalWorkwearCommands,
+                environmentWorkPolicy));
+        dutyController ??= new WorkDutyController(
             this,
-            targetSelector,
-            workExecutionHandlerRegistry,
-            workOrderRuntime,
-            workAmountCalculator,
-            gameClock,
-            roomEnvironmentExperienceService,
-            paidFacilityContracts,
-            characterEnvironmentRuntime,
-            environmentalWorkwearRuntime,
-            environmentWorkPolicy);
-        dutyController ??= new WorkDutyController(this);
+            needDefinitionCatalog);
         commandHandler ??= new WorkCommandHandler(this, targetSelector, defenseEngagementRuntime);
     }
 

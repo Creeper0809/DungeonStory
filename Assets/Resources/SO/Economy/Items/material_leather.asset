@@ -26,21 +26,28 @@ MonoBehaviour:
   displayName: "\uAC00\uC8FD"
   description: "\uADE0\uD615 \uC7A1\uD78C \uC5F0\uAC11\uACFC \uC7A5\uBE44\uC758 \uC8FC\uC7AC\uB8CC."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 128
-  unitPrice: 10
-  marketSaleRate: 0.6
   unitWeight: 0.45
   maxStack: 60
   sprite: {fileID: 0}
-  requiredResearchId: research:textile:tanning
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 10
+  features:
+  - rid: 7737211673962611618
+  - rid: 7737211673962611619
+  - rid: 7737211673962611620
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611618
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:textile:tanning
+    - rid: 7737211673962611619
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 128
+        sharedIntermediate: 1
+    - rid: 7737211673962611620
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

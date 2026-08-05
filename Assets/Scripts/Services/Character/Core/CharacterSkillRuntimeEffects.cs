@@ -7,32 +7,22 @@ using VContainer.Unity;
 
 public static class CharacterSkillRuntimeEffects
 {
-    private const int MaxExecutedEventKeys = 512;
-
-    private static readonly HashSet<string> executingKeys = new HashSet<string>(StringComparer.Ordinal);
-    private static readonly HashSet<string> executedEventKeys = new HashSet<string>(StringComparer.Ordinal);
-    private static readonly Dictionary<string, WorkSkillSnapshot> activeWorkSnapshots =
-        new Dictionary<string, WorkSkillSnapshot>(StringComparer.Ordinal);
-    private static readonly ICharacterSkillSystemSettingsProvider DefaultSettingsProvider =
-        new ResourceCharacterSkillSystemSettingsProvider();
-    private static CharacterSkillSystemSettingsSO cachedSettings;
-
-    private sealed class WorkSkillSnapshot
-    {
-        public WorkTypeId WorkTypeId;
-        public float SpeedMultiplier = 1f;
-    }
-
 #if UNITY_EDITOR
     public static void ResetTransientExecutionStateForDebug()
     {
-        executingKeys.Clear();
-        executedEventKeys.Clear();
-        activeWorkSnapshots.Clear();
+        foreach (CharacterSkillTransientState state in
+                 UnityEngine.Object.FindObjectsByType<CharacterSkillTransientState>(
+                     FindObjectsInactive.Include,
+                     FindObjectsSortMode.None))
+        {
+            state.Clear();
+        }
     }
 #endif
 
-    public static CharacterCombatAbilityDefinition ToCombatAbility(CharacterSkillInstance skill)
+    public static CharacterCombatAbilityDefinition ToCombatAbility(
+        CharacterSkillInstance skill,
+        CharacterSkillSystemSettingsSO settings)
     {
         if (skill == null || !skill.IsReady)
         {
@@ -42,7 +32,7 @@ public static class CharacterSkillRuntimeEffects
         List<OffenseCombatEffectModule> effects = new List<OffenseCombatEffectModule>();
         foreach (CharacterSkillModuleSelection selection in skill.modules ?? new List<CharacterSkillModuleSelection>())
         {
-            CharacterSkillNumericVariant variant = FindVariant(selection);
+            CharacterSkillNumericVariant variant = FindVariant(selection, settings);
             OffenseCombatEffectModule effect = CreateCombatEffect(selection.moduleId, variant);
             if (effect != null)
             {
@@ -110,7 +100,7 @@ public static class CharacterSkillRuntimeEffects
         }
         finally
         {
-            executingKeys.Remove(key);
+            CharacterSkillTransientState.Ensure(context.Actor).Exit(key);
         }
     }
 
@@ -125,14 +115,11 @@ public static class CharacterSkillRuntimeEffects
             return;
         }
 
-        string actorId = GetActorExecutionId(actor);
         float speedBonus = GetManagementModuleTotal(actor, "work_speed", CharacterSkillTrigger.WorkStarted)
             + GetManagementModuleTotal(actor, "work_speed", CharacterSkillTrigger.WorkCompleted);
-        activeWorkSnapshots[actorId] = new WorkSkillSnapshot
-        {
-            WorkTypeId = workTypeId,
-            SpeedMultiplier = 1f + Mathf.Clamp(speedBonus, 0f, 1.5f)
-        };
+        CharacterSkillTransientState.Ensure(actor).BeginWork(
+            workTypeId,
+            1f + Mathf.Clamp(speedBonus, 0f, 1.5f));
 
         ApplyTriggeredPassives(new CharacterSkillExecutionContext(
             actor,
@@ -149,7 +136,7 @@ public static class CharacterSkillRuntimeEffects
             return;
         }
 
-        activeWorkSnapshots.Remove(GetActorExecutionId(actor));
+        CharacterSkillTransientState.Ensure(actor).EndWork();
     }
 
     public static void TriggerWorkCompleted(
@@ -186,7 +173,9 @@ public static class CharacterSkillRuntimeEffects
 
         foreach (CharacterSkillModuleSelection selection in skill.modules ?? new List<CharacterSkillModuleSelection>())
         {
-            CharacterSkillNumericVariant variant = FindVariant(selection);
+            CharacterSkillNumericVariant variant = FindVariant(
+                selection,
+                RequireSettings(actor));
             if (variant == null)
             {
                 continue;
@@ -239,9 +228,9 @@ public static class CharacterSkillRuntimeEffects
             return 1f;
         }
 
-        return activeWorkSnapshots.TryGetValue(GetActorExecutionId(actor), out WorkSkillSnapshot snapshot)
-            ? Mathf.Max(0.1f, snapshot.SpeedMultiplier)
-            : 1f;
+        CharacterSkillTransientState state =
+            actor.GetComponent<CharacterSkillTransientState>();
+        return state != null ? state.WorkSpeedMultiplier : 1f;
     }
 
     public static float GetProductionOutputMultiplier(CharacterActor actor)
@@ -308,7 +297,7 @@ public static class CharacterSkillRuntimeEffects
             .Where(skill => skill != null && skill.trigger == passiveTrigger);
         foreach (CharacterSkillInstance skill in passives)
         {
-            total += GetModuleTotal(skill, moduleId);
+            total += GetModuleTotal(skill, moduleId, progression.SkillSettings);
         }
 
         CharacterSkillInstance ultimate = progression.Ultimate;
@@ -317,7 +306,7 @@ public static class CharacterSkillRuntimeEffects
             && progression.GrowthState?.useLimits?.managementOperatingDay >= 0;
         if (managementUltimateActive)
         {
-            total += GetModuleTotal(ultimate, moduleId);
+            total += GetModuleTotal(ultimate, moduleId, progression.SkillSettings);
         }
 
         return total;
@@ -343,7 +332,9 @@ public static class CharacterSkillRuntimeEffects
         float damage = 0f;
         foreach (CharacterSkillModuleSelection selection in skill.modules ?? new List<CharacterSkillModuleSelection>())
         {
-            CharacterSkillNumericVariant variant = FindVariant(selection);
+            CharacterSkillNumericVariant variant = FindVariant(
+                selection,
+                RequireSettings(defender));
             if (variant == null)
             {
                 continue;
@@ -383,7 +374,9 @@ public static class CharacterSkillRuntimeEffects
         foreach (CharacterSkillModuleSelection selection in skill.modules
             ?? new List<CharacterSkillModuleSelection>())
         {
-            CharacterSkillNumericVariant variant = FindVariant(selection);
+            CharacterSkillNumericVariant variant = FindVariant(
+                selection,
+                RequireSettings(context.Actor));
             OffenseCombatEffectModule effect = CreateCombatEffect(selection.moduleId, variant);
             if (effect != null)
             {
@@ -408,7 +401,7 @@ public static class CharacterSkillRuntimeEffects
                 new OffenseBattleEffectContext(context.BattleSession, source, target);
             foreach (OffenseCombatEffectModule effect in effects)
             {
-                effect.Apply(effectContext);
+                OffenseCombatEffectRuntime.Apply(effect, effectContext);
             }
         }
 
@@ -509,18 +502,26 @@ public static class CharacterSkillRuntimeEffects
         };
     }
 
-    private static CharacterSkillNumericVariant FindVariant(CharacterSkillModuleSelection selection)
+    private static CharacterSkillNumericVariant FindVariant(
+        CharacterSkillModuleSelection selection,
+        CharacterSkillSystemSettingsSO settings)
     {
         if (selection == null)
         {
             return null;
         }
 
-        CharacterSkillSystemSettingsSO settings = GetSettings();
+        if (settings == null)
+        {
+            throw new ArgumentNullException(nameof(settings));
+        }
         return settings.FindModule(selection.moduleId)?.FindVariant(selection.variantId);
     }
 
-    private static float GetModuleTotal(CharacterSkillInstance skill, string moduleId)
+    private static float GetModuleTotal(
+        CharacterSkillInstance skill,
+        string moduleId,
+        CharacterSkillSystemSettingsSO settings)
     {
         float total = 0f;
         foreach (CharacterSkillModuleSelection selection in skill?.modules
@@ -531,23 +532,18 @@ public static class CharacterSkillRuntimeEffects
                 continue;
             }
 
-            total += Mathf.Max(0f, FindVariant(selection)?.primaryValue ?? 0f);
+            total += Mathf.Max(
+                0f,
+                FindVariant(selection, settings)?.primaryValue ?? 0f);
         }
 
         return total;
     }
 
-    private static CharacterSkillSystemSettingsSO GetSettings()
-    {
-        if (cachedSettings == null)
-        {
-            cachedSettings = DefaultSettingsProvider.Settings
-                ?? CharacterSkillSystemSettingsSO.CreateRuntimeDefaults();
-            cachedSettings.EnsureDefaults();
-        }
-
-        return cachedSettings;
-    }
+    private static CharacterSkillSystemSettingsSO RequireSettings(CharacterActor actor) =>
+        actor?.Progression?.SkillSettings
+        ?? throw new InvalidOperationException(
+            "Character progression has no authored skill settings.");
 
     private static OffenseBattleTargetRule ToBattleTarget(CharacterSkillTarget target)
     {
@@ -585,37 +581,25 @@ public static class CharacterSkillRuntimeEffects
         CharacterSkillInstance skill,
         out string key)
     {
-        string actorId = GetActorExecutionId(context.Actor);
-
         string eventId = string.IsNullOrWhiteSpace(context.EventId)
             ? $"{context.Trigger}:{context.Actor?.GameClock?.FrameCount ?? 0}"
             : context.EventId;
-        key = $"{eventId}:{actorId}:{skill.id}";
-        if (executingKeys.Contains(key) || executedEventKeys.Contains(key))
-        {
-            return false;
-        }
-
-        if (executedEventKeys.Count >= MaxExecutedEventKeys)
-        {
-            executedEventKeys.Clear();
-        }
-
-        executingKeys.Add(key);
-        executedEventKeys.Add(key);
-        return true;
+        key = $"{eventId}:{GetActorExecutionId(context.Actor)}:{skill.id}";
+        return CharacterSkillTransientState.Ensure(context.Actor).TryEnter(key);
     }
 
     private static string GetActorExecutionId(CharacterActor actor)
     {
-        string actorId = actor?.Identity?.PersistentId;
-        if (string.IsNullOrWhiteSpace(actorId))
-        {
-            actorId = actor != null ? actor.GetInstanceID().ToString() : "unknown";
-        }
-
-        return actorId;
+        return actor != null
+            ? CharacterPersistentIdentity.Require(actor).Value
+            : throw new ArgumentNullException(nameof(actor));
     }
+}
+
+public interface ICharacterRuntimeTransientStateRegistry :
+    ICharacterCarryInventoryRegistry,
+    ICharacterSkillTransientStateRegistry
+{
 }
 
 public sealed class CharacterSkillExecutionContext

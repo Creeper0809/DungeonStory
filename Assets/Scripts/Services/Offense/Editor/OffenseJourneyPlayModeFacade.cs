@@ -11,6 +11,27 @@ public static class OffenseJourneyPlayModeFacade
 {
     private static readonly List<UnityEngine.Object> CreatedObjects = new List<UnityEngine.Object>();
 
+    public static void Cleanup()
+    {
+        for (int index = CreatedObjects.Count - 1; index >= 0; index--)
+        {
+            UnityEngine.Object value = CreatedObjects[index];
+            if (value == null)
+            {
+                continue;
+            }
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(value);
+            }
+            else
+            {
+                UnityEngine.Object.DestroyImmediate(value);
+            }
+        }
+        CreatedObjects.Clear();
+    }
+
     public static string Setup()
     {
         if (!Application.isPlaying) return "FAIL: PlayMode가 아닙니다.";
@@ -26,12 +47,14 @@ public static class OffenseJourneyPlayModeFacade
                 .FirstOrDefault();
             if (target == null) return "FAIL: 첫 원정 대상이 없습니다.";
 
-            worldMap.RestorePersistentState(
-                1,
-                target.id,
-                new[] { target.id },
-                Array.Empty<string>(),
-                string.Empty);
+            worldMap.Campaign.PublishRestoreCandidate(
+                worldMap.Campaign.BuildRestoreCandidate(
+                    new DungeonOffenseCampaignSaveData
+                    {
+                        reconLevel = 1,
+                        selectedTargetId = target.id,
+                        knownTargetIds = new List<string> { target.id }
+                    }));
             if (!worldMap.TrySelectTarget(target.id, out _, out string selectMessage))
             {
                 return $"FAIL: {selectMessage}";
@@ -126,12 +149,14 @@ public static class OffenseJourneyPlayModeFacade
             .FirstOrDefault();
         if (first == null) return "FAIL: campaign target is missing.";
 
-        worldMap.RestorePersistentState(
-            1,
-            first.id,
-            new[] { first.id },
-            Array.Empty<string>(),
-            string.Empty);
+        worldMap.Campaign.PublishRestoreCandidate(
+            worldMap.Campaign.BuildRestoreCandidate(
+                new DungeonOffenseCampaignSaveData
+                {
+                    reconLevel = 1,
+                    selectedTargetId = first.id,
+                    knownTargetIds = new List<string> { first.id }
+                }));
 
         CharacterActor[] party =
         {

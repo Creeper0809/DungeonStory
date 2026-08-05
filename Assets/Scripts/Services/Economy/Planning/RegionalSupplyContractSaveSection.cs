@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
-public sealed class RegionalSupplyContractSaveSection : IDungeonSaveSection
+// V18 required section: validation succeeds before the candidate Aggregate root is replaced.
+public sealed class RegionalSupplyContractSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonRegionalSupplyContractSaveData,
+        RegionalSupplyContractRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "economy.regional-contracts";
 
@@ -13,43 +17,48 @@ public sealed class RegionalSupplyContractSaveSection : IDungeonSaveSection
     };
 
     private readonly IRegionalSupplyContractRuntime runtime;
+    private readonly IResourceEconomyContentCatalog catalog;
 
     public RegionalSupplyContractSaveSection(
-        IRegionalSupplyContractRuntime runtime)
+        IRegionalSupplyContractRuntime runtime,
+        IResourceEconomyContentCatalog catalog)
     {
         this.runtime = runtime
             ?? throw new ArgumentNullException(nameof(runtime));
+        this.catalog = catalog
+            ?? throw new ArgumentNullException(nameof(catalog));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion =>
+    public override string SectionId => Id;
+    public override int SectionVersion =>
         DungeonRegionalSupplyContractSaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase =>
+    public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => Dependencies;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
+    protected override DungeonRegionalSupplyContractSaveData CapturePayload()
     {
-        return JsonUtility.ToJson(runtime.Capture());
+        return runtime.Capture();
     }
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
+    protected override RegionalSupplyContractRestoreCandidate
+        BuildRestoreCandidate(DungeonRegionalSupplyContractSaveData payload)
     {
-        if (sectionVersion != SectionVersion)
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        RegionalSupplyContractSaveValidation.Validate(
+            payload,
+            catalog,
+            report);
+        if (!report.Success)
         {
-            report.AddError(
-                $"{SectionId}: 지원하지 않는 섹션 버전 {sectionVersion}입니다.");
-            return;
+            throw new InvalidOperationException(
+                "Regional-contract restore candidate is invalid: "
+                + string.Join(" | ", report.Errors));
         }
-
-        runtime.Restore(
-            string.IsNullOrWhiteSpace(payloadJson)
-                ? new DungeonRegionalSupplyContractSaveData()
-                : JsonUtility.FromJson<DungeonRegionalSupplyContractSaveData>(
-                    payloadJson)
-                    ?? new DungeonRegionalSupplyContractSaveData());
+        return runtime.PrepareRestoreCandidate(payload);
     }
+
+    protected override void PublishRestoreCandidate(
+        RegionalSupplyContractRestoreCandidate candidate) =>
+        runtime.PublishRestoreCandidate(candidate);
 }

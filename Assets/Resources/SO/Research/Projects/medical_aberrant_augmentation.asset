@@ -27,26 +27,49 @@ MonoBehaviour:
   description: "\uBE44\uC804 \uAE30\uAD00\uACFC \uB8EC \uBD09\uD569\uC73C\uB85C \uC0DD\uBA85\uC758
     \uC6D0\uD615\uC744 \uC758\uB3C4\uC801\uC73C\uB85C \uB2E4\uC2DC \uC4F4\uB2E4."
   field: 14
-  requiredWork: 310
+  requiredWork: 336
   prerequisites:
   - {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
   - {fileID: 11400000, guid: bea0ba010ab47b745ad5a17a505932e8, type: 2}
   - {fileID: 11400000, guid: f8979a9659eeb294590440db919173b1, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:resonance
+    prerequisite: {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
+    kind: 0
+    reason: "\uBE44\uC804 \uACF5\uBA85\uC758 \uC774\uB860\uC774(\uAC00) \uC774\uD615
+      \uAC1C\uC870 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:medical:xenotransplant
+    prerequisite: {fileID: 11400000, guid: bea0ba010ab47b745ad5a17a505932e8, type: 2}
+    kind: 2
+    reason: "\uC774\uC885 \uC774\uC2DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC774\uD615 \uAC1C\uC870 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:metallurgy:blacksteel
+    prerequisite: {fileID: 11400000, guid: f8979a9659eeb294590440db919173b1, type: 2}
+    kind: 2
+    reason: "\uD751\uAC15\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC774\uD615
+      \uAC1C\uC870 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563257777393523
-    - rid: 7302563257777393524
+    - rid: 7737211730927813332
+    - rid: 7737211730927813333
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 2
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563257777393523
+    - rid: 7737211730927813332
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9512
-    - rid: 7302563257777393524
+    - rid: 7737211730927813333
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9513

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using DungeonStory.Infrastructure;
+using DungeonStory.Operation;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -9,8 +11,10 @@ public static class OperatingDaySettlementDebugScenarios
         new NoopBlueprintResearchWorkService();
     private static readonly IWorldInfoClickSelector WorldInfoClickSelector =
         new NoopWorldInfoClickSelector();
+    private static readonly IBuildingDamageRulePort BuildingDamageRulePort =
+        new AllowBuildingDamageRulePort();
     private static readonly IFacilityCandidateCache FacilityCandidateCache =
-        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
     private static readonly IRoomFacilityPolicy RoomFacilityPolicy =
         new RoomFacilityPolicyService(RoomRegistry.EditorCache);
 
@@ -35,6 +39,18 @@ public static class OperatingDaySettlementDebugScenarios
         RunScenario(
             "긴급 지원금 제거와 연속 체불 결과",
             VerifyEmergencyFundingAndShortfallConsequences,
+            errors);
+        RunScenario(
+            "invalid settlement payload fails preflight",
+            VerifyInvalidSettlementPayloadFailsPreflight,
+            errors);
+        RunScenario(
+            "discarded settlement candidate preserves live ledger",
+            VerifyDiscardedSettlementCandidatePreservesLiveLedger,
+            errors);
+        RunScenario(
+            "settlement event order and money ledger are idempotent",
+            VerifySettlementEventOrderAndMoneyIdempotence,
             errors);
 
         if (errors.Count > 0)
@@ -71,7 +87,8 @@ public static class OperatingDaySettlementDebugScenarios
         CharacterActor staff = CreateCharacter("Staff_Test", CharacterType.NPC, "orc", 0f, 20f, true);
         BuildableObject shop = CreateBuilding("Food Shop", false, 10);
         Facility warehouse = CreateWarehouse("Warehouse", 24);
-        GameData gameData = CreateGameData(5000);
+        GameSessionState gameData = CreateGameData(5000);
+        FixedMoneyRuntime money = new FixedMoneyRuntime(gameData.holdingMoney.Value);
         runtime.Construct(
             new FixedWorldQuery(
                 new[] { customer, staff },
@@ -82,7 +99,13 @@ public static class OperatingDaySettlementDebugScenarios
             new EmptyFacilityShopCatalog(),
             new NeutralRunVariableReader(),
             new FixedGameDataProvider(gameData),
-            new DungeonStory.Foundation.GameEventBus());
+            new DungeonStory.Foundation.GameEventBus(),
+            new FixedArrearsEmploymentRuntime(0),
+            money,
+            CreateEmptyPaidFacilityContracts(gameData, money),
+            stockCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+            buildingCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+            aggregateRootStore: new DungeonRuntimeAggregateRootStore());
         float expectedSatisfaction = customer.Stats.Stats[CharacterCondition.MOOD];
 
         runtime.OnTriggerEvent(new OperatingDayStartedEvent(1));
@@ -131,7 +154,6 @@ public static class OperatingDaySettlementDebugScenarios
         Object.DestroyImmediate(staff.data);
         Object.DestroyImmediate(shop.BuildingData);
         Object.DestroyImmediate(warehouse.BuildingData);
-        Object.DestroyImmediate(gameData);
         Object.DestroyImmediate(customer.gameObject);
         Object.DestroyImmediate(staff.gameObject);
         Object.DestroyImmediate(shop.gameObject);
@@ -240,7 +262,7 @@ public static class OperatingDaySettlementDebugScenarios
         GameObject runtimeObject = null;
         CharacterActor staff = null;
         BuildableObject facility = null;
-        GameData gameData = null;
+        GameSessionState gameData = null;
         try
         {
             runtimeObject = new GameObject("OperatingDayEconomyRuntime_Test");
@@ -253,6 +275,7 @@ public static class OperatingDaySettlementDebugScenarios
                 new[] { facility });
             FixedArrearsEmploymentRuntime employment =
                 new FixedArrearsEmploymentRuntime(100);
+            FixedMoneyRuntime money = new FixedMoneyRuntime(0);
             runtime.Construct(
                 worldQuery,
                 worldQuery,
@@ -261,7 +284,11 @@ public static class OperatingDaySettlementDebugScenarios
                 new FixedGameDataProvider(gameData),
                 new DungeonStory.Foundation.GameEventBus(),
                 employment,
-                new FixedMoneyRuntime(0));
+                money,
+                CreateEmptyPaidFacilityContracts(gameData, money),
+                stockCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+                buildingCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+                aggregateRootStore: new DungeonRuntimeAggregateRootStore());
 
             bool firstFunding = runtime.TryTakeEmergencyFunding(out _);
             bool secondFunding = runtime.TryTakeEmergencyFunding(out _);
@@ -308,10 +335,359 @@ public static class OperatingDaySettlementDebugScenarios
         {
             if (staff != null && staff.data != null) Object.DestroyImmediate(staff.data);
             if (facility != null && facility.BuildingData != null) Object.DestroyImmediate(facility.BuildingData);
-            if (gameData != null) Object.DestroyImmediate(gameData);
             if (staff != null) Object.DestroyImmediate(staff.gameObject);
             if (facility != null) Object.DestroyImmediate(facility.gameObject);
             if (runtimeObject != null) Object.DestroyImmediate(runtimeObject);
+        }
+    }
+
+    private static bool VerifyInvalidSettlementPayloadFailsPreflight()
+    {
+        TestSettlementSaveService saveService = new TestSettlementSaveService();
+        OperatingDaySettlementSaveSection section =
+            new OperatingDaySettlementSaveSection(saveService);
+        DungeonOperatingDaySettlementSaveData payload =
+            new DungeonOperatingDaySettlementSaveData
+            {
+                currentDay = 0,
+                totalRevenue = -1,
+                facilityRevenue = new List<DungeonStringIntSaveEntry>
+                {
+                    new DungeonStringIntSaveEntry { key = "shop", value = 4 },
+                    new DungeonStringIntSaveEntry { key = "shop", value = 5 }
+                },
+                visitorMoodSamples = new List<float> { float.NaN }
+            };
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        bool rejected = false;
+        try
+        {
+            section.ValidatePayload(
+                JsonUtility.ToJson(payload),
+                section.SectionVersion,
+                report);
+        }
+        catch (System.InvalidOperationException)
+        {
+            rejected = true;
+        }
+        return rejected && saveService.PrepareCount == 0;
+    }
+
+    private static bool VerifyDiscardedSettlementCandidatePreservesLiveLedger()
+    {
+        DungeonRuntimeAggregateRootStore sourceRoot =
+            new DungeonRuntimeAggregateRootStore();
+        DungeonRuntimeAggregateRootStore targetRoot =
+            new DungeonRuntimeAggregateRootStore();
+        GameObject sourceObject = new GameObject("Settlement_Discard_Source");
+        GameObject targetObject = new GameObject("Settlement_Discard_Target");
+        try
+        {
+            OperatingDaySettlementRuntime source = CreateSettlementRuntime(
+                sourceObject,
+                sourceRoot);
+            source.RestorePersistentState(CreateSettlementState(
+                day: 9,
+                revenue: 222,
+                visits: 7));
+            string candidatePayload = CreateSaveSection(source).Capture();
+
+            OperatingDaySettlementRuntime target = CreateSettlementRuntime(
+                targetObject,
+                targetRoot);
+            target.RestorePersistentState(CreateSettlementState(
+                day: 3,
+                revenue: 11,
+                visits: 2));
+            OperatingDaySettlementSaveSection targetSection =
+                CreateSaveSection(target);
+            SettlementFailureSection failure = new SettlementFailureSection
+            {
+                RemainingCommitFailures = 1
+            };
+            SettlementDiscardObserver observer =
+                new SettlementDiscardObserver(target);
+            DungeonSaveSectionRegistry registry = new DungeonSaveSectionRegistry(
+                new IDungeonSaveSection[] { targetSection, failure },
+                targetRoot,
+                new IDungeonRestoreTransactionParticipant[] { observer });
+            List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
+            envelopes.First(envelope => string.Equals(
+                    envelope.sectionId,
+                    OperatingDaySettlementSaveSection.Id,
+                    System.StringComparison.Ordinal))
+                .payloadJson = candidatePayload;
+
+            bool restored = registry.RestoreAll(
+                envelopes,
+                new DungeonGameRestoreReport());
+            return !restored
+                && observer.DiscardCount == 1
+                && observer.ObservedLiveLedger
+                && target.CurrentDay == 3
+                && target.CurrentRevenue == 11
+                && target.CurrentVisits == 2
+                && targetRoot.PublishedRestoreRevision == 1;
+        }
+        finally
+        {
+            Object.DestroyImmediate(sourceObject);
+            Object.DestroyImmediate(targetObject);
+        }
+    }
+
+    private static bool VerifySettlementEventOrderAndMoneyIdempotence()
+    {
+        GameObject runtimeObject = null;
+        BuildableObject shop = null;
+        try
+        {
+            runtimeObject = new GameObject("Settlement_Idempotence_Test");
+            OperatingDaySettlementRuntime runtime =
+                runtimeObject.AddComponent<OperatingDaySettlementRuntime>();
+            shop = CreateBuilding("Idempotent Shop", false, 0);
+            FixedWorldQuery world = new FixedWorldQuery(
+                System.Array.Empty<CharacterActor>(),
+                new[] { shop });
+            GameSessionState gameData = CreateGameData(100);
+            FixedMoneyRuntime money = new FixedMoneyRuntime(100);
+            FixedArrearsEmploymentRuntime employment =
+                new FixedArrearsEmploymentRuntime(10, money);
+            runtime.Construct(
+                world,
+                world,
+                new EmptyFacilityShopCatalog(),
+                new NeutralRunVariableReader(),
+                new FixedGameDataProvider(gameData),
+                new DungeonStory.Foundation.GameEventBus(),
+                employment,
+                money,
+                CreateEmptyPaidFacilityContracts(gameData, money),
+                stockCategoryCatalog:
+                    CharacterAiEditorTestDependencies.AuthoredGameplay,
+                buildingCategoryCatalog:
+                    CharacterAiEditorTestDependencies.AuthoredGameplay,
+                aggregateRootStore: new DungeonRuntimeAggregateRootStore());
+
+            runtime.OnTriggerEvent(new OperatingDayStartedEvent(1));
+            runtime.OnTriggerEvent(new FacilityRevenueEvent(null, shop, 15));
+            runtime.OnTriggerEvent(new OperatingDayStartedEvent(1));
+            runtime.OnTriggerEvent(new OperatingDayEndedEvent(1));
+            OperatingDayReport first = runtime.LatestReport;
+            runtime.OnTriggerEvent(new OperatingDayEndedEvent(1));
+
+            return first != null
+                && first.totalRevenue == 15
+                && first.payrollCost == 10
+                && first.paidOperatingCost == 10
+                && runtime.ReportHistory.Count == 1
+                && employment.SettlementCount == 1
+                && money.SuccessfulSpendCount == 1
+                && money.Balance == 90;
+        }
+        finally
+        {
+            if (shop != null && shop.BuildingData != null)
+            {
+                Object.DestroyImmediate(shop.BuildingData);
+            }
+            if (shop != null)
+            {
+                Object.DestroyImmediate(shop.gameObject);
+            }
+            if (runtimeObject != null)
+            {
+                Object.DestroyImmediate(runtimeObject);
+            }
+        }
+    }
+
+    private static OperatingDaySettlementRuntime CreateSettlementRuntime(
+        GameObject host,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
+    {
+        OperatingDaySettlementRuntime runtime =
+            host.AddComponent<OperatingDaySettlementRuntime>();
+        FixedWorldQuery world = new FixedWorldQuery(
+            System.Array.Empty<CharacterActor>(),
+            System.Array.Empty<BuildableObject>());
+        GameSessionState gameData = CreateGameData(0);
+        FixedMoneyRuntime money = new FixedMoneyRuntime(0);
+        runtime.Construct(
+            world,
+            world,
+            new EmptyFacilityShopCatalog(),
+            new NeutralRunVariableReader(),
+            new FixedGameDataProvider(gameData),
+            new DungeonStory.Foundation.GameEventBus(),
+            new FixedArrearsEmploymentRuntime(0),
+            money,
+            CreateEmptyPaidFacilityContracts(gameData, money),
+            stockCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+            buildingCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+            aggregateRootStore: aggregateRootStore);
+        return runtime;
+    }
+
+    private static IPaidFacilityContractRuntime CreateEmptyPaidFacilityContracts(
+        GameSessionState gameData,
+        IGameMoneyAccount money)
+    {
+        return new PaidFacilityContractRuntime(
+            new FixedGameDataProvider(gameData),
+            money,
+            new TreasuryEconomyAggregateStateStore(
+                new DungeonRuntimeAggregateRootStore()));
+    }
+
+    private static OperatingDaySettlementPersistenceState CreateSettlementState(
+        int day,
+        int revenue,
+        int visits)
+    {
+        return new OperatingDaySettlementPersistenceState(
+            day,
+            revenue,
+            visits,
+            restockFailureCount: 0,
+            facilityRevenue: new Dictionary<string, int>(),
+            speciesVisits: new Dictionary<string, int>(),
+            consumedStock: new Dictionary<StockCategory, int>(),
+            visitorMoodSamples: System.Array.Empty<float>(),
+            stockSupplyResults: System.Array.Empty<StockSupplyResult>(),
+            incidents: System.Array.Empty<string>(),
+            eventLog: System.Array.Empty<string>(),
+            reportHistory: System.Array.Empty<OperatingDayReport>());
+    }
+
+    private static OperatingDaySettlementSaveSection CreateSaveSection(
+        OperatingDaySettlementRuntime runtime)
+    {
+        DungeonSceneRuntimeReferences references =
+            new DungeonSceneRuntimeReferences(
+                new DungeonSceneServiceReferences(null, runtime, null, null),
+                new DungeonSceneViewReferences(
+                    null, null, null, null, null, null, null, null));
+        return new OperatingDaySettlementSaveSection(
+            new OperatingDaySettlementSaveService(references));
+    }
+
+    private sealed class TestSettlementSaveService :
+        IOperatingDaySettlementSaveService
+    {
+        public int PrepareCount { get; private set; }
+
+        public DungeonOperatingDaySettlementSaveData Capture() =>
+            new DungeonOperatingDaySettlementSaveData();
+
+        public OperatingDaySettlementRestoreCandidate PrepareRestore(
+            DungeonOperatingDaySettlementSaveData source)
+        {
+            PrepareCount++;
+            throw new System.InvalidOperationException(
+                "Invalid payload must fail before candidate preparation.");
+        }
+
+        public void PublishRestore(
+            OperatingDaySettlementRestoreCandidate candidate)
+        {
+        }
+    }
+
+    private sealed class SettlementFailureSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection
+    {
+        public string SectionId => "operation.settlement.debug.failure";
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.Presentation;
+        public IReadOnlyList<string> DependsOn =>
+            new[] { OperatingDaySettlementSaveSection.Id };
+        public int RemainingCommitFailures { get; set; }
+        public string Capture() => "{}";
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            if (sectionVersion != SectionVersion)
+            {
+                throw new System.InvalidOperationException(
+                    $"Unexpected settlement failure version {sectionVersion}.");
+            }
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+        }
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            ValidatePayload(payloadJson, sectionVersion, report);
+            return new DungeonDelegateSaveRestoreStage(SectionId, _ =>
+            {
+                if (RemainingCommitFailures <= 0)
+                {
+                    return;
+                }
+
+                RemainingCommitFailures--;
+                throw new System.InvalidOperationException(
+                    "Injected settlement restore failure.");
+            });
+        }
+    }
+
+    private sealed class SettlementDiscardObserver :
+        IDungeonRestoreTransactionParticipant
+    {
+        private readonly OperatingDaySettlementRuntime runtime;
+        private bool hasCandidate;
+
+        public SettlementDiscardObserver(
+            OperatingDaySettlementRuntime runtime)
+        {
+            this.runtime = runtime;
+        }
+
+        public string ParticipantId =>
+            "operation.settlement.debug.discard-observer";
+        public int DiscardCount { get; private set; }
+        public bool ObservedLiveLedger { get; private set; }
+
+        public void BeginRestoreCandidate()
+        {
+            hasCandidate = true;
+        }
+
+        public void PublishRestoreCandidate()
+        {
+            hasCandidate = false;
+        }
+
+        public void DiscardRestoreCandidate()
+        {
+            if (!hasCandidate)
+            {
+                return;
+            }
+
+            hasCandidate = false;
+            DiscardCount++;
+            ObservedLiveLedger = runtime.CurrentDay == 3
+                && runtime.CurrentRevenue == 11
+                && runtime.CurrentVisits == 2;
         }
     }
 
@@ -337,7 +713,8 @@ public static class OperatingDaySettlementDebugScenarios
         data.speciesTag = speciesTag;
         character.data = data;
         character.characterType = type;
-        Dictionary<CharacterCondition, float> initialStats = CharacterNeedCatalog.All
+        ICharacterNeedDefinitionCatalog needCatalog = CharacterAiEditorTestDependencies.AuthoredGameplay;
+        Dictionary<CharacterCondition, float> initialStats = needCatalog.All
             .ToDictionary((definition) => definition.Condition, (definition) => definition.DefaultValue);
         initialStats[CharacterCondition.HUNGER] = 100f;
         initialStats[CharacterCondition.FUN] = 50f;
@@ -351,12 +728,18 @@ public static class OperatingDaySettlementDebugScenarios
         IEmploymentContractRuntime
     {
         private readonly int dailyWage;
+        private readonly IGameMoneyAccount money;
         private int arrears;
 
-        public FixedArrearsEmploymentRuntime(int dailyWage)
+        public FixedArrearsEmploymentRuntime(
+            int dailyWage,
+            IGameMoneyAccount money = null)
         {
             this.dailyWage = Mathf.Max(0, dailyWage);
+            this.money = money;
         }
+
+        public int SettlementCount { get; private set; }
 
         public IReadOnlyList<EmployeeWageState> WageStates =>
             System.Array.Empty<EmployeeWageState>();
@@ -383,13 +766,24 @@ public static class OperatingDaySettlementDebugScenarios
 
         public EmploymentDailySettlement SettleDay(int day)
         {
+            SettlementCount++;
             int due = dailyWage + arrears;
-            arrears = due;
+            int paid = 0;
+            if (money != null && due > 0)
+            {
+                int payable = Mathf.Min(money.Balance, due);
+                if (payable > 0 && money.TrySpend(payable, out _))
+                {
+                    paid = payable;
+                }
+            }
+            arrears = due - paid;
             return new EmploymentDailySettlement
             {
                 day = Mathf.Max(1, day),
                 employeeWagesDue = due,
-                unpaidEmployeeWages = due
+                employeeWagesPaid = paid,
+                unpaidEmployeeWages = arrears
             };
         }
 
@@ -416,14 +810,9 @@ public static class OperatingDaySettlementDebugScenarios
         {
             return new EmploymentContractSaveData();
         }
-
-        public void Restore(EmploymentContractSaveData saveData)
-        {
-            arrears = 0;
-        }
     }
 
-    private sealed class FixedMoneyRuntime : IGameMoneyRuntime
+    private sealed class FixedMoneyRuntime : IGameMoneyAccount
     {
         private int balance;
 
@@ -433,6 +822,7 @@ public static class OperatingDaySettlementDebugScenarios
         }
 
         public int Balance => balance;
+        public int SuccessfulSpendCount { get; private set; }
         public bool CanSpend(int amount) =>
             balance >= Mathf.Max(0, amount);
 
@@ -457,6 +847,7 @@ public static class OperatingDaySettlementDebugScenarios
             }
 
             balance -= cost;
+            SuccessfulSpendCount++;
             reason = string.Empty;
             return true;
         }
@@ -472,12 +863,21 @@ public static class OperatingDaySettlementDebugScenarios
         {
             Add(amount);
         }
+
+        public void SetBalance(
+            int amount,
+            EconomyTransactionContext context)
+        {
+            balance = Mathf.Max(0, amount);
+        }
     }
 
     private static BuildableObject CreateBuilding(string objectName, bool damaged, int maintenance)
     {
         GameObject obj = new GameObject(objectName);
         BuildableObject building = obj.AddComponent<BuildableObject>();
+        building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+        building.ConstructDebugRules(BuildingDamageRulePort);
         BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
         data.objectName = objectName;
         data.Maintenance = maintenance;
@@ -490,29 +890,22 @@ public static class OperatingDaySettlementDebugScenarios
             capacity = 1
         };
         data.Facility.SetSupportedWorkTypeIds(new[] { BuiltInWorkTypeIds.Operate });
-        building.Initialization(data, Vector2Int.zero);
         building.ConstructBuildableObject(
-            BlueprintResearchWorkService,
-            WorldInfoClickSelector,
+            new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
             FacilityCandidateCache,
-            RoomFacilityPolicy);
+            RoomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+        building.Initialization(data, Vector2Int.zero);
         building.SetDamaged(damaged);
         return building;
     }
 
-    private static GameData CreateGameData(int holdingMoney)
+    private static GameSessionState CreateGameData(int holdingMoney)
     {
-        GameData data = ScriptableObject.CreateInstance<GameData>();
-        data.holdingMoney = new Data<int>();
+        GameSessionState data = new GameSessionState();
         data.holdingMoney.Initialize(Mathf.Max(0, holdingMoney));
-        data.day = new Data<int>();
         data.day.Initialize(1);
-        data.hour = new Data<int>();
         data.hour.Initialize(0);
-        data.gameSpeed = new Data<int>();
         data.gameSpeed.Initialize(1);
-        data.curTime = new Data<float>();
-        data.timeOfDay = new Data<TimeOfDay>();
         return data;
     }
 
@@ -520,6 +913,10 @@ public static class OperatingDaySettlementDebugScenarios
     {
         GameObject obj = new GameObject(objectName);
         Facility warehouse = obj.AddComponent<Facility>();
+        warehouse.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+        warehouse.ConstructDebugRules(BuildingDamageRulePort);
+        warehouse.ConstructFacility(null, new EmptyStockQuery(), mealConsumptionRuntime: null, waterFixtureUseRuntime: null, wastewaterNetworkRuntime: PermissiveWastewaterTransaction.Instance, serviceSessionRuntime: null, serviceRoomLinkRuntime: null,
+            stockCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay);
         BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
         data.objectName = objectName;
         data.width = 1;
@@ -536,13 +933,66 @@ public static class OperatingDaySettlementDebugScenarios
             capacity = capacity,
             restockRequestThreshold = Mathf.Max(0, capacity / 4)
         });
-        warehouse.Initialization(data, Vector2Int.zero);
         warehouse.ConstructBuildableObject(
-            BlueprintResearchWorkService,
-            WorldInfoClickSelector,
+            new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
             FacilityCandidateCache,
-            RoomFacilityPolicy);
+            RoomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+        warehouse.Initialization(data, Vector2Int.zero);
         return warehouse;
+    }
+
+    private sealed class EmptyStockQuery : IStockQuery
+    {
+        public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
+            System.Array.Empty<WorldItemStackSnapshot>();
+        public int GetGlobalQuantity(string itemDefinitionId) => 0;
+        public int GetWarehouseQuantity(
+            BuildingInstanceId warehouseId,
+            string itemDefinitionId) => 0;
+        public int GetWarehouseQuantity(
+            BuildingInstanceId warehouseId,
+            StockCategory category) => 0;
+        public int GetWarehouseTotal(BuildingInstanceId warehouseId) => 0;
+    }
+
+    private sealed class AllowBuildingDamageRulePort : IBuildingDamageRulePort
+    {
+        public bool ShouldBlockFacilityDamage(bool damaged) => false;
+    }
+
+    private sealed class PermissiveWastewaterTransaction : IFluidWastewaterTransaction
+    {
+        public static readonly PermissiveWastewaterTransaction Instance =
+            new PermissiveWastewaterTransaction();
+
+        public bool TryAddWastewater(
+            BuildableObject fixture,
+            float amount,
+            out float accepted,
+            out DomainFailure failure)
+        {
+            accepted = Mathf.Max(0f, amount);
+            failure = default;
+            return true;
+        }
+
+        public bool TryConsumeWastewater(
+            BuildableObject processor,
+            float amount,
+            out float consumed)
+        {
+            consumed = Mathf.Max(0f, amount);
+            return true;
+        }
+
+        public bool CanAcceptWastewater(
+            BuildableObject fixture,
+            float amount,
+            out DomainFailure failure)
+        {
+            failure = default;
+            return true;
+        }
     }
 
     private sealed class EmptyFacilityShopCatalog : IFacilityShopCatalog
@@ -562,6 +1012,8 @@ public static class OperatingDaySettlementDebugScenarios
         public float GetBlueprintCostMultiplier(FacilityBlueprintSO blueprint) => 1f;
         public float GetThreatRiseMultiplier() => 1f;
         public float GetWarningThresholdMultiplier() => 1f;
+        public DungeonSurvivalPressure GetSurvivalPressure() =>
+            DungeonSurvivalPressure.Standard;
         public InvasionIntruderSettings ApplyInvasionSettings(InvasionIntruderSettings source) => source;
     }
 
@@ -592,16 +1044,16 @@ public static class OperatingDaySettlementDebugScenarios
         public IReadOnlyList<BuildableObject> Buildings => buildings;
     }
 
-    private sealed class FixedGameDataProvider : IGameDataProvider
+    private sealed class FixedGameDataProvider : IGameSessionStateProvider
     {
-        private readonly GameData gameData;
+        private readonly GameSessionState gameData;
 
-        public FixedGameDataProvider(GameData gameData)
+        public FixedGameDataProvider(GameSessionState gameData)
         {
             this.gameData = gameData;
         }
 
-        public bool TryGetGameData(out GameData resolvedGameData)
+        public bool TryGetSessionState(out GameSessionState resolvedGameData)
         {
             resolvedGameData = gameData;
             return resolvedGameData != null;

@@ -1,141 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
-
-public enum DefenseArmingPolicy
-{
-    Manual = 0,
-    Safe = 1,
-    Alert = 2,
-    Aggressive = 3
-}
-
-public enum DefenseFacilityOperationalState
-{
-    Disarmed = 0,
-    Preparing = 1,
-    Ready = 2,
-    Detecting = 3,
-    Triggered = 4,
-    Cooldown = 5,
-    Reloading = 6,
-    Empty = 7,
-    Unpowered = 8,
-    Faulted = 9,
-    Jammed = 10,
-    Damaged = 11,
-    Destroyed = 12
-}
-
-[Serializable]
-public sealed class DefenseFacilityInstanceState
-{
-    public string facilityPersistentId = string.Empty;
-    public int buildingId;
-    public int gridX;
-    public int gridY;
-    public DefenseArmingPolicy armingPolicy = DefenseArmingPolicy.Safe;
-    public DefenseFacilityOperationalState operationalState =
-        DefenseFacilityOperationalState.Ready;
-    [Range(0f, 100f)] public float condition = 100f;
-    public int supply;
-    public int activationCount;
-    public float cooldownUntil;
-    public bool forcedDangerousOperation;
-    public int allowedGroups = (int)(
-        DoorAccessGroup.Owner
-        | DoorAccessGroup.Staff
-        | DoorAccessGroup.Customer
-        | DoorAccessGroup.Captive
-        | DoorAccessGroup.CaptiveWildlife);
-    public List<string> allowedPersistentIds = new List<string>();
-    public DefenseFacilityGrowthData growth = new DefenseFacilityGrowthData();
-    public string blockedReason = string.Empty;
-}
-
-[Serializable]
-public sealed class DefenseFacilitySaveData
-{
-    public const int CurrentVersion = 1;
-    public int version = CurrentVersion;
-    public List<DefenseFacilityInstanceState> facilities =
-        new List<DefenseFacilityInstanceState>();
-}
-
-public readonly struct DefenseFacilitySnapshot
-{
-    public DefenseFacilitySnapshot(
-        DefenseFacilityInstanceState state,
-        float cooldownRemaining,
-        bool powered,
-        string destinationId)
-    {
-        PersistentId = state?.facilityPersistentId ?? string.Empty;
-        ArmingPolicy = state?.armingPolicy ?? DefenseArmingPolicy.Safe;
-        OperationalState = state?.operationalState
-            ?? DefenseFacilityOperationalState.Ready;
-        Condition = state?.condition ?? 100f;
-        Supply = state?.supply ?? 0;
-        ActivationCount = state?.activationCount ?? 0;
-        CooldownRemaining = Mathf.Max(0f, cooldownRemaining);
-        Powered = powered;
-        BlockedReason = state?.blockedReason ?? string.Empty;
-        SupplyDestinationId = destinationId ?? string.Empty;
-    }
-
-    public string PersistentId { get; }
-    public DefenseArmingPolicy ArmingPolicy { get; }
-    public DefenseFacilityOperationalState OperationalState { get; }
-    public float Condition { get; }
-    public int Supply { get; }
-    public int ActivationCount { get; }
-    public float CooldownRemaining { get; }
-    public bool Powered { get; }
-    public string BlockedReason { get; }
-    public string SupplyDestinationId { get; }
-}
-
-public readonly struct DefenseActivationAuthorization
-{
-    public DefenseActivationAuthorization(
-        bool allowed,
-        bool jammed,
-        bool misfired,
-        float effectMultiplier)
-    {
-        Allowed = allowed;
-        Jammed = jammed;
-        Misfired = misfired;
-        EffectMultiplier = Mathf.Max(0f, effectMultiplier);
-    }
-
-    public bool Allowed { get; }
-    public bool Jammed { get; }
-    public bool Misfired { get; }
-    public float EffectMultiplier { get; }
-
-    public static DefenseActivationAuthorization Granted =>
-        new DefenseActivationAuthorization(true, false, false, 1f);
-}
-
-public readonly struct DefenseFacilityStateChangedEvent
-{
-    public DefenseFacilityStateChangedEvent(
-        string facilityPersistentId,
-        DefenseFacilityOperationalState state,
-        string reason)
-    {
-        FacilityPersistentId = facilityPersistentId ?? string.Empty;
-        State = state;
-        Reason = reason ?? string.Empty;
-    }
-
-    public string FacilityPersistentId { get; }
-    public DefenseFacilityOperationalState State { get; }
-    public string Reason { get; }
-}
 
 public interface IDefenseFacilityRuntime
 {
@@ -144,20 +12,19 @@ public interface IDefenseFacilityRuntime
         DefenseFacility facility,
         CharacterActor target,
         DefenseTriggerTiming timing,
-        out string failureReason);
+        out DomainFailure failure);
     bool TryBeginActivation(
         DefenseFacility facility,
         CharacterActor target,
         DefenseTriggerTiming timing,
         out DefenseActivationAuthorization authorization,
-        out string failureReason);
+        out DomainFailure failure);
     void CompleteActivation(
         DefenseFacility facility,
         DefenseActivationAuthorization authorization);
     bool SetArmingPolicy(
         DefenseFacility facility,
-        DefenseArmingPolicy policy,
-        out string warning);
+        DefenseArmingPolicy policy);
     bool SetAllowed(
         DefenseFacility facility,
         DoorAccessGroup group,
@@ -168,14 +35,12 @@ public interface IDefenseFacilityRuntime
         bool allowed);
     bool TryRequestReload(
         DefenseFacility facility,
-        out string failureReason);
-    bool TryClearJam(DefenseFacility facility, out string failureReason);
+        out DomainFailure failure);
+    bool TryClearJam(DefenseFacility facility, out DomainFailure failure);
     bool TryRepair(
         DefenseFacility facility,
         float condition,
-        out string failureReason);
-    DefenseFacilitySaveData Capture();
-    void Restore(DefenseFacilitySaveData data);
+        out DomainFailure failure);
 }
 
 public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
@@ -183,28 +48,41 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     private const string MaintenancePartItemId = "material:iron-ingot";
 
     private readonly IWorldItemStackRuntime items;
-    private readonly IElectricalNetworkRuntime power;
+    private readonly IPowerInfrastructureQuery power;
     private readonly IGameClock clock;
     private readonly IGameEventBus events;
-    private readonly Dictionary<string, DefenseFacilityInstanceState> states =
-        new Dictionary<string, DefenseFacilityInstanceState>(
-            StringComparer.Ordinal);
+    private readonly IDefenseFacilityNetworkRuntime facilityNetwork;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+
+    private DefenseFacilityAggregateState Current =>
+        aggregateRootStore.GetOrCreate(
+            () => new DefenseFacilityAggregateState());
+    private DefenseFacilityAggregateState Writable =>
+        aggregateRootStore.GetOrCreateWritable(
+            () => new DefenseFacilityAggregateState(),
+            state => state.DeepClone());
 
     public DefenseFacilityRuntime(
         IWorldItemStackRuntime items,
         IGameClock clock,
         IGameEventBus events,
-        IElectricalNetworkRuntime power = null)
+        IPowerInfrastructureQuery power,
+        IDefenseFacilityNetworkRuntime facilityNetwork,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
-        this.power = power;
+        this.power = power ?? throw new ArgumentNullException(nameof(power));
+        this.facilityNetwork = facilityNetwork
+            ?? throw new ArgumentNullException(nameof(facilityNetwork));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
 
     public DefenseFacilitySnapshot GetSnapshot(DefenseFacility facility)
     {
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        DefenseFacilityState state = GetOrCreate(facility);
         RefreshPassiveState(facility, state);
         return new DefenseFacilitySnapshot(
             state,
@@ -217,31 +95,34 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         DefenseFacility facility,
         CharacterActor target,
         DefenseTriggerTiming timing,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (facility == null || facility.Defense == null)
         {
-            failureReason = "방어시설이 아닙니다.";
+            failure = new DomainFailure(FailureCode.DefenseFacilityUnavailable);
             return false;
         }
 
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        DefenseFacilityState state = GetOrCreate(facility);
         RefreshPassiveState(facility, state);
         if (!CanTarget(state, target, timing))
         {
-            failureReason = state.armingPolicy == DefenseArmingPolicy.Manual
-                ? "수동 무장 정책입니다."
-                : "허용된 대상입니다.";
-            state.blockedReason = failureReason;
+            failure = new DomainFailure(
+                state.armingPolicy == DefenseArmingPolicy.Manual
+                    ? FailureCode.DefenseManualActivationRequired
+                    : FailureCode.DefenseTargetDisallowed);
+            SetBlockedFailure(state, failure);
             return false;
         }
 
         if (state.condition < 25f && !state.forcedDangerousOperation)
         {
             state.operationalState = DefenseFacilityOperationalState.Damaged;
-            state.blockedReason = "건전도 25 미만: 자동 비활성";
-            failureReason = state.blockedReason;
+            failure = new DomainFailure(
+                FailureCode.DefenseConditionCritical,
+                state.condition.ToString("0", CultureInfo.InvariantCulture));
+            SetBlockedFailure(state, failure);
             return false;
         }
 
@@ -249,8 +130,20 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         {
             state.operationalState =
                 DefenseFacilityOperationalState.Unpowered;
-            state.blockedReason = "전력 공급 없음";
-            failureReason = state.blockedReason;
+            failure = new DomainFailure(FailureCode.DefensePowerUnavailable);
+            SetBlockedFailure(state, failure);
+            PublishState(state);
+            return false;
+        }
+
+        if (facility.BuildingData?.id == 1805
+            && facilityNetwork?.HasAutomaticControl(facility) != true)
+        {
+            state.operationalState =
+                DefenseFacilityOperationalState.Preparing;
+            failure = new DomainFailure(
+                FailureCode.DefenseAutomaticControlUnavailable);
+            SetBlockedFailure(state, failure);
             PublishState(state);
             return false;
         }
@@ -258,15 +151,18 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         if (state.cooldownUntil > clock.Time)
         {
             state.operationalState = DefenseFacilityOperationalState.Cooldown;
-            state.blockedReason =
-                $"재사용 대기 {state.cooldownUntil - clock.Time:0.0}초";
-            failureReason = state.blockedReason;
+            failure = new DomainFailure(
+                FailureCode.DefenseCooldownActive,
+                (state.cooldownUntil - clock.Time).ToString(
+                    "0.0",
+                    CultureInfo.InvariantCulture));
+            SetBlockedFailure(state, failure);
             return false;
         }
 
-        if (!EnsureSupply(facility, state, out failureReason))
+        if (!EnsureSupply(facility, state, out failure))
         {
-            state.blockedReason = failureReason;
+            SetBlockedFailure(state, failure);
             return false;
         }
 
@@ -280,15 +176,15 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         CharacterActor target,
         DefenseTriggerTiming timing,
         out DefenseActivationAuthorization authorization,
-        out string failureReason)
+        out DomainFailure failure)
     {
         authorization = default;
-        if (!CanActivate(facility, target, timing, out failureReason))
+        if (!CanActivate(facility, target, timing, out failure))
         {
             return false;
         }
 
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        DefenseFacilityState state = GetOrCreate(facility);
         DefenseFacilityData data = facility.Defense;
         if (data.UsesPhysicalSupply)
         {
@@ -313,11 +209,13 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         state.operationalState = jammed
             ? DefenseFacilityOperationalState.Jammed
             : DefenseFacilityOperationalState.Triggered;
-        state.blockedReason = jammed
-            ? "기계 걸림: 정비 작업 필요"
-            : misfired
-                ? "부분 오작동"
-                : string.Empty;
+        SetBlockedFailure(
+            state,
+            jammed
+                ? new DomainFailure(FailureCode.DefenseMechanicalJam)
+                : misfired
+                    ? new DomainFailure(FailureCode.DefensePartialMisfire)
+                    : DomainFailure.None);
         authorization = new DefenseActivationAuthorization(
             true,
             jammed,
@@ -336,15 +234,16 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return;
         }
 
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        DefenseFacilityState state = GetOrCreate(facility);
         if (authorization.Jammed)
         {
             return;
         }
 
-        float resetBonus = 1f + Mathf.Max(0, state.growth.resetSpeedLevel) * 0.1f;
-        state.cooldownUntil = clock.Time
-            + Mathf.Max(0f, facility.Defense.cooldownSeconds) / resetBonus;
+        state.cooldownUntil = DefenseFacilityRules.ResolveCooldown(
+            clock.Time,
+            facility.Defense.cooldownSeconds,
+            state.growth.resetSpeedLevel);
         state.operationalState = state.cooldownUntil > clock.Time
             ? DefenseFacilityOperationalState.Cooldown
             : DefenseFacilityOperationalState.Ready;
@@ -353,20 +252,9 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 
     public bool SetArmingPolicy(
         DefenseFacility facility,
-        DefenseArmingPolicy policy,
-        out string warning)
+        DefenseArmingPolicy policy)
     {
-        warning = policy switch
-        {
-            DefenseArmingPolicy.Alert =>
-                "허가받지 않은 대상이 방어 구역에 들어오면 발동합니다.",
-            DefenseArmingPolicy.Aggressive =>
-                "명시적 허용 목록 외 모든 대상을 적으로 간주합니다.",
-            DefenseArmingPolicy.Manual =>
-                "플레이어 또는 경비 대응 명령으로만 발동합니다.",
-            _ => string.Empty
-        };
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        DefenseFacilityState state = GetOrCreate(facility);
         state.armingPolicy = policy;
         state.operationalState = policy == DefenseArmingPolicy.Manual
             ? DefenseFacilityOperationalState.Disarmed
@@ -385,7 +273,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return false;
         }
 
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        DefenseFacilityState state = GetOrCreate(facility);
         DoorAccessGroup groups = (DoorAccessGroup)state.allowedGroups;
         groups = allowed ? groups | group : groups & ~group;
         state.allowedGroups = (int)groups;
@@ -394,23 +282,24 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 
     public bool TryRequestReload(
         DefenseFacility facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (facility?.Defense?.UsesPhysicalSupply != true)
         {
-            failureReason = "실물 재장전이 필요한 방어시설이 아닙니다.";
+            failure = new DomainFailure(
+                FailureCode.DefensePhysicalSupplyUnsupported);
             return false;
         }
 
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        DefenseFacilityState state = GetOrCreate(facility);
         int capacity = Mathf.Max(
             1,
             facility.Defense.supplyCapacity
                 + state.growth.capacityLevel);
         if (state.supply >= capacity)
         {
-            failureReason = "보급이 이미 가득 찼습니다.";
+            failure = new DomainFailure(FailureCode.DefenseSupplyCapacityFull);
             return false;
         }
 
@@ -420,11 +309,12 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         state.operationalState = requested
             ? DefenseFacilityOperationalState.Reloading
             : DefenseFacilityOperationalState.Empty;
-        state.blockedReason = requested
-            ? "보급 운반·재장전 대기"
-            : "사용 가능한 보급 재고 없음";
+        failure = new DomainFailure(
+            requested
+                ? FailureCode.DefenseSupplyDeliveryPending
+                : FailureCode.DefenseSupplyUnavailable);
+        SetBlockedFailure(state, failure);
         PublishState(state);
-        failureReason = state.blockedReason;
         return requested;
     }
 
@@ -439,7 +329,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             return false;
         }
 
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        DefenseFacilityState state = GetOrCreate(facility);
         state.allowedPersistentIds ??= new List<string>();
         state.allowedPersistentIds.RemoveAll(
             value => string.Equals(value, normalized, StringComparison.Ordinal));
@@ -453,13 +343,13 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 
     public bool TryClearJam(
         DefenseFacility facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        failure = DomainFailure.None;
+        DefenseFacilityState state = GetOrCreate(facility);
         if (state.operationalState != DefenseFacilityOperationalState.Jammed)
         {
-            failureReason = "걸림 상태가 아닙니다.";
+            failure = new DomainFailure(FailureCode.DefenseNotJammed);
             return false;
         }
 
@@ -486,11 +376,14 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 pending = HasPendingSupply(destinationId);
             }
 
-            state.blockedReason = pending
-                ? "정비 부품 운반 대기"
-                : "정비용 철괴 1개 부족";
+            failure = new DomainFailure(
+                pending
+                    ? FailureCode.DefenseMaintenanceDeliveryPending
+                    : FailureCode.DefenseMaintenancePartMissing,
+                MaintenancePartItemId,
+                "1");
+            SetBlockedFailure(state, failure);
             PublishState(state);
-            failureReason = state.blockedReason;
             return false;
         }
 
@@ -503,13 +396,13 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     public bool TryRepair(
         DefenseFacility facility,
         float condition,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
-        DefenseFacilityInstanceState state = GetOrCreate(facility);
+        failure = DomainFailure.None;
+        DefenseFacilityState state = GetOrCreate(facility);
         if (condition <= 0f)
         {
-            failureReason = "복구할 건전도가 없습니다.";
+            failure = new DomainFailure(FailureCode.DefenseRepairAmountInvalid);
             return false;
         }
 
@@ -520,41 +413,53 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         return true;
     }
 
-    public DefenseFacilitySaveData Capture()
+    public DefenseFacilitySaveData CaptureState()
     {
         return new DefenseFacilitySaveData
         {
-            facilities = states.Values
+            facilities = Current.States
                 .OrderBy(value => value.facilityPersistentId, StringComparer.Ordinal)
-                .Select(Clone)
+                .Select(ToSaveData)
                 .ToList()
         };
     }
 
-    public void Restore(DefenseFacilitySaveData data)
+    public DefenseFacilityRestoreCandidate PrepareRestoreState(
+        DefenseFacilitySaveData data)
     {
-        states.Clear();
-        foreach (DefenseFacilityInstanceState source in data?.facilities
-                     ?? Enumerable.Empty<DefenseFacilityInstanceState>())
+        IReadOnlyList<string> errors = DefenseFacilitySaveRules.Validate(data);
+        if (errors.Count > 0)
         {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.facilityPersistentId))
-            {
-                continue;
-            }
-
-            DefenseFacilityInstanceState clone = Clone(source);
-            clone.condition = Mathf.Clamp(clone.condition, 0f, 100f);
-            states[clone.facilityPersistentId] = clone;
+            throw new InvalidOperationException(
+                "Defense-facility restore candidate is invalid: "
+                + string.Join(" | ", errors));
         }
+
+        DefenseFacilityAggregateState aggregate = new();
+        foreach (DefenseFacilityRecordSaveData source in data.facilities)
+        {
+            aggregate.Add(FromSaveData(
+                source ?? throw new InvalidOperationException(
+                    "Validated defense save contained a null record.")));
+        }
+        return new DefenseFacilityRestoreCandidate(aggregate);
+    }
+
+    public void PublishRestoreState(DefenseFacilityRestoreCandidate candidate)
+    {
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
+        }
+        aggregateRootStore.Replace(candidate.State);
     }
 
     private bool EnsureSupply(
         DefenseFacility facility,
-        DefenseFacilityInstanceState state,
-        out string failureReason)
+        DefenseFacilityState state,
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         DefenseFacilityData data = facility.Defense;
         if (!data.UsesPhysicalSupply)
         {
@@ -612,17 +517,18 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         state.operationalState = HasPendingSupply(destinationId)
             ? DefenseFacilityOperationalState.Reloading
             : DefenseFacilityOperationalState.Empty;
-        failureReason = state.operationalState
-            == DefenseFacilityOperationalState.Reloading
-                ? "보급품 운반·재장전 대기"
-                : "보급품 없음";
+        failure = new DomainFailure(
+            state.operationalState == DefenseFacilityOperationalState.Reloading
+                ? FailureCode.DefenseSupplyDeliveryPending
+                : FailureCode.DefenseSupplyUnavailable);
+        SetBlockedFailure(state, failure);
         PublishState(state);
         return false;
     }
 
     private void RequestMissingSupply(
         DefenseFacility facility,
-        DefenseFacilityInstanceState state,
+        DefenseFacilityState state,
         int capacity)
     {
         DefenseFacilityData data = facility.Defense;
@@ -673,12 +579,14 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 
     private void RefreshPassiveState(
         DefenseFacility facility,
-        DefenseFacilityInstanceState state)
+        DefenseFacilityState state)
     {
         if (facility == null || facility.isDestroy)
         {
             state.operationalState = DefenseFacilityOperationalState.Destroyed;
-            state.blockedReason = "시설 파괴";
+            SetBlockedFailure(
+                state,
+                new DomainFailure(FailureCode.DefenseDestroyed));
             return;
         }
 
@@ -690,12 +598,20 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
         if (state.condition < 25f && !state.forcedDangerousOperation)
         {
             state.operationalState = DefenseFacilityOperationalState.Damaged;
-            state.blockedReason = "건전도 25 미만: 자동 비활성";
+            SetBlockedFailure(
+                state,
+                new DomainFailure(
+                    FailureCode.DefenseConditionCritical,
+                    state.condition.ToString(
+                        "0",
+                        CultureInfo.InvariantCulture)));
         }
         else if (facility.Defense.requiresPower && !IsPowered(facility))
         {
             state.operationalState = DefenseFacilityOperationalState.Unpowered;
-            state.blockedReason = "전력 공급 없음";
+            SetBlockedFailure(
+                state,
+                new DomainFailure(FailureCode.DefensePowerUnavailable));
         }
         else if (state.cooldownUntil > clock.Time)
         {
@@ -713,7 +629,7 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     }
 
     private bool CanTarget(
-        DefenseFacilityInstanceState state,
+        DefenseFacilityState state,
         CharacterActor target,
         DefenseTriggerTiming timing)
     {
@@ -746,25 +662,34 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     private bool IsPowered(DefenseFacility facility)
     {
         return facility?.Defense?.requiresPower != true
-            || power?.IsPowered(facility) == true;
+            || power.IsPowered(facility);
     }
 
-    private DefenseFacilityInstanceState GetOrCreate(DefenseFacility facility)
+    private static void SetBlockedFailure(
+        DefenseFacilityState state,
+        DomainFailure failure)
+    {
+        state.blockedReason = failure.IsFailure
+            ? failure.Code.ToString()
+            : string.Empty;
+    }
+
+    private DefenseFacilityState GetOrCreate(DefenseFacility facility)
     {
         if (facility == null)
         {
-            return new DefenseFacilityInstanceState();
+            throw new ArgumentNullException(nameof(facility));
         }
 
         string key = ResolvePersistentId(facility);
-        if (states.TryGetValue(key, out DefenseFacilityInstanceState state))
+        if (Writable.TryGet(key, out DefenseFacilityState state))
         {
             return state;
         }
 
         DefenseFacilityData data = facility.Defense;
         int capacity = Mathf.Max(0, data?.supplyCapacity ?? 0);
-        state = new DefenseFacilityInstanceState
+        state = new DefenseFacilityState
         {
             facilityPersistentId = key,
             buildingId = facility.id,
@@ -776,13 +701,13 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
                 ? Mathf.Clamp(data.initialSupply, 0, capacity)
                 : 0,
             operationalState = DefenseFacilityOperationalState.Ready,
-            growth = data?.growth ?? new DefenseFacilityGrowthData()
+            growth = ToGrowthState(data?.growth)
         };
-        states.Add(key, state);
+        Writable.Add(state);
         return state;
     }
 
-    private void PublishState(DefenseFacilityInstanceState state)
+    private void PublishState(DefenseFacilityState state)
     {
         events.Publish(new DefenseFacilityStateChangedEvent(
             state.facilityPersistentId,
@@ -807,18 +732,9 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
 
     private static string ResolvePersistentId(DefenseFacility facility)
     {
-        string persistentId = facility?
-            .GetComponent<FacilityEvolutionStateComponent>()?
-            .FacilityPersistentId?
-            .Trim() ?? string.Empty;
-        if (persistentId.Length > 0)
-        {
-            return persistentId;
-        }
-
         return facility == null
             ? string.Empty
-            : $"defense:{facility.id}:{facility.centerPos.x}:{facility.centerPos.y}";
+            : facility.RequirePersistentInstanceId().Value;
     }
 
     private static DoorAccessGroup ResolveGroup(CharacterActor actor)
@@ -837,29 +753,21 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
     }
 
     private static bool Roll(
-        DefenseFacilityInstanceState state,
+        DefenseFacilityState state,
         string channel,
         float chance)
     {
-        if (chance <= 0f)
-        {
-            return false;
-        }
-
-        int hash = CharacterGrowthRules.StableHash(
-            state.facilityPersistentId
-            + "|"
-            + channel
-            + "|"
-            + state.activationCount);
-        float sample = (hash & 0x7fffffff) / (float)int.MaxValue;
-        return sample < chance;
+        return DefenseFacilityRules.Roll(
+            state.facilityPersistentId,
+            state.activationCount,
+            channel,
+            chance);
     }
 
-    private static DefenseFacilityInstanceState Clone(
-        DefenseFacilityInstanceState source)
+    private static DefenseFacilityRecordSaveData ToSaveData(
+        DefenseFacilityState source)
     {
-        return new DefenseFacilityInstanceState
+        return new DefenseFacilityRecordSaveData
         {
             facilityPersistentId = source.facilityPersistentId ?? string.Empty,
             buildingId = source.buildingId,
@@ -874,9 +782,72 @@ public sealed class DefenseFacilityRuntime : IDefenseFacilityRuntime
             forcedDangerousOperation = source.forcedDangerousOperation,
             allowedGroups = source.allowedGroups,
             allowedPersistentIds = new List<string>(
-                source.allowedPersistentIds ?? new List<string>()),
-            growth = source.growth ?? new DefenseFacilityGrowthData(),
+                source.allowedPersistentIds ?? new List<string>())
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToList(),
+            growth = ToGrowthSaveData(source.growth),
             blockedReason = source.blockedReason ?? string.Empty
+        };
+    }
+
+    private static DefenseFacilityState FromSaveData(
+        DefenseFacilityRecordSaveData source)
+    {
+        return new DefenseFacilityState
+        {
+            facilityPersistentId = source.facilityPersistentId,
+            buildingId = source.buildingId,
+            gridX = source.gridX,
+            gridY = source.gridY,
+            armingPolicy = source.armingPolicy,
+            operationalState = source.operationalState,
+            condition = source.condition,
+            supply = source.supply,
+            activationCount = source.activationCount,
+            cooldownUntil = source.cooldownUntil,
+            forcedDangerousOperation = source.forcedDangerousOperation,
+            allowedGroups = source.allowedGroups,
+            allowedPersistentIds = new List<string>(source.allowedPersistentIds),
+            growth = new DefenseFacilityGrowthState
+            {
+                capacityLevel = source.growth.capacityLevel,
+                resetSpeedLevel = source.growth.resetSpeedLevel,
+                effectStrengthLevel = source.growth.effectStrengthLevel,
+                detectionRangeLevel = source.growth.detectionRangeLevel,
+                identificationLevel = source.growth.identificationLevel,
+                outageResistanceLevel = source.growth.outageResistanceLevel
+            },
+            blockedReason = source.blockedReason
+        };
+    }
+
+    private static DefenseFacilityGrowthState ToGrowthState(
+        DefenseFacilityGrowthData source)
+    {
+        source ??= new DefenseFacilityGrowthData();
+        return new DefenseFacilityGrowthState
+        {
+            capacityLevel = source.capacityLevel,
+            resetSpeedLevel = source.resetSpeedLevel,
+            effectStrengthLevel = source.effectStrengthLevel,
+            detectionRangeLevel = source.detectionRangeLevel,
+            identificationLevel = source.identificationLevel,
+            outageResistanceLevel = source.outageResistanceLevel
+        };
+    }
+
+    private static DefenseFacilityGrowthSaveData ToGrowthSaveData(
+        DefenseFacilityGrowthState source)
+    {
+        source ??= new DefenseFacilityGrowthState();
+        return new DefenseFacilityGrowthSaveData
+        {
+            capacityLevel = source.capacityLevel,
+            resetSpeedLevel = source.resetSpeedLevel,
+            effectStrengthLevel = source.effectStrengthLevel,
+            detectionRangeLevel = source.detectionRangeLevel,
+            identificationLevel = source.identificationLevel,
+            outageResistanceLevel = source.outageResistanceLevel
         };
     }
 }

@@ -11,11 +11,18 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
   m_Name: procedure_foreign-body-removal
-  m_EditorClassIdentifier: Assembly-CSharp::SurgicalProcedureSO
+  m_EditorClassIdentifier: DungeonStory.Medical::SurgicalProcedureSO
   procedureId: procedure:foreign-body-removal
   displayName: "\uC774\uBB3C \uC81C\uAC70"
   description: "\uC0C1\uCC98 \uC18D \uD30C\uD3B8\uACFC \uC624\uC5FC\uC6D0\uC744 \uC81C\uAC70\uD55C\uB2E4."
   kind: 2
+  family: 0
+  urgency: 2
+  allowedAnatomyFamilies: []
+  allowedSpeciesIds: []
+  operatorRequirement:
+    stats: []
+    minimumWeightedScore: 3
   targetNodeId: 
   requiredResearchId: research:survival:medical
   requiredFacilityTags: 1
@@ -33,12 +40,12 @@ MonoBehaviour:
     quantity: 1
     optional: 0
   effects:
-  - rid: 7302563313663345487
+  - rid: 7737211730889015646
   references:
     version: 2
     RefIds:
-    - rid: 7302563313663345487
-      type: {class: HealSurgicalNodeEffect, ns: , asm: Assembly-CSharp}
+    - rid: 7737211730889015646
+      type: {class: HealSurgicalNodeEffect, ns: , asm: DungeonStory.Medical}
       data:
         effectId: HealSurgicalNodeEffect
         health: 10

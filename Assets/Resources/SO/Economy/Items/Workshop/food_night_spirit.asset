@@ -21,27 +21,43 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8308
+  id: 8307
   itemId: food:night-spirit
   displayName: "\uBC24 \uC99D\uB958\uC8FC"
   description: "\uC791\uC5C5\uC2E4\uC758 \uB2E4\uC74C \uACF5\uC815\uC73C\uB85C \uC2E4\uC81C
     \uC6B4\uBC18\uB418\uB294 \uBB3C\uB9AC \uC911\uAC04\uC7AC."
   stockCategory: 0
-  kind: 4
-  ingredientTags: 1
-  unitPrice: 24
-  marketSaleRate: 0.6
   unitWeight: 0.45
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:distilling-aging
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 24
+  features:
+  - rid: 7737211730927812721
+  - rid: 7737211730927812722
+  - rid: 7737211730927812723
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730927812721
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:distilling-aging
+    - rid: 7737211730927812722
+      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        substanceId: substance:night-spirit
+        useClass: 3
+        addictionChance: 0.07
+        overdoseChance: 0.045
+        toleranceGain: 0.12
+        withdrawalPerHour: 0.025
+        moodEffect: 9
+        workSpeedEffect: -0.08
+        combatEffect: -0.06
+        durationSeconds: 240
+    - rid: 7737211730927812723
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 4
+        ingredientTags: 1
+        sharedIntermediate: 0

@@ -6,95 +6,6 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public static class DungeonUiTheme
-{
-    private static readonly Color StandardCanvasScrim = Hex("40565BFF");
-    private static readonly Color StandardPanel = Hex("435D64FF");
-    private static readonly Color StandardSurface = Hex("567179FF");
-    private static readonly Color StandardSurfaceRaised = Hex("789198FF");
-    private static readonly Color StandardSurfaceMuted = Hex("34484EFF");
-    private static readonly Color StandardBorder = Hex("A9BEC2FF");
-    private static readonly Color StandardTextPrimary = Hex("F5F7F4FF");
-    private static readonly Color StandardTextSecondary = Hex("D2DDD9FF");
-    private static readonly Color StandardAccent = Hex("56B892FF");
-
-    public static Color CanvasScrim => IsHighContrast ? Hex("182428FF") : StandardCanvasScrim;
-    public static Color Panel => IsHighContrast ? Hex("172126FF") : StandardPanel;
-    public static Color Surface => IsHighContrast ? Hex("223137FF") : StandardSurface;
-    public static Color SurfaceRaised => IsHighContrast ? Hex("344951FF") : StandardSurfaceRaised;
-    public static Color SurfaceMuted => IsHighContrast ? Hex("10191DFF") : StandardSurfaceMuted;
-    public static Color Border => IsHighContrast ? Hex("D8E4E1FF") : StandardBorder;
-    public static Color TextPrimary => IsHighContrast ? Color.white : StandardTextPrimary;
-    public static Color TextSecondary => IsHighContrast ? Hex("D8E4E1FF") : StandardTextSecondary;
-    public static Color Accent => IsHighContrast ? Hex("46D69BFF") : StandardAccent;
-    public static Color AccentHover => IsHighContrast ? Hex("79F0BFFF") : Hex("8CE0BFFF");
-    public static Color AccentPressed => IsHighContrast ? Hex("2CA879FF") : Hex("3E8B70FF");
-    public static Color Warning => IsHighContrast ? Hex("FFD15AFF") : Hex("D2A449FF");
-    public static Color Danger => IsHighContrast ? Hex("FF7770FF") : Hex("C95E5AFF");
-    public static Color Good => IsHighContrast ? Hex("55E6A7FF") : Hex("4CB88BFF");
-    public static float ModalScrimAlpha => IsHighContrast ? 0.56f : 0.34f;
-    public static float OwnerSelectionScrimAlpha => IsHighContrast ? 0.62f : 0.42f;
-    public static float ResultScrimAlpha => IsHighContrast ? 0.60f : 0.40f;
-    public static Color ModalScrim => WithAlpha(CanvasScrim, ModalScrimAlpha);
-    public static Color OwnerSelectionScrim => WithAlpha(CanvasScrim, OwnerSelectionScrimAlpha);
-    public static Color ResultScrim => WithAlpha(CanvasScrim, ResultScrimAlpha);
-
-    private static bool IsHighContrast => DungeonUserSettingsRuntime.Current.highContrast;
-
-    public static Color GetMeterColor(float normalizedValue)
-    {
-        if (normalizedValue < 0.25f) return Danger;
-        if (normalizedValue < 0.5f) return Warning;
-        return Good;
-    }
-
-    public static void StyleButton(Button button, bool selected = false, bool destructive = false)
-    {
-        if (button == null) return;
-
-        Image image = button.targetGraphic as Image ?? button.GetComponent<Image>();
-        if (image == null) return;
-
-        Color normal = destructive ? Danger : selected ? Accent : SurfaceRaised;
-        image.color = normal;
-        button.targetGraphic = image;
-        button.transition = Selectable.Transition.ColorTint;
-        button.colors = new ColorBlock
-        {
-            normalColor = Color.white,
-            highlightedColor = destructive ? Hex("FFBAB7FF") : selected ? Hex("C5F0DEFF") : Hex("C8D7DAFF"),
-            pressedColor = destructive ? Hex("C47B78FF") : selected ? Hex("8FCDB5FF") : Hex("91A5AAFF"),
-            selectedColor = Color.white,
-            disabledColor = Hex("3F4E53CC"),
-            colorMultiplier = 1f,
-            fadeDuration = DungeonUserSettingsRuntime.Current.reducedMotion ? 0f : 0.08f
-        };
-
-        TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
-        if (label != null)
-        {
-            label.color = TextPrimary;
-            label.fontStyle = FontStyles.Bold;
-            label.characterSpacing = 0f;
-        }
-    }
-
-    private static Color Hex(string html)
-    {
-        if (!ColorUtility.TryParseHtmlString("#" + html, out Color color))
-        {
-            throw new InvalidOperationException($"Invalid UI theme color: {html}");
-        }
-
-        return color;
-    }
-
-    private static Color WithAlpha(Color color, float alpha)
-    {
-        return new Color(color.r, color.g, color.b, Mathf.Clamp01(alpha));
-    }
-}
-
 [DisallowMultipleComponent]
 public sealed class DungeonUiThemeRuntime : MonoBehaviour
 {
@@ -102,6 +13,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
 
     private ITmpKoreanFontService fontService;
     private IUiClock uiClock;
+    private IDungeonUserSettingsService userSettings;
     private Canvas targetCanvas;
     private TabId? activeTabId;
     private float nextRefreshAt;
@@ -118,11 +30,30 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
     private int observedScreenHeight = -1;
     private float observedUiScale = -1f;
     private float observedTextScale = -1f;
+    private bool observedHighContrast;
+    private bool observedReducedMotion;
+    private bool HighContrast => userSettings?.Current?.highContrast ?? false;
+    private bool ReducedMotion => userSettings?.Current?.reducedMotion ?? false;
+    private Color ThemePanel => DungeonUiThemePalette.Panel(HighContrast);
+    private Color ThemeTextPrimary => DungeonUiThemePalette.TextPrimary(HighContrast);
+    private Color ThemeAccent => DungeonUiThemePalette.Accent(HighContrast);
+
+    private void StyleThemeButton(
+        Button button,
+        bool selected = false,
+        bool destructive = false) =>
+        DungeonUiThemePalette.StyleButton(
+            button,
+            HighContrast,
+            ReducedMotion,
+            selected,
+            destructive);
 
     public static DungeonUiThemeRuntime Ensure(
         Canvas canvas,
         ITmpKoreanFontService fontService,
-        IUiClock uiClock)
+        IUiClock uiClock,
+        IDungeonUserSettingsService userSettings)
     {
         if (canvas == null)
         {
@@ -138,6 +69,8 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         runtime.targetCanvas = canvas;
         runtime.fontService = fontService;
         runtime.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        runtime.userSettings = userSettings
+            ?? throw new ArgumentNullException(nameof(userSettings));
         runtime.ApplyNow();
         return runtime;
     }
@@ -188,7 +121,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         if (scaler == null) return;
 
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        float uiScale = Mathf.Clamp(DungeonUserSettingsRuntime.Current.uiScale, 0.8f, 1.25f);
+        float uiScale = Mathf.Clamp(userSettings.Current.uiScale, 0.8f, 1.25f);
         scaler.referenceResolution = new Vector2(1920f / uiScale, 1080f / uiScale);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
@@ -207,12 +140,12 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         if (!(block is RectTransform rect)) return;
 
         SetTopLeft(rect, new Vector2(24f, -24f), new Vector2(260f, 56f));
-        StyleBlockImage(block, DungeonUiTheme.Panel);
+        StyleBlockImage(block, ThemePanel);
 
         TMP_Text label = block.GetComponentInChildren<TMP_Text>(true);
         if (label == null) return;
 
-        label.color = DungeonUiTheme.TextPrimary;
+        label.color = ThemeTextPrimary;
         label.fontSize = 25f;
         label.fontStyle = FontStyles.Bold;
         label.alignment = TextAlignmentOptions.MidlineLeft;
@@ -227,7 +160,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         if (!(block is RectTransform rect)) return;
 
         SetTopLeft(rect, new Vector2(24f, -88f), new Vector2(300f, 64f));
-        StyleBlockImage(block, DungeonUiTheme.Panel);
+        StyleBlockImage(block, ThemePanel);
 
         Image icon = null;
         TMP_Text amount = null;
@@ -249,7 +182,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
 
         if (amount != null)
         {
-            amount.color = DungeonUiTheme.TextPrimary;
+            amount.color = ThemeTextPrimary;
             amount.fontSize = 28f;
             amount.fontStyle = FontStyles.Bold;
             amount.alignment = TextAlignmentOptions.MidlineRight;
@@ -306,8 +239,8 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
             Image buttonImage = button.targetGraphic as Image ?? button.GetComponent<Image>();
             bool selected = selectionState != null
                 ? selectionState.IsSelected
-                : buttonImage != null && ColorsMatch(buttonImage.color, DungeonUiTheme.Accent);
-            DungeonUiTheme.StyleButton(button, selected);
+                : buttonImage != null && ColorsMatch(buttonImage.color, ThemeAccent);
+            StyleThemeButton(button, selected);
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
             if (label != null)
             {
@@ -338,7 +271,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         rect.pivot = new Vector2(0.5f, 0f);
         rect.anchoredPosition = Vector2.zero;
         rect.sizeDelta = new Vector2(0f, 64f);
-        StyleBlockImage(navigation, DungeonUiTheme.Panel);
+        StyleBlockImage(navigation, ThemePanel);
 
         HorizontalLayoutGroup layout = navigation.GetComponent<HorizontalLayoutGroup>();
         if (layout != null)
@@ -370,7 +303,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
             bool selected = activeTabId.HasValue
                 && binding != null
                 && binding.Id == activeTabId.Value;
-            DungeonUiTheme.StyleButton(button, selected);
+            StyleThemeButton(button, selected);
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
             if (label != null)
             {
@@ -386,6 +319,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
     private void StyleLegacyPanels()
     {
         Transform root = targetCanvas.transform;
+        StyleRunResultSurface(root);
         foreach (Transform child in root)
         {
             if (child.name == "BuildingInfoPanel")
@@ -408,7 +342,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
 
                 if (image.GetComponent<Button>() == null)
                 {
-                    image.color = DungeonUiTheme.SurfaceMuted;
+                    image.color = DungeonUiThemePalette.SurfaceMuted(HighContrast);
                 }
             }
 
@@ -416,8 +350,44 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
             constructTab.GetComponentsInChildren(true, buttonBuffer);
             foreach (Button button in buttonBuffer)
             {
-                DungeonUiTheme.StyleButton(button);
+                StyleThemeButton(button);
             }
+        }
+    }
+
+    private void StyleRunResultSurface(Transform root)
+    {
+        Transform blocker = root.Find("RunResultInputBlocker");
+        Image blockerImage = blocker != null ? blocker.GetComponent<Image>() : null;
+        if (blockerImage != null)
+        {
+            blockerImage.color = DungeonUiThemePalette.ResultScrim(HighContrast);
+        }
+
+        Transform panel = root.Find("RunResultPanel");
+        if (panel == null)
+        {
+            return;
+        }
+
+        Image panelImage = panel.GetComponent<Image>();
+        if (panelImage != null)
+        {
+            panelImage.color = ThemePanel;
+        }
+
+        textBuffer.Clear();
+        panel.GetComponentsInChildren(true, textBuffer);
+        foreach (TMP_Text text in textBuffer)
+        {
+            text.color = ThemeTextPrimary;
+        }
+
+        buttonBuffer.Clear();
+        panel.GetComponentsInChildren(true, buttonBuffer);
+        foreach (Button button in buttonBuffer)
+        {
+            StyleThemeButton(button, selected: true);
         }
     }
 
@@ -426,7 +396,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         Image panelImage = panel.GetComponent<Image>();
         if (panelImage != null)
         {
-            panelImage.color = DungeonUiTheme.Panel;
+            panelImage.color = ThemePanel;
         }
 
         UIBuildingInfo buildingInfo = panel.GetComponent<UIBuildingInfo>();
@@ -450,8 +420,8 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
             if (image.sprite == null || image.sprite.name == "Background")
             {
                 image.color = image.gameObject.name == "UpperPanel"
-                    ? DungeonUiTheme.SurfaceRaised
-                    : DungeonUiTheme.Surface;
+                    ? DungeonUiThemePalette.SurfaceRaised(HighContrast)
+                    : DungeonUiThemePalette.Surface(HighContrast);
             }
         }
 
@@ -461,14 +431,14 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
         {
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
             bool destructive = label != null && label.text.Contains("부시");
-            DungeonUiTheme.StyleButton(button, destructive: destructive);
+            StyleThemeButton(button, destructive: destructive);
         }
 
         textBuffer.Clear();
         panel.GetComponentsInChildren(true, textBuffer);
         foreach (TMP_Text label in textBuffer)
         {
-            label.color = DungeonUiTheme.TextPrimary;
+            label.color = ThemeTextPrimary;
             label.characterSpacing = 0f;
         }
     }
@@ -486,7 +456,7 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
 
     private void ApplyTextScale()
     {
-        float scale = Mathf.Clamp(DungeonUserSettingsRuntime.Current.textScale, 0.9f, 1.25f);
+        float scale = Mathf.Clamp(userSettings.Current.textScale, 0.9f, 1.25f);
         textBuffer.Clear();
         targetCanvas.GetComponentsInChildren(true, textBuffer);
         liveTextIds.Clear();
@@ -549,24 +519,28 @@ public sealed class DungeonUiThemeRuntime : MonoBehaviour
 
         transformBuffer.Clear();
         targetCanvas.GetComponentsInChildren(true, transformBuffer);
-        DungeonUserSettingsData settings = DungeonUserSettingsRuntime.Current;
+        DungeonUserSettingsData settings = userSettings.Current;
         return transformBuffer.Count != observedHierarchyCount
             || Screen.width != observedScreenWidth
             || Screen.height != observedScreenHeight
             || !Mathf.Approximately(settings.uiScale, observedUiScale)
-            || !Mathf.Approximately(settings.textScale, observedTextScale);
+            || !Mathf.Approximately(settings.textScale, observedTextScale)
+            || settings.highContrast != observedHighContrast
+            || settings.reducedMotion != observedReducedMotion;
     }
 
     private void CaptureRefreshSignature()
     {
         transformBuffer.Clear();
         targetCanvas.GetComponentsInChildren(true, transformBuffer);
-        DungeonUserSettingsData settings = DungeonUserSettingsRuntime.Current;
+        DungeonUserSettingsData settings = userSettings.Current;
         observedHierarchyCount = transformBuffer.Count;
         observedScreenWidth = Screen.width;
         observedScreenHeight = Screen.height;
         observedUiScale = settings.uiScale;
         observedTextScale = settings.textScale;
+        observedHighContrast = settings.highContrast;
+        observedReducedMotion = settings.reducedMotion;
     }
 
     private readonly struct TextScaleBaseline

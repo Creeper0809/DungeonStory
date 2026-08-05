@@ -9,13 +9,6 @@ using UnityEngine.UI;
 using VContainer.Unity;
 using DungeonStory.Foundation;
 
-public interface IDungeonSettingsUi
-{
-    bool IsVisible { get; }
-    void Show();
-    void Close();
-}
-
 public sealed class DungeonSettingsUiController :
     IDungeonSettingsUi,
     IStartable,
@@ -28,7 +21,7 @@ public sealed class DungeonSettingsUiController :
     private readonly ITmpKoreanFontService fontService;
     private readonly DungeonUserSettingsRuntimeTargets runtimeTargets;
     private readonly IUiClock uiClock;
-    private readonly IGameTimeScaleController timeScaleController;
+    private readonly IGameSpeedController gameSpeedController;
 
     private readonly List<Image> themedSurfaces = new List<Image>();
     private readonly List<Button> tabButtons = new List<Button>();
@@ -54,6 +47,7 @@ public sealed class DungeonSettingsUiController :
     private TMP_Text uiScaleValue;
     private TMP_Text textScaleValue;
     private TMP_Text maxCarryMultiplierValue;
+    private TMP_Text defenseTimeResponseValue;
     private Slider cameraSpeedSlider;
     private Slider masterVolumeSlider;
     private Slider musicVolumeSlider;
@@ -68,10 +62,8 @@ public sealed class DungeonSettingsUiController :
     private Toggle reducedMotionToggle;
     private Toggle developerModeToggle;
     private DungeonSettingsHotkeyBehaviour hotkeyBehaviour;
-    private GameManager gameManager;
     private bool pauseCaptured;
     private bool wasPaused;
-    private float previousTimeScale;
     private int activePage;
 
     public DungeonSettingsUiController(
@@ -80,7 +72,7 @@ public sealed class DungeonSettingsUiController :
         ITmpKoreanFontService fontService,
         DungeonUserSettingsRuntimeTargets runtimeTargets,
         IUiClock uiClock,
-        IGameTimeScaleController timeScaleController)
+        IGameSpeedController gameSpeedController)
     {
         this.settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         this.canvasProvider = canvasProvider ?? throw new ArgumentNullException(nameof(canvasProvider));
@@ -88,8 +80,8 @@ public sealed class DungeonSettingsUiController :
         this.runtimeTargets = runtimeTargets
             ?? throw new ArgumentNullException(nameof(runtimeTargets));
         this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
-        this.timeScaleController = timeScaleController
-            ?? throw new ArgumentNullException(nameof(timeScaleController));
+        this.gameSpeedController = gameSpeedController
+            ?? throw new ArgumentNullException(nameof(gameSpeedController));
     }
 
     public bool IsVisible => modalRoot != null && modalRoot.activeInHierarchy;
@@ -250,6 +242,7 @@ public sealed class DungeonSettingsUiController :
         CreateDisplayPage(pages[0].transform);
         CreateAudioPage(pages[1].transform);
         CreateAccessibilityPage(pages[2].transform);
+        CreateDefenseTimeResponseRow(pages[2].transform);
         CreateDevelopmentPage(pages[3].transform);
 
         statusText = CreateText(
@@ -317,6 +310,17 @@ public sealed class DungeonSettingsUiController :
             value => UpdateSetting(data => data.highContrast = value));
         reducedMotionToggle = CreateToggleRow(page, "ReducedMotion", "모션 감소", 250f,
             value => UpdateSetting(data => data.reducedMotion = value));
+    }
+
+    private void CreateDefenseTimeResponseRow(Transform page)
+    {
+        defenseTimeResponseValue = CreateCycleRow(
+            page,
+            "DefenseTimeResponse",
+            "침입 시 시간 반응",
+            328f,
+            () => CycleDefenseTimeResponse(-1),
+            () => CycleDefenseTimeResponse(1));
     }
 
     private void CreateDevelopmentPage(Transform page)
@@ -397,6 +401,15 @@ public sealed class DungeonSettingsUiController :
             count));
     }
 
+    private void CycleDefenseTimeResponse(int direction)
+    {
+        int count = Enum.GetValues(typeof(DungeonDefenseTimeResponse)).Length;
+        UpdateSetting(data =>
+            data.defenseTimeResponse = (DungeonDefenseTimeResponse)Wrap(
+                (int)data.defenseTimeResponse + direction,
+                count));
+    }
+
     private void UpdateSetting(Action<DungeonUserSettingsData> change)
     {
         settingsService.Update(change);
@@ -445,6 +458,17 @@ public sealed class DungeonSettingsUiController :
         pauseOnResearchTreeToggle?.SetIsOnWithoutNotify(data.pauseOnResearchTree);
         highContrastToggle.SetIsOnWithoutNotify(data.highContrast);
         reducedMotionToggle.SetIsOnWithoutNotify(data.reducedMotion);
+        if (defenseTimeResponseValue != null)
+        {
+            defenseTimeResponseValue.text = data.defenseTimeResponse switch
+            {
+                DungeonDefenseTimeResponse.PauseOnCritical =>
+                    "치명 사건마다 자동 정지",
+                DungeonDefenseTimeResponse.KeepCurrent =>
+                    "현재 배속 유지",
+                _ => "첫 진입 시 X1"
+            };
+        }
         developerModeToggle?.SetIsOnWithoutNotify(data.developerMode);
         statusText.text = settingsService.LastError;
         statusText.color = string.IsNullOrWhiteSpace(settingsService.LastError)
@@ -482,7 +506,11 @@ public sealed class DungeonSettingsUiController :
                 : DungeonUiTheme.TextPrimary;
         }
 
-        DungeonUiThemeRuntime.Ensure(canvas, fontService, uiClock).ApplyNow();
+        DungeonUiThemeRuntime.Ensure(
+            canvas,
+            fontService,
+            uiClock,
+            settingsService).ApplyNow();
     }
 
     private TMP_Text CreateCycleRow(
@@ -692,20 +720,13 @@ public sealed class DungeonSettingsUiController :
             return;
         }
 
-        gameManager = runtimeTargets.GameManager;
-        wasPaused = gameManager != null && gameManager.isPause;
-        previousTimeScale = timeScaleController.Scale;
+        wasPaused = gameSpeedController.IsPaused;
         pauseCaptured = true;
     }
 
     private void SetPaused(bool paused)
     {
-        if (gameManager != null)
-        {
-            gameManager.isPause = paused;
-        }
-
-        timeScaleController.Scale = paused ? 0f : previousTimeScale;
+        gameSpeedController.SetPaused(paused);
     }
 
     private void RestorePause()
@@ -715,46 +736,14 @@ public sealed class DungeonSettingsUiController :
             return;
         }
 
-        if (gameManager != null)
-        {
-            gameManager.isPause = wasPaused;
-        }
-
-        timeScaleController.Scale = wasPaused ? 0f : previousTimeScale;
+        gameSpeedController.SetPaused(wasPaused);
         pauseCaptured = false;
     }
 
     private void BuildResolutionList()
     {
         resolutions.Clear();
-        foreach (Resolution resolution in Screen.resolutions)
-        {
-            Vector2Int value = new Vector2Int(resolution.width, resolution.height);
-            if (!resolutions.Contains(value))
-            {
-                resolutions.Add(value);
-            }
-        }
-
-        foreach (Vector2Int fallback in new[]
-                 {
-                     new Vector2Int(1280, 720),
-                     new Vector2Int(1600, 900),
-                     new Vector2Int(1920, 1080),
-                     new Vector2Int(2560, 1440)
-                 })
-        {
-            if (!resolutions.Contains(fallback))
-            {
-                resolutions.Add(fallback);
-            }
-        }
-
-        resolutions.Sort((left, right) =>
-        {
-            int area = (left.x * left.y).CompareTo(right.x * right.y);
-            return area != 0 ? area : left.x.CompareTo(right.x);
-        });
+        resolutions.AddRange(DungeonSettingsResolutionCatalog.Build());
     }
 
     private static void SetSlider(Slider slider, TMP_Text label, float value, string display)
@@ -795,36 +784,5 @@ public sealed class DungeonSettingsUiController :
     {
         rect.offsetMin = offsetMin;
         rect.offsetMax = offsetMax;
-    }
-}
-
-public sealed class DungeonSettingsHotkeyBehaviour : MonoBehaviour
-{
-    private Action close;
-
-    public void Initialize(Action closeAction)
-    {
-        close = closeAction;
-    }
-
-    private void Update()
-    {
-        bool escapePressed = Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame;
-        if (!escapePressed)
-        {
-            try
-            {
-                escapePressed = Input.GetKeyDown(KeyCode.Escape);
-            }
-            catch (InvalidOperationException)
-            {
-                escapePressed = false;
-            }
-        }
-
-        if (escapePressed)
-        {
-            close?.Invoke();
-        }
     }
 }

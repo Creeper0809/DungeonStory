@@ -25,14 +25,46 @@ public interface IProductionItemGateway
     int RemoveDestination(string destinationId);
 }
 
-public sealed class ProductionItemGateway : IProductionItemGateway
+public interface IProductionOutputBufferGateway
 {
-    private readonly IWorldItemStackRuntime itemRuntime;
+    int CountBufferedOutput(string itemId);
+    int CountBufferedOutput(string itemId, string destinationId);
+    bool SpawnBufferedOutput(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        string destinationId);
+    int ReleaseBufferedOutput(string destinationId, Vector2Int releasePosition);
+    bool TryRouteBufferedOutput(
+        string sourceDestinationId,
+        string itemId,
+        int amount,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int routed,
+        out DomainFailure failure);
+}
 
-    public ProductionItemGateway(IWorldItemStackRuntime itemRuntime)
+public interface IProductionSupplyInventoryGateway
+{
+    string GetOldestAvailableStackId(string itemId, string excludedDestinationId);
+}
+
+public sealed class ProductionItemGateway :
+    IProductionItemGateway,
+    IProductionOutputBufferGateway,
+    IProductionSupplyInventoryGateway
+{
+    private readonly IStockQuery stock;
+    private readonly IItemTransferService transfers;
+
+    public ProductionItemGateway(
+        IStockQuery stock,
+        IItemTransferService transfers)
     {
-        this.itemRuntime = itemRuntime
-            ?? throw new ArgumentNullException(nameof(itemRuntime));
+        this.stock = stock ?? throw new ArgumentNullException(nameof(stock));
+        this.transfers = transfers
+            ?? throw new ArgumentNullException(nameof(transfers));
     }
 
     public int CountDelivered(string itemId, string destinationId)
@@ -67,6 +99,28 @@ public sealed class ProductionItemGateway : IProductionItemGateway
             excludedDestinationId);
     }
 
+    public string GetOldestAvailableStackId(
+        string itemId,
+        string excludedDestinationId)
+    {
+        return stock.GetAllStacks()
+            .Where(stack => stack != null
+                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
+                && !stack.IsReserved
+                && !stack.Forbidden
+                && stack.Quantity > 0
+                && stack.State is WorldItemStackState.Loose
+                    or WorldItemStackState.Stored
+                && !string.Equals(
+                    stack.DestinationId,
+                    excludedDestinationId,
+                    StringComparison.Ordinal))
+            .Select(stack => stack.StackId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .FirstOrDefault() ?? string.Empty;
+    }
+
     public bool RequestDelivery(
         string itemId,
         int amount,
@@ -75,13 +129,17 @@ public sealed class ProductionItemGateway : IProductionItemGateway
         out int requested,
         out string failureReason)
     {
-        return itemRuntime.TryRequestItemDelivery(
+        bool succeeded = transfers.TryRequestItemDelivery(
             itemId,
             amount,
             destinationPosition,
             destinationId,
             out requested,
-            out failureReason);
+            out DomainFailure failure);
+        failureReason = failure.IsFailure
+            ? failure.Code.ToString()
+            : string.Empty;
+        return succeeded;
     }
 
     public bool ConsumeDelivered(
@@ -89,7 +147,7 @@ public sealed class ProductionItemGateway : IProductionItemGateway
         IReadOnlyDictionary<string, int> costs,
         out string failureReason)
     {
-        return itemRuntime.TryConsumeFacilityItemBuffer(
+        return transfers.TryConsumeFacilityItemBuffer(
             destinationId,
             costs,
             out failureReason);
@@ -97,48 +155,98 @@ public sealed class ProductionItemGateway : IProductionItemGateway
 
     public bool SpawnOutput(string itemId, int amount, Vector2Int position)
     {
-        return itemRuntime.SpawnItemAt(
+        return transfers.TrySpawnItem(
             itemId,
             amount,
             position,
             WorldItemStackState.Loose,
             string.Empty,
-            out int spawned)
-            && spawned == Mathf.Max(0, amount);
+            out int spawned);
+    }
+
+    public int CountBufferedOutput(string itemId, string destinationId)
+    {
+        return Count(
+            itemId,
+            destinationId,
+            WorldItemStackState.FacilityOutputBuffer,
+            excludeCarried: false,
+            excludedDestinationId: string.Empty);
+    }
+
+    public int CountBufferedOutput(string itemId)
+    {
+        return Count(
+            itemId,
+            destinationId: string.Empty,
+            WorldItemStackState.FacilityOutputBuffer,
+            excludeCarried: false,
+            excludedDestinationId: string.Empty);
+    }
+
+    public bool SpawnBufferedOutput(
+        string itemId,
+        int amount,
+        Vector2Int position,
+        string destinationId)
+    {
+        return transfers.TrySpawnItem(
+            itemId,
+            amount,
+            position,
+            WorldItemStackState.FacilityOutputBuffer,
+            destinationId?.Trim() ?? string.Empty,
+            out int spawned);
+    }
+
+    public int ReleaseBufferedOutput(
+        string destinationId,
+        Vector2Int releasePosition)
+    {
+        return transfers.ReleaseDestination(
+            destinationId,
+            releasePosition);
+    }
+
+    public bool TryRouteBufferedOutput(
+        string sourceDestinationId,
+        string itemId,
+        int amount,
+        Vector2Int destinationPosition,
+        string destinationId,
+        out int routed,
+        out DomainFailure failure)
+    {
+        return transfers.TryRouteFacilityOutput(
+            sourceDestinationId,
+            itemId,
+            amount,
+            destinationPosition,
+            destinationId,
+            out routed,
+            out failure);
     }
 
     public void PrioritizeDestination(string destinationId)
     {
-        foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks())
-        {
-            if (stack != null
-                && string.Equals(
-                    stack.DestinationId,
-                    destinationId,
-                    StringComparison.Ordinal))
-            {
-                itemRuntime.PrioritizeHaul(stack.StackId);
-            }
-        }
+        transfers.PrioritizeDestination(destinationId);
     }
 
     public int ReleaseDestination(
         string destinationId,
         Vector2Int releasePosition)
     {
-        return itemRuntime.ReleaseStacksByDestination(
+        return transfers.ReleaseDestination(
             destinationId,
             releasePosition);
     }
 
     public int RemoveDestination(string destinationId)
     {
-        return itemRuntime.RemoveStacksByStateAndDestination(
-                WorldItemStackState.Loose,
-                destinationId)
-            + itemRuntime.RemoveStacksByStateAndDestination(
-                WorldItemStackState.FacilityBuffer,
-                destinationId);
+        return transfers.RemoveDestination(
+            destinationId,
+            WorldItemStackState.Loose,
+            WorldItemStackState.FacilityBuffer);
     }
 
     private int Count(
@@ -152,7 +260,7 @@ public sealed class ProductionItemGateway : IProductionItemGateway
         string normalizedDestination = destinationId?.Trim() ?? string.Empty;
         string normalizedExcludedDestination =
             excludedDestinationId?.Trim() ?? string.Empty;
-        return itemRuntime.GetAllStacks()
+        return stock.GetAllStacks()
             .Where(stack => stack != null
                 && stack.Quantity > 0
                 && string.Equals(
@@ -168,6 +276,11 @@ public sealed class ProductionItemGateway : IProductionItemGateway
                     || stack.State == requiredState.Value)
                 && (!excludeCarried
                     || stack.State != WorldItemStackState.Carried)
+                && (!excludeCarried
+                    || !string.IsNullOrWhiteSpace(normalizedDestination)
+                    || stack.State == WorldItemStackState.Loose
+                    || stack.State == WorldItemStackState.Stored
+                    )
                 && (string.IsNullOrWhiteSpace(normalizedExcludedDestination)
                     || !string.Equals(
                         stack.DestinationId,

@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: equipment_lineage_binding
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7240
+  projectId: research:equipment:lineage-binding
+  displayName: "\uC7A5\uBE44 \uACC4\uBCF4 \uACB0\uC18D"
+  description: "\uB8EC \uC870\uC728 \uC7A5\uBE44\uC758 \uC0AC\uC6A9 \uAE30\uB85D\uACFC
+    \uC0C1\uC9D5\uC744 \uC0C8 \uC7A5\uBE44\uC5D0 \uACB0\uC18D\uD55C\uB2E4."
+  field: 3
+  requiredWork: 1200
+  prerequisites:
+  - {fileID: 11400000, guid: 03cfd04c2b1ad654a9b9ff7542b01332, type: 2}
+  - {fileID: 11400000, guid: 113a95410d965e04e9305eeabfd30003, type: 2}
+  - {fileID: 11400000, guid: ab84d33186cca914daf2b16fa1f89833, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:records
+    prerequisite: {fileID: 11400000, guid: 03cfd04c2b1ad654a9b9ff7542b01332, type: 2}
+    kind: 0
+    reason: "\uAE30\uB85D \uCCB4\uACC4\uC758 \uC774\uB860\uC774(\uAC00) \uC7A5\uBE44
+      \uACC4\uBCF4 \uACB0\uC18D \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:authority:prestige
+    prerequisite: {fileID: 11400000, guid: 113a95410d965e04e9305eeabfd30003, type: 2}
+    kind: 2
+    reason: "\uC7A5\uC2DD\uACFC \uC704\uC2E0\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC7A5\uBE44 \uACC4\uBCF4 \uACB0\uC18D \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:equipment:rune-module-tuning
+    prerequisite: {fileID: 11400000, guid: ab84d33186cca914daf2b16fa1f89833, type: 2}
+    kind: 2
+    reason: "\uB8EC \uBD80\uD488 \uC870\uC728\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC7A5\uBE44 \uACC4\uBCF4 \uACB0\uC18D \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211730927813430
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 1
+    requiredCount: 1
+  - capability: 5
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730927813430
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 9827

@@ -27,23 +27,27 @@ MonoBehaviour:
   description: "\uB3CC, \uBF08\uC640 \uC5F0\uCCA0\uB85C \uAE30\uBCF8 \uB3C4\uAD6C\uC640
     \uBB34\uAE30\uB97C \uB9CC\uB4E0\uB2E4."
   field: 10
-  requiredWork: 38
+  requiredWork: 36
   prerequisites: []
+  prerequisiteLinks: []
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563230216618549
-    - rid: 7302563305932456125
+    - rid: 7737211730927812852
+    - rid: 7737211730927812853
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563230216618549
+    - rid: 7737211730927812852
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1093
-    - rid: 7302563305932456125
+    - rid: 7737211730927812853
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1626

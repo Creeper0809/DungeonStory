@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Operation;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -858,7 +859,9 @@ public static class P1P2FeatureSurfacePlayModeVerifier
                     building,
                     out WorkTypeId workTypeId,
                     out _);
-                bool workerAssignable = workable.GetWorkerAssignmentStatus(guard).IsAllowed;
+                bool workerAssignable = workable
+                    .GetWorkerAssignmentStatus(guard.BuildingVisitor)
+                    .IsAllowed;
                 if (commandResolved
                     && workTypeId == BuiltInWorkTypeIds.Repair
                     && workerAssignable)
@@ -1514,7 +1517,8 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             data.height = 1;
             data.layer = layer;
             data.category = category;
-            data.type = type;
+            data.runtimeArchetype =
+                BuildingRuntimeArchetypeKindExtensions.FromComponentType(type);
             data.unlocked = true;
             tempObjects.Add(data);
             return data;

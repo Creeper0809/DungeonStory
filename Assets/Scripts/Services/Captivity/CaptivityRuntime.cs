@@ -8,11 +8,14 @@ using VContainer.Unity;
 
 public sealed class CaptivityRuntime :
     ICaptivityRuntime,
+    ICaptivityPersistence,
+    ICaptivityRestoreCandidateSource,
     ICaptiveLaborQuery,
     ICaptivityCommandService,
     ICaptivityEscortRuntime,
     ICaptivityEscapeRuntime,
     ICharacterCarePriorityQuery,
+    IDungeonRestoreTransactionParticipant,
     IStartable,
     ITickable,
     IDisposable
@@ -21,13 +24,14 @@ public sealed class CaptivityRuntime :
         new ProfilerMarker("CaptivityRuntime.Tick");
 
     private readonly ICharacterAiWorldRegistry worldRegistry;
-    private readonly ICharacterBodyHealthRuntime bodyHealth;
+    private readonly ICharacterBodyHealthQuery bodyHealthQuery;
+    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICombatEquipmentRuntime combatEquipment;
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IGridSystemProvider gridProvider;
     private readonly IGridPathSearchBroker pathSearchBroker;
     private readonly IRoomLayoutCache roomLayoutCache;
-    private readonly IGameMoneyRuntime money;
+    private readonly IGameMoneyAccount money;
     private readonly IDoorAccessQuery doorAccessQuery;
     private readonly IDoorAccessCommandService doorAccessCommands;
     private readonly IDoorAccessSubjectRegistry doorSubjectRegistry;
@@ -35,110 +39,160 @@ public sealed class CaptivityRuntime :
     private readonly IGameClock gameClock;
     private readonly IGameEventBus gameEventBus;
     private readonly IRandomStream random;
-    private readonly List<CaptiveState> captives = new List<CaptiveState>();
-    private readonly List<CaptivePolicyData> policies = new List<CaptivePolicyData>();
-    private readonly Dictionary<string, Transform> carriedParents =
-        new Dictionary<string, Transform>(StringComparer.Ordinal);
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly CaptivityActorAccess actorAccess;
+    private readonly CaptivityPolicyRuntime policyRuntime;
+    private readonly CaptivityPerformerRuntime performerRuntime;
+    private readonly CaptivityInteractionRuntime interactionRuntime;
+    private readonly CaptivityEscortRuntime escortRuntime;
+    private readonly CaptivityEscapeRuntime escapeRuntime;
+    private readonly CaptivityStateRuntime stateRuntime;
+    private readonly CaptivityRestoreCoordinator restoreCoordinator;
+    private readonly CaptivityQueryView queryView;
     private IDisposable downedSubscription;
     private IDisposable recoveredSubscription;
     private IDisposable deathSubscription;
     private IDisposable invasionSubscription;
-    private int captureSequence;
-    private int policySequence;
+    private IReadOnlyList<CaptiveState> captives => actorAccess.States;
 
     public CaptivityRuntime(
-        ICharacterAiWorldRegistry worldRegistry,
-        ICharacterBodyHealthRuntime bodyHealth,
-        ICombatEquipmentRuntime combatEquipment,
-        IWorldItemStackRuntime itemRuntime,
-        IGridSystemProvider gridProvider,
-        IGridPathSearchBroker pathSearchBroker,
-        IRoomLayoutCache roomLayoutCache,
-        IGameMoneyRuntime money,
-        IDoorAccessQuery doorAccessQuery,
-        IDoorAccessCommandService doorAccessCommands,
-        IDoorAccessSubjectRegistry doorSubjectRegistry,
-        CaptivityInteractionRegistry interactions,
-        IGameClock gameClock,
-        IRandomStreamProvider randomStreamProvider,
-        IGameEventBus gameEventBus)
+        CaptivityCharacterContext characters,
+        CaptivityWorldContext world,
+        CaptivitySessionContext session)
     {
-        this.worldRegistry = worldRegistry
-            ?? throw new ArgumentNullException(nameof(worldRegistry));
-        this.bodyHealth = bodyHealth
-            ?? throw new ArgumentNullException(nameof(bodyHealth));
-        this.combatEquipment = combatEquipment
-            ?? throw new ArgumentNullException(nameof(combatEquipment));
-        this.itemRuntime = itemRuntime
-            ?? throw new ArgumentNullException(nameof(itemRuntime));
-        this.gridProvider = gridProvider
-            ?? throw new ArgumentNullException(nameof(gridProvider));
-        this.pathSearchBroker = pathSearchBroker
-            ?? throw new ArgumentNullException(nameof(pathSearchBroker));
-        this.roomLayoutCache = roomLayoutCache
-            ?? throw new ArgumentNullException(nameof(roomLayoutCache));
-        this.money = money ?? throw new ArgumentNullException(nameof(money));
-        this.doorAccessQuery = doorAccessQuery
-            ?? throw new ArgumentNullException(nameof(doorAccessQuery));
-        this.doorAccessCommands = doorAccessCommands
-            ?? throw new ArgumentNullException(nameof(doorAccessCommands));
-        this.doorSubjectRegistry = doorSubjectRegistry
-            ?? throw new ArgumentNullException(nameof(doorSubjectRegistry));
-        this.interactions = interactions
-            ?? throw new ArgumentNullException(nameof(interactions));
-        this.gameClock = gameClock
-            ?? throw new ArgumentNullException(nameof(gameClock));
-        random = (randomStreamProvider
-            ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
+        characters = characters
+            ?? throw new ArgumentNullException(nameof(characters));
+        world = world ?? throw new ArgumentNullException(nameof(world));
+        session = session ?? throw new ArgumentNullException(nameof(session));
+        worldRegistry = characters.WorldRegistry;
+        bodyHealthQuery = characters.BodyHealthQuery;
+        bodyHealthCommands = characters.BodyHealthCommands;
+        combatEquipment = characters.CombatEquipment;
+        itemRuntime = characters.ItemRuntime;
+        gridProvider = world.GridProvider;
+        pathSearchBroker = world.PathSearchBroker;
+        roomLayoutCache = world.RoomLayoutCache;
+        doorAccessQuery = world.DoorAccessQuery;
+        doorAccessCommands = world.DoorAccessCommands;
+        doorSubjectRegistry = world.DoorSubjectRegistry;
+        money = session.Money;
+        interactions = session.Interactions;
+        gameClock = session.GameClock;
+        random = session.RandomStreamProvider
             .Get("captivity.security");
-        this.gameEventBus = gameEventBus
-            ?? throw new ArgumentNullException(nameof(gameEventBus));
-        AddBuiltInPolicies();
+        gameEventBus = session.GameEventBus;
+        aggregateRootStore = session.AggregateRootStore;
+        actorAccess = new CaptivityActorAccess(
+            this.aggregateRootStore,
+            RecalculateCaptiveState);
+        CaptivityActorRuntimeLookup actorRuntime =
+            new CaptivityActorRuntimeLookup(FindActor);
+        CaptivityUnityEffectsAdapter captivityEffects =
+            new CaptivityUnityEffectsAdapter(
+                FindActor,
+                itemRuntime,
+                gameEventBus);
+        policyRuntime = new CaptivityPolicyRuntime(
+            actorAccess,
+            new CaptivityPolicyActorDefaultPort(captivityEffects));
+        performerRuntime = new CaptivityPerformerRuntime(
+            FindState,
+            policyRuntime.Find,
+            TryRecruit,
+            TryRelease,
+            new CaptivityPerformerDefaultPort(
+                captivityEffects,
+                captivityEffects,
+                captivityEffects));
+        interactionRuntime = new CaptivityInteractionRuntime(
+            actorAccess,
+            actorRuntime,
+            interactions,
+            itemRuntime,
+            TryGetHousing);
+        escortRuntime = new CaptivityEscortRuntime(
+            actorAccess,
+            actorRuntime,
+            characters,
+            world,
+            session);
+        stateRuntime = new CaptivityStateRuntime(
+            actorAccess,
+            policyRuntime,
+            interactionRuntime,
+            escortRuntime,
+            doorSubjectRegistry);
+        escapeRuntime = new CaptivityEscapeRuntime(
+            actorAccess,
+            actorRuntime,
+            world,
+            session,
+            TryTriggerBetrayal);
+        restoreCoordinator = new CaptivityRestoreCoordinator(
+            this.worldRegistry,
+            this.itemRuntime,
+            this.interactions,
+            this.aggregateRootStore,
+            actorAccess,
+            doorSubjectRegistry,
+            escortRuntime);
+        queryView = new CaptivityQueryView(actorAccess, policyRuntime);
     }
 
-    public IReadOnlyList<CaptiveState> Captives =>
-        captives.Select(state => state.Clone()).ToArray();
+    public IReadOnlyList<CaptiveState> Captives => queryView.Captives;
+    public IReadOnlyList<CaptivePolicyData> Policies => queryView.Policies;
+    public string ParticipantId => restoreCoordinator.ParticipantId;
 
-    public IReadOnlyList<CaptivePolicyData> Policies =>
-        policies.Select(policy => policy.Clone()).ToArray();
+    public CaptivitySaveData Capture() => stateRuntime.Capture();
 
-    public int GetCarePriority(string persistentCharacterId)
-    {
-        CaptiveState captive = captives.FirstOrDefault(candidate =>
-            string.Equals(
-                candidate?.captiveId,
-                persistentCharacterId,
-                StringComparison.Ordinal));
-        return captive?.carePriorityUnlocked == true ? 100 : 0;
-    }
+    public CaptivityRestoreCandidate BuildRestore(CaptivitySaveData saveData) =>
+        restoreCoordinator.BuildRestore(saveData);
 
-    public bool IsCareSubject(string persistentCharacterId)
-    {
-        return captives.Any(candidate =>
-            candidate?.IsActive == true
-            && string.Equals(
-                candidate.captiveId,
-                persistentCharacterId,
-                StringComparison.Ordinal));
-    }
+    public void PublishRestoreCandidate(CaptivityRestoreCandidate candidate) =>
+        restoreCoordinator.StageRestore(candidate);
+
+    public bool TryTakePreparedRestoreCandidate(
+        out CaptivityRestoreCandidate candidate) =>
+        restoreCoordinator.TryTakePreparedRestoreCandidate(out candidate);
+
+    public void BeginRestoreCandidate() =>
+        restoreCoordinator.BeginRestoreCandidate();
+
+    public void PublishRestoreCandidate() =>
+        restoreCoordinator.PublishRestoreCandidate();
+
+    public void RollbackPublishedRestoreCandidate() =>
+        restoreCoordinator.RollbackPublishedRestoreCandidate();
+
+    public void CompleteRestoreCandidate() =>
+        restoreCoordinator.CompleteRestoreCandidate();
+
+    public void DiscardRestoreCandidate() =>
+        restoreCoordinator.DiscardRestoreCandidate();
+
+    public int GetCarePriority(string persistentCharacterId) =>
+        queryView.GetCarePriority(persistentCharacterId);
+    public bool IsCareSubject(string persistentCharacterId) =>
+        queryView.IsCareSubject(persistentCharacterId);
 
     public void Start()
     {
         downedSubscription =
-            gameEventBus.Subscribe<CharacterBodyHealthRuntime.CharacterDownedEvent>(
-                gameEvent => OnCharacterDowned(gameEvent.Actor));
+            gameEventBus.Subscribe<CharacterBodyHealthDownedEvent>(
+                gameEvent => stateRuntime.OnCharacterDowned(gameEvent.Actor));
         recoveredSubscription =
-            gameEventBus.Subscribe<CharacterBodyHealthRuntime.CharacterRecoveredEvent>(
-                gameEvent => OnCharacterRecovered(gameEvent.Actor));
-        deathSubscription = gameEventBus.Subscribe<CharacterDeathEvent>(OnCharacterDeath);
-        invasionSubscription =
-            gameEventBus.Subscribe<InvasionStartedEvent>(_ => OnInvasionStarted());
+            gameEventBus.Subscribe<CharacterBodyHealthRecoveredEvent>(
+                gameEvent => stateRuntime.OnCharacterRecovered(gameEvent.Actor));
+        deathSubscription = gameEventBus.Subscribe<CharacterDeathEvent>(
+            stateRuntime.OnCharacterDeath);
+        invasionSubscription = gameEventBus.Subscribe<InvasionStartedEvent>(
+            _ => escapeRuntime.HandleInvasionStarted());
 
         foreach (CharacterActor actor in worldRegistry.AllCharacters)
         {
             if (IsEligibleDownedIntruder(actor))
             {
-                EnsureCandidate(actor);
+                stateRuntime.EnsureCandidate(actor);
             }
         }
     }
@@ -212,7 +266,7 @@ public sealed class CaptivityRuntime :
 
             if (random.Chance(Mathf.Clamp01(chance)))
             {
-                TryBeginEscapeAttempt(
+                escapeRuntime.TryBeginEscapeAttempt(
                     state,
                     state.falseCompliance
                         ? "거짓 복종 중 훔친 열쇠"
@@ -238,7 +292,10 @@ public sealed class CaptivityRuntime :
         };
         if (itemRuntime.TryConsumeFacilityBuffer(destinationId, foodCost, out _))
         {
-            actor.ChangesStat(CharacterCondition.HUNGER, 35f);
+            actor.Stats?.RecoverNeed(
+                CharacterCondition.HUNGER,
+                35f,
+                CharacterNeedRecoverySource.Meal);
             state.health = Mathf.Clamp(state.health + 5f, 0f, 100f);
             state.nextCareSupplyAt = gameClock.Time + 120f;
             state.lastResult = "명성 특혜 식량을 배급받았습니다.";
@@ -416,7 +473,7 @@ public bool IsWorkAllowed(
             return false;
         }
 
-        CaptiveState state = EnsureCandidate(subject);
+        CaptiveState state = stateRuntime.EnsureCandidate(subject);
         if (state.status is CaptivityStatus.Escorting
             or CaptivityStatus.Confined
             or CaptivityStatus.Labor
@@ -472,11 +529,15 @@ public bool IsWorkAllowed(
         state.restraintPickupPosition = pickupPosition;
         state.requiredInteractionWork = Mathf.Min(
             30f,
-            8f + bodyHealth.GetTotalBleeding(subject) * 40f);
+            8f + bodyHealthQuery.GetTotalBleeding(subject) * 40f);
         state.completedInteractionWork = 0f;
         state.lastResult = "현장 안정화 대기";
 
-        AbilityCaptiveEscort escort = AbilityCaptiveEscort.Ensure(carrier);
+        AbilityCaptiveEscort escort =
+            CaptivityAbilityAdapterFactory.EnsureEscort(
+                carrier,
+                escortRuntime,
+                gameClock);
         if (escort == null)
         {
             FailEscort(state.captiveId, carrier, "호송 행동을 시작할 수 없습니다.");
@@ -484,7 +545,6 @@ public bool IsWorkAllowed(
             return false;
         }
 
-        escort.Configure(this, gameClock);
         escort.StartEscort(state.captiveId);
         return true;
     }
@@ -508,19 +568,7 @@ public bool IsWorkAllowed(
         string policyId,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        CaptiveState state = FindState(captiveId);
-        CaptivePolicyData policy = policies.FirstOrDefault(candidate =>
-            string.Equals(candidate.policyId, policyId, StringComparison.Ordinal));
-        if (state == null || policy == null)
-        {
-            failureReason = "포로 또는 수용 정책을 찾을 수 없습니다.";
-            return false;
-        }
-
-        state.policyId = policy.policyId;
-        ApplyPolicyLabor(state, policy.allowedLabor);
-        return true;
+        return policyRuntime.TrySetPolicy(captiveId, policyId, out failureReason);
     }
 
     public bool TryCreatePolicy(
@@ -528,27 +576,10 @@ public bool IsWorkAllowed(
         out string policyId,
         out string failureReason)
     {
-        policyId = string.Empty;
-        failureReason = string.Empty;
-        string normalizedName = displayName?.Trim() ?? string.Empty;
-        if (normalizedName.Length == 0)
-        {
-            normalizedName = $"수용 정책 {policySequence + 1}";
-        }
-
-        policySequence++;
-        policyId = $"captivity:custom:{policySequence}";
-        policies.Add(new CaptivePolicyData
-        {
-            policyId = policyId,
-            displayName = normalizedName,
-            allowedLabor =
-                CaptiveLaborPermission.Clean | CaptiveLaborPermission.Haul,
-            allowRansom = true,
-            allowRecruitment = true,
-            allowPerformance = true
-        });
-        return true;
+        return policyRuntime.TryCreatePolicy(
+            displayName,
+            out policyId,
+            out failureReason);
     }
 
     public bool TryDuplicatePolicy(
@@ -556,107 +587,24 @@ public bool IsWorkAllowed(
         out string policyId,
         out string failureReason)
     {
-        policyId = string.Empty;
-        failureReason = string.Empty;
-        CaptivePolicyData source = FindPolicy(sourcePolicyId);
-        if (source == null)
-        {
-            failureReason = "복제할 수용 정책을 찾을 수 없습니다.";
-            return false;
-        }
-
-        policySequence++;
-        CaptivePolicyData duplicate = source.Clone();
-        duplicate.policyId = $"captivity:custom:{policySequence}";
-        duplicate.displayName = $"{source.displayName} 사본";
-        policies.Add(duplicate);
-        policyId = duplicate.policyId;
-        return true;
+        return policyRuntime.TryDuplicatePolicy(
+            sourcePolicyId,
+            out policyId,
+            out failureReason);
     }
 
     public bool TryUpdatePolicy(
         CaptivePolicyData policy,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        CaptivePolicyData target = FindPolicy(policy?.policyId);
-        if (target == null)
-        {
-            failureReason = "수정할 수용 정책을 찾을 수 없습니다.";
-            return false;
-        }
-
-        string displayName = policy.displayName?.Trim() ?? string.Empty;
-        if (displayName.Length == 0)
-        {
-            failureReason = "수용 정책 이름은 비워 둘 수 없습니다.";
-            return false;
-        }
-
-        target.displayName = displayName;
-        target.allowedLabor = policy.allowedLabor & CaptiveLaborPermission.All;
-        target.allowRansom = policy.allowRansom;
-        target.allowRecruitment = policy.allowRecruitment;
-        target.allowCorruption = policy.allowCorruption;
-        target.allowPerformance = policy.allowPerformance;
-        foreach (CaptiveState state in captives.Where(candidate =>
-                     candidate != null
-                     && string.Equals(
-                         candidate.policyId,
-                         target.policyId,
-                         StringComparison.Ordinal)))
-        {
-            ApplyPolicyLabor(state, target.allowedLabor);
-        }
-
-        return true;
+        return policyRuntime.TryUpdatePolicy(policy, out failureReason);
     }
 
     public bool TryDeletePolicy(
         string policyId,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        CaptivePolicyData policy = FindPolicy(policyId);
-        if (policy == null)
-        {
-            failureReason = "삭제할 수용 정책을 찾을 수 없습니다.";
-            return false;
-        }
-
-        if (string.Equals(
-                policy.policyId,
-                "captivity:standard",
-                StringComparison.Ordinal))
-        {
-            failureReason = "기본 수용 정책은 삭제할 수 없습니다.";
-            return false;
-        }
-
-        CaptivePolicyData fallback = policies.FirstOrDefault(candidate =>
-            string.Equals(
-                candidate.policyId,
-                "captivity:standard",
-                StringComparison.Ordinal));
-        if (fallback == null)
-        {
-            failureReason = "포로를 재배정할 기본 수용 정책이 없습니다.";
-            return false;
-        }
-
-        foreach (CaptiveState state in captives.Where(candidate =>
-                     candidate != null
-                     && string.Equals(
-                         candidate.policyId,
-                         policy.policyId,
-                         StringComparison.Ordinal)))
-        {
-            state.policyId = fallback.policyId;
-            ApplyPolicyLabor(state, fallback.allowedLabor);
-        }
-
-        policies.Remove(policy);
-        return true;
+        return policyRuntime.TryDeletePolicy(policyId, out failureReason);
     }
 
     public bool TrySetLaborPermissions(
@@ -707,65 +655,12 @@ public bool IsWorkAllowed(
         BuildableObject facility,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        CaptiveState state = FindState(captiveId);
-        CharacterActor subject = FindActor(captiveId);
-        if (state == null
-            || subject == null
-            || !interactions.TryGet(interactionId, out ICaptivityInteractionHandler handler))
-        {
-            failureReason = "포로 또는 상호작용을 찾을 수 없습니다.";
-            return false;
-        }
-
-        CaptivityInteractionContext context = new CaptivityInteractionContext(
-            state,
-            subject,
+        return interactionRuntime.TryStart(
+            captiveId,
+            interactionId,
             warden,
             facility,
-            facility != null ? facility.centerPos : state.housingPosition);
-        if (!handler.CanExecute(context, out failureReason))
-        {
-            return false;
-        }
-
-        string materialDestinationId =
-            $"captivity-interaction:{state.captiveId}:{handler.InteractionId}";
-        foreach (KeyValuePair<StockCategory, int> cost in
-                 handler.MaterialRequirements.Where(item => item.Value > 0))
-        {
-            if (itemRuntime.TryRequestFacilityDelivery(
-                    cost.Key,
-                    cost.Value,
-                    facility.centerPos,
-                    materialDestinationId,
-                    out int requested,
-                    out string deliveryReason)
-                && requested >= cost.Value)
-            {
-                continue;
-            }
-
-            itemRuntime.ReleaseStacksByDestination(
-                materialDestinationId,
-                facility.centerPos);
-            failureReason = string.IsNullOrWhiteSpace(deliveryReason)
-                ? $"{cost.Key} 재료를 충분히 예약할 수 없습니다."
-                : deliveryReason;
-            return false;
-        }
-
-        state.status = CaptivityStatus.Interaction;
-        subject.SetAiPaused(true);
-        state.reservedWardenId = GetCharacterId(warden);
-        state.currentInteractionId = handler.InteractionId;
-        state.interactionMaterialDestinationId = materialDestinationId;
-        state.interactionMaterialsConsumed =
-            handler.MaterialRequirements.Count == 0;
-        state.completedInteractionWork = 0f;
-        state.requiredInteractionWork = Mathf.Max(1f, handler.RequiredWork);
-        state.lastResult = $"{handler.DisplayName} 준비";
-        return true;
+            out failureReason);
     }
 
     public bool AdvanceInteraction(
@@ -774,69 +669,11 @@ public bool IsWorkAllowed(
         float workAmount,
         out string status)
     {
-        status = string.Empty;
-        CaptiveState state = FindState(captiveId);
-        CharacterActor subject = FindActor(captiveId);
-        if (state == null
-            || subject == null
-            || state.status != CaptivityStatus.Interaction
-            || !string.Equals(
-                state.reservedWardenId,
-                GetCharacterId(warden),
-                StringComparison.Ordinal)
-            || !interactions.TryGet(
-                state.currentInteractionId,
-                out ICaptivityInteractionHandler handler))
-        {
-            status = "유효한 관리 작업이 아닙니다.";
-            return false;
-        }
-
-        if (!state.interactionMaterialsConsumed)
-        {
-            if (!itemRuntime.TryConsumeFacilityBuffer(
-                    state.interactionMaterialDestinationId,
-                    handler.MaterialRequirements,
-                    out string materialReason))
-            {
-                status = string.IsNullOrWhiteSpace(materialReason)
-                    ? "관리 작업 재료 운반 대기"
-                    : $"재료 운반 대기 · {materialReason}";
-                return false;
-            }
-
-            state.interactionMaterialsConsumed = true;
-        }
-
-        state.completedInteractionWork = Mathf.Min(
-            state.requiredInteractionWork,
-            state.completedInteractionWork + Mathf.Max(0f, workAmount));
-        if (state.completedInteractionWork + 0.001f < state.requiredInteractionWork)
-        {
-            status = $"{handler.DisplayName} "
-                + $"{Mathf.RoundToInt(state.completedInteractionWork / state.requiredInteractionWork * 100f)}%";
-            return true;
-        }
-
-        TryGetHousing(state.captiveId, out BuildableObject housing);
-        CaptivityInteractionContext context = new CaptivityInteractionContext(
-            state,
-            subject,
+        return interactionRuntime.Advance(
+            captiveId,
             warden,
-            housing,
-            state.housingPosition);
-        if (!handler.CanExecute(context, out status))
-        {
-            state.status = CaptivityStatus.Confined;
-            ClearInteraction(state);
-            return false;
-        }
-
-        ApplyInteractionResult(state, handler.Execute(context));
-        status = state.lastResult;
-        state.status = CaptivityStatus.Confined;
-        ClearInteraction(state);
-        return true;
+            workAmount,
+            out status);
     }
 
     public bool TryRecruit(string captiveId, out string failureReason)
@@ -844,7 +681,7 @@ public bool IsWorkAllowed(
         failureReason = string.Empty;
         CaptiveState state = FindState(captiveId);
         CharacterActor actor = FindActor(captiveId);
-        CaptivePolicyData policy = FindPolicy(state?.policyId);
+        CaptivePolicyData policy = policyRuntime.Find(state?.policyId);
         if (state == null || actor == null || !state.CanRecruit)
         {
             failureReason = "신뢰 70 이상, 원한 30 이하, 타락 60 미만이 필요합니다.";
@@ -871,7 +708,7 @@ public bool IsWorkAllowed(
         failureReason = string.Empty;
         CaptiveState state = FindState(captiveId);
         CharacterActor actor = FindActor(captiveId);
-        CaptivePolicyData policy = FindPolicy(state?.policyId);
+        CaptivePolicyData policy = policyRuntime.Find(state?.policyId);
         if (state == null || actor == null || !state.CanBecomeMinion)
         {
             failureReason = "타락 80 이상부터 하수인으로 전환할 수 있습니다.";
@@ -903,10 +740,7 @@ public bool IsWorkAllowed(
         CaptiveState state = FindState(captiveId);
         CharacterActor actor = FindActor(captiveId);
         CaptivePolicyData policy = state != null
-            ? policies.FirstOrDefault(item => string.Equals(
-                item.policyId,
-                state.policyId,
-                StringComparison.Ordinal))
+            ? policyRuntime.Find(state.policyId)
             : null;
         if (state == null || actor == null || !state.IsActive)
         {
@@ -1031,42 +865,7 @@ public bool IsWorkAllowed(
         bool assigned,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        CaptiveState state = FindState(captiveId);
-        CharacterActor actor = FindActor(captiveId);
-        CaptivePolicyData policy = state != null
-            ? policies.FirstOrDefault(item => string.Equals(
-                item.policyId,
-                state.policyId,
-                StringComparison.Ordinal))
-            : null;
-        if (state == null || actor == null || !state.IsActive)
-        {
-            failureReason = "포로를 찾을 수 없습니다.";
-            return false;
-        }
-
-        if (assigned && policy?.allowPerformance != true)
-        {
-            failureReason = "현재 포로 정책은 공연을 허용하지 않습니다.";
-            return false;
-        }
-
-        state.status = assigned
-            ? CaptivityStatus.Performer
-            : CaptivityStatus.Confined;
-        state.lastResult = assigned ? "공연 참가 준비" : "감방 복귀";
-        actor.SetAiPaused(true);
-        if (assigned)
-        {
-            actor.SetLifecycleState(CharacterLifecycleState.Active);
-        }
-        else
-        {
-            actor.SetLifecycleState(CharacterLifecycleState.Downed);
-        }
-
-        return true;
+        return performerRuntime.TryAssign(captiveId, assigned, out failureReason);
     }
 
     public void RecordPerformance(
@@ -1075,26 +874,7 @@ public bool IsWorkAllowed(
         float skillGain,
         bool injured)
     {
-        CaptiveState state = FindState(captiveId);
-        if (state == null)
-        {
-            return;
-        }
-
-        state.performerFame = ClampStat(state.performerFame + Mathf.Max(0f, fameGain));
-        state.performerSkill = ClampStat(state.performerSkill + Mathf.Max(0f, skillGain));
-        if (injured)
-        {
-            state.performerInjuries++;
-        }
-
-        int previousPrivilegeTier = state.privilegeTier;
-        state.privilegeTier = state.performerFame >= 75f
-            ? 2
-            : state.performerFame >= 50f
-                ? 1
-                : 0;
-        ApplyPerformerMilestones(state, previousPrivilegeTier);
+        performerRuntime.Record(captiveId, fameGain, skillGain, injured);
     }
 
     public bool TryResolvePerformerMilestone(
@@ -1102,129 +882,10 @@ public bool IsWorkAllowed(
         CaptivePerformerMilestoneChoice choice,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        CaptiveState state = FindState(captiveId);
-        if (state == null || !state.IsActive)
-        {
-            failureReason = "공연자를 찾을 수 없습니다.";
-            return false;
-        }
-
-        switch (choice)
-        {
-            case CaptivePerformerMilestoneChoice.StaffContract:
-                if (!state.staffContractUnlocked)
-                {
-                    failureReason = "직원 계약 조건이 아직 열리지 않았습니다.";
-                    return false;
-                }
-
-                if (!state.CanRecruit)
-                {
-                    failureReason = "신뢰·원한·타락 조건을 충족해야 직원 계약을 맺을 수 있습니다.";
-                    return false;
-                }
-
-                if (!TryRecruit(captiveId, out failureReason))
-                {
-                    return false;
-                }
-                break;
-
-            case CaptivePerformerMilestoneChoice.ReleaseNegotiation:
-                if (!state.finalContractPending)
-                {
-                    failureReason = "명성 100의 최종 계약 선택이 열리지 않았습니다.";
-                    return false;
-                }
-
-                state.resolvedMilestoneChoice = choice;
-                state.finalContractPending = false;
-                return TryRelease(captiveId, out failureReason);
-
-            case CaptivePerformerMilestoneChoice.ExclusiveFighterContract:
-                if (!state.finalContractPending)
-                {
-                    failureReason = "명성 100의 최종 계약 선택이 열리지 않았습니다.";
-                    return false;
-                }
-
-                state.exclusiveFighter = true;
-                state.finalContractPending = false;
-                state.resolvedMilestoneChoice = choice;
-                state.status = CaptivityStatus.Performer;
-                state.lastResult = "전속 투사 계약을 맺었습니다.";
-                break;
-
-            default:
-                failureReason = "선택할 계약이 없습니다.";
-                return false;
-        }
-
-        return true;
-    }
-
-    private void ApplyPerformerMilestones(
-        CaptiveState state,
-        int previousPrivilegeTier)
-    {
-        if (state == null)
-        {
-            return;
-        }
-
-        if (state.performerFame >= 50f && !state.carePriorityUnlocked)
-        {
-            state.carePriorityUnlocked = true;
-            state.lastResult = "공연 명성으로 우선 식량·치료 특혜를 얻었습니다.";
-            itemRuntime.TryRequestFacilityDelivery(
-                StockCategory.Food,
-                1,
-                state.housingPosition,
-                $"captive-care:{state.captiveId}",
-                out _,
-                out _);
-            PublishPerformerMilestone(state, 50, state.lastResult);
-        }
-
-        if (state.performerFame >= 75f && !state.staffContractUnlocked)
-        {
-            state.staffContractUnlocked = true;
-            state.lastResult = "조건을 충족하면 직원 계약을 제안할 수 있습니다.";
-            PublishPerformerMilestone(state, 75, state.lastResult);
-        }
-
-        if (state.performerFame >= 100f
-            && state.resolvedMilestoneChoice == CaptivePerformerMilestoneChoice.None
-            && !state.finalContractPending)
-        {
-            state.finalContractPending = true;
-            state.lastResult = "석방 협상과 전속 투사 계약 중 하나를 선택할 수 있습니다.";
-            PublishPerformerMilestone(state, 100, state.lastResult);
-        }
-
-        if (state.privilegeTier > previousPrivilegeTier)
-        {
-            state.health = Mathf.Clamp(state.health + 5f, 0f, 100f);
-        }
-    }
-
-    private void PublishPerformerMilestone(
-        CaptiveState state,
-        int threshold,
-        string message)
-    {
-        gameEventBus.Publish(new CaptivePerformerMilestoneEvent(
-            state.captiveId,
-            threshold,
-            message));
-        gameEventBus.RaiseAlert(
-            $"공연자 명성 {threshold}",
-            message,
-            threshold >= 100
-                ? EventAlertImportance.High
-                : EventAlertImportance.Medium,
-            "포로·노역");
+        return performerRuntime.TryResolveMilestone(
+            captiveId,
+            choice,
+            out failureReason);
     }
 
     public bool TryGetEscortState(
@@ -1234,37 +895,17 @@ public bool IsWorkAllowed(
         out CharacterActor subject,
         out string failureReason)
     {
-        CaptiveState state = FindState(captiveId);
-        subject = FindActor(captiveId);
-        captive = state;
-        failureReason = string.Empty;
-        if (state == null
-            || subject == null
-            || carrier == null
-            || !string.Equals(
-                state.reservedCarrierId,
-                GetCharacterId(carrier),
-                StringComparison.Ordinal))
-        {
-            failureReason = "호송 예약이 유효하지 않습니다.";
-            return false;
-        }
-
-        return true;
+        return escortRuntime.TryGetEscortState(
+            captiveId,
+            carrier,
+            out captive,
+            out subject,
+            out failureReason);
     }
 
     public IDisposable BeginEscortPass(CharacterActor carrier, string captiveId)
     {
-        DoorAccessSubjectRef subject = new DoorAccessSubjectRef(
-            GetCharacterId(carrier),
-            carrier != null && carrier.IsOwner
-                ? DoorAccessGroup.Owner
-                : DoorAccessGroup.Staff,
-            character: carrier);
-        return doorAccessCommands.BeginTemporaryOverride(
-            subject,
-            DoorAccessOverrideKind.EscortPass,
-            $"escort:{captiveId?.Trim() ?? string.Empty}");
+        return escortRuntime.BeginEscortPass(carrier, captiveId);
     }
 
     public bool TryPickupReservedRestraint(
@@ -1272,34 +913,10 @@ public bool IsWorkAllowed(
         CharacterActor carrier,
         out string failureReason)
     {
-        failureReason = string.Empty;
-        CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(carrier);
-        if (inventory == null)
-        {
-            failureReason = "운반 인벤토리를 사용할 수 없습니다.";
-            return false;
-        }
-
-        if (inventory.CountItem(CaptivityItemDefinitions.RestraintsItemId) > 0)
-        {
-            return true;
-        }
-
-        WorldItemReservedStackQuantity reservation =
-            new WorldItemReservedStackQuantity(
-                captive.restraintStackId,
-                captive.restraintItemId,
-                Mathf.Max(1, captive.restraintQuantity),
-                captive.restraintPickupPosition,
-                WorldItemHaulDestinationKind.Warehouse,
-                string.Empty);
-        return itemRuntime.TryPickupReservedStackQuantity(
+        return escortRuntime.TryPickupReservedRestraint(
+            captive,
             carrier,
-            inventory,
-            reservation,
-            out int pickedUp,
-            out failureReason)
-            && pickedUp > 0;
+            out failureReason);
     }
 
     public float AdvanceStabilization(
@@ -1307,29 +924,7 @@ public bool IsWorkAllowed(
         CharacterActor carrier,
         float workAmount)
     {
-        if (!TryGetEscortState(
-                captiveId,
-                carrier,
-                out CaptiveState state,
-                out CharacterActor subject,
-                out _))
-        {
-            return 0f;
-        }
-
-        state.completedInteractionWork = Mathf.Min(
-            state.requiredInteractionWork,
-            state.completedInteractionWork + Mathf.Max(0f, workAmount));
-        if (state.completedInteractionWork + 0.001f >= state.requiredInteractionWork)
-        {
-            state.stabilized = bodyHealth.Stabilize(subject)
-                || bodyHealth.GetTotalBleeding(subject) <= 0.001f;
-            state.status = CaptivityStatus.AwaitingEscort;
-            state.lastResult = "현장 안정화 완료";
-        }
-
-        return state.completedInteractionWork
-            / Mathf.Max(0.01f, state.requiredInteractionWork);
+        return escortRuntime.AdvanceStabilization(captiveId, carrier, workAmount);
     }
 
     public bool TryBeginEscort(
@@ -1337,39 +932,7 @@ public bool IsWorkAllowed(
         CharacterActor carrier,
         out string failureReason)
     {
-        if (!TryGetEscortState(
-                captiveId,
-                carrier,
-                out CaptiveState state,
-                out CharacterActor subject,
-                out failureReason))
-        {
-            return false;
-        }
-
-        CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(carrier);
-        if (!state.stabilized)
-        {
-            failureReason = "먼저 현장 안정화가 필요합니다.";
-            return false;
-        }
-
-        if (inventory == null
-            || !inventory.TryConsumeItem(CaptivityItemDefinitions.RestraintsItemId, 1))
-        {
-            failureReason = "구속구가 없습니다.";
-            return false;
-        }
-
-        ConfiscateEquipment(subject, state.capturePosition);
-        state.equipmentConfiscated = true;
-        state.restrained = true;
-        carriedParents[state.captiveId] = subject.transform.parent;
-        subject.transform.SetParent(carrier.transform, worldPositionStays: false);
-        subject.transform.localPosition = new Vector3(-0.28f, 0.16f, 0f);
-        state.status = CaptivityStatus.Escorting;
-        state.lastResult = "감방으로 호송 중";
-        return true;
+        return escortRuntime.TryBeginEscort(captiveId, carrier, out failureReason);
     }
 
     public bool TryCompleteEscort(
@@ -1377,68 +940,12 @@ public bool IsWorkAllowed(
         CharacterActor carrier,
         out string failureReason)
     {
-        if (!TryGetEscortState(
-                captiveId,
-                carrier,
-                out CaptiveState state,
-                out CharacterActor subject,
-                out failureReason)
-            || !gridProvider.TryGetGrid(out Grid grid)
-            || !grid.IsValidGridPos(state.housingPosition))
-        {
-            failureReason = string.IsNullOrWhiteSpace(failureReason)
-                ? "감방 위치가 유효하지 않습니다."
-                : failureReason;
-            return false;
-        }
-
-        RestoreParent(state.captiveId, subject);
-        subject.transform.position = grid.GetWorldPos(state.housingPosition);
-        subject.SetAiPaused(true);
-        subject.characterType = CharacterType.Intruder;
-        subject.SetLifecycleState(CharacterLifecycleState.Downed);
-        state.status = CaptivityStatus.Confined;
-        state.reservedCarrierId = string.Empty;
-        state.health = EstimateHealth(subject);
-        state.nextSecurityCheckAt = gameClock.Time + 5f;
-        state.lastResult = "감방 수용 완료";
-        RecalculateCaptiveState(state);
-        return true;
+        return escortRuntime.TryCompleteEscort(captiveId, carrier, out failureReason);
     }
 
     public void FailEscort(string captiveId, CharacterActor carrier, string reason)
     {
-        CaptiveState state = FindState(captiveId);
-        CharacterActor subject = FindActor(captiveId);
-        if (state == null)
-        {
-            return;
-        }
-
-        if (subject != null)
-        {
-            RestoreParent(state.captiveId, subject);
-            if (carrier != null)
-            {
-                subject.transform.position = carrier.transform.position;
-                state.capturePosition = carrier.GetNowXY();
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(state.restraintStackId))
-        {
-            itemRuntime.ReleaseReservation(
-                state.restraintStackId,
-                state.reservedCarrierId);
-        }
-
-        state.status = CaptivityStatus.AwaitingCapture;
-        state.reservedCarrierId = string.Empty;
-        state.housingBuildingId = string.Empty;
-        state.restraintStackId = string.Empty;
-        state.lastResult = string.IsNullOrWhiteSpace(reason)
-            ? "포획 중단"
-            : reason;
+        escortRuntime.FailEscort(captiveId, carrier, reason);
     }
 
     public bool TryGetEscapeState(
@@ -1447,60 +954,21 @@ public bool IsWorkAllowed(
         out Vector2Int destination,
         out string failureReason)
     {
-        CaptiveState state = FindState(captiveId);
-        destination = state?.escapeDestination ?? default;
-        failureReason = string.Empty;
-        if (state == null
-            || actor == null
-            || state.status != CaptivityStatus.EscapeAttempt
-            || !string.Equals(
-                state.captiveId,
-                GetCharacterId(actor),
-                StringComparison.Ordinal))
-        {
-            failureReason = "유효한 탈출 시도가 아닙니다.";
-            return false;
-        }
-
-        return true;
+        return escapeRuntime.TryGetEscapeState(
+            captiveId,
+            actor,
+            out destination,
+            out failureReason);
     }
 
     public IDisposable BeginEscapePass(CharacterActor actor, string captiveId)
     {
-        DoorAccessSubjectRef subject = new DoorAccessSubjectRef(
-            GetCharacterId(actor),
-            DoorAccessGroup.Captive,
-            character: actor);
-        return doorAccessCommands.BeginTemporaryOverride(
-            subject,
-            DoorAccessOverrideKind.CaptiveEscape,
-            $"captive-escape:{captiveId?.Trim() ?? string.Empty}");
+        return escapeRuntime.BeginEscapePass(actor, captiveId);
     }
 
     public void CompleteEscape(string captiveId, CharacterActor actor)
     {
-        CaptiveState state = FindState(captiveId);
-        if (state == null || actor == null)
-        {
-            return;
-        }
-
-        state.status = CaptivityStatus.Escaped;
-        state.restrained = false;
-        state.lastResult = string.IsNullOrWhiteSpace(state.betrayalTrigger)
-            ? "감방에서 탈출"
-            : state.betrayalTrigger;
-        state.retaliationPressure = ClampStat(
-            state.retaliationPressure + 15f + state.grudge * 0.2f);
-        actor.characterType = CharacterType.Intruder;
-        actor.SetLifecycleState(CharacterLifecycleState.Active);
-        actor.SetAiPaused(false);
-        doorSubjectRegistry.SetCaptive(state.captiveId, false);
-        gameEventBus.Publish(new CaptiveEscapedEvent(
-            state.captiveId,
-            state.lastResult,
-            betrayal: false));
-        actor.GetAbility<AbilityMove>()?.StartSystemExitDungeon();
+        escapeRuntime.CompleteEscape(captiveId, actor);
     }
 
     public void FailEscape(
@@ -1508,326 +976,7 @@ public bool IsWorkAllowed(
         CharacterActor actor,
         string reason)
     {
-        CaptiveState state = FindState(captiveId);
-        if (state == null)
-        {
-            return;
-        }
-
-        state.status = CaptivityStatus.Confined;
-        state.failedEscapeAttempts++;
-        state.grudge = ClampStat(state.grudge + 6f);
-        state.escapeRisk = ClampStat(state.escapeRisk + 8f);
-        state.restrained = true;
-        state.lastResult = string.IsNullOrWhiteSpace(reason)
-            ? "탈출 실패 후 재구속"
-            : $"{reason} · 재구속";
-        if (actor != null)
-        {
-            actor.characterType = CharacterType.Intruder;
-            actor.SetAiPaused(true);
-            actor.SetLifecycleState(CharacterLifecycleState.Downed);
-        }
-    }
-
-    public CaptivitySaveData Capture()
-    {
-        return new CaptivitySaveData
-        {
-            version = CaptivitySaveData.CurrentVersion,
-            captureSequence = captureSequence,
-            policySequence = policySequence,
-            captives = captives.Select(state => state.Clone()).ToList(),
-            policies = policies.Select(policy => policy.Clone()).ToList()
-        };
-    }
-
-    public void Restore(CaptivitySaveData saveData, IList<string> warnings)
-    {
-        foreach (CaptiveState state in captives)
-        {
-            doorSubjectRegistry.SetCaptive(state.captiveId, false);
-        }
-
-        captives.Clear();
-        policies.Clear();
-        carriedParents.Clear();
-        captureSequence = Mathf.Max(0, saveData?.captureSequence ?? 0);
-        policySequence = Mathf.Max(0, saveData?.policySequence ?? 0);
-        foreach (CaptivePolicyData policy in saveData?.policies
-                     ?? new List<CaptivePolicyData>())
-        {
-            if (policy == null
-                || string.IsNullOrWhiteSpace(policy.policyId)
-                || policies.Any(existing => string.Equals(
-                    existing.policyId,
-                    policy.policyId,
-                    StringComparison.Ordinal)))
-            {
-                warnings?.Add("유효하지 않거나 중복된 포로 정책을 건너뛰었습니다.");
-                continue;
-            }
-
-            policies.Add(policy.Clone());
-        }
-
-        if (policies.Count == 0)
-        {
-            AddBuiltInPolicies();
-        }
-        else
-        {
-            EnsureStandardPolicy();
-        }
-
-        foreach (CaptiveState source in saveData?.captives
-                     ?? new List<CaptiveState>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.captiveId)
-                || captives.Any(existing => string.Equals(
-                    existing.captiveId,
-                    source.captiveId,
-                    StringComparison.Ordinal)))
-            {
-                warnings?.Add("유효하지 않거나 중복된 포로 상태를 건너뛰었습니다.");
-                continue;
-            }
-
-            CaptiveState restored = source.Clone();
-            CharacterActor actor = FindActor(restored.captiveId);
-            if (actor == null || actor.IsDead)
-            {
-                restored.status = CaptivityStatus.Dead;
-                restored.lastResult = "복원 대상 없음";
-                warnings?.Add(
-                    $"포로 {restored.displayName}의 캐릭터를 찾을 수 없습니다.");
-            }
-            else
-            {
-                doorSubjectRegistry.SetCaptive(restored.captiveId, restored.IsActive);
-                if (restored.status == CaptivityStatus.Escorting)
-                {
-                    restored.status = CaptivityStatus.AwaitingCapture;
-                    restored.reservedCarrierId = string.Empty;
-                    restored.lastResult = "호송 예약 재설정 필요";
-                    warnings?.Add(
-                        $"포로 {restored.displayName}의 진행 중 호송을 안전하게 해제했습니다.");
-                }
-            }
-
-            RecalculateCaptiveState(restored);
-            captives.Add(restored);
-        }
-    }
-
-    private void OnInvasionStarted()
-    {
-        foreach (CaptiveState state in captives.Where(candidate =>
-                     candidate != null
-                     && candidate.IsActive
-                     && candidate.falseCompliance).ToArray())
-        {
-            if (state.status is CaptivityStatus.Labor
-                or CaptivityStatus.Performer)
-            {
-                TryTriggerBetrayal(state.captiveId, "침공의 혼란", out _);
-            }
-            else if (state.status == CaptivityStatus.Confined)
-            {
-                TryBeginEscapeAttempt(state, "침공 중 훔친 열쇠", out _);
-            }
-        }
-    }
-
-    private bool TryBeginEscapeAttempt(
-        CaptiveState state,
-        string trigger,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        CharacterActor actor = state != null ? FindActor(state.captiveId) : null;
-        if (state == null
-            || actor == null
-            || !state.IsActive
-            || state.status is CaptivityStatus.Escorting
-                or CaptivityStatus.Interaction
-                or CaptivityStatus.Performer
-                or CaptivityStatus.EscapeAttempt)
-        {
-            failureReason = "현재 상태에서는 탈출을 시도할 수 없습니다.";
-            return false;
-        }
-
-        if (!gridProvider.TryGetGrid(out Grid grid))
-        {
-            failureReason = "탈출 경로를 계산할 그리드가 없습니다.";
-            return false;
-        }
-
-        GridTraversalContext context = GridTraversalContext.ForCharacter(
-            actor,
-            DoorAccessOverrideKind.CaptiveEscape);
-        if (!pathSearchBroker.TryGetSearch(
-                grid,
-                actor.GetNowXY(),
-                out GridPathSearchResult search,
-                GridPathSearchPriority.Urgent,
-                context))
-        {
-            failureReason = "탈출 경로 탐색 예산을 확보하지 못했습니다.";
-            return false;
-        }
-
-        Vector2Int destination = grid.GetCells()
-            .Where(cell =>
-                cell != null
-                && cell.AreaType == GridCellAreaType.ExteriorPath
-                && cell.IsWalkableArea
-                && grid.IsWalkable(cell.Position)
-                && search.ContainsPosition(cell.Position))
-            .OrderBy(cell => Manhattan(actor.GetNowXY(), cell.Position))
-            .Select(cell => cell.Position)
-            .FirstOrDefault();
-        if (!search.ContainsPosition(destination)
-            || grid.GetGridCell(destination)?.AreaType
-                != GridCellAreaType.ExteriorPath)
-        {
-            failureReason = "외부까지 이어지는 탈출 경로가 없습니다.";
-            return false;
-        }
-
-        state.status = CaptivityStatus.EscapeAttempt;
-        state.escapeDestination = destination;
-        state.betrayalTrigger = string.IsNullOrWhiteSpace(trigger)
-            ? "탈출 시도"
-            : trigger.Trim();
-        state.restrained = false;
-        state.lastResult = state.betrayalTrigger;
-        actor.characterType = CharacterType.Intruder;
-        actor.SetLifecycleState(CharacterLifecycleState.Active);
-        actor.SetAiPaused(true);
-        AbilityCaptiveEscape ability = AbilityCaptiveEscape.Ensure(actor);
-        if (ability == null)
-        {
-            FailEscape(
-                state.captiveId,
-                actor,
-                "탈출 행동을 시작할 수 없습니다.");
-            failureReason = state.lastResult;
-            return false;
-        }
-
-        ability.Configure(this, gameClock);
-        ability.StartEscape(state.captiveId);
-        return true;
-    }
-
-    private void OnCharacterDowned(CharacterActor actor)
-    {
-        if (!IsEligibleDownedIntruder(actor))
-        {
-            return;
-        }
-
-        actor.SetLifecycleState(CharacterLifecycleState.Downed);
-        EnsureCandidate(actor);
-    }
-
-    private void OnCharacterRecovered(CharacterActor actor)
-    {
-        CaptiveState state = FindState(GetCharacterId(actor));
-        if (state == null || !state.IsActive)
-        {
-            return;
-        }
-
-        if (state.status is CaptivityStatus.Confined
-            or CaptivityStatus.Labor
-            or CaptivityStatus.Interaction
-            or CaptivityStatus.Performer)
-        {
-            actor.SetAiPaused(state.status != CaptivityStatus.Labor);
-            actor.SetLifecycleState(
-                state.status == CaptivityStatus.Labor
-                    ? CharacterLifecycleState.Active
-                    : CharacterLifecycleState.Downed);
-        }
-    }
-
-    private void OnCharacterDeath(CharacterDeathEvent gameEvent)
-    {
-        CharacterActor actor = gameEvent.Actor;
-        CaptiveState state = FindState(GetCharacterId(actor));
-        if (state == null)
-        {
-            return;
-        }
-
-        state.status = CaptivityStatus.Dead;
-        state.lastResult = "수용 중 사망";
-        ReleaseInteractionMaterials(state);
-        doorSubjectRegistry.SetCaptive(state.captiveId, false);
-        RestoreParent(state.captiveId, actor);
-    }
-
-    private CaptiveState EnsureCandidate(CharacterActor actor)
-    {
-        string id = GetCharacterId(actor);
-        CaptiveState existing = FindState(id);
-        if (existing != null)
-        {
-            return existing;
-        }
-
-        CaptiveState created = new CaptiveState
-        {
-            captiveId = id,
-            displayName = actor.Identity?.DisplayName ?? actor.name,
-            speciesTag = actor.SpeciesTag,
-            status = CaptivityStatus.AwaitingCapture,
-            capturePosition = actor.GetNowXY(),
-            policyId = policies[0].policyId,
-            laborPermissions = policies[0].allowedLabor,
-            health = EstimateHealth(actor),
-            lastResult = "포획 가능"
-        };
-        captureSequence++;
-        captives.Add(created);
-        doorSubjectRegistry.SetCaptive(id, true);
-        return created;
-    }
-
-    private void ApplyInteractionResult(
-        CaptiveState state,
-        CaptivityInteractionResult result)
-    {
-        if (!result.Success)
-        {
-            state.lastResult = result.Message;
-            return;
-        }
-
-        state.will = ClampStat(state.will + result.WillDelta);
-        state.fear = ClampStat(state.fear + result.FearDelta);
-        state.trust = ClampStat(state.trust + result.TrustDelta);
-        state.grudge = ClampStat(state.grudge + result.GrudgeDelta);
-        state.corruption = ClampStat(state.corruption + result.CorruptionDelta);
-        state.health = ClampStat(state.health + result.HealthDelta);
-        state.lastResult = result.Message;
-        if (!string.IsNullOrWhiteSpace(result.OutputItemId)
-            && result.OutputAmount > 0)
-        {
-            itemRuntime.SpawnItemAt(
-                result.OutputItemId,
-                result.OutputAmount,
-                state.housingPosition,
-                WorldItemStackState.Loose,
-                string.Empty,
-                out _);
-        }
-
-        RecalculateCaptiveState(state);
+        escapeRuntime.FailEscape(captiveId, actor, reason);
     }
 
     private void RecalculateCaptiveState(CaptiveState state)
@@ -1869,27 +1018,6 @@ public bool IsWorkAllowed(
         actor.SetAiPaused(false);
         doorSubjectRegistry.SetCaptive(state.captiveId, false);
         actor.GetAbility<AbilityMove>()?.StartSystemExitDungeon();
-    }
-
-    private void ConfiscateEquipment(CharacterActor subject, Vector2Int position)
-    {
-        foreach (CombatEquipmentInstance instance in
-                 combatEquipment.ConfiscateAllFromCharacter(GetCharacterId(subject)))
-        {
-            string itemId = DungeonItemCatalogSO.EquipmentItemId(instance.definitionId);
-            if (itemRuntime.SpawnUniqueItemAt(
-                    itemId,
-                    position,
-                    WorldItemStackState.Loose,
-                    string.Empty,
-                    out string stackId))
-            {
-                combatEquipment.TryLinkToWorldStack(
-                    instance.instanceId,
-                    stackId,
-                    CombatEquipmentWorldState.Loose);
-            }
-        }
     }
 
     private bool TryGetHousingRoom(
@@ -1972,143 +1100,6 @@ public bool IsWorkAllowed(
                 StringComparison.Ordinal));
     }
 
-    private void RestoreParent(string captiveId, CharacterActor actor)
-    {
-        if (actor == null)
-        {
-            return;
-        }
-
-        carriedParents.TryGetValue(captiveId ?? string.Empty, out Transform parent);
-        carriedParents.Remove(captiveId ?? string.Empty);
-        actor.transform.SetParent(parent, worldPositionStays: true);
-    }
-
-    private void ClearInteraction(CaptiveState state)
-    {
-        ReleaseInteractionMaterials(state);
-        state.reservedWardenId = string.Empty;
-        state.currentInteractionId = string.Empty;
-        state.interactionMaterialDestinationId = string.Empty;
-        state.interactionMaterialsConsumed = false;
-        state.completedInteractionWork = 0f;
-        state.requiredInteractionWork = 0f;
-    }
-
-    private void ReleaseInteractionMaterials(CaptiveState state)
-    {
-        if (state == null
-            || state.interactionMaterialsConsumed
-            || string.IsNullOrWhiteSpace(state.interactionMaterialDestinationId))
-        {
-            return;
-        }
-
-        itemRuntime.ReleaseStacksByDestination(
-            state.interactionMaterialDestinationId,
-            state.housingPosition);
-    }
-
-    private void ApplyPolicyLabor(
-        CaptiveState state,
-        CaptiveLaborPermission permissions)
-    {
-        if (state == null)
-        {
-            return;
-        }
-
-        state.laborPermissions = permissions & CaptiveLaborPermission.All;
-        if (state.status != CaptivityStatus.Labor)
-        {
-            return;
-        }
-
-        CharacterActor laborer = FindActor(state.captiveId);
-        if (state.laborPermissions != CaptiveLaborPermission.None)
-        {
-            return;
-        }
-
-        state.status = CaptivityStatus.Confined;
-        if (laborer != null)
-        {
-            laborer.characterType = CharacterType.Intruder;
-            laborer.SetAiPaused(true);
-            laborer.SetLifecycleState(CharacterLifecycleState.Downed);
-        }
-    }
-
-    private CaptivePolicyData FindPolicy(string policyId)
-    {
-        string id = policyId?.Trim() ?? string.Empty;
-        return policies.FirstOrDefault(policy => string.Equals(
-            policy.policyId,
-            id,
-            StringComparison.Ordinal));
-    }
-
-    private void AddBuiltInPolicies()
-    {
-        policies.Add(CreateStandardPolicy());
-        policies.Add(new CaptivePolicyData
-        {
-            policyId = "captivity:forced-labor",
-            displayName = "강제 노역",
-            allowedLabor = CaptiveLaborPermission.All,
-            allowRansom = true,
-            allowRecruitment = false,
-            allowCorruption = true,
-            allowPerformance = false
-        });
-        policies.Add(new CaptivePolicyData
-        {
-            policyId = "captivity:performer",
-            displayName = "공연자 관리",
-            allowedLabor =
-                CaptiveLaborPermission.Clean | CaptiveLaborPermission.Haul,
-            allowRansom = false,
-            allowRecruitment = true,
-            allowCorruption = false,
-            allowPerformance = true
-        });
-        policies.Add(new CaptivePolicyData
-        {
-            policyId = "captivity:corruption",
-            displayName = "타락 의식",
-            allowedLabor = CaptiveLaborPermission.None,
-            allowRansom = false,
-            allowRecruitment = false,
-            allowCorruption = true,
-            allowPerformance = true
-        });
-    }
-
-    private void EnsureStandardPolicy()
-    {
-        if (FindPolicy("captivity:standard") != null)
-        {
-            return;
-        }
-
-        policies.Insert(0, CreateStandardPolicy());
-    }
-
-    private static CaptivePolicyData CreateStandardPolicy()
-    {
-        return new CaptivePolicyData
-        {
-            policyId = "captivity:standard",
-            displayName = "표준 수용",
-            allowedLabor =
-                CaptiveLaborPermission.Clean | CaptiveLaborPermission.Haul,
-            allowRansom = true,
-            allowRecruitment = true,
-            allowCorruption = false,
-            allowPerformance = true
-        };
-    }
-
     private static bool IsEligibleDownedIntruder(CharacterActor actor)
     {
         return actor != null
@@ -2119,17 +1110,16 @@ public bool IsWorkAllowed(
 
     private static string GetCharacterId(CharacterActor actor)
     {
-        string id = actor?.Identity?.PersistentId?.Trim() ?? string.Empty;
-        return id.Length > 0
-            ? id
-            : actor != null ? $"character:{actor.GetInstanceID()}" : string.Empty;
+        return actor != null
+            ? CharacterPersistentIdentity.Require(actor).Value
+            : string.Empty;
     }
 
     private static string GetHousingId(BuildableObject building)
     {
         return building == null
             ? string.Empty
-            : $"housing:{building.id}:{building.centerPos.x}:{building.centerPos.y}";
+            : building.RequirePersistentInstanceId().Value;
     }
 
     private static float EstimateHealth(CharacterActor actor)

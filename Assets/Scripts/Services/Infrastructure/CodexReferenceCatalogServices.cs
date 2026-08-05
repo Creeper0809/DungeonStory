@@ -11,16 +11,20 @@ public interface ICodexReferenceCatalog
 public sealed class DataCatalogCodexReferenceCatalog : ICodexReferenceCatalog
 {
     private readonly IDataCatalog catalog;
+    private readonly ICharacterSpeciesCatalog speciesCatalog;
 
-    public DataCatalogCodexReferenceCatalog(IDataCatalog catalog)
+    public DataCatalogCodexReferenceCatalog(
+        IDataCatalog catalog,
+        ICharacterSpeciesCatalog speciesCatalog)
     {
         this.catalog = catalog
             ?? throw new ArgumentNullException(nameof(catalog));
+        this.speciesCatalog = speciesCatalog
+            ?? throw new ArgumentNullException(nameof(speciesCatalog));
     }
 
-    public IReadOnlyCollection<CharacterSpeciesSO> Species => catalog
-        .GetData<CharacterSpeciesSO>()
-        .Values
+    public IReadOnlyCollection<CharacterSpeciesSO> Species => speciesCatalog
+        .All
         .Where((species) => species != null)
         .OrderBy((species) => species.id)
         .ToArray();

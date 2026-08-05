@@ -117,7 +117,10 @@ public class BuildingSummaryInfo : UIPopUp
         objectName.overflowMode = TextOverflowModes.Truncate;
         SetStretch(objectName.rectTransform, new Vector2(18f, 6f), new Vector2(-92f, -6f));
 
-        Button closeButton = CreateButton("CloseButton", header, "닫기");
+        Button closeButton = CreateButton(
+            "CloseButton",
+            header,
+            BuildingSummaryUiTextQuery.Get("BuildingSummary.Action.Close"));
         RectTransform closeRect = closeButton.GetComponent<RectTransform>();
         closeRect.anchorMin = Vector2.one;
         closeRect.anchorMax = Vector2.one;
@@ -135,7 +138,11 @@ public class BuildingSummaryInfo : UIPopUp
         stock.margin = new Vector4(14f, 14f, 14f, 14f);
         SetStretch(stock.rectTransform, new Vector2(14f, 14f), new Vector2(-14f, -78f));
 
-        contextActionButton = CreateButton("CleanPriorityButton", view, "청소 우선");
+        contextActionButton = CreateButton(
+            "CleanPriorityButton",
+            view,
+            BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Action.PrioritizeCleaning"));
         RectTransform actionRect = contextActionButton.GetComponent<RectTransform>();
         actionRect.anchorMin = new Vector2(1f, 0f);
         actionRect.anchorMax = new Vector2(1f, 0f);
@@ -169,11 +176,15 @@ public class BuildingSummaryInfo : UIPopUp
 
         if (isFilth && building is WorldFilthWorkTarget filth)
         {
-            contextActionLabel.text = filth.IsPriorityCleaning ? "우선 해제" : "청소 우선";
+            contextActionLabel.text = BuildingSummaryUiTextQuery.Get(
+                filth.IsPriorityCleaning
+                    ? "BuildingSummary.Action.ClearCleaningPriority"
+                    : "BuildingSummary.Action.PrioritizeCleaning");
             return;
         }
 
-        contextActionLabel.text = "상세";
+        contextActionLabel.text = BuildingSummaryUiTextQuery.Get(
+            "BuildingSummary.Action.Details");
     }
 
     private void OnContextAction()
@@ -352,6 +363,29 @@ public sealed class BuildingInfoTarget : IInfoable
     public BuildingInfoTarget(BuildableObject building)
     {
         Building = building;
+    }
+}
+
+public sealed class BuildingInfoPresentationAdapter : IBuildingInfoPresentationPort
+{
+    private readonly IGameEventBus gameEventBus;
+
+    public BuildingInfoPresentationAdapter(IGameEventBus gameEventBus)
+    {
+        this.gameEventBus = gameEventBus
+            ?? throw new ArgumentNullException(nameof(gameEventBus));
+    }
+
+    public void ShowBuildingInfo(IBuildingWorldEntryPort building)
+    {
+        if (building is not BuildableObject buildable)
+        {
+            throw new ArgumentException(
+                $"{nameof(BuildingInfoPresentationAdapter)} requires a {nameof(BuildableObject)} target.",
+                nameof(building));
+        }
+
+        gameEventBus.ShowInfo(new BuildingInfoTarget(buildable));
     }
 }
 

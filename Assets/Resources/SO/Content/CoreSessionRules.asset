@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8c2d17c34b14b77a7c9c0e9c2c4fdd1, type: 3}
+  m_Name: CoreSessionRules
+  m_EditorClassIdentifier: DungeonStory.Content::DungeonStory.Content.CoreSession.CoreSessionRulesSO
+  randomInvasionStartDay: 31
+  growthStartDay: 4
+  escalationStartDay: 10
+  endlessDefenseStartDay: 40
+  firstBossDay: 40
+  bossIntervalDays: 10
+  rehearsals:
+  - day: 10
+    powerMultiplier: 0.25
+    ownerDamageMultiplier: 0.2
+    retreatHealthRatio: 0.55
+  - day: 20
+    powerMultiplier: 0.5
+    ownerDamageMultiplier: 0.4
+    retreatHealthRatio: 0.42
+  - day: 30
+    powerMultiplier: 0.75
+    ownerDamageMultiplier: 0.6
+    retreatHealthRatio: 0.32
+  externalProblemBands:
+  - lastDayInclusive: 3
+    maximumConcurrentProblems: 0
+    allowedIncidentKinds: []
+  - lastDayInclusive: 9
+    maximumConcurrentProblems: 1
+    allowedIncidentKinds: 010000000200000006000000
+  - lastDayInclusive: 30
+    maximumConcurrentProblems: 2
+    allowedIncidentKinds: 01000000020000000400000006000000
+  - lastDayInclusive: 2147483647
+    maximumConcurrentProblems: 2147483647
+    allowedIncidentKinds: 010000000200000003000000040000000500000006000000
+  renownIntelCost: 10
+  goldIntelCost: 200
+  scoutingIntelCost: 60
+  dreadDefenseCost: 15
+  ecologyRaidCountdownSeconds: 60
+  maximumRumorMitigation: 15
+  maximumRumorRenownCost: 10
+  maximumRumorGoldCost: 200
+  debugHistoryLimit: 50
+  serviceResearch:
+  - serviceCategory: 0
+    operationMode: 1
+    researchId: research:service-flow
+  - serviceCategory: 1
+    operationMode: 1
+    researchId: research:service-flow
+  - serviceCategory: 2
+    operationMode: 1
+    researchId: research:hospitality-operations
+  - serviceCategory: 3
+    operationMode: 1
+    researchId: research:bath-business
+  - serviceCategory: 4
+    operationMode: 1
+    researchId: research:medical-reception
+  - serviceCategory: 0
+    operationMode: 2
+    researchId: research:service-automation
+  - serviceCategory: 1
+    operationMode: 2
+    researchId: research:service-automation
+  - serviceCategory: 2
+    operationMode: 2
+    researchId: research:service-automation
+  - serviceCategory: 3
+    operationMode: 2
+    researchId: research:service-automation
+  - serviceCategory: 4
+    operationMode: 2
+    researchId: research:service-automation

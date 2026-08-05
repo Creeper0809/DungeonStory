@@ -30,7 +30,7 @@ public readonly struct CombatParticipantRef
     public bool IsValid => Character != null || Wildlife != null;
     public bool IsDead => Character != null ? Character.IsDead : Wildlife == null || !Wildlife.IsAlive;
     public string Id => Character != null
-        ? Character.Identity?.PersistentId ?? $"scene-actor:{Character.GetInstanceID()}"
+        ? CharacterPersistentIdentity.Require(Character).Value
         : Wildlife != null ? Wildlife.WildlifeId : string.Empty;
     public string DisplayName => Character != null
         ? Character.Identity?.DisplayName ?? Character.name

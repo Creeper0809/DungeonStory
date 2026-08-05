@@ -27,20 +27,38 @@ MonoBehaviour:
   description: "\uC678\uBD80 \uC218\uC6D0\uC744 \uC774\uC6A9\uD574 \uC5F0\uB8CC \uC5C6\uB294
     \uC644\uB9CC\uD55C \uC804\uB825\uC744 \uC0DD\uC0B0\uD55C\uB2E4."
   field: 15
-  requiredWork: 154
+  requiredWork: 560
   prerequisites:
   - {fileID: 11400000, guid: 06ebf1937f853144db068060e289c96d, type: 2}
   - {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:agriculture:irrigation
+    prerequisite: {fileID: 11400000, guid: 06ebf1937f853144db068060e289c96d, type: 2}
+    kind: 2
+    reason: "\uAD00\uAC1C\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC218\uCC28
+      \uBC1C\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:distribution
+    prerequisite: {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+    kind: 2
+    reason: "\uBC30\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC218\uCC28
+      \uBC1C\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687344
+    - rid: 7737211730927813290
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687344
+    - rid: 7737211730927813290
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9811

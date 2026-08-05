@@ -23,10 +23,17 @@ using VContainer;
 [RequireComponent(typeof(CharacterSocialMemory))]
 [RequireComponent(typeof(CharacterAiMemoryRuntime))]
 [RequireComponent(typeof(BehaviorTree))]
-public class CharacterActor : SerializedMonoBehaviour, IInfoable
+public class CharacterActor : SerializedMonoBehaviour,
+    IInfoable,
+    IBuildingCharacterPort,
+    IInvasionThreatSubject,
+    ICharacterMovementKinematicsActor
 {
-    private const int VisualRecoveryFrameStride = 8;
     public GameObject noExit;
+
+    private readonly CharacterActorLifecycleCoordinator lifecycleCoordinator = new();
+    private readonly CharacterActorAbilityBridge abilityBridge = new();
+    private readonly CharacterActorActivityBridge activityBridge = new();
 
     private AIBrain brain;
     [SerializeField]
@@ -72,10 +79,8 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
     private ICharacterSocialMemoryFactory socialMemoryFactory;
     [SerializeField, ReadOnly] private CharacterActorRuntimeBridge runtimeBridge;
     [SerializeField, ReadOnly] private CharacterActorPresentationBridge presentationBridge;
-    private bool persistentRestorePrepared;
     private bool runtimeStateInitialized;
     private bool runtimeStateInitializing;
-    private int nextVisualRecoveryFrame;
 
     public CharacterDecisionState State { get; private set; }
     public CharacterDecisionState state
@@ -86,6 +91,21 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
     public AIBrain Brain => brain;
     public AIBrain ai => brain;
     public CharacterIdentity Identity => identity;
+    public CharacterId BuildingCharacterId => identity != null
+        ? identity.TypedPersistentId
+        : default;
+    public string BuildingDisplayName => this != null ? name : string.Empty;
+    public InvasionThreatSubjectSnapshot CaptureInvasionThreatSubject() =>
+        new(BuildingCharacterId, BuildingDisplayName);
+    public bool IsBuildingInteractionAvailable => this != null;
+    public IBuildingVisitorPort BuildingVisitor
+    {
+        get
+        {
+            EnsureRuntimeBridges();
+            return runtimeBridge.GetBuildingVisitor(this);
+        }
+    }
     public CharacterProgression Progression => progression;
     public CharacterStats Stats => characterStats;
     public CharacterAbilityCache AbilityCache => abilityCache;
@@ -117,6 +137,12 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         && lifecycle.CurrentState == CharacterLifecycleState.Active
         && !lifecycle.IsAiPaused;
     public bool IsAiDecisionPending => CanRunAi && brain != null && brain.isBestActionEnd;
+    public bool IsUnpublishedComposition =>
+        lifecycleCoordinator.IsUnpublishedComposition;
+    public bool IsDetachedRestoreCandidate =>
+        lifecycleCoordinator.IsDetachedRestoreCandidate;
+    public bool HasBeenPublished => lifecycleCoordinator.HasBeenPublished;
+    internal bool IsRuntimeBridgeConfigured => runtimeBridge?.IsConfigured == true;
     public float InjurySeverity => characterStats != null ? characterStats.InjurySeverity : 0f;
     public CharacterMoodSnapshot Mood => characterStats != null
         ? characterStats.GetMoodSnapshot()
@@ -145,11 +171,15 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
     internal bool ShouldCollectDetailedAiDiagnostics =>
         runtimeBridge == null || runtimeBridge.ShouldCollectDetailedAiDiagnostics;
     internal IWorldItemStackRuntime WorldItemStackRuntime => runtimeBridge?.WorldItemStackRuntime;
-    internal ICharacterMedicalRuntime MedicalRuntime => runtimeBridge?.MedicalRuntime;
+    internal ICharacterMedicalQuery MedicalQuery => runtimeBridge?.MedicalQuery;
+    internal ICharacterMedicalCommand MedicalCommands => runtimeBridge?.MedicalCommands;
     internal ICharacterDeprivationRuntime DeprivationRuntime => runtimeBridge?.DeprivationRuntime;
-    internal ICharacterConsumablesRuntime ConsumablesRuntime =>
-        runtimeBridge?.ConsumablesRuntime;
+    internal ICharacterDeprivationQuery DeprivationQuery => runtimeBridge?.DeprivationRuntime;
+    internal ICharacterDeprivationCommand DeprivationCommands => runtimeBridge?.DeprivationRuntime;
+    internal ICharacterSubstanceRuntime SubstanceRuntime =>
+        runtimeBridge?.SubstanceRuntime;
     internal IGameClock GameClock => runtimeBridge?.GameClock;
+    internal CharacterAiNaturalnessSettingsSO NaturalnessSettings { get; private set; }
     public event Action<CharacterActor, string> OnDied;
 
     [Inject]
@@ -164,17 +194,31 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         ICharacterAiWorldRegistry worldRegistry,
         ICharacterAiWorldSignalQuery worldSignalQuery,
         IDynamicFrameWorkBudget frameWorkBudget,
-        IWorldItemStackRuntime worldItemStackRuntime = null,
-        IWildlifeRuntime wildlifeRuntime = null,
-        ICharacterMedicalRuntime medicalRuntime = null,
-        ICharacterDeprivationRuntime deprivationRuntime = null,
-        ICharacterConsumablesRuntime consumablesRuntime = null,
-        IGameClock gameClock = null,
-        ITmpKoreanFontService tmpKoreanFontService = null,
-        ICharacterPresentationScheduler presentationScheduler = null)
+        ICharacterRuntimeTransientStateRegistry transientStateRegistry,
+        ICharacterIdRegistry characterIdRegistry,
+        IGameContentCatalog gameContentCatalog,
+        IDungeonUserSettingsService userSettings,
+        IWorldItemStackRuntime worldItemStackRuntime,
+        IWildlifeRuntime wildlifeRuntime,
+        ICharacterMedicalQuery medicalQuery,
+        ICharacterMedicalCommand medicalCommands,
+        ICharacterDeprivationRuntime deprivationRuntime,
+        ICharacterSubstanceRuntime substanceRuntime,
+        IGameClock gameClock,
+        ITmpKoreanFontService tmpKoreanFontService,
+        ICharacterPresentationScheduler presentationScheduler)
     {
         this.socialMemoryFactory = socialMemoryFactory
             ?? throw new ArgumentNullException(nameof(socialMemoryFactory));
+        NaturalnessSettings = (gameContentCatalog ?? throw new ArgumentNullException(nameof(gameContentCatalog))).RequireSingle<CharacterAiNaturalnessSettingsSO>();
+        EnsureRuntimeState();
+        (characterIdRegistry
+            ?? throw new ArgumentNullException(nameof(characterIdRegistry)))
+            .GetOrAssignPersistentId(this);
+        CharacterSkillTransientState.Ensure(this).Configure(
+            transientStateRegistry
+                ?? throw new ArgumentNullException(nameof(transientStateRegistry)),
+            Identity.TypedPersistentId);
         EnsureRuntimeBridges();
         runtimeBridge.Configure(
             this,
@@ -185,9 +229,10 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
             worldSignalQuery,
             worldItemStackRuntime,
             wildlifeRuntime,
-            medicalRuntime,
+            medicalQuery,
+            medicalCommands,
             deprivationRuntime,
-            consumablesRuntime,
+            substanceRuntime,
             gameClock);
         presentationBridge.Configure(
             this,
@@ -195,18 +240,20 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
             feedbackBubbleFactory,
             mainCameraProvider,
             frameWorkBudget,
+            gameContentCatalog.WorldPresentation,
+            userSettings,
             tmpKoreanFontService,
-            presentationScheduler);
+            presentationScheduler,
+            gameClock);
         if (worldItemStackRuntime != null)
         {
             CharacterCarryInventory.Ensure(this)?.Configure(
                 worldItemStackRuntime.CatalogProvider,
-                worldItemStackRuntime.HaulingSettingsProvider);
+                worldItemStackRuntime.HaulingSettingsProvider,
+                transientStateRegistry);
         }
         EnsureSocialMemory();
-        AbilityHunt.Ensure(this, wildlifeRuntime);
-        AbilityRescue.Ensure(this);
-        AbilityUseSubstance.Ensure(this);
+        abilityBridge.EnsureInjectedAbilities(this, wildlifeRuntime);
         runtimeBridge.OnActorEnabled();
     }
 
@@ -307,61 +354,41 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
     private void Start()
     {
         EnsureRuntimeState();
-        runtimeBridge?.RequireConfigured();
-        runtimeBridge?.OnActorEnabled();
-        State = CharacterDecisionState.DECIDE;
-        bool isPersistentRestore = persistentRestorePrepared;
-        if (identity != null && identity.Data != null)
-        {
-            if (!isPersistentRestore)
-            {
-                Initialize(identity.Data);
-            }
-
-            if (lifecycle != null && lifecycle.CurrentState == CharacterLifecycleState.None)
-            {
-                lifecycle.SetLifecycleState(CharacterLifecycleState.Active);
-            }
-
-            if (!isPersistentRestore)
-            {
-                StartCoroutine(lifecycle != null ? lifecycle.SnapToWalkableGridWhenReady() : EmptyRoutine());
-            }
-        }
-
-        persistentRestorePrepared = false;
-        characterStats?.BeginNeedDecaySchedule();
+        lifecycleCoordinator.Start(
+            this,
+            identity,
+            lifecycle,
+            characterStats,
+            runtimeBridge);
     }
 
     internal void TickPresentationMaintenance()
     {
-        IGameClock clock = GameClock;
-        if (clock == null || clock.FrameCount < nextVisualRecoveryFrame)
-        {
-            return;
-        }
-
-        nextVisualRecoveryFrame = clock.FrameCount + VisualRecoveryFrameStride;
-        visual?.RecoverExpiredTraversalVisibility();
+        lifecycleCoordinator.TickPresentation(
+            presentationBridge,
+            visual,
+            GameClock);
     }
 
     private void OnEnable()
     {
-        runtimeBridge?.OnActorEnabled();
-        presentationBridge?.OnActorEnabled();
+        lifecycleCoordinator.OnEnabled(
+            runtimeBridge,
+            presentationBridge,
+            personaRuntime);
     }
 
     private void OnDisable()
     {
-        visual?.RestoreTraversalVisibility();
-        presentationBridge?.OnActorDisabled();
-        runtimeBridge?.OnActorDisabled();
+        lifecycleCoordinator.OnDisabled(
+            visual,
+            runtimeBridge,
+            presentationBridge);
     }
 
     private void OnDestroy()
     {
-        presentationBridge?.OnActorDestroyed();
-        runtimeBridge?.OnActorDestroyed();
+        lifecycleCoordinator.OnDestroyed(runtimeBridge, presentationBridge);
     }
 
     private void OrganizeRuntimeHierarchy()
@@ -390,18 +417,105 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         }
 
         characterStats.RecalculateVitals(resetCurrentHealth: true);
-        abilityCache.CacheAbility();
-        foreach (CharacterAbility ability in abilityCache.Abilities)
-        {
-            ability.Initializtion(data);
-        }
+        abilityBridge.Initialize(abilityCache, data);
+        lifecycleCoordinator.MarkInitializedBeforeFirstStart();
 
-        personaRuntime.RequestPersonaIfNeeded(logIfMissingQueue: false);
+        if (!IsDetachedRestoreCandidate && !IsUnpublishedComposition)
+        {
+            personaRuntime.RequestPersonaIfNeeded(logIfMissingQueue: false);
+        }
+    }
+
+    public void PrepareForComposition()
+    {
+        EnsureRuntimeBridges();
+        if (lifecycle == null)
+        {
+            lifecycle = GetComponent<CharacterLifecycle>();
+        }
+        lifecycleCoordinator.PrepareForComposition(
+            this,
+            lifecycle,
+            runtimeBridge,
+            presentationBridge);
+    }
+
+    internal void RequireCompositionReadyForPublication()
+    {
+        lifecycleCoordinator.RequireCompositionReadyForPublication(
+            identity,
+            lifecycle,
+            runtimeBridge,
+            presentationBridge);
+    }
+
+    internal void RequireReadyForPublishedReactivation()
+    {
+        if (!HasBeenPublished
+            || IsUnpublishedComposition
+            || IsDetachedRestoreCandidate
+            || !IsRuntimeBridgeConfigured
+            || identity == null
+            || identity.Data == null
+            || !identity.TypedPersistentId.IsValid)
+        {
+            throw new InvalidOperationException(
+                "Only a complete, previously published character can be reactivated.");
+        }
+    }
+
+    public void PublishComposition()
+    {
+        lifecycleCoordinator.PublishComposition(
+            identity,
+            lifecycle,
+            runtimeBridge,
+            presentationBridge);
+    }
+
+    public void PrepareForDetachedRestore()
+    {
+        EnsureRuntimeBridges();
+        if (lifecycle == null)
+        {
+            lifecycle = GetComponent<CharacterLifecycle>();
+        }
+        lifecycleCoordinator.PrepareForDetachedRestore(
+            this,
+            lifecycle,
+            runtimeBridge,
+            presentationBridge);
+    }
+
+    public void PublishDetachedRestore()
+    {
+        RequireDetachedReadyForPublication();
+        lifecycleCoordinator.PublishDetachedRestore(
+            lifecycle,
+            runtimeBridge,
+            presentationBridge);
+    }
+
+    internal void RollbackDetachedRestorePublication()
+    {
+        lifecycleCoordinator.RollbackDetachedRestorePublication(
+            lifecycle,
+            runtimeBridge,
+            presentationBridge);
+    }
+
+    internal void RequireDetachedReadyForPublication()
+    {
+        lifecycleCoordinator.RequireDetachedReadyForPublication(
+            identity,
+            lifecycle,
+            runtimeBridge,
+            presentationBridge);
     }
 
     public void PrepareForPersistentRestore()
     {
-        persistentRestorePrepared = true;
+        lifecycleCoordinator.PrepareForPersistentRestore(presentationBridge);
     }
 
     public bool TryExecuteSelectedAiAction()
@@ -474,10 +588,9 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
                 progression = gameObject.AddComponent<CharacterProgression>();
             }
 
-            carryInventory = CharacterCarryInventory.Ensure(this);
-            AbilityHaul.Ensure(this);
-            AbilityHunt.Ensure(this, runtimeBridge?.WildlifeRuntime);
-            AbilityUseSubstance.Ensure(this);
+            carryInventory = abilityBridge.EnsureRuntimeAbilities(
+                this,
+                runtimeBridge?.WildlifeRuntime);
             abilityCache = GetComponent<CharacterAbilityCache>();
             characterStats = GetComponent<CharacterStats>();
             visual = GetComponent<CharacterVisual>();
@@ -525,340 +638,106 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         }
     }
 
-    public T GetAbility<T>() where T : CharacterAbility
-    {
-        EnsureRuntimeState();
-        return abilityCache != null ? abilityCache.GetAbility<T>() : null;
-    }
-
-    public bool TryGetAbility<T>(out T result) where T : CharacterAbility
-    {
-        EnsureRuntimeState();
-        if (abilityCache != null)
-        {
-            return abilityCache.TryGetAbility(out result);
-        }
-
-        result = null;
-        return false;
-    }
-
-    public Vector2Int GetNowXY()
-    {
-        EnsureRuntimeState();
-        return lifecycle != null ? lifecycle.GetNowXY() : Vector2Int.zero;
-    }
-
-    public void AddLog(string message)
-    {
-        EnsureRuntimeState();
-        characterLog?.AddLog(message);
-    }
-
-    public void AddActivity(CharacterActivityEvent activity)
-    {
-        EnsureRuntimeState();
-        characterLog?.AddActivity(activity);
-        if (activity != null
-            && activity.NarrativeEligible
-            && !string.Equals(activity.OutcomeId, CharacterActivityOutcomes.Started, StringComparison.Ordinal)
-            && !string.Equals(activity.OutcomeId, CharacterActivityOutcomes.Progress, StringComparison.Ordinal))
-        {
-            progression?.RecordNarrative(
-                CharacterNarrativeDomainUtility.FromActivity(activity),
-                !string.IsNullOrWhiteSpace(activity.ActionId) ? activity.ActionId : activity.KindId,
-                !string.IsNullOrWhiteSpace(activity.TargetId) ? activity.TargetId : activity.PlaceId,
-                activity.OutcomeId,
-                !Mathf.Approximately(activity.Value, 0f) ? activity.Value : activity.Quantity);
-        }
-    }
-
+    public T GetAbility<T>() where T : CharacterAbility =>
+        abilityBridge.Get<T>(RuntimeAbilityCache);
+    public bool TryGetAbility<T>(out T result) where T : CharacterAbility =>
+        abilityBridge.TryGet(RuntimeAbilityCache, out result);
+    public Vector2Int GetNowXY() =>
+        RuntimeLifecycle != null ? RuntimeLifecycle.GetNowXY() : Vector2Int.zero;
+    public void AddLog(string message) => activityBridge.AddLog(RuntimeLog, message);
+    public void AddActivity(CharacterActivityEvent activity) =>
+        activityBridge.AddActivity(RuntimeLog, progression, activity);
     public float GetMoveSpeed()
     {
         EnsureRuntimeState();
-        float baseSpeed = characterStats != null
-            ? characterStats.GetMoveSpeed()
-            : identity != null && identity.Data != null
-                ? identity.Data.moveSpeed
-                : 1f;
-        return baseSpeed * (carryInventory != null ? carryInventory.GetMoveSpeedMultiplier() : 1f);
+        return CharacterActorRuntimeFacade.GetMoveSpeed(
+            characterStats,
+            identity,
+            carryInventory);
     }
-
-    public CharacterCarryInventory CarryInventory
-    {
-        get
-        {
-            EnsureRuntimeState();
-            return carryInventory;
-        }
-    }
-
-    public float GetConsumptionMultiplier()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetConsumptionMultiplier() : 1f;
-    }
-
-    public float GetStayDurationMultiplier()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetStayDurationMultiplier() : 1f;
-    }
-
-    public float GetCrowdSensitivityMultiplier()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetCrowdSensitivityMultiplier() : 1f;
-    }
-
-    public float GetWorkSpeedMultiplier(WorkTypeId workTypeId)
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetWorkSpeedMultiplier(workTypeId) : 1f;
-    }
-
-    public float GetWorkPreferenceScore(WorkTypeId workTypeId)
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetWorkPreferenceScore(workTypeId) : 0.5f;
-    }
-
-    public float GetFacilityPreferenceScore(FacilityRole roles)
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetFacilityPreferenceScore(roles) : 0.5f;
-    }
-
-    public float GetAccidentChanceMultiplier()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetAccidentChanceMultiplier() : 1f;
-    }
-
-    public CharacterSpeciesIncidentType GetIncidentType()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetIncidentType() : CharacterSpeciesIncidentType.None;
-    }
-
-    public float GetCrimeRiskMultiplier()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetCrimeRiskMultiplier() : 1f;
-    }
-
-    public float GetCombatPowerMultiplier()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetCombatPowerMultiplier() : 1f;
-    }
-
-    public float GetFatigueEfficiencyMultiplier()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetFatigueEfficiencyMultiplier() : 1f;
-    }
-
-    public float GetInjuryEfficiencyMultiplier()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetInjuryEfficiencyMultiplier() : 1f;
-    }
-
-    public float MaxHealth
-    {
-        get
-        {
-            EnsureRuntimeState();
-            return characterStats != null ? characterStats.MaxHealth : 100f;
-        }
-    }
-
-    public float CurrentHealth
-    {
-        get
-        {
-            EnsureRuntimeState();
-            return characterStats != null ? characterStats.CurrentHealth : 100f;
-        }
-    }
-
-    public void Initialization(CharacterSO data)
-    {
-        Initialize(data);
-    }
-
-    public void CacheAbility()
-    {
-        EnsureRuntimeState();
-        abilityCache?.CacheAbility();
-    }
-
-    public void RefreshAbilityCache()
-    {
-        EnsureRuntimeState();
-        abilityCache?.RefreshAbilityCache();
-    }
-
-    public IEnumerator ChangeStatByTick()
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.ChangeStatByTick() : EmptyRoutine();
-    }
-
-    public void ChangesStat(CharacterCondition condition, float value)
-    {
-        EnsureRuntimeState();
-        characterStats?.ChangesStat(condition, value);
-    }
-
+    public CharacterCarryInventory CarryInventory => RuntimeCarryInventory;
+    public float GetConsumptionMultiplier() =>
+        RuntimeStats != null ? RuntimeStats.GetConsumptionMultiplier() : 1f;
+    public float GetStayDurationMultiplier() =>
+        RuntimeStats != null ? RuntimeStats.GetStayDurationMultiplier() : 1f;
+    public float GetCrowdSensitivityMultiplier() =>
+        RuntimeStats != null ? RuntimeStats.GetCrowdSensitivityMultiplier() : 1f;
+    public float GetWorkSpeedMultiplier(WorkTypeId workTypeId) =>
+        RuntimeStats != null ? RuntimeStats.GetWorkSpeedMultiplier(workTypeId) : 1f;
+    public float GetWorkPreferenceScore(WorkTypeId workTypeId) =>
+        RuntimeStats != null ? RuntimeStats.GetWorkPreferenceScore(workTypeId) : 0.5f;
+    public float GetFacilityPreferenceScore(FacilityRole roles) =>
+        RuntimeStats != null ? RuntimeStats.GetFacilityPreferenceScore(roles) : 0.5f;
+    public float GetAccidentChanceMultiplier() =>
+        RuntimeStats != null ? RuntimeStats.GetAccidentChanceMultiplier() : 1f;
+    public CharacterSpeciesIncidentType GetIncidentType() => RuntimeStats != null
+        ? RuntimeStats.GetIncidentType()
+        : CharacterSpeciesIncidentType.None;
+    public float GetCrimeRiskMultiplier() =>
+        RuntimeStats != null ? RuntimeStats.GetCrimeRiskMultiplier() : 1f;
+    public float GetCombatPowerMultiplier() =>
+        RuntimeStats != null ? RuntimeStats.GetCombatPowerMultiplier() : 1f;
+    public float GetFatigueEfficiencyMultiplier() => RuntimeStats != null
+        ? RuntimeStats.GetFatigueEfficiencyMultiplier()
+        : 1f;
+    public float GetInjuryEfficiencyMultiplier() => RuntimeStats != null
+        ? RuntimeStats.GetInjuryEfficiencyMultiplier()
+        : 1f;
+    public float MaxHealth => RuntimeStats != null ? RuntimeStats.MaxHealth : 100f;
+    public float CurrentHealth => RuntimeStats != null ? RuntimeStats.CurrentHealth : 100f;
+    public void Initialization(CharacterSO data) => Initialize(data);
+    public void CacheAbility() => RuntimeAbilityCache?.CacheAbility();
+    public void RefreshAbilityCache() => RuntimeAbilityCache?.RefreshAbilityCache();
+    public IEnumerator ChangeStatByTick() => RuntimeStats != null
+        ? RuntimeStats.ChangeStatByTick()
+        : EmptyRoutine();
+    public void ChangesStat(CharacterCondition condition, float value) =>
+        RuntimeStats?.ChangesStat(condition, value);
     public void ApplyMoodFactor(
         string id,
         string label,
         float value,
         float durationSeconds = 180f,
-        int maxStacks = 1)
-    {
-        EnsureRuntimeState();
-        characterStats?.ApplyMoodFactor(id, label, value, durationSeconds, maxStacks);
-    }
-
-    public int GetCharacterStat(CharacterStatType statType)
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetCharacterStat(statType) : 5;
-    }
-
-    public int GetCharacterStat(string statId)
-    {
-        EnsureRuntimeState();
-        return characterStats != null ? characterStats.GetCharacterStat(statId) : 0;
-    }
-
-    public void ApplyDamage(float amount, string reason = "")
-    {
-        EnsureRuntimeState();
-        characterStats?.ApplyDamage(amount, reason);
-    }
-
-    public void ApplyBodyDamage(float amount, string reason = "")
-    {
-        EnsureRuntimeState();
-        characterStats?.ApplyNonLethalDamage(amount, reason);
-    }
-
-    public void Heal(float amount)
-    {
-        EnsureRuntimeState();
-        characterStats?.Heal(amount);
-    }
-
-    public void ScaleMaxHealth(float multiplier)
-    {
-        EnsureRuntimeState();
-        characterStats?.ScaleMaxHealth(multiplier);
-    }
-
-    public void SetInjurySeverity(float value)
-    {
-        EnsureRuntimeState();
-        characterStats?.SetInjurySeverity(value);
-    }
-
-    public void Die(string reason = "")
-    {
-        EnsureRuntimeState();
-        characterStats?.Die(reason);
-    }
-
-    public void InitializeStats(bool resetCurrentHealth)
-    {
-        EnsureRuntimeState();
-        characterStats?.RecalculateVitals(resetCurrentHealth);
-    }
-
-    public void SetLifecycleState(CharacterLifecycleState nextState)
-    {
-        EnsureRuntimeState();
-        lifecycle?.SetLifecycleState(nextState);
-    }
-
-    public bool BeginExpedition()
-    {
-        EnsureRuntimeState();
-        return lifecycle != null && lifecycle.BeginExpedition();
-    }
-
-    public void EndExpedition(bool alive = true)
-    {
-        EnsureRuntimeState();
-        lifecycle?.EndExpedition(alive);
-    }
-
-    public void ChangeLayer(string layer)
-    {
-        EnsureRuntimeState();
-        visual?.ChangeLayer(layer);
-    }
-
-    public void ApplyVisualFootAnchor()
-    {
-        EnsureRuntimeState();
-        visual?.ApplyVisualFootAnchor();
-    }
-
-    public float GetVisualTopLocalY()
-    {
-        EnsureRuntimeState();
-        return visual != null ? visual.GetVisualTopLocalY() : 1f;
-    }
-
-    public void DoFade(float alpha, float duration)
-    {
-        EnsureRuntimeState();
-        visual?.DoFade(alpha, duration);
-    }
-
-    public void Flip(CharacterFacing facing)
-    {
-        EnsureRuntimeState();
-        visual?.Flip(facing);
-    }
-
-    public void HideForTraversal(float failSafeSeconds)
-    {
-        EnsureRuntimeState();
-        visual?.HideForTraversal(failSafeSeconds);
-    }
-
-    public void RestoreTraversalVisibility()
-    {
-        EnsureRuntimeState();
-        visual?.RestoreTraversalVisibility();
-    }
-
-    public void SetAiPaused(bool value)
-    {
-        EnsureRuntimeState();
-        lifecycle?.SetAiPaused(value);
-    }
-
-    public bool IsAiPaused()
-    {
-        EnsureRuntimeState();
-        return lifecycle != null && lifecycle.IsAiPaused;
-    }
-
-    public string GetSpeciesShortDescription()
-    {
-        EnsureRuntimeState();
-        return identity != null ? identity.GetSpeciesShortDescription() : string.Empty;
-    }
-
-    internal void RaiseDied(string reason)
-    {
-        OnDied?.Invoke(this, reason);
-    }
+        int maxStacks = 1) => RuntimeStats?.ApplyMoodFactor(
+            id,
+            label,
+            value,
+            durationSeconds,
+            maxStacks);
+    public int GetCharacterStat(CharacterStatType statType) =>
+        RuntimeStats != null ? RuntimeStats.GetCharacterStat(statType) : 5;
+    public int GetCharacterStat(string statId) =>
+        RuntimeStats != null ? RuntimeStats.GetCharacterStat(statId) : 0;
+    public void ApplyDamage(float amount, string reason = "") =>
+        RuntimeStats?.ApplyDamage(amount, reason);
+    public void ApplyBodyDamage(float amount, string reason = "") =>
+        RuntimeStats?.ApplyNonLethalDamage(amount, reason);
+    public void Heal(float amount) => RuntimeStats?.Heal(amount);
+    public void ScaleMaxHealth(float multiplier) => RuntimeStats?.ScaleMaxHealth(multiplier);
+    public void SetInjurySeverity(float value) => RuntimeStats?.SetInjurySeverity(value);
+    public void Die(string reason = "") => RuntimeStats?.Die(reason);
+    public void InitializeStats(bool resetCurrentHealth) =>
+        RuntimeStats?.RecalculateVitals(resetCurrentHealth);
+    public void SetLifecycleState(CharacterLifecycleState nextState) =>
+        RuntimeLifecycle?.SetLifecycleState(nextState);
+    public bool BeginExpedition() =>
+        RuntimeLifecycle != null && RuntimeLifecycle.BeginExpedition();
+    public void EndExpedition(bool alive = true) => RuntimeLifecycle?.EndExpedition(alive);
+    public void ChangeLayer(string layer) => RuntimeVisual?.ChangeLayer(layer);
+    public void ApplyVisualFootAnchor() => RuntimeVisual?.ApplyVisualFootAnchor();
+    public float GetVisualTopLocalY() =>
+        RuntimeVisual != null ? RuntimeVisual.GetVisualTopLocalY() : 1f;
+    public void DoFade(float alpha, float duration) => RuntimeVisual?.DoFade(alpha, duration);
+    public void Flip(CharacterFacing facing) => RuntimeVisual?.Flip(facing);
+    public void HideForTraversal(float failSafeSeconds) =>
+        RuntimeVisual?.HideForTraversal(failSafeSeconds);
+    public void RestoreTraversalVisibility() => RuntimeVisual?.RestoreTraversalVisibility();
+    public void SetAiPaused(bool value) => RuntimeLifecycle?.SetAiPaused(value);
+    public bool IsAiPaused() => RuntimeLifecycle != null && RuntimeLifecycle.IsAiPaused;
+    public string GetSpeciesShortDescription() => RuntimeIdentity != null
+        ? RuntimeIdentity.GetSpeciesShortDescription()
+        : string.Empty;
+    internal void RaiseDied(string reason) => OnDied?.Invoke(this, reason);
 
     private bool HasRuntimeComponents => identity != null
         && progression != null
@@ -901,8 +780,24 @@ public class CharacterActor : SerializedMonoBehaviour, IInfoable
         }
     }
 
+    private CharacterAbilityCache RuntimeAbilityCache
+        { get { EnsureRuntimeState(); return abilityCache; } }
+    private CharacterCarryInventory RuntimeCarryInventory
+        { get { EnsureRuntimeState(); return carryInventory; } }
+    private CharacterStats RuntimeStats
+        { get { EnsureRuntimeState(); return characterStats; } }
+    private CharacterLifecycle RuntimeLifecycle
+        { get { EnsureRuntimeState(); return lifecycle; } }
+    private CharacterVisual RuntimeVisual
+        { get { EnsureRuntimeState(); return visual; } }
+    private CharacterIdentity RuntimeIdentity
+        { get { EnsureRuntimeState(); return identity; } }
+    private CharacterLog RuntimeLog
+        { get { EnsureRuntimeState(); return characterLog; } }
+
     private static IEnumerator EmptyRoutine()
     {
         yield break;
     }
+
 }

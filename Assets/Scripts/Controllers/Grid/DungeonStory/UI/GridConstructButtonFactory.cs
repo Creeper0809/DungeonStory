@@ -17,22 +17,30 @@ public sealed class GridConstructButtonFactory : IGridConstructButtonFactory
 {
     private readonly ITmpKoreanFontService tmpKoreanFontService;
     private readonly IObjectResolver objectResolver;
+    private readonly IItemDefinitionCatalog itemDefinitionCatalog;
 
-    public GridConstructButtonFactory(ITmpKoreanFontService tmpKoreanFontService)
+    public GridConstructButtonFactory(
+        ITmpKoreanFontService tmpKoreanFontService,
+        IItemDefinitionCatalog itemDefinitionCatalog)
     {
         this.tmpKoreanFontService = tmpKoreanFontService
             ?? throw new ArgumentNullException(nameof(tmpKoreanFontService));
+        this.itemDefinitionCatalog = itemDefinitionCatalog
+            ?? throw new ArgumentNullException(nameof(itemDefinitionCatalog));
     }
 
     [Inject]
     public GridConstructButtonFactory(
         ITmpKoreanFontService tmpKoreanFontService,
-        IObjectResolver objectResolver)
+        IObjectResolver objectResolver,
+        IItemDefinitionCatalog itemDefinitionCatalog)
     {
         this.tmpKoreanFontService = tmpKoreanFontService
             ?? throw new ArgumentNullException(nameof(tmpKoreanFontService));
         this.objectResolver = objectResolver
             ?? throw new ArgumentNullException(nameof(objectResolver));
+        this.itemDefinitionCatalog = itemDefinitionCatalog
+            ?? throw new ArgumentNullException(nameof(itemDefinitionCatalog));
     }
 
     public UITab CreateCategoryPanel(GameObject panelPrefab, Transform parent, BuildingCategory category)
@@ -152,9 +160,9 @@ public sealed class GridConstructButtonFactory : IGridConstructButtonFactory
         string materialText = string.Join(
             ", ",
             buildingData.GetConstructionMaterials()
-                .Where(pair => pair.Value > 0)
-                .Select(pair =>
-                    $"{StockCategoryCatalog.GetDisplayName(pair.Key)} {pair.Value}"));
+                .Where(material => material != null && material.Amount > 0)
+                .Select(material =>
+                    $"{itemDefinitionCatalog.GetRequired((ItemDefinitionId)material.ItemId).DisplayName} {material.Amount}"));
         label.text = buildingData.GetAbility<BuildingEconomyAbility>() != null
             ? $"{buildingData.objectName}\n{materialText} - {unlockText}"
             : buildingData.objectName;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
@@ -191,6 +192,8 @@ public sealed class CombatEquipmentInstance
     public string ownerCharacterId = string.Empty;
     public string sourceStackId = string.Empty;
     public EquipmentEvolutionState evolution = new EquipmentEvolutionState();
+    public List<EquipmentModuleSlotState> moduleSlots =
+        new List<EquipmentModuleSlotState>();
 
     public CombatEquipmentInstance Clone()
     {
@@ -205,7 +208,10 @@ public sealed class CombatEquipmentInstance
             worldState = worldState,
             ownerCharacterId = ownerCharacterId ?? string.Empty,
             sourceStackId = sourceStackId ?? string.Empty,
-            evolution = evolution?.Clone() ?? new EquipmentEvolutionState()
+            evolution = evolution?.Clone() ?? new EquipmentEvolutionState(),
+            moduleSlots = moduleSlots?.Select(slot => slot?.Clone())
+                .Where(slot => slot != null)
+                .ToList() ?? new List<EquipmentModuleSlotState>()
         };
     }
 }
@@ -624,7 +630,8 @@ public readonly struct CombatAttackResult
         bool shieldBlocked = false,
         string coverSourceId = "",
         float coverDamage = 0f,
-        IReadOnlyList<CombatArmorDurabilityHit> armorDurabilityHits = null)
+        IReadOnlyList<CombatArmorDurabilityHit> armorDurabilityHits = null,
+        float smokeExposure = 0f)
     {
         Executed = executed;
         Hit = hit;
@@ -642,6 +649,7 @@ public readonly struct CombatAttackResult
         CoverSourceId = coverSourceId ?? string.Empty;
         CoverDamage = Mathf.Max(0f, coverDamage);
         ArmorDurabilityHits = armorDurabilityHits ?? Array.Empty<CombatArmorDurabilityHit>();
+        SmokeExposure = Mathf.Max(0f, smokeExposure);
     }
 
     public bool Executed { get; }
@@ -660,4 +668,29 @@ public readonly struct CombatAttackResult
     public string CoverSourceId { get; }
     public float CoverDamage { get; }
     public IReadOnlyList<CombatArmorDurabilityHit> ArmorDurabilityHits { get; }
+    public float SmokeExposure { get; }
+
+    public CombatAttackResult WithSmokeExposure(
+        float smokeExposure,
+        bool clearSuppression = false)
+    {
+        return new CombatAttackResult(
+            Executed,
+            Hit,
+            CoverBlocked,
+            Evaded,
+            BodyPart,
+            RawDamage,
+            AppliedDamage,
+            Bleeding,
+            clearSuppression ? 0f : Suppression,
+            ArmorDurabilityDamage,
+            ArmorInstanceId,
+            FailureReason,
+            ShieldBlocked,
+            CoverSourceId,
+            CoverDamage,
+            ArmorDurabilityHits,
+            smokeExposure);
+    }
 }

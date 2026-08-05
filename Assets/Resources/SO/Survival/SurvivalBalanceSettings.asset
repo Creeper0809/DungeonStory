@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48b7d7b6a6c0cf447af51e7a1053cbb3, type: 3}
+  m_Name: SurvivalBalanceSettings
+  m_EditorClassIdentifier: DungeonStory.Survival::SurvivalBalanceSettingsSO
+  dayLengthSeconds: 180
+  needs:
+  - condition: 0
+    dailyDepletion: 50
+    workDepletionPerSecond: 0
+    response:
+      routineStart: 65
+      emergencyStart: 35
+      resumeTarget: 75
+  - condition: 1
+    dailyDepletion: 60
+    workDepletionPerSecond: 0
+    response:
+      routineStart: 60
+      emergencyStart: 35
+      resumeTarget: 75
+  - condition: 2
+    dailyDepletion: 0
+    workDepletionPerSecond: 0.35
+    response:
+      routineStart: 60
+      emergencyStart: 30
+      resumeTarget: 70
+  - condition: 5
+    dailyDepletion: 24
+    workDepletionPerSecond: 0.05
+    response:
+      routineStart: 45
+      emergencyStart: 25
+      resumeTarget: 70
+  - condition: 6
+    dailyDepletion: 18
+    workDepletionPerSecond: 0.06
+    response:
+      routineStart: 40
+      emergencyStart: 20
+      resumeTarget: 65
+  pressures:
+  - pressure: 0
+    depletionMultiplier: 1
+    recoveryMultiplier: 1
+    personalContinuousWaterMultiplier: 1
+    deprivationBurdenGainMultiplier: 1
+    deprivationBurdenRecoveryMultiplier: 1
+    forcedBreakdownDelaySeconds: 30
+    highBurdenDamageIntervalSeconds: 10
+  - pressure: 1
+    depletionMultiplier: 0.75
+    recoveryMultiplier: 1.1
+    personalContinuousWaterMultiplier: 0.85
+    deprivationBurdenGainMultiplier: 0.75
+    deprivationBurdenRecoveryMultiplier: 1.15
+    forcedBreakdownDelaySeconds: 45
+    highBurdenDamageIntervalSeconds: 12
+  - pressure: 2
+    depletionMultiplier: 1.25
+    recoveryMultiplier: 0.9
+    personalContinuousWaterMultiplier: 1.15
+    deprivationBurdenGainMultiplier: 1.25
+    deprivationBurdenRecoveryMultiplier: 0.85
+    forcedBreakdownDelaySeconds: 24
+    highBurdenDamageIntervalSeconds: 8

@@ -27,25 +27,41 @@ MonoBehaviour:
   description: "\uAE08\uACFC \uBCF4\uC11D\uC744 \uAD8C\uC704 \uC2DC\uC124\uACFC \uACE0\uAC00
     \uC7A5\uBE44\uC5D0 \uC0AC\uC6A9\uD55C\uB2E4."
   field: 10
-  requiredWork: 164
+  requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: 113a95410d965e04e9305eeabfd30003, type: 2}
   - {fileID: 11400000, guid: 00b8c28931f47544faecc8b510851912, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:authority:prestige
+    prerequisite: {fileID: 11400000, guid: 113a95410d965e04e9305eeabfd30003, type: 2}
+    kind: 2
+    reason: "\uC7A5\uC2DD\uACFC \uC704\uC2E0\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uADC0\uAE08 \uC138\uACF5 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:metallurgy:advanced
+    prerequisite: {fileID: 11400000, guid: 00b8c28931f47544faecc8b510851912, type: 2}
+    kind: 2
+    reason: "\uACE0\uAE09 \uB2E8\uC870\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uADC0\uAE08 \uC138\uACF5 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563230216618545
-    - rid: 7302563305932456144
+    - rid: 7737211730927812989
+    - rid: 7737211730927812990
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563230216618545
+    - rid: 7737211730927812989
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1081
-    - rid: 7302563305932456144
+    - rid: 7737211730927812990
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1621

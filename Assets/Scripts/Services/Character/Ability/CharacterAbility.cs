@@ -60,7 +60,10 @@ public class CharacterAbility : SerializedMonoBehaviour
 
     protected bool TryGetGrid(out Grid resolvedGrid)
     {
-        return RuntimeDependency.Require(gridSystemProvider, this).TryGetGrid(out resolvedGrid);
+        IGridSystemProvider provider = gridSystemProvider
+            ?? throw new System.InvalidOperationException(
+                $"{GetType().Name} requires {nameof(IGridSystemProvider)} injection before use.");
+        return provider.TryGetGrid(out resolvedGrid);
     }
 
     private void CacheSplitComponents()

@@ -25,23 +25,23 @@ public class Stair :
                 * DefaultGridTraversalCostPolicy.DryWalkCost));
     }
 
-    public IEnumerator Traverse(CharacterActor actor, GridMoveStep step)
+    public IEnumerator Traverse(IBuildingVisitorPort actor, GridMoveStep step)
     {
         if (actor == null || !step.IsValid) yield break;
 
-        AbilityMove moveable = actor.GetAbility<AbilityMove>();
-        if (moveable == null || grid == null) yield break;
+        if (!actor.VisitorSnapshot.CanMove || grid == null) yield break;
 
         Vector3 fromAnchor = GetFloorCenterAnchor(step.From);
         Vector3 toAnchor = GetFloorCenterAnchor(step.To);
         Vector3 logicalDestination = GetMovementWorldPosition(step.To);
-        fromAnchor.z = actor.transform.position.z;
-        toAnchor.z = actor.transform.position.z;
-        logicalDestination.z = actor.transform.position.z;
+        Vector3 actorPosition = actor.VisitorSnapshot.Position;
+        fromAnchor.z = actorPosition.z;
+        toAnchor.z = actorPosition.z;
+        logicalDestination.z = actorPosition.z;
 
-        if ((actor.transform.position - fromAnchor).sqrMagnitude > 0.01f)
+        if ((actorPosition - fromAnchor).sqrMagnitude > 0.01f)
         {
-            yield return moveable.Move2PosBySpeed(fromAnchor, EnterSpeedMultiplier);
+            yield return actor.MoveTo(fromAnchor, EnterSpeedMultiplier, null);
         }
 
         float hiddenTravelDelay = GetHiddenTravelDelay();
@@ -51,9 +51,9 @@ public class Stair :
         try
         {
             yield return new WaitForSeconds(hiddenTravelDelay);
-            actor.transform.position = toAnchor;
+            actor.SetWorldPosition(toAnchor);
             yield return new WaitForSeconds(ReappearDelay);
-            actor.transform.position = logicalDestination;
+            actor.SetWorldPosition(logicalDestination);
         }
         finally
         {
@@ -61,11 +61,11 @@ public class Stair :
         }
     }
 
-    public IEnumerator Interact(CharacterActor actor)
+    public IEnumerator Interact(IBuildingVisitorPort actor)
     {
         if (actor == null || grid == null) yield break;
 
-        Vector2Int from = grid.GetXY(actor.transform.position);
+        Vector2Int from = grid.GetXY(actor.VisitorSnapshot.Position);
         Vector2Int to = from;
         GridCell cell = grid.GetGridCell(from);
         if (cell != null)

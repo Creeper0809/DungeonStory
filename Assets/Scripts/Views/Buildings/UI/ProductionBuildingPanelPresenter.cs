@@ -17,114 +17,132 @@ public interface IProductionBuildingPanelPresenter
         Action refresh);
 }
 
+public sealed class ProductionPanelOrderContext
+{
+    public ProductionPanelOrderContext(
+        IProductionBillQuery billQuery,
+        IProductionBillOrderCommand billCommands,
+        IResourceEconomyContentCatalog catalog,
+        IProductionDependencyCatalog dependencies)
+    {
+        BillQuery = billQuery ?? throw new ArgumentNullException(nameof(billQuery));
+        BillCommands = billCommands
+            ?? throw new ArgumentNullException(nameof(billCommands));
+        Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        Dependencies = dependencies
+            ?? throw new ArgumentNullException(nameof(dependencies));
+    }
+
+    public IProductionBillQuery BillQuery { get; }
+    public IProductionBillOrderCommand BillCommands { get; }
+    public IResourceEconomyContentCatalog Catalog { get; }
+    public IProductionDependencyCatalog Dependencies { get; }
+}
+
+public sealed class ProductionPanelFacilityContext
+{
+    public ProductionPanelFacilityContext(
+        IProductionWorkshopRuntime workshops,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
+        IPowerInfrastructureQuery power)
+    {
+        Workshops = workshops
+            ?? throw new ArgumentNullException(nameof(workshops));
+        progressionRuntimes = progressionRuntimes
+            ?? throw new ArgumentNullException(nameof(progressionRuntimes));
+        Research = progressionRuntimes.BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(ProductionPanelFacilityContext)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
+        Power = power ?? throw new ArgumentNullException(nameof(power));
+    }
+
+    public IProductionWorkshopRuntime Workshops { get; }
+    public BlueprintResearchRuntime Research { get; }
+    public IPowerInfrastructureQuery Power { get; }
+}
+
+public sealed class ProductionPanelEnvironmentContext
+{
+    public ProductionPanelEnvironmentContext(
+        IFluidInfrastructureTransaction water,
+        IFluidWastewaterTransaction wastewater,
+        IEnvironmentalFieldQuery environment,
+        IDomainFailureLocalizer failureLocalizer,
+        IProductionUiTextQuery productionUiText)
+    {
+        Water = water ?? throw new ArgumentNullException(nameof(water));
+        Wastewater = wastewater
+            ?? throw new ArgumentNullException(nameof(wastewater));
+        Environment = environment
+            ?? throw new ArgumentNullException(nameof(environment));
+        FailureLocalizer = failureLocalizer
+            ?? throw new ArgumentNullException(nameof(failureLocalizer));
+        ProductionUiText = productionUiText
+            ?? throw new ArgumentNullException(nameof(productionUiText));
+    }
+
+    public IFluidInfrastructureTransaction Water { get; }
+    public IFluidWastewaterTransaction Wastewater { get; }
+    public IEnvironmentalFieldQuery Environment { get; }
+    public IDomainFailureLocalizer FailureLocalizer { get; }
+    public IProductionUiTextQuery ProductionUiText { get; }
+}
+
 public sealed class ProductionBuildingPanelPresenter :
     IProductionBuildingPanelPresenter
 {
-    private readonly IProductionBillRuntime bills;
+    private readonly IProductionBillQuery billQuery;
+    private readonly IProductionBillOrderCommand billCommands;
     private readonly IResourceEconomyContentCatalog catalog;
+    private readonly IProductionDependencyCatalog dependencies;
     private readonly IProductionWorkshopRuntime workshops;
-    private readonly IBlueprintResearchRuntimeProvider researchProvider;
-    private readonly IElectricalNetworkRuntime power;
-    private readonly IWaterNetworkRuntime water;
-    private readonly IWastewaterNetworkRuntime wastewater;
-    private readonly IEnvironmentalFieldRuntime environment;
+    private readonly BlueprintResearchRuntime research;
+    private readonly IPowerInfrastructureQuery power;
+    private readonly IFluidInfrastructureTransaction water;
+    private readonly IFluidWastewaterTransaction wastewater;
+    private readonly IEnvironmentalFieldQuery environment;
+    private readonly IDomainFailureLocalizer failureLocalizer;
+    private readonly ProductionRoutePanelPresenter routePanel;
     private readonly Dictionary<string, string> feedbackByFacility =
         new Dictionary<string, string>(StringComparer.Ordinal);
-    private GameObject worldLinkRoot;
-    private Material worldLinkMaterial;
+    private readonly ProductionWorkshopLinkRenderer worldLinks =
+        new ProductionWorkshopLinkRenderer();
 
     public ProductionBuildingPanelPresenter(
-        IProductionBillRuntime bills,
-        IResourceEconomyContentCatalog catalog,
-        IProductionWorkshopRuntime workshops = null,
-        IBlueprintResearchRuntimeProvider researchProvider = null,
-        IElectricalNetworkRuntime power = null,
-        IWaterNetworkRuntime water = null,
-        IWastewaterNetworkRuntime wastewater = null,
-        IEnvironmentalFieldRuntime environment = null)
+        ProductionPanelOrderContext orders,
+        ProductionPanelFacilityContext facility,
+        ProductionPanelEnvironmentContext surroundings)
     {
-        this.bills = bills ?? throw new ArgumentNullException(nameof(bills));
-        this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        this.workshops = workshops;
-        this.researchProvider = researchProvider;
-        this.power = power;
-        this.water = water;
-        this.wastewater = wastewater;
-        this.environment = environment;
+        orders = orders ?? throw new ArgumentNullException(nameof(orders));
+        facility = facility ?? throw new ArgumentNullException(nameof(facility));
+        surroundings = surroundings
+            ?? throw new ArgumentNullException(nameof(surroundings));
+        billQuery = orders.BillQuery;
+        billCommands = orders.BillCommands;
+        catalog = orders.Catalog;
+        dependencies = orders.Dependencies;
+        workshops = facility.Workshops;
+        research = facility.Research;
+        power = facility.Power;
+        water = surroundings.Water;
+        wastewater = surroundings.Wastewater;
+        environment = surroundings.Environment;
+        failureLocalizer = surroundings.FailureLocalizer;
+        routePanel = new ProductionRoutePanelPresenter(
+            billCommands,
+            catalog,
+            dependencies,
+            surroundings.ProductionUiText);
     }
 
     public void ShowWorldLinks(BuildableObject building)
     {
-        ClearWorldLinks();
-        if (building == null || workshops == null)
-        {
-            return;
-        }
-
-        IReadOnlyList<ProductionSupportLinkSnapshot> links;
-        if (building.BuildingData.GetProductionWorkstationAbility() != null)
-        {
-            links = workshops.GetLinks(building);
-        }
-        else if (workshops.TryGetLinkForSupport(
-                     building,
-                     out ProductionSupportLinkSnapshot supportLink))
-        {
-            links = new[] { supportLink };
-        }
-        else
-        {
-            return;
-        }
-
-        if (links.Count == 0)
-        {
-            return;
-        }
-
-        worldLinkRoot = new GameObject("ProductionWorkshopConnections");
-        for (int index = 0; index < links.Count; index++)
-        {
-            ProductionSupportLinkSnapshot link = links[index];
-            if (link?.Workstation == null || link.Support == null)
-            {
-                continue;
-            }
-
-            GameObject lineObject = new GameObject($"Connection_{index}");
-            lineObject.transform.SetParent(worldLinkRoot.transform, false);
-            LineRenderer line = lineObject.AddComponent<LineRenderer>();
-            line.useWorldSpace = true;
-            line.positionCount = 2;
-            line.startWidth = 0.07f;
-            line.endWidth = 0.07f;
-            line.numCapVertices = 3;
-            line.startColor = new Color(0.96f, 0.72f, 0.22f, 0.9f);
-            line.endColor = new Color(0.4f, 0.85f, 0.95f, 0.9f);
-            line.sortingOrder = 60;
-            Material material = GetWorldLinkMaterial();
-            if (material != null)
-            {
-                line.sharedMaterial = material;
-            }
-            Vector3 start = link.Workstation.transform.position;
-            Vector3 end = link.Support.transform.position;
-            start.z = -0.5f;
-            end.z = -0.5f;
-            line.SetPosition(0, start);
-            line.SetPosition(1, end);
-        }
+        worldLinks.Show(building, workshops);
     }
 
     public void ClearWorldLinks()
     {
-        if (worldLinkRoot == null)
-        {
-            return;
-        }
-
-        UnityEngine.Object.Destroy(worldLinkRoot);
-        worldLinkRoot = null;
+        worldLinks.Clear();
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -161,13 +179,13 @@ public sealed class ProductionBuildingPanelPresenter :
                 && building.MatchesProductionWorkstation(recipe))
             .OrderBy(recipe => recipe.DisplayName, StringComparer.Ordinal)
             .ToArray();
-        IReadOnlyList<ProductionBillSnapshot> queue = bills.GetBills(building);
+        IReadOnlyList<ProductionBillSnapshot> queue = billQuery.GetBills(building);
         if (recipes.Length == 0 && queue.Count == 0)
         {
             return created;
         }
 
-        AddText(
+        ProductionBuildingViewFactory.AddText(
             parent,
             "생산",
             font,
@@ -175,7 +193,7 @@ public sealed class ProductionBuildingPanelPresenter :
             DungeonUiTheme.TextPrimary,
             34f,
             created);
-        AddText(
+        ProductionBuildingViewFactory.AddText(
             parent,
             $"대기열 {queue.Count}건 · 조합 {recipes.Length}개",
             font,
@@ -189,7 +207,7 @@ public sealed class ProductionBuildingPanelPresenter :
                 out string feedback)
             && !string.IsNullOrWhiteSpace(feedback))
         {
-            AddText(
+            ProductionBuildingViewFactory.AddText(
                 parent,
                 feedback,
                 font,
@@ -202,19 +220,22 @@ public sealed class ProductionBuildingPanelPresenter :
         for (int index = 0; index < queue.Count; index++)
         {
             ProductionBillSnapshot bill = queue[index];
-            GameObject progress = CreateProgress(
+            GameObject progress = ProductionBuildingViewFactory.CreateProgress(
                 parent,
                 bill,
                 font,
-                index + 1);
+                index + 1,
+                bill.BlockedFailure.IsFailure
+                    ? failureLocalizer.Localize(bill.BlockedFailure)
+                    : string.Empty);
             created.Add(progress);
 
-            GameObject actions = CreateRow(
+            GameObject actions = ProductionBuildingViewFactory.CreateRow(
                 parent,
                 $"ProductionBillActions_{index}",
-                38f);
+                32f);
             created.Add(actions);
-            AddButton(
+            ProductionBuildingViewFactory.AddButton(
                 actions.transform,
                 bill.Status == ProductionBillStatus.Suspended
                     ? "재개"
@@ -223,30 +244,109 @@ public sealed class ProductionBuildingPanelPresenter :
                 bill.Status == ProductionBillStatus.Suspended,
                 () =>
                 {
-                    ProductionBillCommandResult result = bills.SetSuspended(
+                    ProductionBillCommandResult result = billCommands.SetSuspended(
                         bill.BillId,
                         bill.Status != ProductionBillStatus.Suspended);
-                    feedbackByFacility[facilityKey] = result.Message;
-                    showFeedback?.Invoke(result.Message);
+                    string message = FormatResult(result);
+                    feedbackByFacility[facilityKey] = message;
+                    showFeedback?.Invoke(message);
                     refresh?.Invoke();
                 });
-            AddButton(
+            ProductionBuildingViewFactory.AddButton(
                 actions.transform,
                 "취소",
                 font,
                 false,
                 () =>
                 {
-                    ProductionBillCommandResult result = bills.RemoveBill(
+                    ProductionBillCommandResult result = billCommands.RemoveBill(
                         bill.BillId,
                         returnMaterials: true);
-                    feedbackByFacility[facilityKey] = result.Message;
-                    showFeedback?.Invoke(result.Message);
+                    string message = FormatResult(result);
+                    feedbackByFacility[facilityKey] = message;
+                    showFeedback?.Invoke(message);
                     refresh?.Invoke();
                 });
+
+            GameObject modes = ProductionBuildingViewFactory.CreateRow(
+                parent,
+                $"ProductionBillModes_{index}",
+                32f);
+            created.Add(modes);
+            ProductionBuildingViewFactory.AddButton(
+                modes.transform,
+                "횟수",
+                font,
+                bill.Mode == ProductionOrderMode.RepeatCount,
+                () => ApplyResult(
+                    billCommands.SetOrderMode(
+                        bill.BillId,
+                        ProductionOrderMode.RepeatCount,
+                        Mathf.Max(1, bill.RemainingCycles)),
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                $"ProductionRepeatCount_{index}");
+            ProductionBuildingViewFactory.AddButton(
+                modes.transform,
+                "무한 반복",
+                font,
+                bill.Mode == ProductionOrderMode.RepeatForever,
+                () => ApplyResult(
+                    billCommands.SetOrderMode(
+                        bill.BillId,
+                        ProductionOrderMode.RepeatForever,
+                        0),
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                $"ProductionRepeatForever_{index}");
+            ProductionBuildingViewFactory.AddButton(
+                modes.transform,
+                bill.HasStockSensor
+                    ? bill.HasUnacknowledgedStockSensorUnlock
+                        ? "목표 재고 해금됨"
+                        : "목표 재고 10"
+                    : "감지반 설치",
+                font,
+                bill.Mode == ProductionOrderMode.MaintainStock,
+                () => ApplyResult(
+                    bill.HasStockSensor
+                        ? EnableTargetStock(building, bill.BillId)
+                        : billCommands.RequestStockSensorInstallation(building),
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                $"ProductionTargetStockTab_{index}");
+            ProductionBuildingViewFactory.AddButton(
+                modes.transform,
+                $"분기 {FormatDistributionMode(bill.DistributionMode)}",
+                font,
+                false,
+                () => ApplyResult(
+                    billCommands.SetDistributionPolicy(
+                        bill.BillId,
+                        NextDistributionMode(bill.DistributionMode),
+                        routePanel.BuildRoutePolicies(bill)),
+                    facilityKey,
+                    showFeedback,
+                    refresh),
+                $"ProductionDistributionMode_{index}");
+
+            routePanel.Render(
+                parent,
+                bill,
+                index,
+                font,
+                created,
+                result => ApplyResult(
+                    result,
+                    facilityKey,
+                    showFeedback,
+                    refresh));
         }
 
-        AddText(
+        ProductionBuildingViewFactory.AddText(
             parent,
             "생산 조합",
             font,
@@ -257,36 +357,39 @@ public sealed class ProductionBuildingPanelPresenter :
         for (int index = 0; index < recipes.Length; index++)
         {
             ProductionRecipeSO recipe = recipes[index];
-            GameObject recipeRow = CreateRow(
+            GameObject recipeRow = ProductionBuildingViewFactory.CreateRow(
                 parent,
                 $"ProductionRecipe_{index}",
                 82f);
             created.Add(recipeRow);
 
-            AddRecipeText(
+            ProductionBuildingViewFactory.AddRecipeText(
                 recipeRow.transform,
                 $"{recipe.DisplayName}\n"
                 + $"{FormatInputs(recipe)} → {FormatOutputs(recipe)}"
                 + $" · 작업 {recipe.RequiredWork:0.#}",
                 font);
-            AddRecipeProcessText(
+            ProductionBuildingViewFactory.AddRecipeProcessText(
                 recipeRow.transform,
-                FormatProcess(recipe) + FormatSupportState(building, recipe),
+                FormatProcess(recipe)
+                + FormatSupportState(building, recipe)
+                + FormatBranches(recipe),
                 font);
-            AddButton(
+            ProductionBuildingViewFactory.AddButton(
                 recipeRow.transform,
                 "1회 제작",
                 font,
                 false,
                 () =>
                 {
-                    ProductionBillCommandResult result = bills.AddBill(
+                    ProductionBillCommandResult result = billCommands.AddBill(
                         building,
                         recipe.RecipeId,
                         ProductionOrderMode.RepeatCount,
                         1);
-                    feedbackByFacility[facilityKey] = result.Message;
-                    showFeedback?.Invoke(result.Message);
+                    string message = FormatResult(result);
+                    feedbackByFacility[facilityKey] = message;
+                    showFeedback?.Invoke(message);
                     refresh?.Invoke();
                 });
         }
@@ -301,7 +404,7 @@ public sealed class ProductionBuildingPanelPresenter :
         TMP_FontAsset font,
         ICollection<GameObject> created)
     {
-        AddText(
+        ProductionBuildingViewFactory.AddText(
             parent,
             "연결 생산 설비",
             font,
@@ -314,7 +417,7 @@ public sealed class ProductionBuildingPanelPresenter :
                 support,
                 out ProductionSupportLinkSnapshot link))
         {
-            AddText(
+            ProductionBuildingViewFactory.AddText(
                 parent,
                 "같은 닫힌 방에 호환되는 주 작업대가 없습니다.",
                 font,
@@ -325,7 +428,7 @@ public sealed class ProductionBuildingPanelPresenter :
             return;
         }
 
-        AddText(
+        ProductionBuildingViewFactory.AddText(
             parent,
             $"연결: {link.Workstation.BuildingData?.objectName ?? link.WorkstationTag}",
             font,
@@ -336,7 +439,7 @@ public sealed class ProductionBuildingPanelPresenter :
         string features = string.Join(
             ", ",
             link.FeatureTags ?? Array.Empty<string>());
-        AddText(
+        ProductionBuildingViewFactory.AddText(
             parent,
             $"기능: {features}\n{FormatSupportUtilities(ability)}",
             font,
@@ -346,7 +449,7 @@ public sealed class ProductionBuildingPanelPresenter :
             created);
 
         string nodeId = IndustrialInfrastructureIdentity.GetNodeId(support);
-        ProductionBillSnapshot[] active = bills.GetBills(link.Workstation)
+        ProductionBillSnapshot[] active = billQuery.GetBills(link.Workstation)
             .Where(bill => string.Equals(
                 bill.OccupiedSupportNodeId,
                 nodeId,
@@ -354,7 +457,7 @@ public sealed class ProductionBuildingPanelPresenter :
             .ToArray();
         if (active.Length == 0)
         {
-            AddText(
+            ProductionBuildingViewFactory.AddText(
                 parent,
                 $"배치 용량 {ability.BatchCapacity} · 현재 비어 있음",
                 font,
@@ -367,41 +470,24 @@ public sealed class ProductionBuildingPanelPresenter :
 
         foreach (ProductionBillSnapshot batch in active)
         {
-            AddText(
+            string blockedMessage = batch.BlockedFailure.IsFailure
+                ? failureLocalizer.Localize(batch.BlockedFailure)
+                : string.Empty;
+            ProductionBuildingViewFactory.AddText(
                 parent,
                 $"{batch.RecipeName}: {batch.RemainingProcessingHours:0.#}시간 남음"
                 + $" · 건전도 {batch.BatchIntegrity:0.#}"
-                + (string.IsNullOrWhiteSpace(batch.BlockedReason)
+                + (string.IsNullOrWhiteSpace(blockedMessage)
                     ? string.Empty
-                    : $"\n{batch.BlockedReason}"),
+                    : $"\n{blockedMessage}"),
                 font,
                 14f,
-                string.IsNullOrWhiteSpace(batch.BlockedReason)
+                string.IsNullOrWhiteSpace(blockedMessage)
                     ? DungeonUiTheme.TextSecondary
                     : DungeonUiTheme.Warning,
                 44f,
                 created);
         }
-    }
-
-    private Material GetWorldLinkMaterial()
-    {
-        if (worldLinkMaterial != null)
-        {
-            return worldLinkMaterial;
-        }
-
-        Shader shader = Shader.Find(
-            "Universal Render Pipeline/2D/Sprite-Unlit-Default");
-        shader ??= Shader.Find("Sprites/Default");
-        if (shader != null)
-        {
-            worldLinkMaterial = new Material(shader)
-            {
-                name = "ProductionWorkshopConnectionMaterial"
-            };
-        }
-        return worldLinkMaterial;
     }
 
     private static string FormatSupportUtilities(
@@ -435,7 +521,7 @@ public sealed class ProductionBuildingPanelPresenter :
 
     private static string GetFacilityKey(BuildableObject building)
     {
-        return $"{building.id}:{building.centerPos.x}:{building.centerPos.y}";
+        return building.RequirePersistentInstanceId().Value;
     }
 
     private string FormatInputs(ProductionRecipeSO recipe)
@@ -479,10 +565,7 @@ public sealed class ProductionBuildingPanelPresenter :
         }
 
         if (!string.IsNullOrWhiteSpace(recipe.RequiredResearchId)
-            && (researchProvider == null
-                || !researchProvider.TryGetRuntime(
-                    out BlueprintResearchRuntime research)
-                || !research.State.Projects.IsCompleted(
+            && (!research.State.Projects.IsCompleted(
                     new ResearchProjectId(recipe.RequiredResearchId))))
         {
             return $"\n연구 부족: {recipe.RequiredResearchId}";
@@ -559,7 +642,7 @@ public sealed class ProductionBuildingPanelPresenter :
                     link.Support.BuildingData.GetProductionSupportAbility();
                 string nodeId =
                     IndustrialInfrastructureIdentity.GetNodeId(link.Support);
-                int occupied = bills.GetBills(building).Count(bill =>
+                int occupied = billQuery.GetBills(building).Count(bill =>
                     string.Equals(
                         bill.OccupiedSupportNodeId,
                         nodeId,
@@ -574,7 +657,6 @@ public sealed class ProductionBuildingPanelPresenter :
             BuildableObject temperatureTarget =
                 candidates.FirstOrDefault()?.Support;
             if (temperatureTarget != null
-                && environment != null
                 && environment.TryGetCell(
                     temperatureTarget.centerPos,
                     out EnvironmentalCellSnapshot cell))
@@ -677,222 +759,72 @@ public sealed class ProductionBuildingPanelPresenter :
         return labels.Length > 0 ? string.Join(" + ", labels) : "없음";
     }
 
-    private static GameObject CreateProgress(
-        Transform parent,
-        ProductionBillSnapshot bill,
-        TMP_FontAsset font,
-        int queueIndex)
+    private string FormatBranches(ProductionRecipeSO recipe)
     {
-        GameObject root = new GameObject(
-            $"ProductionBill_{queueIndex}",
-            typeof(RectTransform),
-            typeof(Image),
-            typeof(LayoutElement));
-        root.transform.SetParent(parent, false);
-        root.GetComponent<LayoutElement>().preferredHeight = 58f;
-        root.GetComponent<Image>().color = DungeonUiTheme.Panel;
-
-        GameObject fillObject = new GameObject(
-            "Fill",
-            typeof(RectTransform),
-            typeof(Image));
-        fillObject.transform.SetParent(root.transform, false);
-        RectTransform fillRect = fillObject.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        float visibleProgress = bill.Status == ProductionBillStatus.Processing
-            || bill.Status == ProductionBillStatus.WaitingForUtilities
-                ? bill.ProcessingProgressRatio
-                : bill.ProgressRatio;
-        fillRect.anchorMax = new Vector2(visibleProgress, 1f);
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
-        Image fill = fillObject.GetComponent<Image>();
-        fill.color = DungeonUiTheme.Accent;
-        fill.raycastTarget = false;
-
-        GameObject labelObject = new GameObject(
-            "Label",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI));
-        labelObject.transform.SetParent(root.transform, false);
-        RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-        labelRect.anchorMin = Vector2.zero;
-        labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = new Vector2(8f, 3f);
-        labelRect.offsetMax = new Vector2(-8f, -3f);
-        TMP_Text text = labelObject.GetComponent<TMP_Text>();
-        text.text = $"{queueIndex}. {bill.RecipeName} · "
-            + $"{FormatStatus(bill.Status)} · {bill.ProgressRatio:P0}"
-            + (string.IsNullOrWhiteSpace(bill.BlockedReason)
-                ? string.Empty
-                : $"\n{bill.BlockedReason}");
-        text.font = font;
-        text.fontSize = 15f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 10f;
-        text.fontSizeMax = 15f;
-        text.color = DungeonUiTheme.TextPrimary;
-        text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.raycastTarget = false;
-        return root;
-    }
-
-    private static string FormatStatus(ProductionBillStatus status)
-    {
-        return status switch
+        if (dependencies == null || recipe == null)
         {
-            ProductionBillStatus.WaitingForMaterials => "재료 운반 대기",
-            ProductionBillStatus.Ready => "작업 가능",
-            ProductionBillStatus.InProgress => "제작 중",
-            ProductionBillStatus.Suspended => "일시 중지",
-            ProductionBillStatus.Completed => "완료",
-            ProductionBillStatus.Cancelled => "취소됨",
-            ProductionBillStatus.WaitingForSupports => "연결 시설 대기",
-            ProductionBillStatus.WaitingForUtilities => "설비 대기",
-            ProductionBillStatus.Processing => "시간 공정 중",
-            ProductionBillStatus.WaitingForFinishing => "마감 작업 대기",
-            _ => status.ToString()
-        };
+            return string.Empty;
+        }
+
+        string[] branches = recipe.Outputs
+            .Where(output => output != null)
+            .SelectMany(output => dependencies.GetConsumers(output.ItemId))
+            .Where(link => link != null && link.IsRealConsumer)
+            .Select(link => string.IsNullOrWhiteSpace(link.displayName)
+                ? link.consumerId
+                : link.displayName)
+            .Distinct(StringComparer.Ordinal)
+            .Take(3)
+            .ToArray();
+        return branches.Length == 0
+            ? string.Empty
+            : $"\n분기: {string.Join(" · ", branches)}";
     }
 
-    private static GameObject CreateRow(
-        Transform parent,
-        string name,
-        float height)
+    private static ProductionDistributionMode NextDistributionMode(
+        ProductionDistributionMode mode) => mode switch
     {
-        GameObject row = new GameObject(
-            name,
-            typeof(RectTransform),
-            typeof(HorizontalLayoutGroup),
-            typeof(LayoutElement));
-        row.transform.SetParent(parent, false);
-        HorizontalLayoutGroup layout = row.GetComponent<HorizontalLayoutGroup>();
-        layout.spacing = 6f;
-        layout.childAlignment = TextAnchor.MiddleLeft;
-        layout.childControlWidth = false;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = true;
-        row.GetComponent<LayoutElement>().preferredHeight = height;
-        return row;
-    }
+        ProductionDistributionMode.DemandWeighted =>
+            ProductionDistributionMode.StrictPriority,
+        ProductionDistributionMode.StrictPriority =>
+            ProductionDistributionMode.FixedRatio,
+        _ => ProductionDistributionMode.DemandWeighted
+    };
 
-    private static void AddRecipeText(
-        Transform parent,
-        string value,
-        TMP_FontAsset font)
+    private static string FormatDistributionMode(
+        ProductionDistributionMode mode) => mode switch
     {
-        GameObject textObject = new GameObject(
-            "ProductionRecipeLabel",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI),
-            typeof(LayoutElement));
-        textObject.transform.SetParent(parent, false);
-        textObject.GetComponent<LayoutElement>().preferredWidth = 330f;
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = value;
-        text.font = font;
-        text.fontSize = 14f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 10f;
-        text.fontSizeMax = 14f;
-        text.color = DungeonUiTheme.TextPrimary;
-        text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.raycastTarget = false;
-    }
+        ProductionDistributionMode.StrictPriority => "우선",
+        ProductionDistributionMode.FixedRatio => "비율",
+        _ => "수요"
+    };
 
-    private static void AddRecipeProcessText(
-        Transform parent,
-        string value,
-        TMP_FontAsset font)
+    private void ApplyResult(
+        ProductionBillCommandResult result,
+        string facilityKey,
+        Action<string> showFeedback,
+        Action refresh)
     {
-        GameObject textObject = new GameObject(
-            "ProductionProcessLabel",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI),
-            typeof(LayoutElement));
-        textObject.transform.SetParent(parent, false);
-        textObject.GetComponent<LayoutElement>().preferredWidth = 245f;
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = value;
-        text.font = font;
-        text.fontSize = 13f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 9f;
-        text.fontSizeMax = 13f;
-        text.color = DungeonUiTheme.TextSecondary;
-        text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.raycastTarget = false;
+        string message = FormatResult(result);
+        feedbackByFacility[facilityKey] = message;
+        showFeedback?.Invoke(message);
+        refresh?.Invoke();
     }
 
-    private static void AddButton(
-        Transform parent,
-        string label,
-        TMP_FontAsset font,
-        bool selected,
-        Action action)
+    private string FormatResult(ProductionBillCommandResult result) =>
+        result.Succeeded
+            ? result.Outcome.ToString()
+            : failureLocalizer.Localize(result.Failure);
+
+    private ProductionBillCommandResult EnableTargetStock(
+        BuildableObject building,
+        ProductionBillId billId)
     {
-        GameObject buttonObject = new GameObject(
-            "ProductionButton",
-            typeof(RectTransform),
-            typeof(Image),
-            typeof(Button),
-            typeof(LayoutElement));
-        buttonObject.transform.SetParent(parent, false);
-        buttonObject.GetComponent<LayoutElement>().preferredWidth = 118f;
-        Button button = buttonObject.GetComponent<Button>();
-        DungeonUiTheme.StyleButton(button, selected);
-        button.onClick.AddListener(() => action?.Invoke());
-
-        GameObject textObject = new GameObject(
-            "Label",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(buttonObject.transform, false);
-        RectTransform rect = textObject.GetComponent<RectTransform>();
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = new Vector2(5f, 2f);
-        rect.offsetMax = new Vector2(-5f, -2f);
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = label;
-        text.font = font;
-        text.fontSize = 14f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 10f;
-        text.fontSizeMax = 14f;
-        text.color = DungeonUiTheme.TextPrimary;
-        text.alignment = TextAlignmentOptions.Center;
-        text.raycastTarget = false;
+        billCommands.AcknowledgeStockSensorUnlock(building);
+        return billCommands.SetOrderMode(
+            billId,
+            ProductionOrderMode.MaintainStock,
+            10);
     }
 
-    private static void AddText(
-        Transform parent,
-        string value,
-        TMP_FontAsset font,
-        float fontSize,
-        Color color,
-        float height,
-        ICollection<GameObject> created)
-    {
-        GameObject textObject = new GameObject(
-            "ProductionText",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI),
-            typeof(LayoutElement));
-        textObject.transform.SetParent(parent, false);
-        textObject.GetComponent<LayoutElement>().preferredHeight = height;
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = value;
-        text.font = font;
-        text.fontSize = fontSize;
-        text.color = color;
-        text.alignment = TextAlignmentOptions.MidlineLeft;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.raycastTarget = false;
-        created.Add(textObject);
-    }
 }

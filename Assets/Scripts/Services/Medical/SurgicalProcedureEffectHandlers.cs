@@ -13,22 +13,24 @@ public abstract class SurgicalProcedureEffectHandler<T> :
         SurgeryOrder order,
         SurgicalProcedureEffect effect,
         BuildableObject facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
         if (effect is not T typed)
         {
-            failureReason = $"수술 효과 형식이 맞지 않습니다: {effect?.GetType().Name}";
+            failure = new DomainFailure(
+                FailureCode.SurgeryEffectFailed,
+                effect?.GetType().Name ?? string.Empty);
             return false;
         }
 
-        return ApplyTyped(order, typed, facility, out failureReason);
+        return ApplyTyped(order, typed, facility, out failure);
     }
 
     protected abstract bool ApplyTyped(
         SurgeryOrder order,
         T effect,
         BuildableObject facility,
-        out string failureReason);
+        out DomainFailure failure);
 }
 
 public sealed class HealSurgicalNodeEffectHandler :
@@ -56,9 +58,9 @@ public sealed class HealSurgicalNodeEffectHandler :
         SurgeryOrder order,
         HealSurgicalNodeEffect effect,
         BuildableObject facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         CharacterActor character = SurgicalSubjectResolver.FindCharacter(
             characters,
             order?.subject?.subjectId);
@@ -83,8 +85,42 @@ public sealed class HealSurgicalNodeEffectHandler :
                 effect.infectionReduction);
         }
 
-        failureReason = "치료할 수술 대상을 찾을 수 없습니다.";
+        failure = new DomainFailure(
+            FailureCode.SurgeryLivingSubjectUnavailable,
+            order?.subject?.subjectId ?? string.Empty);
         return false;
+    }
+}
+
+public sealed class MaintainSurgicalPartEffectHandler :
+    SurgicalProcedureEffectHandler<MaintainSurgicalPartEffect>
+{
+    private readonly ICharacterWorldQuery characters;
+    private readonly IAnatomyHealthRuntime anatomy;
+
+    public MaintainSurgicalPartEffectHandler(
+        ICharacterWorldQuery characters,
+        IAnatomyHealthRuntime anatomy)
+    {
+        this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
+        this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
+    }
+
+    protected override bool ApplyTyped(
+        SurgeryOrder order,
+        MaintainSurgicalPartEffect effect,
+        BuildableObject facility,
+        out DomainFailure failure)
+    {
+        CharacterActor character = SurgicalSubjectResolver.FindCharacter(
+            characters,
+            order?.subject?.subjectId);
+        return anatomy.TryMaintainNode(
+            character,
+            order?.targetNodeId,
+            effect.durability,
+            effect.contaminationReduction,
+            out failure);
     }
 }
 
@@ -120,12 +156,12 @@ public sealed class RemoveSurgicalNodeEffectHandler :
         SurgeryOrder order,
         RemoveSurgicalNodeEffect effect,
         BuildableObject facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (order?.subject == null || facility == null)
         {
-            failureReason = "적출 대상 또는 해부 시설이 없습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryFacilityOrProcedureMissing);
             return false;
         }
 
@@ -136,7 +172,10 @@ public sealed class RemoveSurgicalNodeEffectHandler :
         {
             if (extractionLedger.IsExtracted(order.subject.subjectId, nodeId))
             {
-                failureReason = "이미 적출한 부위입니다.";
+                failure = new DomainFailure(
+                    FailureCode.SurgeryNodeAlreadyExtracted,
+                    order.subject.subjectId,
+                    nodeId);
                 return false;
             }
 
@@ -148,7 +187,7 @@ public sealed class RemoveSurgicalNodeEffectHandler :
                     0.75f,
                     outputPosition,
                     out _,
-                    out failureReason))
+                    out failure))
             {
                 return false;
             }
@@ -156,7 +195,7 @@ public sealed class RemoveSurgicalNodeEffectHandler :
             return extractionLedger.TryMarkExtracted(
                 order.subject.subjectId,
                 nodeId,
-                out failureReason);
+                out failure);
         }
 
         CharacterActor character = SurgicalSubjectResolver.FindCharacter(
@@ -173,20 +212,25 @@ public sealed class RemoveSurgicalNodeEffectHandler :
                     character,
                     nodeId,
                     out _,
-                    out failureReason))
+                    out failure))
             {
                 return false;
             }
 
-            return !effect.createExtractedPart
-                || parts.TryCreateExtractedPart(
-                    order.subject,
-                    nodeId,
-                    SurgicalPartKind.NaturalOrgan,
-                    quality,
-                    outputPosition,
-                    out _,
-                    out failureReason);
+            if (!effect.createExtractedPart)
+            {
+                return true;
+            }
+
+            bool created = parts.TryCreateExtractedPart(
+                order.subject,
+                nodeId,
+                SurgicalPartKind.NaturalOrgan,
+                quality,
+                outputPosition,
+                out _,
+                out failure);
+            return created;
         }
 
         WildlifeActor animal = SurgicalSubjectResolver.FindWildlife(
@@ -194,7 +238,9 @@ public sealed class RemoveSurgicalNodeEffectHandler :
             order.subject.subjectId);
         if (animal == null || !animal.IsAlive)
         {
-            failureReason = "적출할 생체 대상을 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryWildlifeSubjectUnavailable,
+                order.subject.subjectId);
             return false;
         }
 
@@ -209,7 +255,7 @@ public sealed class RemoveSurgicalNodeEffectHandler :
                 animal,
                 nodeId,
                 out _,
-                out failureReason))
+                out failure))
         {
             return false;
         }
@@ -222,7 +268,7 @@ public sealed class RemoveSurgicalNodeEffectHandler :
                 animalQuality,
                 outputPosition,
                 out _,
-                out failureReason))
+                out failure))
         {
             return false;
         }
@@ -259,9 +305,9 @@ public sealed class InstallSurgicalPartEffectHandler :
         SurgeryOrder order,
         InstallSurgicalPartEffect effect,
         BuildableObject facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         CharacterActor character = SurgicalSubjectResolver.FindCharacter(
             characters,
             order?.subject?.subjectId);
@@ -272,7 +318,9 @@ public sealed class InstallSurgicalPartEffectHandler :
             : null;
         if (character == null && animal == null)
         {
-            failureReason = "이식할 환자를 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryLivingSubjectUnavailable,
+                order?.subject?.subjectId ?? string.Empty);
             return false;
         }
 
@@ -280,7 +328,9 @@ public sealed class InstallSurgicalPartEffectHandler :
                 order.selectedPartInstanceId,
                 out SurgicalPartInstance selected))
         {
-            failureReason = "선택한 장기 또는 보철을 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryPartUnavailable,
+                order?.selectedPartInstanceId ?? string.Empty);
             return false;
         }
 
@@ -295,7 +345,9 @@ public sealed class InstallSurgicalPartEffectHandler :
                     StringComparison.Ordinal));
         if (current == null)
         {
-            failureReason = "이식할 신체 부위를 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryTargetNodeMissing,
+                order.targetNodeId);
             return false;
         }
 
@@ -306,7 +358,7 @@ public sealed class InstallSurgicalPartEffectHandler :
                     ? character.Identity?.PersistentId
                     : animal.WildlifeId,
                 out SurgicalPartInstance consumed,
-                out failureReason))
+                out failure))
         {
             return false;
         }
@@ -323,7 +375,7 @@ public sealed class InstallSurgicalPartEffectHandler :
                 consumed.partInstanceId,
                 effect.partKind,
                 efficiency,
-                out failureReason);
+                out failure);
         }
 
         if (current.missing)
@@ -334,17 +386,18 @@ public sealed class InstallSurgicalPartEffectHandler :
                 consumed.partInstanceId,
                 effect.partKind,
                 efficiency,
-                out failureReason);
+                out failure);
         }
 
-        return anatomy.TryReplaceNodePart(
+        bool replaced = anatomy.TryReplaceNodePart(
             character,
             order.targetNodeId,
             consumed.partInstanceId,
             effect.partKind,
             efficiency,
             out _,
-            out failureReason);
+            out failure);
+        return replaced;
     }
 }
 
@@ -377,7 +430,7 @@ public sealed class ApplySurgicalBurdenEffectHandler :
         SurgeryOrder order,
         ApplySurgicalBurdenEffect effect,
         BuildableObject facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
         SurgicalFacilitySnapshot snapshot = facilities.Evaluate(
             facility,
@@ -419,7 +472,7 @@ public sealed class ApplySurgicalBurdenEffectHandler :
                 rejection,
                 mutation,
                 effect.infection,
-                out failureReason);
+                out failure);
         }
 
         WildlifeActor animal = SurgicalSubjectResolver.FindWildlife(
@@ -431,7 +484,7 @@ public sealed class ApplySurgicalBurdenEffectHandler :
             rejection,
             mutation,
             effect.infection,
-            out failureReason);
+            out failure);
     }
 }
 
@@ -460,7 +513,7 @@ public sealed class ReduceSurgicalBurdenEffectHandler :
         SurgeryOrder order,
         ReduceSurgicalBurdenEffect effect,
         BuildableObject facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
         CharacterActor character = SurgicalSubjectResolver.FindCharacter(
             characters,
@@ -473,7 +526,7 @@ public sealed class ReduceSurgicalBurdenEffectHandler :
                 effect.rejection,
                 effect.mutation,
                 effect.infection,
-                out failureReason);
+                out failure);
         }
 
         WildlifeActor animal = SurgicalSubjectResolver.FindWildlife(
@@ -485,7 +538,7 @@ public sealed class ReduceSurgicalBurdenEffectHandler :
             effect.rejection,
             effect.mutation,
             effect.infection,
-            out failureReason);
+            out failure);
     }
 }
 

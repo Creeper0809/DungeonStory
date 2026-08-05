@@ -42,142 +42,7 @@ public readonly struct CharacterMentalInstabilityBurdenRequestedEvent
     public float Amount { get; }
 }
 
-public readonly struct CharacterDeprivationDiagnosticsSnapshot
-{
-    public CharacterDeprivationDiagnosticsSnapshot(
-        int safeReliefRequests,
-        int safeReliefPlanFailures,
-        int safeReliefActionsStarted,
-        int safeReliefStoredStackPlans,
-        int safeReliefMoveFailures,
-        int safeReliefBreakdownMoveFailures,
-        int safeReliefBlockedMoveFailures,
-        int safeReliefOtherMoveFailures,
-        int safeReliefStaleStartFailures,
-        int safeReliefWallBlockedFailures,
-        int safeReliefDoorDeniedFailures,
-        int safeReliefDefenseReservationFailures,
-        int safeReliefTraversalChangedFailures,
-        int safeReliefArrivals,
-        int safeReliefInteractionAttempts,
-        int safeReliefSuccesses,
-        int safeReliefRunningActions,
-        int safeReliefActionsFinished,
-        long safeReliefPlannedPathSteps,
-        int safeReliefMaximumPlannedPathSteps,
-        float safeReliefCompletedDurationSeconds,
-        float safeReliefMaximumDurationSeconds,
-        int safeReliefCancelledMoveFailures,
-        int safeReliefMissingPathFailures,
-        int safeReliefMissingMovementHandlerFailures,
-        int safeReliefGridUnavailableFailures,
-        int safeReliefInvalidSpeedFailures,
-        int safeReliefNoFailureReasonFailures,
-        int safeReliefActorDeadMoveFailures,
-        int safeReliefActorMissingMoveFailures,
-        int safeReliefCrossFloorTargetPlans,
-        int safeReliefPathsWithVerticalTraversal,
-        long safeReliefVerticalTraversalSteps,
-        int desperateDrinkAttempts,
-        int desperateDrinkStackMoveFailures,
-        int desperateDrinkStackArrivals,
-        int desperateDrinkStackConsumptions)
-    {
-        SafeReliefRequests = safeReliefRequests;
-        SafeReliefPlanFailures = safeReliefPlanFailures;
-        SafeReliefActionsStarted = safeReliefActionsStarted;
-        SafeReliefStoredStackPlans = safeReliefStoredStackPlans;
-        SafeReliefMoveFailures = safeReliefMoveFailures;
-        SafeReliefBreakdownMoveFailures = safeReliefBreakdownMoveFailures;
-        SafeReliefBlockedMoveFailures = safeReliefBlockedMoveFailures;
-        SafeReliefOtherMoveFailures = safeReliefOtherMoveFailures;
-        SafeReliefStaleStartFailures = safeReliefStaleStartFailures;
-        SafeReliefWallBlockedFailures = safeReliefWallBlockedFailures;
-        SafeReliefDoorDeniedFailures = safeReliefDoorDeniedFailures;
-        SafeReliefDefenseReservationFailures =
-            safeReliefDefenseReservationFailures;
-        SafeReliefTraversalChangedFailures =
-            safeReliefTraversalChangedFailures;
-        SafeReliefArrivals = safeReliefArrivals;
-        SafeReliefInteractionAttempts = safeReliefInteractionAttempts;
-        SafeReliefSuccesses = safeReliefSuccesses;
-        SafeReliefRunningActions = safeReliefRunningActions;
-        SafeReliefActionsFinished = safeReliefActionsFinished;
-        SafeReliefPlannedPathSteps = safeReliefPlannedPathSteps;
-        SafeReliefMaximumPlannedPathSteps =
-            safeReliefMaximumPlannedPathSteps;
-        SafeReliefCompletedDurationSeconds =
-            safeReliefCompletedDurationSeconds;
-        SafeReliefMaximumDurationSeconds =
-            safeReliefMaximumDurationSeconds;
-        SafeReliefCancelledMoveFailures =
-            safeReliefCancelledMoveFailures;
-        SafeReliefMissingPathFailures =
-            safeReliefMissingPathFailures;
-        SafeReliefMissingMovementHandlerFailures =
-            safeReliefMissingMovementHandlerFailures;
-        SafeReliefGridUnavailableFailures =
-            safeReliefGridUnavailableFailures;
-        SafeReliefInvalidSpeedFailures =
-            safeReliefInvalidSpeedFailures;
-        SafeReliefNoFailureReasonFailures =
-            safeReliefNoFailureReasonFailures;
-        SafeReliefActorDeadMoveFailures =
-            safeReliefActorDeadMoveFailures;
-        SafeReliefActorMissingMoveFailures =
-            safeReliefActorMissingMoveFailures;
-        SafeReliefCrossFloorTargetPlans =
-            safeReliefCrossFloorTargetPlans;
-        SafeReliefPathsWithVerticalTraversal =
-            safeReliefPathsWithVerticalTraversal;
-        SafeReliefVerticalTraversalSteps =
-            safeReliefVerticalTraversalSteps;
-        DesperateDrinkAttempts = desperateDrinkAttempts;
-        DesperateDrinkStackMoveFailures = desperateDrinkStackMoveFailures;
-        DesperateDrinkStackArrivals = desperateDrinkStackArrivals;
-        DesperateDrinkStackConsumptions = desperateDrinkStackConsumptions;
-    }
-
-    public int SafeReliefRequests { get; }
-    public int SafeReliefPlanFailures { get; }
-    public int SafeReliefActionsStarted { get; }
-    public int SafeReliefStoredStackPlans { get; }
-    public int SafeReliefMoveFailures { get; }
-    public int SafeReliefBreakdownMoveFailures { get; }
-    public int SafeReliefBlockedMoveFailures { get; }
-    public int SafeReliefOtherMoveFailures { get; }
-    public int SafeReliefStaleStartFailures { get; }
-    public int SafeReliefWallBlockedFailures { get; }
-    public int SafeReliefDoorDeniedFailures { get; }
-    public int SafeReliefDefenseReservationFailures { get; }
-    public int SafeReliefTraversalChangedFailures { get; }
-    public int SafeReliefArrivals { get; }
-    public int SafeReliefInteractionAttempts { get; }
-    public int SafeReliefSuccesses { get; }
-    public int SafeReliefRunningActions { get; }
-    public int SafeReliefActionsFinished { get; }
-    public long SafeReliefPlannedPathSteps { get; }
-    public int SafeReliefMaximumPlannedPathSteps { get; }
-    public float SafeReliefCompletedDurationSeconds { get; }
-    public float SafeReliefMaximumDurationSeconds { get; }
-    public int SafeReliefCancelledMoveFailures { get; }
-    public int SafeReliefMissingPathFailures { get; }
-    public int SafeReliefMissingMovementHandlerFailures { get; }
-    public int SafeReliefGridUnavailableFailures { get; }
-    public int SafeReliefInvalidSpeedFailures { get; }
-    public int SafeReliefNoFailureReasonFailures { get; }
-    public int SafeReliefActorDeadMoveFailures { get; }
-    public int SafeReliefActorMissingMoveFailures { get; }
-    public int SafeReliefCrossFloorTargetPlans { get; }
-    public int SafeReliefPathsWithVerticalTraversal { get; }
-    public long SafeReliefVerticalTraversalSteps { get; }
-    public int DesperateDrinkAttempts { get; }
-    public int DesperateDrinkStackMoveFailures { get; }
-    public int DesperateDrinkStackArrivals { get; }
-    public int DesperateDrinkStackConsumptions { get; }
-}
-
-public interface ICharacterDeprivationRuntime
+public interface ICharacterDeprivationQuery
 {
     bool HasActiveBreakdown(CharacterActor actor);
     bool HasBreakdownKind(CharacterActor actor, CharacterBreakdownKind kind);
@@ -185,16 +50,36 @@ public interface ICharacterDeprivationRuntime
         CharacterActor actor,
         out CharacterDeprivationDisplayState displayState);
     bool TryGetSnapshot(CharacterActor actor, out CharacterDeprivationSnapshot snapshot);
-    bool TryRunActiveBreakdown(CharacterActor actor, out string status);
+    bool NeedsRoutineDrink(CharacterActor actor, out string reason);
     bool NeedsSafeEmergencyRelief(CharacterActor actor, out string reason);
-    bool TryRunSafeEmergencyRelief(CharacterActor actor, out string status);
     CharacterDeprivationDiagnosticsSnapshot GetDiagnostics();
-    void ResetDiagnostics();
-    void BeginBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind);
     bool IsSuppressible(CharacterActor actor);
-    bool ApplySuppression(CharacterActor actor, float amount, out bool ended);
     float GetMoveSpeedMultiplier(CharacterActor actor);
     float GetWorkSpeedMultiplier(CharacterActor actor);
+}
+
+public interface ICharacterDeprivationCommand
+{
+    bool TryRunActiveBreakdown(CharacterActor actor, out string status);
+    bool TryRunRoutineDrink(CharacterActor actor, out string status);
+    bool TryRunSafeEmergencyRelief(CharacterActor actor, out string status);
+    void ResetDiagnostics();
+    void BeginBreakdownAction(CharacterActor actor, CharacterBreakdownKind kind);
+    bool ApplySuppression(CharacterActor actor, float amount, out bool ended);
+    bool DebugForceBreakdown(CharacterActor actor, CharacterBreakdownKind kind);
+    bool DebugClearBreakdown(CharacterActor actor);
+}
+
+public interface ICharacterDeprivationPersistence
+{
+    DungeonDarkSurvivalSaveData Capture();
+    DarkSurvivalRestoreCandidate BuildRestoreCandidate(
+        DungeonDarkSurvivalSaveData saveData);
+    void PublishRestoreCandidate(DarkSurvivalRestoreCandidate candidate);
+}
+
+public interface ICharacterDeprivationIncidentSink
+{
     void AddInfectionBurden(CharacterActor actor, float amount);
     void ReduceInfectionBurden(CharacterActor actor, float amount);
     void RecordTaboo(CharacterActor actor, string memory);
@@ -203,8 +88,95 @@ public interface ICharacterDeprivationRuntime
         Vector2Int position,
         string memory,
         float moodPenalty);
-    DungeonDarkSurvivalSaveData Capture();
-    void Restore(DungeonDarkSurvivalSaveData saveData);
-    bool DebugForceBreakdown(CharacterActor actor, CharacterBreakdownKind kind);
-    bool DebugClearBreakdown(CharacterActor actor);
+}
+
+public interface ICharacterDeprivationRuntime :
+    ICharacterDeprivationQuery,
+    ICharacterDeprivationCommand,
+    ICharacterDeprivationPersistence,
+    ICharacterDeprivationIncidentSink
+{
+}
+
+public sealed class NoCharacterDeprivationBoundary :
+    ICharacterDeprivationQuery,
+    ICharacterDeprivationCommand
+{
+    public static readonly NoCharacterDeprivationBoundary Instance = new();
+
+    private NoCharacterDeprivationBoundary()
+    {
+    }
+
+    public bool HasActiveBreakdown(CharacterActor actor) => false;
+    public bool HasBreakdownKind(
+        CharacterActor actor,
+        CharacterBreakdownKind kind) => false;
+    public bool TryGetDisplayState(
+        CharacterActor actor,
+        out CharacterDeprivationDisplayState displayState)
+    {
+        displayState = default;
+        return false;
+    }
+    public bool TryGetSnapshot(
+        CharacterActor actor,
+        out CharacterDeprivationSnapshot snapshot)
+    {
+        snapshot = default;
+        return false;
+    }
+    public bool NeedsRoutineDrink(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public bool NeedsSafeEmergencyRelief(
+        CharacterActor actor,
+        out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public CharacterDeprivationDiagnosticsSnapshot GetDiagnostics() => default;
+    public bool IsSuppressible(CharacterActor actor) => false;
+    public float GetMoveSpeedMultiplier(CharacterActor actor) => 1f;
+    public float GetWorkSpeedMultiplier(CharacterActor actor) => 1f;
+    public bool TryRunActiveBreakdown(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunRoutineDrink(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public bool TryRunSafeEmergencyRelief(
+        CharacterActor actor,
+        out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
+    public void ResetDiagnostics()
+    {
+    }
+    public void BeginBreakdownAction(
+        CharacterActor actor,
+        CharacterBreakdownKind kind)
+    {
+    }
+    public bool ApplySuppression(
+        CharacterActor actor,
+        float amount,
+        out bool ended)
+    {
+        ended = false;
+        return false;
+    }
+    public bool DebugForceBreakdown(
+        CharacterActor actor,
+        CharacterBreakdownKind kind) => false;
+    public bool DebugClearBreakdown(CharacterActor actor) => false;
 }

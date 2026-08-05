@@ -230,14 +230,6 @@ public sealed class CharacterSkillSystemSettingsSO : ScriptableObject
         }
     }
 
-    public static CharacterSkillSystemSettingsSO CreateRuntimeDefaults()
-    {
-        CharacterSkillSystemSettingsSO settings = CreateInstance<CharacterSkillSystemSettingsSO>();
-        settings.hideFlags = HideFlags.HideAndDontSave;
-        settings.EnsureDefaults();
-        return settings;
-    }
-
     private static List<CharacterPotentialRarityProfile> CreateDefaultRarityProfiles()
     {
         return new List<CharacterPotentialRarityProfile>
@@ -391,29 +383,16 @@ public interface ICharacterSkillSystemSettingsProvider
 
 public sealed class ResourceCharacterSkillSystemSettingsProvider : ICharacterSkillSystemSettingsProvider
 {
-    private const string SettingsResourcePath = "SO/Character/CharacterSkillSystemSettings";
+    private readonly IGameContentCatalog contentCatalog;
 
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
-    private CharacterSkillSystemSettingsSO settings;
-
-    public ResourceCharacterSkillSystemSettingsProvider(IResourcesAssetLoader resourcesAssetLoader = null)
+    public ResourceCharacterSkillSystemSettingsProvider(IGameContentCatalog contentCatalog)
     {
-        this.resourcesAssetLoader = resourcesAssetLoader ?? new UnityResourcesAssetLoader();
+        this.contentCatalog = contentCatalog
+            ?? throw new ArgumentNullException(nameof(contentCatalog));
     }
 
-    public CharacterSkillSystemSettingsSO Settings
-    {
-        get
-        {
-            if (settings == null)
-            {
-                settings = resourcesAssetLoader.LoadOptional<CharacterSkillSystemSettingsSO>(
-                        SettingsResourcePath)
-                    ?? CharacterSkillSystemSettingsSO.CreateRuntimeDefaults();
-                settings.EnsureDefaults();
-            }
-
-            return settings;
-        }
-    }
+    public CharacterSkillSystemSettingsSO Settings =>
+        contentCatalog.CharacterSkillSettings
+        ?? throw new InvalidOperationException(
+            "Game content catalog has no character-skill settings.");
 }

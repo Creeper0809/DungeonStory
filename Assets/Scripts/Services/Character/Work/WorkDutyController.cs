@@ -7,14 +7,19 @@ public sealed class WorkDutyController
     private static readonly WaitForSeconds WorkCheckDelay = new WaitForSeconds(1f);
 
     private readonly AbilityWork work;
+    private readonly ICharacterNeedDefinitionCatalog needDefinitionCatalog;
     private AbilityWork.DutyState dutyState = AbilityWork.DutyState.OnDuty;
     private float offDutyStartedAt = float.NegativeInfinity;
     private bool restProtectionActive;
     private float restProtectionStartedAt = float.NegativeInfinity;
 
-    public WorkDutyController(AbilityWork work)
+    public WorkDutyController(
+        AbilityWork work,
+        ICharacterNeedDefinitionCatalog needDefinitionCatalog)
     {
-        this.work = work;
+        this.work = work ?? throw new System.ArgumentNullException(nameof(work));
+        this.needDefinitionCatalog = needDefinitionCatalog
+            ?? throw new System.ArgumentNullException(nameof(needDefinitionCatalog));
     }
 
     public AbilityWork.DutyState CurrentState => dutyState;
@@ -29,7 +34,7 @@ public sealed class WorkDutyController
             return;
         }
 
-        foreach (CharacterNeedDefinition definition in CharacterNeedCatalog.All)
+        foreach (CharacterNeedDefinition definition in needDefinitionCatalog.All)
         {
             EnsureStatAtLeast(definition.Condition, definition.WorkerInitialValue);
         }
@@ -277,7 +282,13 @@ public sealed class WorkDutyController
         CharacterStats stats = GetWorkerStats();
         if (stats == null) return;
 
-        if (sleep != 0f) stats.ChangesStat(CharacterCondition.SLEEP, sleep);
+        if (sleep != 0f)
+        {
+            stats.RecoverNeed(
+                CharacterCondition.SLEEP,
+                sleep,
+                CharacterNeedRecoverySource.Rest);
+        }
         if (mood != 0f)
         {
             stats.ApplyMoodFactor(
@@ -288,9 +299,27 @@ public sealed class WorkDutyController
                 3);
         }
         if (fun != 0f) stats.ChangesStat(CharacterCondition.FUN, fun);
-        if (hunger != 0f) stats.ChangesStat(CharacterCondition.HUNGER, hunger);
-        if (excretion != 0f) stats.ChangesStat(CharacterCondition.EXCRETION, excretion);
-        if (hygiene != 0f) stats.ChangesStat(CharacterCondition.HYGIENE, hygiene);
+        if (hunger != 0f)
+        {
+            stats.RecoverNeed(
+                CharacterCondition.HUNGER,
+                hunger,
+                CharacterNeedRecoverySource.Meal);
+        }
+        if (excretion != 0f)
+        {
+            stats.RecoverNeed(
+                CharacterCondition.EXCRETION,
+                excretion,
+                CharacterNeedRecoverySource.Toilet);
+        }
+        if (hygiene != 0f)
+        {
+            stats.RecoverNeed(
+                CharacterCondition.HYGIENE,
+                hygiene,
+                CharacterNeedRecoverySource.Hygiene);
+        }
     }
 
     public void ApplyWorkFatigueTick()
@@ -298,15 +327,13 @@ public sealed class WorkDutyController
         CharacterStats stats = GetWorkerStats();
         if (stats == null) return;
 
-        stats.ChangesStat(CharacterCondition.SLEEP, -work.SleepDrainPerWorkTick);
+        stats.ApplyWorkNeedDepletion();
         stats.ApplyMoodFactor(
             "work:fatigue",
             "계속된 작업",
             -work.MoodDrainPerWorkTick,
             90f,
             8);
-        stats.ChangesStat(CharacterCondition.EXCRETION, -0.35f);
-        stats.ChangesStat(CharacterCondition.HYGIENE, -0.2f);
     }
 
     public IEnumerator CheckActionWork(int runId)

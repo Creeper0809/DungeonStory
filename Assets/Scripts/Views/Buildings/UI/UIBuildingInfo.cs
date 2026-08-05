@@ -9,6 +9,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using VContainer;
+using static BuildingInfoActionViewFactory;
 
 public class UIBuildingInfo : SerializedMonoBehaviour
 {
@@ -45,6 +46,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
     private string craftStatusMessage = string.Empty;
     private GameObject contextActionsPanel;
     private RectTransform contextActionsContent;
+    private BuildingInfoResponsiveLayout responsiveLayout;
 
     public GameObject buildingImageObject;
 
@@ -159,6 +161,8 @@ public class UIBuildingInfo : SerializedMonoBehaviour
 
     private void EnsureInitialized()
     {
+        responsiveLayout ??=
+            new BuildingInfoResponsiveLayout(transform as RectTransform);
         if (initialized)
         {
             return;
@@ -170,7 +174,6 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             buildingImage = buildingImageObject.GetComponent<Image>();
             buildingImageSize = buildingImageObject.GetComponent<RectTransform>();
         }
-
         initialized = true;
     }
 
@@ -253,6 +256,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         {
             gameObject.SetActive(true);
         }
+        responsiveLayout?.BringToFront();
 
         canvasGroup.interactable = true;
         canvasGroup.blocksRaycasts = true;
@@ -452,7 +456,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         Transform actionsRoot = RequireContextActionsRoot();
         if (workOrderRuntime.TryGetOrderFor(site, BuiltInWorkTypeIds.Construct, out WorkOrderProgressState order))
         {
-            craftActionObjects.Add(CreateConstructionProgressBar(actionsRoot, order));
+            craftActionObjects.Add(CreateConstructionProgressBar(actionsRoot, order, nameText?.font));
         }
 
         GameObject cancelButton = CreateCraftButton(
@@ -462,7 +466,8 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             {
                 site.CancelConstruction();
                 CloseDispaly();
-            });
+            },
+            nameText?.font);
         cancelButton.name = "BuildingConstructionCancel";
         craftActionObjects.Add(cancelButton);
     }
@@ -481,7 +486,10 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             equipmentMaintenanceRuntime.Orders
                 .Where(order =>
                     order != null
-                    && order.FacilityPosition == building.centerPos)
+                    && string.Equals(
+                        order.facilityBuildingId,
+                        building.PersistentInstanceId.Value,
+                        StringComparison.Ordinal))
                 .OrderBy(order => order.orderId, StringComparer.Ordinal)
                 .ToArray();
         Transform actionsRoot = RequireContextActionsRoot();
@@ -489,7 +497,8 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             actionsRoot,
             orders.Count == 0
                 ? "장비 수리 대기열이 비어 있습니다."
-                : $"장비 수리 대기열 {orders.Count}건");
+                : $"장비 수리 대기열 {orders.Count}건",
+            nameText?.font);
         header.name = "BuildingMaintenanceHeader";
         craftActionObjects.Add(header);
 
@@ -513,178 +522,11 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             GameObject progress = CreateMaintenanceProgressBar(
                 actionsRoot,
                 equipmentName,
-                order);
+                order,
+                nameText?.font);
             progress.name = $"BuildingMaintenance_{i}";
             craftActionObjects.Add(progress);
         }
-    }
-
-    private GameObject CreateCraftButton(Transform parent, string label, Action callback)
-    {
-        GameObject buttonObject = new GameObject("BuildingCraftButton", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
-        buttonObject.transform.SetParent(parent, false);
-        Image image = buttonObject.GetComponent<Image>();
-        image.color = DungeonUiTheme.Accent;
-
-        LayoutElement layout = buttonObject.GetComponent<LayoutElement>();
-        layout.preferredWidth = 180f;
-        layout.preferredHeight = 46f;
-
-        Button button = buttonObject.GetComponent<Button>();
-        DungeonUiTheme.StyleButton(button, selected: true);
-        button.onClick.AddListener(() => callback?.Invoke());
-
-        GameObject textObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(buttonObject.transform, false);
-        RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = new Vector2(8f, 4f);
-        textRect.offsetMax = new Vector2(-8f, -4f);
-
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = label;
-        text.color = DungeonUiTheme.TextPrimary;
-        text.alignment = TextAlignmentOptions.Center;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 13f;
-        text.fontSizeMax = 20f;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        if (nameText != null && nameText.font != null)
-        {
-            text.font = nameText.font;
-        }
-
-        return buttonObject;
-    }
-
-    private GameObject CreateConstructionProgressBar(Transform parent, WorkOrderProgressState order)
-    {
-        GameObject barObject = new GameObject("BuildingConstructionProgress", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
-        barObject.transform.SetParent(parent, false);
-        LayoutElement layout = barObject.GetComponent<LayoutElement>();
-        layout.preferredWidth = 360f;
-        layout.preferredHeight = 38f;
-
-        Image background = barObject.GetComponent<Image>();
-        background.color = DungeonUiTheme.Panel;
-
-        GameObject fillObject = new GameObject("Fill", typeof(RectTransform), typeof(Image));
-        fillObject.transform.SetParent(barObject.transform, false);
-        RectTransform fillRect = fillObject.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = new Vector2(Mathf.Clamp01(order?.ProgressRatio ?? 0f), 1f);
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
-        Image fill = fillObject.GetComponent<Image>();
-        fill.color = DungeonUiTheme.Accent;
-        fill.raycastTarget = false;
-
-        GameObject textObject = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(barObject.transform, false);
-        RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = new Vector2(8f, 2f);
-        textRect.offsetMax = new Vector2(-8f, -2f);
-
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        int percent = Mathf.RoundToInt((order?.ProgressRatio ?? 0f) * 100f);
-        text.text = $"공사 진행 {percent}%";
-        text.color = DungeonUiTheme.TextPrimary;
-        text.alignment = TextAlignmentOptions.Center;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 12f;
-        text.fontSizeMax = 18f;
-        text.raycastTarget = false;
-        if (nameText != null && nameText.font != null)
-        {
-            text.font = nameText.font;
-        }
-
-        return barObject;
-    }
-
-    private GameObject CreateMaintenanceProgressBar(
-        Transform parent,
-        string equipmentName,
-        CombatEquipmentRepairOrder order)
-    {
-        GameObject barObject = new GameObject(
-            "BuildingMaintenanceProgress",
-            typeof(RectTransform),
-            typeof(Image),
-            typeof(LayoutElement));
-        barObject.transform.SetParent(parent, false);
-        LayoutElement layout = barObject.GetComponent<LayoutElement>();
-        layout.preferredWidth = 360f;
-        layout.preferredHeight = 48f;
-        barObject.GetComponent<Image>().color = DungeonUiTheme.Panel;
-
-        GameObject fillObject = new GameObject(
-            "Fill",
-            typeof(RectTransform),
-            typeof(Image));
-        fillObject.transform.SetParent(barObject.transform, false);
-        RectTransform fillRect = fillObject.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = new Vector2(order.ProgressRatio, 1f);
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
-        Image fill = fillObject.GetComponent<Image>();
-        fill.color = DungeonUiTheme.Accent;
-        fill.raycastTarget = false;
-
-        GameObject textObject = new GameObject(
-            "Label",
-            typeof(RectTransform),
-            typeof(TextMeshProUGUI));
-        textObject.transform.SetParent(barObject.transform, false);
-        RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = new Vector2(8f, 2f);
-        textRect.offsetMax = new Vector2(-8f, -2f);
-        TMP_Text text = textObject.GetComponent<TMP_Text>();
-        text.text = $"{equipmentName} · {FormatRepairState(order.state)}"
-            + $" · {order.ProgressRatio:P0}"
-            + $" · 재료 {order.requiredGeneralMaterials}";
-        text.color = DungeonUiTheme.TextPrimary;
-        text.alignment = TextAlignmentOptions.Center;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 11f;
-        text.fontSizeMax = 17f;
-        text.raycastTarget = false;
-        if (nameText != null && nameText.font != null)
-        {
-            text.font = nameText.font;
-        }
-
-        return barObject;
-    }
-
-    private GameObject CreateCraftStatus(Transform parent, string message)
-    {
-        GameObject statusObject = new GameObject("BuildingCraftStatus", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
-        statusObject.transform.SetParent(parent, false);
-        LayoutElement layout = statusObject.GetComponent<LayoutElement>();
-        layout.preferredWidth = 360f;
-        layout.preferredHeight = 46f;
-
-        TMP_Text text = statusObject.GetComponent<TMP_Text>();
-        text.text = message;
-        text.color = DungeonUiTheme.TextSecondary;
-        text.alignment = TextAlignmentOptions.Center;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 12f;
-        text.fontSizeMax = 18f;
-        text.textWrappingMode = TextWrappingModes.Normal;
-        if (nameText != null && nameText.font != null)
-        {
-            text.font = nameText.font;
-        }
-
-        return statusObject;
     }
 
     private void ClearCraftActions()
@@ -712,12 +554,14 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         {
             contextActionsPanel.SetActive(false);
         }
+        responsiveLayout?.SetLegacyChromeVisible(true);
     }
 
     private Transform RequireContextActionsRoot()
     {
         EnsureContextActionsPanel();
         ApplyResponsiveContextActionsLayout();
+        responsiveLayout?.SetLegacyChromeVisible(false);
         contextActionsPanel.SetActive(true);
         contextActionsPanel.transform.SetAsLastSibling();
         return contextActionsContent;
@@ -738,6 +582,7 @@ public class UIBuildingInfo : SerializedMonoBehaviour
         }
 
         bool portrait = Screen.height > Screen.width;
+        responsiveLayout?.ApplyWidth(portrait);
         panelRect.anchorMin = portrait
             ? new Vector2(0.04f, 0.05f)
             : new Vector2(0.38f, 0.08f);
@@ -887,18 +732,6 @@ public class UIBuildingInfo : SerializedMonoBehaviour
             "craft-cost-withdraw-failed" => "재료 출고 실패",
             "equipment-not-found" => "장비 정의 없음",
             _ => string.IsNullOrWhiteSpace(message) ? "제작 실패" : message
-        };
-    }
-
-    private static string FormatRepairState(CombatEquipmentRepairOrderState state)
-    {
-        return state switch
-        {
-            CombatEquipmentRepairOrderState.PendingCombatEnd => "교전 종료 대기",
-            CombatEquipmentRepairOrderState.WaitingForDelivery => "운반 대기",
-            CombatEquipmentRepairOrderState.Ready => "수리 준비",
-            CombatEquipmentRepairOrderState.InProgress => "수리 중",
-            _ => "대기"
         };
     }
 

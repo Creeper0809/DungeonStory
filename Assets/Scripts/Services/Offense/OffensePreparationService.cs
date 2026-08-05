@@ -92,10 +92,21 @@ public readonly struct OffenseSupplyPackingSnapshot
 
 public sealed class DungeonOffensePreparationService : IOffensePreparationService
 {
+    internal sealed class PackingRestoreCandidate
+    {
+        internal PackingRestoreCandidate(
+            Dictionary<string, ExpeditionSupplyPackage> packages)
+        {
+            Packages = packages;
+        }
+
+        internal Dictionary<string, ExpeditionSupplyPackage> Packages { get; }
+    }
+
     private readonly IFacilityEvolutionWarehouseInventoryQuery inventoryQuery;
     private readonly IProductionItemGateway itemGateway;
     private readonly IExteriorZoneQuery exteriorZones;
-    private readonly Dictionary<string, ExpeditionSupplyPackage> packages =
+    private Dictionary<string, ExpeditionSupplyPackage> packages =
         new Dictionary<string, ExpeditionSupplyPackage>(StringComparer.Ordinal);
 
     public DungeonOffensePreparationService(
@@ -298,16 +309,18 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
 
         foreach (KeyValuePair<OffenseSupplyType, int> pair in loadout.Amounts)
         {
-            Deposit(OffenseSupplyCatalog.GetStockCategory(pair.Key), pair.Value);
+            Deposit(
+                OffenseSupplyCatalog.GetPhysicalItemId(pair.Key),
+                pair.Value);
         }
     }
 
     public void DepositLoot(IReadOnlyDictionary<StockCategory, int> loot)
     {
-        if (loot == null) return;
-        foreach (KeyValuePair<StockCategory, int> pair in loot)
+        int total = loot?.Values.Sum(value => Mathf.Max(0, value)) ?? 0;
+        if (total > 0)
         {
-            Deposit(pair.Key, pair.Value);
+            Deposit(OffenseLootItemIds.UnappraisedLoot, total);
         }
     }
 
@@ -338,38 +351,55 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
         IEnumerable<OffenseSupplyPackingStateData> restored,
         DungeonGameRestoreReport report = null)
     {
-        packages.Clear();
+        PublishPackingRestore(PreparePackingRestore(restored));
+    }
+
+    internal PackingRestoreCandidate PreparePackingRestore(
+        IEnumerable<OffenseSupplyPackingStateData> restored)
+    {
+        Dictionary<string, ExpeditionSupplyPackage> candidate =
+            new Dictionary<string, ExpeditionSupplyPackage>(StringComparer.Ordinal);
         foreach (OffenseSupplyPackingStateData source in
-                 restored ?? Array.Empty<OffenseSupplyPackingStateData>())
+                 restored ?? throw new ArgumentNullException(nameof(restored)))
         {
             string packageId = NormalizePackageId(source?.packageId);
             if (source == null
                 || string.IsNullOrWhiteSpace(packageId)
-                || packages.ContainsKey(packageId))
+                || !string.Equals(packageId, source.packageId, StringComparison.Ordinal)
+                || candidate.ContainsKey(packageId))
             {
                 throw new InvalidOperationException(
                     $"Invalid or duplicate offense supply package '{packageId}'.");
             }
 
-            Dictionary<string, int> costs = (source.costs
-                    ?? new List<OffenseSupplyPackingItemStateData>())
-                .Where(item => item != null
-                    && !string.IsNullOrWhiteSpace(item.itemId)
-                    && item.amount > 0)
-                .GroupBy(item => item.itemId.Trim(), StringComparer.Ordinal)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group.Sum(item => item.amount),
-                    StringComparer.Ordinal);
-            if (costs.Count == 0)
+            if (source.costs == null
+                || source.costs.Count == 0
+                || source.costs.Any(item => item == null
+                    || string.IsNullOrWhiteSpace(item.itemId)
+                    || !string.Equals(item.itemId, item.itemId.Trim(),
+                        StringComparison.Ordinal)
+                    || item.amount <= 0)
+                || source.costs.Select(item => item.itemId)
+                    .Distinct(StringComparer.Ordinal).Count()
+                    != source.costs.Count)
             {
                 throw new InvalidOperationException(
-                    $"Offense supply package '{packageId}' has no item costs.");
+                    $"Offense supply package '{packageId}' has invalid, duplicate, or empty item costs.");
             }
+            Dictionary<string, int> costs = source.costs.ToDictionary(
+                item => item.itemId,
+                item => item.amount,
+                StringComparer.Ordinal);
 
-            string destinationId = string.IsNullOrWhiteSpace(source.destinationId)
-                ? GetDestinationId(packageId)
-                : source.destinationId.Trim();
+            if (string.IsNullOrWhiteSpace(source.destinationId)
+                || !string.Equals(source.destinationId,
+                    source.destinationId.Trim(),
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Offense supply package '{packageId}' has no canonical destination ID.");
+            }
+            string destinationId = source.destinationId;
             ExpeditionSupplyPackage package = new ExpeditionSupplyPackage(
                 packageId,
                 destinationId,
@@ -378,14 +408,18 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
             {
                 Consumed = source.consumed
             };
-            packages.Add(packageId, package);
-            if (!package.Consumed && !EnsurePackageReservation(package))
-            {
-                report?.AddWarning(
-                    $"원정 '{packageId}' 보급 예약 일부를 즉시 복구하지 못했습니다. "
-                    + "재고가 들어오면 다시 예약합니다.");
-            }
+            candidate.Add(packageId, package);
         }
+
+        // Reservation records are world projections. They are recreated lazily by
+        // normal package queries after the detached candidate becomes live.
+        return new PackingRestoreCandidate(candidate);
+    }
+
+    internal void PublishPackingRestore(PackingRestoreCandidate candidate)
+    {
+        packages = (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+            .Packages;
     }
 
     private bool TryResolveStagingPosition(out Vector2Int position)
@@ -419,11 +453,12 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
             .Cast<OffenseSupplyType>()
             .ToDictionary(
                 type => type,
-                type => inventories.Sum(inventory => inventory.GetStock(
-                    OffenseSupplyCatalog.GetStockCategory(type))));
+                type => itemGateway.CountAvailableStock(
+                    OffenseSupplyCatalog.GetPhysicalItemId(type),
+                    string.Empty));
     }
 
-    private void Deposit(StockCategory category, int amount)
+    private void Deposit(string itemId, int amount)
     {
         int remaining = Mathf.Max(0, amount);
         if (remaining <= 0)
@@ -431,21 +466,14 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
             return;
         }
 
-        string itemId = DungeonItemCatalogSO.StockItemId(category);
         if (TryResolveReturnDropPosition(out Vector2Int dropPosition)
             && itemGateway.SpawnOutput(itemId, remaining, dropPosition))
         {
             return;
         }
 
-        WarehouseInventory inventory = GetInventories()
-            .Where(value => value.Accepts(category))
-            .OrderByDescending(value => value.RemainingCapacity)
-            .FirstOrDefault();
-        if (inventory != null)
-        {
-            inventory.Deposit(category, remaining);
-        }
+        throw new InvalidOperationException(
+            $"Failed to create physical return item '{itemId}' x{remaining}.");
     }
 
     private bool TryResolveReturnDropPosition(out Vector2Int position)
@@ -484,8 +512,7 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
                 continue;
             }
 
-            string itemId = DungeonItemCatalogSO.StockItemId(
-                OffenseSupplyCatalog.GetStockCategory(pair.Key));
+            string itemId = OffenseSupplyCatalog.GetPhysicalItemId(pair.Key);
             costs.TryGetValue(itemId, out int current);
             costs[itemId] = current + amount;
         }
@@ -531,8 +558,9 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
 
     private WarehouseInventory[] GetInventories()
     {
-        return inventoryQuery.GetInventories()
-            .Where(inventory => inventory != null)
+        return inventoryQuery.GetWarehouses()
+            .Where(warehouse => warehouse?.Inventory != null)
+            .Select(warehouse => warehouse.Inventory)
             .ToArray();
     }
 
@@ -555,7 +583,7 @@ public sealed class DungeonOffensePreparationService : IOffensePreparationServic
         return $"expedition:{NormalizePackageId(packageId)}";
     }
 
-    private sealed class ExpeditionSupplyPackage
+    internal sealed class ExpeditionSupplyPackage
     {
         public ExpeditionSupplyPackage(
             string packageId,

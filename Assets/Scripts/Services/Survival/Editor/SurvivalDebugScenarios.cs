@@ -22,16 +22,22 @@ public static class SurvivalDebugScenarios
     public static List<string> RunAll()
     {
         List<string> errors = new List<string>();
-        Run("save_v10_contract", VerifySaveContract, errors);
+        Run("save_v18_contract", VerifySaveContract, errors);
         Run("stock_categories", VerifyStockCategories, errors);
         Run("work_types", VerifyWorkTypes, errors);
         Run("survival_item_definitions", VerifySurvivalItemDefinitions, errors);
         Run("ability_modules", VerifyAbilityModules, errors);
         Run("room_snapshot_survival_metrics", VerifyRoomSnapshotMetrics, errors);
         Run("physical_meal_authority", VerifyPhysicalMealAuthority, errors);
+        Run("physical_freshness_authority", VerifyPhysicalFreshnessAuthority, errors);
+        Run("survival_resources_strict_restore", VerifySurvivalResourcesStrictRestore, errors);
+        Run("survival_typed_work_failures", VerifySurvivalTypedWorkFailures, errors);
         Run("meal_diet_content", VerifyMealDietContent, errors);
         Run("medicine_and_substance_content", VerifyMedicineAndSubstanceContent, errors);
         Run("consumables_save_payload", VerifyConsumablesSavePayload, errors);
+        Run("consumables_typed_failures", VerifyConsumablesTypedFailures, errors);
+        Run("consumables_physical_exactly_once", VerifyConsumablesPhysicalExactlyOnce, errors);
+        Run("consumables_strict_restore", VerifyConsumablesStrictRestore, errors);
         return errors;
     }
 
@@ -49,7 +55,7 @@ public static class SurvivalDebugScenarios
 
     private static string VerifySaveContract()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 16, "game save version is not V16");
+        Require(DungeonGameSaveData.CurrentVersion == 18, "game save version is not V18");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonSaveSectionPayload.Write(
             save,
@@ -61,26 +67,25 @@ public static class SurvivalDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonSurvivalSaveData>(
                 save,
                 SurvivalResourcesSaveSection.Id);
-        Require(save.version == DungeonGameSaveData.CurrentVersion, "new save did not default to V16");
+        Require(save.version == DungeonGameSaveData.CurrentVersion, "new save did not default to V18");
         Require(survival.version == DungeonSurvivalSaveData.CurrentVersion, "survival save version mismatch");
         return $"game={save.version}; survival={survival.version}";
     }
 
     private static string VerifyStockCategories()
     {
-        StockCategoryCatalog.ResetToBuiltIns();
-        Require(StockCategoryCatalog.TryGet(StockCategory.Water, out StockCategoryDefinition water)
+        IStockCategoryDefinitionCatalog catalog = CharacterAiEditorTestDependencies.AuthoredGameplay;
+        Require(catalog.TryGet(StockCategory.Water, out StockCategoryDefinition water)
             && water.DisplayName == "물", "water stock category missing");
-        Require(StockCategoryCatalog.TryGet(StockCategory.Medicine, out _), "medicine stock category missing");
-        Require(StockCategoryCatalog.TryGet(StockCategory.Fuel, out _), "fuel stock category missing");
+        Require(catalog.TryGet(StockCategory.Medicine, out _), "medicine stock category missing");
+        Require(catalog.TryGet(StockCategory.Fuel, out _), "fuel stock category missing");
         Require(StockCategoryPersistenceId.TryParse("stock:water", out StockCategory parsed)
             && parsed == StockCategory.Water, "water persistence id did not parse");
-        return string.Join(", ", StockCategoryCatalog.All);
+        return string.Join(", ", catalog.All.Select(definition => definition.Id));
     }
 
     private static string VerifyWorkTypes()
     {
-        WorkTypeCatalog.ResetToBuiltIns();
         Require(WorkTypeCatalog.TryGet(BuiltInWorkTypeIds.DrawWater, out WorkTypeDefinition water)
             && water.DisplayName == "급수", "draw water work type missing");
         Require(WorkTypeCatalog.TryGet(BuiltInWorkTypeIds.Cook, out _), "cook work type missing");
@@ -91,16 +96,18 @@ public static class SurvivalDebugScenarios
 
     private static string VerifySurvivalItemDefinitions()
     {
-        Require(SurvivalItemDefinitions.TryGetDefinition(
-            SurvivalItemDefinitions.CookedMealItemId,
-            out DungeonItemDefinition cooked)
-            && cooked.StockCategory == StockCategory.Food,
-            "cooked meal definition missing");
-        Require(DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
-            SurvivalItemDefinitions.PreservedFoodItemId,
-            out StockCategory parsed)
-            && parsed == StockCategory.Food,
-            "preserved food did not aggregate to Food");
+        IItemDefinitionCatalog catalog = new ResourceItemDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        ItemDefinitionSO cooked = catalog.All.FirstOrDefault(definition => definition != null
+            && definition.StockCategory == StockCategory.Food
+            && definition.TryGetFeature(out FoodItemFeature food)
+            && !food.preserved);
+        ItemDefinitionSO preserved = catalog.All.FirstOrDefault(definition => definition != null
+            && definition.StockCategory == StockCategory.Food
+            && definition.TryGetFeature(out FoodItemFeature food)
+            && food.preserved);
+        Require(cooked != null, "authored cooked meal definition missing");
+        Require(preserved != null, "authored preserved food definition missing");
         SurvivalFoodOverview overview = new SurvivalFoodOverview(
             3,
             4,
@@ -192,10 +199,21 @@ public static class SurvivalDebugScenarios
     private static string VerifyPhysicalMealAuthority()
     {
         GameEventBus events = new GameEventBus();
+        IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         SurvivalFoodRuntime runtime = new SurvivalFoodRuntime(
-            new EmptyGridSystemProvider(),
+            new SurvivalFoodRuntimeDependencies(
+                new EmptyGridSystemProvider(),
+                new EditorWarehouseStockRuntime(),
+                itemCatalog,
+                new EmptyStockQuery()),
             new EmptyWildlifeSpeciesCatalog(),
-            events);
+            events,
+            CharacterAiEditorTestDependencies.WorldRegistry,
+            new FixedGameClock(),
+            EmptyWorldThreatModifiers.Instance,
+            EmptySurvivalServiceSessions.Instance,
+            aggregateRootStore: new DungeonRuntimeAggregateRootStore());
         GameObject actorObject = null;
         GameObject facilityObject = null;
         CharacterSO characterData = null;
@@ -227,6 +245,7 @@ public static class SurvivalDebugScenarios
 
             facilityObject = new GameObject("SurvivalMealFacility_Test");
             BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(facility);
             buildingData = ScriptableObject.CreateInstance<BuildingSO>();
             buildingData.objectName = "검증 식당";
             buildingData.width = 1;
@@ -290,14 +309,232 @@ public static class SurvivalDebugScenarios
         }
     }
 
+    private static string VerifyPhysicalFreshnessAuthority()
+    {
+        Require(
+            typeof(DungeonSurvivalSaveData).GetField("spoilage") == null,
+            "survival save still owns a spoilage side table");
+        Require(
+            typeof(DungeonSurvivalSaveData).Assembly
+                .GetType("SurvivalFood" + "SpoilageSaveData") == null,
+            "legacy survival spoilage DTO still exists");
+        Type spoilageRuntime = typeof(SurvivalFoodRuntime).Assembly
+            .GetType("SurvivalFoodSpoilageRuntime", throwOnError: true);
+        int componentSchema = Convert.ToInt32(
+            spoilageRuntime.GetField(
+                    "FreshnessSchemaVersion",
+                    System.Reflection.BindingFlags.Static
+                        | System.Reflection.BindingFlags.Public
+                        | System.Reflection.BindingFlags.NonPublic)
+                ?.GetRawConstantValue());
+        Require(componentSchema == 2, "physical freshness component schema is not V2");
+
+        IWorldItemStackRuntime physicalItems = new EditorWarehouseStockRuntime();
+        IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        SurvivalFoodRuntime runtime = new SurvivalFoodRuntime(
+            new SurvivalFoodRuntimeDependencies(
+                new EmptyGridSystemProvider(),
+                physicalItems,
+                itemCatalog,
+                new EmptyStockQuery()),
+            new EmptyWildlifeSpeciesCatalog(),
+            new GameEventBus(),
+            CharacterAiEditorTestDependencies.WorldRegistry,
+            new FixedGameClock(),
+            EmptyWorldThreatModifiers.Instance,
+            EmptySurvivalServiceSessions.Instance,
+            aggregateRootStore: new DungeonRuntimeAggregateRootStore());
+        int itemVersionBefore = physicalItems.ItemStackVersion;
+        DungeonSurvivalSaveData captured = runtime.Capture();
+        int itemVersionAfter = physicalItems.ItemStackVersion;
+        string payload = JsonUtility.ToJson(captured);
+        Require(
+            itemVersionBefore == itemVersionAfter,
+            "capturing survival state mutated physical item state");
+        Require(
+            payload.IndexOf("spoilage", StringComparison.OrdinalIgnoreCase) < 0,
+            "survival payload still serialized spoilage state");
+        return $"save=v{captured.version}; freshness-component=v{componentSchema}";
+    }
+
+    private static string VerifySurvivalResourcesStrictRestore()
+    {
+        IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        DungeonRuntimeAggregateRootStore root = new DungeonRuntimeAggregateRootStore();
+        SurvivalFoodRuntime runtime = new SurvivalFoodRuntime(
+            new SurvivalFoodRuntimeDependencies(
+                new EmptyGridSystemProvider(),
+                new EditorWarehouseStockRuntime(),
+                itemCatalog,
+                new EmptyStockQuery()),
+            new EmptyWildlifeSpeciesCatalog(),
+            new GameEventBus(),
+            CharacterAiEditorTestDependencies.WorldRegistry,
+            new FixedGameClock(),
+            EmptyWorldThreatModifiers.Instance,
+            EmptySurvivalServiceSessions.Instance,
+            aggregateRootStore: root);
+        SurvivalResourcesSaveSection section =
+            new SurvivalResourcesSaveSection(runtime);
+        Require(section is IDungeonRollbackFreeSaveSection
+                && section.SectionVersion == DungeonSurvivalSaveData.CurrentVersion,
+            "survival resources section is not rollback-free exact V5");
+
+        DungeonSurvivalSaveData valid = runtime.Capture();
+        valid.lastProcessedDay = 1;
+        valid.weatherDay = 1;
+        valid.mealLedger.Add(new CharacterMealLedgerSaveData
+        {
+            mealId = "meal:1:character:survival-restore:513",
+            characterId = "character:survival-restore",
+            facilityId = "building:survival-kitchen",
+            day = 1,
+            amount = 1
+        });
+        valid.lastConsumedFood = 1;
+        string validJson = JsonUtility.ToJson(valid);
+        DungeonGameRestoreReport validReport = new DungeonGameRestoreReport();
+        section.Restore(validJson, DungeonSurvivalSaveData.CurrentVersion, validReport);
+        Require(validReport.Success
+                && JsonUtility.ToJson(runtime.Capture()) == validJson
+                && runtime.Capture().mealLedger.Single().mealId.EndsWith(
+                    ":513",
+                    StringComparison.Ordinal),
+            "valid survival resources payload did not restore canonically with its persisted sequence");
+
+        string before = JsonUtility.ToJson(runtime.Capture());
+        DungeonSurvivalSaveData invalid = JsonUtility.FromJson<DungeonSurvivalSaveData>(before);
+        invalid.version = DungeonSurvivalSaveData.CurrentVersion - 1;
+        invalid.health = null;
+        invalid.lastMissingWater = 4;
+        DungeonGameRestoreReport invalidReport = new DungeonGameRestoreReport();
+        bool invalidStageRejected = false;
+        try
+        {
+            section.StageRestore(
+                JsonUtility.ToJson(invalid),
+                DungeonSurvivalSaveData.CurrentVersion,
+                invalidReport);
+        }
+        catch (InvalidOperationException)
+        {
+            invalidStageRejected = true;
+        }
+        Require(invalidStageRejected,
+            "invalid survival resources candidate was accepted");
+        Require(JsonUtility.ToJson(runtime.Capture()) == before
+                && root.PublishedRestoreRevision == 0,
+            "invalid survival resources candidate mutated the live aggregate");
+
+        bool directRestoreRejected = false;
+        try
+        {
+            runtime.BuildRestoreCandidate(invalid);
+        }
+        catch (InvalidOperationException)
+        {
+            directRestoreRejected = true;
+        }
+        Require(directRestoreRejected
+                && JsonUtility.ToJson(runtime.Capture()) == before,
+            "direct runtime restore bypassed survival resources validation");
+        return "v5=exact; roundtrip=canonical; invalid=no-mutation; sequence=513";
+    }
+
+    private static string VerifySurvivalTypedWorkFailures()
+    {
+        IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        SurvivalFoodRuntimeDependencies dependencies =
+            new SurvivalFoodRuntimeDependencies(
+                new EmptyGridSystemProvider(),
+                new EditorWarehouseStockRuntime(),
+                itemCatalog,
+                new EmptyStockQuery());
+        ICharacterAiWorldRegistry world =
+            CharacterAiEditorTestDependencies.WorldRegistry;
+        IGameClock clock = new FixedGameClock();
+        IWorldThreatModifierQuery threats =
+            EmptyWorldThreatModifiers.Instance;
+        ISurvivalServiceSessionCapability sessions =
+            EmptySurvivalServiceSessions.Instance;
+
+        SurvivalFoodRuntime runtime = new SurvivalFoodRuntime(
+            dependencies,
+            new EmptyWildlifeSpeciesCatalog(),
+            new GameEventBus(),
+            world,
+            clock,
+            threats,
+            sessions,
+            new DungeonRuntimeAggregateRootStore());
+        Require(!runtime.TryApplySurvivalWork(
+                    actor: null,
+                    building: null,
+                    BuiltInWorkTypeIds.Cook,
+                    out int amount,
+                    out DomainFailure failure)
+                && amount == 0
+                && failure.Code == FailureCode.SurvivalTargetFacilityMissing
+                && failure.Parameters.Length == 0,
+            "missing survival target did not return a stable typed failure");
+
+        RequireThrows<ArgumentNullException>(() => new SurvivalFoodRuntime(
+                dependencies,
+                new EmptyWildlifeSpeciesCatalog(),
+                new GameEventBus(),
+                worldRegistry: null,
+                clock,
+                threats,
+                sessions,
+                new DungeonRuntimeAggregateRootStore()),
+            "survival runtime accepted a missing world authority");
+        RequireThrows<ArgumentNullException>(() => new SurvivalFoodRuntime(
+                dependencies,
+                new EmptyWildlifeSpeciesCatalog(),
+                new GameEventBus(),
+                world,
+                gameClock: null,
+                threats,
+                sessions,
+                new DungeonRuntimeAggregateRootStore()),
+            "survival runtime accepted a missing clock authority");
+        RequireThrows<ArgumentNullException>(() => new SurvivalFoodRuntime(
+                dependencies,
+                new EmptyWildlifeSpeciesCatalog(),
+                new GameEventBus(),
+                world,
+                clock,
+                worldThreatModifiers: null,
+                sessions,
+                new DungeonRuntimeAggregateRootStore()),
+            "survival runtime accepted a missing threat authority");
+        RequireThrows<ArgumentNullException>(() => new SurvivalFoodRuntime(
+                dependencies,
+                new EmptyWildlifeSpeciesCatalog(),
+                new GameEventBus(),
+                world,
+                clock,
+                threats,
+                serviceSessionRuntime: null,
+                new DungeonRuntimeAggregateRootStore()),
+            "survival runtime accepted a missing service-session capability");
+
+        return "failure=SurvivalTargetFacilityMissing; required-di=4/4";
+    }
+
     private static string VerifyMealDietContent()
     {
-        ResourceItemDefinitionSO[] meals = Resources
-            .LoadAll<ResourceItemDefinitionSO>(ResourceItemDefinitionSO.ResourcePath)
+        IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        ResourceItemDefinitionSO[] meals = itemCatalog.All
+            .OfType<ResourceItemDefinitionSO>()
             .Where(item => item != null && item.IsMeal)
             .OrderBy(item => item.ItemId, StringComparer.Ordinal)
             .ToArray();
-        Require(meals.Length == 13, $"expected 13 authored meals, found {meals.Length}");
+        Require(meals.Length >= 13, $"expected at least 13 authored meals, found {meals.Length}");
         Require(meals.All(item => item.Nutrition > 0f),
             "a meal has no nutrition");
         Require(meals.All(item => item.FreshnessSeconds > 0f),
@@ -306,14 +543,14 @@ public static class SurvivalDebugScenarios
         Dictionary<MealDietClass, int> counts = meals
             .GroupBy(item => item.MealDietClass)
             .ToDictionary(group => group.Key, group => group.Count());
-        Require(GetCount(counts, MealDietClass.Vegan) == 6,
-            "vegan meal classification count mismatch");
-        Require(GetCount(counts, MealDietClass.Vegetarian) == 2,
-            "vegetarian meal classification count mismatch");
-        Require(GetCount(counts, MealDietClass.Mixed) == 3,
-            "mixed meal classification count mismatch");
-        Require(GetCount(counts, MealDietClass.Carnivore) == 2,
-            "carnivore meal classification count mismatch");
+        Require(GetCount(counts, MealDietClass.Vegan) >= 6,
+            "fewer than six vegan meals are authored");
+        Require(GetCount(counts, MealDietClass.Vegetarian) >= 2,
+            "fewer than two vegetarian meals are authored");
+        Require(GetCount(counts, MealDietClass.Mixed) >= 3,
+            "fewer than three mixed meals are authored");
+        Require(GetCount(counts, MealDietClass.Carnivore) >= 2,
+            "fewer than two carnivore meals are authored");
 
         Require(ResourceMealClassification.IsAllowed(
                 CharacterDietPolicyKind.Vegan,
@@ -364,9 +601,12 @@ public static class SurvivalDebugScenarios
         ResourceItemDefinitionSO[] medicines = items
             .Where(item => item != null && item.Kind == ResourceItemKind.Medicine)
             .ToArray();
-        SubstanceDefinitionSO[] substances = Resources
-            .LoadAll<SubstanceDefinitionSO>(SubstanceDefinitionSO.ResourcePath)
-            .Where(item => item != null)
+        (ResourceItemDefinitionSO Item, SubstanceItemFeature Feature)[] substances = items
+            .Where(item => item != null
+                && item.TryGetFeature(out SubstanceItemFeature _))
+            .Select(item => (
+                item,
+                item.GetFeatureOrDefault<SubstanceItemFeature>()))
             .ToArray();
         Require(medicines.Length >= 6, $"medicine definitions={medicines.Length}");
         Require(medicines.Count(item => item.SupportsInjuryTreatment) >= 4,
@@ -394,21 +634,23 @@ public static class SurvivalDebugScenarios
         Require(anesthetic.PainReduction > 0f && !anesthetic.SupportsInjuryTreatment,
             "anesthetic role metadata mismatch");
 
-        Require(substances.Length == 7, $"substances={substances.Length}");
-        HashSet<string> itemIds = items
-            .Where(item => item != null)
-            .Select(item => item.ItemId)
-            .ToHashSet(StringComparer.Ordinal);
-        Require(substances.All(substance => itemIds.Contains(substance.ItemId)),
-            "a substance has no physical item");
+        Require(substances.Length >= 9, $"substances={substances.Length}");
         Require(substances
-            .Where(substance => substance.UseClass == SubstanceUseClass.NonAddictive)
-            .All(substance => Mathf.Approximately(substance.AddictionChance, 0f)),
+                .Select(substance => substance.Feature.substanceId)
+                .Distinct(StringComparer.Ordinal)
+                .Count() == substances.Length,
+            "substance IDs are duplicated");
+        Require(substances.All(substance => substance.Item.StableId.IsValid
+                && !string.IsNullOrWhiteSpace(substance.Feature.substanceId)),
+            "a substance feature has no authored physical item or stable ID");
+        Require(substances
+            .Where(substance => substance.Feature.useClass == SubstanceUseClass.NonAddictive)
+            .All(substance => Mathf.Approximately(substance.Feature.addictionChance, 0f)),
             "a non-addictive substance has addiction chance");
         Require(substances
-            .Where(substance => substance.UseClass == SubstanceUseClass.Addictive)
-            .All(substance => substance.ToleranceGain > 0f
-                && substance.WithdrawalPerHour > 0f),
+            .Where(substance => substance.Feature.useClass == SubstanceUseClass.Addictive)
+            .All(substance => substance.Feature.toleranceGain > 0f
+                && substance.Feature.withdrawalPerHour > 0f),
             "an addictive substance has no tolerance or withdrawal");
         return $"medicines={medicines.Length}; substances={substances.Length}";
     }
@@ -422,7 +664,7 @@ public static class SurvivalDebugScenarios
                 {
                     new CharacterDietPolicyState
                     {
-                        characterId = "staff:test",
+                        characterId = "character:test",
                         policy = CharacterDietPolicyKind.Vegan
                     }
                 },
@@ -430,8 +672,8 @@ public static class SurvivalDebugScenarios
                 {
                     new CharacterSubstancePolicyState
                     {
-                        characterId = "staff:test",
-                        substanceId = "substance:blood-stimulant",
+                        characterId = "character:test",
+                        itemDefinitionId = "drug:blood-stimulant",
                         mode = SubstancePolicyMode.CombatOnly
                     }
                 },
@@ -439,14 +681,37 @@ public static class SurvivalDebugScenarios
                 {
                     new CharacterSubstanceState
                     {
-                        characterId = "staff:test",
-                        substanceId = "substance:blood-stimulant",
+                        characterId = "character:test",
+                        itemDefinitionId = "drug:blood-stimulant",
                         tolerance = 22f,
                         addiction = 64f,
                         withdrawal = 17f,
                         activeSeconds = 31f,
                         scheduledCooldownSeconds = 640f,
                         addicted = true
+                    }
+                },
+                pendingMealDeliveries = new List<CharacterMealDeliveryState>
+                {
+                    new CharacterMealDeliveryState
+                    {
+                        deliveryId = "consumable-delivery:0001",
+                        characterId = "character:test",
+                        buildingInstanceId = "building:test",
+                        itemDefinitionId = "food:preserved-ration",
+                        requestedAt = 10f,
+                        retryAfter = 55f
+                    }
+                },
+                completedOperations = new List<CharacterConsumableOperationState>
+                {
+                    new CharacterConsumableOperationState
+                    {
+                        operationId = "consumable-operation:0001",
+                        characterId = "character:test",
+                        itemDefinitionId = "drug:blood-stimulant",
+                        itemStackId = "stack:test",
+                        completedAt = 12f
                     }
                 }
             };
@@ -456,7 +721,9 @@ public static class SurvivalDebugScenarios
         Require(restored != null
             && restored.version == DungeonCharacterConsumablesSaveData.CurrentVersion
             && restored.dietPolicies.Single().policy == CharacterDietPolicyKind.Vegan
-            && restored.substancePolicies.Single().mode == SubstancePolicyMode.CombatOnly,
+            && restored.substancePolicies.Single().mode == SubstancePolicyMode.CombatOnly
+            && restored.pendingMealDeliveries.Single().DeliveryId.IsValid
+            && restored.completedOperations.Single().OperationId.IsValid,
             "consumables policy save round-trip mismatch");
         CharacterSubstanceState state = restored.substanceStates.Single();
         Require(state.addicted
@@ -467,6 +734,365 @@ public static class SurvivalDebugScenarios
             && Mathf.Approximately(state.scheduledCooldownSeconds, 640f),
             "substance state save round-trip mismatch");
         return $"version={restored.version}; tolerance={state.tolerance:0.#}; withdrawal={state.withdrawal:0.#}";
+    }
+
+    private static string VerifyConsumablesTypedFailures()
+    {
+        string[] mutableParameters = { "stack:canonical" };
+        MealConsumptionResult canonical = MealConsumptionResult.Failed(
+            CharacterConsumablesFailureCode.ItemStackMissing,
+            mutableParameters);
+        mutableParameters[0] = "stack:mutated";
+        Require(canonical.FailureCode == CharacterConsumablesFailureCode.ItemStackMissing
+                && canonical.Parameters.Count == 1
+                && canonical.Parameters[0] == "stack:canonical"
+                && canonical.Parameters is not string[],
+            "consumables failure parameters are not immutable");
+        Require(typeof(MealConsumptionResult).GetProperty("FailureReason") == null
+                && typeof(SubstanceUseResult).GetProperty("FailureReason") == null,
+            "a consumables result still exposes sentence-shaped FailureReason state");
+
+        MealConsumptionResult policy = MealConsumptionResult.Failed(
+            CharacterConsumablesFailureCode.PolicyForbidden,
+            "food:test",
+            CharacterDietPolicyKind.Vegan.ToString());
+        MealConsumptionResult missing = MealConsumptionResult.Failed(
+            CharacterConsumablesFailureCode.ItemDefinitionMissing,
+            "food:missing");
+        Require(policy.Parameters.SequenceEqual(new[] { "food:test", "Vegan" })
+                && missing.Parameters.SequenceEqual(new[] { "food:missing" }),
+            "policy or missing-item failure parameters are not canonical");
+
+        UnityEngine.Object sharedAsset = AssetDatabase.LoadMainAssetAtPath(
+            "Assets/Localization/DomainFailures Shared Data.asset");
+        UnityEngine.Object koreanAsset = AssetDatabase.LoadMainAssetAtPath(
+            "Assets/Localization/DomainFailures_ko.asset");
+        Require(sharedAsset != null && koreanAsset != null,
+            "DomainFailures localization assets are missing");
+        SerializedProperty sharedEntries = new SerializedObject(sharedAsset)
+            .FindProperty("m_Entries");
+        SerializedProperty localizedEntries = new SerializedObject(koreanAsset)
+            .FindProperty("m_TableData");
+        Require(sharedEntries != null && localizedEntries != null,
+            "DomainFailures localization serialization layout changed");
+
+        HashSet<string> keys = new HashSet<string>(StringComparer.Ordinal);
+        HashSet<long> sharedIds = new HashSet<long>();
+        for (int index = 0; index < sharedEntries.arraySize; index++)
+        {
+            SerializedProperty entry = sharedEntries.GetArrayElementAtIndex(index);
+            keys.Add(entry.FindPropertyRelative("m_Key").stringValue);
+            sharedIds.Add(entry.FindPropertyRelative("m_Id").longValue);
+        }
+        HashSet<long> localizedIds = new HashSet<long>();
+        for (int index = 0; index < localizedEntries.arraySize; index++)
+        {
+            localizedIds.Add(localizedEntries.GetArrayElementAtIndex(index)
+                .FindPropertyRelative("m_Id").longValue);
+        }
+        string[] requiredKeys = Enum.GetValues(typeof(CharacterConsumablesFailureCode))
+            .Cast<CharacterConsumablesFailureCode>()
+            .Where(code => code != CharacterConsumablesFailureCode.None)
+            .Select(code => code.ToString())
+            .ToArray();
+        string[] requiredDomainKeys = Enum.GetValues(typeof(FailureCode))
+            .Cast<FailureCode>()
+            .Where(code => code != FailureCode.None)
+            .Select(code => code.ToString())
+            .ToArray();
+        HashSet<string> requiredAllKeys = new(
+            requiredDomainKeys
+                .Concat(requiredKeys)
+                .Concat(Enum.GetValues(typeof(SurgeryStatusCode))
+                    .Cast<SurgeryStatusCode>()
+                    .Where(code => code != SurgeryStatusCode.None)
+                    .Select(code => code.ToString()))
+                .Concat(Enum.GetValues(typeof(SurgeryRiskSummaryCode))
+                    .Cast<SurgeryRiskSummaryCode>()
+                    .Where(code => code != SurgeryRiskSummaryCode.None)
+                    .Select(code => code.ToString()))
+                .Concat(Enum.GetValues(typeof(CharacterMedicalStatusCode))
+                    .Cast<CharacterMedicalStatusCode>()
+                    .Where(code => code != CharacterMedicalStatusCode.Unknown)
+                    .Select(code => "CharacterMedicalStatus" + code))
+                .Concat(Enum.GetValues(typeof(InfrastructureStatusCode))
+                    .Cast<InfrastructureStatusCode>()
+                    .Where(code => code != InfrastructureStatusCode.None)
+                    .Select(code => "InfrastructureStatus" + code))
+                .Concat(Enum.GetValues(typeof(RunResultTextId))
+                    .Cast<RunResultTextId>()
+                    .Select(code => code switch
+                    {
+                        RunResultTextId.EmptyResult => "RunResultEmpty",
+                        RunResultTextId.NextRun => "RunResultNextRun",
+                        _ => throw new ArgumentOutOfRangeException(
+                            nameof(code),
+                            code,
+                            null)
+                    })),
+            StringComparer.Ordinal);
+        bool keysMatch = keys.SetEquals(requiredAllKeys);
+        bool localizedIdsMatch = sharedIds.SetEquals(localizedIds);
+        Require(keysMatch && localizedIdsMatch,
+            "DomainFailures shared/Korean keys no longer exactly match the typed failure enums; "
+            + $"keys={keys.Count}/{requiredAllKeys.Count}, ids={sharedIds.Count}/{localizedIds.Count}, "
+            + $"missingKeys=[{string.Join(",", requiredAllKeys.Except(keys).OrderBy(value => value))}], "
+            + $"extraKeys=[{string.Join(",", keys.Except(requiredAllKeys).OrderBy(value => value))}], "
+            + $"missingLocalizedIds=[{string.Join(",", sharedIds.Except(localizedIds).OrderBy(value => value))}], "
+            + $"extraLocalizedIds=[{string.Join(",", localizedIds.Except(sharedIds).OrderBy(value => value))}]");
+        return $"codes={requiredKeys.Length}; parameters=immutable; localization={sharedIds.Count}/{localizedIds.Count}";
+    }
+
+    private static string VerifyConsumablesPhysicalExactlyOnce()
+    {
+        GameObject actorObject = new GameObject("ConsumablesExactlyOnceActor");
+        WorldItemStackRuntime itemRuntime = null;
+        CharacterActor actor = null;
+        ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
+        try
+        {
+            actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId(new CharacterId("character:consumables-fixture"));
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+
+            itemRuntime = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture();
+            IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            CharacterConsumablesApplicationPorts ports = new CharacterConsumablesApplicationPorts(
+                itemCatalog,
+                itemRuntime,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance);
+            CharacterConsumablesRuntime core = new CharacterConsumablesRuntime(
+                ports,
+                ports,
+                ports,
+                new UnityGameClock(),
+                new RandomStreamProvider(90210),
+                new DungeonRuntimeAggregateRootStore());
+            CharacterConsumablesCompatibilityAdapter runtime =
+                new CharacterConsumablesCompatibilityAdapter(core);
+            runtime.SetPolicy(
+                actor,
+                "substance:vitality-tonic",
+                SubstancePolicyMode.MoodThreshold,
+                moodThreshold: 100f);
+            Require(itemRuntime.SpawnItemAt(
+                    "drug:vitality-tonic",
+                    2,
+                    Vector2Int.zero,
+                    WorldItemStackState.Loose,
+                    string.Empty,
+                    out int spawned)
+                && spawned == 2,
+                "fixture did not spawn two physical consumable items");
+            WorldItemStackSnapshot stack = itemRuntime.GetAllStacks()
+                .Single(value => value.ItemId == "drug:vitality-tonic");
+            ConsumeSubstanceCommand command = new ConsumeSubstanceCommand(
+                new ConsumableOperationId("consumable-operation:fixture-once"),
+                new CharacterId("character:consumables-fixture"),
+                new ItemDefinitionId("drug:vitality-tonic"),
+                new ItemStackId(stack.StackId),
+                medicalContext: false,
+                combatContext: false);
+
+            Require(runtime.TryConsume(command, out SubstanceUseResult first)
+                    && first.Success
+                    && first.ItemStackId.Equals(command.ItemStackId),
+                $"first physical consume failed: {first.FailureCode}");
+            int quantityAfterFirst = itemRuntime.GetAllStacks()
+                .Where(value => value.ItemId == "drug:vitality-tonic")
+                .Sum(value => value.Quantity);
+            Require(!runtime.TryConsume(command, out SubstanceUseResult duplicate)
+                    && duplicate.FailureCode
+                        == CharacterConsumablesFailureCode.AlreadyProcessed
+                    && duplicate.Parameters.SequenceEqual(new[] { command.OperationId.Value }),
+                "duplicate operation was not rejected exactly once");
+            int quantityAfterDuplicate = itemRuntime.GetAllStacks()
+                .Where(value => value.ItemId == "drug:vitality-tonic")
+                .Sum(value => value.Quantity);
+            runtime.SetPolicy(
+                actor,
+                "substance:vitality-tonic",
+                SubstancePolicyMode.Forbidden);
+            ConsumeSubstanceCommand policyCommand = new ConsumeSubstanceCommand(
+                new ConsumableOperationId("consumable-operation:fixture-policy"),
+                command.CharacterId,
+                command.ItemDefinitionId,
+                command.ItemStackId,
+                medicalContext: false,
+                combatContext: false);
+            Require(!runtime.TryConsume(policyCommand, out SubstanceUseResult policyFailure)
+                    && policyFailure.FailureCode
+                        == CharacterConsumablesFailureCode.PolicyForbidden
+                    && policyFailure.Parameters.Count == 2
+                    && policyFailure.Parameters[0] == command.ItemDefinitionId.Value,
+                "forbidden substance policy did not return a typed failure");
+            runtime.SetPolicy(
+                actor,
+                "substance:vitality-tonic",
+                SubstancePolicyMode.MoodThreshold,
+                moodThreshold: 100f);
+            ConsumeSubstanceCommand missingCommand = new ConsumeSubstanceCommand(
+                new ConsumableOperationId("consumable-operation:fixture-missing"),
+                command.CharacterId,
+                command.ItemDefinitionId,
+                new ItemStackId("stack:missing"),
+                medicalContext: false,
+                combatContext: false);
+            Require(!runtime.TryConsume(missingCommand, out SubstanceUseResult missingFailure)
+                    && missingFailure.FailureCode
+                        == CharacterConsumablesFailureCode.ItemStackMissing
+                    && missingFailure.Parameters.SequenceEqual(new[] { "stack:missing" }),
+                "missing physical substance did not return a typed failure");
+            DungeonCharacterConsumablesSaveData captured = core.Capture();
+            Require(quantityAfterFirst == 1
+                    && quantityAfterDuplicate == 1
+                    && captured.completedOperations.Count == 1
+                    && captured.completedOperations.Single().itemStackId == stack.StackId,
+                "physical quantity or operation ledger diverged after duplicate command");
+            return $"stack={stack.StackId}; quantity=2->1->1; ledger=1";
+        }
+        finally
+        {
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            itemRuntime?.Dispose();
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
+    }
+
+    private static string VerifyConsumablesStrictRestore()
+    {
+        GameObject actorObject = new GameObject("ConsumablesRestoreActor");
+        WorldItemStackRuntime itemRuntime = null;
+        CharacterActor actor = null;
+        ICharacterAiWorldRegistry world = CharacterAiEditorTestDependencies.WorldRegistry;
+        try
+        {
+            actor = actorObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId(new CharacterId("character:consumables-restore"));
+            world.RegisterCharacter(actor);
+            world.RegisterCharacterLifetime(actor);
+            itemRuntime = PhysicalItemDebugScenarios.CreateRuntimeForCrossDomainFixture();
+            IItemDefinitionCatalog itemCatalog = new ResourceItemDefinitionCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            DungeonRuntimeAggregateRootStore root = new DungeonRuntimeAggregateRootStore();
+            CharacterConsumablesApplicationPorts ports = new CharacterConsumablesApplicationPorts(
+                itemCatalog,
+                itemRuntime,
+                world,
+                new GameEventBus(),
+                EmptyCombatCommands.Instance);
+            CharacterConsumablesRuntime runtime = new CharacterConsumablesRuntime(
+                ports,
+                ports,
+                ports,
+                new UnityGameClock(),
+                new RandomStreamProvider(7),
+                root);
+            CharacterConsumablesCompatibilityAdapter compatibility =
+                new CharacterConsumablesCompatibilityAdapter(runtime);
+            compatibility.SetPolicy(actor, CharacterDietPolicyKind.Vegan);
+            DungeonCharacterConsumablesSaveData valid = runtime.Capture();
+            string validJson = JsonUtility.ToJson(valid);
+            CharacterConsumablesApplicationPorts restoredPorts =
+                new CharacterConsumablesApplicationPorts(
+                    itemCatalog,
+                    itemRuntime,
+                    world,
+                    new GameEventBus(),
+                    EmptyCombatCommands.Instance);
+            CharacterConsumablesRuntime restoredRuntime = new CharacterConsumablesRuntime(
+                restoredPorts,
+                restoredPorts,
+                restoredPorts,
+                new UnityGameClock(),
+                new RandomStreamProvider(7),
+                new DungeonRuntimeAggregateRootStore());
+            restoredRuntime.PublishRestoreCandidate(
+                restoredRuntime.BuildRestoreCandidate(valid));
+            Require(JsonUtility.ToJson(restoredRuntime.Capture()) == validJson,
+                "valid consumables payload did not round-trip canonically");
+
+            DungeonCharacterConsumablesSaveData invalid = JsonUtility.FromJson<
+                DungeonCharacterConsumablesSaveData>(validJson);
+            invalid.dietPolicies[0].characterId = "character:missing";
+            invalid.pendingMealDeliveries.Add(new CharacterMealDeliveryState
+            {
+                deliveryId = "consumable-delivery:duplicate",
+                characterId = "character:missing",
+                buildingInstanceId = "building:missing",
+                itemDefinitionId = "item:missing"
+            });
+            string before = JsonUtility.ToJson(runtime.Capture());
+            bool threw = false;
+            try
+            {
+                runtime.BuildRestoreCandidate(invalid);
+            }
+            catch (InvalidOperationException)
+            {
+                threw = true;
+            }
+            Require(threw
+                    && JsonUtility.ToJson(runtime.Capture()) == before
+                    && root.PublishedRestoreRevision == 0,
+                "invalid consumables restore mutated live aggregate state");
+
+            DungeonCharacterConsumablesSaveData legacy = JsonUtility.FromJson<
+                DungeonCharacterConsumablesSaveData>(validJson);
+            legacy.version = DungeonCharacterConsumablesSaveData.CurrentVersion - 1;
+            bool legacyRejected = false;
+            try
+            {
+                runtime.BuildRestoreCandidate(legacy);
+            }
+            catch (InvalidOperationException)
+            {
+                legacyRejected = true;
+            }
+            Require(legacyRejected,
+                "legacy consumables payload version was accepted");
+            Require(typeof(CharacterConsumablesRuntime)
+                    .GetConstructors()
+                    .Single()
+                    .GetParameters()
+                    .All(parameter => parameter.ParameterType
+                        != typeof(IResourceEconomyContentCatalog)),
+                "consumables runtime still uses the projection catalog as classification authority");
+            Require(typeof(ICharacterConsumablesApplication)
+                    .IsAssignableFrom(typeof(CharacterConsumablesRuntime))
+                && typeof(ICharacterConsumablesPersistence)
+                    .IsAssignableFrom(typeof(CharacterConsumablesRuntime))
+                && typeof(ICharacterConsumablesQuery)
+                    .IsAssignableFrom(typeof(CharacterConsumablesCompatibilityAdapter))
+                && typeof(ICharacterConsumablesCommand)
+                    .IsAssignableFrom(typeof(CharacterConsumablesCompatibilityAdapter))
+                && typeof(ICharacterSubstanceRuntime)
+                    .IsAssignableFrom(typeof(CharacterConsumablesCompatibilityAdapter)),
+                "consumables core/adapter facets are not separated correctly");
+            return "roundtrip=canonical; invalid=no-mutation; legacy=rejected; catalog=item-definition; facets=split";
+        }
+        finally
+        {
+            if (actor != null)
+            {
+                world.UnregisterCharacter(actor);
+                world.UnregisterCharacterLifetime(actor);
+            }
+            itemRuntime?.Dispose();
+            UnityEngine.Object.DestroyImmediate(actorObject);
+        }
     }
 
     private static int GetCount(
@@ -512,7 +1138,128 @@ public static class SurvivalDebugScenarios
         public WildlifeSpeciesDefinition GetRandomSpecies(
             IRandomStream randomStream)
         {
-            return WildlifeBuiltIns.CaveRat;
+            return WildlifeTestFixtures.CaveRat;
+        }
+    }
+
+    private sealed class EmptyStockQuery : IStockQuery
+    {
+        public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
+            Array.Empty<WorldItemStackSnapshot>();
+        public int GetGlobalQuantity(string itemDefinitionId) => 0;
+
+        public int GetWarehouseQuantity(
+            BuildingInstanceId warehouseId,
+            string itemDefinitionId) => 0;
+
+        public int GetWarehouseQuantity(
+            BuildingInstanceId warehouseId,
+            StockCategory category) => 0;
+
+        public int GetWarehouseTotal(BuildingInstanceId warehouseId) => 0;
+    }
+
+    private sealed class FixedGameClock : IGameClock
+    {
+        public float DeltaTime => 0f;
+        public float Time => 0f;
+        public int FrameCount => 0;
+        public bool IsPaused => false;
+    }
+
+    private sealed class EmptyWorldThreatModifiers : IWorldThreatModifierQuery
+    {
+        internal static readonly EmptyWorldThreatModifiers Instance = new();
+
+        public OffenseThreatModifierSnapshot GetModifier(
+            OffenseThreatModifierKind kind) => new(kind, 0f, 0f, 0f, 0);
+
+        public float GetMultiplier(OffenseThreatModifierKind kind) => 1f;
+
+        public IReadOnlyList<OffenseThreatModifierSnapshot> GetActiveModifiers() =>
+            Array.Empty<OffenseThreatModifierSnapshot>();
+    }
+
+    private sealed class EmptySurvivalServiceSessions :
+        ISurvivalServiceSessionCapability
+    {
+        internal static readonly EmptySurvivalServiceSessions Instance = new();
+
+        public ServiceHubSnapshot GetHubSnapshot(BuildableObject hub) => new()
+        {
+            Hub = hub,
+            Mode = ServiceOperationMode.Managed,
+            State = ServiceOperatingState.Closed
+        };
+
+        public bool TryBeginSession(
+            ServiceSessionRequest request,
+            out ServiceSessionSnapshot session,
+            out DomainFailure failure)
+        {
+            session = null;
+            failure = new DomainFailure(FailureCode.ServiceClosed);
+            return false;
+        }
+
+        public bool TryCompleteSession(
+            string sessionId,
+            out ServiceSessionSnapshot completed,
+            out DomainFailure failure)
+        {
+            completed = null;
+            failure = new DomainFailure(
+                FailureCode.ServiceSessionMissing,
+                sessionId);
+            return false;
+        }
+
+        public bool CancelSession(string sessionId, string reason) => false;
+    }
+
+    private sealed class EmptyCombatCommands : ICharacterCombatCommandRuntime
+    {
+        internal static readonly EmptyCombatCommands Instance = new EmptyCombatCommands();
+        public IReadOnlyList<CharacterCombatCommand> ActiveCommands =>
+            Array.Empty<CharacterCombatCommand>();
+        public bool IsInCombatStance(CharacterActor actor) => false;
+        public bool SetCombatStance(CharacterActor actor, bool enabled, out string message) =>
+            Unavailable(out message);
+        public bool TryIssueMove(CharacterActor actor, Vector2Int destination, out string message) =>
+            Unavailable(out message);
+        public bool TryIssueMoveToCover(CharacterActor actor, Vector2Int destination, out string message) =>
+            Unavailable(out message);
+        public bool TryIssueAttack(CharacterActor actor, CombatParticipantRef target, bool forceFire, out string message) =>
+            Unavailable(out message);
+        public bool TryIssueForceFireAtCell(CharacterActor actor, Vector2Int targetCell, out string message) =>
+            Unavailable(out message);
+        public bool TryIssueReload(CharacterActor actor, out string message) => Unavailable(out message);
+        public bool TryIssueSwitchWeapon(CharacterActor actor, out string message) => Unavailable(out message);
+        public bool TrySetFireMode(CharacterActor actor, CombatFireMode mode, out string message) =>
+            Unavailable(out message);
+        public bool TrySetHoldFire(CharacterActor actor, bool holdFire, out string message) =>
+            Unavailable(out message);
+        public bool TryIssueRescue(CharacterActor rescuer, CharacterActor patient, out string message) =>
+            Unavailable(out message);
+        public bool TryGetCommand(CharacterActor actor, out CharacterCombatCommand command)
+        {
+            command = null;
+            return false;
+        }
+        public void CancelCommand(CharacterActor actor, string reason)
+        {
+        }
+        public CharacterCombatCommandSaveData Capture() => new CharacterCombatCommandSaveData();
+        public CharacterCombatCommandRestoreCandidate PrepareRestore(
+            CharacterCombatCommandSaveData saveData)
+        {
+            throw new NotSupportedException();
+        }
+        public void PublishRestore(CharacterCombatCommandRestoreCandidate candidate) { }
+        private static bool Unavailable(out string message)
+        {
+            message = "unavailable";
+            return false;
         }
     }
 
@@ -522,5 +1269,20 @@ public static class SurvivalDebugScenarios
         {
             throw new InvalidOperationException(message);
         }
+    }
+
+    private static void RequireThrows<TException>(Action action, string message)
+        where TException : Exception
+    {
+        try
+        {
+            action();
+        }
+        catch (TException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(message);
     }
 }

@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bbb281ee3bf0b054c82ac2347e9e782c, type: 3}
+  m_Name: Localization-String-Tables-Korean
+  m_EditorClassIdentifier: Unity.Addressables.Editor::UnityEditor.AddressableAssets.Settings.AddressableAssetGroup
+  m_GroupName: Localization-String-Tables-Korean
+  m_GUID: 0aedf643edc305942baf2f91f7b1add2
+  m_SerializeEntries:
+  - m_GUID: 1d20252e947fe1d41bcdd22b8f5be9e1
+    m_Address: CharacterAI_ko
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 3656bafaa16ced048ac918a814187bb6
+    m_Address: CharacterSummaryUI_ko
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 548fbe03f26add54d9e2c4f524b73317
+    m_Address: DefenseUI_ko
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6182a5d0ae436d245b53a1fbae254092
+    m_Address: DomainFailures_ko
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7947af0826191214b8ec44678cd7cc05
+    m_Address: WildlifeUI_ko
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 90af0bfcbd5cdaa49ba094f29f4cf857
+    m_Address: ProductionUI_ko
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9c9badfcf67ad5145a2fb1cef952395f
+    m_Address: CharacterNarrative_ko
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d2376b9aa4bbb5e438c40a27833c025d
+    m_Address: BuildingSummaryUI_ko
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e6381c5cddd55a542b8eca8ede3414a6
+    m_Address: CharacterCombatUI_ko
+    m_ReadOnly: 1
+    m_SerializedLabels:
+    - Locale-ko
+    FlaggedDuringContentUpdateRestriction: 0
+  m_ReadOnly: 1
+  m_Settings: {fileID: 11400000, guid: 4e9c14b0d9289aa41bb3eb0b41bd1700, type: 2}
+  m_SchemaSet:
+    m_Schemas:
+    - {fileID: 11400000, guid: fee1129db99ff484f8318d1bf8a74401, type: 2}
+    - {fileID: 11400000, guid: 30864a9cf169f314da84eff2071a8745, type: 2}

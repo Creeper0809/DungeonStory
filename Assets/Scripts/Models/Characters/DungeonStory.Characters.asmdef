@@ -1,7 +1,11 @@
 {
   "name": "DungeonStory.Characters",
   "rootNamespace": "DungeonStory.Characters",
-  "references": [],
+  "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.Foundation",
+    "DungeonStory.Work"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

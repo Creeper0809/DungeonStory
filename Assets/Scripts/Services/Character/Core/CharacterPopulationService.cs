@@ -1,39 +1,34 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Characters;
+using DungeonStory.Factions;
+using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
-public interface ICharacterPopulationService
-{
-    IReadOnlyList<WorldCharacterProfile> Profiles { get; }
-    WorldCharacterProfile AcquireVisitor(
-        CharacterSO characterData,
-        IEnumerable<string> unavailableProfileIds = null);
-    bool TryCreateRecruitCandidate(
-        out WorldCharacterProfile profile,
-        out CharacterSO sourceData);
-    void BindActor(WorldCharacterProfile profile, CharacterActor actor);
-    void RefreshProfile(CharacterActor actor);
-    void ReleaseVisitor(CharacterActor actor);
-    void PromoteToStaff(CharacterActor actor);
-    bool TryGetProfile(CharacterActor actor, out WorldCharacterProfile profile);
-    List<WorldCharacterProfile> CaptureProfiles();
-    void RestoreProfiles(IEnumerable<WorldCharacterProfile> profiles);
-}
-
-public sealed class CharacterPopulationService : ICharacterPopulationService, IDisposable
+public sealed class CharacterPopulationApplicationAdapter : IDisposable
 {
     private sealed class PendingProfilePreparation
     {
-        public WorldCharacterProfile profile;
-        public CharacterProgression progression;
-        public GameObject previewObject;
+        public readonly WorldCharacterProfile profile;
+        public readonly CharacterProgression progression;
+        public readonly GameObject previewObject;
+
+        public PendingProfilePreparation(
+            WorldCharacterProfile profile,
+            CharacterProgression progression,
+            GameObject previewObject)
+        {
+            this.profile = profile;
+            this.progression = progression;
+            this.previewObject = previewObject;
+        }
     }
 
-    private const string TraitResourcePath = "SO/Character/Traits";
-    private const string CharacterResourcePath = "SO/Character";
     private const int MaximumConcurrentPreparations = 2;
+    private const string CustomerTemplateCache = "customer-templates";
+    private const string TraitPoolCache = "trait-pool";
 
     private static readonly string[] GivenNames =
     {
@@ -54,58 +49,54 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
     };
 
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
+    private readonly IGameContentCatalog content;
     private readonly ICharacterSkillGenerationService skillGenerationService;
-    private readonly IRunVariableRuntimeProvider runVariableRuntimeProvider;
-    private readonly IFactionRuntimeProvider factionRuntimeProvider;
+    private readonly RunVariableRuntime runVariables;
+    private readonly IFactionContractQuery factionContracts;
     private readonly IRunCharacterCatalog characterCatalog;
-    private readonly List<WorldCharacterProfile> profiles = new List<WorldCharacterProfile>();
-    private readonly Dictionary<CharacterActor, WorldCharacterProfile> actors =
-        new Dictionary<CharacterActor, WorldCharacterProfile>();
-    private readonly Dictionary<string, PendingProfilePreparation> pendingPreparations =
-        new Dictionary<string, PendingProfilePreparation>(StringComparer.Ordinal);
-    private CharacterTraitSO[] traitPool;
-    private CharacterSO[] customerTemplates;
-    private int creationSerial;
-    private bool reachedReadyTarget;
-    private bool replenishing;
-    private bool pumpingPreparations;
+    private readonly CharacterPopulationAggregate<
+        WorldCharacterProfile,
+        CharacterActor,
+        PendingProfilePreparation> populationAggregate = new();
+    private readonly List<CharacterTraitSO> traitPool = new();
+    private readonly List<CharacterSO> customerTemplates = new();
+    private readonly HashSet<string> initializedCaches = new(StringComparer.Ordinal);
+    [ApplicationAdapterTransientState]
+    private bool applyingPreparations;
 
-    public CharacterPopulationService(
-        ICharacterSkillSystemSettingsProvider settingsProvider,
-        IResourcesAssetLoader resourcesAssetLoader,
-        ICharacterSkillGenerationService skillGenerationService)
-        : this(
-            settingsProvider,
-            resourcesAssetLoader,
-            skillGenerationService,
-            null,
-            null,
-            null)
-    {
-    }
+    private CharacterPopulationDomain<WorldCharacterProfile> population =>
+        populationAggregate.Population;
+    private Dictionary<CharacterActor, WorldCharacterProfile> actors =>
+        populationAggregate.Actors;
+    private Dictionary<string, PendingProfilePreparation> pendingPreparations =>
+        populationAggregate.Preparations;
 
     [Inject]
-    public CharacterPopulationService(
+    public CharacterPopulationApplicationAdapter(
         ICharacterSkillSystemSettingsProvider settingsProvider,
-        IResourcesAssetLoader resourcesAssetLoader,
+        IGameContentCatalog content,
         ICharacterSkillGenerationService skillGenerationService,
-        IRunVariableRuntimeProvider runVariableRuntimeProvider,
-        IFactionRuntimeProvider factionRuntimeProvider = null,
-        IRunCharacterCatalog characterCatalog = null)
+        DungeonSceneRuntimeReferences sceneRuntimes,
+        IFactionContractQuery factionContracts,
+        IRunCharacterCatalog characterCatalog)
     {
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
-        this.resourcesAssetLoader = resourcesAssetLoader
-            ?? throw new ArgumentNullException(nameof(resourcesAssetLoader));
+        this.content = content ?? throw new ArgumentNullException(nameof(content));
         this.skillGenerationService = skillGenerationService
             ?? throw new ArgumentNullException(nameof(skillGenerationService));
-        this.runVariableRuntimeProvider = runVariableRuntimeProvider;
-        this.factionRuntimeProvider = factionRuntimeProvider;
-        this.characterCatalog = characterCatalog;
+        runVariables = (sceneRuntimes
+                ?? throw new ArgumentNullException(nameof(sceneRuntimes)))
+            .RunVariables
+            ?? throw new InvalidOperationException(
+                $"{nameof(CharacterPopulationApplicationAdapter)} requires a loaded {nameof(RunVariableRuntime)}.");
+        this.factionContracts = factionContracts
+            ?? throw new ArgumentNullException(nameof(factionContracts));
+        this.characterCatalog = characterCatalog
+            ?? throw new ArgumentNullException(nameof(characterCatalog));
     }
 
-    public IReadOnlyList<WorldCharacterProfile> Profiles => profiles;
+    public IReadOnlyList<WorldCharacterProfile> Profiles => population.Profiles;
 
     public WorldCharacterProfile AcquireVisitor(
         CharacterSO characterData,
@@ -118,23 +109,11 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
 
         EnsurePreparedPool();
 
-        HashSet<string> unavailable = new HashSet<string>(
-            unavailableProfileIds ?? Array.Empty<string>(),
-            StringComparer.Ordinal);
-        WorldCharacterProfile returning = profiles
-            .Where(profile => profile != null
-                && profile.isAlive
-                && !profile.isStaff
-                && !profile.isVisiting
-                && profile.IsReady
-                && !unavailable.Contains(profile.persistentId)
-                && profile.characterDataId == characterData.id)
-            .OrderBy(profile => profile.visitCount)
-            .ThenBy(profile => profile.persistentId, StringComparer.Ordinal)
-            .FirstOrDefault();
+        WorldCharacterProfile returning = population.AcquireVisitor(
+            characterData.id,
+            unavailableProfileIds);
         if (returning != null)
         {
-            returning.isVisiting = true;
             EnsurePreparedPool();
             return returning;
         }
@@ -154,9 +133,9 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
             return false;
         }
 
-        sourceData = templates[creationSerial % templates.Length];
+        sourceData = templates[population.CreationSerial % templates.Length];
         profile = CreateProfile(sourceData);
-        profiles.Add(profile);
+        population.Add(profile);
 
         // Offense rewards are explicit player-facing candidates, so their
         // identity and skill preparation takes priority over pool replenishment.
@@ -211,14 +190,13 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         SynchronizeProfile(profile, actor);
         if (profile.isStaff)
         {
-            profile.isVisiting = false;
+            population.ReleaseVisitor(profile);
             ApplyStaffRuntimeState(profile, actor);
             EnsurePreparedPool();
             return;
         }
 
-        profile.isVisiting = false;
-        profile.visitCount++;
+        population.ReleaseVisitor(profile);
         actors.Remove(actor);
         EnsurePreparedPool();
     }
@@ -239,8 +217,7 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
             return;
         }
 
-        profile.isStaff = true;
-        profile.isVisiting = false;
+        population.PromoteToStaff(profile);
         ApplyStaffRuntimeState(profile, actor);
         SynchronizeProfile(profile, actor);
         EnsurePreparedPool();
@@ -260,9 +237,7 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         }
 
         string persistentId = actor.Identity?.PersistentId;
-        profile = profiles.FirstOrDefault(candidate => candidate != null
-            && string.Equals(candidate.persistentId, persistentId, StringComparison.Ordinal));
-        if (profile != null)
+        if (population.TryGet(persistentId, out profile))
         {
             actors[actor] = profile;
             ApplyStaffRuntimeState(profile, actor);
@@ -287,53 +262,89 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
             }
         }
 
-        return profiles
-            .Where(profile => profile != null)
-            .Select(profile => profile.Clone())
-            .ToList();
+        return population.Capture(profile => profile.Clone());
     }
 
     public void RestoreProfiles(IEnumerable<WorldCharacterProfile> restoredProfiles)
     {
-        CancelAllPreparations();
-        actors.Clear();
-        profiles.Clear();
-        List<WorldCharacterProfile> restored = restoredProfiles?
-            .Where(profile => profile != null)
-            .Select(profile => profile.Clone())
-            .ToList() ?? new List<WorldCharacterProfile>();
-        WorldCharacterProfile invalid = restored.FirstOrDefault(profile => string.IsNullOrWhiteSpace(profile.persistentId));
-        if (invalid != null)
+        CharacterPopulationRestoreTransaction transaction =
+            ApplyRestoreCandidate(BuildRestoreCandidate(restoredProfiles));
+        CompleteRestore(transaction);
+        ReplenishPreparedPoolBestEffort();
+    }
+
+    public CharacterPopulationRestoreCandidate BuildRestoreCandidate(
+        IEnumerable<WorldCharacterProfile> restoredProfiles)
+    {
+        CharacterPopulationDomain<WorldCharacterProfile> restored = new();
+        restored.Restore(
+            restoredProfiles,
+            profile => profile.Clone(),
+            settingsProvider.Settings.guestReadyTarget,
+            settingsProvider.Settings.guestReadyLowWatermark);
+        return new CharacterPopulationRestoreCandidate(this, restored);
+    }
+
+    public CharacterPopulationRestoreTransaction ApplyRestoreCandidate(
+        CharacterPopulationRestoreCandidate candidate)
+    {
+        if (candidate == null)
         {
-            throw new InvalidOperationException("A world character profile is missing its persistent ID.");
+            throw new ArgumentNullException(nameof(candidate));
         }
 
-        string duplicateId = restored
-            .GroupBy(profile => profile.persistentId, StringComparer.Ordinal)
-            .Where(group => group.Count() > 1)
-            .Select(group => group.Key)
-            .FirstOrDefault();
-        if (!string.IsNullOrWhiteSpace(duplicateId))
-        {
-            throw new InvalidOperationException(
-                $"Duplicate world character profile ID '{duplicateId}' cannot be restored.");
-        }
+        CharacterPopulationDomain<WorldCharacterProfile> restored =
+            candidate.Peek(this);
+        CharacterPopulationAggregateRestore<
+            WorldCharacterProfile,
+            CharacterActor,
+            PendingProfilePreparation> aggregateRestore =
+            populationAggregate.BuildRestore(restored);
 
-        profiles.AddRange(restored);
-        foreach (WorldCharacterProfile profile in profiles)
-        {
-            profile.isVisiting = false;
-        }
+        CharacterPopulationRestoreTransaction transaction =
+            new CharacterPopulationRestoreTransaction(
+            this,
+            rollback: () =>
+            {
+                populationAggregate.Rollback(
+                    aggregateRestore,
+                    RetirePreparationsBestEffort);
+            },
+            complete: () =>
+            {
+                populationAggregate.Complete(
+                    aggregateRestore,
+                    RetirePreparationsBestEffort);
+            });
 
-        creationSerial = profiles
-            .Select(profile => ParseSerial(profile.persistentId))
-            .DefaultIfEmpty(0)
-            .Max();
-        int availableReady = CountAvailableReadyProfiles();
-        reachedReadyTarget = availableReady >= settingsProvider.Settings.guestReadyTarget;
-        replenishing = reachedReadyTarget
-            && availableReady <= settingsProvider.Settings.guestReadyLowWatermark;
-        EnsurePreparedPool();
+        candidate.Consume(this, restored);
+        populationAggregate.Apply(aggregateRestore);
+        return transaction;
+    }
+
+    public void RollbackRestore(CharacterPopulationRestoreTransaction transaction)
+    {
+        (transaction ?? throw new ArgumentNullException(nameof(transaction)))
+            .Rollback(this);
+    }
+
+    public void CompleteRestore(CharacterPopulationRestoreTransaction transaction)
+    {
+        (transaction ?? throw new ArgumentNullException(nameof(transaction)))
+            .Complete(this);
+    }
+
+    public void ReplenishPreparedPoolBestEffort()
+    {
+        try
+        {
+            EnsurePreparedPool();
+        }
+        catch
+        {
+            // Pool replenishment is derived work. A committed restore must remain committed
+            // even when preview creation or progression preparation is temporarily unavailable.
+        }
     }
 
     public void Dispose()
@@ -347,59 +358,41 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         CharacterSkillSystemSettingsSO settings = settingsProvider.Settings;
         int target = Mathf.Max(1, settings.guestReadyTarget);
         int lowWatermark = Mathf.Clamp(settings.guestReadyLowWatermark, 0, target);
-        int availableReady = CountAvailableReadyProfiles();
-        int availableOrQueued = CountAvailableOrQueuedProfiles();
+        int availableOrQueued = population.CountAvailableOrQueued();
 
-        if (!reachedReadyTarget)
-        {
-            replenishing = true;
-        }
-        else if (!replenishing && availableReady <= lowWatermark)
-        {
-            replenishing = true;
-        }
-
-        if (replenishing)
+        if (population.ShouldReplenish(target, lowWatermark))
         {
             CharacterSO[] templates = GetCustomerTemplates();
             int maximumAlive = Mathf.Max(target, settings.maximumAliveNonStaffGuests);
             while (availableOrQueued < target
-                && CountAliveNonStaff() < maximumAlive
+                && population.CountAliveNonStaff() < maximumAlive
                 && templates.Length > 0)
             {
-                CharacterSO template = templates[creationSerial % templates.Length];
-                profiles.Add(CreateProfile(template));
-                availableOrQueued = CountAvailableOrQueuedProfiles();
+                CharacterSO template = templates[population.CreationSerial % templates.Length];
+                population.Add(CreateProfile(template));
+                availableOrQueued = population.CountAvailableOrQueued();
             }
         }
 
-        if (availableReady >= target)
-        {
-            reachedReadyTarget = true;
-            replenishing = false;
-        }
+        population.CompleteReplenishment(target);
 
         PumpPreparations();
     }
 
     private void PumpPreparations()
     {
-        if (pumpingPreparations)
+        if (applyingPreparations)
         {
             return;
         }
 
-        pumpingPreparations = true;
+        applyingPreparations = true;
         try
         {
             while (pendingPreparations.Count < MaximumConcurrentPreparations)
             {
-                WorldCharacterProfile next = profiles.FirstOrDefault(profile => profile != null
-                    && profile.isAlive
-                    && !profile.isStaff
-                    && !profile.isVisiting
-                    && !profile.IsReady
-                    && !pendingPreparations.ContainsKey(profile.persistentId));
+                WorldCharacterProfile next = population.FindNextPreparation(
+                    pendingPreparations.Keys);
                 if (next == null)
                 {
                     break;
@@ -410,7 +403,7 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         }
         finally
         {
-            pumpingPreparations = false;
+            applyingPreparations = false;
         }
     }
 
@@ -435,14 +428,15 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
             hideFlags = HideFlags.HideAndDontSave
         };
         CharacterProgression progression = preview.AddComponent<CharacterProgression>();
-        progression.ConstructCharacterProgression(skillGenerationService, settingsProvider);
+        progression.ConfigurePreview(
+            skillGenerationService,
+            settingsProvider,
+            new CharacterProgressionProfileProjector(content));
         progression.SetPublicSkillNotificationsSuppressed(true);
-        PendingProfilePreparation pending = new PendingProfilePreparation
-        {
-            profile = profile,
-            progression = progression,
-            previewObject = preview
-        };
+        PendingProfilePreparation pending = new(
+            profile,
+            progression,
+            preview);
         pendingPreparations[profile.persistentId] = pending;
         progression.Changed += () => HandlePreparationChanged(profile.persistentId);
         progression.RestorePersistentState(new CharacterProgressionSnapshot(
@@ -496,7 +490,18 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
 
     private void CancelAllPreparations()
     {
-        foreach (PendingProfilePreparation pending in pendingPreparations.Values.ToArray())
+        CancelPreparations(pendingPreparations);
+    }
+
+    private void CancelPreparations(
+        Dictionary<string, PendingProfilePreparation> preparations)
+    {
+        if (preparations == null)
+        {
+            return;
+        }
+
+        foreach (PendingProfilePreparation pending in preparations.Values.ToArray())
         {
             if (pending.progression != null)
             {
@@ -506,19 +511,53 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
             DestroyPreview(pending.previewObject);
         }
 
-        pendingPreparations.Clear();
+        preparations.Clear();
+    }
+
+    private void RetirePreparationsBestEffort(
+        IReadOnlyCollection<PendingProfilePreparation> preparations)
+    {
+        if (preparations == null)
+        {
+            return;
+        }
+
+        foreach (PendingProfilePreparation pending in preparations.ToArray())
+        {
+            try
+            {
+                if (pending.progression != null)
+                {
+                    skillGenerationService.CancelRequests(pending.progression);
+                }
+            }
+            catch
+            {
+                // Retirement cannot invalidate a completed aggregate-root swap.
+            }
+
+            try
+            {
+                DestroyPreview(pending.previewObject);
+            }
+            catch
+            {
+                // Preview cleanup is best effort and never part of committed state.
+            }
+        }
     }
 
     private CharacterSO[] GetCustomerTemplates()
     {
-        customerTemplates ??= (characterCatalog?.Characters
-                ?? resourcesAssetLoader
-                    .LoadAllRequired<CharacterSO>(CharacterResourcePath))
-            .Where(candidate => candidate != null && candidate.characterType == CharacterType.Customer)
-            .GroupBy(candidate => candidate.id)
-            .Select(group => group.First())
-            .OrderBy(candidate => candidate.id)
-            .ToArray();
+        if (initializedCaches.Add(CustomerTemplateCache))
+        {
+            customerTemplates.AddRange(characterCatalog.Characters
+                .Where(candidate => candidate != null
+                    && candidate.characterType == CharacterType.Customer)
+                .GroupBy(candidate => candidate.id)
+                .Select(group => group.First())
+                .OrderBy(candidate => candidate.id));
+        }
         return customerTemplates
             .Where(IsRecruitmentEligible)
             .ToArray();
@@ -527,35 +566,16 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
     private bool IsRecruitmentEligible(CharacterSO candidate)
     {
         CharacterSpeciesSO species = candidate?.species;
-        if (species == null || species.ownerSelectable)
-        {
-            return true;
-        }
-
-        string factionId = species.homeFactionId?.Trim() ?? string.Empty;
-        return factionId.Length > 0
-            && factionRuntimeProvider?.TryGetRuntime(
-                out IFactionRuntime factionRuntime) == true
-            && factionRuntime.IsContractUnlocked(
-                factionId,
-                FactionContractKind.Recruitment) == true;
-    }
-
-    private int CountAvailableReadyProfiles()
-    {
-        return profiles.Count(profile => profile != null
-            && profile.isAlive
-            && !profile.isStaff
-            && !profile.isVisiting
-            && profile.IsReady);
-    }
-
-    private int CountAvailableOrQueuedProfiles()
-    {
-        return profiles.Count(profile => profile != null
-            && profile.isAlive
-            && !profile.isStaff
-            && !profile.isVisiting);
+        bool recruitmentUnlocked = species != null
+            && !string.IsNullOrWhiteSpace(species.homeFactionId)
+            && factionContracts.IsContractUnlocked(
+                species.homeFactionId,
+                FactionContractKind.Recruitment);
+        return CharacterSpawnRules.IsRecruitmentEligible(
+            species != null,
+            species?.ownerSelectable == true,
+            species?.homeFactionId,
+            recruitmentUnlocked);
     }
 
     private static void DestroyPreview(GameObject preview)
@@ -577,22 +597,19 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
 
     private WorldCharacterProfile CreateProfile(CharacterSO data)
     {
-        creationSerial++;
-        int runSeed = runVariableRuntimeProvider != null
-            && runVariableRuntimeProvider.TryGetRuntime(out RunVariableRuntime runtime)
-                ? runtime.RunSeed
-                : 0;
-        string persistentId = $"world:{runSeed}:{creationSerial:D6}";
+        int runSeed = runVariables.RunSeed;
+        string persistentId = population.NextPersistentId(runSeed);
+        int creationSerial = population.CreationSerial;
         int seed = CharacterGrowthRules.StableHash(persistentId);
-        System.Random random = new System.Random(seed);
+        IRandomStream random = new DeterministicRandomSequence(seed);
         CharacterSkillSystemSettingsSO settings = settingsProvider.Settings;
         CharacterGrowthState growth = new CharacterGrowthState
         {
             initialized = true,
             autoChooseDrafts = true,
             generationSeed = seed,
-            displayName = $"{GivenNames[random.Next(GivenNames.Length)]} {creationSerial}",
-            origin = $"{data.SpeciesTag} · {Origins[random.Next(Origins.Length)]}",
+            displayName = $"{GivenNames[random.NextInt(0, GivenNames.Length)]} {creationSerial}",
+            origin = $"{data.SpeciesTag} · {Origins[random.NextInt(0, Origins.Length)]}",
             potentialGrade = CharacterGrowthRules.RollPotential(settings, random),
             initialBaseStats = CharacterGrowthRules.RollInitialStats(settings, random),
             levelGrowthStats = new CharacterStatBlock(),
@@ -612,15 +629,16 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
 
     private List<int> RollTraits(
         CharacterSkillSystemSettingsSO settings,
-        System.Random random)
+        IRandomStream random)
     {
-        traitPool ??= resourcesAssetLoader
-            .LoadAllRequired<CharacterTraitSO>(TraitResourcePath)
-            .Where(trait => trait != null)
-            .OrderBy(trait => trait.id)
-            .ToArray();
+        if (initializedCaches.Add(TraitPoolCache))
+        {
+            traitPool.AddRange(content.GetAll<CharacterTraitSO>()
+                .Where(trait => trait != null)
+                .OrderBy(trait => trait.id));
+        }
         List<int> selected = new List<int>(3);
-        foreach (CharacterTraitSO candidate in traitPool.OrderBy(_ => random.Next()))
+        foreach (CharacterTraitSO candidate in traitPool.OrderBy(_ => random.NextInt(0, int.MaxValue)))
         {
             bool conflicts = settings.traitConflicts.Any(rule => rule != null
                 && ((rule.firstTraitId == candidate.id && selected.Contains(rule.secondTraitId))
@@ -638,11 +656,6 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         }
 
         return selected;
-    }
-
-    private int CountAliveNonStaff()
-    {
-        return profiles.Count(profile => profile != null && profile.isAlive && !profile.isStaff);
     }
 
     private static void SynchronizeProfile(WorldCharacterProfile profile, CharacterActor actor)
@@ -677,9 +690,4 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
         actor.RefreshAbilityCache();
     }
 
-    private static int ParseSerial(string persistentId)
-    {
-        string suffix = persistentId?.Split(':').LastOrDefault();
-        return int.TryParse(suffix, out int serial) ? serial : 0;
-    }
 }

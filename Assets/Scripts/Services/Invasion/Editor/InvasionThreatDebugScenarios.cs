@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DungeonStory.Operation;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEditor;
@@ -216,7 +217,7 @@ public static class InvasionThreatDebugScenarios
         try
         {
             wall.category = BuildingCategory.Wall;
-            door.type = typeof(Door);
+            door.runtimeArchetype = BuildingRuntimeArchetypeKind.Door;
             facility.category = BuildingCategory.Production;
             facility.Facility = new FacilityData { roles = FacilityRole.Research };
 
@@ -245,7 +246,11 @@ public static class InvasionThreatDebugScenarios
             new NeutralMetaProgressionReader(),
             new DungeonStory.Foundation.UnityGameClock(),
             gameEventBus,
-            new DungeonStory.Foundation.RandomStreamProvider(41));
+            new DungeonStory.Foundation.RandomStreamProvider(41),
+            worldThreatModifiers: null,
+            experiencePacing: null,
+            aggregateStateStore: new InvasionAggregateStateStore(
+                new DungeonRuntimeAggregateRootStore()));
         return runtime;
     }
 
@@ -302,6 +307,8 @@ public static class InvasionThreatDebugScenarios
         public float GetBlueprintCostMultiplier(FacilityBlueprintSO blueprint) => 1f;
         public float GetThreatRiseMultiplier() => 1f;
         public float GetWarningThresholdMultiplier() => 1f;
+        public DungeonSurvivalPressure GetSurvivalPressure() =>
+            DungeonSurvivalPressure.Standard;
         public InvasionIntruderSettings ApplyInvasionSettings(InvasionIntruderSettings source) => source;
     }
 

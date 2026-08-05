@@ -1,0 +1,49 @@
+FINAL_PLAYMODE_ACCEPTANCE RESULT=FAIL
+requiredResolutions=1600x900,900x1600
+inputBoundary=Unity EventSystem and automation capability only
+capturePolicy=required captures must exist, be non-empty, and be fresh; verifier report freshness and pass state required
+persistenceRestoredNow=True
+detail=Target ResolutionMatrix failed. Verifier report did not declare RESULT=PASS.
+RESOLUTION_1280x720=PASS; actual=1280x720
+TITLE_VISIBLE_1280x720=PASS; dedicated title scene remains visible
+TITLE_BOUNDS_1280x720=PASS; brand=(x:89.60, y:100.80, width:524.80, height:504.00); saves=(x:665.60, y:100.80, width:524.80, height:504.00)
+TITLE_BUTTONS_ContinueLatestButton_1280x720=PASS; (x:89.60, y:342.72, width:377.86, height:55.44)
+TITLE_BUTTONS_StartNewRunButton_1280x720=PASS; (x:89.60, y:272.16, width:377.86, height:55.44)
+TITLE_BUTTONS_StartupSettingsButton_1280x720=PASS; (x:89.60, y:201.60, width:377.86, height:55.44)
+TITLE_BUTTONS_StartupQuitButton_1280x720=PASS; (x:89.60, y:131.04, width:377.86, height:55.44)
+TITLE_TEXT_1280x720=PASS; texts=22
+TITLE_CAPTURE_1280x720=PASS; size=1280x720; visible=920745
+SETTINGS_BUTTON_1280x720=PASS; startup settings button is available
+SETTINGS_VISIBLE_1280x720=PASS; settings modal is visible
+SETTINGS_BOUNDS_1280x720=PASS; (x:340.00, y:106.67, width:600.00, height:506.67)
+SETTINGS_BUTTONS_DisplaySettingsTab_1280x720=PASS; (x:360.00, y:525.33, width:137.33, height:33.33)
+SETTINGS_BUTTONS_AudioSettingsTab_1280x720=PASS; (x:502.67, y:525.33, width:134.67, height:33.33)
+SETTINGS_BUTTONS_AccessibilitySettingsTab_1280x720=PASS; (x:642.67, y:525.33, width:134.67, height:33.33)
+SETTINGS_BUTTONS_SettingsCloseButton_1280x720=PASS; (x:890.67, y:569.33, width:33.33, height:32.00)
+SETTINGS_BUTTONS_ApplySettingsButton_1280x720=PASS; (x:847.33, y:122.67, width:72.67, height:34.67)
+SETTINGS_TEXT_1280x720=PASS; texts=27
+SETTINGS_CAPTURE_1280x720=PASS; size=1280x720; visible=921600
+RESOLUTION_1600x900=PASS; actual=1600x900
+TITLE_VISIBLE_1600x900=PASS; dedicated title scene remains visible
+TITLE_BOUNDS_1600x900=PASS; brand=(x:112.00, y:126.00, width:656.00, height:630.00); saves=(x:832.00, y:126.00, width:656.00, height:630.00)
+TITLE_BUTTONS_ContinueLatestButton_1600x900=PASS; (x:112.00, y:428.40, width:472.32, height:69.30)
+TITLE_BUTTONS_StartNewRunButton_1600x900=PASS; (x:112.00, y:340.20, width:472.32, height:69.30)
+TITLE_BUTTONS_StartupSettingsButton_1600x900=PASS; (x:112.00, y:252.00, width:472.32, height:69.30)
+TITLE_BUTTONS_StartupQuitButton_1600x900=PASS; (x:112.00, y:163.80, width:472.32, height:69.30)
+TITLE_TEXT_1600x900=PASS; texts=22
+TITLE_CAPTURE_1600x900=PASS; size=1600x900; visible=1438131
+SETTINGS_BUTTON_1600x900=PASS; startup settings button is available
+SETTINGS_VISIBLE_1600x900=PASS; settings modal is visible
+SETTINGS_BOUNDS_1600x900=PASS; (x:425.00, y:133.33, width:750.00, height:633.33)
+SETTINGS_BUTTONS_DisplaySettingsTab_1600x900=PASS; (x:450.00, y:656.67, width:171.67, height:41.67)
+SETTINGS_BUTTONS_AudioSettingsTab_1600x900=PASS; (x:628.33, y:656.67, width:168.33, height:41.67)
+SETTINGS_BUTTONS_AccessibilitySettingsTab_1600x900=PASS; (x:803.33, y:656.67, width:168.33, height:41.67)
+SETTINGS_BUTTONS_SettingsCloseButton_1600x900=PASS; (x:1113.33, y:711.67, width:41.67, height:40.00)
+SETTINGS_BUTTONS_ApplySettingsButton_1600x900=PASS; (x:1059.17, y:153.33, width:90.83, height:43.33)
+SETTINGS_TEXT_1600x900=PASS; texts=27
+SETTINGS_CAPTURE_1600x900=PASS; size=1600x900; visible=1440000
+RESOLUTION_1920x1080=PASS; actual=1920x1080
+TITLE_VISIBLE_1920x1080=PASS; dedicated title scene remains visible
+completedUtc=2026-08-05T02:28:08.3374390Z
+targets:
+[FAIL] ResolutionMatrix; fresh=True; capturesFresh=True; persistenceRestored=True; reportUtcTicks=639214936878339798; startedUtcTicks=639214932945995631; report=Temp/resolution-matrix-report.txt

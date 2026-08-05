@@ -4,21 +4,29 @@ using System.Linq;
 
 public interface IFacilityEvolutionWarehouseInventoryQuery
 {
-    IReadOnlyList<WarehouseInventory> GetInventories();
+    IReadOnlyList<IWarehouseFacility> GetWarehouses();
+    int Consume(StockCategory category, int amount);
 }
 
 public sealed class RegistryFacilityEvolutionWarehouseInventoryQuery :
     IFacilityEvolutionWarehouseInventoryQuery
 {
     private readonly IWarehouseWorldQuery warehouseWorld;
+    private readonly IWorldItemStackRuntime items;
 
-    public RegistryFacilityEvolutionWarehouseInventoryQuery(IWarehouseWorldQuery warehouseWorld)
+    public RegistryFacilityEvolutionWarehouseInventoryQuery(
+        IWarehouseWorldQuery warehouseWorld,
+        IWorldItemStackRuntime items)
     {
         this.warehouseWorld = warehouseWorld
             ?? throw new ArgumentNullException(nameof(warehouseWorld));
+        this.items = items ?? throw new ArgumentNullException(nameof(items));
     }
 
-    public IReadOnlyList<WarehouseInventory> GetInventories()
+    public int Consume(StockCategory category, int amount) =>
+        items.ConsumeAcross(GetWarehouses(), category, amount);
+
+    public IReadOnlyList<IWarehouseFacility> GetWarehouses()
     {
         return warehouseWorld.Warehouses
             .Where(warehouse => warehouse != null
@@ -28,10 +36,19 @@ public sealed class RegistryFacilityEvolutionWarehouseInventoryQuery :
                 warehouse is BuildableObject building ? building.centerPos.y : int.MaxValue)
             .ThenBy(warehouse =>
                 warehouse is BuildableObject building ? building.centerPos.x : int.MaxValue)
-            .ThenBy(warehouse =>
-                warehouse is BuildableObject building ? building.GetInstanceID() : 0)
-            .Select(warehouse => warehouse.Inventory)
+            .ThenBy(RequirePersistentId, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private static string RequirePersistentId(IWarehouseFacility warehouse)
+    {
+        BuildingInstanceId id = warehouse.PersistentInstanceId;
+        if (!id.IsValid)
+        {
+            throw new InvalidOperationException(
+                "Facility-evolution warehouse has no persistent building ID.");
+        }
+        return id.Value;
     }
 }
 
@@ -59,9 +76,9 @@ public sealed class WarehouseFacilityEvolutionResourceProvider : IFacilityEvolut
         }
 
         long available = 0;
-        foreach (WarehouseInventory inventory in GetInventories())
+        foreach (IWarehouseFacility warehouse in GetWarehouses())
         {
-            available += inventory.GetStock(category);
+            available += warehouse.Inventory.GetStock(category);
             if (available >= amount)
             {
                 return true;
@@ -83,53 +100,19 @@ public sealed class WarehouseFacilityEvolutionResourceProvider : IFacilityEvolut
             return false;
         }
 
-        WarehouseInventory[] inventories = GetInventories();
-        if (inventories.Sum(inventory => (long)inventory.GetStock(category)) < amount)
+        IWarehouseFacility[] warehouses = GetWarehouses();
+        if (warehouses.Sum(warehouse => (long)warehouse.Inventory.GetStock(category)) < amount)
         {
             return false;
         }
 
-        int remaining = amount;
-        List<Withdrawal> withdrawals = new List<Withdrawal>();
-        foreach (WarehouseInventory inventory in inventories)
-        {
-            int withdrawn = inventory.Withdraw(category, remaining);
-            if (withdrawn > 0)
-            {
-                withdrawals.Add(new Withdrawal(inventory, withdrawn));
-                remaining -= withdrawn;
-            }
-
-            if (remaining == 0)
-            {
-                return true;
-            }
-        }
-
-        foreach (Withdrawal withdrawal in withdrawals)
-        {
-            withdrawal.Inventory.AddStock(category, withdrawal.Amount);
-        }
-
-        return false;
+        return inventoryQuery.Consume(category, amount) == amount;
     }
 
-    private WarehouseInventory[] GetInventories()
+    private IWarehouseFacility[] GetWarehouses()
     {
-        return inventoryQuery.GetInventories()
-            .Where(inventory => inventory != null)
+        return inventoryQuery.GetWarehouses()
+            .Where(warehouse => warehouse?.Inventory != null)
             .ToArray();
-    }
-
-    private readonly struct Withdrawal
-    {
-        public Withdrawal(WarehouseInventory inventory, int amount)
-        {
-            Inventory = inventory;
-            Amount = amount;
-        }
-
-        public WarehouseInventory Inventory { get; }
-        public int Amount { get; }
     }
 }

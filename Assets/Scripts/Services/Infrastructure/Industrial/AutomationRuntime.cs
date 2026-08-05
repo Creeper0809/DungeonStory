@@ -5,54 +5,56 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
-internal sealed class AutomationFacilityState
-{
-    public AutomationMode Mode = AutomationMode.Manual;
-    public float Maintenance = 100f;
-    public float Fault;
-    public string BlockedReason = string.Empty;
-}
-
-internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
+internal sealed class AutomationRuntime :
+    IAutomationInfrastructureQuery,
+    IAutomationInfrastructureCommand,
+    IAutomationInfrastructurePersistence,
+    ITickable
 {
     private const float TickInterval = 0.25f;
     private const float SecondsPerGameHour = 7.5f;
 
     private readonly IBuildingWorldQuery buildings;
-    private readonly IElectricalNetworkRuntime power;
-    private readonly IProductionBillRuntime production;
+    private readonly IPowerInfrastructureQuery power;
+    private readonly IProductionBillQuery productionQuery;
+    private readonly IProductionBillWorkExecution productionWork;
     private readonly IGameClock clock;
-    private readonly AutomationPowerDemandRegistry powerDemand;
-    private readonly Dictionary<string, AutomationFacilityState> states =
-        new Dictionary<string, AutomationFacilityState>(
-            StringComparer.Ordinal);
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly AutomationStateSession stateSession;
     private IReadOnlyList<AutomationFacilitySnapshot> facilities =
         Array.Empty<AutomationFacilitySnapshot>();
     private readonly List<BuildableObject> automationFacilities =
         new List<BuildableObject>();
     private int buildingVersion = int.MinValue;
+    private int projectedRestoreRevision;
     private float accumulated;
 
     public AutomationRuntime(
         IBuildingWorldQuery buildings,
-        IElectricalNetworkRuntime power,
-        IProductionBillRuntime production,
+        IPowerInfrastructureQuery power,
+        IProductionBillQuery productionQuery,
+        IProductionBillWorkExecution productionWork,
         IGameClock clock,
-        AutomationPowerDemandRegistry powerDemand)
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
         this.power = power
             ?? throw new ArgumentNullException(nameof(power));
-        this.production = production
-            ?? throw new ArgumentNullException(nameof(production));
+        this.productionQuery = productionQuery
+            ?? throw new ArgumentNullException(nameof(productionQuery));
+        this.productionWork = productionWork
+            ?? throw new ArgumentNullException(nameof(productionWork));
         this.clock = clock
             ?? throw new ArgumentNullException(nameof(clock));
-        this.powerDemand = powerDemand
-            ?? throw new ArgumentNullException(nameof(powerDemand));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        stateSession = new AutomationStateSession(this.aggregateRootStore);
+        projectedRestoreRevision =
+            this.aggregateRootStore.PublishedRestoreRevision;
     }
 
-    public int Version { get; private set; }
+    public int Version => stateSession.Version;
 
     public IReadOnlyList<AutomationFacilitySnapshot> Facilities
     {
@@ -119,26 +121,20 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
                 out string facilityId,
                 out BuildingAutomationAbility ability))
         {
-            return InfrastructureCommandResult.Failure(
-                "자동화 가능한 생산 시설을 선택해야 합니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.AutomationFacilityUnavailable);
         }
 
         if ((int)mode > (int)ability.maximumMode)
         {
-            return InfrastructureCommandResult.Failure(
-                "이 시설은 선택한 자동화 단계를 지원하지 않습니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.AutomationModeUnsupported,
+                mode.ToString());
         }
 
-        EnsureState(facilityId).Mode = mode;
-        powerDemand.SetMode(facilityId, mode);
+        EnsureState(facilityId).SetMode(mode);
         Touch();
-        return InfrastructureCommandResult.Success(
-            mode switch
-            {
-                AutomationMode.Manual => "수동 생산으로 전환했습니다.",
-                AutomationMode.PoweredAssist => "전동 보조를 가동했습니다.",
-                _ => "무인 자동 생산을 가동했습니다."
-            });
+        return InfrastructureCommandResult.Success();
     }
 
     public InfrastructureCommandResult Maintain(
@@ -150,27 +146,21 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
                 out string facilityId,
                 out _))
         {
-            return InfrastructureCommandResult.Failure(
-                "자동화 가능한 생산 시설을 선택해야 합니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.AutomationFacilityUnavailable);
         }
 
-        AutomationFacilityState state = EnsureState(facilityId);
+        AutomationFacilityStateSession state = EnsureState(facilityId);
         float applied = Mathf.Max(0f, amount);
         if (applied <= 0f)
         {
-            return InfrastructureCommandResult.Failure(
-                "정비 작업량이 필요합니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.AutomationMaintenanceRequired);
         }
 
-        state.Maintenance = Mathf.Clamp(
-            state.Maintenance + applied,
-            0f,
-            100f);
-        state.Fault = Mathf.Max(0f, state.Fault - applied * 0.5f);
-        state.BlockedReason = string.Empty;
+        state.ApplyMaintenance(applied);
         Touch();
-        return InfrastructureCommandResult.Success(
-            "자동화 설비를 정비했습니다.");
+        return InfrastructureCommandResult.Success();
     }
 
     public float GetWorkSpeedMultiplier(BuildableObject facility)
@@ -183,7 +173,7 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
             return 1f;
         }
 
-        AutomationFacilityState state = EnsureState(facilityId);
+        AutomationFacilityStateSession state = EnsureState(facilityId);
         return state.Mode == AutomationMode.PoweredAssist
             && power.IsPowered(facility)
             && state.Fault < 100f
@@ -195,74 +185,50 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
     public DungeonAutomationSaveData Capture()
     {
         EnsureFacilities();
-        return new DungeonAutomationSaveData
-        {
-            facilities = states
-                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
-                .Select(pair => new AutomationFacilitySaveData
-                {
-                    facilityId = pair.Key,
-                    mode = pair.Value.Mode,
-                    maintenance = pair.Value.Maintenance,
-                    fault = pair.Value.Fault
-                })
-                .ToList()
-        };
+        return stateSession.Capture();
     }
 
-    public void Restore(DungeonAutomationSaveData snapshot)
+    public AutomationRestoreCandidate PrepareRestore(
+        DungeonAutomationSaveData snapshot)
     {
-        states.Clear();
-        powerDemand.Clear();
-        foreach (AutomationFacilitySaveData saved in snapshot?.facilities
-                 ?? new List<AutomationFacilitySaveData>())
-        {
-            if (saved == null || string.IsNullOrWhiteSpace(saved.facilityId))
-            {
-                continue;
-            }
+        IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
+        return AutomationStateSession.CreateRestoreCandidate(
+            snapshot?.facilities);
+    }
 
-            states[saved.facilityId.Trim()] =
-                new AutomationFacilityState
-                {
-                    Mode = Enum.IsDefined(
-                        typeof(AutomationMode),
-                        saved.mode)
-                            ? saved.mode
-                            : AutomationMode.Manual,
-                    Maintenance = Mathf.Clamp(
-                        saved.maintenance,
-                        0f,
-                        100f),
-                    Fault = Mathf.Clamp(saved.fault, 0f, 100f)
-                };
-            powerDemand.SetMode(
-                saved.facilityId.Trim(),
-                states[saved.facilityId.Trim()].Mode);
+    public void Restore(AutomationRestoreCandidate candidate)
+    {
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
         }
 
-        buildingVersion = int.MinValue;
-        EnsureFacilities();
-        RefreshSnapshots();
-        Touch();
+        stateSession.Restore(candidate);
+        if (!aggregateRootStore.IsRestoreStaging)
+        {
+            ResetProjectionAfterRestore();
+            EnsureFacilities();
+            RefreshSnapshots();
+        }
     }
 
     private void TickFacility(BuildableObject facility, float deltaTime)
     {
         string facilityId =
             IndustrialInfrastructureIdentity.GetNodeId(facility);
-        AutomationFacilityState state = EnsureState(facilityId);
+        AutomationFacilityStateSession state = EnsureState(facilityId);
         BuildingAutomationAbility ability =
             facility.BuildingData.GetAbility<BuildingAutomationAbility>();
         if (state.Mode == AutomationMode.Manual)
         {
-            state.BlockedReason = string.Empty;
+            state.SetStatus(InfrastructureStatus.None);
             return;
         }
 
         if (!power.IsPowered(facility))
         {
-            state.BlockedReason = "전력 부족";
+            state.SetStatus(new InfrastructureStatus(
+                InfrastructureStatusCode.PowerUnavailable));
             return;
         }
 
@@ -271,56 +237,61 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
                 ability.maintenancePerGameHour)
             * deltaTime
             / SecondsPerGameHour;
-        state.Maintenance = Mathf.Max(
+        float maintenance = Mathf.Max(
             0f,
             state.Maintenance - maintenanceDrain);
-        if (state.Maintenance <= 25f)
+        float fault = state.Fault;
+        if (maintenance <= 25f)
         {
-            state.Fault = Mathf.Clamp(
-                state.Fault
-                + (25f - state.Maintenance) * 0.006f * deltaTime,
+            fault = Mathf.Clamp(
+                fault + (25f - maintenance) * 0.006f * deltaTime,
                 0f,
                 100f);
         }
+        state.SetCondition(maintenance, fault);
 
         if (state.Fault >= 100f)
         {
-            state.BlockedReason = "고장 수리 필요";
+            state.SetStatus(new InfrastructureStatus(
+                InfrastructureStatusCode.MaintenanceRequired,
+                state.Fault.ToString("0.###")));
             return;
         }
 
         if (state.Mode != AutomationMode.Automatic)
         {
-            state.BlockedReason = string.Empty;
+            state.SetStatus(InfrastructureStatus.None);
             return;
         }
 
         IReadOnlyList<ProductionBillSnapshot> bills =
-            production.GetBills(facility);
+            productionQuery.GetBills(facility);
         ProductionBillSnapshot bill = bills.FirstOrDefault(candidate =>
             string.IsNullOrWhiteSpace(candidate.ReservedWorkerId)
             && candidate.Status is ProductionBillStatus.Ready
                 or ProductionBillStatus.InProgress);
         if (bill == null)
         {
-            state.BlockedReason = bills.Count > 0
-                ? "재료 또는 출력 공간 대기"
-                : "생산 주문 없음";
+            state.SetStatus(new InfrastructureStatus(
+                bills.Count > 0
+                    ? InfrastructureStatusCode.ProductionMaterialUnavailable
+                    : InfrastructureStatusCode.ProductionOrderUnavailable));
             return;
         }
 
-        if (!bill.MaterialsConsumed
-            && !production.TryBeginWork(
+        if (!bill.MaterialsConsumed)
+        {
+            ProductionWorkBeginResult begin = productionWork.BeginWork(
                 null,
                 facility,
-                bill.WorkTypeId,
-                out bill,
-                out string beginFailure))
-        {
-            state.BlockedReason = string.IsNullOrWhiteSpace(beginFailure)
-                ? "재료 대기"
-                : beginFailure;
-            return;
+                bill.WorkTypeId);
+            if (!begin.Succeeded)
+            {
+                state.SetStatus(new InfrastructureStatus(
+                    InfrastructureStatusCode.ProductionMaterialUnavailable));
+                return;
+            }
+            bill = begin.Bill;
         }
 
         float work = Mathf.Max(
@@ -328,25 +299,24 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
                 ability.automaticWorkPerSecond)
             * ResolveConditionMultiplier(state)
             * deltaTime;
-        if (!production.ApplyWork(
+        ProductionWorkExecutionResult execution = productionWork.ExecuteWork(
                 null,
                 facility,
                 bill.BillId,
-                work,
-                out _,
-                out string message))
+                work);
+        if (!execution.Succeeded)
         {
-            state.BlockedReason = string.IsNullOrWhiteSpace(message)
-                ? "생산 진행 불가"
-                : message;
+            state.SetStatus(new InfrastructureStatus(
+                InfrastructureStatusCode.ProductionOutputUnavailable));
             return;
         }
 
-        state.BlockedReason = string.Empty;
+        state.SetStatus(InfrastructureStatus.None);
     }
 
     private void EnsureFacilities()
     {
+        EnsureRestoreProjectionCurrent();
         if (buildingVersion == buildings.BuildingVersion)
         {
             return;
@@ -405,7 +375,7 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
         BuildableObject facility,
         string facilityId,
         BuildingAutomationAbility ability,
-        AutomationFacilityState state)
+        AutomationFacilityStateSession state)
     {
         bool powered = power.IsPowered(facility);
         float workRate = state.Mode switch
@@ -418,7 +388,7 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
         };
         return new AutomationFacilitySnapshot
         {
-            FacilityId = facilityId,
+            BuildingId = new BuildingInstanceId(facilityId),
             Mode = state.Mode,
             Powered = powered,
             Operational = state.Mode == AutomationMode.Manual
@@ -426,7 +396,7 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
             WorkRate = workRate * ResolveConditionMultiplier(state),
             Maintenance = state.Maintenance,
             Fault = state.Fault,
-            BlockedReason = state.BlockedReason
+            Status = state.Status
         };
     }
 
@@ -450,22 +420,11 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
         return !string.IsNullOrWhiteSpace(facilityId);
     }
 
-    private AutomationFacilityState EnsureState(string facilityId)
-    {
-        if (!states.TryGetValue(
-                facilityId,
-                out AutomationFacilityState state))
-        {
-            state = new AutomationFacilityState();
-            states[facilityId] = state;
-        }
-
-        powerDemand.SetMode(facilityId, state.Mode);
-        return state;
-    }
+    private AutomationFacilityStateSession EnsureState(string facilityId) =>
+        stateSession.GetOrCreate(facilityId);
 
     private static float ResolveConditionMultiplier(
-        AutomationFacilityState state)
+        AutomationFacilityStateSession state)
     {
         float maintenance = state.Maintenance >= 60f
             ? 1f
@@ -478,7 +437,27 @@ internal sealed class AutomationRuntime : IAutomationRuntime, ITickable
     {
         unchecked
         {
-            Version++;
+            stateSession.IncrementVersion();
         }
+    }
+
+    private void EnsureRestoreProjectionCurrent()
+    {
+        int revision = aggregateRootStore.PublishedRestoreRevision;
+        if (projectedRestoreRevision == revision)
+        {
+            return;
+        }
+
+        projectedRestoreRevision = revision;
+        ResetProjectionAfterRestore();
+    }
+
+    private void ResetProjectionAfterRestore()
+    {
+        buildingVersion = int.MinValue;
+        automationFacilities.Clear();
+        facilities = Array.Empty<AutomationFacilitySnapshot>();
+        accumulated = 0f;
     }
 }

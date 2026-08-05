@@ -14,6 +14,32 @@ public static class P1DefenseFacilityAssetBuilder
         BuildingFolder + "/P1_TreasuryCrossbow.asset";
     private const string LegacyTreasuryLauncherEffectPath =
         EffectFolder + "/P1_TreasuryCrossbow_1_Damage.asset";
+    private const string TacticalSpriteFolder =
+        "Assets/Images/Placeholders/Defense/Tactical";
+    private static readonly IReadOnlyDictionary<int, string>
+        TacticalSpritePathByBuildingId =
+            new Dictionary<int, string>
+            {
+                [30] = TacticalSpriteFolder + "/defense_spike_trap.png",
+                [31] = TacticalSpriteFolder + "/defense_poison_pool.png",
+                [32] = TacticalSpriteFolder + "/defense_fire_vent.png",
+                [33] = TacticalSpriteFolder + "/defense_lightning_pillar.png",
+                [34] = TacticalSpriteFolder + "/defense_ice_vent.png",
+                [35] = TacticalSpriteFolder + "/defense_guard_room.png",
+                [52] = TacticalSpriteFolder + "/defense_venom_spike.png",
+                [53] = TacticalSpriteFolder + "/defense_alarm_coil.png",
+                [54] = TacticalSpriteFolder + "/defense_barracks.png",
+                [57] = TacticalSpriteFolder + "/defense_corrosion_freezer.png",
+                [58] = TacticalSpriteFolder + "/defense_storm_fire.png",
+                [59] = TacticalSpriteFolder + "/defense_war_barracks.png",
+                [1800] = TacticalSpriteFolder + "/defense_corridor_detector.png",
+                [1801] = TacticalSpriteFolder + "/defense_control_desk.png",
+                [1802] = TacticalSpriteFolder + "/defense_supply_depot.png",
+                [1803] = TacticalSpriteFolder + "/defense_maintenance_bench.png",
+                [1804] = TacticalSpriteFolder + "/defense_linked_drop_gate.png",
+                [1805] = TacticalSpriteFolder + "/defense_wall_launcher.png",
+                [9961] = TacticalSpriteFolder + "/defense_treasury_ballista.png"
+            };
 
     [MenuItem("DungeonStory/Debug/Defense/Ensure P1 Defense Assets")]
     public static void EnsureP1DefenseAssetsFromMenu()
@@ -31,6 +57,11 @@ public static class P1DefenseFacilityAssetBuilder
         EnsureSpriteImport("Assets/Images/Placeholders/Defense/defense_ice.png");
         EnsureSpriteImport("Assets/Images/Placeholders/Defense/defense_guard_room.png");
         EnsureSpriteImport("Assets/Images/Placeholders/Items/item_weapon.png");
+        foreach (string spritePath
+                 in TacticalSpritePathByBuildingId.Values)
+        {
+            EnsureSpriteImport(spritePath, 64f);
+        }
 
         System.IO.Directory.CreateDirectory(BuildingFolder);
         System.IO.Directory.CreateDirectory(EffectFolder);
@@ -81,10 +112,12 @@ public static class P1DefenseFacilityAssetBuilder
         building.width = spec.width;
         building.height = 1;
         building.layer = spec.layer;
-        building.category = BuildingCategory.Special;
+        building.category = spec.id == 1804
+            ? BuildingCategory.Wall
+            : BuildingCategory.Special;
         building.horizontalDraggable = false;
         building.verticalDraggable = false;
-        building.type = typeof(DefenseFacility);
+        building.runtimeArchetype = BuildingRuntimeArchetypeKind.DefenseFacility;
         building.tiles = null;
         building.movementAnchorOffset = Vector2.zero;
         BuildingEconomyAbility economy = building.GetAbility<BuildingEconomyAbility>();
@@ -136,6 +169,39 @@ public static class P1DefenseFacilityAssetBuilder
             }
 
             part.code = $"DF{spec.id - 1799:00}";
+
+            if (spec.id == 1802 || spec.id == 1803)
+            {
+                BuildingStorageAbility storage =
+                    building.GetAbility<BuildingStorageAbility>();
+                if (storage == null)
+                {
+                    storage = new BuildingStorageAbility();
+                    building.AbilityModules.Add(storage);
+                }
+
+                storage.category = spec.id == 1802
+                    ? StockCategory.Ammunition
+                    : StockCategory.General;
+                storage.capacity = spec.id == 1802 ? 24 : 12;
+                storage.allCategories = spec.id == 1802;
+            }
+
+            if (spec.id == 1804)
+            {
+                BuildingStructuralIntegrityAbility structural =
+                    building.GetAbility<BuildingStructuralIntegrityAbility>();
+                if (structural == null)
+                {
+                    structural = new BuildingStructuralIntegrityAbility();
+                    building.AbilityModules.Add(structural);
+                }
+
+                structural.maxHitPoints = 450f;
+                structural.toughness = 24f;
+                structural.repairHitPointsPerWork = 2f;
+                structural.breachable = true;
+            }
         }
         if (spec.treasuryPowered)
         {
@@ -158,6 +224,38 @@ public static class P1DefenseFacilityAssetBuilder
                     new BuildingOverclockableAbility());
             }
         }
+
+        BuildingWorkAmountAbility workAmount =
+            building.GetAbility<BuildingWorkAmountAbility>();
+        if (workAmount == null)
+        {
+            workAmount = new BuildingWorkAmountAbility();
+            building.AbilityModules.Add(workAmount);
+        }
+
+        int constructionCells = Mathf.Max(1, spec.width);
+        workAmount.constructionWorkRequired = Mathf.Clamp(
+            12f + constructionCells * 6f + spec.constructionCost * 0.02f,
+            12f,
+            120f);
+        workAmount.repairWorkRequired = Mathf.Clamp(
+            8f + constructionCells * 2f,
+            6f,
+            35f);
+        workAmount.cleanWorkRequired = Mathf.Clamp(
+            5f + constructionCells * 1.25f,
+            4f,
+            24f);
+        workAmount.researchWorkRequired = 6f;
+        workAmount.operateWorkRequired = 10f;
+        workAmount.SetConstructionMaterials(new[]
+        {
+            new ItemAmountDefinition(
+                "material:steel-ingot",
+                Mathf.Max(
+                    1,
+                    Mathf.CeilToInt(spec.constructionCost * 0.05f)))
+        });
 
         building.unlocked = true;
         building.AbilityModules.EnsureStableIds();
@@ -182,6 +280,19 @@ public static class P1DefenseFacilityAssetBuilder
 
         foreach (BuildingSO building in defenses)
         {
+            if (TacticalSpritePathByBuildingId.TryGetValue(
+                    building.id,
+                    out string spritePath))
+            {
+                Sprite sprite =
+                    AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
+                if (sprite != null)
+                {
+                    building.sprite = sprite;
+                    building.icon = sprite;
+                }
+            }
+
             ConfigureOperationalContract(building);
             building.AbilityModules.EnsureStableIds();
             building.ValidateAbilitiesOrThrow();
@@ -215,6 +326,31 @@ public static class P1DefenseFacilityAssetBuilder
 
         switch (building.id)
         {
+            case 30:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.Ammunition,
+                    "ammo:trap-canister",
+                    StockCategory.Ammunition,
+                    6);
+                defense.facilityFamilyId = "defense:scatter-trap";
+                defense.affinityTags =
+                    new[] { "defense:scatter", "species:kobold", "species:orc" };
+                defense.conditionLossPerActivation = 1f;
+                return;
+            case 58:
+                SetSupply(
+                    defense,
+                    DefenseSupplyKind.Ammunition,
+                    "ammo:blasting-charge",
+                    StockCategory.Ammunition,
+                    4);
+                defense.facilityFamilyId = "defense:blast-trap";
+                defense.affinityTags =
+                    new[] { "defense:blast", "species:kobold", "species:demon" };
+                defense.conditionLossPerActivation = 1.4f;
+                defense.baseMisfireChance = 0.02f;
+                return;
             case 1800:
                 SetSupply(
                     defense,
@@ -300,7 +436,7 @@ public static class P1DefenseFacilityAssetBuilder
                 SetSupply(
                     defense,
                     DefenseSupplyKind.Toxin,
-                    "material:rot-toxin",
+                    "craft:toxic-trap-coating",
                     StockCategory.Biological,
                     4);
                 defense.facilityFamilyId = "defense:toxin";
@@ -443,7 +579,7 @@ public static class P1DefenseFacilityAssetBuilder
             new DefenseAssetSpec(
                 "P1_SpikeTrap",
                 30,
-                "1성 가시 함정",
+                "1성 산탄 가시 함정",
                 "Assets/Images/Placeholders/Defense/defense_spike.png",
                 2,
                 GridLayer.FloorOverlay,
@@ -633,7 +769,7 @@ public static class P1DefenseFacilityAssetBuilder
                 "문 연동 강화 낙하문",
                 "Assets/Images/Placeholders/Defense/defense_spike.png",
                 2,
-                GridLayer.WallFixture,
+                GridLayer.Building,
                 260,
                 7,
                 DefenseAttackConcept.Physical,
@@ -682,7 +818,9 @@ public static class P1DefenseFacilityAssetBuilder
         return DefenseEffectAssetSpec.Create<TEffect>(amount, duration, stacks, logTag);
     }
 
-    private static void EnsureSpriteImport(string path)
+    private static void EnsureSpriteImport(
+        string path,
+        float pixelsPerUnit = 16f)
     {
         TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
         if (importer == null)
@@ -692,7 +830,7 @@ public static class P1DefenseFacilityAssetBuilder
 
         importer.textureType = TextureImporterType.Sprite;
         importer.spriteImportMode = SpriteImportMode.Single;
-        importer.spritePixelsPerUnit = 16f;
+        importer.spritePixelsPerUnit = Mathf.Max(1f, pixelsPerUnit);
         importer.filterMode = FilterMode.Point;
         importer.textureCompression = TextureImporterCompression.Uncompressed;
         importer.SaveAndReimport();

@@ -3,6 +3,10 @@ using UnityEngine;
 public interface IGridBuildingObjectFactory
 {
     BuildableObject Create(Grid grid, BuildingSO buildingData, Vector2Int selectPos);
+    BuildableObject CreateDetached(
+        Grid grid,
+        BuildingSO buildingData,
+        Vector2Int selectPos);
 }
 
 public sealed class GridBuildingObjectFactory : IGridBuildingObjectFactory
@@ -13,6 +17,23 @@ public sealed class GridBuildingObjectFactory : IGridBuildingObjectFactory
     private const int MountedFixtureSortingOrder = 80;
 
     public BuildableObject Create(Grid grid, BuildingSO buildingData, Vector2Int selectPos)
+    {
+        return CreateInternal(grid, buildingData, selectPos, detached: false);
+    }
+
+    public BuildableObject CreateDetached(
+        Grid grid,
+        BuildingSO buildingData,
+        Vector2Int selectPos)
+    {
+        return CreateInternal(grid, buildingData, selectPos, detached: true);
+    }
+
+    private static BuildableObject CreateInternal(
+        Grid grid,
+        BuildingSO buildingData,
+        Vector2Int selectPos,
+        bool detached)
     {
         if (grid == null || buildingData == null)
         {
@@ -27,6 +48,10 @@ public sealed class GridBuildingObjectFactory : IGridBuildingObjectFactory
 
         GameObject placedObject = new GameObject();
         placedObject.name = buildingData.objectName;
+        if (detached)
+        {
+            placedObject.SetActive(false);
+        }
         placedObject.transform.position = instantiatePos;
         DungeonRuntimeHierarchy.Parent(placedObject, DungeonRuntimeHierarchy.Buildings);
 
@@ -46,14 +71,7 @@ public sealed class GridBuildingObjectFactory : IGridBuildingObjectFactory
             placedObject.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Static;
         }
 
-        if (placedObject.AddComponent(buildingData.type) is BuildableObject buildableObject)
-        {
-            return buildableObject;
-        }
-
-        Debug.Log("Building data type must inherit from BuildableObject.");
-        Object.Destroy(placedObject);
-        return null;
+        return buildingData.runtimeArchetype.AddComponent(placedObject);
     }
 
     private static void ConfigureIndependentRenderer(GameObject placedObject, BuildingSO buildingData)

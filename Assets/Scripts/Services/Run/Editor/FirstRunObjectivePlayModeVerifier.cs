@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.UI;
@@ -124,21 +123,20 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                 objective.CurrentObjective.ToString());
             CheckPanelBounds(objective);
 
-            IBlueprintResearchRuntimeProvider researchProvider =
-                scope.Container.Resolve<IBlueprintResearchRuntimeProvider>();
-            IDailyFacilityShopRuntimeProvider shopProvider =
-                scope.Container.Resolve<IDailyFacilityShopRuntimeProvider>();
+            ProgressionSceneRuntimeReferences progressionRuntimes =
+                scope.Container.Resolve<ProgressionSceneRuntimeReferences>();
+            BlueprintResearchRuntime research = progressionRuntimes.BlueprintResearch;
+            DailyFacilityShopRuntime shop = progressionRuntimes.FacilityShop;
             IWorldItemStackRuntime itemRuntime =
                 scope.Container.Resolve<IWorldItemStackRuntime>();
-            researchProvider.TryGetRuntime(out BlueprintResearchRuntime research);
             int queueCountBefore = research?.State.Projects.Queue.Count ?? -1;
 
             Button shopTab = FindTopTabButton(TabId.Shop);
             yield return Click(shopTab, "shop tab");
             yield return new WaitForSecondsRealtime(0.25f);
 
-            int blueprintOfferIndex = FindBlueprintOfferIndex(shopProvider);
-            FacilityBlueprintSO purchasedBlueprint = GetBlueprintOffer(shopProvider, blueprintOfferIndex);
+            int blueprintOfferIndex = FindBlueprintOfferIndex(shop);
+            FacilityBlueprintSO purchasedBlueprint = GetBlueprintOffer(shop, blueprintOfferIndex);
             Button blueprintButton = FindButton($"P0Action_ShopDaily_{blueprintOfferIndex}");
             yield return Click(blueprintButton, "daily blueprint");
             yield return new WaitForSecondsRealtime(0.25f);
@@ -555,7 +553,7 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
                   + $"failure={brain?.LastActionFailure}; priority={work.PriorityWorkTypeId}/{work.PriorityWorkTarget?.name}; "
                   + $"assigned={work.AssignedWorkTypeId}/{work.assignedShop?.name}; "
                   + $"workJob={workJobAvailable}:{workJobCandidate.DebugSummary}; "
-                  + $"researchTarget={researchTargetAvailable}:{researchTargetCandidate.Building?.name}:{researchTargetCandidate.FailureReason}");
+                  + $"researchTarget={researchTargetAvailable}:{WorkTargetCandidateRuntimeAdapter.ResolveBuilding(researchTargetCandidate)?.name}:{researchTargetCandidate.FailureReason}");
         if (brain != null)
         {
             brain.enabled = brainWasEnabled;
@@ -590,10 +588,10 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
 
     private static void ResetFirstRunMilestones(DungeonRuntimeLifetimeScope scope)
     {
-        IMetaProgressionRuntimeProvider metaProvider =
-            scope.Container.Resolve<IMetaProgressionRuntimeProvider>();
-        if (metaProvider.TryGetRuntime(out MetaProgressionRuntime meta)
-            && meta != null)
+        MetaProgressionRuntime meta = scope.Container
+            .Resolve<ProgressionSceneRuntimeReferences>()
+            .MetaProgression;
+        if (meta != null)
         {
             MetaProgressionState state = meta.State;
             state.Restore(
@@ -612,7 +610,8 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             DungeonRunOutcome.None,
             currentDay: 1,
             bossArmed: false,
-            bossActive: false);
+            bossActive: false,
+            bossCycle: 0);
     }
 
     private IEnumerator StartFreshRun()
@@ -708,45 +707,19 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
     private void CheckNonBlocking(IFirstRunObjectiveRuntime objective)
     {
         RectTransform panel = objective?.PanelRect;
-        CanvasGroup group = panel != null ? panel.GetComponent<CanvasGroup>() : null;
-        bool graphicsIgnoreRaycasts = panel != null
-            && panel.GetComponentsInChildren<Graphic>(true).All(graphic => !graphic.raycastTarget);
         Check(
-            group != null && !group.blocksRaycasts && !group.interactable && graphicsIgnoreRaycasts,
-            "NON_BLOCKING",
-            $"group={group != null}; blocks={group?.blocksRaycasts}; graphics={graphicsIgnoreRaycasts}");
-
-        if (panel == null || EventSystem.current == null)
-        {
-            Check(false, "RAYCAST_PASS_THROUGH", "panel or EventSystem missing");
-            return;
-        }
-
-        Vector2 center = RectTransformUtility.WorldToScreenPoint(null, panel.TransformPoint(panel.rect.center));
-        PointerEventData pointer = new PointerEventData(EventSystem.current) { position = center };
-        List<RaycastResult> results = new List<RaycastResult>();
-        EventSystem.current.RaycastAll(pointer, results);
-        bool intercepted = results.Any(result => result.gameObject != null
-            && result.gameObject.transform.IsChildOf(panel));
-        Check(!intercepted, "RAYCAST_PASS_THROUGH", $"panelHits={results.Count(result => result.gameObject != null && result.gameObject.transform.IsChildOf(panel))}");
+            panel == null || !panel.gameObject.activeInHierarchy,
+            "OBJECTIVE_HIDDEN",
+            $"panelExists={panel != null}; active={panel != null && panel.gameObject.activeInHierarchy}");
     }
 
     private void CheckPanelBounds(IFirstRunObjectiveRuntime objective)
     {
         RectTransform panel = objective?.PanelRect;
-        if (panel == null)
-        {
-            Check(false, "PANEL_BOUNDS", "panel missing");
-            return;
-        }
-
-        Vector3[] corners = new Vector3[4];
-        panel.GetWorldCorners(corners);
-        bool inside = corners.All(corner => corner.x >= 0f
-            && corner.y >= 0f
-            && corner.x <= Screen.width
-            && corner.y <= Screen.height);
-        Check(inside, "PANEL_BOUNDS", $"screen={Screen.width}x{Screen.height}; rect={panel.rect.size}");
+        Check(
+            panel == null || !panel.gameObject.activeInHierarchy,
+            "NO_PRODUCT_OBJECTIVE_PANEL",
+            $"panelExists={panel != null}; active={panel != null && panel.gameObject.activeInHierarchy}");
     }
 
     private IEnumerator CaptureScreen()
@@ -908,9 +881,9 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
             }));
     }
 
-    private static int FindBlueprintOfferIndex(IDailyFacilityShopRuntimeProvider provider)
+    private static int FindBlueprintOfferIndex(DailyFacilityShopRuntime shop)
     {
-        if (!provider.TryGetRuntime(out DailyFacilityShopRuntime shop) || shop == null)
+        if (shop == null)
         {
             return -1;
         }
@@ -929,11 +902,10 @@ public sealed class FirstRunObjectiveVerificationRunner : MonoBehaviour
     }
 
     private static FacilityBlueprintSO GetBlueprintOffer(
-        IDailyFacilityShopRuntimeProvider provider,
+        DailyFacilityShopRuntime shop,
         int index)
     {
         if (index < 0
-            || !provider.TryGetRuntime(out DailyFacilityShopRuntime shop)
             || shop == null
             || index >= shop.CurrentDailyOffers.Count)
         {

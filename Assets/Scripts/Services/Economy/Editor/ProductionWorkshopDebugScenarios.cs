@@ -18,8 +18,8 @@ public static class ProductionWorkshopDebugScenarios
 
         Debug.Log(
             "Production workshop contracts PASS: exact workstation ownership, "
-            + "physical intermediates, 28 supports, 129 research projects, "
-            + "passive batch definitions and V2 save round-trip.");
+            + "physical intermediates, 28 supports, 168 research projects, "
+            + "passive batch definitions and V3 save round-trip.");
     }
 
     public static List<string> Validate()
@@ -40,6 +40,16 @@ public static class ProductionWorkshopDebugScenarios
                      .Where(group => group.Count() > 1))
         {
             failures.Add($"Duplicate recipe ID: {duplicate.Key}");
+        }
+
+        foreach (IGrouping<int, ProductionRecipeSO> duplicate in recipes
+                     .Where(recipe => recipe != null)
+                     .GroupBy(recipe => recipe.id)
+                     .Where(group => group.Count() > 1))
+        {
+            failures.Add(
+                $"Duplicate recipe numeric ID: {duplicate.Key} "
+                + $"({string.Join(", ", duplicate.Select(recipe => recipe.name))})");
         }
 
         HashSet<string> workstationTags = buildings
@@ -144,10 +154,10 @@ public static class ProductionWorkshopDebugScenarios
             }
         }
 
-        if (research.Length != 135)
+        if (research.Length != 168)
         {
             failures.Add(
-                $"Expected 135 research projects, found {research.Length}.");
+                $"Expected 168 research projects, found {research.Length}.");
         }
         string[] newResearch =
         {
@@ -170,15 +180,28 @@ public static class ProductionWorkshopDebugScenarios
 
         ProductionBillSaveData saved = new ProductionBillSaveData
         {
-            billId = "validation-batch",
+            billId = "production-bill:validation-batch",
             recipeId = "recipe:twilight-beer",
+            buildingInstanceId = "building:validation-workshop",
             batchStage = ProductionBatchStage.Processing,
             remainingProcessingHours = 7.5f,
             batchIntegrity = 43f,
             utilityOutageHours = 6.25f,
             temperatureOutageHours = 1.5f,
-            occupiedSupportNodeId = "facility:1602:4:5",
-            blockedReason = "validation"
+            occupiedSupportNodeId = "building:test-support",
+            blocked = new ProductionStatusSaveData
+            {
+                code = FailureCode.ProductionUtilitiesUnavailable,
+                parameters = new List<string> { "validation" }
+            },
+            prefetchBatchCount = 3,
+            estimatedDeliverySeconds = 18f,
+            estimatedProductionCycleSeconds = 6f,
+            logistics = new ProductionStatusSaveData
+            {
+                outcome = ProductionBillOutcomeCode.MaterialPrefetchAdjusted,
+                parameters = new List<string> { "validation-prefetch" }
+            }
         };
         DungeonProductionBillSaveData envelope =
             new DungeonProductionBillSaveData
@@ -189,16 +212,26 @@ public static class ProductionWorkshopDebugScenarios
             JsonUtility.FromJson<DungeonProductionBillSaveData>(
                 JsonUtility.ToJson(envelope));
         ProductionBillSaveData restoredBill = restored?.bills?.FirstOrDefault();
-        if (DungeonProductionBillSaveData.CurrentVersion != 2
+        if (DungeonProductionBillSaveData.CurrentVersion != 5
             || restoredBill == null
             || restoredBill.batchStage != ProductionBatchStage.Processing
             || !Mathf.Approximately(
                 restoredBill.remainingProcessingHours,
                 7.5f)
             || !Mathf.Approximately(restoredBill.batchIntegrity, 43f)
-            || restoredBill.occupiedSupportNodeId != "facility:1602:4:5")
+            || restoredBill.occupiedSupportNodeId != "building:test-support"
+            || restoredBill.prefetchBatchCount != 3
+            || !Mathf.Approximately(restoredBill.estimatedDeliverySeconds, 18f)
+            || !Mathf.Approximately(
+                restoredBill.estimatedProductionCycleSeconds,
+                6f)
+            || restoredBill.logistics == null
+            || restoredBill.logistics.outcome
+                != ProductionBillOutcomeCode.MaterialPrefetchAdjusted
+            || restoredBill.logistics.parameters.Single()
+                != "validation-prefetch")
         {
-            failures.Add("Production bill V2 save round-trip failed.");
+            failures.Add("Production bill V5 save round-trip failed.");
         }
 
         ValidateDeterministicRoomLinks(failures);
@@ -241,6 +274,15 @@ public static class ProductionWorkshopDebugScenarios
                 secondObject.AddComponent<BuildableObject>();
             BuildableObject support =
                 supportObject.AddComponent<BuildableObject>();
+            first.RestorePersistentIdentity(
+                (BuildingInstanceId)"building:workshop-link-first");
+            second.RestorePersistentIdentity(
+                (BuildingInstanceId)"building:workshop-link-second");
+            support.RestorePersistentIdentity(
+                (BuildingInstanceId)"building:workshop-link-support");
+            CharacterAiEditorTestDependencies.Inject(first);
+            CharacterAiEditorTestDependencies.Inject(second);
+            CharacterAiEditorTestDependencies.Inject(support);
             first.Initialization(firstData, new Vector2Int(2, 0));
             second.Initialization(secondData, new Vector2Int(6, 0));
             support.Initialization(supportData, new Vector2Int(4, 0));

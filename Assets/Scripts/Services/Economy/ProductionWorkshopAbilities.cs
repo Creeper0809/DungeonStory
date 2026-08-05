@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum ProductionSupportKind
@@ -14,7 +15,12 @@ public sealed class BuildingProductionWorkstationAbility : BuildingAbility
     [InspectorName("작업대 태그")]
     public string workstationTag = string.Empty;
 
+    [InspectorName("재고 감지반 설치품 ID")]
+    public string stockSensorInstallationItemId = string.Empty;
+
     public string WorkstationTag => workstationTag?.Trim() ?? string.Empty;
+    public string StockSensorInstallationItemId =>
+        stockSensorInstallationItemId?.Trim() ?? string.Empty;
     public bool IsValid => !string.IsNullOrWhiteSpace(WorkstationTag);
 }
 
@@ -122,6 +128,56 @@ public sealed class BuildingProductionSupportAbility : BuildingAbility
     }
 }
 
+[Serializable]
+public sealed class ProductionItemBufferCapacity
+{
+    public string itemId = string.Empty;
+    [Min(1)] public int capacity = 1;
+}
+
+[Serializable]
+[BuildingAbilityDisplayName("Production local buffers")]
+public sealed class BuildingProductionBufferAbility : BuildingAbility
+{
+    [Min(1)] public int defaultBatchCapacity = 4;
+    public List<ProductionItemBufferCapacity> outputCapacities = new();
+    public bool allowOverflowDump = true;
+    public Vector2Int overflowOffset = Vector2Int.right;
+
+    public int ResolveOutputCapacity(
+        string itemId,
+        int outputPerBatch,
+        int itemStackLimit)
+    {
+        string normalized = itemId?.Trim() ?? string.Empty;
+        ProductionItemBufferCapacity authored = outputCapacities?.Find(entry =>
+            entry != null
+            && string.Equals(
+                entry.itemId?.Trim(),
+                normalized,
+                StringComparison.Ordinal));
+        if (authored != null)
+        {
+            return Mathf.Max(1, authored.capacity);
+        }
+
+        return Mathf.Max(
+            Mathf.Max(1, itemStackLimit),
+            Mathf.Max(1, outputPerBatch)
+                * Mathf.Max(1, defaultBatchCapacity));
+    }
+}
+
+[Serializable]
+[BuildingAbilityDisplayName("Facility fuel/feed profiles")]
+public sealed class BuildingFacilitySupplyAbility : BuildingAbility
+{
+    public List<FacilitySupplyProfile> profiles = new();
+
+    public FacilitySupplyProfile GetProfile(FacilitySupplyKind kind) =>
+        profiles?.Find(profile => profile != null && profile.kind == kind);
+}
+
 public static class ProductionWorkshopAbilityAccessors
 {
     public static BuildingProductionWorkstationAbility
@@ -139,6 +195,14 @@ public static class ProductionWorkshopAbilityAccessors
             building?.GetAbility<BuildingProductionSupportAbility>();
         return ability != null && ability.IsValid ? ability : null;
     }
+
+    public static BuildingProductionBufferAbility
+        GetProductionBufferAbility(this BuildingSO building) =>
+        building?.GetAbility<BuildingProductionBufferAbility>();
+
+    public static BuildingFacilitySupplyAbility
+        GetFacilitySupplyAbility(this BuildingSO building) =>
+        building?.GetAbility<BuildingFacilitySupplyAbility>();
 
     public static string GetProductionWorkstationTag(this BuildableObject building)
     {
@@ -158,16 +222,10 @@ public static class ProductionWorkshopAbilityAccessors
 
         BuildingProductionWorkstationAbility workstation =
             building.BuildingData.GetProductionWorkstationAbility();
-        if (workstation != null)
-        {
-            return string.Equals(
+        return workstation != null
+            && string.Equals(
                 workstation.WorkstationTag,
                 recipe.WorkstationTag,
                 StringComparison.Ordinal);
-        }
-
-        // Compatibility path for V1 assets. The asset migration adds explicit
-        // workstation abilities; old saves remain usable until that migration runs.
-        return building.BuildingData.HasSemanticTag(recipe.FacilityTag);
     }
 }

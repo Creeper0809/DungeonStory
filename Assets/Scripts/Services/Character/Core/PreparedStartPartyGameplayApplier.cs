@@ -8,6 +8,11 @@ public interface IPreparedStartPartyGameplayApplier
     bool TryApply(PreparedStartPartySnapshot snapshot, out string message);
 }
 
+public interface IPreparedStartPartyDiagnosticsQuery
+{
+    string LastReport { get; }
+}
+
 public interface IPreparedStartPartyCommitService
 {
     bool TryCommit(out string message);
@@ -18,35 +23,36 @@ public sealed class PreparedStartPartyCommitService :
 {
     private readonly IStartPartyPreparationService preparationService;
     private readonly IPreparedStartPartyGameplayApplier gameplayApplier;
-    private readonly IRunVariableRuntimeProvider runVariableRuntimeProvider;
-    private readonly IInvasionThreatRuntimeProvider threatRuntimeProvider;
+    private readonly RunVariableRuntime runVariables;
+    private readonly InvasionThreatRuntime threatRuntime;
 
     public PreparedStartPartyCommitService(
         IStartPartyPreparationService preparationService,
         IPreparedStartPartyGameplayApplier gameplayApplier,
-        IRunVariableRuntimeProvider runVariableRuntimeProvider,
-        IInvasionThreatRuntimeProvider threatRuntimeProvider)
+        DungeonSceneRuntimeReferences sceneRuntimes,
+        InvasionSceneRuntimeReferences invasionRuntimes)
     {
         this.preparationService = preparationService
             ?? throw new ArgumentNullException(nameof(preparationService));
         this.gameplayApplier = gameplayApplier
             ?? throw new ArgumentNullException(nameof(gameplayApplier));
-        this.runVariableRuntimeProvider = runVariableRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(runVariableRuntimeProvider));
-        this.threatRuntimeProvider = threatRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(threatRuntimeProvider));
+        runVariables = (sceneRuntimes
+                ?? throw new ArgumentNullException(nameof(sceneRuntimes)))
+            .RunVariables
+            ?? throw new InvalidOperationException(
+                $"{nameof(PreparedStartPartyCommitService)} requires a loaded {nameof(RunVariableRuntime)}.");
+        threatRuntime = (invasionRuntimes
+                ?? throw new ArgumentNullException(nameof(invasionRuntimes)))
+            .Threat
+            ?? throw new InvalidOperationException(
+                $"{nameof(PreparedStartPartyCommitService)} requires a loaded {nameof(InvasionThreatRuntime)}.");
     }
 
     public bool TryCommit(out string message)
     {
-        int runSeed = runVariableRuntimeProvider.TryGetRuntime(
-                out RunVariableRuntime runVariables)
-            ? runVariables.RunSeed
-            : 0;
+        int runSeed = runVariables.RunSeed;
         DungeonDifficulty difficulty = DungeonDifficulty.Normal;
-        if (threatRuntimeProvider.TryGetRuntime(
-                out InvasionThreatRuntime threatRuntime)
-            && threatRuntime.Settings != null)
+        if (threatRuntime.Settings != null)
         {
             difficulty = DungeonDifficultyRules.FromLegacy(
                 threatRuntime.Settings.difficulty);
@@ -71,15 +77,84 @@ public sealed class PreparedStartPartyCommitService :
     }
 }
 
-public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGameplayApplier
+public sealed class PreparedStartPartyCharacterContext
+{
+    public PreparedStartPartyCharacterContext(
+        IRunCharacterCatalog characterCatalog,
+        IOwnerRunManagerProvider ownerRunManagerProvider,
+        ICharacterSpawnerProvider characterSpawnerProvider,
+        ICharacterSpawnObjectFactory characterObjectFactory,
+        ICharacterLifetimeQuery characterLifetimeQuery)
+    {
+        CharacterCatalog = characterCatalog
+            ?? throw new ArgumentNullException(nameof(characterCatalog));
+        OwnerRunManagerProvider = ownerRunManagerProvider
+            ?? throw new ArgumentNullException(nameof(ownerRunManagerProvider));
+        CharacterSpawnerProvider = characterSpawnerProvider
+            ?? throw new ArgumentNullException(nameof(characterSpawnerProvider));
+        CharacterObjectFactory = characterObjectFactory
+            ?? throw new ArgumentNullException(nameof(characterObjectFactory));
+        CharacterLifetimeQuery = characterLifetimeQuery
+            ?? throw new ArgumentNullException(nameof(characterLifetimeQuery));
+    }
+
+    public IRunCharacterCatalog CharacterCatalog { get; }
+    public IOwnerRunManagerProvider OwnerRunManagerProvider { get; }
+    public ICharacterSpawnerProvider CharacterSpawnerProvider { get; }
+    public ICharacterSpawnObjectFactory CharacterObjectFactory { get; }
+    public ICharacterLifetimeQuery CharacterLifetimeQuery { get; }
+}
+
+public sealed class PreparedStartPartyWorldContext
+{
+    public PreparedStartPartyWorldContext(
+        IWorldItemStackRuntime itemStackRuntime,
+        IWarehouseWorldQuery warehouseWorldQuery,
+        IGridSystemProvider gridSystemProvider,
+        IDungeonGridBuildingControllerProvider gridBuildingControllerProvider,
+        DungeonSceneRuntimeReferences sceneRuntimes,
+        IMainCameraProvider mainCameraProvider,
+        IRuntimeBuildingArchetypeCatalog buildingCatalog)
+    {
+        ItemStackRuntime = itemStackRuntime
+            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
+        WarehouseWorldQuery = warehouseWorldQuery
+            ?? throw new ArgumentNullException(nameof(warehouseWorldQuery));
+        GridSystemProvider = gridSystemProvider
+            ?? throw new ArgumentNullException(nameof(gridSystemProvider));
+        GridBuildingControllerProvider = gridBuildingControllerProvider
+            ?? throw new ArgumentNullException(nameof(gridBuildingControllerProvider));
+        RunVariables = (sceneRuntimes
+                ?? throw new ArgumentNullException(nameof(sceneRuntimes)))
+            .RunVariables
+            ?? throw new InvalidOperationException(
+                $"{nameof(PreparedStartPartyGameplayApplier)} requires a loaded {nameof(RunVariableRuntime)}.");
+        MainCameraProvider = mainCameraProvider
+            ?? throw new ArgumentNullException(nameof(mainCameraProvider));
+        BuildingCatalog = buildingCatalog
+            ?? throw new ArgumentNullException(nameof(buildingCatalog));
+    }
+
+    public IWorldItemStackRuntime ItemStackRuntime { get; }
+    public IWarehouseWorldQuery WarehouseWorldQuery { get; }
+    public IGridSystemProvider GridSystemProvider { get; }
+    public IDungeonGridBuildingControllerProvider GridBuildingControllerProvider { get; }
+    public RunVariableRuntime RunVariables { get; }
+    public IMainCameraProvider MainCameraProvider { get; }
+    public IRuntimeBuildingArchetypeCatalog BuildingCatalog { get; }
+}
+
+public sealed class PreparedStartPartyGameplayApplier :
+    IPreparedStartPartyGameplayApplier,
+    IPreparedStartPartyDiagnosticsQuery
 {
     private static readonly (StockCategory Category, int Amount)[] StarterSupplies =
     {
-        (StockCategory.Food, 12),
-        (StockCategory.Water, 12),
-        (StockCategory.General, 24),
-        (StockCategory.Fuel, 8),
-        (StockCategory.Medicine, 4)
+        (StockCategory.Food, 15),
+        (StockCategory.Water, 15),
+        (StockCategory.General, 40),
+        (StockCategory.Fuel, 10),
+        (StockCategory.Medicine, 5)
     };
 
     private readonly IRunCharacterCatalog characterCatalog;
@@ -90,49 +165,32 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
     private readonly IWarehouseWorldQuery warehouseWorldQuery;
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IDungeonGridBuildingControllerProvider gridBuildingControllerProvider;
-    private readonly IRunVariableRuntimeProvider runVariableRuntimeProvider;
+    private readonly RunVariableRuntime runVariables;
     private readonly IMainCameraProvider mainCameraProvider;
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
+    private readonly IRuntimeBuildingArchetypeCatalog buildingCatalog;
     private readonly ICharacterLifetimeQuery characterLifetimeQuery;
 
+    public string LastReport { get; private set; } = string.Empty;
+
     public PreparedStartPartyGameplayApplier(
-        IRunCharacterCatalog characterCatalog,
-        IOwnerRunManagerProvider ownerRunManagerProvider,
-        ICharacterSpawnerProvider characterSpawnerProvider,
-        ICharacterSpawnObjectFactory characterObjectFactory,
-        IWorldItemStackRuntime itemStackRuntime,
-        IWarehouseWorldQuery warehouseWorldQuery,
-        IGridSystemProvider gridSystemProvider,
-        IDungeonGridBuildingControllerProvider gridBuildingControllerProvider,
-        IRunVariableRuntimeProvider runVariableRuntimeProvider,
-        IMainCameraProvider mainCameraProvider,
-        IResourcesAssetLoader resourcesAssetLoader,
-        ICharacterLifetimeQuery characterLifetimeQuery)
+        PreparedStartPartyCharacterContext characters,
+        PreparedStartPartyWorldContext world)
     {
-        this.characterCatalog = characterCatalog
-            ?? throw new ArgumentNullException(nameof(characterCatalog));
-        this.ownerRunManagerProvider = ownerRunManagerProvider
-            ?? throw new ArgumentNullException(nameof(ownerRunManagerProvider));
-        this.characterSpawnerProvider = characterSpawnerProvider
-            ?? throw new ArgumentNullException(nameof(characterSpawnerProvider));
-        this.characterObjectFactory = characterObjectFactory
-            ?? throw new ArgumentNullException(nameof(characterObjectFactory));
-        this.itemStackRuntime = itemStackRuntime
-            ?? throw new ArgumentNullException(nameof(itemStackRuntime));
-        this.warehouseWorldQuery = warehouseWorldQuery
-            ?? throw new ArgumentNullException(nameof(warehouseWorldQuery));
-        this.gridSystemProvider = gridSystemProvider
-            ?? throw new ArgumentNullException(nameof(gridSystemProvider));
-        this.gridBuildingControllerProvider = gridBuildingControllerProvider
-            ?? throw new ArgumentNullException(nameof(gridBuildingControllerProvider));
-        this.runVariableRuntimeProvider = runVariableRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(runVariableRuntimeProvider));
-        this.mainCameraProvider = mainCameraProvider
-            ?? throw new ArgumentNullException(nameof(mainCameraProvider));
-        this.resourcesAssetLoader = resourcesAssetLoader
-            ?? throw new ArgumentNullException(nameof(resourcesAssetLoader));
-        this.characterLifetimeQuery = characterLifetimeQuery
-            ?? throw new ArgumentNullException(nameof(characterLifetimeQuery));
+        characters = characters
+            ?? throw new ArgumentNullException(nameof(characters));
+        world = world ?? throw new ArgumentNullException(nameof(world));
+        characterCatalog = characters.CharacterCatalog;
+        ownerRunManagerProvider = characters.OwnerRunManagerProvider;
+        characterSpawnerProvider = characters.CharacterSpawnerProvider;
+        characterObjectFactory = characters.CharacterObjectFactory;
+        characterLifetimeQuery = characters.CharacterLifetimeQuery;
+        itemStackRuntime = world.ItemStackRuntime;
+        warehouseWorldQuery = world.WarehouseWorldQuery;
+        gridSystemProvider = world.GridSystemProvider;
+        gridBuildingControllerProvider = world.GridBuildingControllerProvider;
+        runVariables = world.RunVariables;
+        mainCameraProvider = world.MainCameraProvider;
+        buildingCatalog = world.BuildingCatalog;
     }
 
     public bool TryApply(PreparedStartPartySnapshot snapshot, out string message)
@@ -163,10 +221,11 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
             return false;
         }
 
-        if (runVariableRuntimeProvider.TryGetRuntime(out RunVariableRuntime runVariables))
-        {
-            runVariables.StartRun(snapshot.runSeed, ownerData, snapshot.difficulty);
-        }
+        runVariables.StartRun(
+                snapshot.runSeed,
+                ownerData,
+                snapshot.difficulty,
+                snapshot.survivalPressure);
 
         EnsureStarterDungeonShell();
 
@@ -218,7 +277,7 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
         foreach (CharacterActor staff in preparedStaff)
         {
             staff.PrepareForPersistentRestore();
-            staff.gameObject.SetActive(true);
+            characterObjectFactory.Publish(staff.gameObject);
             staff.SetLifecycleState(CharacterLifecycleState.Active);
             staff.characterType = CharacterType.NPC;
             staff.Brain?.UseStaffWorkActions();
@@ -227,15 +286,13 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
 
         RemoveDuplicateStartingStaff(preparedStaff, diagnostics);
         diagnostics.AddRange(preparedStaff.Select(actor => DescribeActor("retained", actor)));
-        StartPartyCommitDiagnostics.LastReport = string.Join(" || ", diagnostics);
+        LastReport = string.Join(" || ", diagnostics);
         message = "준비한 사장과 직원으로 새 런을 시작했습니다.";
         return true;
     }
 
     private bool TrySpawnStarterSupplies(out string failureReason)
     {
-        Dictionary<IWarehouseFacility, WarehouseInventorySnapshot> warehouseSnapshots =
-            ClearLegacySeededWarehouseStock();
         DungeonPhysicalItemSaveData beforeSpawn = itemStackRuntime.Capture();
         foreach ((StockCategory category, int amount) in StarterSupplies)
         {
@@ -250,44 +307,12 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
             }
 
             itemStackRuntime.Restore(beforeSpawn);
-            RestoreWarehouseStock(warehouseSnapshots);
             failureReason = $"시작 보급품을 하차장에 놓지 못했습니다. 항목: {category}";
             return false;
         }
 
         failureReason = string.Empty;
         return true;
-    }
-
-    private Dictionary<IWarehouseFacility, WarehouseInventorySnapshot> ClearLegacySeededWarehouseStock()
-    {
-        Dictionary<IWarehouseFacility, WarehouseInventorySnapshot> snapshots =
-            new Dictionary<IWarehouseFacility, WarehouseInventorySnapshot>();
-        foreach (IWarehouseFacility warehouse in warehouseWorldQuery.Warehouses)
-        {
-            WarehouseInventory inventory = warehouse?.Inventory;
-            if (inventory == null || inventory.TotalStock <= 0)
-            {
-                continue;
-            }
-
-            WarehouseInventorySnapshot original = inventory.CreateSnapshot();
-            snapshots[warehouse] = original;
-            WarehouseInventorySnapshot empty = inventory.CreateSnapshot();
-            empty.stocks.Clear();
-            inventory.ApplySnapshot(empty);
-        }
-
-        return snapshots;
-    }
-
-    private static void RestoreWarehouseStock(
-        IReadOnlyDictionary<IWarehouseFacility, WarehouseInventorySnapshot> snapshots)
-    {
-        foreach (KeyValuePair<IWarehouseFacility, WarehouseInventorySnapshot> pair in snapshots)
-        {
-            pair.Key?.Inventory?.ApplySnapshot(pair.Value);
-        }
     }
 
     private void EnsureStarterDungeonShell()
@@ -334,23 +359,9 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
     private List<InitialBuildInfo> CreateStarterDungeonShell(Grid grid)
     {
         List<InitialBuildInfo> placements = new List<InitialBuildInfo>();
-        BuildingSO hallway;
-        BuildingSO wall;
-        BuildingSO door;
-        try
-        {
-            hallway = resourcesAssetLoader.LoadRequired<BuildingSO>(
-                "SO/Building/Hallway");
-            wall = resourcesAssetLoader.LoadRequired<BuildingSO>(
-                "SO/Building/Wall");
-            door = resourcesAssetLoader.LoadRequired<BuildingSO>(
-                "SO/Building/Door");
-        }
-        catch (InvalidOperationException exception)
-        {
-            Debug.LogWarning(exception.Message);
-            return placements;
-        }
+        BuildingSO hallway = buildingCatalog.RequireDefinition(StarterBuildingDefinitionIds.Hallway);
+        BuildingSO wall = buildingCatalog.RequireDefinition(StarterBuildingDefinitionIds.Wall);
+        BuildingSO door = buildingCatalog.RequireDefinition(StarterBuildingDefinitionIds.Door);
 
         if (grid == null || hallway == null || wall == null || door == null)
         {
@@ -526,14 +537,9 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
         PreparedStartPartyMemberSnapshot snapshot,
         CharacterSpawner spawner)
     {
-        GameObject staffObject = characterObjectFactory.Create(spawner.characterPrefab);
-        staffObject.SetActive(false);
-        if (staffObject.GetComponent<AbilityWork>() == null)
-        {
-            staffObject.AddComponent<AbilityWork>();
-        }
-
-        characterObjectFactory.Inject(staffObject);
+        GameObject staffObject = characterObjectFactory.CreateInactive(
+            spawner.characterPrefab,
+            EnsureStaffWorkAbility);
         CharacterActor actor = CharacterActorCollection.GetCanonical(
             staffObject.GetComponent<CharacterActor>());
         if (actor == null)
@@ -555,6 +561,14 @@ public sealed class PreparedStartPartyGameplayApplier : IPreparedStartPartyGamep
 
         characterObjectFactory.Destroy(staffObject);
         return null;
+    }
+
+    private static void EnsureStaffWorkAbility(GameObject staffObject)
+    {
+        if (staffObject != null && staffObject.GetComponent<AbilityWork>() == null)
+        {
+            staffObject.AddComponent<AbilityWork>();
+        }
     }
 
     private void PlaceParty(

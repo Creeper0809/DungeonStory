@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uBC29\uC758 \uBBF8\uAD00\uACFC \uB300\uD615 \uC0AC\uC5C5\uC5D0 \uC4F0\uB294
     \uC11D\uC870\uBB3C."
   stockCategory: 1
-  kind: 8
-  ingredientTags: 512
-  unitPrice: 12
-  marketSaleRate: 0.6
   unitWeight: 1.6
   maxStack: 30
   sprite: {fileID: 0}
-  requiredResearchId: research:mining:stonecutting
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 12
+  features:
+  - rid: 7737211673962611496
+  - rid: 7737211673962611497
+  - rid: 7737211673962611498
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611496
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:mining:stonecutting
+    - rid: 7737211673962611497
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 512
+        sharedIntermediate: 0
+    - rid: 7737211673962611498
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

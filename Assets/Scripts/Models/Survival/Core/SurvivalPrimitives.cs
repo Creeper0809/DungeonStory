@@ -4,15 +4,6 @@ using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public enum MealDietClass
-{
-    Vegan = 0,
-    Vegetarian = 1,
-    Mixed = 2,
-    Carnivore = 3
-}
-
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public enum MealQualityTier
 {
     Simple = 0,
@@ -25,7 +16,7 @@ public enum MealQualityTier
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonSurvivalSaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public int version = CurrentVersion;
     public int lastProcessedDay;
@@ -45,8 +36,6 @@ public sealed class DungeonSurvivalSaveData
     public float sanitationRisk;
     public float diseaseRisk;
     public float exteriorNightDanger;
-    public List<SurvivalFoodSpoilageSaveData> spoilage =
-        new List<SurvivalFoodSpoilageSaveData>();
     public List<SurvivalHealthSaveData> health =
         new List<SurvivalHealthSaveData>();
     public List<CharacterMealLedgerSaveData> mealLedger =
@@ -192,17 +181,6 @@ public enum SurvivalHealthState
     Sick = 4,
     Infected = 5,
     Recovering = 6
-}
-
-[Serializable]
-[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
-public sealed class SurvivalFoodSpoilageSaveData
-{
-    public string stackId = string.Empty;
-    public string itemId = string.Empty;
-    public float remainingFreshnessSeconds;
-    public bool preserved;
-    public bool contaminated;
 }
 
 [Serializable]
@@ -449,13 +427,16 @@ public sealed class CharacterBreakdownState
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class CharacterDeprivationState
 {
-    public string persistentId = string.Empty;
+    public string characterId = string.Empty;
     public List<DeprivationBurdenSaveData> burdens =
         new List<DeprivationBurdenSaveData>();
     public CharacterBreakdownState breakdown = new CharacterBreakdownState();
     public List<string> tabooMemories = new List<string>();
     public float infectionBurden;
     public float lastUpdatedAt;
+    public float nextSafeReliefAttemptAt;
+    public int breakdownGeneration;
+    public int dispatchedBreakdownGeneration;
 }
 
 [Serializable]
@@ -490,7 +471,7 @@ public sealed class WorldWaterSourceSaveData
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class DungeonDarkSurvivalSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
     public int nextFilthSequence = 1;

@@ -20,7 +20,8 @@ public interface IWorldItemSpawner
         bool emergencyButcheryAllowed = false,
         string sourceStorageDestinationId = "",
         WasteOriginKind wasteOrigin = WasteOriginKind.Unknown,
-        float contamination = 0f);
+        float contamination = 0f,
+        IReadOnlyList<ItemInstanceComponentSaveData> components = null);
 
     bool SpawnUnique(
         string itemId,
@@ -34,6 +35,16 @@ public interface IWorldItemSpawner
         WorldItemStackState state,
         string destinationId,
         Vector2Int destinationPosition,
+        out string stackId);
+    bool SpawnExistingUnique(
+        string itemId,
+        ItemInstanceId itemInstanceId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        bool hasDestinationPosition,
+        Vector2Int destinationPosition,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
         out string stackId);
 }
 
@@ -71,7 +82,8 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
         bool emergencyButcheryAllowed = false,
         string sourceStorageDestinationId = "",
         WasteOriginKind wasteOrigin = WasteOriginKind.Unknown,
-        float contamination = 0f)
+        float contamination = 0f,
+        IReadOnlyList<ItemInstanceComponentSaveData> components = null)
     {
         if (string.IsNullOrWhiteSpace(itemId) || amount <= 0)
         {
@@ -81,6 +93,13 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
         int remaining = amount;
         int spawned = 0;
         int maxStack = catalogProvider.GetDefinition(itemId).MaxStack;
+        List<ItemInstanceComponentSaveData> instanceComponents =
+            BuildInstanceComponents(
+                components,
+                sourceCharacterId,
+                sourceSpeciesTag,
+                contamination);
+        string stackSignature = ItemStackSignature.Create(itemId, instanceComponents);
         while (remaining > 0)
         {
             int amountForStack = Mathf.Min(remaining, maxStack);
@@ -99,7 +118,8 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
                 emergencyButcheryAllowed,
                 sourceStorageDestinationId,
                 wasteOrigin,
-                contamination);
+                contamination,
+                stackSignature);
             if (mergeTarget != null)
             {
                 int merged = Mathf.Min(
@@ -120,6 +140,9 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
             repository.Add(new WorldItemStackRecord
             {
                 stackId = repository.AllocateStackId(),
+                itemInstanceId = maxStack == 1
+                    ? repository.AllocateItemInstanceId()
+                    : string.Empty,
                 itemId = itemId,
                 quantity = amountForStack,
                 state = state,
@@ -135,7 +158,8 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
                 sourceDeathReason = sourceDeathReason ?? string.Empty,
                 emergencyButcheryAllowed = emergencyButcheryAllowed,
                 wasteOrigin = wasteOrigin,
-                contamination = Mathf.Clamp(contamination, 0f, 100f)
+                contamination = Mathf.Clamp(contamination, 0f, 100f),
+                components = instanceComponents.Select(component => component.Clone()).ToList()
             });
             remaining -= amountForStack;
             spawned += amountForStack;
@@ -160,6 +184,53 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
             false,
             default,
             out stackId);
+    }
+
+    public bool SpawnExistingUnique(
+        string itemId,
+        ItemInstanceId itemInstanceId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        bool hasDestinationPosition,
+        Vector2Int destinationPosition,
+        IReadOnlyList<ItemInstanceComponentSaveData> components,
+        out string stackId)
+    {
+        stackId = string.Empty;
+        string normalizedItemId = itemId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(normalizedItemId)
+            || !itemInstanceId.IsValid
+            || catalogProvider.GetDefinition(normalizedItemId).MaxStack != 1
+            || repository.Records.Any(record => record != null
+                && string.Equals(
+                    record.itemInstanceId,
+                    itemInstanceId.Value,
+                    StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        WorldItemStackRecord created = new WorldItemStackRecord
+        {
+            stackId = repository.AllocateStackId(),
+            itemInstanceId = itemInstanceId.Value,
+            itemId = normalizedItemId,
+            quantity = 1,
+            state = state,
+            position = position,
+            destinationId = destinationId?.Trim() ?? string.Empty,
+            hasDestinationPosition = hasDestinationPosition,
+            destinationPosition = destinationPosition,
+            components = (components ?? Array.Empty<ItemInstanceComponentSaveData>())
+                .Where(component => component != null)
+                .Select(component => component.Clone())
+                .ToList()
+        };
+        repository.Add(created);
+        markerPresenter.RefreshAt(position);
+        stackId = created.stackId;
+        return true;
     }
 
     public bool SpawnUnique(
@@ -233,7 +304,8 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
         bool emergencyButcheryAllowed,
         string sourceStorageDestinationId,
         WasteOriginKind wasteOrigin,
-        float contamination)
+        float contamination,
+        string stackSignature)
     {
         if (!repository.RecordsByPosition.TryGetValue(
                 position,
@@ -280,6 +352,69 @@ public sealed class WorldItemSpawner : IWorldItemSpawner
                 StringComparison.Ordinal)
             && stack.emergencyButcheryAllowed == emergencyButcheryAllowed
             && stack.wasteOrigin == wasteOrigin
-            && Mathf.Abs(stack.contamination - contamination) < 0.01f);
+            && Mathf.Abs(stack.contamination - contamination) < 0.01f
+            && string.Equals(
+                ItemStackSignature.Create(stack.itemId, stack.components),
+                stackSignature,
+                StringComparison.Ordinal));
+    }
+
+    private static List<ItemInstanceComponentSaveData> BuildInstanceComponents(
+        IReadOnlyList<ItemInstanceComponentSaveData> authored,
+        string sourceCharacterId,
+        string sourceSpeciesTag,
+        float contamination)
+    {
+        List<ItemInstanceComponentSaveData> components = (authored
+                ?? Array.Empty<ItemInstanceComponentSaveData>())
+            .Where(component => component != null)
+            .Select(component => component.Clone())
+            .ToList();
+
+        if (contamination > 0f
+            && components.All(component => component.componentTypeId
+                != ItemInstanceComponentIds.Contamination))
+        {
+            components.Add(new ItemInstanceComponentSaveData
+            {
+                componentTypeId = ItemInstanceComponentIds.Contamination,
+                values = new List<ItemStateValueSaveData>
+                {
+                    new ItemStateValueSaveData
+                    {
+                        key = "percent",
+                        kind = ItemStateValueKind.Decimal,
+                        decimalValue = Mathf.Clamp(contamination, 0f, 100f)
+                    }
+                }
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(sourceCharacterId)
+            && components.All(component => component.componentTypeId
+                != ItemInstanceComponentIds.Provenance))
+        {
+            components.Add(new ItemInstanceComponentSaveData
+            {
+                componentTypeId = ItemInstanceComponentIds.Provenance,
+                values = new List<ItemStateValueSaveData>
+                {
+                    new ItemStateValueSaveData
+                    {
+                        key = "source-character-id",
+                        kind = ItemStateValueKind.String,
+                        stringValue = sourceCharacterId.Trim()
+                    },
+                    new ItemStateValueSaveData
+                    {
+                        key = "species",
+                        kind = ItemStateValueKind.String,
+                        stringValue = sourceSpeciesTag?.Trim() ?? string.Empty
+                    }
+                }
+            });
+        }
+
+        return components;
     }
 }

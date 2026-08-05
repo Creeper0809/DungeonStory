@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uBCBD, \uBC14\uB2E5, \uC5C4\uD3D0\uC640 \uC11D\uC7AC \uC7A5\uBE44\uC5D0
     \uC4F0\uB294 \uAC70\uCE5C \uB3CC."
   stockCategory: 1
-  kind: 0
-  ingredientTags: 512
-  unitPrice: 1
-  marketSaleRate: 0.6
   unitWeight: 1.6
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:mining:surface
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 1
+  features:
+  - rid: 7737211673962611657
+  - rid: 7737211673962611658
+  - rid: 7737211673962611659
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611657
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:mining:surface
+    - rid: 7737211673962611658
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 0
+        ingredientTags: 512
+        sharedIntermediate: 0
+    - rid: 7737211673962611659
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

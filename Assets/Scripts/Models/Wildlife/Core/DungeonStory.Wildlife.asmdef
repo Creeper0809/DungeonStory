@@ -1,7 +1,10 @@
 {
   "name": "DungeonStory.Wildlife",
   "rootNamespace": "DungeonStory.Wildlife",
-  "references": [],
+  "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.Foundation"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

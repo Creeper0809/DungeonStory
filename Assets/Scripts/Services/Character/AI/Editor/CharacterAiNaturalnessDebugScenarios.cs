@@ -332,6 +332,7 @@ public static class CharacterAiNaturalnessDebugScenarios
             actorObject.SetActive(true);
 
             CharacterActor actor = actorObject.GetComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.EnsureCharacterProgression(actorObject);
             actor.EnsureRuntimeState();
             actor.RefreshAbilityCache();
             actor.Initialize(data);
@@ -478,6 +479,7 @@ public static class CharacterAiNaturalnessDebugScenarios
             actorObject.SetActive(true);
 
             CharacterActor actor = actorObject.GetComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.EnsureCharacterProgression(actorObject);
             actor.EnsureRuntimeState();
             actor.RefreshAbilityCache();
             actor.Initialize(data);
@@ -530,6 +532,7 @@ public static class CharacterAiNaturalnessDebugScenarios
             actorObject.SetActive(true);
 
             CharacterActor actor = actorObject.GetComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.EnsureCharacterProgression(actorObject);
             actor.EnsureRuntimeState();
             actor.Initialize(data);
             actor.SetLifecycleState(CharacterLifecycleState.Active);
@@ -539,7 +542,9 @@ public static class CharacterAiNaturalnessDebugScenarios
             brainFixture.ApplyModifiedPropertiesWithoutUndo();
 
             ProbeSafeReliefRuntime deprivation = new ProbeSafeReliefRuntime();
-            CharacterAiDecisionPipeline pipeline = new CharacterAiDecisionPipeline(deprivation);
+            CharacterAiDecisionPipeline pipeline = new CharacterAiDecisionPipeline(
+                deprivation,
+                deprivation);
             AIAction runningWork = new AIAction { actionset = workAction };
             runningWork.MarkStarted(Mathf.Max(0f, Time.time - 1f));
             actor.Brain.bestAction = runningWork;
@@ -580,6 +585,7 @@ public static class CharacterAiNaturalnessDebugScenarios
         try
         {
             CharacterActor actor = actorObject.GetComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.EnsureCharacterProgression(actorObject);
             actor.EnsureRuntimeState();
             actor.Initialize(data);
             actor.SetLifecycleState(CharacterLifecycleState.Active);
@@ -643,6 +649,16 @@ internal sealed class ProbeSafeReliefRuntime : ICharacterDeprivationRuntime
         status = string.Empty;
         return false;
     }
+    public bool NeedsRoutineDrink(CharacterActor actor, out string reason)
+    {
+        reason = string.Empty;
+        return false;
+    }
+    public bool TryRunRoutineDrink(CharacterActor actor, out string status)
+    {
+        status = string.Empty;
+        return false;
+    }
     public bool NeedsSafeEmergencyRelief(CharacterActor actor, out string reason)
     {
         reason = "갈증 10: 안전한 식수 필요";
@@ -673,7 +689,10 @@ internal sealed class ProbeSafeReliefRuntime : ICharacterDeprivationRuntime
         string memory,
         float moodPenalty) { }
     public DungeonDarkSurvivalSaveData Capture() => new DungeonDarkSurvivalSaveData();
-    public void Restore(DungeonDarkSurvivalSaveData saveData) { }
+    public DarkSurvivalRestoreCandidate BuildRestoreCandidate(
+        DungeonDarkSurvivalSaveData saveData) =>
+        throw new NotSupportedException();
+    public void PublishRestoreCandidate(DarkSurvivalRestoreCandidate candidate) { }
     public bool DebugForceBreakdown(CharacterActor actor, CharacterBreakdownKind kind) => false;
     public bool DebugClearBreakdown(CharacterActor actor) => false;
 }

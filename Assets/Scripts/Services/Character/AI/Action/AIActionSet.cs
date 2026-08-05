@@ -163,7 +163,7 @@ public abstract class AIActionSet : SerializedScriptableObject
             recorder.Record(
                 AiPerformanceCategory.ActionCanStart,
                 elapsedMilliseconds);
-            CharacterAiSlowOperationTrace.Record(
+            recorder.RecordSlowOperation(
                 "can-start",
                 actor,
                 this,
@@ -207,7 +207,7 @@ public abstract class AIActionSet : SerializedScriptableObject
             recorder.Record(
                 AiPerformanceCategory.ActionResolveDestination,
                 elapsedMilliseconds);
-            CharacterAiSlowOperationTrace.Record(
+            recorder.RecordSlowOperation(
                 "resolve-destination",
                 actor,
                 this,

@@ -7,7 +7,7 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
     private const float WorkerStandOffsetY = 0.15f;
     private Func<bool> completeConstruction;
     private Action removeSite;
-    private CharacterActor worker;
+    private IBuildingVisitorPort worker;
     private string workOrderId = string.Empty;
     private ConstructionSafetyResult lastSafetyResult = ConstructionSafetyResult.Safe();
     private ConstructionSafetyResult cachedSafetyResult =
@@ -18,12 +18,14 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
         new Vector2Int(int.MinValue, int.MinValue);
     private bool hasCachedSafetyResult;
     private IWorkOrderRuntime workOrderRuntime;
+    private Sprite ownedSiteSprite;
+    private Texture2D ownedSiteTexture;
 
     public string WorkOrderId => workOrderId;
     public BuildingSO TargetBuilding => BuildingData;
     public Vector2Int GridPosition => centerPos;
     public ConstructionSafetyResult LastSafetyResult => lastSafetyResult;
-    public CharacterActor ActiveWorker => worker;
+    public IBuildingVisitorPort ActiveWorker => worker;
 
     public void ConfigureWorkOrderRuntime(IWorkOrderRuntime runtime)
     {
@@ -130,7 +132,7 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
         return FacilityAssignmentStatus.Allowed();
     }
 
-    public FacilityAssignmentStatus GetWorkerAssignmentStatus(CharacterActor actor)
+    public FacilityAssignmentStatus GetWorkerAssignmentStatus(IBuildingVisitorPort actor)
     {
         FacilityAssignmentStatus status = GetConstructionWorkStatus();
         if (!status.IsAllowed)
@@ -155,7 +157,7 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
         return FacilityAssignmentStatus.Allowed();
     }
 
-    public bool CanAssignWorker(CharacterActor actor, out string failureReason)
+    public bool CanAssignWorker(IBuildingVisitorPort actor, out string failureReason)
     {
         FacilityAssignmentStatus status = GetWorkerAssignmentStatus(actor);
         failureReason = status.Reason;
@@ -163,13 +165,13 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
     }
 
     public ConstructionSafetyResult GetConstructionSafetyState(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         bool forced = false)
     {
         int gridVersion = Grid != null ? Grid.StructuralVersion : -1;
         int buildingVersion = WorldRegistry?.BuildingVersion ?? -1;
-        Vector2Int workerPosition = actor != null
-            ? actor.GetNowXY()
+        Vector2Int workerPosition = actor != null && Grid != null
+            ? Grid.GetXY(actor.VisitorSnapshot.Position)
             : new Vector2Int(int.MinValue, int.MinValue);
         if (!hasCachedSafetyResult
             || cachedSafetyGridVersion != gridVersion
@@ -190,7 +192,7 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
         return lastSafetyResult;
     }
 
-    public IEnumerator AllocateWorker(CharacterActor actor)
+    public IEnumerator AllocateWorker(IBuildingVisitorPort actor)
     {
         if (!CanAssignWorker(actor, out _))
         {
@@ -199,23 +201,25 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
 
         worker = actor;
         ReleaseWorkerReservation(actor);
-        AbilityMove moveable = actor != null ? actor.GetAbility<AbilityMove>() : null;
-        if (moveable == null)
+        if (actor == null || !actor.VisitorSnapshot.CanMove)
         {
             yield break;
         }
 
-        AIAction currentAction = actor.Brain != null ? actor.Brain.bestAction : null;
+        object currentAction = actor.CurrentActionToken;
         Vector3 workPosition = GetMovementWorldPosition(centerPos);
-        actor.Brain?.SetActionPhase("공사 현장 접근", this);
-        yield return moveable.Move2PosBySpeed(workPosition, 1f, currentAction);
+        actor.SetActionPhase("공사 현장 접근", this);
+        yield return actor.MoveTo(workPosition, 1f, currentAction);
         actor.ChangeLayer("DungeonMiddleObject");
-        yield return moveable.Move2PosBySpeed(workPosition + new Vector3(0f, WorkerStandOffsetY), 3f, currentAction);
-        actor.Brain?.SetActionPhase("공사 중", this);
-        actor.Flip(CharacterFacing.RIGHT);
+        yield return actor.MoveTo(
+            workPosition + new Vector3(0f, WorkerStandOffsetY),
+            3f,
+            currentAction);
+        actor.SetActionPhase("공사 중", this);
+        actor.FaceRight();
     }
 
-    public void DeallocateWorker(CharacterActor actor)
+    public void DeallocateWorker(IBuildingVisitorPort actor)
     {
         if (actor == null || worker != actor)
         {
@@ -223,8 +227,10 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
         }
 
         worker = null;
-        actor.Brain?.SetActionPhase("공사 현장 이탈", this);
-        actor.transform.position -= new Vector3(0f, WorkerStandOffsetY);
+        actor.SetActionPhase("공사 현장 이탈", this);
+        actor.SetWorldPosition(
+            actor.VisitorSnapshot.Position
+                - new Vector3(0f, WorkerStandOffsetY));
         actor.ChangeLayer("Default");
         MarkFacilityDynamicStateDirty();
     }
@@ -270,7 +276,9 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
             renderer = gameObject.AddComponent<SpriteRenderer>();
         }
 
-        renderer.sprite = CreateSiteSprite();
+        ownedSiteSprite = CreateSiteSprite();
+        ownedSiteTexture = ownedSiteSprite.texture;
+        renderer.sprite = ownedSiteSprite;
         renderer.color = new Color(0.92f, 0.80f, 0.38f, 0.62f);
         renderer.sortingLayerName = "DungeonMiddleObject";
         renderer.sortingOrder = 65;
@@ -285,6 +293,25 @@ public sealed class ConstructionSite : BuildableObject, IWorkableFacility
         int height = Mathf.Max(1, BuildingData != null ? BuildingData.height : 1);
         collider.size = new Vector2(width, Mathf.Max(0.1f, height * 3f));
         collider.offset = new Vector2(0f, collider.size.y * 0.5f);
+    }
+
+    protected override void OnDestroy()
+    {
+        Sprite sprite = ownedSiteSprite;
+        Texture2D texture = ownedSiteTexture;
+        ownedSiteSprite = null;
+        ownedSiteTexture = null;
+        if (sprite != null)
+        {
+            UnityEngine.Object.DestroyImmediate(sprite);
+        }
+
+        if (texture != null)
+        {
+            UnityEngine.Object.DestroyImmediate(texture);
+        }
+
+        base.OnDestroy();
     }
 
     private static Sprite CreateSiteSprite()

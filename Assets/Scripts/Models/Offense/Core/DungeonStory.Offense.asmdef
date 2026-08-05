@@ -1,7 +1,13 @@
 {
   "name": "DungeonStory.Offense",
   "rootNamespace": "DungeonStory.Offense",
-  "references": [],
+  "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.Combat",
+    "DungeonStory.CoreSession",
+    "DungeonStory.Economy",
+    "DungeonStory.Foundation"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

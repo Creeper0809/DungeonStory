@@ -52,17 +52,6 @@ public sealed class FacilityRuntimeState
     }
 }
 
-[Serializable]
-public sealed class LegacyFacilityOperationalStateV1
-{
-    [Min(0)] public int completedUses;
-    [Min(0)] public int completedWorkCycles;
-    [Min(0)] public int producedStock;
-    [Min(0)] public int alarmCharges;
-    [Range(0f, 100f)] public float cleanliness = 100f;
-
-}
-
 public interface IBuildingUnlockStateView
 {
     bool IsBuildingUnlocked(int buildingId);
@@ -70,7 +59,7 @@ public interface IBuildingUnlockStateView
 
 public static class FacilityProgression
 {
-    public static int GetCurrentPhase(GameData gameData)
+    public static int GetCurrentPhase(GameSessionState gameData)
     {
         int day = gameData != null && gameData.day != null
             ? Mathf.Max(1, gameData.day.Value)
@@ -80,15 +69,17 @@ public static class FacilityProgression
 
     public static bool IsUnlocked(
         BuildingSO building,
-        GameData gameData,
-        IBuildingUnlockStateView unlockState = null)
+        GameSessionState gameData,
+        IBuildingUnlockStateView unlockState,
+        IDungeonDebugRuleQuery debugRules)
     {
         if (building == null)
         {
             return false;
         }
 
-        if (DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.IgnoreUnlocks))
+        if ((debugRules ?? throw new ArgumentNullException(nameof(debugRules)))
+            .IsEnabled(DungeonDebugCheat.IgnoreUnlocks))
         {
             return true;
         }

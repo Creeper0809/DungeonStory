@@ -89,23 +89,19 @@ public readonly struct CropPlotVisualState
 [Serializable]
 public sealed class CropPlotSaveData
 {
-    public string plotId = string.Empty;
-    public int buildingId;
-    public int gridX;
-    public int gridY;
+    public string buildingInstanceId = string.Empty;
     public string cropId = string.Empty;
     public CropPlotPhase phase;
     public float sowWork;
     public float growthHours;
     public float harvestWork;
-    public string materialDestinationId = string.Empty;
     public bool materialsConsumed;
 }
 
 [Serializable]
 public sealed class DungeonCropPlotSaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int version = CurrentVersion;
     public List<CropPlotSaveData> plots = new List<CropPlotSaveData>();
@@ -129,6 +125,21 @@ public interface ICropPlotRuntime
         WorkTypeId workTypeId,
         float amount,
         out bool cycleCompleted);
+}
+
+public sealed class CropPlotRestoreCandidate
+{
+    internal CropPlotRestoreCandidate(CropPlotAggregateState state)
+    {
+        State = state ?? throw new ArgumentNullException(nameof(state));
+    }
+
+    internal CropPlotAggregateState State { get; }
+}
+
+public interface ICropPlotPersistence
+{
     DungeonCropPlotSaveData Capture();
-    void Restore(DungeonCropPlotSaveData snapshot);
+    CropPlotRestoreCandidate BuildRestore(DungeonCropPlotSaveData snapshot);
+    void Restore(CropPlotRestoreCandidate candidate);
 }

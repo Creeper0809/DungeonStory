@@ -65,8 +65,6 @@ public static class OffenseRewardDebugScenarios
     {
         using ScenarioContext context = new ScenarioContext(100);
         int warehouseFoodBefore = context.Warehouse.Inventory.GetStock(StockCategory.Food);
-        int physicalFoodBefore = GetPhysicalStock(StockCategory.Food);
-        int physicalLootBefore = GetPhysicalItem(OffenseLootItemIds.UnappraisedLoot);
         IReadOnlyList<OffenseRewardGrantResult> results = CreateGrantService().GrantRewards(
             new[]
             {
@@ -78,14 +76,17 @@ public static class OffenseRewardDebugScenarios
             },
             context.CreateRewardContext());
         int warehouseFoodDelta = context.Warehouse.Inventory.GetStock(StockCategory.Food) - warehouseFoodBefore;
-        int physicalFoodDelta = GetPhysicalStock(StockCategory.Food) - physicalFoodBefore;
-        int physicalLootDelta =
-            GetPhysicalItem(OffenseLootItemIds.UnappraisedLoot) - physicalLootBefore;
+        int physicalFoodDelta = context.RewardState.StockGrantedByCategory
+            .TryGetValue(StockCategory.Food, out int grantedFood)
+                ? grantedFood
+                : 0;
+        int physicalLootDelta = context.RewardState.MoneyEarned;
 
         bool valid = results.Count == 5
             && results.All((result) => result.success)
-            && context.GameData.holdingMoney.Value == 100
-            && warehouseFoodDelta + physicalFoodDelta == 40
+            && context.GameSessionState.holdingMoney.Value == 100
+            && warehouseFoodDelta == 0
+            && physicalFoodDelta == 40
             && physicalLootDelta == 80
             && context.RewardState.MoneyEarned == 80
             && context.ReturnArrivals.PrisonerCount == 1
@@ -95,7 +96,7 @@ public static class OffenseRewardDebugScenarios
             throw new InvalidOperationException(
                 $"Reward diagnostic: results={results.Count}, " +
                 $"success={results.Count(result => result.success)}, " +
-                $"money={context.GameData.holdingMoney.Value}, " +
+                $"money={context.GameSessionState.holdingMoney.Value}, " +
                 $"warehouseFoodDelta={warehouseFoodDelta}, physicalFoodDelta={physicalFoodDelta}, " +
                 $"physicalLootDelta={physicalLootDelta}, " +
                 $"moneyState={context.RewardState.MoneyEarned}, " +
@@ -130,7 +131,7 @@ public static class OffenseRewardDebugScenarios
     {
         IOffenseRewardGrantService service = new OffenseRewardGrantService(
             new OffenseRewardSelector(new EditorOffenseRewardCatalog()),
-            OffenseRewardGrantHandlers.CreateDefaults()
+            OffenseRewardGrantHandlers.CreateDefaults(null, null)
                 .Concat(new IOffenseRewardGrantHandler[] { new TestRewardHandler() }));
         IReadOnlyList<OffenseRewardGrantResult> results = service.GrantRewards(
             new[] { new OffenseRewardPreview("custom", 3, new TestRewardSpec()) },
@@ -145,7 +146,8 @@ public static class OffenseRewardDebugScenarios
     private static bool VerifySpecificStrategyBlueprintReward()
     {
         using ScenarioContext context = new ScenarioContext(0);
-        IReadOnlyList<OffenseTargetDefinition> targets = OffenseWorldMapService.CreateDefaultTargets();
+        IReadOnlyList<OffenseTargetDefinition> targets =
+            OffenseEditorTestDependencies.CreateCampaignCatalog().Targets;
         OffenseRewardPreview[] strategyRewards = new[]
         {
             "merchant_road",
@@ -203,8 +205,6 @@ public static class OffenseRewardDebugScenarios
         worker.ApplyDamage(20f, "원정 전 부상");
 
         int warehouseFoodBefore = scenario.Context.Warehouse.Inventory.GetStock(StockCategory.Food);
-        int physicalFoodBefore = GetPhysicalStock(StockCategory.Food);
-        int physicalLootBefore = GetPhysicalItem(OffenseLootItemIds.UnappraisedLoot);
 
         bool started = scenario.Expedition.Runtime.TryStartExpedition(
             "food_farm",
@@ -216,9 +216,11 @@ public static class OffenseRewardDebugScenarios
         OffenseExpeditionResult result = scenario.Expedition.Runtime.ResultHistory.FirstOrDefault();
         bool completed = result != null && !scenario.Battle.HasActiveBattle;
         int warehouseFoodDelta = scenario.Context.Warehouse.Inventory.GetStock(StockCategory.Food) - warehouseFoodBefore;
-        int physicalFoodDelta = GetPhysicalStock(StockCategory.Food) - physicalFoodBefore;
-        int physicalLootDelta =
-            GetPhysicalItem(OffenseLootItemIds.UnappraisedLoot) - physicalLootBefore;
+        int physicalFoodDelta = scenario.Reward.Runtime.State.StockGrantedByCategory
+            .TryGetValue(StockCategory.Food, out int grantedFood)
+                ? grantedFood
+                : 0;
+        int physicalLootDelta = scenario.Reward.Runtime.State.MoneyEarned;
         OffenseStrategicPressureSnapshot pressure =
             scenario.Reward.Regions.GetFactionPressure(OffenseRegionRuntime.HumanFactionId);
 
@@ -232,21 +234,23 @@ public static class OffenseRewardDebugScenarios
             && rewardEvents.Count == 1
             && object.ReferenceEquals(rewardEvents.LastEvent.expeditionResult, result)
             && rewardEvents.LastEvent.grantResults.Count == result.grantedRewards.Count
-            && scenario.Context.GameData.holdingMoney.Value == 0
-            && warehouseFoodDelta + physicalFoodDelta == 40
+            && scenario.Context.GameSessionState.holdingMoney.Value == 0
+            && warehouseFoodDelta == 0
+            && physicalFoodDelta == 40
             && physicalLootDelta == 80
             && scenario.Reward.Runtime.State.MoneyEarned == 80
             && Mathf.Approximately(pressure.Logistics, 15f)
             && worker.CurrentHealth < worker.MaxHealth
-            && !worker.LogComponent.ActivityEntries.Any(activity =>
-                activity.ActionId == "offense:victory-recovery");
+            && (worker.LogComponent == null
+                || !worker.LogComponent.ActivityEntries.Any(activity =>
+                    activity.ActionId == "offense:victory-recovery"));
         if (!valid)
         {
             throw new InvalidOperationException(
                 $"Expedition reward diagnostic: started={started}, journeyCompleted={journeyCompleted}, " +
                 $"active={scenario.Expedition.Runtime.ActiveExpeditions.Count}, battle={scenario.Battle.HasActiveBattle}, " +
                 $"result={(result == null ? "null" : result.success.ToString())}, grants={result?.grantedRewards.Count ?? -1}, " +
-                $"eventCount={rewardEvents.Count}, money={scenario.Context.GameData.holdingMoney.Value}, " +
+                $"eventCount={rewardEvents.Count}, money={scenario.Context.GameSessionState.holdingMoney.Value}, " +
                 $"foodWarehouseDelta={warehouseFoodDelta}, foodPhysicalDelta={physicalFoodDelta}, " +
                 $"physicalLootDelta={physicalLootDelta}, " +
                 $"logisticsPressure={pressure.Logistics:0.##}, " +
@@ -332,29 +336,30 @@ public static class OffenseRewardDebugScenarios
 
     private static IOffenseRewardGrantService CreateGrantService()
     {
-        TryResolvePhysicalItemServices(
-            out IWorldItemStackRuntime itemRuntime,
-            out IWorldDropZoneQuery dropZoneQuery);
         return new OffenseRewardGrantService(
             new OffenseRewardSelector(new EditorOffenseRewardCatalog()),
-            OffenseRewardGrantHandlers.CreateDefaults(itemRuntime, dropZoneQuery));
+            OffenseRewardGrantHandlers.CreateDefaults(
+                new RecordingExpeditionRewardItemSink()));
     }
 
-    private static int GetPhysicalStock(StockCategory category)
+    private sealed class RecordingExpeditionRewardItemSink :
+        IExpeditionRewardItemSink
     {
-        DungeonRuntimeLifetimeScope scope = Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>(
-            FindObjectsInactive.Include);
-        if (scope == null || scope.Container == null)
+        public bool SpawnLoot(string itemId, int amount, out int spawned)
         {
-            return 0;
+            spawned = Mathf.Max(0, amount);
+            return !string.IsNullOrWhiteSpace(itemId) && spawned > 0;
         }
 
-        IWorldItemStackRuntime itemRuntime = scope.Container.Resolve<IWorldItemStackRuntime>();
-        string itemId = DungeonItemCatalogSO.StockItemId(category);
-        return itemRuntime.GetAllStacks()
-            .Where(stack => stack != null
-                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal))
-            .Sum(stack => stack.Quantity);
+        public bool SpawnStock(
+            StockCategory category,
+            int amount,
+            string sourceLabel,
+            out int spawned)
+        {
+            spawned = Mathf.Max(0, amount);
+            return spawned > 0;
+        }
     }
 
     private static int GetPhysicalItem(string itemId)
@@ -386,10 +391,9 @@ public static class OffenseRewardDebugScenarios
         return itemRuntime != null && dropZoneQuery != null;
     }
 
-    private static GameData CreateGameData(int holdingMoney)
+    private static GameSessionState CreateGameData(int holdingMoney)
     {
-        GameData gameData = ScriptableObject.CreateInstance<GameData>();
-        gameData.holdingMoney = new Data<int>();
+        GameSessionState gameData = new GameSessionState();
         gameData.holdingMoney.Initialize(holdingMoney);
         return gameData;
     }
@@ -459,7 +463,7 @@ public static class OffenseRewardDebugScenarios
     {
         public ScenarioContext(int holdingMoney)
         {
-            GameData = CreateGameData(holdingMoney);
+            GameSessionState = CreateGameData(holdingMoney);
             Warehouse = new TestWarehouse(500);
             ShopUnlockState = new FacilityShopUnlockState();
             ResearchState = new BlueprintResearchState();
@@ -467,7 +471,7 @@ public static class OffenseRewardDebugScenarios
             ReturnArrivals = new TestReturnArrivalRuntime();
         }
 
-        public GameData GameData { get; }
+        public GameSessionState GameSessionState { get; }
         public TestWarehouse Warehouse { get; }
         public FacilityShopUnlockState ShopUnlockState { get; }
         public BlueprintResearchState ResearchState { get; }
@@ -478,7 +482,7 @@ public static class OffenseRewardDebugScenarios
         {
             return new OffenseRewardContext
             {
-                gameData = GameData,
+                gameData = GameSessionState,
                 warehouses = new[] { Warehouse },
                 shopUnlockState = ShopUnlockState,
                 researchState = ResearchState,
@@ -491,9 +495,8 @@ public static class OffenseRewardDebugScenarios
 
         public void Dispose()
         {
-            if (GameData != null)
+            if (GameSessionState != null)
             {
-                Object.DestroyImmediate(GameData);
             }
         }
     }
@@ -503,10 +506,32 @@ public static class OffenseRewardDebugScenarios
         public TestWarehouse(int capacity)
         {
             Inventory = new WarehouseInventory(capacity);
+            Inventory.BindPhysicalStock(
+                EmptyStockQuery.Instance,
+                PersistentInstanceId,
+                CharacterAiEditorTestDependencies.AuthoredGameplay);
         }
 
         public WarehouseInventory Inventory { get; }
+        public BuildingInstanceId PersistentInstanceId =>
+            (BuildingInstanceId)"building:test-offense-reward-warehouse";
         public bool HasWarehouseInventory => true;
+    }
+
+    private sealed class EmptyStockQuery : IStockQuery
+    {
+        public static readonly EmptyStockQuery Instance = new EmptyStockQuery();
+        private EmptyStockQuery() { }
+        public IReadOnlyList<WorldItemStackSnapshot> GetAllStacks() =>
+            Array.Empty<WorldItemStackSnapshot>();
+        public int GetGlobalQuantity(string itemDefinitionId) => 0;
+        public int GetWarehouseQuantity(
+            BuildingInstanceId warehouseId,
+            string itemDefinitionId) => 0;
+        public int GetWarehouseQuantity(
+            BuildingInstanceId warehouseId,
+            StockCategory category) => 0;
+        public int GetWarehouseTotal(BuildingInstanceId warehouseId) => 0;
     }
 
     private sealed class TestReturnArrivalRuntime : IOffenseReturnArrivalRuntime
@@ -544,9 +569,15 @@ public static class OffenseRewardDebugScenarios
             return new DungeonOffenseReturnArrivalSaveData();
         }
 
-        public void Restore(
+        public OffenseReturnArrivalRestoreCandidate BuildRestoreCandidate(
             DungeonOffenseReturnArrivalSaveData saveData,
-            DungeonGameRestoreReport report = null)
+            DungeonGameRestoreReport report)
+        {
+            return null;
+        }
+
+        public void PublishRestoreCandidate(
+            OffenseReturnArrivalRestoreCandidate candidate)
         {
         }
     }
@@ -589,8 +620,13 @@ public static class OffenseRewardDebugScenarios
             Reward = new RewardFixture(Context);
             Battle = new OffenseBattleRuntime(
                 new TestCharacterSaveService(),
-                new MissingRunVariableProvider(),
-                GameEvents);
+                EditorRuntimeReferenceFixtures.DungeonWithRunVariables,
+                GameEvents,
+                OffenseEditorTestDependencies.CreateCombatResolution(),
+                OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
+                bodyHealthQuery: null,
+                bodyHealthCommands: null,
+                offenseRegionRuntime: null);
             Expedition = new ExpeditionFixture(
                 WorldMap.Runtime,
                 Reward.Runtime,
@@ -625,6 +661,8 @@ public static class OffenseRewardDebugScenarios
                 ? AiDebugScenarioActionFactory.CreateCustomerActions()
                 : AiDebugScenarioActionFactory.CreateStaffActions();
             CharacterAiEditorTestDependencies.Inject(obj);
+            obj.GetComponent<CharacterIdentity>().SetPersistentId(
+                new GuidPersistentIdGenerator().NewCharacterId());
             character.RefreshAbilityCache();
             character.Initialization(data);
             character.SetLifecycleState(CharacterLifecycleState.Active);
@@ -656,7 +694,14 @@ public static class OffenseRewardDebugScenarios
         {
             obj = new GameObject("Offense Reward World Map Fixture");
             Runtime = obj.AddComponent<OffenseWorldMapRuntime>();
-            Runtime.Construct(new EmptyPanelService(), gameEventBus);
+            OffenseCampaignRuntime campaign = new OffenseCampaignRuntime();
+            Runtime.Construct(
+                new EmptyPanelService(),
+                gameEventBus,
+                externalInfluence: null,
+                campaign,
+                campaign,
+                OffenseEditorTestDependencies.CreateCampaignCatalog());
             Runtime.StartWorldMap();
         }
 
@@ -688,28 +733,95 @@ public static class OffenseRewardDebugScenarios
         {
             obj = new GameObject("Offense Reward Expedition Fixture");
             Runtime = obj.AddComponent<OffenseExpeditionRuntime>();
+            MetaProgressionRuntime metaProgression =
+                obj.AddComponent<MetaProgressionRuntime>();
+            metaProgression.Construct(
+                new EmptyMetaRunResultBuilder(),
+                new EmptyMetaRuntimeApplicationPort(),
+                new DungeonStory.Foundation.UnityGameClock(),
+                new AuthoredGameplayCatalog(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader())),
+                new DungeonRuntimeAggregateRootStore());
+            OffenseSceneRuntimeReferences offenseRuntimes =
+                new OffenseSceneRuntimeReferences(
+                    worldMap,
+                    rewards,
+                    Runtime,
+                    null,
+                    null);
+            OffenseExpeditionResultFinalizer finalizer =
+                new OffenseExpeditionResultFinalizer(
+                    offenseRuntimes,
+                    new ProgressionSceneRuntimeReferences(
+                        null,
+                        null,
+                        metaProgression),
+                    gameEventBus,
+                    worldMap);
+            IOffenseWorldSimulation strategicWorld =
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseWorldSimulation>();
+            IOffenseTravelRuntime strategicTravel =
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseTravelRuntime>();
+            IOffenseReturnSafetyRuntime returnSafety =
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseReturnSafetyRuntime>();
+            IOffenseFieldMobilityService fieldMobility =
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseFieldMobilityService>();
+            IOffenseFieldMedicalRuntime fieldMedical =
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseFieldMedicalRuntime>();
+            IOffenseExpeditionBattleCompletionHandler battleCompletion =
+                new OffenseExpeditionBattleCompletionHandler(
+                    battleRuntime,
+                    BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                        .Create<IOffenseBattleDirector>(),
+                    strategicTravel,
+                    strategicWorld,
+                    returnSafety,
+                    fieldMobility,
+                    gameEventBus);
             Runtime.Construct(
                 new EmptyExpeditionMemberQuery(),
-                new WorldMapRuntimeProvider(worldMap),
-                new RewardRuntimeProvider(rewards),
-                new EmptyMetaProgressionProvider(),
+                offenseRuntimes,
                 new EmptyPanelService(),
+                battleRuntime ?? throw new ArgumentNullException(nameof(battleRuntime)),
+                finalizer,
+                new OffenseExpeditionReturnCoordinator(
+                    NoOpOffenseExpeditionReturnPort.Instance,
+                    finalizer,
+                    gameEventBus),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffensePreparationService>(),
+                OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
                 gameEventBus,
-                battleRuntime ?? throw new ArgumentNullException(nameof(battleRuntime)));
+                strategicWorld,
+                strategicTravel,
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseDecisionRuntime>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseDecisionEffectExecutor>(),
+                returnSafety,
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseStrategicTargetService>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseStrategicBattleLauncher>(),
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IOffenseStrategicTravelEventHandler>(),
+                battleCompletion,
+                BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                    .Create<IGameMoneyAccount>(),
+                departureService: null,
+                equipmentPickupRuntime: null,
+                fieldMedical,
+                fieldMobility);
         }
 
         public void Dispose()
         {
             Object.DestroyImmediate(obj);
-        }
-    }
-
-    private sealed class MissingRunVariableProvider : IRunVariableRuntimeProvider
-    {
-        public bool TryGetRuntime(out RunVariableRuntime runtime)
-        {
-            runtime = null;
-            return false;
         }
     }
 
@@ -719,8 +831,15 @@ public static class OffenseRewardDebugScenarios
         private int nextId;
 
         public DungeonCharacterWorldSaveData Capture(Grid grid) => new DungeonCharacterWorldSaveData();
-        public void PrepareForWorldRestore() { }
-        public int Restore(Grid grid, DungeonCharacterWorldSaveData source, DungeonGameRestoreReport report) => 0;
+        public void ValidateRestorePayload(
+            Grid grid,
+            DungeonCharacterWorldSaveData source) { }
+        public CharacterWorldRestoreCandidate PrepareRestoreCandidate(
+            Grid grid,
+            DungeonCharacterWorldSaveData source) =>
+            throw new NotSupportedException();
+        public void StageRestoreCandidate(
+            CharacterWorldRestoreCandidate candidate) { }
 
         public bool TryGetPersistentId(CharacterActor actor, out string persistentId)
         {
@@ -750,50 +869,41 @@ public static class OffenseRewardDebugScenarios
         public IReadOnlyList<CharacterActor> GetAvailableMemberActors() => Array.Empty<CharacterActor>();
     }
 
-    private sealed class WorldMapRuntimeProvider : IOffenseWorldMapRuntimeProvider
+    private sealed class EmptyMetaRunResultBuilder : IMetaRunResultBuilder
     {
-        private readonly OffenseWorldMapRuntime runtime;
-
-        public WorldMapRuntimeProvider(OffenseWorldMapRuntime runtime)
+        public RunResultSnapshot Build(MetaRunResultBuildContext context)
         {
-            this.runtime = runtime;
-        }
-
-        public bool TryGetRuntime(out OffenseWorldMapRuntime resolved)
-        {
-            resolved = runtime;
-            return resolved != null;
+            return null;
         }
     }
 
-    private sealed class RewardRuntimeProvider : IOffenseRewardRuntimeProvider
+    private sealed class EmptyRunResultPanelService : IRunResultPanelService
     {
-        private readonly OffenseRewardRuntime runtime;
-
-        public RewardRuntimeProvider(OffenseRewardRuntime runtime)
-        {
-            this.runtime = runtime;
-        }
-
-        public bool TryGetRuntime(out OffenseRewardRuntime resolved)
-        {
-            resolved = runtime;
-            return resolved != null;
-        }
+        public RunResultPanel Show(RunResultSnapshot result) => null;
     }
 
-    private sealed class EmptyMetaProgressionProvider : IMetaProgressionRuntimeProvider
+    private sealed class EmptyMetaRuntimeApplicationPort : IMetaRuntimeApplicationPort
     {
-        public bool TryGetRuntime(out MetaProgressionRuntime runtime)
-        {
-            runtime = null;
-            return false;
-        }
+        public void Bind(IMetaRuntimeEventSink runtime) { }
+        public void Unbind(IMetaRuntimeEventSink runtime) { }
+
+        public MetaRunEnvironmentSnapshot CaptureRunEnvironment() =>
+            new MetaRunEnvironmentSnapshot(
+                1f,
+                DungeonDifficulty.Normal,
+                DungeonSurvivalPressure.Standard);
+
+        public void PublishUpgradePurchased(
+            MetaUpgradePurchasedEvent purchasedEvent,
+            string message) { }
+
+        public void PublishRunResult(RunResultReadyEvent readyEvent) { }
+        public void ShowRunResult(RunResultSnapshot result) { }
     }
 
     private sealed class EmptyPanelService : IOffensePanelService
     {
-        public OffenseWorldMapPanel ShowWorldMap(OffenseWorldMapRuntime runtime) => null;
+        public OffenseWorldMapPanel ShowWorldMap() => null;
         public OffenseExpeditionPanel ShowExpedition(OffenseExpeditionRuntime runtime) => null;
     }
 
@@ -810,16 +920,20 @@ public static class OffenseRewardDebugScenarios
             Runtime = obj.AddComponent<OffenseRewardRuntime>();
             Regions = new OffenseRegionRuntime();
             EmptyRewardContextDependencies dependencies = new EmptyRewardContextDependencies();
+            ProgressionSceneRuntimeReferences progressionRuntimes =
+                new ProgressionSceneRuntimeReferences(
+                    obj.AddComponent<DailyFacilityShopRuntime>(),
+                    obj.AddComponent<BlueprintResearchRuntime>(),
+                    null);
             Runtime.Construct(
                 new OffenseRewardContextBuilder(
+                    progressionRuntimes,
                     dependencies,
                     dependencies,
-                    dependencies,
-                    dependencies,
-                    Regions),
+                    Regions, returnArrivalRuntime: null),
                 CreateGrantService());
             Runtime.SetDebugContext(
-                context.GameData,
+                context.GameSessionState,
                 new[] { context.Warehouse },
                 context.ShopUnlockState,
                 context.ResearchState);
@@ -833,27 +947,13 @@ public static class OffenseRewardDebugScenarios
     }
 
     private sealed class EmptyRewardContextDependencies :
-        IBlueprintResearchRuntimeProvider,
-        IDailyFacilityShopRuntimeProvider,
-        IGameDataProvider,
+        IGameSessionStateProvider,
         IWarehouseWorldQuery
     {
         public int WarehouseVersion => 0;
         public IReadOnlyList<IWarehouseFacility> Warehouses => Array.Empty<IWarehouseFacility>();
 
-        public bool TryGetRuntime(out BlueprintResearchRuntime runtime)
-        {
-            runtime = null;
-            return false;
-        }
-
-        public bool TryGetRuntime(out DailyFacilityShopRuntime runtime)
-        {
-            runtime = null;
-            return false;
-        }
-
-        public bool TryGetGameData(out GameData gameData)
+        public bool TryGetSessionState(out GameSessionState gameData)
         {
             gameData = null;
             return false;

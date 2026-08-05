@@ -1,0 +1,1228 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: CharacterSummaryUI Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: CharacterSummaryUI
+  m_TableCollectionNameGuidString: 8ee74922f4e118c4c8b5d143c7333c84
+  m_Entries:
+  - m_Id: 519393280
+    m_Key: CharacterSummary.AI.Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947712
+    m_Key: CharacterSummary.Action.Close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947713
+    m_Key: CharacterSummary.Breakdown.Collapse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947714
+    m_Key: CharacterSummary.Breakdown.DesperateDrink
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947715
+    m_Key: CharacterSummary.Breakdown.DesperateEat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947716
+    m_Key: CharacterSummary.Breakdown.DesperateRelief
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947717
+    m_Key: CharacterSummary.Breakdown.ViolentImpulse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947718
+    m_Key: CharacterSummary.Burden.Accumulating
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947719
+    m_Key: CharacterSummary.Burden.Critical
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947720
+    m_Key: CharacterSummary.Burden.Danger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947721
+    m_Key: CharacterSummary.Burden.Stable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947722
+    m_Key: CharacterSummary.Burden.Unhealthy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947723
+    m_Key: CharacterSummary.Captivity.AwaitingCapture
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947724
+    m_Key: CharacterSummary.Captivity.AwaitingEscort
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947725
+    m_Key: CharacterSummary.Captivity.Confined
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947726
+    m_Key: CharacterSummary.Captivity.EscapeAttempt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947727
+    m_Key: CharacterSummary.Captivity.Escorting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947728
+    m_Key: CharacterSummary.Captivity.Interaction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947729
+    m_Key: CharacterSummary.Captivity.Labor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947730
+    m_Key: CharacterSummary.Captivity.Performer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947731
+    m_Key: CharacterSummary.Captivity.Ransom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947732
+    m_Key: CharacterSummary.Captivity.Stabilizing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947733
+    m_Key: CharacterSummary.Carry.Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947734
+    m_Key: CharacterSummary.Combat.Action.Aimed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947735
+    m_Key: CharacterSummary.Combat.Action.FireAllowed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947736
+    m_Key: CharacterSummary.Combat.Action.Loadout
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947737
+    m_Key: CharacterSummary.Combat.Action.Reload
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947738
+    m_Key: CharacterSummary.Combat.Action.Repair
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947739
+    m_Key: CharacterSummary.Combat.Action.SwitchWeapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947740
+    m_Key: CharacterSummary.Combat.BodyPart.Head
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947741
+    m_Key: CharacterSummary.Combat.BodyPart.LeftArm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947742
+    m_Key: CharacterSummary.Combat.BodyPart.LeftLeg
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947743
+    m_Key: CharacterSummary.Combat.BodyPart.RightArm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947744
+    m_Key: CharacterSummary.Combat.BodyPart.RightLeg
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947745
+    m_Key: CharacterSummary.Combat.BodyPart.Torso
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947746
+    m_Key: CharacterSummary.Combat.Button.AllowFire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947747
+    m_Key: CharacterSummary.Combat.Button.CombatLoadout
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947748
+    m_Key: CharacterSummary.Combat.Button.HoldFire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947749
+    m_Key: CharacterSummary.Combat.Button.PeaceLoadout
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947750
+    m_Key: CharacterSummary.Combat.Button.Reload
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947751
+    m_Key: CharacterSummary.Combat.Button.ReloadCount
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947752
+    m_Key: CharacterSummary.Combat.Button.RequestRepair
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947753
+    m_Key: CharacterSummary.Combat.Button.SwitchWeapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947754
+    m_Key: CharacterSummary.Combat.Common.Peace
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947755
+    m_Key: CharacterSummary.Combat.Common.Standard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947756
+    m_Key: CharacterSummary.Combat.Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947757
+    m_Key: CharacterSummary.Combat.Failure.CharacterRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947758
+    m_Key: CharacterSummary.Combat.Failure.InsufficientHands
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947759
+    m_Key: CharacterSummary.Combat.Failure.NoActiveRangedWeapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947760
+    m_Key: CharacterSummary.Combat.Failure.Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947761
+    m_Key: CharacterSummary.Combat.Failure.UnsupportedFireMode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947762
+    m_Key: CharacterSummary.Combat.Failure.WeaponNotAssigned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947763
+    m_Key: CharacterSummary.Combat.FireMode.Aimed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947764
+    m_Key: CharacterSummary.Combat.FireMode.Rapid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947765
+    m_Key: CharacterSummary.Combat.FireMode.Suppressive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947766
+    m_Key: CharacterSummary.Combat.Notice.AllowFire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947767
+    m_Key: CharacterSummary.Combat.Notice.CombatInfoUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947768
+    m_Key: CharacterSummary.Combat.Notice.FireModeSelected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947769
+    m_Key: CharacterSummary.Combat.Notice.HoldFire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947770
+    m_Key: CharacterSummary.Combat.Notice.LoadoutCombat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947771
+    m_Key: CharacterSummary.Combat.Notice.LoadoutPeace
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947772
+    m_Key: CharacterSummary.Combat.Notice.LoadoutUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947773
+    m_Key: CharacterSummary.Combat.Notice.NoActiveWeaponToReload
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947774
+    m_Key: CharacterSummary.Combat.Notice.NoAvailableFireMode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947775
+    m_Key: CharacterSummary.Combat.Notice.NoCarriedWeapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947776
+    m_Key: CharacterSummary.Combat.Notice.NoRepairCandidate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947777
+    m_Key: CharacterSummary.Combat.Notice.ReloadUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947778
+    m_Key: CharacterSummary.Combat.Notice.Reloaded
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947779
+    m_Key: CharacterSummary.Combat.Notice.RepairInfoUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947780
+    m_Key: CharacterSummary.Combat.Notice.WeaponSwitched
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947781
+    m_Key: CharacterSummary.Combat.Quality.Awful
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947782
+    m_Key: CharacterSummary.Combat.Quality.Excellent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947783
+    m_Key: CharacterSummary.Combat.Quality.Good
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947784
+    m_Key: CharacterSummary.Combat.Quality.Legendary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947785
+    m_Key: CharacterSummary.Combat.Quality.Masterwork
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947786
+    m_Key: CharacterSummary.Combat.Quality.Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947787
+    m_Key: CharacterSummary.Combat.Quality.Poor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947788
+    m_Key: CharacterSummary.Combat.RepairState.Cancelled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947789
+    m_Key: CharacterSummary.Combat.RepairState.Completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947790
+    m_Key: CharacterSummary.Combat.RepairState.InProgress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947791
+    m_Key: CharacterSummary.Combat.RepairState.PendingCombatEnd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947792
+    m_Key: CharacterSummary.Combat.RepairState.Ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947793
+    m_Key: CharacterSummary.Combat.RepairState.WaitingForDelivery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947794
+    m_Key: CharacterSummary.Combat.Summary.Ability.Evasion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947795
+    m_Key: CharacterSummary.Combat.Summary.Ability.MeleeHit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947796
+    m_Key: CharacterSummary.Combat.Summary.Ability.RangedHit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947797
+    m_Key: CharacterSummary.Combat.Summary.Ability.Stats
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947798
+    m_Key: CharacterSummary.Combat.Summary.Ability.Title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947799
+    m_Key: CharacterSummary.Combat.Summary.Ammunition
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947800
+    m_Key: CharacterSummary.Combat.Summary.Body.BleedingSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947801
+    m_Key: CharacterSummary.Combat.Summary.Body.Damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947802
+    m_Key: CharacterSummary.Combat.Summary.Body.DownedSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947803
+    m_Key: CharacterSummary.Combat.Summary.Body.Functions
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947804
+    m_Key: CharacterSummary.Combat.Summary.Body.Title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947805
+    m_Key: CharacterSummary.Combat.Summary.Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947806
+    m_Key: CharacterSummary.Combat.Summary.Equipment.ActiveWeapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947807
+    m_Key: CharacterSummary.Combat.Summary.Equipment.Armor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947808
+    m_Key: CharacterSummary.Combat.Summary.Equipment.FireMode
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947809
+    m_Key: CharacterSummary.Combat.Summary.Equipment.HoldFireSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947810
+    m_Key: CharacterSummary.Combat.Summary.Equipment.ListBasic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947811
+    m_Key: CharacterSummary.Combat.Summary.Equipment.ListDerived
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947812
+    m_Key: CharacterSummary.Combat.Summary.Equipment.ListNone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947813
+    m_Key: CharacterSummary.Combat.Summary.Equipment.LoadedSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947814
+    m_Key: CharacterSummary.Combat.Summary.Equipment.Loadout
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947815
+    m_Key: CharacterSummary.Combat.Summary.Equipment.MaterialStats
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947816
+    m_Key: CharacterSummary.Combat.Summary.Equipment.Shield
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947817
+    m_Key: CharacterSummary.Combat.Summary.Equipment.Title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947818
+    m_Key: CharacterSummary.Combat.Summary.Equipment.Unarmed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947819
+    m_Key: CharacterSummary.Combat.Summary.Maintenance.Automatic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947820
+    m_Key: CharacterSummary.Combat.Summary.Maintenance.AutomaticOff
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947821
+    m_Key: CharacterSummary.Combat.Summary.Maintenance.Policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947822
+    m_Key: CharacterSummary.Combat.Summary.Maintenance.RepairActive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947823
+    m_Key: CharacterSummary.Combat.Summary.Maintenance.RepairNone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947824
+    m_Key: CharacterSummary.Combat.Summary.Maintenance.Title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947825
+    m_Key: CharacterSummary.Combat.Summary.Weight
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947826
+    m_Key: CharacterSummary.Common.None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947827
+    m_Key: CharacterSummary.Deprivation.Bladder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947828
+    m_Key: CharacterSummary.Deprivation.Contamination
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947829
+    m_Key: CharacterSummary.Deprivation.Exhaustion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947830
+    m_Key: CharacterSummary.Deprivation.Hunger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947831
+    m_Key: CharacterSummary.Deprivation.MentalInstability
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947832
+    m_Key: CharacterSummary.Deprivation.Thirst
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947833
+    m_Key: CharacterSummary.Detailed.Activity.Accuracy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947834
+    m_Key: CharacterSummary.Detailed.Activity.Carry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947835
+    m_Key: CharacterSummary.Detailed.Activity.Evasion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947836
+    m_Key: CharacterSummary.Detailed.Activity.MeleePower
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947837
+    m_Key: CharacterSummary.Detailed.Activity.Movement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947838
+    m_Key: CharacterSummary.Detailed.Activity.Overclock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947839
+    m_Key: CharacterSummary.Detailed.Activity.Recovery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947840
+    m_Key: CharacterSummary.Detailed.Activity.Treatment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947841
+    m_Key: CharacterSummary.Detailed.Activity.Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947842
+    m_Key: CharacterSummary.Detailed.Anatomy.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947843
+    m_Key: CharacterSummary.Detailed.Anatomy.NoAbnormalParts
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947844
+    m_Key: CharacterSummary.Detailed.Anatomy.Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947845
+    m_Key: CharacterSummary.Detailed.Anatomy.Redacted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947846
+    m_Key: CharacterSummary.Detailed.Anatomy.Status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947847
+    m_Key: CharacterSummary.Detailed.Anatomy.Value
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947848
+    m_Key: CharacterSummary.Detailed.Axis.Awareness
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947849
+    m_Key: CharacterSummary.Detailed.Axis.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947850
+    m_Key: CharacterSummary.Detailed.Axis.Handling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947851
+    m_Key: CharacterSummary.Detailed.Axis.Label
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947852
+    m_Key: CharacterSummary.Detailed.Axis.Locomotion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947853
+    m_Key: CharacterSummary.Detailed.Axis.Recovery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947854
+    m_Key: CharacterSummary.Detailed.Axis.Sustain
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947855
+    m_Key: CharacterSummary.Detailed.BaseStats.Breakdown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947856
+    m_Key: CharacterSummary.Detailed.Combat.AmmoSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947857
+    m_Key: CharacterSummary.Detailed.Combat.Armor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947858
+    m_Key: CharacterSummary.Detailed.Combat.ArmorDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947859
+    m_Key: CharacterSummary.Detailed.Combat.DefensiveEquipment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947860
+    m_Key: CharacterSummary.Detailed.Combat.Durability
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947861
+    m_Key: CharacterSummary.Detailed.Combat.EmptySlots
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947862
+    m_Key: CharacterSummary.Detailed.Combat.PrimaryWeapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947863
+    m_Key: CharacterSummary.Detailed.Combat.Shield
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947864
+    m_Key: CharacterSummary.Detailed.Combat.ShieldDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947865
+    m_Key: CharacterSummary.Detailed.Combat.WeaponDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947866
+    m_Key: CharacterSummary.Detailed.Common.Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947867
+    m_Key: CharacterSummary.Detailed.Condition.Missing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947868
+    m_Key: CharacterSummary.Detailed.Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947869
+    m_Key: CharacterSummary.Detailed.Modifier.Capped
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947870
+    m_Key: CharacterSummary.Detailed.Modifier.Uncapped
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947871
+    m_Key: CharacterSummary.Detailed.Recovery.AssistedRegeneration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947872
+    m_Key: CharacterSummary.Detailed.Recovery.MaintenanceOnly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947873
+    m_Key: CharacterSummary.Detailed.Recovery.Natural
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947874
+    m_Key: CharacterSummary.Detailed.Recovery.ReplaceOnFailure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947875
+    m_Key: CharacterSummary.Detailed.Selection.None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947876
+    m_Key: CharacterSummary.Detailed.Summary.ActualMovement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947877
+    m_Key: CharacterSummary.Detailed.Summary.CombatVitality
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947878
+    m_Key: CharacterSummary.Detailed.Summary.Dead
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947879
+    m_Key: CharacterSummary.Detailed.Summary.DungeonOwner
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947880
+    m_Key: CharacterSummary.Detailed.Summary.Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947881
+    m_Key: CharacterSummary.Detailed.Summary.Level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947882
+    m_Key: CharacterSummary.Detailed.Summary.LevelDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947883
+    m_Key: CharacterSummary.Detailed.Summary.MovementDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947884
+    m_Key: CharacterSummary.Detailed.Summary.Species
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947885
+    m_Key: CharacterSummary.Detailed.Tab.BaseStats
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947886
+    m_Key: CharacterSummary.Detailed.Tab.CombatEquipment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947887
+    m_Key: CharacterSummary.Detailed.Tab.HealthAnatomy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947888
+    m_Key: CharacterSummary.Detailed.Tab.Modifiers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947889
+    m_Key: CharacterSummary.Detailed.Tab.Summary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947890
+    m_Key: CharacterSummary.Detailed.Tab.Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947891
+    m_Key: CharacterSummary.Detailed.Title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947892
+    m_Key: CharacterSummary.Detailed.Work.CurrentMultiplier
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947893
+    m_Key: CharacterSummary.Health.Action.AutomaticEmergencyOn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947894
+    m_Key: CharacterSummary.Health.Action.Captivity
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947895
+    m_Key: CharacterSummary.Health.Action.DietFree
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947896
+    m_Key: CharacterSummary.Health.Action.ScheduleSurgery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947897
+    m_Key: CharacterSummary.Health.Action.SelectSubstance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947898
+    m_Key: CharacterSummary.Health.Action.SubstanceProhibited
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947899
+    m_Key: CharacterSummary.Health.Anatomy.BleedingSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947900
+    m_Key: CharacterSummary.Health.Anatomy.InfectionSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947901
+    m_Key: CharacterSummary.Health.Anatomy.Missing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947902
+    m_Key: CharacterSummary.Health.Anatomy.MutationSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947903
+    m_Key: CharacterSummary.Health.Anatomy.PartKind.ArcaneGraft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947904
+    m_Key: CharacterSummary.Health.Anatomy.PartKind.Implant
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947905
+    m_Key: CharacterSummary.Health.Anatomy.PartKind.NaturalOrgan
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947906
+    m_Key: CharacterSummary.Health.Anatomy.PartKind.Prosthetic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947907
+    m_Key: CharacterSummary.Health.Anatomy.PrimaryFunctions
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947908
+    m_Key: CharacterSummary.Health.Anatomy.RejectionSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947909
+    m_Key: CharacterSummary.Health.Anatomy.SecondaryFunctions
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947910
+    m_Key: CharacterSummary.Health.Anatomy.Title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947911
+    m_Key: CharacterSummary.Health.Button.DietCurrent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947912
+    m_Key: CharacterSummary.Health.Button.DietPolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947913
+    m_Key: CharacterSummary.Health.Button.NoPolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947914
+    m_Key: CharacterSummary.Health.Button.NoSubstance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947915
+    m_Key: CharacterSummary.Health.Consumables.ActiveEffectSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947916
+    m_Key: CharacterSummary.Health.Consumables.DietPolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947917
+    m_Key: CharacterSummary.Health.Consumables.SubstanceRow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947918
+    m_Key: CharacterSummary.Health.Consumables.Title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947919
+    m_Key: CharacterSummary.Health.Deprivation.BreakdownChance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947920
+    m_Key: CharacterSummary.Health.Deprivation.Cause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947921
+    m_Key: CharacterSummary.Health.Deprivation.CurrentBreakdown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947922
+    m_Key: CharacterSummary.Health.Deprivation.InfectionBurden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947923
+    m_Key: CharacterSummary.Health.Deprivation.SuppressionResistance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947924
+    m_Key: CharacterSummary.Health.Deprivation.Target
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947925
+    m_Key: CharacterSummary.Health.Deprivation.Title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947926
+    m_Key: CharacterSummary.Health.DietPolicy.CarnivorePreferred
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947927
+    m_Key: CharacterSummary.Health.DietPolicy.Free
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947928
+    m_Key: CharacterSummary.Health.DietPolicy.StrictTaboo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947929
+    m_Key: CharacterSummary.Health.DietPolicy.Vegan
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947930
+    m_Key: CharacterSummary.Health.DietPolicy.Vegetarian
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947931
+    m_Key: CharacterSummary.Health.Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947932
+    m_Key: CharacterSummary.Health.Exposed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947933
+    m_Key: CharacterSummary.Health.Healthy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947934
+    m_Key: CharacterSummary.Health.Hungry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947935
+    m_Key: CharacterSummary.Health.Infected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947936
+    m_Key: CharacterSummary.Health.Recovering
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947937
+    m_Key: CharacterSummary.Health.Sick
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947938
+    m_Key: CharacterSummary.Health.SubstancePolicy.CombatOnly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947939
+    m_Key: CharacterSummary.Health.SubstancePolicy.Forbidden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947940
+    m_Key: CharacterSummary.Health.SubstancePolicy.MedicalOnly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947941
+    m_Key: CharacterSummary.Health.SubstancePolicy.MoodThreshold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947942
+    m_Key: CharacterSummary.Health.SubstancePolicy.Scheduled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947943
+    m_Key: CharacterSummary.Health.Surgery.AutomaticOff
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947944
+    m_Key: CharacterSummary.Health.Surgery.AutomaticOn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947945
+    m_Key: CharacterSummary.Health.Taboo.NoRecords
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947946
+    m_Key: CharacterSummary.Health.Taboo.Title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947947
+    m_Key: CharacterSummary.Health.Thirsty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947948
+    m_Key: CharacterSummary.Health.Treatment.Doctor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947949
+    m_Key: CharacterSummary.Health.Treatment.NoQueue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947950
+    m_Key: CharacterSummary.Health.Treatment.Queue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947951
+    m_Key: CharacterSummary.Lifecycle.Active
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947952
+    m_Key: CharacterSummary.Lifecycle.DepartingExpedition
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947953
+    m_Key: CharacterSummary.Lifecycle.Despawned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947954
+    m_Key: CharacterSummary.Lifecycle.Downed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947955
+    m_Key: CharacterSummary.Lifecycle.EnteringDungeon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947956
+    m_Key: CharacterSummary.Lifecycle.ExitingDungeon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947957
+    m_Key: CharacterSummary.Lifecycle.OnExpedition
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947958
+    m_Key: CharacterSummary.Lifecycle.PreparingExpedition
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947959
+    m_Key: CharacterSummary.Lifecycle.ReturningExpedition
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947960
+    m_Key: CharacterSummary.Lifecycle.SpawningOutside
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947961
+    m_Key: CharacterSummary.Lifecycle.Waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947962
+    m_Key: CharacterSummary.Log.Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947963
+    m_Key: CharacterSummary.Log.Entry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947964
+    m_Key: CharacterSummary.Meter.CurrentMood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947965
+    m_Key: CharacterSummary.Meter.Excretion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947966
+    m_Key: CharacterSummary.Meter.Experience
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947967
+    m_Key: CharacterSummary.Meter.Fun
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947968
+    m_Key: CharacterSummary.Meter.Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947969
+    m_Key: CharacterSummary.Meter.Hygiene
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947970
+    m_Key: CharacterSummary.Meter.Rest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947971
+    m_Key: CharacterSummary.Meter.Satiety
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947972
+    m_Key: CharacterSummary.Meter.Thirst
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947973
+    m_Key: CharacterSummary.Mood.DefaultSummary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947974
+    m_Key: CharacterSummary.Mood.FactorRow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947975
+    m_Key: CharacterSummary.Mood.InteractionHeading
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947976
+    m_Key: CharacterSummary.Mood.InteractionRow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947977
+    m_Key: CharacterSummary.Mood.NeedHeading
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947978
+    m_Key: CharacterSummary.Mood.NoFactors
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947979
+    m_Key: CharacterSummary.Role.Owner
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947980
+    m_Key: CharacterSummary.Role.Regular
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947981
+    m_Key: CharacterSummary.Section.Level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947982
+    m_Key: CharacterSummary.Section.Mood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947983
+    m_Key: CharacterSummary.Section.MoodFactors
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947984
+    m_Key: CharacterSummary.Section.Needs
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947985
+    m_Key: CharacterSummary.Section.SkillSlots
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947986
+    m_Key: CharacterSummary.Section.Status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947987
+    m_Key: CharacterSummary.Status.Carry.NoItems
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947988
+    m_Key: CharacterSummary.Status.Carry.Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947989
+    m_Key: CharacterSummary.Status.Carry.Overloaded
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947990
+    m_Key: CharacterSummary.Status.Carry.Unavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947991
+    m_Key: CharacterSummary.Status.Carry.Weight
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947992
+    m_Key: CharacterSummary.Status.Health.Injury
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947993
+    m_Key: CharacterSummary.Status.Health.Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947994
+    m_Key: CharacterSummary.Status.Profile
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947995
+    m_Key: CharacterSummary.Status.SpeciesUnknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947996
+    m_Key: CharacterSummary.Status.Survival.IssueSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947997
+    m_Key: CharacterSummary.Status.Survival.Row
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947998
+    m_Key: CharacterSummary.Status.Temperature.Caution
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947999
+    m_Key: CharacterSummary.Status.Temperature.Danger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948000
+    m_Key: CharacterSummary.Status.Temperature.Stable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948001
+    m_Key: CharacterSummary.Tab.Combat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948002
+    m_Key: CharacterSummary.Tab.Growth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948003
+    m_Key: CharacterSummary.Tab.Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948004
+    m_Key: CharacterSummary.Tab.Mood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948005
+    m_Key: CharacterSummary.Tab.Records
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948006
+    m_Key: CharacterSummary.Tab.Status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948007
+    m_Key: CharacterSummary.Time.Minutes
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948008
+    m_Key: CharacterSummary.Time.MinutesSeconds
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948009
+    m_Key: CharacterSummary.Time.Seconds
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948010
+    m_Key: CharacterSummary.Weight.Kilograms
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 7737211745717977430
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211745717977430
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1785858634577

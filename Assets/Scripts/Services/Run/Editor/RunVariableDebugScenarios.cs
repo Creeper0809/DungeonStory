@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Operation;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -23,6 +24,7 @@ public static class RunVariableDebugScenarios
         RunScenario("주인 교리 3종 운영 효과", VerifyOwnerDoctrines, errors);
 
         RunScenario("시작 변수 선택", VerifyStartVariables, errors);
+        RunScenario("전투·생존 난이도 독립", VerifySurvivalPressure, errors);
         RunScenario("운영 이벤트 9종 배율", VerifyOperationVariables, errors);
         RunScenario("운영 이벤트 만료", VerifyOperationVariableExpiration, errors);
         RunScenario("상점/재고 비용 연결", VerifyCostIntegrations, errors);
@@ -91,6 +93,8 @@ public static class RunVariableDebugScenarios
             && snapshot.seed == 12345
             && snapshot.ownerSpeciesTag == "Slime"
             && snapshot.runDifficulty == DungeonDifficulty.Hard
+            && snapshot.survivalPressure
+                == DungeonSurvivalPressure.Standard
             && snapshot.threatRiseMultiplier > 1f
             && snapshot.ownerDoctrineId == OwnerDoctrineIds.SlimeStewardship
             && snapshot.initialShopSeed != 0
@@ -100,6 +104,45 @@ public static class RunVariableDebugScenarios
 
         Object.DestroyImmediate(owner);
         return valid;
+    }
+
+    private static bool VerifySurvivalPressure()
+    {
+        CharacterSO owner = CreateCharacter(
+            8102,
+            CharacterType.NPC,
+            "Slime");
+        try
+        {
+            using ScenarioRuntime relaxed = new ScenarioRuntime();
+            relaxed.Runtime.StartRun(
+                54321,
+                owner,
+                DungeonDifficulty.Hard,
+                DungeonSurvivalPressure.Relaxed);
+            RunStartVariableSnapshot relaxedStart =
+                relaxed.Runtime.State.StartVariables;
+
+            using ScenarioRuntime harsh = new ScenarioRuntime();
+            harsh.Runtime.StartRun(
+                54321,
+                owner,
+                DungeonDifficulty.Easy,
+                DungeonSurvivalPressure.Harsh);
+            RunStartVariableSnapshot harshStart =
+                harsh.Runtime.State.StartVariables;
+
+            return relaxedStart.runDifficulty == DungeonDifficulty.Hard
+                && relaxedStart.survivalPressure
+                    == DungeonSurvivalPressure.Relaxed
+                && harshStart.runDifficulty == DungeonDifficulty.Easy
+                && harshStart.survivalPressure
+                    == DungeonSurvivalPressure.Harsh;
+        }
+        finally
+        {
+            Object.DestroyImmediate(owner);
+        }
     }
 
     private static bool VerifyOwnerDoctrines()
@@ -169,11 +212,14 @@ public static class RunVariableDebugScenarios
     private static bool VerifySnapshotIsolation()
     {
         int[] sourceFacilities = { 10, 20 };
-        IRunVariableEffect[] sourceEffects = { new TestGuestDemandEffect() };
+        IRunVariableEffect[] sourceEffects =
+        {
+            new RunGuestDemandEffect("TestSpecies", 2.25f)
+        };
         RunStartVariableSnapshot start = new RunStartVariableSnapshot(
             11,
             "Slime",
-            InvasionThreatDifficulty.Normal,
+            DungeonDifficulty.Normal,
             sourceFacilities,
             new[] { "Slime" },
             new[] { 30 },
@@ -223,7 +269,8 @@ public static class RunVariableDebugScenarios
     private static bool VerifyOperationVariables()
     {
         using ScenarioRuntime scenario = new ScenarioRuntime();
-        foreach (RunVariableDefinition definition in RunVariableCatalog.GetByCategory(RunVariableCategory.Operation))
+        foreach (RunVariableDefinition definition in scenario.Runtime.DefinitionCatalog
+                     .GetByCategory(RunVariableCategory.Operation))
         {
             scenario.Runtime.ActivateOperationVariable(definition.id, 1, false);
         }
@@ -267,7 +314,10 @@ public static class RunVariableDebugScenarios
         BuildingSO generalBuilding = CreateBuilding(8401, "일반 시설", false);
         FacilityBlueprintSO blueprint = CreateBlueprint(8402, "가격 테스트 설계도", 200);
 
-        int baseFoodCost = StockSupplyService.CreateDailyDeliveryOffers(1, scenario.Runtime.GetStockCostMultiplier)
+        int baseFoodCost = StockSupplyService.CreateDailyDeliveryOffers(
+                1,
+                scenario.Runtime.GetStockCostMultiplier,
+                CharacterAiEditorTestDependencies.AuthoredGameplay)
             .First((offer) => offer.category == StockCategory.Food)
             .cost;
         int baseBuildingCost = FacilityShopService.CreateDailyOffers(
@@ -276,7 +326,8 @@ public static class RunVariableDebugScenarios
                 Array.Empty<FacilityBlueprintSO>(),
                 0,
                 scenario.Runtime.GetFacilityShopCostMultiplier,
-                scenario.Runtime.GetBlueprintCostMultiplier)
+                scenario.Runtime.GetBlueprintCostMultiplier,
+                CharacterAiEditorTestDependencies.AuthoredGameplay)
             .First((offer) => offer is FacilityBuildingOffer)
             .Cost;
         int baseBlueprintCost = FacilityShopService.CreateDailyOffers(
@@ -285,7 +336,8 @@ public static class RunVariableDebugScenarios
                 new[] { blueprint },
                 0,
                 scenario.Runtime.GetFacilityShopCostMultiplier,
-                scenario.Runtime.GetBlueprintCostMultiplier)
+                scenario.Runtime.GetBlueprintCostMultiplier,
+                CharacterAiEditorTestDependencies.AuthoredGameplay)
             .First((offer) => offer is FacilityBlueprintOffer)
             .Cost;
 
@@ -293,7 +345,10 @@ public static class RunVariableDebugScenarios
         scenario.Runtime.ActivateOperationVariable(RunVariableIds.VisitingMerchant, 1, false);
         scenario.Runtime.ActivateOperationVariable(RunVariableIds.BlueprintRumor, 1, false);
 
-        int eventFoodCost = StockSupplyService.CreateDailyDeliveryOffers(1, scenario.Runtime.GetStockCostMultiplier)
+        int eventFoodCost = StockSupplyService.CreateDailyDeliveryOffers(
+                1,
+                scenario.Runtime.GetStockCostMultiplier,
+                CharacterAiEditorTestDependencies.AuthoredGameplay)
             .First((offer) => offer.category == StockCategory.Food)
             .cost;
         int eventBuildingCost = FacilityShopService.CreateDailyOffers(
@@ -302,7 +357,8 @@ public static class RunVariableDebugScenarios
                 Array.Empty<FacilityBlueprintSO>(),
                 0,
                 scenario.Runtime.GetFacilityShopCostMultiplier,
-                scenario.Runtime.GetBlueprintCostMultiplier)
+                scenario.Runtime.GetBlueprintCostMultiplier,
+                CharacterAiEditorTestDependencies.AuthoredGameplay)
             .First((offer) => offer is FacilityBuildingOffer)
             .Cost;
         int eventBlueprintCost = FacilityShopService.CreateDailyOffers(
@@ -311,7 +367,8 @@ public static class RunVariableDebugScenarios
                 new[] { blueprint },
                 0,
                 scenario.Runtime.GetFacilityShopCostMultiplier,
-                scenario.Runtime.GetBlueprintCostMultiplier)
+                scenario.Runtime.GetBlueprintCostMultiplier,
+                CharacterAiEditorTestDependencies.AuthoredGameplay)
             .First((offer) => offer is FacilityBlueprintOffer)
             .Cost;
 
@@ -377,31 +434,29 @@ public static class RunVariableDebugScenarios
     private static bool VerifyOpenEffectRegistration()
     {
         const string CustomId = "run:test:festival-demand";
-        try
-        {
-            RunVariableCatalog.Register(new RunVariableDefinition(
-                CustomId,
-                RunVariableCategory.Operation,
-                "테스트 축제",
-                "테스트 종족 수요 증가",
-                EventAlertImportance.Low,
-                1,
-                new IRunVariableEffect[] { new TestGuestDemandEffect() }));
-
-            using ScenarioRuntime scenario = new ScenarioRuntime();
-            ActiveRunVariable active = scenario.Runtime.ActivateOperationVariable(CustomId, 1, false);
-            bool noLegacyEffectBag = typeof(RunVariableDefinition)
-                .GetField("guestDemandMultiplier") == null
-                && typeof(RunVariableDefinition).GetField("finalCombatDamageMultiplier") == null;
-            return active != null
-                && active.Definition.id == CustomId
-                && scenario.Runtime.GetGuestDemandMultiplier("TestSpecies") > 2f
-                && noLegacyEffectBag;
-        }
-        finally
-        {
-            RunVariableCatalog.ResetToBuiltIns();
-        }
+        RunVariableDefinition definition = new RunVariableDefinition(
+            CustomId,
+            RunVariableCategory.Operation,
+            "테스트 축제",
+            "테스트 종족 수요 증가",
+            EventAlertImportance.Low,
+            1,
+            new IRunVariableEffect[]
+            {
+                new RunGuestDemandEffect("TestSpecies", 2.25f)
+            });
+        AuthoredGameplayCatalog authored = CreateAuthoredCatalog();
+        using ScenarioRuntime scenario = new ScenarioRuntime(
+            new SingleRunVariableCatalog(definition),
+            authored);
+        ActiveRunVariable active = scenario.Runtime.ActivateOperationVariable(CustomId, 1, false);
+        bool noLegacyEffectBag = typeof(RunVariableDefinition)
+            .GetField("guestDemandMultiplier") == null
+            && typeof(RunVariableDefinition).GetField("finalCombatDamageMultiplier") == null;
+        return active != null
+            && active.Definition.id == CustomId
+            && scenario.Runtime.GetGuestDemandMultiplier("TestSpecies") > 2f
+            && noLegacyEffectBag;
     }
 
     private static BuildingSO CreateBuilding(int id, string name, bool defense)
@@ -453,6 +508,13 @@ public static class RunVariableDebugScenarios
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
 
         public ScenarioRuntime()
+            : this(CreateAuthoredCatalog(), CreateAuthoredCatalog())
+        {
+        }
+
+        public ScenarioRuntime(
+            IRunVariableDefinitionCatalog variableCatalog,
+            IOwnerDoctrineDefinitionCatalog doctrineCatalog)
         {
             runtimeObject = new GameObject("Run Variable Scenario Runtime");
             try
@@ -461,10 +523,13 @@ public static class RunVariableDebugScenarios
                 GameEvents = new DungeonStory.Foundation.GameEventBus();
                 Runtime.Construct(
                     new TestOwnerRunDataProvider(),
-                    new MissingThreatRuntimeProvider(),
-                    new TestRunStartVariableSelector(),
+                    EditorRuntimeReferenceFixtures.Invasion,
+                    new TestRunStartVariableSelector(doctrineCatalog),
                     new DungeonStory.Foundation.RandomStreamProvider(999),
-                    GameEvents);
+                    GameEvents,
+                    variableCatalog,
+                    doctrineCatalog,
+                    new DungeonRuntimeAggregateRootStore());
                 Runtime.StartRun(999, null, InvasionThreatDifficulty.Normal);
             }
             catch
@@ -508,36 +573,26 @@ public static class RunVariableDebugScenarios
         }
     }
 
-    private sealed class TestGuestDemandEffect : IRunVariableMultiplierEffect<string>
-    {
-        public float GetMultiplier(string context)
-        {
-            return string.Equals(context, "TestSpecies", StringComparison.OrdinalIgnoreCase)
-                ? 2.25f
-                : 1f;
-        }
-    }
-
     private sealed class TestOwnerRunDataProvider : IOwnerRunDataProvider
     {
         public CharacterSO SelectedOwnerData => null;
     }
 
-    private sealed class MissingThreatRuntimeProvider : IInvasionThreatRuntimeProvider
-    {
-        public bool TryGetRuntime(out InvasionThreatRuntime runtime)
-        {
-            runtime = null;
-            return false;
-        }
-    }
-
     private sealed class TestRunStartVariableSelector : IRunStartVariableSelector
     {
+        private readonly IOwnerDoctrineDefinitionCatalog doctrines;
+
+        public TestRunStartVariableSelector(IOwnerDoctrineDefinitionCatalog doctrines)
+        {
+            this.doctrines = doctrines ?? throw new ArgumentNullException(nameof(doctrines));
+        }
+
         public RunStartVariableSnapshot Create(
             int seed,
             CharacterSO ownerData,
-            DungeonDifficulty difficulty)
+            DungeonDifficulty difficulty,
+            DungeonSurvivalPressure survivalPressure =
+                DungeonSurvivalPressure.Standard)
         {
             string species = !string.IsNullOrWhiteSpace(ownerData?.SpeciesTag)
                 ? ownerData.SpeciesTag
@@ -558,7 +613,45 @@ public static class RunVariableDebugScenarios
                     ? "wet-front"
                     : "compact-shop",
                 difficulty == DungeonDifficulty.Hard ? 1.2f : 1f,
-                OwnerDoctrineCatalog.ResolveForSpecies(species)?.id);
+                doctrines.ResolveForSpecies(species)?.id,
+                survivalPressure);
+        }
+    }
+
+    private static AuthoredGameplayCatalog CreateAuthoredCatalog()
+    {
+        return new AuthoredGameplayCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+    }
+
+    private sealed class SingleRunVariableCatalog : IRunVariableDefinitionCatalog
+    {
+        private readonly RunVariableDefinition definition;
+
+        public SingleRunVariableCatalog(RunVariableDefinition definition)
+        {
+            this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
+        }
+
+        public IReadOnlyCollection<RunVariableDefinition> All => new[] { definition };
+
+        public RunVariableDefinition Get(string id)
+        {
+            return string.Equals(id, definition.id, StringComparison.Ordinal)
+                ? definition
+                : null;
+        }
+
+        public RunVariableDefinition Require(string id)
+        {
+            return Get(id) ?? throw new KeyNotFoundException(id);
+        }
+
+        public IReadOnlyList<RunVariableDefinition> GetByCategory(RunVariableCategory category)
+        {
+            return definition.category == category
+                ? new[] { definition }
+                : Array.Empty<RunVariableDefinition>();
         }
     }
 }

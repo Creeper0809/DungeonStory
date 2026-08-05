@@ -26,21 +26,28 @@ MonoBehaviour:
   displayName: "\uAE08\uAE30 \uBD80\uD328\uBB3C"
   description: "\uAE08\uAE30 \uC7AC\uB8CC\uAC00 \uC11E\uC778 \uC624\uC5FC\uB41C \uBD80\uD328\uBB3C."
   stockCategory: 8
-  kind: 6
-  ingredientTags: 6160
-  unitPrice: 0
-  marketSaleRate: 0.6
   unitWeight: 0.7
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:control:blood-show
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 0
+  features:
+  - rid: 7737211673962611624
+  - rid: 7737211673962611625
+  - rid: 7737211673962611626
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611624
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:control:blood-show
+    - rid: 7737211673962611625
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 6
+        ingredientTags: 6160
+        sharedIntermediate: 0
+    - rid: 7737211673962611626
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

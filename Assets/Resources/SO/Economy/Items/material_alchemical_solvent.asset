@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uC57D\uD6A8 \uC131\uBD84\uACFC \uB9C8\uB098\uB97C \uC548\uC815\uC801\uC73C\uB85C
     \uC11E\uB294 \uC6A9\uB9E4."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 1024
-  unitPrice: 12
-  marketSaleRate: 0.6
   unitWeight: 0.3
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:distillation
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 12
+  features:
+  - rid: 7737211674039681155
+  - rid: 7737211674039681156
+  - rid: 7737211674039681157
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681155
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:distillation
+    - rid: 7737211674039681156
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 1024
+        sharedIntermediate: 1
+    - rid: 7737211674039681157
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

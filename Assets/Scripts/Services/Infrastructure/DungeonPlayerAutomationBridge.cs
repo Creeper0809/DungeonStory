@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
@@ -16,54 +17,129 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VContainer.Unity;
 
-public static class DungeonAutomationInputState
+internal static class DungeonPlayerAutomationSceneBootstrap
 {
-    private static readonly Dictionary<KeyCode, double> HeldKeys = new Dictionary<KeyCode, double>();
-    private static readonly Dictionary<KeyCode, int> KeyDownFrames = new Dictionary<KeyCode, int>();
-    private static readonly int[] MouseDownFrames = { -1, -1, -1 };
-    private static readonly int[] MouseHeldUntilFrames = { -1, -1, -1 };
-    private static readonly AutomationInputClockState Clocks = new AutomationInputClockState();
-
-    private static bool enabled;
-    private static bool pointerOverridden;
-    private static Vector3 pointerPosition;
-    private static float scrollDeltaY;
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetRuntime()
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void LoadRequestedAutomationScene()
     {
-        Disable();
-    }
-
-    public static void Enable(IGameClock frameClock, IUiClock realtimeClock)
-    {
-        Clocks.Configure(frameClock, realtimeClock);
-        enabled = true;
-    }
-
-    public static void Disable()
-    {
-        enabled = false;
-        Clocks.Clear();
-        pointerOverridden = false;
-        pointerPosition = Vector3.zero;
-        scrollDeltaY = 0f;
-        HeldKeys.Clear();
-        KeyDownFrames.Clear();
-        for (int index = 0; index < MouseDownFrames.Length; index++)
+        string[] arguments = Environment.GetCommandLineArgs();
+        if (!arguments.Contains("-automation", StringComparer.Ordinal))
         {
-            MouseDownFrames[index] = -1;
-            MouseHeldUntilFrames[index] = -1;
+            return;
+        }
+
+        int sceneArgument = Array.FindIndex(arguments, value =>
+            string.Equals(
+                value,
+                "-automation-scene",
+                StringComparison.Ordinal));
+        if (sceneArgument < 0 || sceneArgument + 1 >= arguments.Length)
+        {
+            return;
+        }
+
+        string target = arguments[sceneArgument + 1]?.Trim()
+            ?? string.Empty;
+        if (!IsAllowedScene(target))
+        {
+            Debug.LogError(
+                $"Player automation rejected unknown scene '{target}'.");
+            return;
+        }
+
+        if (!string.Equals(
+                SceneManager.GetActiveScene().name,
+                target,
+                StringComparison.Ordinal))
+        {
+            SceneManager.LoadScene(target);
         }
     }
 
-    public static bool TryGetPointerPosition(out Vector3 position)
+    private static bool IsAllowedScene(string sceneName)
+    {
+        return sceneName is "TitleScene"
+            or "StartPreparationScene"
+            or "GameplayScene";
+    }
+}
+
+public interface IDungeonAutomationInputReader
+{
+    int FrameCount { get; }
+    bool TryGetPointerPosition(out Vector3 position);
+    bool TryConsumeScrollDeltaY(out float deltaY);
+    bool GetMouseButtonDown(int button);
+    bool GetMouseButton(int button);
+    bool GetKey(KeyCode key);
+    bool GetKeyDown(KeyCode key);
+}
+
+public interface IDungeonAutomationInputControl : IDungeonAutomationInputReader
+{
+    void Enable();
+    void Disable();
+    void MovePointer(Vector2 position);
+    int ClickPointer(int button);
+    void Scroll(float deltaY);
+    bool HoldKey(KeyCode key, float durationSeconds);
+    void ReleaseKey(KeyCode key);
+}
+
+public sealed class DungeonAutomationInputState :
+    IDungeonAutomationInputControl,
+    IDisposable
+{
+    private readonly Dictionary<KeyCode, double> heldKeys =
+        new Dictionary<KeyCode, double>();
+    private readonly Dictionary<KeyCode, int> keyDownFrames =
+        new Dictionary<KeyCode, int>();
+    private readonly int[] mouseDownFrames = { -1, -1, -1 };
+    private readonly int[] mouseHeldUntilFrames = { -1, -1, -1 };
+    private readonly IGameClock gameClock;
+    private readonly IUiClock uiClock;
+
+    private bool enabled;
+    private bool pointerOverridden;
+    private Vector3 pointerPosition;
+    private float scrollDeltaY;
+
+    public DungeonAutomationInputState(
+        IGameClock gameClock,
+        IUiClock uiClock)
+    {
+        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        Disable();
+    }
+
+    public void Enable()
+    {
+        enabled = true;
+    }
+
+    public void Disable()
+    {
+        enabled = false;
+        pointerOverridden = false;
+        pointerPosition = Vector3.zero;
+        scrollDeltaY = 0f;
+        heldKeys.Clear();
+        keyDownFrames.Clear();
+        for (int index = 0; index < mouseDownFrames.Length; index++)
+        {
+            mouseDownFrames[index] = -1;
+            mouseHeldUntilFrames[index] = -1;
+        }
+    }
+
+    public bool TryGetPointerPosition(out Vector3 position)
     {
         position = pointerPosition;
         return enabled && pointerOverridden;
     }
 
-    public static void MovePointer(Vector2 position)
+    public void MovePointer(Vector2 position)
     {
         if (!enabled)
         {
@@ -77,9 +153,9 @@ public static class DungeonAutomationInputState
             0f);
     }
 
-    public static int ClickPointer(int button)
+    public int ClickPointer(int button)
     {
-        if (!enabled || button < 0 || button >= MouseDownFrames.Length)
+        if (!enabled || button < 0 || button >= mouseDownFrames.Length)
         {
             return -1;
         }
@@ -91,12 +167,12 @@ public static class DungeonAutomationInputState
         }
 
         int downFrame = frame + 1;
-        MouseDownFrames[button] = downFrame;
-        MouseHeldUntilFrames[button] = downFrame + 1;
+        mouseDownFrames[button] = downFrame;
+        mouseHeldUntilFrames[button] = downFrame + 1;
         return downFrame;
     }
 
-    public static void Scroll(float deltaY)
+    public void Scroll(float deltaY)
     {
         if (!enabled || Mathf.Approximately(deltaY, 0f))
         {
@@ -106,7 +182,7 @@ public static class DungeonAutomationInputState
         scrollDeltaY += deltaY;
     }
 
-    public static bool TryConsumeScrollDeltaY(out float deltaY)
+    public bool TryConsumeScrollDeltaY(out float deltaY)
     {
         deltaY = 0f;
         if (!enabled || Mathf.Approximately(scrollDeltaY, 0f))
@@ -119,27 +195,27 @@ public static class DungeonAutomationInputState
         return true;
     }
 
-    public static bool GetMouseButtonDown(int button)
+    public bool GetMouseButtonDown(int button)
     {
         int frame = CurrentFrame;
         return enabled
             && frame >= 0
             && button >= 0
-            && button < MouseDownFrames.Length
-            && MouseDownFrames[button] == frame;
+            && button < mouseDownFrames.Length
+            && mouseDownFrames[button] == frame;
     }
 
-    public static bool GetMouseButton(int button)
+    public bool GetMouseButton(int button)
     {
         int frame = CurrentFrame;
         return enabled
             && frame >= 0
             && button >= 0
-            && button < MouseHeldUntilFrames.Length
-            && frame <= MouseHeldUntilFrames[button];
+            && button < mouseHeldUntilFrames.Length
+            && frame <= mouseHeldUntilFrames[button];
     }
 
-    public static bool HoldKey(KeyCode key, float durationSeconds)
+    public bool HoldKey(KeyCode key, float durationSeconds)
     {
         int frame = CurrentFrame;
         if (!enabled || key == KeyCode.None || frame < 0)
@@ -147,20 +223,20 @@ public static class DungeonAutomationInputState
             return false;
         }
 
-        HeldKeys[key] = CurrentRealtime + Mathf.Clamp(durationSeconds, 0.05f, 30f);
-        KeyDownFrames[key] = frame + 1;
+        heldKeys[key] = CurrentRealtime + Mathf.Clamp(durationSeconds, 0.05f, 30f);
+        keyDownFrames[key] = frame + 1;
         return true;
     }
 
-    public static void ReleaseKey(KeyCode key)
+    public void ReleaseKey(KeyCode key)
     {
-        HeldKeys.Remove(key);
-        KeyDownFrames.Remove(key);
+        heldKeys.Remove(key);
+        keyDownFrames.Remove(key);
     }
 
-    public static bool GetKey(KeyCode key)
+    public bool GetKey(KeyCode key)
     {
-        if (!enabled || !HeldKeys.TryGetValue(key, out double expiresAt))
+        if (!enabled || !heldKeys.TryGetValue(key, out double expiresAt))
         {
             return false;
         }
@@ -174,50 +250,31 @@ public static class DungeonAutomationInputState
         return false;
     }
 
-    public static bool GetKeyDown(KeyCode key)
+    public bool GetKeyDown(KeyCode key)
     {
         int currentFrame = CurrentFrame;
         return enabled
             && currentFrame >= 0
-            && KeyDownFrames.TryGetValue(key, out int frame)
+            && keyDownFrames.TryGetValue(key, out int frame)
             && frame == currentFrame;
     }
 
-    private static int CurrentFrame => Clocks.FrameCount;
-    private static double CurrentRealtime => Clocks.Realtime;
+    public void Dispose() => Disable();
 
-    private sealed class AutomationInputClockState
-    {
-        private IGameClock gameClock;
-        private IUiClock uiClock;
-
-        public int FrameCount => gameClock != null ? gameClock.FrameCount : -1;
-        public double Realtime => uiClock != null ? uiClock.Time : 0d;
-
-        public void Configure(IGameClock frameClock, IUiClock realtimeClock)
-        {
-            gameClock = frameClock ?? throw new ArgumentNullException(nameof(frameClock));
-            uiClock = realtimeClock ?? throw new ArgumentNullException(nameof(realtimeClock));
-        }
-
-        public void Clear()
-        {
-            gameClock = null;
-            uiClock = null;
-        }
-    }
+    public int FrameCount => CurrentFrame;
+    private int CurrentFrame => gameClock.FrameCount;
+    private double CurrentRealtime => uiClock.Time;
 }
 
 public sealed class DungeonPlayerAutomationBridge : IStartable, IDisposable
 {
     private readonly IDungeonRunFlowRuntime runFlow;
     private readonly IFirstRunObjectiveRuntime firstRunObjective;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameSessionStateProvider gameDataProvider;
     private readonly DungeonUserSettingsRuntimeTargets userSettingsTargets;
     private readonly IDungeonUiCanvasProvider canvasProvider;
     private readonly IMainCameraProvider mainCameraProvider;
-    private readonly IGameClock gameClock;
-    private readonly IUiClock uiClock;
+    private readonly IDungeonAutomationInputControl automationInput;
     private readonly IGameTimeScaleController timeScaleController;
 
     private DungeonPlayerAutomationHost host;
@@ -225,12 +282,11 @@ public sealed class DungeonPlayerAutomationBridge : IStartable, IDisposable
     public DungeonPlayerAutomationBridge(
         IDungeonRunFlowRuntime runFlow,
         IFirstRunObjectiveRuntime firstRunObjective,
-        IGameDataProvider gameDataProvider,
+        IGameSessionStateProvider gameDataProvider,
         DungeonUserSettingsRuntimeTargets userSettingsTargets,
         IDungeonUiCanvasProvider canvasProvider,
         IMainCameraProvider mainCameraProvider,
-        IGameClock gameClock,
-        IUiClock uiClock,
+        IDungeonAutomationInputControl automationInput,
         IGameTimeScaleController timeScaleController)
     {
         this.runFlow = runFlow ?? throw new ArgumentNullException(nameof(runFlow));
@@ -242,8 +298,8 @@ public sealed class DungeonPlayerAutomationBridge : IStartable, IDisposable
             ?? throw new ArgumentNullException(nameof(canvasProvider));
         this.mainCameraProvider = mainCameraProvider
             ?? throw new ArgumentNullException(nameof(mainCameraProvider));
-        this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
-        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        this.automationInput = automationInput
+            ?? throw new ArgumentNullException(nameof(automationInput));
         this.timeScaleController = timeScaleController
             ?? throw new ArgumentNullException(nameof(timeScaleController));
     }
@@ -279,8 +335,7 @@ public sealed class DungeonPlayerAutomationBridge : IStartable, IDisposable
             userSettingsTargets,
             canvasProvider,
             mainCameraProvider,
-            gameClock,
-            uiClock,
+            automationInput,
             timeScaleController);
     }
 
@@ -333,7 +388,9 @@ internal sealed class DungeonPlayerAutomationConfig
                 && index + 1 < args.Count)
             {
                 config.Token = args[++index] ?? string.Empty;
+                continue;
             }
+
         }
 
         if (config.Requested && string.IsNullOrWhiteSpace(config.Token))
@@ -343,6 +400,7 @@ internal sealed class DungeonPlayerAutomationConfig
 
         return config;
     }
+
 }
 
 internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
@@ -355,12 +413,11 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
 
     private IDungeonRunFlowRuntime runFlow;
     private IFirstRunObjectiveRuntime firstRunObjective;
-    private IGameDataProvider gameDataProvider;
+    private IGameSessionStateProvider gameDataProvider;
     private DungeonUserSettingsRuntimeTargets userSettingsTargets;
     private IDungeonUiCanvasProvider canvasProvider;
     private IMainCameraProvider mainCameraProvider;
-    private IGameClock gameClock;
-    private IUiClock uiClock;
+    private IDungeonAutomationInputControl automationInput;
     private IGameTimeScaleController timeScaleController;
     private DungeonPlayerAutomationConfig config;
     private TcpListener listener;
@@ -373,12 +430,11 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         DungeonPlayerAutomationConfig automationConfig,
         IDungeonRunFlowRuntime flow,
         IFirstRunObjectiveRuntime objective,
-        IGameDataProvider dataProvider,
+        IGameSessionStateProvider dataProvider,
         DungeonUserSettingsRuntimeTargets settingsTargets,
         IDungeonUiCanvasProvider uiCanvasProvider,
         IMainCameraProvider cameraProvider,
-        IGameClock frameClock,
-        IUiClock realtimeClock,
+        IDungeonAutomationInputControl inputControl,
         IGameTimeScaleController scaleController)
     {
         config = automationConfig ?? throw new ArgumentNullException(nameof(automationConfig));
@@ -390,15 +446,15 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         canvasProvider = uiCanvasProvider
             ?? throw new ArgumentNullException(nameof(uiCanvasProvider));
         mainCameraProvider = cameraProvider ?? throw new ArgumentNullException(nameof(cameraProvider));
-        gameClock = frameClock ?? throw new ArgumentNullException(nameof(frameClock));
-        uiClock = realtimeClock ?? throw new ArgumentNullException(nameof(realtimeClock));
+        automationInput = inputControl
+            ?? throw new ArgumentNullException(nameof(inputControl));
         timeScaleController = scaleController
             ?? throw new ArgumentNullException(nameof(scaleController));
 
         automationDirectory = Path.Combine(Application.persistentDataPath, "Automation");
         connectionPath = Path.Combine(automationDirectory, "bridge.json");
         Directory.CreateDirectory(automationDirectory);
-        DungeonAutomationInputState.Enable(gameClock, uiClock);
+        automationInput.Enable();
         StartServer();
     }
 
@@ -406,6 +462,12 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
     {
         for (int index = 0; index < MaxRequestsPerFrame && requests.TryDequeue(out PendingAutomationRequest pending); index++)
         {
+            if (IsScreenCaptureRequest(pending.Request))
+            {
+                StartCoroutine(CompleteScreenCaptureAtEndOfFrame(pending));
+                continue;
+            }
+
             try
             {
                 pending.Response = Execute(pending.Request);
@@ -423,6 +485,26 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         }
     }
 
+    private IEnumerator CompleteScreenCaptureAtEndOfFrame(
+        PendingAutomationRequest pending)
+    {
+        yield return new WaitForEndOfFrame();
+        try
+        {
+            pending.Response = CaptureScreen(pending.Request);
+        }
+        catch (Exception exception)
+        {
+            pending.Response = AutomationResponse.Fail(
+                pending.Request != null ? pending.Request.id : string.Empty,
+                exception.GetType().Name + ": " + exception.Message);
+        }
+        finally
+        {
+            pending.Completed.Set();
+        }
+    }
+
     private void OnDestroy()
     {
         Shutdown();
@@ -432,7 +514,7 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
     {
         if (!running && listener == null)
         {
-            DungeonAutomationInputState.Disable();
+            automationInput?.Disable();
             return;
         }
 
@@ -452,7 +534,7 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         }
 
         listenerThread = null;
-        DungeonAutomationInputState.Disable();
+        automationInput?.Disable();
         TryDeleteConnectionFile();
     }
 
@@ -477,7 +559,7 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         {
             running = false;
             listener = null;
-            DungeonAutomationInputState.Disable();
+            automationInput?.Disable();
             Debug.LogError("Player automation bridge failed to start: " + exception.Message);
         }
     }
@@ -568,8 +650,8 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
 
     private AutomationResponse GetStatus(string requestId)
     {
-        GameData gameData = null;
-        gameDataProvider.TryGetGameData(out gameData);
+        GameSessionState gameData = null;
+        gameDataProvider.TryGetSessionState(out gameData);
         CameraManager cameraManager = userSettingsTargets.CameraManager;
         Vector3 cameraPosition = cameraManager != null
             ? cameraManager.transform.position
@@ -586,7 +668,7 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
             screenHeight = Screen.height,
             fullScreenMode = Screen.fullScreenMode.ToString(),
             timeScale = timeScaleController.Scale,
-            frame = gameClock.FrameCount,
+            frame = automationInput.FrameCount,
             day = runFlow.CurrentDay,
             phase = runFlow.Phase.ToString(),
             outcome = runFlow.Outcome.ToString(),
@@ -607,6 +689,9 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         IReadOnlyList<Selectable> selectables = canvas != null
             ? canvas.GetComponentsInChildren<Selectable>(includeInactive: false)
             : Array.Empty<Selectable>();
+        IReadOnlyDictionary<Selectable, string> labels = canvas != null
+            ? CollectSelectableLabels(canvas)
+            : new Dictionary<Selectable, string>();
         List<AutomationUiControl> controls = new List<AutomationUiControl>();
         foreach (Selectable selectable in selectables.OrderBy(item => item.gameObject.name, StringComparer.Ordinal))
         {
@@ -615,7 +700,8 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
                 continue;
             }
 
-            controls.Add(CreateUiControl(selectable));
+            labels.TryGetValue(selectable, out string label);
+            controls.Add(CreateUiControl(selectable, label));
         }
 
         AutomationUiControlList result = new AutomationUiControlList
@@ -654,7 +740,7 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         Vector2 center = RectTransformUtility.WorldToScreenPoint(
             ResolveCanvasCamera(button.transform),
             ((RectTransform)button.transform).TransformPoint(((RectTransform)button.transform).rect.center));
-        DungeonAutomationInputState.MovePointer(center);
+        automationInput.MovePointer(center);
         PointerEventData eventData = new PointerEventData(eventSystem)
         {
             button = PointerEventData.InputButton.Left,
@@ -670,14 +756,14 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
 
     private AutomationResponse MovePointer(AutomationRequest request)
     {
-        DungeonAutomationInputState.MovePointer(new Vector2(request.x, request.y));
+        automationInput.MovePointer(new Vector2(request.x, request.y));
         return AutomationResponse.Ok(request.id, $"Pointer moved to {request.x:0.##},{request.y:0.##}");
     }
 
     private AutomationResponse ClickPointer(AutomationRequest request)
     {
-        DungeonAutomationInputState.MovePointer(new Vector2(request.x, request.y));
-        int frame = DungeonAutomationInputState.ClickPointer(Mathf.Clamp(request.button, 0, 2));
+        automationInput.MovePointer(new Vector2(request.x, request.y));
+        int frame = automationInput.ClickPointer(Mathf.Clamp(request.button, 0, 2));
         return frame >= 0
             ? AutomationResponse.Ok(request.id, "Pointer click scheduled", $"{{\"frame\":{frame}}}")
             : AutomationResponse.Fail(request.id, "Pointer click could not be scheduled");
@@ -691,7 +777,7 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         }
 
         float duration = request.duration > 0f ? request.duration : 0.25f;
-        return DungeonAutomationInputState.HoldKey(key, duration)
+        return automationInput.HoldKey(key, duration)
             ? AutomationResponse.Ok(request.id, $"Holding {key} for {duration:0.##}s")
             : AutomationResponse.Fail(request.id, "Key could not be held: " + key);
     }
@@ -703,7 +789,7 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
             return AutomationResponse.Fail(request.id, "Unknown KeyCode: " + request.key);
         }
 
-        DungeonAutomationInputState.ReleaseKey(key);
+        automationInput.ReleaseKey(key);
         return AutomationResponse.Ok(request.id, "Released " + key);
     }
 
@@ -720,9 +806,132 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         string captureDirectory = Path.Combine(automationDirectory, "Captures");
         Directory.CreateDirectory(captureDirectory);
         string capturePath = Path.Combine(captureDirectory, requestedName);
-        ScreenCapture.CaptureScreenshot(capturePath);
+        Texture2D capturedFrame = CaptureRenderedFrame();
+        if (capturedFrame == null)
+        {
+            return AutomationResponse.Fail(
+                request.id,
+                "Rendered frame capture returned no texture.");
+        }
+
+        try
+        {
+            File.WriteAllBytes(capturePath, capturedFrame.EncodeToPNG());
+        }
+        finally
+        {
+            UnityEngine.Object.Destroy(capturedFrame);
+        }
+
         AutomationCaptureResult result = new AutomationCaptureResult { path = capturePath };
-        return AutomationResponse.Ok(request.id, "Screenshot queued", JsonUtility.ToJson(result));
+        return AutomationResponse.Ok(request.id, "Screenshot captured", JsonUtility.ToJson(result));
+    }
+
+    private Texture2D CaptureRenderedFrame()
+    {
+        Camera captureCamera = mainCameraProvider.Camera;
+        if (captureCamera == null)
+        {
+            return null;
+        }
+
+        int width = Mathf.Max(1, Screen.width);
+        int height = Mathf.Max(1, Screen.height);
+        RenderTexture target = RenderTexture.GetTemporary(
+            width,
+            height,
+            24,
+            RenderTextureFormat.ARGB32);
+        RenderTexture previousTarget = captureCamera.targetTexture;
+        RenderTexture previousActive = RenderTexture.active;
+        int previousCullingMask = captureCamera.cullingMask;
+        GameObject uiCameraObject = new GameObject("DungeonAutomationCaptureUiCamera")
+        {
+            hideFlags = HideFlags.HideAndDontSave
+        };
+        Camera uiCamera = uiCameraObject.AddComponent<Camera>();
+        uiCamera.enabled = false;
+        uiCamera.orthographic = true;
+        uiCamera.orthographicSize = height * 0.5f;
+        uiCamera.nearClipPlane = 0.01f;
+        uiCamera.farClipPlane = 100f;
+        uiCamera.clearFlags = CameraClearFlags.Depth;
+        uiCamera.cullingMask = 1 << 5;
+        uiCamera.targetTexture = target;
+        Canvas[] canvases = UnityEngine.Object.FindObjectsByType<Canvas>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None);
+        RenderMode[] renderModes = new RenderMode[canvases.Length];
+        Camera[] worldCameras = new Camera[canvases.Length];
+        float[] planeDistances = new float[canvases.Length];
+        Texture2D captured = null;
+        try
+        {
+            for (int index = 0; index < canvases.Length; index++)
+            {
+                Canvas canvas = canvases[index];
+                renderModes[index] = canvas.renderMode;
+                worldCameras[index] = canvas.worldCamera;
+                planeDistances[index] = canvas.planeDistance;
+                if (canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+                {
+                    canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                    canvas.worldCamera = uiCamera;
+                    canvas.planeDistance = 1f;
+                }
+            }
+
+            Canvas.ForceUpdateCanvases();
+            captureCamera.cullingMask = previousCullingMask & ~(1 << 5);
+            captureCamera.targetTexture = target;
+            captureCamera.Render();
+            uiCamera.Render();
+            RenderTexture.active = target;
+            captured = new Texture2D(width, height, TextureFormat.RGB24, false);
+            captured.ReadPixels(new Rect(0f, 0f, width, height), 0, 0, false);
+            captured.Apply(updateMipmaps: false, makeNoLongerReadable: false);
+            return captured;
+        }
+        catch
+        {
+            if (captured != null)
+            {
+                UnityEngine.Object.Destroy(captured);
+            }
+
+            throw;
+        }
+        finally
+        {
+            captureCamera.targetTexture = previousTarget;
+            captureCamera.cullingMask = previousCullingMask;
+            RenderTexture.active = previousActive;
+            for (int index = 0; index < canvases.Length; index++)
+            {
+                Canvas canvas = canvases[index];
+                if (canvas == null)
+                {
+                    continue;
+                }
+
+                canvas.renderMode = renderModes[index];
+                canvas.worldCamera = worldCameras[index];
+                canvas.planeDistance = planeDistances[index];
+            }
+
+            Canvas.ForceUpdateCanvases();
+            UnityEngine.Object.Destroy(uiCameraObject);
+            RenderTexture.ReleaseTemporary(target);
+        }
+    }
+
+    private static bool IsScreenCaptureRequest(AutomationRequest request)
+    {
+        return request != null
+            && string.Equals(
+                request.command?.Trim(),
+                "capture.screen",
+                StringComparison.OrdinalIgnoreCase);
     }
 
     private void WriteConnectionFile(int port)
@@ -757,7 +966,43 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
         }
     }
 
-    private static AutomationUiControl CreateUiControl(Selectable selectable)
+    private static IReadOnlyDictionary<Selectable, string> CollectSelectableLabels(
+        Canvas canvas)
+    {
+        Dictionary<Selectable, string> labels = new Dictionary<Selectable, string>();
+        foreach (TMP_Text text in canvas.GetComponentsInChildren<TMP_Text>(includeInactive: false))
+        {
+            AddSelectableLabel(labels, text, text != null ? text.text : string.Empty);
+        }
+
+        foreach (Text text in canvas.GetComponentsInChildren<Text>(includeInactive: false))
+        {
+            AddSelectableLabel(labels, text, text != null ? text.text : string.Empty);
+        }
+
+        return labels;
+    }
+
+    private static void AddSelectableLabel(
+        IDictionary<Selectable, string> labels,
+        Component labelComponent,
+        string label)
+    {
+        if (labelComponent == null || string.IsNullOrWhiteSpace(label))
+        {
+            return;
+        }
+
+        Selectable owner = labelComponent.GetComponentInParent<Selectable>();
+        if (owner != null && !labels.ContainsKey(owner))
+        {
+            labels.Add(owner, label);
+        }
+    }
+
+    private static AutomationUiControl CreateUiControl(
+        Selectable selectable,
+        string label)
     {
         RectTransform rect = selectable.transform as RectTransform;
         Vector3[] corners = new Vector3[4];
@@ -772,15 +1017,11 @@ internal sealed class DungeonPlayerAutomationHost : MonoBehaviour
             max = Vector2.Max(max, point);
         }
 
-        TMP_Text tmpText = selectable.GetComponentInChildren<TMP_Text>(includeInactive: true);
-        Text legacyText = tmpText == null
-            ? selectable.GetComponentInChildren<Text>(includeInactive: true)
-            : null;
         return new AutomationUiControl
         {
             name = selectable.gameObject.name,
             type = selectable.GetType().Name,
-            text = tmpText != null ? tmpText.text : legacyText != null ? legacyText.text : string.Empty,
+            text = label ?? string.Empty,
             interactable = selectable.IsInteractable(),
             x = float.IsInfinity(min.x) ? 0f : min.x,
             y = float.IsInfinity(min.y) ? 0f : min.y,

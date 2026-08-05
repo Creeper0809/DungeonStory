@@ -47,8 +47,6 @@ MonoBehaviour:
     amount: 1
   - itemId: resource:saltstone
     amount: 1
-  - itemId: material:alcohol
-    amount: 1
   outputs:
   - itemId: medicine:antiseptic
     amount: 2

@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: DefenseFacility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -38,20 +29,23 @@ MonoBehaviour:
       Data: 
   id: 1804
   objectName: "\uBB38 \uC5F0\uB3D9 \uAC15\uD654 \uB099\uD558\uBB38"
-  sprite: {fileID: 21300000, guid: 01db5f714be6fe488b5fc39cab46891c, type: 3}
-  icon: {fileID: 21300000, guid: 01db5f714be6fe488b5fc39cab46891c, type: 3}
+  sprite: {fileID: 21300000, guid: ec42980d484085f459fa7c428187238f, type: 3}
+  icon: {fileID: 21300000, guid: ec42980d484085f459fa7c428187238f, type: 3}
   abilityModules:
     items:
+    - rid: 8800000000000001804
     - rid: 7302563312817144073
     - rid: 7302563312817144076
-    - rid: 7302563313672519971
-    - rid: 7302563313672519972
+    - rid: 7302563313672520649
+    - rid: 7737211765905949297
+    - rid: 7737211765905949298
   width: 2
   height: 1
-  layer: 3
-  category: 3
+  layer: 1
+  category: 1
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 7
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -61,7 +55,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7302563312817144073
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 260
@@ -70,11 +64,19 @@ MonoBehaviour:
         unlockPhase: 1
         demolitionRefundRate: 0.5
     - rid: 7302563312817144076
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: DF05
-    - rid: 7302563313672519971
+    - rid: 7302563313672520649
+      type: {class: BuildingStructuralIntegrityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingStructuralIntegrityAbility
+        maxHitPoints: 450
+        toughness: 24
+        repairHitPointsPerWork: 2
+        breachable: 1
+    - rid: 7737211765905949297
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -85,7 +87,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7302563313672519972
+    - rid: 7737211765905949298
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility
@@ -125,3 +127,15 @@ MonoBehaviour:
             detectionRangeLevel: 0
             identificationLevel: 0
             outageResistanceLevel: 0
+    - rid: 8800000000000001804
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 29.2
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 13

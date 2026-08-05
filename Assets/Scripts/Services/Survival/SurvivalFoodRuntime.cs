@@ -1,102 +1,115 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
-public sealed class SurvivalFoodRuntime :
-    ISurvivalFoodRuntime,
+public sealed partial class SurvivalFoodRuntime :
+    ISurvivalFoodQuery,
+    ISurvivalFoodCommand,
+    ISurvivalFoodPersistence,
+    ISurvivalFoodDebugCommand,
     ICharacterNutritionRuntime,
     ISurvivalEnvironmentQuery,
     ISurvivalStorageEnvironmentSink,
     IInitializable,
     IDisposable
 {
-    private const float DefaultFreshnessSeconds = 360f;
-    private const float PreservedFreshnessSeconds = 1440f;
-    private const float FreshnessWarningThresholdSeconds = 90f;
-    private const float OverviewRefreshIntervalSeconds = 0.5f;
     private const int DailyFuelDemand = 1;
     private const float TreatmentMedicineHeal = 16f;
 
-    private readonly IGridSystemProvider gridSystemProvider;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly IItemDefinitionCatalog itemCatalog;
     private readonly IGameEventBus gameEventBus;
     private readonly IGameClock gameClock;
-    private readonly IResourceEconomyContentCatalog resourceCatalog;
-    private readonly IWorldThreatModifierQuery worldThreatModifiers;
-    private readonly IServiceSessionRuntime serviceSessionRuntime;
-    private IEnvironmentalFieldRuntime environmentalField;
+    private readonly ISurvivalServiceSessionCapability serviceSessionRuntime;
+    private readonly SurvivalFoodStockRuntime stockRuntime;
+    private readonly SurvivalFoodSpoilageRuntime spoilageRuntime;
+    private readonly SurvivalFoodOverviewCache overviewCache;
+    private readonly SurvivalMealLedger mealLedger;
+    private readonly SurvivalEnvironmentRiskEvaluator environmentRisks;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private IDisposable operatingDayStartedSubscription;
     private IDisposable stockConsumedSubscription;
     private IDisposable physicalMealConsumedSubscription;
-    private DungeonSurvivalSaveData state = new DungeonSurvivalSaveData();
-    private IReadOnlyList<WorldItemStackSnapshot> cachedItemStacks =
-        Array.Empty<WorldItemStackSnapshot>();
-    private int cachedItemStackVersion = -1;
-    private SurvivalFoodOverview cachedOverview;
-    private int cachedOverviewFrame = -1;
-    private int cachedOverviewItemVersion = -1;
-    private int cachedOverviewCharacterVersion = -1;
-    private int cachedOverviewBuildingVersion = -1;
-    private float cachedOverviewTime = float.NegativeInfinity;
-    private bool hasCachedOverview;
-    private int cachedRiskBuildingVersion = int.MinValue;
-    private float cachedVentilationBonus;
-    private float cachedLightSafety;
-    private long mealSequence;
+    private SurvivalFoodAggregateState aggregateState =>
+        aggregateRootStore.GetOrCreate(() => new SurvivalFoodAggregateState());
+    private DungeonSurvivalSaveData state => aggregateState.Data;
+    private long mealSequence
+    {
+        get => aggregateState.MealSequence;
+        set => aggregateState.MealSequence = value;
+    }
 
     public SurvivalFoodRuntime(
-        IGridSystemProvider gridSystemProvider,
+        SurvivalFoodRuntimeDependencies dependencies,
         IWildlifeSpeciesCatalogProvider speciesCatalog,
         IGameEventBus gameEventBus,
-        ICharacterAiWorldRegistry worldRegistry = null,
-        IWorldItemStackRuntime itemStackRuntime = null,
-        IGameClock gameClock = null,
-        IResourceEconomyContentCatalog resourceCatalog = null,
-        IWorldThreatModifierQuery worldThreatModifiers = null,
-        IServiceSessionRuntime serviceSessionRuntime = null)
+        ICharacterAiWorldRegistry worldRegistry,
+        IGameClock gameClock,
+        IWorldThreatModifierQuery worldThreatModifiers,
+        ISurvivalServiceSessionCapability serviceSessionRuntime,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
-        this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
+        _ = dependencies ?? throw new ArgumentNullException(nameof(dependencies));
         this.speciesCatalog = speciesCatalog ?? throw new ArgumentNullException(nameof(speciesCatalog));
-        this.worldRegistry = worldRegistry;
-        this.itemStackRuntime = itemStackRuntime;
-        this.gameClock = gameClock;
-        this.resourceCatalog = resourceCatalog;
-        this.worldThreatModifiers = worldThreatModifiers;
-        this.serviceSessionRuntime = serviceSessionRuntime;
+        this.worldRegistry = worldRegistry
+            ?? throw new ArgumentNullException(nameof(worldRegistry));
+        this.itemStackRuntime = dependencies.ItemStackRuntime;
+        this.itemCatalog = dependencies.ItemCatalog;
+        this.gameClock = gameClock
+            ?? throw new ArgumentNullException(nameof(gameClock));
+        worldThreatModifiers = worldThreatModifiers
+            ?? throw new ArgumentNullException(nameof(worldThreatModifiers));
+        this.serviceSessionRuntime = serviceSessionRuntime
+            ?? throw new ArgumentNullException(nameof(serviceSessionRuntime));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        stockRuntime = new SurvivalFoodStockRuntime(
+            dependencies.GridSystemProvider,
+            this.worldRegistry,
+            this.itemStackRuntime,
+            this.itemCatalog,
+            dependencies.StockQuery);
+        spoilageRuntime = new SurvivalFoodSpoilageRuntime(
+            this.itemStackRuntime,
+            this.itemCatalog,
+            stockRuntime);
+        overviewCache = new SurvivalFoodOverviewCache(
+            this.gameClock,
+            this.worldRegistry,
+            this.itemStackRuntime);
+        mealLedger = new SurvivalMealLedger(this.gameEventBus);
+        environmentRisks = new SurvivalEnvironmentRiskEvaluator(
+            dependencies.GridSystemProvider,
+            this.worldRegistry,
+            worldThreatModifiers);
     }
 
     public int GetStoredStockCount(StockCategory category)
     {
-        return CountStoredStock(category);
+        return stockRuntime.CountStoredStock(category);
     }
 
     public void ConfigureStorageEnvironment(
-        IEnvironmentalFieldRuntime fieldRuntime)
+        IEnvironmentalFieldQuery fieldQuery)
     {
-        environmentalField = fieldRuntime
-            ?? throw new ArgumentNullException(nameof(fieldRuntime));
+        spoilageRuntime.ConfigureStorageEnvironment(fieldQuery);
     }
 
     public SurvivalEnvironmentSnapshot GetEnvironmentSnapshot()
     {
-        return new SurvivalEnvironmentSnapshot(
-            state.currentWeather,
-            GetEffectiveOutdoorTemperature(),
-            state.exteriorNightDanger,
-            GetEffectiveSanitationRisk(),
-            GetEffectiveDiseaseRisk());
+        return environmentRisks.GetSnapshot(state);
     }
 
     public int TryConsumeStoredStock(StockCategory category, int amount)
     {
-        return WithdrawStock(category, Mathf.Max(0, amount));
+        return stockRuntime.WithdrawStock(category, Mathf.Max(0, amount));
     }
 
     public void Initialize()
@@ -181,7 +194,7 @@ public sealed class SurvivalFoodRuntime :
     {
         EnsureStateLists();
         UpdateWeather(day);
-        ProcessSpoilage(advanceTime: true);
+        spoilageRuntime.Process(state, advanceTime: true);
         RefreshDailyFoodForecast(day);
         ConsumeDailyWater(day);
         ConsumeDailyFuel();
@@ -192,69 +205,7 @@ public sealed class SurvivalFoodRuntime :
 
     public DungeonSurvivalSaveData Capture()
     {
-        return new DungeonSurvivalSaveData
-        {
-            version = DungeonSurvivalSaveData.CurrentVersion,
-            lastProcessedDay = state.lastProcessedDay,
-            lastNeededFood = state.lastNeededFood,
-            lastConsumedFood = state.lastConsumedFood,
-            lastMissingFood = state.lastMissingFood,
-            lastNeededWater = state.lastNeededWater,
-            lastConsumedWater = state.lastConsumedWater,
-            lastMissingWater = state.lastMissingWater,
-            consecutiveFoodShortageDays = state.consecutiveFoodShortageDays,
-            consecutiveWaterShortageDays = state.consecutiveWaterShortageDays,
-            lastConsumedFuel = state.lastConsumedFuel,
-            lastMissingFuel = state.lastMissingFuel,
-            currentWeather = state.currentWeather,
-            weatherDay = state.weatherDay,
-            outdoorTemperature = state.outdoorTemperature,
-            sanitationRisk = state.sanitationRisk,
-            diseaseRisk = state.diseaseRisk,
-            exteriorNightDanger = state.exteriorNightDanger,
-            spoilage = (state.spoilage ?? new List<SurvivalFoodSpoilageSaveData>())
-                .Where(entry => entry != null && !string.IsNullOrWhiteSpace(entry.stackId))
-                .Select(entry => new SurvivalFoodSpoilageSaveData
-                {
-                    stackId = entry.stackId,
-                    itemId = entry.itemId,
-                    remainingFreshnessSeconds = entry.remainingFreshnessSeconds,
-                    preserved = entry.preserved,
-                    contaminated = entry.contaminated
-                })
-                .ToList(),
-            health = (state.health ?? new List<SurvivalHealthSaveData>())
-                .Where(entry => entry != null && !string.IsNullOrWhiteSpace(entry.persistentId))
-                .Select(entry => new SurvivalHealthSaveData
-                {
-                    persistentId = entry.persistentId,
-                    state = entry.state,
-                    severity = entry.severity,
-                    remainingSeconds = entry.remainingSeconds,
-                    source = entry.source
-                })
-                .ToList(),
-            mealLedger = (state.mealLedger ?? new List<CharacterMealLedgerSaveData>())
-                .Where(entry => entry != null
-                    && !string.IsNullOrWhiteSpace(entry.mealId)
-                    && !string.IsNullOrWhiteSpace(entry.characterId))
-                .Select(entry => new CharacterMealLedgerSaveData
-                {
-                    mealId = entry.mealId,
-                    characterId = entry.characterId,
-                    facilityId = entry.facilityId,
-                    itemId = entry.itemId,
-                    displayName = entry.displayName,
-                    dietClass = entry.dietClass,
-                    quality = entry.quality,
-                    nutrition = entry.nutrition,
-                    policyViolation = entry.policyViolation,
-                    contaminated = entry.contaminated,
-                    day = entry.day,
-                    amount = entry.amount
-                })
-                .ToList()
-        };
+        return SurvivalFoodStatePersistence.Capture(state);
     }
 
     public void DebugSetWeather(SurvivalWeatherType weather)
@@ -276,72 +227,61 @@ public sealed class SurvivalFoodRuntime :
 
     public void DebugAdvanceSpoilage(float seconds)
     {
-        EnsureStateLists();
-        float advance = Mathf.Max(0f, seconds);
-        foreach (SurvivalFoodSpoilageSaveData entry in state.spoilage)
-        {
-            if (entry != null && !entry.preserved)
-            {
-                entry.remainingFreshnessSeconds = Mathf.Max(
-                    0f,
-                    entry.remainingFreshnessSeconds - advance);
-            }
-        }
-
-        ProcessSpoilage(advanceTime: false);
+        spoilageRuntime.DebugAdvance(state, seconds);
         InvalidateOverviewCache();
     }
 
     public void DebugResetSpoilage()
     {
-        EnsureStateLists();
-        foreach (SurvivalFoodSpoilageSaveData entry in state.spoilage)
+        spoilageRuntime.DebugReset(state);
+        InvalidateOverviewCache();
+    }
+
+    public SurvivalFoodRestoreCandidate BuildRestoreCandidate(
+        DungeonSurvivalSaveData saveData)
+    {
+        DungeonGameRestoreReport validation = new();
+        ValidateRestorePayload(saveData, validation);
+        if (!validation.Success)
         {
-            if (entry != null)
-            {
-                entry.remainingFreshnessSeconds = entry.preserved
-                    ? PreservedFreshnessSeconds
-                    : DefaultFreshnessSeconds;
-                entry.contaminated = false;
-            }
+            throw new InvalidOperationException(
+                "Survival resources restore rejected an invalid V5 candidate: "
+                + string.Join(" | ", validation.Errors));
         }
 
+        DungeonSurvivalSaveData restored =
+            SurvivalFoodStatePersistence.Restore(saveData);
+        return new SurvivalFoodRestoreCandidate(
+            new SurvivalFoodAggregateState
+            {
+                Data = restored,
+                MealSequence = SurvivalFoodStatePersistence.GetMealSequence(restored)
+            });
+    }
+
+    public void PublishRestoreCandidate(
+        SurvivalFoodRestoreCandidate candidate)
+    {
+        aggregateRootStore.Replace(
+            (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+            .State);
         InvalidateOverviewCache();
     }
 
-    public void Restore(DungeonSurvivalSaveData saveData)
-    {
-        state = saveData ?? new DungeonSurvivalSaveData();
-        state.version = DungeonSurvivalSaveData.CurrentVersion;
-        state.spoilage ??= new List<SurvivalFoodSpoilageSaveData>();
-        state.health ??= new List<SurvivalHealthSaveData>();
-        state.mealLedger ??= new List<CharacterMealLedgerSaveData>();
-        mealSequence = state.mealLedger.Count;
-        InvalidateOverviewCache();
-    }
+    public void ValidateRestorePayload(
+        DungeonSurvivalSaveData payload,
+        DungeonGameRestoreReport report) =>
+        SurvivalFoodStatePersistence.Validate(payload, report, itemCatalog);
 
     public SurvivalFoodOverview GetOverview()
     {
-        int frame = gameClock?.FrameCount ?? -1;
-        int itemVersion = itemStackRuntime?.ItemStackVersion ?? -1;
-        int characterVersion = worldRegistry?.CharacterVersion ?? -1;
-        int buildingVersion = worldRegistry?.BuildingVersion ?? -1;
-        float now = gameClock?.Time ?? 0f;
-        bool refreshIntervalValid = gameClock != null
-            ? now - cachedOverviewTime <= OverviewRefreshIntervalSeconds
-            : cachedOverviewFrame == frame;
-        if (hasCachedOverview
-            && refreshIntervalValid
-            && (gameClock != null || cachedOverviewFrame == frame)
-            && cachedOverviewItemVersion == itemVersion
-            && cachedOverviewCharacterVersion == characterVersion
-            && cachedOverviewBuildingVersion == buildingVersion)
-        {
-            return cachedOverview;
-        }
+        return overviewCache.GetOrCreate(BuildOverview);
+    }
 
+    private SurvivalFoodOverview BuildOverview()
+    {
         EnsureStateLists();
-        ProcessSpoilage();
+        spoilageRuntime.Process(state);
         RefreshSurvivalRisks();
 
         int required = CountSurvivalConsumers();
@@ -351,10 +291,10 @@ public sealed class SurvivalFoodRuntime :
         int shortageDays = required <= 0
             ? int.MaxValue
             : Mathf.FloorToInt((stored + looseFood + pendingFood) / (float)required);
-        int storedWater = CountStoredStock(StockCategory.Water);
-        int looseWater = CountLooseStock(StockCategory.Water);
-        int storedFuel = CountStoredStock(StockCategory.Fuel);
-        int storedMedicine = CountStoredStock(StockCategory.Medicine);
+        int storedWater = stockRuntime.CountStoredStock(StockCategory.Water);
+        int looseWater = stockRuntime.CountLooseStock(StockCategory.Water);
+        int storedFuel = stockRuntime.CountStoredStock(StockCategory.Fuel);
+        int storedMedicine = stockRuntime.CountStoredStock(StockCategory.Medicine);
         int sickCount = 0;
         int untreatedCount = 0;
         IReadOnlyList<SurvivalHealthSaveData> healthEntries =
@@ -377,8 +317,8 @@ public sealed class SurvivalFoodRuntime :
                 untreatedCount++;
             }
         }
-        int spoilageWarnings = CountSpoilageWarnings();
-        SurvivalFoodOverview overview = new SurvivalFoodOverview(
+        int spoilageWarnings = spoilageRuntime.CountWarnings(state);
+        return new SurvivalFoodOverview(
             required,
             stored,
             looseFood,
@@ -398,146 +338,63 @@ public sealed class SurvivalFoodRuntime :
             state.exteriorNightDanger,
             sickCount,
             untreatedCount);
-        if (frame >= 0)
-        {
-            cachedOverview = overview;
-            cachedOverviewFrame = frame;
-            cachedOverviewItemVersion = itemStackRuntime?.ItemStackVersion ?? -1;
-            cachedOverviewCharacterVersion = worldRegistry?.CharacterVersion ?? -1;
-            cachedOverviewBuildingVersion = worldRegistry?.BuildingVersion ?? -1;
-            cachedOverviewTime = now;
-            hasCachedOverview = true;
-        }
-
-        return overview;
     }
 
     private void InvalidateOverviewCache()
     {
-        hasCachedOverview = false;
-        cachedOverviewFrame = -1;
-        cachedOverviewTime = float.NegativeInfinity;
+        overviewCache.Invalidate();
     }
 
     public bool TryGetItemStatus(string stackId, string itemId, out SurvivalItemStatus status)
     {
-        EnsureStateLists();
-        string normalizedStackId = stackId?.Trim() ?? string.Empty;
-        string normalizedItemId = itemId?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(normalizedItemId)
-            || !ShouldTrackSpoilage(normalizedItemId))
-        {
-            status = default;
-            return false;
-        }
-
-        SurvivalFoodSpoilageSaveData entry = state.spoilage
-            .FirstOrDefault(candidate => candidate != null
-                && string.Equals(candidate.stackId, normalizedStackId, StringComparison.Ordinal));
-        if (entry == null)
-        {
-            entry = CreateSpoilageEntry(normalizedStackId, normalizedItemId);
-            if (!string.IsNullOrWhiteSpace(normalizedStackId))
-            {
-                state.spoilage.Add(entry);
-            }
-        }
-
-        float baseFreshness = GetBaseFreshnessSeconds(
-            entry.itemId,
-            entry.preserved);
-        string label = entry.contaminated
-            ? "오염됨"
-            : entry.remainingFreshnessSeconds <= FreshnessWarningThresholdSeconds
-                ? "부패 임박"
-                : entry.preserved
-                    ? "보존됨"
-                    : "신선함";
-        status = new SurvivalItemStatus(
-            tracked: true,
-            preserved: entry.preserved,
-            contaminated: entry.contaminated,
-            freshness01: entry.remainingFreshnessSeconds / Mathf.Max(1f, baseFreshness),
-            remainingFreshnessSeconds: entry.remainingFreshnessSeconds,
-            label: label);
-        return true;
+        return spoilageRuntime.TryGetItemStatus(state, stackId, itemId, out status);
     }
 
     public bool TryGetCharacterStatus(CharacterActor actor, out SurvivalCharacterStatus status)
     {
-        EnsureStateLists();
-        status = default;
-        if (actor == null)
-        {
-            return false;
-        }
-
-        string persistentId = actor.Identity?.PersistentId;
-        if (string.IsNullOrWhiteSpace(persistentId))
-        {
-            persistentId = actor.name;
-        }
-
-        List<SurvivalHealthSaveData> activeEntries = state.health
-            .Where(entry => entry != null
-                && entry.remainingSeconds > 0f
-                && entry.state != SurvivalHealthState.Healthy
-                && (string.Equals(entry.persistentId, persistentId, StringComparison.Ordinal)
-                    || string.Equals(entry.persistentId, actor.name, StringComparison.Ordinal)))
-            .OrderByDescending(entry => entry.state == SurvivalHealthState.Infected ? 3 : 0)
-            .ThenByDescending(entry => entry.state == SurvivalHealthState.Sick ? 2 : 0)
-            .ThenByDescending(entry => entry.state == SurvivalHealthState.Exposed ? 1 : 0)
-            .ThenByDescending(entry => entry.severity)
-            .ToList();
-
-        SurvivalHealthSaveData primary = activeEntries.FirstOrDefault();
-        float temperatureComfort =
-            GetTemperatureComfort01(GetEffectiveOutdoorTemperature());
-        status = new SurvivalCharacterStatus(
-            hasStatus: primary != null || state.consecutiveWaterShortageDays > 0 || state.consecutiveFoodShortageDays > 0,
-            primaryState: primary?.state ?? SurvivalHealthState.Healthy,
-            severity01: primary?.severity ?? 0f,
-            remainingSeconds: primary?.remainingSeconds ?? 0f,
-            source: primary?.source ?? string.Empty,
-            activeIssueCount: activeEntries.Count,
-            temperatureComfort01: temperatureComfort,
-            waterSummary: state.consecutiveWaterShortageDays > 0
-                ? $"물 부족 {state.consecutiveWaterShortageDays}일"
-                : "물 정상",
-            foodSummary: state.consecutiveFoodShortageDays > 0
-                ? $"식량 부족 {state.consecutiveFoodShortageDays}일"
-                : "식량 정상");
-        return true;
+        return SurvivalHealthStateRules.TryGetStatus(
+            state,
+            actor,
+            environmentRisks.GetEffectiveOutdoorTemperature(state),
+            out status);
     }
 
     public bool TryApplySurvivalWork(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         WorkTypeId workTypeId,
         out int amount,
-        out string message)
+        out DomainFailure failure)
     {
         EnsureStateLists();
         amount = 0;
-        message = string.Empty;
         if (building == null)
         {
-            message = "대상 시설이 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurvivalTargetFacilityMissing);
             return false;
         }
 
         switch (workTypeId)
         {
             case var id when id == BuiltInWorkTypeIds.DrawWater:
-                return TryApplyDrawWater(actor, building, out amount, out message);
+                return TryApplyDrawWater(actor, building, out amount, out failure);
             case var id when id == BuiltInWorkTypeIds.Cook:
-                return TryApplyCook(actor, building, out amount, out message);
+                return TryApplyCook(actor, building, out amount, out failure);
             case var id when id == BuiltInWorkTypeIds.Treat:
-                return TryApplyTreat(actor, building, out amount, out message);
+                return TryApplyTreat(actor, building, out amount, out failure);
             case var id when id == BuiltInWorkTypeIds.Refuel:
-                return TryApplyRefuel(actor, building, out amount, out message);
+                return SurvivalFacilityWorkRules.TryApplyRefuel(
+                    actor,
+                    building,
+                    stockRuntime,
+                    state,
+                    out amount,
+                    out failure);
             default:
-                message = "생존 작업이 아닙니다.";
+                failure = new DomainFailure(
+                    FailureCode.SurvivalWorkUnsupported,
+                    workTypeId.Value);
                 return false;
         }
     }
@@ -554,15 +411,15 @@ public sealed class SurvivalFoodRuntime :
             var id when id == BuiltInWorkTypeIds.DrawWater => building.BuildingData.GetAbility<BuildingWaterSourceAbility>() != null
                 && CanDrawWater(building),
             var id when id == BuiltInWorkTypeIds.Cook => building.BuildingData.GetAbility<BuildingCookingAbility>() is { } cooking
-                && CountStoredStock(StockCategory.Food) >= Mathf.Max(1, cooking.inputFood)
-                && (!cooking.requiresFuel || CountStoredStock(StockCategory.Fuel) > 0),
+                && stockRuntime.CountStoredStock(StockCategory.Food) >= Mathf.Max(1, cooking.inputFood)
+                && (!cooking.requiresFuel || stockRuntime.CountStoredStock(StockCategory.Fuel) > 0),
             var id when id == BuiltInWorkTypeIds.Treat => building.BuildingData.GetAbility<BuildingMedicalAbility>() != null
                 && HasTreatableHealth()
                 && (building.BuildingData.GetAbility<BuildingMedicalAbility>()?.requiresMedicine != true
-                    || CountStoredStock(StockCategory.Medicine) > 0
-                    || CountStoredStock(StockCategory.Biological) > 0),
+                    || stockRuntime.CountStoredStock(StockCategory.Medicine) > 0
+                    || stockRuntime.CountStoredStock(StockCategory.Biological) > 0),
             var id when id == BuiltInWorkTypeIds.Refuel => building.BuildingData.GetAbility<BuildingFuelConsumerAbility>() != null
-                && CountStoredStock(StockCategory.Fuel) > 0,
+                && stockRuntime.CountStoredStock(StockCategory.Fuel) > 0,
             _ => false
         };
     }
@@ -591,52 +448,17 @@ public sealed class SurvivalFoodRuntime :
 
     public int GetMealsConsumed(int day)
     {
-        EnsureStateLists();
-        return state.mealLedger
-            .Where(entry => entry != null && entry.day == day)
-            .Sum(entry => Mathf.Max(0, entry.amount));
+        return mealLedger.GetConsumed(state, day);
     }
 
     public int GetMealsConsumed(string characterId, int day)
     {
-        EnsureStateLists();
-        string normalizedId = characterId?.Trim() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(normalizedId))
-        {
-            return 0;
-        }
-
-        return state.mealLedger
-            .Where(entry => entry != null
-                && entry.day == day
-                && string.Equals(entry.characterId, normalizedId, StringComparison.Ordinal))
-            .Sum(entry => Mathf.Max(0, entry.amount));
+        return mealLedger.GetConsumed(state, characterId, day);
     }
 
     public IReadOnlyList<CharacterMealLedgerSaveData> GetRecentMeals(int maximumCount = 30)
     {
-        EnsureStateLists();
-        return state.mealLedger
-            .Where(entry => entry != null)
-            .OrderByDescending(entry => entry.day)
-            .ThenByDescending(entry => entry.mealId, StringComparer.Ordinal)
-            .Take(Mathf.Clamp(maximumCount, 1, 100))
-            .Select(entry => new CharacterMealLedgerSaveData
-            {
-                mealId = entry.mealId,
-                characterId = entry.characterId,
-                facilityId = entry.facilityId,
-                itemId = entry.itemId,
-                displayName = entry.displayName,
-                dietClass = entry.dietClass,
-                quality = entry.quality,
-                nutrition = entry.nutrition,
-                policyViolation = entry.policyViolation,
-                contaminated = entry.contaminated,
-                day = entry.day,
-                amount = entry.amount
-            })
-            .ToArray();
+        return mealLedger.GetRecent(state, maximumCount);
     }
 
     private void RefreshDailyFoodForecast(int day)
@@ -665,7 +487,7 @@ public sealed class SurvivalFoodRuntime :
 
     private IEnumerable<CharacterActor> GetSurvivalConsumers()
     {
-        IReadOnlyList<CharacterActor> actors = worldRegistry?.Characters ?? Array.Empty<CharacterActor>();
+        IReadOnlyList<CharacterActor> actors = worldRegistry.Characters;
         for (int i = 0; i < actors.Count; i++)
         {
             CharacterActor actor = actors[i];
@@ -681,8 +503,7 @@ public sealed class SurvivalFoodRuntime :
     private int CountSurvivalConsumers()
     {
         int count = 0;
-        IReadOnlyList<CharacterActor> actors =
-            worldRegistry?.Characters ?? Array.Empty<CharacterActor>();
+        IReadOnlyList<CharacterActor> actors = worldRegistry.Characters;
         for (int index = 0; index < actors.Count; index++)
         {
             CharacterActor actor = actors[index];
@@ -707,27 +528,20 @@ public sealed class SurvivalFoodRuntime :
 
     private int CountStoredFood()
     {
-        return CountStoredStock(StockCategory.Food);
+        return stockRuntime.CountStoredStock(StockCategory.Food);
     }
 
     private int CountLooseFood()
     {
-        return CountLooseStock(StockCategory.Food);
+        return stockRuntime.CountLooseStock(StockCategory.Food);
     }
 
     private int CountCarcasses(out int pendingFood)
     {
         pendingFood = 0;
-        if (itemStackRuntime == null)
-        {
-            return 0;
-        }
-
         int count = 0;
         IReadOnlyList<WorldItemStackSnapshot> stacks =
-            GetCachedItemStacks();
-        string foodItemId =
-            DungeonItemCatalogSO.StockItemId(StockCategory.Food);
+            stockRuntime.GetCachedItemStacks();
         for (int stackIndex = 0;
             stackIndex < stacks.Count;
             stackIndex++)
@@ -750,10 +564,10 @@ public sealed class SurvivalFoodRuntime :
                 {
                     WildlifeButcherYield yieldItem = yields[yieldIndex];
                     if (yieldItem != null
-                        && string.Equals(
-                            yieldItem.itemId,
-                            foodItemId,
-                            StringComparison.Ordinal))
+                        && itemCatalog.TryGet(
+                            (ItemDefinitionId)yieldItem.itemId,
+                            out ItemDefinitionSO yieldDefinition)
+                        && yieldDefinition.StockCategory == StockCategory.Food)
                     {
                         pendingFood += yieldItem.amount;
                     }
@@ -766,20 +580,8 @@ public sealed class SurvivalFoodRuntime :
 
     private void EnsureStateLists()
     {
-        state ??= new DungeonSurvivalSaveData();
-        state.spoilage ??= new List<SurvivalFoodSpoilageSaveData>();
-        state.health ??= new List<SurvivalHealthSaveData>();
-        state.mealLedger ??= new List<CharacterMealLedgerSaveData>();
-    }
-
-    private void TrimMealLedger()
-    {
-        const int maximumMealEntries = 512;
-        int removeCount = state.mealLedger.Count - maximumMealEntries;
-        if (removeCount > 0)
-        {
-            state.mealLedger.RemoveRange(0, removeCount);
-        }
+        aggregateState.Data ??= new DungeonSurvivalSaveData();
+        SurvivalFoodStatePersistence.EnsureLists(state);
     }
 
     private void RecordMeal(
@@ -793,50 +595,22 @@ public sealed class SurvivalFoodRuntime :
         bool policyViolation,
         bool contaminated)
     {
-        EnsureStateLists();
-        string characterId = consumer.Identity?.PersistentId?.Trim();
-        if (string.IsNullOrWhiteSpace(characterId))
-        {
-            characterId = $"scene-character:{consumer.GetInstanceID()}";
-        }
-
-        int day = Mathf.Max(1, state.lastProcessedDay);
-        const int amount = 1;
-        string facilityId =
-            $"building:{facility.BuildingData?.id ?? facility.id}:{facility.centerPos.x}:{facility.centerPos.y}";
-        string mealId = $"meal:{day}:{characterId}:{++mealSequence}";
-        state.mealLedger.Add(new CharacterMealLedgerSaveData
-        {
-            mealId = mealId,
-            characterId = characterId,
-            facilityId = facilityId ?? string.Empty,
-            itemId = itemId ?? string.Empty,
-            displayName = displayName ?? string.Empty,
-            dietClass = dietClass,
-            quality = quality,
-            nutrition = Mathf.Max(0f, nutrition),
-            policyViolation = policyViolation,
-            contaminated = contaminated,
-            day = day,
-            amount = amount
-        });
-        TrimMealLedger();
-        RefreshCurrentDayFoodSummary();
-        InvalidateOverviewCache();
-
-        gameEventBus.Publish(new CharacterMealConsumedEvent(
-            mealId,
-            characterId,
-            facilityId,
+        long nextMealSequence = mealSequence;
+        mealLedger.Record(
+            state,
+            ref nextMealSequence,
+            consumer,
+            facility,
             itemId,
             displayName,
             dietClass,
             quality,
             nutrition,
             policyViolation,
-            contaminated,
-            day,
-            amount));
+            contaminated);
+        mealSequence = nextMealSequence;
+        RefreshCurrentDayFoodSummary();
+        InvalidateOverviewCache();
     }
 
     private void UpdateWeather(int day)
@@ -875,118 +649,17 @@ public sealed class SurvivalFoodRuntime :
         {
             gameEventBus.RaiseAlert(
                 "날씨가 위험해집니다",
-                $"{FormatWeather(state.currentWeather)} 예보입니다. 연료, 조명, 외부 작업 상태를 확인하세요.",
+                $"{SurvivalFacilityWorkRules.FormatWeather(state.currentWeather)} 예보입니다. 연료, 조명, 외부 작업 상태를 확인하세요.",
                 EventAlertImportance.Medium,
                 "생존");
-        }
-    }
-
-    private void ProcessSpoilage(bool advanceTime = false)
-    {
-        EnsureStateLists();
-        if (itemStackRuntime == null)
-        {
-            state.spoilage.Clear();
-            return;
-        }
-
-        WorldItemStackSnapshot[] stacks = GetCachedItemStacks()
-            .Where(stack => stack != null && stack.State != WorldItemStackState.Carried)
-            .ToArray();
-        HashSet<string> validStackIds = new HashSet<string>(
-            stacks.Select(stack => stack.StackId),
-            StringComparer.Ordinal);
-
-        foreach (WorldItemStackSnapshot stack in stacks)
-        {
-            if (ShouldTrackSpoilage(stack.ItemId))
-            {
-                TrackSpoilageIfNeeded(stack);
-            }
-        }
-
-        state.spoilage.RemoveAll(entry => entry == null
-            || string.IsNullOrWhiteSpace(entry.stackId)
-            || !validStackIds.Contains(entry.stackId));
-
-        if (!advanceTime)
-        {
-            return;
-        }
-
-        Dictionary<string, WorldItemStackSnapshot> stackById =
-            stacks.ToDictionary(
-                stack => stack.StackId,
-                stack => stack,
-                StringComparer.Ordinal);
-        List<SurvivalFoodSpoilageSaveData> expired = null;
-        foreach (SurvivalFoodSpoilageSaveData entry in state.spoilage)
-        {
-            float environmentMultiplier = stackById.TryGetValue(
-                    entry.stackId,
-                    out WorldItemStackSnapshot storedStack)
-                && environmentalField != null
-                    ? environmentalField.GetFoodSpoilageMultiplier(
-                        storedStack.Position)
-                    : state.currentWeather == SurvivalWeatherType.HeatWave
-                        ? 1.35f
-                        : state.currentWeather == SurvivalWeatherType.ColdSnap
-                            ? 0.45f
-                            : 1f;
-            float dailyDelta = 180f * environmentMultiplier;
-            if (entry.preserved)
-            {
-                entry.remainingFreshnessSeconds -= dailyDelta * 0.25f;
-            }
-            else
-            {
-                entry.remainingFreshnessSeconds -= dailyDelta;
-            }
-
-            if (entry.remainingFreshnessSeconds <= 0f || entry.contaminated)
-            {
-                expired ??= new List<SurvivalFoodSpoilageSaveData>();
-                expired.Add(entry);
-            }
-        }
-
-        if (expired == null)
-        {
-            return;
-        }
-
-        foreach (SurvivalFoodSpoilageSaveData entry in expired)
-        {
-            WorldItemStackSnapshot stack = stacks.FirstOrDefault(candidate =>
-                string.Equals(candidate.StackId, entry.stackId, StringComparison.Ordinal));
-            state.spoilage.Remove(entry);
-            if (stack == null)
-            {
-                continue;
-            }
-
-            Vector2Int position = stack.Position;
-            int rotAmount = Mathf.Max(1, stack.Quantity);
-            ResolveSpoilageWaste(
-                entry.itemId,
-                out string wasteItemId,
-                out WasteOriginKind wasteOrigin);
-            float contamination = entry.contaminated ? 90f : 50f;
-            itemStackRuntime.DeleteStack(stack.StackId);
-            itemStackRuntime.SpawnWasteAt(
-                wasteItemId,
-                rotAmount,
-                position,
-                wasteOrigin,
-                contamination,
-                out _);
         }
     }
 
     private void ConsumeDailyWater(int day)
     {
         int need = GetSurvivalConsumers().Count();
-        int available = CountStoredStock(StockCategory.Water) + CountLooseStock(StockCategory.Water);
+        int available = stockRuntime.CountStoredStock(StockCategory.Water)
+            + stockRuntime.CountLooseStock(StockCategory.Water);
         int consumed = Mathf.Min(need, available);
         int missing = Mathf.Max(0, need - consumed);
         state.lastNeededWater = need;
@@ -1007,10 +680,10 @@ public sealed class SurvivalFoodRuntime :
             need += 1;
         }
         need = Mathf.CeilToInt(
-            need * GetThreatMultiplier(
+            need * environmentRisks.GetThreatMultiplier(
                 OffenseThreatModifierKind.FuelConsumption));
 
-        int consumed = WithdrawStock(StockCategory.Fuel, need);
+        int consumed = stockRuntime.WithdrawStock(StockCategory.Fuel, need);
         state.lastConsumedFuel = consumed;
         state.lastMissingFuel = Mathf.Max(0, need - consumed);
         if (state.lastMissingFuel <= 0)
@@ -1027,141 +700,13 @@ public sealed class SurvivalFoodRuntime :
 
     private void RefreshSurvivalRisks()
     {
-        int rotStacks = CountLooseRotStacks();
-        RefreshBuildingRiskContributionsIfNeeded();
-        state.sanitationRisk = Mathf.Clamp(
-            (rotStacks * 12f)
-            + (state.lastMissingWater * 8f)
-            - cachedVentilationBonus
-            + GetThreatStrength(OffenseThreatModifierKind.Sanitation) * 45f,
-            0f,
-            100f);
-        state.diseaseRisk = Mathf.Clamp(
-            (state.sanitationRisk * 0.55f)
-            + (state.consecutiveFoodShortageDays * 7f)
-            + (state.consecutiveWaterShortageDays * 12f)
-            + GetThreatStrength(OffenseThreatModifierKind.Disease) * 40f,
-            0f,
-            100f);
-        float weatherDanger = state.currentWeather switch
-        {
-            SurvivalWeatherType.Storm => 35f,
-            SurvivalWeatherType.Fog => 25f,
-            SurvivalWeatherType.Rain => 18f,
-            SurvivalWeatherType.ColdSnap => 16f,
-            _ => 10f
-        };
-        state.exteriorNightDanger = Mathf.Clamp(
-            weatherDanger
-            + (state.lastMissingFuel * 18f)
-            + (rotStacks * 4f)
-            - cachedLightSafety,
-            0f,
-            100f);
-    }
-
-    private float GetEffectiveOutdoorTemperature()
-    {
-        return state.outdoorTemperature
-            + GetThreatStrength(OffenseThreatModifierKind.Temperature) * 14f;
-    }
-
-    private float GetEffectiveSanitationRisk()
-    {
-        return Mathf.Clamp(
-            state.sanitationRisk
-            + GetThreatStrength(OffenseThreatModifierKind.Sanitation) * 45f,
-            0f,
-            100f);
-    }
-
-    private float GetEffectiveDiseaseRisk()
-    {
-        return Mathf.Clamp(
-            state.diseaseRisk
-            + GetThreatStrength(OffenseThreatModifierKind.Disease) * 40f,
-            0f,
-            100f);
-    }
-
-    private float GetThreatStrength(OffenseThreatModifierKind kind)
-    {
-        return worldThreatModifiers?.GetModifier(kind).EffectiveStrength ?? 0f;
-    }
-
-    private float GetThreatMultiplier(OffenseThreatModifierKind kind)
-    {
-        return worldThreatModifiers?.GetMultiplier(kind) ?? 1f;
-    }
-
-    private void RefreshBuildingRiskContributionsIfNeeded()
-    {
-        int buildingVersion = worldRegistry?.BuildingVersion ?? -1;
-        if (cachedRiskBuildingVersion == buildingVersion)
-        {
-            return;
-        }
-
-        if (!gridSystemProvider.TryGetGrid(out Grid grid))
-        {
-            return;
-        }
-
-        cachedRiskBuildingVersion = buildingVersion;
-        cachedVentilationBonus = 0f;
-        cachedLightSafety = 0f;
-        IReadOnlyList<BuildableObject> registeredBuildings =
-            worldRegistry?.Buildings ?? Array.Empty<BuildableObject>();
-        if (registeredBuildings.Count > 0)
-        {
-            for (int i = 0; i < registeredBuildings.Count; i++)
-            {
-                AccumulateBuildingRiskContribution(registeredBuildings[i], grid);
-            }
-
-            return;
-        }
-
-        foreach (IGridOccupant occupant in grid.FindAllOccupants(null))
-        {
-            if (occupant is BuildableObject building)
-            {
-                AccumulateBuildingRiskContribution(building, grid);
-            }
-        }
-    }
-
-    private void AccumulateBuildingRiskContribution(
-        BuildableObject building,
-        Grid grid)
-    {
-        if (building == null
-            || building.Grid != grid
-            || building.isDestroy
-            || building.BuildingData == null)
-        {
-            return;
-        }
-
-        BuildingVentilationAbility ventilation =
-            building.BuildingData.GetAbility<BuildingVentilationAbility>();
-        if (ventilation != null)
-        {
-            cachedVentilationBonus += ventilation.hygieneRiskReduction;
-        }
-
-        BuildingFuelConsumerAbility fuelConsumer =
-            building.BuildingData.GetAbility<BuildingFuelConsumerAbility>();
-        if (fuelConsumer != null)
-        {
-            cachedLightSafety += fuelConsumer.lightSafety;
-        }
-    }
-
-    private static float GetTemperatureComfort01(float temperature)
-    {
-        float distanceFromComfort = Mathf.Abs(temperature - 20f);
-        return Mathf.Clamp01(1f - (distanceFromComfort / 22f));
+        int rotStacks = spoilageRuntime.CountLooseRotStacks();
+        SurvivalRiskEvaluation evaluation = environmentRisks.Evaluate(
+            state,
+            rotStacks);
+        state.sanitationRisk = evaluation.SanitationRisk;
+        state.diseaseRisk = evaluation.DiseaseRisk;
+        state.exteriorNightDanger = evaluation.ExteriorNightDanger;
     }
 
     private void ApplyHealthConsequences()
@@ -1192,7 +737,13 @@ public sealed class SurvivalFoodRuntime :
             return;
         }
 
-        RegisterOrRefreshHealth(patient, SurvivalHealthState.Sick, state.diseaseRisk / 100f, 360f, "sanitation-risk");
+        SurvivalHealthStateRules.RegisterOrRefresh(
+            state,
+            patient,
+            SurvivalHealthState.Sick,
+            state.diseaseRisk / 100f,
+            360f,
+            "sanitation-risk");
         patient.ApplyMoodFactor(
             "survival:sick",
             "몸 상태가 좋지 않음",
@@ -1202,29 +753,35 @@ public sealed class SurvivalFoodRuntime :
     }
 
     private bool TryApplyDrawWater(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         out int amount,
-        out string message)
+        out DomainFailure failure)
     {
         amount = 0;
         BuildingWaterSourceAbility ability = building.BuildingData?.GetAbility<BuildingWaterSourceAbility>();
         if (ability == null)
         {
-            message = "물을 얻을 수 있는 시설이 아닙니다.";
+            failure = new DomainFailure(
+                FailureCode.SurvivalWaterSourceUnsupported,
+                building.PersistentInstanceId.Value);
             return false;
         }
 
         if (!CanDrawWater(building))
         {
-            message = "추위 때문에 물길이 막혔습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurvivalWaterFrozen,
+                building.PersistentInstanceId.Value);
             return false;
         }
 
         amount = Mathf.Max(1, ability.waterPerWork);
-        bool spawned = itemStackRuntime != null
-            && itemStackRuntime.SpawnItemAt(
-                DungeonItemCatalogSO.StockItemId(StockCategory.Water),
+        string waterItemId = RequireAuthoredItemId(
+            definition => definition.StockCategory == StockCategory.Water,
+            "water");
+        bool spawned = itemStackRuntime.SpawnItemAt(
+                waterItemId,
                 amount,
                 building.centerPos,
                 WorldItemStackState.Loose,
@@ -1236,62 +793,75 @@ public sealed class SurvivalFoodRuntime :
             amount = ModularFacilityRuntimeEffects.Produce(building, StockCategory.Water, amount);
         }
 
-        actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.DrawWater,
-            amount > 0 ? CharacterActivityOutcomes.Completed : CharacterActivityOutcomes.Failed,
-            amount > 0
-                ? $"{GetBuildingName(building)}에서 물 {amount}개를 길었다."
-                : "물을 담을 곳을 찾지 못했다.",
+        RecordWorkActivity(
+            actor,
             building,
-            reasonCode: amount > 0 ? "water-drawn" : "water-output-failed",
-            quantity: amount,
-            bubbleEligible: amount <= 0));
-        message = amount > 0 ? "물을 길었습니다." : "물 생산 실패";
+            BuiltInWorkTypeIds.DrawWater,
+            amount > 0 ? BuildingActivityOutcomes.Completed : BuildingActivityOutcomes.Failed,
+            amount > 0
+                ? $"{SurvivalFacilityWorkRules.GetBuildingName(building)}에서 물 {amount}개를 길었다."
+                : "물을 담을 곳을 찾지 못했다.",
+            amount > 0 ? "water-drawn" : "water-output-failed",
+            amount,
+            amount <= 0);
+        failure = amount > 0
+            ? DomainFailure.None
+            : new DomainFailure(
+                FailureCode.SurvivalOutputUnavailable,
+                waterItemId);
         return amount > 0;
     }
 
     private bool TryApplyCook(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         out int amount,
-        out string message)
+        out DomainFailure failure)
     {
         amount = 0;
         BuildingCookingAbility cooking = building.BuildingData?.GetAbility<BuildingCookingAbility>();
         if (cooking == null)
         {
-            message = "조리 가능한 시설이 아닙니다.";
+            failure = new DomainFailure(
+                FailureCode.SurvivalCookingUnsupported,
+                building.PersistentInstanceId.Value);
             return false;
         }
 
         int input = Mathf.Max(1, cooking.inputFood);
-        if (CountStoredStock(StockCategory.Food) < input)
+        if (stockRuntime.CountStoredStock(StockCategory.Food) < input)
         {
-            message = "조리할 식재료가 부족합니다.";
+            failure = new DomainFailure(
+                FailureCode.SurvivalFoodStockMissing,
+                input.ToString());
             return false;
         }
 
-        if (cooking.requiresFuel && CountStoredStock(StockCategory.Fuel) <= 0)
+        if (cooking.requiresFuel && stockRuntime.CountStoredStock(StockCategory.Fuel) <= 0)
         {
-            message = "조리에 쓸 연료가 부족합니다.";
+            failure = new DomainFailure(
+                FailureCode.SurvivalFuelStockMissing,
+                "1");
             return false;
         }
 
-        WithdrawStock(StockCategory.Food, input);
+        stockRuntime.WithdrawStock(StockCategory.Food, input);
         if (cooking.requiresFuel)
         {
-            WithdrawStock(StockCategory.Fuel, 1);
+            stockRuntime.WithdrawStock(StockCategory.Fuel, 1);
         }
 
-        BuildingPreservationAbility preservation = FindRoomPreservationAbility(building);
-        string outputId = preservation != null
-            ? SurvivalItemDefinitions.PreservedFoodItemId
-            : SurvivalItemDefinitions.CookedMealItemId;
+        BuildingPreservationAbility preservation =
+            SurvivalFacilityWorkRules.FindPreservationAbility(building);
+        string outputId = RequireAuthoredItemId(
+            definition => definition.StockCategory == StockCategory.Food
+                && definition.TryGetFeature(out FoodItemFeature food)
+                && food.preserved == (preservation != null),
+            preservation != null ? "preserved meal" : "cooked meal");
         amount = preservation != null
             ? Mathf.Max(1, preservation.preservedMealsPerCook)
             : Mathf.Max(1, cooking.cookedMeals);
-        bool spawned = itemStackRuntime != null
-            && itemStackRuntime.SpawnItemAt(
+        bool spawned = itemStackRuntime.SpawnItemAt(
                 outputId,
                 amount,
                 building.centerPos,
@@ -1310,48 +880,67 @@ public sealed class SurvivalFoodRuntime :
             2f,
             120f,
             1);
-        actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Cook,
-            CharacterActivityOutcomes.Completed,
-            preservation != null
-                ? $"{GetBuildingName(building)}에서 오래 둘 수 있는 보존 식량을 만들었다."
-                : $"{GetBuildingName(building)}에서 따뜻한 식사를 만들었다.",
+        RecordWorkActivity(
+            actor,
             building,
-            reasonCode: preservation != null ? "food-preserved" : "food-cooked",
-            quantity: amount));
-        message = "조리를 완료했습니다.";
+            BuiltInWorkTypeIds.Cook,
+            BuildingActivityOutcomes.Completed,
+            preservation != null
+                ? $"{SurvivalFacilityWorkRules.GetBuildingName(building)}에서 오래 둘 수 있는 보존 식량을 만들었다."
+                : $"{SurvivalFacilityWorkRules.GetBuildingName(building)}에서 따뜻한 식사를 만들었다.",
+            preservation != null ? "food-preserved" : "food-cooked",
+            amount,
+            false);
+        failure = DomainFailure.None;
         return true;
     }
 
+    private string RequireAuthoredItemId(
+        Func<ItemDefinitionSO, bool> predicate,
+        string role)
+    {
+        ItemDefinitionSO definition = itemCatalog.All
+            .Where(candidate => candidate != null && predicate(candidate))
+            .OrderBy(candidate => candidate.ItemId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        return definition != null
+            ? definition.ItemId
+            : throw new InvalidOperationException(
+                $"No authored item definition satisfies survival role '{role}'.");
+    }
+
     private bool TryApplyTreat(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         out int amount,
-        out string message)
+        out DomainFailure failure)
     {
         amount = 0;
         BuildingMedicalAbility medical = building.BuildingData?.GetAbility<BuildingMedicalAbility>();
         if (medical == null)
         {
-            message = "치료 가능한 시설이 아닙니다.";
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentUnsupported,
+                building.PersistentInstanceId.Value);
             return false;
         }
 
         SurvivalHealthSaveData patientEntry = FindTreatmentEntry(building);
         if (patientEntry == null)
         {
-            message = "치료할 대상이 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentTargetMissing,
+                building.PersistentInstanceId.Value);
             return false;
         }
 
         bool usedBloodSubstitute = false;
-        CharacterActor patient =
-            FindActorByPersistentId(patientEntry.persistentId);
+        CharacterActor patient = SurvivalFoodStatePersistence.FindActor(
+            GetSurvivalConsumers(), patientEntry.persistentId);
         ServiceSessionSnapshot serviceSession = null;
         BuildingServiceHubAbility serviceHub =
             building.GetServiceHubAbility();
         if (serviceHub != null
-            && serviceSessionRuntime != null
             && !serviceSessionRuntime.TryBeginSession(
                 new ServiceSessionRequest
                 {
@@ -1359,25 +948,26 @@ public sealed class SurvivalFoodRuntime :
                     Actor = patient,
                     ProcessId = serviceHub.supportedProcessIds?
                         .FirstOrDefault() ?? string.Empty,
-                    IsInternalActor = Shop.IsInternalStaffUse(patient),
-                    AdvertisedDemand = !Shop.IsInternalStaffUse(patient)
+                    IsInternalActor = Shop.IsInternalStaffUse(patient?.BuildingVisitor),
+                    AdvertisedDemand = !Shop.IsInternalStaffUse(patient?.BuildingVisitor)
                 },
                 out serviceSession,
-                out string serviceFailure))
+                out DomainFailure serviceFailure))
         {
-            message = serviceFailure;
+            failure = serviceFailure;
             return false;
         }
         if (medical.requiresMedicine
-            && !TryConsumeTreatmentMaterial(out usedBloodSubstitute))
+            && !stockRuntime.TryConsumeTreatmentMaterial(out usedBloodSubstitute))
         {
             if (serviceSession != null)
             {
                 serviceSessionRuntime.CancelSession(
                     serviceSession.SessionId,
-                    "약품이 부족합니다.");
+                    FailureCode.SurvivalTreatmentMaterialMissing.ToString());
             }
-            message = "약품이 부족합니다.";
+            failure = new DomainFailure(
+                FailureCode.SurvivalTreatmentMaterialMissing);
             return false;
         }
 
@@ -1400,7 +990,8 @@ public sealed class SurvivalFoodRuntime :
         patient?.Heal(TreatmentMedicineHeal * treatmentEfficiency);
         if (usedBloodSubstitute && patient != null)
         {
-            RegisterOrRefreshHealth(
+            SurvivalHealthStateRules.RegisterOrRefresh(
+                state,
                 patient,
                 SurvivalHealthState.Exposed,
                 0.25f,
@@ -1419,536 +1010,76 @@ public sealed class SurvivalFoodRuntime :
             3f,
             180f,
             1);
-        actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Treat,
-            CharacterActivityOutcomes.Completed,
-            $"{GetBuildingName(building)}에서 {GetActorName(patient, patientEntry.persistentId)}의 상태를 살폈다.",
+        RecordWorkActivity(
+            actor,
             building,
-            reasonCode: "survival-treated"));
+            BuiltInWorkTypeIds.Treat,
+            BuildingActivityOutcomes.Completed,
+            $"{SurvivalFacilityWorkRules.GetBuildingName(building)}에서 {SurvivalFacilityWorkRules.GetActorName(patient, patientEntry.persistentId)}의 상태를 살폈다.",
+            "survival-treated",
+            0,
+            false);
         amount = 1;
         if (serviceSession != null
             && !serviceSessionRuntime.TryCompleteSession(
                 serviceSession.SessionId,
                 out _,
-                out string completionFailure))
+                out DomainFailure completionFailure))
         {
             serviceSessionRuntime.CancelSession(
                 serviceSession.SessionId,
-                completionFailure);
+                completionFailure.Code.ToString());
         }
-        message = "치료를 완료했습니다.";
+        failure = DomainFailure.None;
         return true;
     }
 
-    private bool TryApplyRefuel(
-        CharacterActor actor,
+    private static void RecordWorkActivity(
+        IBuildingVisitorPort actor,
         BuildableObject building,
-        out int amount,
-        out string message)
+        WorkTypeId workTypeId,
+        string outcomeId,
+        string factText,
+        string reasonCode,
+        int quantity,
+        bool bubbleEligible)
     {
-        amount = 0;
-        BuildingFuelConsumerAbility fuel = building.BuildingData?.GetAbility<BuildingFuelConsumerAbility>();
-        if (fuel == null)
-        {
-            message = "연료를 쓰는 시설이 아닙니다.";
-            return false;
-        }
-
-        int needed = Mathf.Max(1, fuel.fuelPerRefuel);
-        amount = WithdrawStock(StockCategory.Fuel, needed);
-        if (amount <= 0)
-        {
-            message = "연료가 부족합니다.";
-            return false;
-        }
-
-        state.lastMissingFuel = 0;
-        actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Refuel,
-            CharacterActivityOutcomes.Completed,
-            $"{GetBuildingName(building)}에 연료를 보충했다.",
+        actor?.RecordActivity(
             building,
-            reasonCode: "survival-refueled",
-            quantity: amount));
-        message = "연료를 보충했습니다.";
-        return true;
-    }
-
-    private static BuildingPreservationAbility FindRoomPreservationAbility(BuildableObject building)
-    {
-        if (building == null)
-        {
-            return null;
-        }
-
-        try
-        {
-            return building.GetRoomOperationalProfile()
-                .Parts
-                .Where(part => part != null && part.BuildingData != null)
-                .Select(part => part.BuildingData.GetAbility<BuildingPreservationAbility>())
-                .FirstOrDefault(ability => ability != null);
-        }
-        catch (InvalidOperationException)
-        {
-            return building.BuildingData?.GetAbility<BuildingPreservationAbility>();
-        }
-    }
-
-    private int CountStoredStock(StockCategory category)
-    {
-        if (!gridSystemProvider.TryGetGrid(out Grid grid))
-        {
-            return 0;
-        }
-
-        IReadOnlyList<IWarehouseFacility> warehouses =
-            worldRegistry?.Warehouses ?? Array.Empty<IWarehouseFacility>();
-        if (warehouses.Count > 0)
-        {
-            int total = 0;
-            for (int index = 0; index < warehouses.Count; index++)
-            {
-                IWarehouseFacility warehouse = warehouses[index];
-                if (IsWarehouseOnGrid(warehouse, grid)
-                    && warehouse.HasWarehouseInventory
-                    && warehouse.Inventory != null)
-                {
-                    total += warehouse.Inventory.GetStock(category);
-                }
-            }
-
-            return total;
-        }
-
-        return grid.FindAllOccupants(null)
-            .OfType<IWarehouseFacility>()
-            .Where(warehouse => warehouse != null && warehouse.HasWarehouseInventory && warehouse.Inventory != null)
-            .Sum(warehouse => warehouse.Inventory.GetStock(category));
-    }
-
-    private int CountLooseStock(StockCategory category)
-    {
-        if (itemStackRuntime == null)
-        {
-            return 0;
-        }
-
-        int total = 0;
-        IReadOnlyList<WorldItemStackSnapshot> stacks =
-            GetCachedItemStacks();
-        for (int index = 0; index < stacks.Count; index++)
-        {
-            WorldItemStackSnapshot stack = stacks[index];
-            if (stack != null
-                && !stack.Forbidden
-                && stack.State != WorldItemStackState.Carried
-                && DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
-                    stack.ItemId,
-                    out StockCategory parsed)
-                && parsed == category
-                && !SurvivalItemDefinitions.IsContaminated(stack.ItemId))
-            {
-                total += stack.Quantity;
-            }
-        }
-
-        return total;
-    }
-
-    private int WithdrawStock(StockCategory category, int amount)
-    {
-        if (amount <= 0 || !gridSystemProvider.TryGetGrid(out Grid grid))
-        {
-            return 0;
-        }
-
-        int remaining = amount;
-        int withdrawn = 0;
-        IEnumerable<IWarehouseFacility> warehouses = worldRegistry != null
-            && worldRegistry.Warehouses.Count > 0
-            ? worldRegistry.Warehouses.Where(warehouse => IsWarehouseOnGrid(warehouse, grid))
-            : grid.FindAllOccupants(null).OfType<IWarehouseFacility>();
-        foreach (IWarehouseFacility warehouse in warehouses
-                     .Where(warehouse => warehouse != null
-                         && warehouse.HasWarehouseInventory
-                         && warehouse.Inventory != null))
-        {
-            if (remaining <= 0)
-            {
-                break;
-            }
-
-            int amountFromWarehouse = warehouse.Inventory.Withdraw(category, remaining);
-            remaining -= amountFromWarehouse;
-            withdrawn += amountFromWarehouse;
-        }
-
-        return withdrawn;
+            new BuildingActivitySnapshot(
+                BuildingActivityKinds.Work,
+                outcomeId,
+                factText,
+                workTypeId.Value,
+                string.Empty,
+                reasonCode,
+                0f,
+                quantity,
+                bubbleEligible));
     }
 
     private bool CanDrawWater(BuildableObject building)
     {
-        BuildingWaterSourceAbility ability = building?.BuildingData?.GetAbility<BuildingWaterSourceAbility>();
-        return ability != null
-            && (!ability.blockedByFreezingWeather || state.currentWeather != SurvivalWeatherType.ColdSnap);
-    }
-
-    private bool TryConsumeTreatmentMaterial(out bool usedBloodSubstitute)
-    {
-        usedBloodSubstitute = false;
-        if (WithdrawStock(StockCategory.Medicine, 1) > 0)
-        {
-            return true;
-        }
-
-        if (WithdrawStock(StockCategory.Biological, 1) <= 0)
-        {
-            return false;
-        }
-
-        usedBloodSubstitute = true;
-        return true;
+        return SurvivalFacilityWorkRules.CanDrawWater(building, state.currentWeather);
     }
 
     private bool HasTreatableHealth()
     {
-        EnsureStateLists();
-        return state.health.Any(entry => entry != null
-            && entry.remainingSeconds > 0f
-            && (entry.state == SurvivalHealthState.Sick
-                || entry.state == SurvivalHealthState.Infected
-                || entry.state == SurvivalHealthState.Exposed
-                || entry.state == SurvivalHealthState.Recovering));
-    }
-
-    private SurvivalHealthSaveData FindMostSevereHealthEntry()
-    {
-        EnsureStateLists();
-        return state.health
-            .Where(entry => entry != null
-                && entry.remainingSeconds > 0f
-                && entry.state != SurvivalHealthState.Healthy)
-            .OrderByDescending(entry => entry.state == SurvivalHealthState.Infected ? 1 : 0)
-            .ThenByDescending(entry => entry.severity)
-            .FirstOrDefault();
+        return SurvivalHealthStateRules.HasTreatable(state);
     }
 
     private SurvivalHealthSaveData FindTreatmentEntry(
         BuildableObject building)
     {
-        EnsureStateLists();
-        if (building.GetServiceHubAbility() != null
-            && serviceSessionRuntime != null
+        bool useFirstActive = building.GetServiceHubAbility() != null
             && serviceSessionRuntime.GetHubSnapshot(building).Mode
-                == ServiceOperationMode.Direct)
-        {
-            return state.health.FirstOrDefault(entry =>
-                entry != null
-                && entry.remainingSeconds > 0f
-                && entry.state != SurvivalHealthState.Healthy);
-        }
-
-        return FindMostSevereHealthEntry();
-    }
-
-    private void RegisterOrRefreshHealth(
-        CharacterActor actor,
-        SurvivalHealthState healthState,
-        float severity,
-        float durationSeconds,
-        string source)
-    {
-        if (actor == null)
-        {
-            return;
-        }
-
-        EnsureStateLists();
-        string persistentId = actor.Identity?.PersistentId;
-        if (string.IsNullOrWhiteSpace(persistentId))
-        {
-            persistentId = actor.name;
-        }
-
-        SurvivalHealthSaveData entry = state.health.FirstOrDefault(candidate =>
-            candidate != null
-            && string.Equals(candidate.persistentId, persistentId, StringComparison.Ordinal)
-            && candidate.state == healthState);
-        if (entry == null)
-        {
-            state.health.Add(new SurvivalHealthSaveData
-            {
-                persistentId = persistentId,
-                state = healthState,
-                severity = Mathf.Clamp01(severity),
-                remainingSeconds = Mathf.Max(1f, durationSeconds),
-                source = source ?? string.Empty
-            });
-            return;
-        }
-
-        entry.severity = Mathf.Clamp01(Mathf.Max(entry.severity, severity));
-        entry.remainingSeconds = Mathf.Max(entry.remainingSeconds, durationSeconds);
-        entry.source = source ?? entry.source;
+                == ServiceOperationMode.Direct;
+        return SurvivalHealthStateRules.FindTreatmentEntry(state, useFirstActive);
     }
 
     private bool HasActiveHealth(CharacterActor actor, SurvivalHealthState healthState)
     {
-        string persistentId = actor?.Identity?.PersistentId;
-        if (string.IsNullOrWhiteSpace(persistentId))
-        {
-            return false;
-        }
-
-        return state.health.Any(entry => entry != null
-            && entry.state == healthState
-            && entry.remainingSeconds > 0f
-            && string.Equals(entry.persistentId, persistentId, StringComparison.Ordinal));
+        return SurvivalHealthStateRules.HasActive(state, actor, healthState);
     }
 
-    private CharacterActor FindActorByPersistentId(string persistentId)
-    {
-        if (string.IsNullOrWhiteSpace(persistentId))
-        {
-            return null;
-        }
-
-        return GetSurvivalConsumers().FirstOrDefault(actor =>
-            string.Equals(actor.Identity?.PersistentId, persistentId, StringComparison.Ordinal)
-            || string.Equals(actor.name, persistentId, StringComparison.Ordinal));
-    }
-
-    private void TrackSpoilageIfNeeded(WorldItemStackSnapshot stack)
-    {
-        if (stack == null
-            || string.IsNullOrWhiteSpace(stack.StackId)
-            || state.spoilage.Any(entry => entry != null
-                && string.Equals(entry.stackId, stack.StackId, StringComparison.Ordinal)))
-        {
-            return;
-        }
-
-        state.spoilage.Add(CreateSpoilageEntry(stack.StackId, stack.ItemId));
-    }
-
-    private SurvivalFoodSpoilageSaveData CreateSpoilageEntry(string stackId, string itemId)
-    {
-        bool preserved = resourceCatalog?.TryGetItem(
-                itemId?.Trim() ?? string.Empty,
-                out ResourceItemDefinitionSO definition) == true
-            ? definition.Preserved
-            : SurvivalItemDefinitions.IsPreserved(itemId);
-        return new SurvivalFoodSpoilageSaveData
-        {
-            stackId = stackId ?? string.Empty,
-            itemId = itemId ?? string.Empty,
-            preserved = preserved,
-            contaminated = SurvivalItemDefinitions.IsContaminated(itemId),
-            remainingFreshnessSeconds = GetBaseFreshnessSeconds(itemId, preserved)
-        };
-    }
-
-    private bool ShouldTrackSpoilage(string itemId)
-    {
-        bool isFood = resourceCatalog?.TryGetItem(
-                itemId?.Trim() ?? string.Empty,
-                out ResourceItemDefinitionSO definition) == true
-            ? definition.IsMeal
-            : SurvivalItemDefinitions.IsFoodLike(itemId);
-        return isFood
-            && !string.Equals(
-                itemId?.Trim(),
-                DungeonItemCatalogSO.StockItemId(StockCategory.Food),
-                StringComparison.Ordinal)
-            && !SurvivalItemDefinitions.IsContaminated(itemId);
-    }
-
-    private float GetBaseFreshnessSeconds(string itemId, bool preserved)
-    {
-        if (resourceCatalog?.TryGetItem(
-                itemId?.Trim() ?? string.Empty,
-                out ResourceItemDefinitionSO definition) == true
-            && definition.FreshnessSeconds > 0f)
-        {
-            return definition.FreshnessSeconds;
-        }
-
-        return preserved ? PreservedFreshnessSeconds : DefaultFreshnessSeconds;
-    }
-
-    private int CountSpoilageWarnings()
-    {
-        EnsureStateLists();
-        int count = 0;
-        for (int index = 0; index < state.spoilage.Count; index++)
-        {
-            SurvivalFoodSpoilageSaveData entry =
-                state.spoilage[index];
-            if (entry != null
-                && (entry.contaminated
-                    || entry.remainingFreshnessSeconds
-                        <= FreshnessWarningThresholdSeconds))
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    private int CountLooseRotStacks()
-    {
-        if (itemStackRuntime == null)
-        {
-            return 0;
-        }
-
-        int count = 0;
-        IReadOnlyList<WorldItemStackSnapshot> stacks =
-            GetCachedItemStacks();
-        for (int index = 0; index < stacks.Count; index++)
-        {
-            WorldItemStackSnapshot stack = stacks[index];
-            if (stack != null
-                && !stack.Forbidden
-                && stack.State != WorldItemStackState.Carried
-                && (stack.IsWaste
-                    || stack.ItemId.StartsWith(
-                        "waste:",
-                        StringComparison.Ordinal)
-                    || string.Equals(
-                        stack.ItemId,
-                        WildlifeItemDefinitions.RotItemId,
-                        StringComparison.Ordinal)))
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    private void ResolveSpoilageWaste(
-        string sourceItemId,
-        out string wasteItemId,
-        out WasteOriginKind origin)
-    {
-        ResourceIngredientTag tags = resourceCatalog?.TryGetItem(
-                sourceItemId?.Trim() ?? string.Empty,
-                out ResourceItemDefinitionSO definition) == true
-            ? definition.IngredientTags
-            : ResourceIngredientTag.None;
-        bool forbidden = (tags & ResourceIngredientTag.Forbidden) != 0;
-        bool plant = (tags & (ResourceIngredientTag.Plant
-            | ResourceIngredientTag.Fungus)) != 0;
-        bool animal = (tags & (ResourceIngredientTag.Meat
-            | ResourceIngredientTag.Blood
-            | ResourceIngredientTag.Fat
-            | ResourceIngredientTag.Milk
-            | ResourceIngredientTag.Egg)) != 0;
-
-        if (forbidden)
-        {
-            origin = WasteOriginKind.Forbidden;
-            wasteItemId = "waste:forbidden-rot";
-            return;
-        }
-
-        if (plant && !animal)
-        {
-            origin = WasteOriginKind.Plant;
-            wasteItemId = "waste:plant-rot";
-            return;
-        }
-
-        if (animal && !plant)
-        {
-            origin = WasteOriginKind.Animal;
-            wasteItemId = "waste:animal-rot";
-            return;
-        }
-
-        origin = WasteOriginKind.Mixed;
-        wasteItemId = "waste:mixed-rot";
-    }
-
-    private float SumBuildingAbilityValue<TAbility>(Func<TAbility, float> selector)
-        where TAbility : BuildingAbility
-    {
-        if (selector == null || !gridSystemProvider.TryGetGrid(out Grid grid))
-        {
-            return 0f;
-        }
-
-        IReadOnlyList<BuildableObject> registeredBuildings =
-            worldRegistry?.Buildings ?? Array.Empty<BuildableObject>();
-        IEnumerable<BuildableObject> buildings = registeredBuildings.Count > 0
-            ? registeredBuildings.Where(building => building != null && building.Grid == grid)
-            : grid.FindAllOccupants(null).OfType<BuildableObject>();
-
-        return buildings
-            .Where(building => building != null && !building.isDestroy && building.BuildingData != null)
-            .Select(building => building.BuildingData.GetAbility<TAbility>())
-            .Where(ability => ability != null)
-            .Sum(selector);
-    }
-
-    private static bool IsWarehouseOnGrid(IWarehouseFacility warehouse, Grid grid)
-    {
-        if (warehouse == null)
-        {
-            return false;
-        }
-
-        BuildableObject building = warehouse as BuildableObject;
-        return building == null || building.Grid == grid;
-    }
-
-    private IReadOnlyList<WorldItemStackSnapshot> GetCachedItemStacks()
-    {
-        IWorldItemStackRuntime runtime = itemStackRuntime;
-        if (runtime == null)
-        {
-            cachedItemStackVersion = -1;
-            cachedItemStacks = Array.Empty<WorldItemStackSnapshot>();
-            return cachedItemStacks;
-        }
-
-        if (cachedItemStackVersion == runtime.ItemStackVersion)
-        {
-            return cachedItemStacks;
-        }
-
-        cachedItemStackVersion = runtime.ItemStackVersion;
-        cachedItemStacks = runtime.GetAllStacks();
-        return cachedItemStacks;
-    }
-
-    private static string FormatWeather(SurvivalWeatherType weather)
-    {
-        return weather switch
-        {
-            SurvivalWeatherType.Rain => "비",
-            SurvivalWeatherType.Fog => "안개",
-            SurvivalWeatherType.HeatWave => "폭염",
-            SurvivalWeatherType.ColdSnap => "한파",
-            SurvivalWeatherType.Storm => "폭우",
-            _ => "맑음"
-        };
-    }
-
-    private static string GetBuildingName(BuildableObject building)
-    {
-        return string.IsNullOrWhiteSpace(building?.BuildingData?.objectName)
-            ? building != null ? building.name : "시설"
-            : building.BuildingData.objectName;
-    }
-
-    private static string GetActorName(CharacterActor actor, string fallback)
-    {
-        return actor != null && !string.IsNullOrWhiteSpace(actor.name)
-            ? actor.name
-            : string.IsNullOrWhiteSpace(fallback) ? "대상" : fallback;
-    }
 }

@@ -46,9 +46,6 @@ MonoBehaviour:
     basePrice: 9
     satisfaction: 50
     requiredFeatureTags: []
-  physicalInputItemId: 
-  physicalInputQuantity: 1
-  physicalInputCategory: 0
   workTypeId: 
   cleanWater: 0
   wastewater: 0

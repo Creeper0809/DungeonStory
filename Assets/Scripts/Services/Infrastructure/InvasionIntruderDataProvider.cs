@@ -1,15 +1,27 @@
 using System;
+using System.Linq;
+
+public interface IInvasionIntruderDataProvider :
+    IInvasionIntruderDataProvider<CharacterSO>
+{
+}
 
 public sealed class ResourceInvasionIntruderDataProvider : IInvasionIntruderDataProvider
 {
-    private const string DefaultIntruderPath = "SO/Character/Intruders/Intruder_Breakthrough";
+    private const int DefaultIntruderId = 2001;
 
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
+    private readonly CharacterSO defaultIntruder;
 
-    public ResourceInvasionIntruderDataProvider(IResourcesAssetLoader resourcesAssetLoader)
+    public ResourceInvasionIntruderDataProvider(IGameContentCatalog content)
     {
-        this.resourcesAssetLoader = resourcesAssetLoader
-            ?? throw new ArgumentNullException(nameof(resourcesAssetLoader));
+        CharacterSO[] matches = (content ?? throw new ArgumentNullException(nameof(content)))
+            .GetAll<CharacterSO>()
+            .Where(definition => definition != null && definition.id == DefaultIntruderId)
+            .ToArray();
+        defaultIntruder = matches.Length == 1
+            ? matches[0]
+            : throw new InvalidOperationException(
+                $"Expected one authored default intruder with id {DefaultIntruderId}, found {matches.Length}.");
     }
 
     public CharacterSO GetRequiredIntruderData(CharacterSO configuredData)
@@ -19,6 +31,6 @@ public sealed class ResourceInvasionIntruderDataProvider : IInvasionIntruderData
             return configuredData;
         }
 
-        return resourcesAssetLoader.LoadRequired<CharacterSO>(DefaultIntruderPath);
+        return defaultIntruder;
     }
 }

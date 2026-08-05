@@ -10,7 +10,7 @@ public class CodexPanel : MonoBehaviour
 {
     [SerializeField] private CodexRuntime runtime;
     [SerializeField] private TMP_Text summaryText;
-    private ICodexRuntimeProvider runtimeProvider;
+    private FacilityFeatureSceneRuntimeReferences runtimeReferences;
     private IGameEventBus gameEventBus;
     private IDisposable updatedSubscription;
 
@@ -18,11 +18,11 @@ public class CodexPanel : MonoBehaviour
 
     [Inject]
     public void Construct(
-        ICodexRuntimeProvider runtimeProvider,
+        FacilityFeatureSceneRuntimeReferences runtimeReferences,
         IGameEventBus gameEventBus)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new System.ArgumentNullException(nameof(runtimeProvider));
+        this.runtimeReferences = runtimeReferences
+            ?? throw new System.ArgumentNullException(nameof(runtimeReferences));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         SubscribeToEvents();
@@ -112,9 +112,11 @@ public class CodexPanel : MonoBehaviour
     {
         if (runtime != null) return runtime;
 
-        return (runtimeProvider
-                ?? throw new System.InvalidOperationException($"{nameof(CodexPanel)} requires {nameof(ICodexRuntimeProvider)} injection or an explicit runtime binding."))
-            .Runtime;
+        return (runtimeReferences
+                ?? throw new System.InvalidOperationException($"{nameof(CodexPanel)} requires {nameof(FacilityFeatureSceneRuntimeReferences)} injection or an explicit runtime binding."))
+            .Codex
+            ?? throw new System.InvalidOperationException(
+                $"{nameof(CodexPanel)} requires a loaded {nameof(CodexRuntime)}.");
     }
 
     private void OnEnable()

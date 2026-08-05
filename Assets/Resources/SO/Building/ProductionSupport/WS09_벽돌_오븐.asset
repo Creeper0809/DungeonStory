@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: BuildableObject, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,16 +33,20 @@ MonoBehaviour:
   icon: {fileID: 0}
   abilityModules:
     items:
-    - rid: 7302563313672519951
-    - rid: 7302563313672519952
-    - rid: 7302563313672519953
-    - rid: 7302563313672519954
+    - rid: 7737211730889016105
+    - rid: 7737211730889016106
+    - rid: 7737211730889016107
+    - rid: 7737211730889016108
+    - rid: 7737211730889016109
+    - rid: 7737211730889016110
+    - rid: 7737211730889016111
   width: 1
   height: 1
   layer: 1
   category: 5
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 0
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -60,19 +55,40 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563313672519951
+    - rid: 7737211730889016105
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: WS09
-    - rid: 7302563313672519952
+    - rid: 7737211730889016106
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 40
+        constructionCost: 0
+        maintenance: 1
+        unlockPhase: 2
+        demolitionRefundRate: 0.5
+    - rid: 7737211730889016107
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 18.8
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:lumber
+          amount: 2
+    - rid: 7737211730889016108
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - production-support
         - support:oven
-    - rid: 7302563313672519953
+    - rid: 7737211730889016109
       type: {class: BuildingProductionSupportAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionSupportAbility
@@ -93,7 +109,32 @@ MonoBehaviour:
         workSpeedMultiplier: 1
         outputMultiplier: 1
         qualityModifier: 0
-    - rid: 7302563313672519954
+    - rid: 7737211730889016110
+      type: {class: BuildingFacilitySupplyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilitySupplyAbility
+        profiles:
+        - kind: 0
+          requiredTags: 0
+          minimumValue: 2
+          bufferCapacity: 24
+          allowedItemIds:
+          - resource:log
+          - material:low-fuel
+          - resource:coal
+          - material:charcoal
+          - feed:silage
+          - craft:candle
+          forbiddenItemIds:
+          - material:black-powder
+          priorityItemIds:
+          - resource:log
+          - material:low-fuel
+          - resource:coal
+          - material:charcoal
+          - feed:silage
+          - craft:candle
+    - rid: 7737211730889016111
       type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFuelConsumerAbility

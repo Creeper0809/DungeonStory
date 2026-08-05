@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public readonly struct BuildingAbilityWorkContext
 {
     public BuildingAbilityWorkContext(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         WorkTypeId workTypeId)
     {
@@ -19,11 +19,11 @@ public readonly struct BuildingAbilityWorkContext
         Building = building;
         WorkTypeId = workTypeId;
         WorkType = WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
-            ? definition.Type
+            ? FacilityWorkTypeMap.GetRequired(definition)
             : FacilityWorkType.None;
     }
 
-    public CharacterActor Actor { get; }
+    public IBuildingVisitorPort Actor { get; }
     public BuildableObject Building { get; }
     public WorkTypeId WorkTypeId { get; }
     internal FacilityWorkType WorkType { get; }
@@ -44,7 +44,7 @@ public interface IBuildingWorkCompletionFallbackHandler
 public interface IBuildingAbilityRuntimeDispatcher
 {
     int ApplyWorkCompleted(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         WorkTypeId workTypeId);
 }
@@ -64,7 +64,7 @@ public sealed class BuildingAbilityRuntimeDispatcher :
     }
 
     public int ApplyWorkCompleted(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         WorkTypeId workTypeId)
     {

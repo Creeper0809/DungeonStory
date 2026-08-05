@@ -27,20 +27,38 @@ MonoBehaviour:
   description: "\uB9C8\uB098 \uACB0\uC815\uC744 \uC548\uC815\uB41C \uC804\uB825\uC73C\uB85C
     \uBCC0\uD658\uD55C\uB2E4."
   field: 15
-  requiredWork: 218
+  requiredWork: 720
   prerequisites:
   - {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
   - {fileID: 11400000, guid: 49978a4c33ebb554bad6aea2f046119b, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:advanced
+    prerequisite: {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
+    kind: 0
+    reason: "\uBE44\uC804 \uC5F0\uAD6C\uC758 \uC774\uB860\uC774(\uAC00) \uB9C8\uB098
+      \uBC1C\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:transformers
+    prerequisite: {fileID: 11400000, guid: 49978a4c33ebb554bad6aea2f046119b, type: 2}
+    kind: 2
+    reason: "\uBCC0\uC555\uACFC \uD68C\uB85C \uAD6C\uC5ED\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uB9C8\uB098 \uBC1C\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687330
+    - rid: 7737211730927813145
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687330
+    - rid: 7737211730927813145
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9812

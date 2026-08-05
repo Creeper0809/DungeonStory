@@ -318,6 +318,7 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
         return new WorldItemStackSnapshot
         {
             StackId = stack.stackId,
+            ItemInstanceId = stack.itemInstanceId,
             ItemId = stack.itemId,
             DisplayName = definition.DisplayName,
             Description = definition.Description,
@@ -342,7 +343,11 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
             SourceDeathReason = stack.sourceDeathReason ?? string.Empty,
             EmergencyButcheryAllowed = stack.emergencyButcheryAllowed,
             WasteOrigin = stack.wasteOrigin,
-            Contamination = Mathf.Clamp(stack.contamination, 0f, 100f)
+            Contamination = Mathf.Clamp(stack.contamination, 0f, 100f),
+            Components = (stack.components ?? new List<ItemInstanceComponentSaveData>())
+                .Where(component => component != null)
+                .Select(component => component.Clone())
+                .ToArray()
         };
     }
 
@@ -352,6 +357,7 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
     {
         return state == WorldItemStackState.Loose
             || state == WorldItemStackState.FacilityBuffer
+            || state == WorldItemStackState.FacilityOutputBuffer
             || state == WorldItemStackState.ExpeditionPacked
             || (includeStored && state == WorldItemStackState.Stored);
     }
@@ -361,10 +367,11 @@ public sealed class WorldItemQueryService : IWorldItemQueryService
         return stack.State switch
         {
             WorldItemStackState.Loose => 0,
-            WorldItemStackState.FacilityBuffer => 1,
-            WorldItemStackState.ExpeditionPacked => 2,
-            WorldItemStackState.Stored => 3,
-            _ => 3
+            WorldItemStackState.FacilityOutputBuffer => 1,
+            WorldItemStackState.FacilityBuffer => 2,
+            WorldItemStackState.ExpeditionPacked => 3,
+            WorldItemStackState.Stored => 4,
+            _ => 4
         };
     }
 

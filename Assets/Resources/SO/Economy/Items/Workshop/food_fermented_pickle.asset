@@ -21,27 +21,38 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 8309
+  id: 8308
   itemId: food:fermented-pickle
   displayName: "\uBC1C\uD6A8 \uC808\uC784"
   description: "\uC791\uC5C5\uC2E4\uC758 \uB2E4\uC74C \uACF5\uC815\uC73C\uB85C \uC2E4\uC81C
     \uC6B4\uBC18\uB418\uB294 \uBB3C\uB9AC \uC911\uAC04\uC7AC."
   stockCategory: 0
-  kind: 2
-  ingredientTags: 1
-  unitPrice: 9
-  marketSaleRate: 0.6
   unitWeight: 0.45
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:survival:preservation
-  mealQuality: 3
-  nutrition: 24
-  mealMood: 2
-  freshnessSeconds: 1440
-  preserved: 1
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 9
+  features:
+  - rid: 7737211730889016283
+  - rid: 7737211730889016284
+  - rid: 7737211730889016285
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730889016283
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:survival:preservation
+    - rid: 7737211730889016284
+      type: {class: FoodItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        quality: 3
+        nutrition: 24
+        mood: 2
+        freshnessSeconds: 1440
+        preserved: 1
+    - rid: 7737211730889016285
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 2
+        ingredientTags: 1
+        sharedIntermediate: 0

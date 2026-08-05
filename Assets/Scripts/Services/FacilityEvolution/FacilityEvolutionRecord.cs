@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using UnityEngine;
+using FacilityEvolutionDomain = DungeonStory.FacilityEvolution;
 
 public interface IFacilityEvolutionRecordProvider
 {
@@ -158,110 +159,78 @@ public sealed class FacilityEvolutionRecord
 
         return clone;
     }
+
+    public FacilityEvolutionDomain.FacilityEvolutionRecordSnapshot ToDomainSnapshot()
+    {
+        return new FacilityEvolutionDomain.FacilityEvolutionRecordSnapshot(
+            metricsView,
+            tokensView,
+            recentEventsView);
+    }
+
+    public void ReplaceWith(
+        FacilityEvolutionDomain.FacilityEvolutionRecordSnapshot snapshot)
+    {
+        if (snapshot == null)
+        {
+            throw new ArgumentNullException(nameof(snapshot));
+        }
+
+        metrics.Clear();
+        tokens.Clear();
+        recentEvents.Clear();
+        foreach (KeyValuePair<string, float> pair in snapshot.Metrics)
+        {
+            metrics.Add(pair.Key, pair.Value);
+        }
+        foreach (KeyValuePair<string, int> pair in snapshot.Tokens)
+        {
+            tokens.Add(pair.Key, pair.Value);
+        }
+        recentEvents.AddRange(snapshot.RecentEvents);
+    }
 }
 
 public class FacilityEvolutionRecordComponent : MonoBehaviour, IFacilityEvolutionRecordProvider
 {
-    [SerializeField] private FacilityEvolutionValue[] metrics = Array.Empty<FacilityEvolutionValue>();
-    [SerializeField] private FacilityEvolutionTokenValue[] tokens = Array.Empty<FacilityEvolutionTokenValue>();
-    [SerializeField] private string[] recentEvents = Array.Empty<string>();
-
     public FacilityEvolutionRecord GetRecord(BuildableObject facility)
     {
-        FacilityEvolutionRecord record = new FacilityEvolutionRecord();
-        if (metrics != null)
-        {
-            foreach (FacilityEvolutionValue metric in metrics)
-            {
-                record.AddMetric(metric.key, metric.value);
-            }
-        }
-
-        if (tokens != null)
-        {
-            foreach (FacilityEvolutionTokenValue token in tokens)
-            {
-                record.AddToken(token.key, token.count);
-            }
-        }
-
-        if (recentEvents != null)
-        {
-            foreach (string entry in recentEvents)
-            {
-                record.AddEvent(entry);
-            }
-        }
-
-        return record;
+        return ResolveState(facility).GetRecord();
     }
 
     public void SetMetric(string key, float value)
     {
-        List<FacilityEvolutionValue> list = metrics?.ToList() ?? new List<FacilityEvolutionValue>();
-        int index = list.FindIndex((entry) => entry.key == key);
-        if (index >= 0)
-        {
-            list[index] = new FacilityEvolutionValue(key, value);
-        }
-        else
-        {
-            list.Add(new FacilityEvolutionValue(key, value));
-        }
-
-        metrics = list.ToArray();
+        ResolveState(null).SetRecordMetric(key, value);
     }
 
     public void AddToken(string key, int count)
     {
-        List<FacilityEvolutionTokenValue> list = tokens?.ToList() ?? new List<FacilityEvolutionTokenValue>();
-        int index = list.FindIndex((entry) => entry.key == key);
-        if (index >= 0)
-        {
-            list[index] = new FacilityEvolutionTokenValue(key, Mathf.Max(0, list[index].count + count));
-        }
-        else
-        {
-            list.Add(new FacilityEvolutionTokenValue(key, Mathf.Max(0, count)));
-        }
-
-        tokens = list.ToArray();
+        ResolveState(null).AddRecordToken(key, count);
     }
 
     public void AddRecentEvent(string text)
     {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return;
-        }
-
-        List<string> list = recentEvents?.ToList() ?? new List<string>();
-        list.Add(text);
-        int skip = Mathf.Max(0, list.Count - 12);
-        recentEvents = list.Skip(skip).ToArray();
+        ResolveState(null).AddRecordRecentEvent(text);
     }
 
     public void ReplaceWith(FacilityEvolutionRecord record)
     {
-        if (record == null)
-        {
-            metrics = Array.Empty<FacilityEvolutionValue>();
-            tokens = Array.Empty<FacilityEvolutionTokenValue>();
-            recentEvents = Array.Empty<string>();
-            return;
-        }
+        ResolveState(null).ReplaceRecord(record);
+    }
 
-        metrics = record.Metrics
-            .Select((entry) => new FacilityEvolutionValue(entry.Key, entry.Value))
-            .ToArray();
-        tokens = record.Tokens
-            .Select((entry) => new FacilityEvolutionTokenValue(entry.Key, entry.Value))
-            .ToArray();
-        List<string> events = record.RecentEvents
-            .Where((entry) => !string.IsNullOrWhiteSpace(entry))
-            .ToList();
-        int skip = Mathf.Max(0, events.Count - 12);
-        recentEvents = events.Skip(skip).ToArray();
+    private FacilityEvolutionStateComponent ResolveState(BuildableObject facility)
+    {
+        FacilityEvolutionStateComponent state =
+            GetComponent<FacilityEvolutionStateComponent>();
+        if (state == null)
+        {
+            state = gameObject.AddComponent<FacilityEvolutionStateComponent>();
+        }
+        if (facility != null)
+        {
+            state.InitializeIfNeeded(facility);
+        }
+        return state;
     }
 }
 
@@ -274,8 +243,9 @@ public sealed class ComponentFacilityEvolutionRecordProvider : IFacilityEvolutio
             return new FacilityEvolutionRecord();
         }
 
-        FacilityEvolutionRecordComponent component = facility.GetComponent<FacilityEvolutionRecordComponent>();
-        return component != null ? component.GetRecord(facility) : new FacilityEvolutionRecord();
+        FacilityEvolutionStateComponent state =
+            facility.GetComponent<FacilityEvolutionStateComponent>();
+        return state != null ? state.GetRecord() : new FacilityEvolutionRecord();
     }
 }
 
@@ -297,8 +267,9 @@ public sealed class FacilityEvolutionRecordComponentService : IFacilityEvolution
             return new FacilityEvolutionRecord();
         }
 
-        FacilityEvolutionRecordComponent component = facility.GetComponent<FacilityEvolutionRecordComponent>();
-        return component != null ? component.GetRecord(facility) : new FacilityEvolutionRecord();
+        FacilityEvolutionStateComponent state =
+            facility.GetComponent<FacilityEvolutionStateComponent>();
+        return state != null ? state.GetRecord() : new FacilityEvolutionRecord();
     }
 
     public FacilityEvolutionRecordComponent GetOrAdd(BuildableObject facility)

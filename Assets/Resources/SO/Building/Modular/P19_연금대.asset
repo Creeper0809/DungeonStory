@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,23 +33,27 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: db89b092eb0dab94896d10c1f2ac519c, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239038813181
-    - rid: 7302563239038813182
-    - rid: 7302563239038813183
-    - rid: 7302563239583285248
-    - rid: 7302563239583285249
-    - rid: 7302563239583285250
-    - rid: 7302563313663345655
-    - rid: 7302563313663345656
-    - rid: 7302563313663345657
-    - rid: 7302563313663345658
-    - rid: 7302563313672520007
+    - rid: 7737211730834227428
+    - rid: 7737211730834227429
+    - rid: 7737211730834227431
+    - rid: 7737211730834227432
+    - rid: 7737211730834227433
+    - rid: 7737211730834227434
+    - rid: 7737211730834227435
+    - rid: 7737211730889015795
+    - rid: 7737211730889015796
+    - rid: 7737211730889015797
+    - rid: 7737211730889015798
+    - rid: 7737211730889016191
+    - rid: 7737211730889016192
+    - rid: 7737211730927812995
   width: 2
   height: 1
   layer: 1
   category: 6
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -67,27 +62,39 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239038813181
+    - rid: 7737211730834227428
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P19
-    - rid: 7302563239038813182
+    - rid: 7737211730834227429
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - alchemy
-    - rid: 7302563239038813183
+    - rid: 7737211730834227431
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 135
+        constructionValue: 135
+        constructionCost: 0
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302563239583285248
+    - rid: 7737211730834227432
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 26.7
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 7
+    - rid: 7737211730834227433
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -98,11 +105,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 276
           disabledWhenDamaged: 1
-    - rid: 7302563239583285249
+    - rid: 7737211730834227434
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563239583285250
+    - rid: 7737211730834227435
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -120,21 +127,21 @@ MonoBehaviour:
           - key: Mana
             value: 2
           metrics: []
-    - rid: 7302563313663345655
+    - rid: 7737211730889015795
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563313663345656
+    - rid: 7737211730889015796
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563313663345657
+    - rid: 7737211730889015797
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -145,15 +152,47 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563313663345658
+    - rid: 7737211730889015798
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7302563313672520007
+    - rid: 7737211730889016191
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:alchemy
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211730889016192
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+    - rid: 7737211730927812995
+      type: {class: BuildingResearchCapacityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingResearchCapacityAbility
+        contributions:
+        - capability: 0
+          capacity: 1
+        - capability: 4
+          capacity: 1
+        - capability: 5
+          capacity: 1

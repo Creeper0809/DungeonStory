@@ -60,7 +60,7 @@ public sealed class InteriorDoor : Door
         visualTransform.localScale = InteriorDoorVisualLayout.CalculateScale(sprite);
         VisualRenderer.sprite = sprite;
         VisualRenderer.color = Color.white;
-        DoorVisualMaterial.Apply(VisualRenderer, ResourcesAssetLoader);
+        DoorVisualMaterial.Apply(VisualRenderer, DoorVisualMaterialAsset);
         VisualRenderer.sortingLayerName = InteriorDoorVisualLayout.SortingLayerName;
         VisualRenderer.sortingOrder = InteriorDoorVisualLayout.SortingOrder;
         VisualRenderer.enabled = sprite != null;

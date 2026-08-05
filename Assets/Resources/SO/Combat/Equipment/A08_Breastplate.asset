@@ -24,6 +24,14 @@ MonoBehaviour:
   primaryMaterialAmount: 7
   allowedMaterialFamilies: 03000000
   craftMaterials: []
+  requiredComponentInputs: []
+  requiredResearchId: research:equipment:articulated-plate
+  era: 1
+  tier: 1
+  slotProfile: 1
+  lineageKind: 1
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
   layer: 3
   collisionTag: torso-plate
   bodyPartDefense:

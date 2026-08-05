@@ -100,12 +100,12 @@ public sealed class OffensePanelFactory : IOffensePanelFactory
         detailRect.offsetMax = new Vector2(-20f, -8f);
 
         GameObject viewportObject = new GameObject(
-            "OffenseV17MapViewport",
+            "OffenseStrategicMapViewport",
             typeof(RectTransform),
             typeof(Image),
             typeof(RectMask2D),
             typeof(ScrollRect),
-            typeof(OffenseV17MapInput));
+            typeof(OffenseStrategicMapInput));
         viewportObject.transform.SetParent(panelObject.transform, false);
         RectTransform viewportRect = viewportObject.GetComponent<RectTransform>();
         viewportRect.anchorMin = new Vector2(0f, 0f);
@@ -116,7 +116,7 @@ public sealed class OffensePanelFactory : IOffensePanelFactory
             new Color(0.045f, 0.055f, 0.065f, 1f);
 
         GameObject mapContentObject = new GameObject(
-            "OffenseV17MapContent",
+            "OffenseStrategicMapContent",
             typeof(RectTransform));
         mapContentObject.transform.SetParent(viewportObject.transform, false);
         RectTransform mapContentRect =
@@ -134,7 +134,7 @@ public sealed class OffensePanelFactory : IOffensePanelFactory
         scrollRect.movementType = ScrollRect.MovementType.Clamped;
         scrollRect.inertia = true;
         scrollRect.decelerationRate = 0.12f;
-        viewportObject.GetComponent<OffenseV17MapInput>()
+        viewportObject.GetComponent<OffenseStrategicMapInput>()
             .Bind(mapContentRect);
 
         CombatCardClashPresenter clashPresenter =
@@ -156,7 +156,7 @@ public sealed class OffensePanelFactory : IOffensePanelFactory
             mapContentRect,
             buttonViewportRect,
             detailRect);
-        panel.BindV17GeneratedView(mapContentRect, responsiveLayout);
+        panel.BindStrategicGeneratedView(mapContentRect, responsiveLayout);
         objectResolver.Inject(panel);
         objectResolver.Inject(clashPresenter);
         runtimeReferences.RegisterWorldMapPanel(panel);

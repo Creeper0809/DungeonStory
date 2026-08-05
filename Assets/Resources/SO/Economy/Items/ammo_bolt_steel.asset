@@ -26,21 +26,33 @@ MonoBehaviour:
   displayName: "\uAC15\uCCA0\uCD09 \uBCFC\uD2B8"
   description: "\uC911\uC7A5\uAC11\uC744 \uACA8\uB0E5\uD55C \uACE0\uAD00\uD1B5 \uBCFC\uD2B8."
   stockCategory: 7
-  kind: 7
-  ingredientTags: 768
-  unitPrice: 6
-  marketSaleRate: 0.6
   unitWeight: 0.105
   maxStack: 100
   sprite: {fileID: 0}
-  requiredResearchId: research:metallurgy:steel
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 6
+  features:
+  - rid: 7737211674039681060
+  - rid: 7737211674039681061
+  - rid: 7737211674039681062
+  - rid: 7737211674039681063
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681060
+      type: {class: AmmunitionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        ammunitionKindId: ammo:bolt-steel
+    - rid: 7737211674039681061
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:metallurgy:steel
+    - rid: 7737211674039681062
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 7
+        ingredientTags: 768
+        sharedIntermediate: 0
+    - rid: 7737211674039681063
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

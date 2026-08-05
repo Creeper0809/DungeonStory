@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 public static class FacilityCandidateCache
 {
-    private static readonly IFacilityCandidateCache Cache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+    private static readonly IFacilityCandidateCache Cache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
 
     public static IReadOnlyList<BuildableObject> GetCandidates(Grid grid, FacilityRole role)
     {

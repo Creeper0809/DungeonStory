@@ -96,12 +96,12 @@ public static class IndustrialInfrastructureDebugScenarios
         Require(scope?.Container != null,
             "DungeonRuntimeLifetimeScope is not ready.");
 
-        IAutomationRuntime automation =
-            scope.Container.Resolve<IAutomationRuntime>();
-        IPlumbingCommandService plumbing =
-            scope.Container.Resolve<IPlumbingCommandService>();
-        IConveyorCommandService conveyor =
-            scope.Container.Resolve<IConveyorCommandService>();
+        IAutomationInfrastructureQuery automation =
+            scope.Container.Resolve<IAutomationInfrastructureQuery>();
+        IFluidInfrastructureQuery plumbing =
+            scope.Container.Resolve<IFluidInfrastructureQuery>();
+        IConveyorInfrastructureQuery conveyor =
+            scope.Container.Resolve<IConveyorInfrastructureQuery>();
         IWorkExecutionHandlerRegistry work =
             scope.Container.Resolve<IWorkExecutionHandlerRegistry>();
         IFeatureSurfaceTabPresenterRegistry presenters =
@@ -154,8 +154,8 @@ public static class IndustrialInfrastructureDebugScenarios
             .Select(AssetDatabase.LoadAssetAtPath<ResearchProjectSO>)
             .Where(project => project != null)
             .ToArray();
-        Require(projects.Length == 135,
-            $"Expected 135 research projects, got {projects.Length}.");
+        Require(projects.Length == 168,
+            $"Expected 168 research projects, got {projects.Length}.");
         Require(projects.Select(project => project.ProjectId.Value)
                 .Distinct(StringComparer.Ordinal)
                 .Count()
@@ -164,21 +164,21 @@ public static class IndustrialInfrastructureDebugScenarios
         Require(projects.All(project =>
                 project.ValidateDefinition().Count == 0),
             "A research project has an invalid reference or blueprint rule.");
-        Require(projects.Count(project =>
-                project.Field == ResearchField.IndustryAndAutomation)
-            == 33,
-            "Expected 33 industry and automation projects.");
-        Require(projects.Count(project =>
-                project.Field == ResearchField.WaterAndSanitation)
-            == 9,
-            "Expected 9 water and sanitation projects.");
+        int industryCount = projects.Count(project =>
+            project.Field == ResearchField.IndustryAndAutomation);
+        Require(industryCount == 45,
+            $"Expected 45 industry and automation projects, got {industryCount}.");
+        int waterCount = projects.Count(project =>
+            project.Field == ResearchField.WaterAndSanitation);
+        Require(waterCount == 9,
+            $"Expected 9 water and sanitation projects, got {waterCount}.");
     }
 
     private static void VerifyIndustrialBuildings()
     {
         BuildingSO[] buildings = LoadIndustrialBuildings();
-        Require(buildings.Length == 32,
-            $"Expected 32 industrial buildings, got {buildings.Length}.");
+        Require(buildings.Length == 36,
+            $"Expected 36 industrial buildings, got {buildings.Length}.");
         Require(buildings.Select(building => building.id).Distinct().Count()
             == buildings.Length,
             "Industrial building IDs are not unique.");
@@ -349,25 +349,32 @@ public static class IndustrialInfrastructureDebugScenarios
         Require(Mathf.Approximately(
                 AutomationPowerDemandRules.Resolve(
                     AutomationMode.Manual,
-                    ability),
+                    ability.PowerDemandProfile),
                 0f),
             "Manual automation mode consumed power.");
         Require(Mathf.Approximately(
                 AutomationPowerDemandRules.Resolve(
                     AutomationMode.PoweredAssist,
-                    ability),
+                    ability.PowerDemandProfile),
                 2.5f),
             "Powered-assist demand did not use its configured value.");
         Require(Mathf.Approximately(
                 AutomationPowerDemandRules.Resolve(
                     AutomationMode.Automatic,
-                    ability),
+                    ability.PowerDemandProfile),
                 7f),
             "Automatic demand did not use its configured value.");
     }
 
     private static void VerifySaveRoundTrip()
     {
+        Require(
+            DungeonPowerInfrastructureSaveData.CurrentVersion == 2
+            && DungeonFluidInfrastructureSaveData.CurrentVersion == 4
+            && DungeonConveyorInfrastructureSaveData.CurrentVersion == 3
+            && DungeonAutomationSaveData.CurrentVersion == 2,
+            "Industrial save DTO versions changed without fixture approval.");
+
         DungeonConveyorInfrastructureSaveData source =
             new DungeonConveyorInfrastructureSaveData
             {
@@ -376,7 +383,7 @@ public static class IndustrialInfrastructureDebugScenarios
                 {
                     new ConveyorNodeSaveData
                     {
-                        nodeId = "node:overflow",
+                        buildingInstanceId = "building:overflow",
                         enabled = true,
                         destinationId = "warehouse:reserve",
                         overflowPolicy =
@@ -405,22 +412,11 @@ public static class IndustrialInfrastructureDebugScenarios
                     new ConveyorPayloadSaveData
                     {
                         payloadId = "payload:unique",
-                        segmentNodeId = "node:loop",
+                        itemStackId = "stack:corpse",
+                        segmentBuildingInstanceId = "building:loop",
                         destinationId = "warehouse:reserve",
                         stalledSince = 37f,
-                        stallReason = ConveyorStallReason.CyclicDeadlock,
-                        stack = new WorldItemStackSaveData
-                        {
-                            stackId = "stack:corpse",
-                            itemId = "dark:humanoid_corpse",
-                            quantity = 1,
-                            sourceCharacterId = "character:donor",
-                            sourceDisplayName = "검증 대상",
-                            sourceSpeciesTag = "human",
-                            sourceDeathReason = "test",
-                            emergencyButcheryAllowed = true,
-                            contamination = 17f
-                        }
+                        stallReason = ConveyorStallReason.CyclicDeadlock
                     }
                 }
             };
@@ -445,12 +441,10 @@ public static class IndustrialInfrastructureDebugScenarios
                     0.65f)
                 && !restoredFilter.allowContaminated,
             "Advanced conveyor filters did not round-trip.");
-        WorldItemStackSaveData stack = restored.payloads[0].stack;
-        Require(stack.stackId == "stack:corpse"
-                && stack.sourceCharacterId == "character:donor"
-                && stack.emergencyButcheryAllowed
-                && Mathf.Approximately(stack.contamination, 17f),
-            "Unique item metadata was lost in conveyor save data.");
+        Require(restored.payloads[0].itemStackId == "stack:corpse"
+                && restored.payloads[0].segmentBuildingInstanceId
+                    == "building:loop",
+            "Conveyor payload did not preserve its physical stack reference.");
 
         ProductionBillSaveData bill = new ProductionBillSaveData
         {
@@ -480,7 +474,7 @@ public static class IndustrialInfrastructureDebugScenarios
                 {
                     new FluidNodeSaveData
                     {
-                        nodeId = "node:bottling",
+                        buildingInstanceId = "building:bottling",
                         manualWaterReserve = 0.65f,
                         transferMode =
                             WaterContainerTransferMode.FeedNetwork,
@@ -505,21 +499,13 @@ public static class IndustrialInfrastructureDebugScenarios
 
     private static void VerifyItemDefinitions()
     {
-        DungeonItemCatalogSO catalog =
-            ScriptableObject.CreateInstance<DungeonItemCatalogSO>();
-        try
-        {
-            Require(catalog.TryGetDefinition(
-                    IndustrialItemDefinitions.SludgeId,
-                    out DungeonItemDefinition sludge)
-                && sludge.DisplayName == "오수 슬러지"
-                && sludge.MaxStack > 1,
-                "Industrial sludge is missing from the item catalog.");
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(catalog);
-        }
+        ResourceDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        Require(catalog.TryGetDefinition(
+                IndustrialItemDefinitions.SludgeId,
+                out DungeonItemDefinition sludge)
+            && sludge.DisplayName == "오수 슬러지"
+            && sludge.MaxStack > 1,
+            "Industrial sludge is missing from the item catalog.");
     }
 
     private static void VerifyIndustryTab()

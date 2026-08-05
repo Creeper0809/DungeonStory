@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2141cf61d65c4574b72b89276d3dd67f, type: 3}
+  m_Name: faction_dungeon_golem
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonFactionDefinitionSO
+  factionId: faction:dungeon:golem
+  displayName: "\uC11D\uB9E5 \uC8FC\uC870\uC18C"
+  speciesTag: Golem
+  description: "\uC7A5\uAC11\uD310\xB7\uB3D9\uB825\uD575\uACFC \uBC29\uD328\uBCBD\xB7\uC2DC\uC124
+    \uBCF5\uAD6C \uC9C0\uC6D0"
+  relationTags:
+  - "\uC9C8\uC11C"
+  - "\uB9C8\uB825"
+  - "\uAE30\uACC4"
+  tradeTags:
+  - "\uC9C8\uC11C"
+  - "\uB9C8\uB825"
+  - "\uAE30\uACC4"
+  reinforcementRole: "\uC7A5\uAC11\uD310\xB7\uB3D9\uB825\uD575\uACFC \uBC29\uD328\uBCBD\xB7\uC2DC\uC124
+    \uBCF5\uAD6C \uC9C0\uC6D0"
+  crest: {fileID: 0}
+  tradeCargo:
+  - itemId: material:lumber
+    amount: 8
+  - itemId: resource:mana-crystal
+    amount: 5
+  supplyCargo:
+  - itemId: material:lumber
+    amount: 14
+  - itemId: resource:mana-crystal
+    amount: 10

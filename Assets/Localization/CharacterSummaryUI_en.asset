@@ -1,0 +1,1236 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: CharacterSummaryUI_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: 8ee74922f4e118c4c8b5d143c7333c84, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 519393280
+    m_Localized: No AI decision records yet.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947712
+    m_Localized: Close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947713
+    m_Localized: Collapse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947714
+    m_Localized: Desperate thirst
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947715
+    m_Localized: Taboo consumption
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947716
+    m_Localized: Loss of bowel control
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947717
+    m_Localized: Violent impulse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947718
+    m_Localized: Accumulating
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947719
+    m_Localized: Breakdown imminent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947720
+    m_Localized: Danger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947721
+    m_Localized: Stable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947722
+    m_Localized: Health impaired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947723
+    m_Localized: Awaiting capture
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947724
+    m_Localized: Awaiting escort
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947725
+    m_Localized: Confined
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947726
+    m_Localized: Escape attempt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947727
+    m_Localized: Escorting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947728
+    m_Localized: Management interaction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947729
+    m_Localized: Assigned to labor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947730
+    m_Localized: Performing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947731
+    m_Localized: Ransom negotiation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947732
+    m_Localized: Stabilizing on site
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947733
+    m_Localized: No carried items
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947734
+    m_Localized: Aimed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947735
+    m_Localized: Fire allowed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947736
+    m_Localized: Combat equipment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947737
+    m_Localized: Reload
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947738
+    m_Localized: Request repair
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947739
+    m_Localized: Switch weapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947740
+    m_Localized: Head
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947741
+    m_Localized: Left arm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947742
+    m_Localized: Left leg
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947743
+    m_Localized: Right arm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947744
+    m_Localized: Right leg
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947745
+    m_Localized: Torso
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947746
+    m_Localized: Allow fire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947747
+    m_Localized: Combat equipment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947748
+    m_Localized: Hold fire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947749
+    m_Localized: Peacetime equipment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947750
+    m_Localized: Reload
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947751
+    m_Localized: Reload {0}/{1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947752
+    m_Localized: Request repair
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947753
+    m_Localized: Switch weapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947754
+    m_Localized: Peacetime
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947755
+    m_Localized: Standard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947756
+    m_Localized: No combat information.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947757
+    m_Localized: A character is required to change combat equipment.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947758
+    m_Localized: There are not enough hands for this equipment combination.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947759
+    m_Localized: There is no active ranged weapon.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947760
+    m_Localized: Combat equipment command failed ({0})
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947761
+    m_Localized: The active weapon does not support that fire mode.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947762
+    m_Localized: That weapon is not assigned to the current loadout.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947763
+    m_Localized: Aimed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947764
+    m_Localized: Rapid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947765
+    m_Localized: Suppressive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947766
+    m_Localized: '{0}: fire allowed'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947767
+    m_Localized: Combat equipment information is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947768
+    m_Localized: '{0}: {1} fire selected'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947769
+    m_Localized: '{0}: holding fire'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947770
+    m_Localized: '{0}: switched to combat loadout'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947771
+    m_Localized: '{0}: switched to peacetime loadout'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947772
+    m_Localized: The current equipment combination cannot use that loadout.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947773
+    m_Localized: There is no active weapon to reload.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947774
+    m_Localized: No fire mode is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947775
+    m_Localized: No carried weapon is available to switch to.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947776
+    m_Localized: No armor or shield requires repair.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947777
+    m_Localized: No compatible ammunition is available, or the weapon is already
+      loaded.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947778
+    m_Localized: '{0}: reloaded {1} rounds'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947779
+    m_Localized: Equipment repair information is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947780
+    m_Localized: '{0}: weapon switched'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947781
+    m_Localized: Awful
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947782
+    m_Localized: Excellent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947783
+    m_Localized: Good
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947784
+    m_Localized: Legendary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947785
+    m_Localized: Masterwork
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947786
+    m_Localized: Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947787
+    m_Localized: Poor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947788
+    m_Localized: Cancelled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947789
+    m_Localized: Completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947790
+    m_Localized: Repairing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947791
+    m_Localized: Waiting for combat to end
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947792
+    m_Localized: Ready for repair
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947793
+    m_Localized: Waiting for delivery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947794
+    m_Localized: "Base evasion {0:0.#}%  (2 + evasion\xD71 + movement\xD70.3)"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947795
+    m_Localized: Base melee hit {0:0.#}%  (before target evasion)
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947796
+    m_Localized: "Base ranged hit {0:0.#}%  (45 + shooting\xD72.5 + dexterity\xD71)"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947797
+    m_Localized: "Melee {0} \xB7 shooting {1} \xB7 evasion {2} \xB7 dexterity {3}
+      \xB7 strength {4}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947798
+    m_Localized: Combat ability
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947799
+    m_Localized: "Ammunition  arrows {0} \xB7 bolts {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947800
+    m_Localized: " \xB7 bleeding {0:0.##}/s"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947801
+    m_Localized: "Blood loss {0:0.#}% \xB7 suppression {1:0.#}%{2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947802
+    m_Localized: " \xB7 downed"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947803
+    m_Localized: "Consciousness {0:0}% \xB7 manipulation {1:0}% \xB7 mobility {2:0}%"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947804
+    m_Localized: Body status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947805
+    m_Localized: No combat information is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947806
+    m_Localized: "Active weapon  {0} [{1}] \xB7 max range {2} tiles{3}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947807
+    m_Localized: Armor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947808
+    m_Localized: Fire mode  {0}{1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947809
+    m_Localized: " \xB7 holding fire"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947810
+    m_Localized: '{0} [{1}] {2:0}%'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947811
+    m_Localized: "{0} [{1}] \xB7 durability {2:0}% \xB7 defense \xD7{3:0.##} \xB7
+      {4:0.##}kg"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947812
+    m_Localized: '{0}  none'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947813
+    m_Localized: " \xB7 loaded {0}/{1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947814
+    m_Localized: Loadout  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947815
+    m_Localized: "Material performance  damage \xD7{0:0.##} \xB7 penetration \xD7{1:0.##}
+      \xB7 {2:0.##}kg"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947816
+    m_Localized: Shield
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947817
+    m_Localized: Equipment and ammunition
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947818
+    m_Localized: Active weapon  unarmed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947819
+    m_Localized: " \xB7 send at {0:P0} and return at {1:P0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947820
+    m_Localized: " \xB7 automatic repair off"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947821
+    m_Localized: Policy  {0}{1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947822
+    m_Localized: "Repair status  {0} \xB7 {1:P0} \xB7 {2} \xD7{3} \xB7 work {4:0.#}/{5:0.#}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947823
+    m_Localized: Repair status  no pending order
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947824
+    m_Localized: Equipment maintenance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947825
+    m_Localized: Weight  {0:0.#}kg / allowed {1:0.#}kg
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947826
+    m_Localized: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947827
+    m_Localized: Bladder damage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947828
+    m_Localized: Contamination
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947829
+    m_Localized: Exhaustion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947830
+    m_Localized: Starvation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947831
+    m_Localized: Mental instability
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947832
+    m_Localized: Dehydration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947833
+    m_Localized: Accuracy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947834
+    m_Localized: Carry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947835
+    m_Localized: Evasion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947836
+    m_Localized: Melee power
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947837
+    m_Localized: Movement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947838
+    m_Localized: Overclock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947839
+    m_Localized: Recovery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947840
+    m_Localized: Treatment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947841
+    m_Localized: Work speed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947842
+    m_Localized: "Part efficiency {0:0.##} \xD7 operation {1:0.##} + module {2:+0.##;-0.##;0}
+      \xB7 {3}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947843
+    m_Localized: No abnormal parts.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947844
+    m_Localized: Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947845
+    m_Localized: Internal parts and efficiency are unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947846
+    m_Localized: Body status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947847
+    m_Localized: "{0} {1:0}% \xB7 natural baseline {2:0}%"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947848
+    m_Localized: Awareness
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947849
+    m_Localized: Internal value summed from body-part contributions
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947850
+    m_Localized: Handling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947851
+    m_Localized: "Calculation axis \xB7 {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947852
+    m_Localized: Locomotion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947853
+    m_Localized: Recovery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947854
+    m_Localized: Sustain
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947855
+    m_Localized: "Base {0:+#;-#;0} \xB7 species/traits {1:+#;-#;0} \xB7 growth {2:+#;-#;0}
+      \xB7 conditional {3:+#;-#;0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947856
+    m_Localized: " \xB7 ammo {0}/{1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947857
+    m_Localized: Armor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947858
+    m_Localized: "Protected parts {0} \xB7 slash {1:0.#} \xB7 pierce {2:0.#} \xB7
+      blunt {3:0.#}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947859
+    m_Localized: Defensive equipment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947860
+    m_Localized: Durability {0:0}%
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947861
+    m_Localized: Equipment slots are empty.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947862
+    m_Localized: Primary weapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947863
+    m_Localized: Shield
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947864
+    m_Localized: Frontal block {0:0.#}%
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947865
+    m_Localized: "Damage {0:0.#} \xD7 material {1:0.##} \xB7 penetration {2:0.#}
+      \xD7 {3:0.##}{4}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947866
+    m_Localized: Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947867
+    m_Localized: Missing presentation ({0})
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947868
+    m_Localized: No information to display.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947869
+    m_Localized: "Raw \xD7{0:0.##} \xB7 cap \xD7{1:0.##} applied"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947870
+    m_Localized: "Raw \xD7{0:0.##} \xB7 cap \xD7{1:0.##}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947871
+    m_Localized: Assisted regeneration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947872
+    m_Localized: Maintenance required
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947873
+    m_Localized: Natural recovery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947874
+    m_Localized: Replace on failure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947875
+    m_Localized: No selection
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947876
+    m_Localized: Actual movement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947877
+    m_Localized: Current combat vitality
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947878
+    m_Localized: Dead
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947879
+    m_Localized: Dungeon owner
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947880
+    m_Localized: Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947881
+    m_Localized: Level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947882
+    m_Localized: Growth and part effects are separated in the tabs below
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947883
+    m_Localized: Includes base stats, health, parts, and environment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947884
+    m_Localized: Species
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947885
+    m_Localized: Base stats
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947886
+    m_Localized: Combat & equipment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947887
+    m_Localized: Health & anatomy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947888
+    m_Localized: Status & modifiers
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947889
+    m_Localized: Summary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947890
+    m_Localized: Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947891
+    m_Localized: Detailed stats
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947892
+    m_Localized: Current work multiplier including stats, health, parts, mood, and
+      environment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947893
+    m_Localized: 'Emergency surgery: on'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947894
+    m_Localized: Capture command
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947895
+    m_Localized: 'Diet: unrestricted'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947896
+    m_Localized: Schedule surgery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947897
+    m_Localized: Select substance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947898
+    m_Localized: Prohibited
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947899
+    m_Localized: " \xB7 bleeding {0:0.##}/sec"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947900
+    m_Localized: " \xB7 infection {0:0.#}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947901
+    m_Localized: Missing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947902
+    m_Localized: " \xB7 mutation {0:0.#}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947903
+    m_Localized: Arcane graft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947904
+    m_Localized: Implant
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947905
+    m_Localized: Natural organ
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947906
+    m_Localized: Prosthetic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947907
+    m_Localized: "Consciousness {0} \xB7 sight {1} \xB7 breathing {2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947908
+    m_Localized: " \xB7 rejection {0:0.#}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947909
+    m_Localized: "Digestion {0} \xB7 filtration {1} \xB7 manipulation {2} \xB7 mobility
+      {3}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947910
+    m_Localized: "Body and organs \xB7 {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947911
+    m_Localized: 'Diet: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947912
+    m_Localized: Diet policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947913
+    m_Localized: No policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947914
+    m_Localized: No substance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947915
+    m_Localized: " \xB7 effect {0:0}s"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947916
+    m_Localized: Diet policy  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947917
+    m_Localized: "{0}  {1} \xB7 tolerance {2:0.#} \xB7 addiction {3:0.#} \xB7 withdrawal
+      {4:0.#}{5}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947918
+    m_Localized: Diet and substances
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947919
+    m_Localized: Breakdown chance  {0:0.#}% / 5 seconds
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947920
+    m_Localized: Cause  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947921
+    m_Localized: Current breakdown  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947922
+    m_Localized: Infection burden  {0:0.#} / 100
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947923
+    m_Localized: Suppression resistance  {0:0.#}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947924
+    m_Localized: Target  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947925
+    m_Localized: Deprivation burden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947926
+    m_Localized: Carnivore preferred
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947927
+    m_Localized: Unrestricted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947928
+    m_Localized: Strict taboo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947929
+    m_Localized: Vegan
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947930
+    m_Localized: Vegetarian
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947931
+    m_Localized: No deprivation-health information.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947932
+    m_Localized: Exposed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947933
+    m_Localized: Healthy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947934
+    m_Localized: Hungry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947935
+    m_Localized: Infected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947936
+    m_Localized: Recovering
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947937
+    m_Localized: Sick
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947938
+    m_Localized: In combat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947939
+    m_Localized: Forbidden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947940
+    m_Localized: Medical only
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947941
+    m_Localized: Mood threshold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947942
+    m_Localized: Scheduled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947943
+    m_Localized: 'Emergency surgery: off'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947944
+    m_Localized: 'Emergency surgery: on'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947945
+    m_Localized: No records
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947946
+    m_Localized: Recent taboo actions
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947947
+    m_Localized: Thirsty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947948
+    m_Localized: Surgeon {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947949
+    m_Localized: No surgery queued
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947950
+    m_Localized: "Surgery queued \xB7 {0} \xB7 {1} \xB7 {2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947951
+    m_Localized: Active
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947952
+    m_Localized: Departing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947953
+    m_Localized: Departed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947954
+    m_Localized: Downed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947955
+    m_Localized: Entering
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947956
+    m_Localized: Exiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947957
+    m_Localized: On expedition
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947958
+    m_Localized: Preparing expedition
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947959
+    m_Localized: Returning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947960
+    m_Localized: Preparing to enter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947961
+    m_Localized: Waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947962
+    m_Localized: No records yet.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947963
+    m_Localized: '- {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947964
+    m_Localized: Current mood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947965
+    m_Localized: Excretion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947966
+    m_Localized: Experience
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947967
+    m_Localized: Fun
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947968
+    m_Localized: Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947969
+    m_Localized: Hygiene
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947970
+    m_Localized: Rest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947971
+    m_Localized: Satiety
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947972
+    m_Localized: Thirst
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947973
+    m_Localized: "Calm \xB7 base 50 \xB7 adjustment +0"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947974
+    m_Localized: '- {0}  {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947975
+    m_Localized: Recent experiences
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947976
+    m_Localized: "- {0}  {1}  \xB7 {2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947977
+    m_Localized: Need effects
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947978
+    m_Localized: No factors are currently changing this character's mood.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947979
+    m_Localized: Owner
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947980
+    m_Localized: Regular
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947981
+    m_Localized: Level
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947982
+    m_Localized: Mood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947983
+    m_Localized: Mood factors
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947984
+    m_Localized: Needs
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947985
+    m_Localized: Skill slots and candidates
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947986
+    m_Localized: Status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947987
+    m_Localized: No carried items
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947988
+    m_Localized: "Not overloaded \xB7 movement speed 100%"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947989
+    m_Localized: "Overloaded \xB7 movement speed {0}%"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947990
+    m_Localized: 'No carried items
+
+      Carry-limit information unavailable'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947991
+    m_Localized: Carried weight {0} / base {1} / maximum {2}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947992
+    m_Localized: "{0}/{1} \xB7 injury {2}%"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947993
+    m_Localized: '{0}/{1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947994
+    m_Localized: "Lv.{0} \xB7 {1} \xB7 {2} \xB7 {3}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947995
+    m_Localized: Unknown species
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947996
+    m_Localized: ' and {0} more'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947997
+    m_Localized: "Survival status {0}{1} \xB7 {2} \xB7 {3} \xB7 {4}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947998
+    m_Localized: Temperature caution
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552947999
+    m_Localized: Temperature danger
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948000
+    m_Localized: Temperature stable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948001
+    m_Localized: Combat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948002
+    m_Localized: Growth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948003
+    m_Localized: Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948004
+    m_Localized: Mood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948005
+    m_Localized: Records
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948006
+    m_Localized: Status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948007
+    m_Localized: '{0}m'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948008
+    m_Localized: '{0}m {1}s'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948009
+    m_Localized: '{0}s'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 552948010
+    m_Localized: '{0:0.#} kg'
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

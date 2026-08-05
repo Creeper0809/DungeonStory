@@ -1,31 +1,33 @@
-[INFO] FAST_PARTY_COMMIT committed=True; message=Leon이 직원 2명과 함께 런을 시작합니다.; staff=2; actors=Ayun:-1304078:staff:129583359:01:active=True,Miru:-1304194:staff:129583359:02:active=True; diagnostics=created-1:name=Ayun;instance=-1304078;go=-1304050;components=1;id=staff:129583359:01;active=False || created-2:name=Miru;instance=-1304194;go=-1304166;components=1;id=staff:129583359:02;active=False || scan-before-enable:name=Ayun;instance=-1304078;go=-1304050;components=1;id=staff:129583359:01;active=False;retained=True || scan-before-enable:name=Miru;instance=-1304194;go=-1304166;components=1;id=staff:129583359:02;active=False;retained=True || scan-after-enable:name=Ayun;instance=-1304078;go=-1304050;components=1;id=staff:129583359:01;active=True;retained=True || scan-after-enable:name=Miru;instance=-1304194;go=-1304166;components=1;id=staff:129583359:02;active=True;retained=True || retained-final:name=Ayun;instance=-1304078;go=-1304050;components=1;id=staff:129583359:01;active=True || retained-final:name=Miru;instance=-1304194;go=-1304166;components=1;id=staff:129583359:02;active=True
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Sion:-390336:staff:1:01:active=True,Dion:-390478:staff:1:02:active=True; diagnostics=prepared-1:name=Sion;go=-390308;id=staff:1:01;active=False || prepared-2:name=Dion;go=-390450;id=staff:1:02;active=False || scan:name=Sion;go=-390308;id=staff:1:01;active=False;retained=True || scan:name=Dion;go=-390450;id=staff:1:02;active=False;retained=True || scan:name=Sion;go=-390308;id=staff:1:01;active=True;retained=True || scan:name=Dion;go=-390450;id=staff:1:02;active=True;retained=True || retained:name=Sion;go=-390308;id=staff:1:01;active=True || retained:name=Dion;go=-390450;id=staff:1:02;active=True
 [PASS] RUN_READY Leon
 [PASS] DEPRIVATION_RUNTIME ready
 [PASS] FILTH_RUNTIME ready
 [PASS] WATER_RUNTIME ready
-[PASS] TEST_ACTOR Ayun
-[PASS] WORLD_WATER_SOURCES water:00000001:DeepWater:Foul@(0, 0), water:00000002:ShallowWater:Unsafe@(1, 0)
-[PASS] WATER_TERRAIN_TYPES shallow=1; deep=1
-[PASS] WATER_TILEMAP_VISIBLE sourceCells=2/2; tileAssets=1
+[PASS] TEST_ACTOR Sion
+[PASS] WORLD_WATER_SOURCES water:00000001:DeepWater:Foul@(59, 0), water:00000002:ShallowWater:Unsafe@(58, 0), water:00000003:ShallowWater:Unsafe@(57, 0), water:00000004:ShallowWater:Unsafe@(56, 0)
+[PASS] WATER_TERRAIN_TYPES shallow=3; deep=1
+[PASS] WATER_TILEMAP_VISIBLE sourceCells=4/4; tileAssets=1
 [PASS] RELIEF_BREAKDOWN_STARTED 배변 붕괴
 [PASS] RELIEF_CREATED_FILTH before=0; after=2; types=Waste,Stain:wall
 [PASS] RELIEF_RESTORED_BLADDER excretion=90
 [PASS] FILTH_CLEAN_WORK_TARGET targets=1
-[PASS] FILTH_INFO_VISIBLE 종류  배설 오염, 벽 얼룩 위치  (3, 0)  ·  바닥과 벽 오염량  30  ·  감염도 80% 청결 영향  -37  ·  청소 작업량 360 청소 명령  자동 우선순위 원인 인물  Ayun
+[PASS] FILTH_INFO_VISIBLE 종류  배설 오염, 벽 얼룩 위치  (1, 0)  ·  바닥과 벽 오염량  30  ·  감염도 80% 청결 영향  -37  ·  청소 작업량 360 청소 명령  자동 우선순위 원인 인물  Sion
 [PASS] FILTH_PRIORITY_BUTTON ready
 [PASS] FILTH_PRIORITY_COMMAND priority=True; urgency=100
 [PASS] DRINK_BREAKDOWN_STARTED 갈증 붕괴
-[PASS] SAFE_WATER_PRIORITY water=64->64; thirst=70; pos=(19, 0)
+[PASS] SAFE_WATER_PRIORITY water=94->94; thirst=65; pos=(15, 0)
+[PASS] EXTERIOR_SAFE_WATER_EXHAUSTED removed=0; remaining=0
+[PASS] EXTERIOR_WATER_SCENARIO_SOURCE water:00000005@(15, 0)
 [PASS] EXTERIOR_DRINK_BREAKDOWN_STARTED 갈증 붕괴
-[PASS] EXTERIOR_WATER_CONSUMED water=64->63; thirst=65; pos=(1, 0)
-[PASS] UNSAFE_WATER_HEALTH_COST infection=0.1->10.3
-[PASS] WORLD_SCREEN_CAPTURE_NONBLANK Artifacts/QA/dark-survival-world-water-and-filth.png; bytes=191734
+[PASS] EXTERIOR_WATER_CONSUMED water=106->105; thirst=55; pos=(15, 0)
+[PASS] UNSAFE_WATER_HEALTH_COST infection=0.1->10.1
+[PASS] WORLD_SCREEN_CAPTURE_NONBLANK Artifacts/QA/dark-survival-world-water-and-filth.png; bytes=611537
 [PASS] HEALTH_PANEL_OPEN active=True
-[PASS] HEALTH_DETAILS_VISIBLE 결핍 부담 굶주림          0  안정 탈수         100  붕괴 임박 방광 손상        0  안정 오염           5  누적 중 탈진           0  안정 정신 불안        0  안정  감염 부담  10.3 / 100 붕괴 확률  35% / 5초 현재 붕괴  절박한 갈증 원인  탈수 제압 저항  35  최근 금기 행동 - 통제력을 잃고 던전을 오염시켰다
-[PASS] DEPRIVATION_WARNING_LABEL active=True; text=절박한 갈증
-[PASS] HEALTH_SNAPSHOT_BOUND highest=100
-[PASS] HEALTH_SCREEN_CAPTURE_NONBLANK Artifacts/QA/dark-survival-health-and-filth.png; bytes=222699
-[PASS] NONLETHAL_SUPPRESSION applied=True; ended=True; alive=True; health=118->115.5
+[PASS] HEALTH_DETAILS_VISIBLE 결핍 부담 굶주림          0  안정 탈수          45  건강 이상 방광 손상        0  안정 오염           5  누적 중 탈진           0  안정 정신 불안        0  안정  감염 부담  10.1 / 100 붕괴 확률  0% / 5초  최근 금기 행동 - 통제력을 잃고 던전을 오염시켰다   신체·장기 · 슬라임 핵 구조 의식 100% · 시야 100% · 호흡 100% 소화 100% · 여과 100% · 조작 100% · 이동 100% - 외막: 55/55 - 핵: 20/20 - 감각 젤: 16/16 - 위족: 30/30  수술 대기열 없음  식단·약물 식단 정책  자유식 환각균 증류액  기분 임계 · 내성 0 · 중독 0 · 금단 0 월화차  기분 임계 · 내성 0 · 중독 0 · 금단 0 밤포도주  기분 임계 · 내성 0 · 중독 0 · 금단 0 활력 강장제  기분 임계 · 내성 0 · 중독 0 · 금단 0
+[PASS] DEPRIVATION_WARNING_LABEL active=True; text=건강 악화
+[PASS] HEALTH_SNAPSHOT_BOUND highest=45
+[PASS] HEALTH_SCREEN_CAPTURE_NONBLANK Artifacts/QA/dark-survival-health-and-filth.png; bytes=853417
+[PASS] NONLETHAL_SUPPRESSION applied=True; ended=True; alive=True; health=98->95.5
 capturedErrors=0; <none>
 capturedWarnings=0; <none>
 RESULT=PASS; failures=0; <none>

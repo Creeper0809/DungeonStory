@@ -1,0 +1,637 @@
+fileFormatVersion: 2
+guid: ae40103e817dd5c47b6af955589d3938
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 1341680639844684721
+    second: defense_facilities_sheet_0
+  - first:
+      213: 352345574579333477
+    second: defense_facilities_sheet_1
+  - first:
+      213: 8392990950218494472
+    second: defense_facilities_sheet_2
+  - first:
+      213: 1109851161661991214
+    second: defense_facilities_sheet_3
+  - first:
+      213: 5651661245522923159
+    second: defense_facilities_sheet_4
+  - first:
+      213: 1795129076513856630
+    second: defense_facilities_sheet_5
+  - first:
+      213: 5876281776665712636
+    second: defense_facilities_sheet_6
+  - first:
+      213: -9154366070863846168
+    second: defense_facilities_sheet_7
+  - first:
+      213: 7922970468601855902
+    second: defense_facilities_sheet_8
+  - first:
+      213: -729017599308812927
+    second: defense_facilities_sheet_9
+  - first:
+      213: 5765939306124008616
+    second: defense_facilities_sheet_10
+  - first:
+      213: 1927757383035408668
+    second: defense_facilities_sheet_11
+  - first:
+      213: -646666811079380478
+    second: defense_facilities_sheet_12
+  - first:
+      213: 9189265210222749741
+    second: defense_facilities_sheet_13
+  - first:
+      213: -2624888821358650887
+    second: defense_facilities_sheet_14
+  - first:
+      213: 986886481174507862
+    second: defense_facilities_sheet_15
+  - first:
+      213: -457472799066566779
+    second: defense_facilities_sheet_16
+  - first:
+      213: 3424407902238804530
+    second: defense_facilities_sheet_17
+  - first:
+      213: -2995465587391072488
+    second: defense_facilities_sheet_18
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 64
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: defense_facilities_sheet_0
+      rect:
+        serializedVersion: 2
+        x: 22
+        y: 879
+        width: 238
+        height: 173
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1b316f3fe6b9e9210800000000000000
+      internalID: 1341680639844684721
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_1
+      rect:
+        serializedVersion: 2
+        x: 306
+        y: 884
+        width: 232
+        height: 166
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5696bfaee68c3e400800000000000000
+      internalID: 352345574579333477
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_2
+      rect:
+        serializedVersion: 2
+        x: 584
+        y: 874
+        width: 241
+        height: 181
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 80277de1dc4e97470800000000000000
+      internalID: 8392990950218494472
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_3
+      rect:
+        serializedVersion: 2
+        x: 883
+        y: 857
+        width: 186
+        height: 243
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e29ea6450cbf66f00800000000000000
+      internalID: 1109851161661991214
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_4
+      rect:
+        serializedVersion: 2
+        x: 1136
+        y: 868
+        width: 238
+        height: 195
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 79e4c3285fbbe6e40800000000000000
+      internalID: 5651661245522923159
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_5
+      rect:
+        serializedVersion: 2
+        x: 33
+        y: 609
+        width: 198
+        height: 208
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 67c5593526499e810800000000000000
+      internalID: 1795129076513856630
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_6
+      rect:
+        serializedVersion: 2
+        x: 294
+        y: 609
+        width: 251
+        height: 182
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf7d24a542fbc8150800000000000000
+      internalID: 5876281776665712636
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_7
+      rect:
+        serializedVersion: 2
+        x: 598
+        y: 606
+        width: 169
+        height: 216
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8e4a54a7f8825f080800000000000000
+      internalID: -9154366070863846168
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_8
+      rect:
+        serializedVersion: 2
+        x: 842
+        y: 600
+        width: 251
+        height: 218
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e9f7cead9ab04fd60800000000000000
+      internalID: 7922970468601855902
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_9
+      rect:
+        serializedVersion: 2
+        x: 1136
+        y: 609
+        width: 239
+        height: 175
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 18da03e1b5202e5f0800000000000000
+      internalID: -729017599308812927
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_10
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 341
+        width: 200
+        height: 214
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8acdbf9ef3bb40050800000000000000
+      internalID: 5765939306124008616
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_11
+      rect:
+        serializedVersion: 2
+        x: 288
+        y: 326
+        width: 259
+        height: 229
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c1156fc4025c0ca10800000000000000
+      internalID: 1927757383035408668
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_12
+      rect:
+        serializedVersion: 2
+        x: 586
+        y: 341
+        width: 204
+        height: 215
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 202349526f39607f0800000000000000
+      internalID: -646666811079380478
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_13
+      rect:
+        serializedVersion: 2
+        x: 841
+        y: 344
+        width: 241
+        height: 206
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d28ae2a9504d68f70800000000000000
+      internalID: 9189265210222749741
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_14
+      rect:
+        serializedVersion: 2
+        x: 1128
+        y: 338
+        width: 243
+        height: 213
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9f916043685829bd0800000000000000
+      internalID: -2624888821358650887
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_15
+      rect:
+        serializedVersion: 2
+        x: 22
+        y: 50
+        width: 216
+        height: 244
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 651ba00a60022bd00800000000000000
+      internalID: 986886481174507862
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_16
+      rect:
+        serializedVersion: 2
+        x: 301
+        y: 67
+        width: 216
+        height: 229
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 58fcb3db9eab6a9f0800000000000000
+      internalID: -457472799066566779
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_17
+      rect:
+        serializedVersion: 2
+        x: 593
+        y: 74
+        width: 193
+        height: 213
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 23a0cf208d0f58f20800000000000000
+      internalID: 3424407902238804530
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: defense_facilities_sheet_18
+      rect:
+        serializedVersion: 2
+        x: 840
+        y: 66
+        width: 247
+        height: 211
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 817f5ae3be7fd66d0800000000000000
+      internalID: -2995465587391072488
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      defense_facilities_sheet_0: 1341680639844684721
+      defense_facilities_sheet_1: 352345574579333477
+      defense_facilities_sheet_10: 5765939306124008616
+      defense_facilities_sheet_11: 1927757383035408668
+      defense_facilities_sheet_12: -646666811079380478
+      defense_facilities_sheet_13: 9189265210222749741
+      defense_facilities_sheet_14: -2624888821358650887
+      defense_facilities_sheet_15: 986886481174507862
+      defense_facilities_sheet_16: -457472799066566779
+      defense_facilities_sheet_17: 3424407902238804530
+      defense_facilities_sheet_18: -2995465587391072488
+      defense_facilities_sheet_2: 8392990950218494472
+      defense_facilities_sheet_3: 1109851161661991214
+      defense_facilities_sheet_4: 5651661245522923159
+      defense_facilities_sheet_5: 1795129076513856630
+      defense_facilities_sheet_6: 5876281776665712636
+      defense_facilities_sheet_7: -9154366070863846168
+      defense_facilities_sheet_8: 7922970468601855902
+      defense_facilities_sheet_9: -729017599308812927
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

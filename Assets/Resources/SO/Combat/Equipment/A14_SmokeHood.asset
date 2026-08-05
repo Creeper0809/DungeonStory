@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b30b116b9ba70e45acef7131b5f35e6, type: 3}
+  m_Name: A14_SmokeHood
+  m_EditorClassIdentifier: Assembly-CSharp::CombatArmorSO
+  equipmentId: armor:smoke-hood
+  displayName: "\uC5F0\uAE30 \uB450\uAC74"
+  description: "\uC5F0\uAE30 \uB450\uAC74 \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:armor:smoke-hood
+  weight: 1.1
+  occupiedHands: 0
+  maxDurability: 120
+  requiredCraftWork: 6
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 1
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: textile:sterile-cloth
+    amount: 1
+  requiredResearchId: research:equipment:blast-protection
+  era: 3
+  tier: 3
+  slotProfile: 1
+  lineageKind: 1
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
+  layer: 1
+  collisionTag: headwear-smoke
+  bodyPartDefense:
+  - bodyPart: 0
+    slashDefense: 7
+    pierceDefense: 6
+    bluntDefense: 12

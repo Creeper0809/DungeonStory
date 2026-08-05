@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,20 +33,22 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: fe53ebcfdf2e4e74683093b06c84a22e, type: 3}
   abilityModules:
     items:
-    - rid: 7302563287088235177
-    - rid: 7302563287088235178
-    - rid: 7302563287088235179
-    - rid: 7302563287088235180
-    - rid: 7302563287088235181
-    - rid: 7302563287088235182
-    - rid: 7302563287088235183
-    - rid: 7302563287088235184
+    - rid: 7737211730834227240
+    - rid: 7737211730834227241
+    - rid: 7737211730834227242
+    - rid: 7737211730834227243
+    - rid: 7737211730834227244
+    - rid: 7737211730834227245
+    - rid: 7737211730834227246
+    - rid: 7737211730834227247
+    - rid: 7737211730834227248
   width: 2
   height: 1
   layer: 1
   category: 7
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -64,12 +57,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563287088235177
+    - rid: 7737211730834227240
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: E11
-    - rid: 7302563287088235178
+    - rid: 7737211730834227241
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -78,7 +71,19 @@ MonoBehaviour:
         maintenance: 5
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563287088235179
+    - rid: 7737211730834227242
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 27.2
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: component:machine-parts
+          amount: 8
+    - rid: 7737211730834227243
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -89,7 +94,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7302563287088235180
+    - rid: 7737211730834227244
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -104,7 +109,7 @@ MonoBehaviour:
           - key: Climate
             value: 2
           metrics: []
-    - rid: 7302563287088235181
+    - rid: 7737211730834227245
       type: {class: BuildingThermalEmitterAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingThermalEmitterAbility
@@ -118,7 +123,7 @@ MonoBehaviour:
         requiresPower: 1
         exhaustOffset: {x: 1, y: 0}
         exhaustHeatMultiplier: 1.15
-    - rid: 7302563287088235182
+    - rid: 7737211730834227246
       type: {class: BuildingAirExchangeAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAirExchangeAbility
@@ -127,14 +132,14 @@ MonoBehaviour:
         radius: 4
         requiresPower: 1
         exchangesWithOutside: 1
-    - rid: 7302563287088235183
+    - rid: 7737211730834227247
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7302563287088235184
+    - rid: 7737211730834227248
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility

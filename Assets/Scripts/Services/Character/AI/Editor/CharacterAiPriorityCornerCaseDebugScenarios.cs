@@ -332,6 +332,9 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         BuildableObject warehouse = world.Place("P1_Warehouse", new Vector2Int(14, 0));
         damagedRepair.SetDamaged(true);
         ClearShopStock(restockShop);
+        ((Facility)warehouse).Inventory.SeedPhysicalStockForTest(
+            StockCategory.Food,
+            12);
 
         CharacterActor owner = world.CreateOwner("Owner_Slime", Vector2Int.zero);
         AbilityWork work = owner.GetAbility<AbilityWork>();
@@ -407,7 +410,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
             return false;
         }
 
-        IEnumerator allocation = workable.AllocateWorker(CharacterActor.From(first));
+        IEnumerator allocation = workable.AllocateWorker(first.BuildingVisitor);
         allocation?.MoveNext();
 
         AbilityWork secondWork = second.GetAbility<AbilityWork>();
@@ -416,7 +419,7 @@ public static class CharacterAiPriorityCornerCaseDebugScenarios
         bool rejected = secondWork.TryGetLastRejectedWorkCandidate(out WorkTargetCandidate candidate);
         return !found
             && rejected
-            && candidate.Building == shop
+            && WorkTargetCandidateRuntimeAdapter.ResolveBuilding(candidate) == shop
             && candidate.FailureKind == AIActionFailureKind.DestinationOccupied
             && !string.IsNullOrWhiteSpace(candidate.FailureReason);
     }

@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uD53C\uC640 \uB3C5\uC18C\uB97C \uC548\uC815\uD654\uD55C \uAE08\uAE30
     \uC758\uC2DD \uC7AC\uB8CC."
   stockCategory: 8
-  kind: 8
-  ingredientTags: 4128
-  unitPrice: 24
-  marketSaleRate: 0.6
   unitWeight: 0.25
   maxStack: 30
   sprite: {fileID: 0}
-  requiredResearchId: research:control:blood-show
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 24
+  features:
+  - rid: 7737211674039681342
+  - rid: 7737211674039681343
+  - rid: 7737211674039681344
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681342
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:control:blood-show
+    - rid: 7737211674039681343
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 4128
+        sharedIntermediate: 0
+    - rid: 7737211674039681344
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

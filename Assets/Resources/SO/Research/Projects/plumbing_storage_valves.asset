@@ -27,19 +27,30 @@ MonoBehaviour:
   description: "\uC218\uC9C8\uBCC4 \uC800\uC7A5 \uD0F1\uD06C\uC640 \uAD6C\uC5ED \uCC28\uB2E8
     \uBC38\uBE0C\uB97C \uC6B4\uC6A9\uD55C\uB2E4."
   field: 16
-  requiredWork: 98
+  requiredWork: 92
   prerequisites:
   - {fileID: 11400000, guid: ced79e3bcdd00964f8eef3f30ff1946d, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:plumbing:basics
+    prerequisite: {fileID: 11400000, guid: ced79e3bcdd00964f8eef3f30ff1946d, type: 2}
+    kind: 2
+    reason: "\uBC30\uAD00 \uAE30\uCD08\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC800\uC218\uC640 \uBC38\uBE0C \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687358
+    - rid: 7737211730927813450
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687358
+    - rid: 7737211730927813450
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9817

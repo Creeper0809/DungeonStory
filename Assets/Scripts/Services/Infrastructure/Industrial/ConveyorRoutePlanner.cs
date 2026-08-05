@@ -8,8 +8,8 @@ internal static class ConveyorRoutePlanner
         IndustrialTopologySnapshot topology,
         string fromNodeId,
         string destinationId,
-        WorldItemStackSaveData stack,
-        Func<string, WorldItemStackSaveData, bool> canEnter,
+        ItemTransitStackSnapshot stack,
+        Func<string, ItemTransitStackSnapshot, bool> canEnter,
         Func<string, string> resolvePortDestination,
         out IReadOnlyList<string> nodeIds,
         out ConveyorStallReason failureReason)
@@ -19,8 +19,8 @@ internal static class ConveyorRoutePlanner
         if (topology == null
             || string.IsNullOrWhiteSpace(fromNodeId)
             || !topology.Nodes.ContainsKey(fromNodeId)
-            || stack == null
-            || string.IsNullOrWhiteSpace(stack.itemId))
+            || !stack.IsValid
+            || string.IsNullOrWhiteSpace(stack.ItemId))
         {
             return false;
         }

@@ -2,6 +2,12 @@
   "name": "DungeonStory.Survival",
   "rootNamespace": "DungeonStory.Survival",
   "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.Foundation",
+    "DungeonStory.Characters",
+    "DungeonStory.CoreSession",
+    "DungeonStory.Environment",
+    "DungeonStory.Species",
     "DungeonStory.World"
   ],
   "includePlatforms": [],

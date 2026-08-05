@@ -24,23 +24,36 @@ MonoBehaviour:
   primaryMaterialAmount: 2
   allowedMaterialFamilies: 0200000003000000
   craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:growth-frame
+    amount: 1
+  requiredResearchId: research:equipment:weapon-patterns
+  era: 1
+  tier: 1
+  slotProfile: 3
+  lineageKind: 0
+  growthEquipment: 1
+  growthBaseStatMultiplier: 0.88
   verbs:
-  - rid: 7302563288033263628
+  - rid: 7737211765905949098
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 1
     damageMultiplier: 1
   maximumRange: 1
-  ammunitionItemId: 
+  compatibleAmmunitionItemIds: []
   magazineCapacity: 0
   reloadSeconds: 0
   supportsAimed: 1
   supportsRapid: 0
   supportsSuppressive: 0
+  gunpowderWeapon: 0
+  maximumMisfireChance: 0
+  smokeExposure: 0
   references:
     version: 2
     RefIds:
-    - rid: 7302563288033263628
+    - rid: 7737211765905949098
       type: {class: MeleeStrikeVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1.05

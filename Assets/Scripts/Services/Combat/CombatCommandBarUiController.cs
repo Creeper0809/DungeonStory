@@ -18,6 +18,7 @@ public sealed class CombatCommandBarUiController :
     private readonly IPlayerCombatCommandSource commands;
     private readonly ICombatEquipmentRuntime equipment;
     private readonly IUiClock uiClock;
+    private readonly IDungeonUserSettingsService userSettings;
     private GameObject root;
     private RectTransform panel;
     private TMP_Text status;
@@ -35,13 +36,16 @@ public sealed class CombatCommandBarUiController :
         ITmpKoreanFontService fontService,
         IPlayerCombatCommandSource commands,
         ICombatEquipmentRuntime equipment,
-        IUiClock uiClock)
+        IUiClock uiClock,
+        IDungeonUserSettingsService userSettings)
     {
         this.canvasProvider = canvasProvider ?? throw new ArgumentNullException(nameof(canvasProvider));
         this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         this.commands = commands ?? throw new ArgumentNullException(nameof(commands));
         this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
         this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        this.userSettings = userSettings
+            ?? throw new ArgumentNullException(nameof(userSettings));
     }
 
     public void Start()
@@ -118,7 +122,11 @@ public sealed class CombatCommandBarUiController :
         statusLayout.flexibleWidth = 1f;
         status.alignment = TextAlignmentOptions.MidlineLeft;
         status.color = DungeonUiTheme.TextSecondary;
-        DungeonUiThemeRuntime.Ensure(parent, fontService, uiClock).ApplyNow();
+        DungeonUiThemeRuntime.Ensure(
+            parent,
+            fontService,
+            uiClock,
+            userSettings).ApplyNow();
     }
 
     private void CreateModeButton(

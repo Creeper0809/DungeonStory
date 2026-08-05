@@ -11,7 +11,7 @@ using VContainer;
 public sealed class ItemPileInfoPanel : UIPopUp
 {
     private IWorldItemStackRuntime itemStackRuntime;
-    private ISurvivalFoodRuntime survivalFoodRuntime;
+    private ISurvivalFoodQuery survivalFoodRuntime;
     private IResourceEconomyContentCatalog resourceCatalog;
     private IUiPopupService popupService;
     private ITmpKoreanFontService fontService;
@@ -30,7 +30,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
     [Inject]
     public void Construct(
         IWorldItemStackRuntime itemStackRuntime,
-        ISurvivalFoodRuntime survivalFoodRuntime,
+        ISurvivalFoodQuery survivalFoodRuntime,
         IResourceEconomyContentCatalog resourceCatalog,
         IUiPopupService popupService,
         ITmpKoreanFontService fontService,
@@ -257,7 +257,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
             + $"위치 ({stack.Position.x}, {stack.Position.y})\n"
             + $"예약자 {FormatEmpty(stack.ReservedByPersistentId)}\n"
             + $"목적지 {FormatEmpty(stack.DestinationId)}\n"
-            + $"운반 {(!stack.Forbidden && stack.State == WorldItemStackState.Loose ? "가능" : "불가")}";
+            + $"운반 {(!stack.Forbidden && stack.State is WorldItemStackState.Loose or WorldItemStackState.FacilityOutputBuffer ? "가능" : "불가")}";
 
         CreateDetailActionRow(stack);
         CreateEmergencyButcheryAction(stack);
@@ -566,6 +566,7 @@ public sealed class ItemPileInfoPanel : UIPopUp
             WorldItemStackState.Loose => stack.IsReserved ? "바닥/예약" : "바닥",
             WorldItemStackState.Stored => "저장됨",
             WorldItemStackState.FacilityBuffer => "시설 버퍼",
+            WorldItemStackState.FacilityOutputBuffer => "시설 출력 버퍼",
             WorldItemStackState.Carried => "운반 중",
             WorldItemStackState.ExpeditionPacked => "원정 포장",
             _ => stack.State.ToString()
@@ -619,9 +620,8 @@ public sealed class ItemPileInfoPanel : UIPopUp
                 + $" · 진정 {item.PainReduction:0.#}\n";
         }
 
-        SubstanceDefinitionSO substance = resourceCatalog.Substances
-            .FirstOrDefault(candidate => candidate != null
-                && string.Equals(
+        SubstanceDefinitionView substance = resourceCatalog.Substances
+            .FirstOrDefault(candidate => string.Equals(
                     candidate.ItemId,
                     item.ItemId,
                     StringComparison.Ordinal));

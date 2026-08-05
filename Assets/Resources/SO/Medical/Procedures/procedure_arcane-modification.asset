@@ -11,13 +11,20 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
   m_Name: procedure_arcane-modification
-  m_EditorClassIdentifier: Assembly-CSharp::SurgicalProcedureSO
+  m_EditorClassIdentifier: DungeonStory.Medical::SurgicalProcedureSO
   procedureId: procedure:arcane-modification
   displayName: "\uC774\uD615 \uAC1C\uC870"
   description: "\uBE44\uC804 \uAE30\uAD00\uC744 \uACB0\uD569\uD574 \uC2E0\uCCB4\uC758
     \uD55C\uACC4\uB97C \uB118\uAE30\uC9C0\uB9CC \uB3CC\uC5F0\uBCC0\uC774 \uBD80\uB2F4\uC744
     \uB0A8\uAE34\uB2E4."
   kind: 9
+  family: 0
+  urgency: 2
+  allowedAnatomyFamilies: []
+  allowedSpeciesIds: []
+  operatorRequirement:
+    stats: []
+    minimumWeightedScore: 3
   targetNodeId: 
   requiredResearchId: research:medical:aberrant-augmentation
   requiredFacilityTags: 6160
@@ -31,26 +38,26 @@ MonoBehaviour:
   allowsCorpseSubject: 0
   allowsWildlife: 0
   materials:
-  - itemId: stock-item:3
+  - itemId: resource:mana-crystal
     quantity: 3
     optional: 0
-  - itemId: stock-item:5
+  - itemId: medicine:standard
     quantity: 2
     optional: 0
   effects:
-  - rid: 7302563313663345510
-  - rid: 7302563313663345511
+  - rid: 7737211730889015547
+  - rid: 7737211730889015548
   references:
     version: 2
     RefIds:
-    - rid: 7302563313663345510
-      type: {class: InstallSurgicalPartEffect, ns: , asm: Assembly-CSharp}
+    - rid: 7737211730889015547
+      type: {class: InstallSurgicalPartEffect, ns: , asm: DungeonStory.Medical}
       data:
         effectId: InstallSurgicalPartEffect
         partKind: 3
         efficiency: 1.2
-    - rid: 7302563313663345511
-      type: {class: ApplySurgicalBurdenEffect, ns: , asm: Assembly-CSharp}
+    - rid: 7737211730889015548
+      type: {class: ApplySurgicalBurdenEffect, ns: , asm: DungeonStory.Medical}
       data:
         effectId: ApplySurgicalBurdenEffect
         rejection: 12

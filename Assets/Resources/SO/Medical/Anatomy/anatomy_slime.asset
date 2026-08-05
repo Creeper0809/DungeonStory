@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
   m_Name: anatomy_slime
-  m_EditorClassIdentifier: Assembly-CSharp::AnatomyProfileSO
+  m_EditorClassIdentifier: DungeonStory.Medical::AnatomyProfileSO
   profileId: anatomy:slime
   displayName: "\uC2AC\uB77C\uC784 \uD575 \uAD6C\uC870"
   anatomyFamily: aberrant
@@ -30,6 +30,7 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 1
     mapsToLegacyBodyPart: 1
+    axisContributions: []
   - nodeId: core
     displayName: "\uD575"
     parentNodeId: membrane
@@ -42,6 +43,7 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
+    axisContributions: []
   - nodeId: sensory-gel
     displayName: "\uAC10\uAC01 \uC824"
     parentNodeId: membrane
@@ -54,6 +56,7 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
+    axisContributions: []
   - nodeId: pseudopods
     displayName: "\uC704\uC871"
     parentNodeId: membrane
@@ -66,3 +69,4 @@ MonoBehaviour:
     pairedGroupId: 
     legacyBodyPart: 0
     mapsToLegacyBodyPart: 0
+    axisContributions: []

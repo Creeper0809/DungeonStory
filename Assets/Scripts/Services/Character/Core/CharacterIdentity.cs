@@ -27,6 +27,7 @@ public class CharacterIdentity : SerializedMonoBehaviour
     public CharacterType CharacterType => characterType;
     public CharacterRole Role => role;
     public string PersistentId => persistentId;
+    public CharacterId TypedPersistentId => (CharacterId)persistentId;
     public int TemplateId => data != null ? data.id : -1;
     public bool IsOwner => role == CharacterRole.Owner;
     public bool CanLeaveByDissatisfaction => !IsOwner;
@@ -82,15 +83,26 @@ public class CharacterIdentity : SerializedMonoBehaviour
         role = data != null ? data.role : CharacterRole.Regular;
         if (role == CharacterRole.Owner)
         {
-            persistentId = "owner";
+            persistentId = CharacterId.Owner.Value;
         }
     }
 
     public void SetPersistentId(string value)
     {
-        persistentId = IsOwner
-            ? "owner"
-            : value?.Trim() ?? string.Empty;
+        SetPersistentId(IsOwner ? CharacterId.Owner : (CharacterId)value);
+    }
+
+    public void SetPersistentId(CharacterId value)
+    {
+        CharacterId resolved = IsOwner ? CharacterId.Owner : value;
+        if (!resolved.IsValid)
+        {
+            throw new System.ArgumentException(
+                "A valid CharacterId is required.",
+                nameof(value));
+        }
+
+        persistentId = resolved.Value;
     }
 
     public void SetCharacterType(CharacterType nextType)

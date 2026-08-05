@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,18 +33,21 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: f215d71d6b221eb4ab81f51fb6794b7f, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239583285285
-    - rid: 7302563239583285286
-    - rid: 7302563239583285287
-    - rid: 7302563239583285288
-    - rid: 7302563239583285289
-    - rid: 7302563313672520016
+    - rid: 7737211730834227487
+    - rid: 7737211730834227488
+    - rid: 7737211730834227490
+    - rid: 7737211730834227491
+    - rid: 7737211730834227492
+    - rid: 7737211730834227493
+    - rid: 7737211730889016205
+    - rid: 7737211730889016206
   width: 3
   height: 1
   layer: 1
   category: 7
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -62,27 +56,43 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239583285285
+    - rid: 7737211730834227487
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P22
-    - rid: 7302563239583285286
+    - rid: 7737211730834227488
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - quarry
-    - rid: 7302563239583285287
+    - rid: 7737211730834227490
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 150
+        constructionValue: 150
+        constructionCost: 0
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302563239583285288
+    - rid: 7737211730834227491
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 33
+        repairWorkRequired: 14
+        cleanWorkRequired: 8.75
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 8
+        - itemId: tool:deep-shaft-hoist
+          amount: 1
+        - itemId: tool:prospecting-kit
+          amount: 1
+    - rid: 7737211730834227492
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -93,7 +103,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 16777220
           disabledWhenDamaged: 1
-    - rid: 7302563239583285289
+    - rid: 7737211730834227493
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -108,8 +118,29 @@ MonoBehaviour:
           - key: Mining
             value: 2
           metrics: []
-    - rid: 7302563313672520016
+    - rid: 7737211730889016205
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:quarry
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211730889016206
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16

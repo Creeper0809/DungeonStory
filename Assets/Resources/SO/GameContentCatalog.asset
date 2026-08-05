@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3bfe0e1369305146b0e7f2451560582, type: 3}
+  m_Name: GameContentCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::GameContentCatalogSO
+  itemDefinitions: {fileID: 11400000, guid: b82595112e87d19488073980823afda8, type: 2}
+  worldPresentation: {fileID: 11400000, guid: 3df2aae293ce6e947be576552432cbf5, type: 2}
+  characterSkillSettings: {fileID: 11400000, guid: 1d65490fa9b541e49ab826b22900eef3, type: 2}
+  media: {fileID: 11400000, guid: 8c986264199d40a4eb70ea8d7be20ad7, type: 2}
+  domainCatalogs:
+  - {fileID: 11400000, guid: ca85b9de9b508c046af6fe6dfdc302cd, type: 2}

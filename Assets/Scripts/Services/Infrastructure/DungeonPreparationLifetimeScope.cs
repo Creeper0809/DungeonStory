@@ -70,8 +70,9 @@ public sealed class DungeonPreparationLifetimeScope : LifetimeScope
         builder.RegisterInstance(new SceneUiBootstrapReferences(
             sceneQuery.First<EventSystem>(includeInactive: true)));
         builder.RegisterDungeonFoundation();
-        builder.Register<UnityResourcesAssetLoader>(Lifetime.Singleton)
-            .As<IResourcesAssetLoader>();
+        builder.Register<UnityGameContentRootLoader>(Lifetime.Singleton)
+            .As<IGameContentRootLoader>();
+        builder.RegisterDungeonGameContentCatalog();
         builder.Register<ResourceTmpKoreanFontProvider>(Lifetime.Singleton)
             .As<ITmpKoreanFontProvider>();
         builder.Register<TmpKoreanFontService>(Lifetime.Singleton)
@@ -79,6 +80,7 @@ public sealed class DungeonPreparationLifetimeScope : LifetimeScope
         builder.Register<DungeonPreparationCanvasProvider>(Lifetime.Singleton)
             .As<IDungeonUiCanvasProvider>();
         builder.Register<DungeonSceneNavigator>(Lifetime.Singleton)
+            .AsSelf()
             .As<IDungeonSceneNavigator>();
         builder.Register<ResourceRunCharacterCatalog>(Lifetime.Singleton)
             .As<IRunCharacterCatalog>();

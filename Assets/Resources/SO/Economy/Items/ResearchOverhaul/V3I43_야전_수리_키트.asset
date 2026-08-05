@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I43_\uC57C\uC804_\uC218\uB9AC_\uD0A4\uD2B8"
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8943
+  itemId: tool:field-repair-kit
+  displayName: "\uC57C\uC804 \uC218\uB9AC \uD0A4\uD2B8"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uC57C\uC804 \uC218\uB9AC
+    \uD0A4\uD2B8."
+  stockCategory: 1
+  unitWeight: 1.51
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 96
+  features:
+  - rid: 7737211730927813462
+  - rid: 7737211730927813463
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730927813462
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:equipment:field-maintenance
+    - rid: 7737211730927813463
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 640
+        sharedIntermediate: 0

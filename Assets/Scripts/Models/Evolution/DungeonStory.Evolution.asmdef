@@ -1,7 +1,10 @@
 {
   "name": "DungeonStory.Evolution",
   "rootNamespace": "DungeonStory.Evolution",
-  "references": [],
+  "references": [
+    "DungeonStory.FacilityEvolution",
+    "VContainer"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

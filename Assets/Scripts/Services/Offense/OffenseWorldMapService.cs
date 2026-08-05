@@ -22,6 +22,8 @@ public static class OffenseWorldMapService
         };
     }
 
+#if UNITY_EDITOR
+    [Obsolete("Editor-only migration seed. Runtime campaign content must come from OffenseCampaignCatalogSO.")]
     public static IReadOnlyList<OffenseTargetDefinition> CreateDefaultTargets()
     {
         OffenseTargetDefinition[] targets = new[]
@@ -129,30 +131,41 @@ public static class OffenseWorldMapService
         truthTarget.strategicPressureAmount = 0f;
         return targets;
     }
+#endif
 
     public static IReadOnlyList<OffenseTargetDefinition> NormalizeTargets(IEnumerable<OffenseTargetDefinition> targets)
     {
-        List<OffenseTargetDefinition> source = targets?
-            .Where((target) => target != null && target.IsValid)
-            .Select((target) => target.CreateRuntimeCopy())
-            .OrderBy((target) => target.distance)
-            .ThenBy((target) => target.id)
-            .ToList()
-            ?? new List<OffenseTargetDefinition>();
-
-        if (source.Count == 0)
+        if (targets == null)
         {
-            return CreateDefaultTargets();
+            throw new ArgumentNullException(nameof(targets));
         }
 
-        bool hasUniqueOrders = source.All(target => target.campaignOrder > 0)
-            && source.Select(target => target.campaignOrder).Distinct().Count() == source.Count;
-        if (!hasUniqueOrders)
+        List<OffenseTargetDefinition> source = targets
+            .Where(target => target != null)
+            .Select((target) => target.CreateRuntimeCopy())
+            .ToList();
+
+        if (source.Count == 0
+            || source.Any(target => !target.IsValid)
+            || source.Select(target => target.id)
+                .Distinct(StringComparer.Ordinal).Count() != source.Count
+            || source.Any(target => target.campaignOrder <= 0)
+            || source.Select(target => target.campaignOrder)
+                .Distinct().Count() != source.Count)
         {
-            for (int i = 0; i < source.Count; i++)
-            {
-                source[i].campaignOrder = i + 1;
-            }
+            throw new InvalidOperationException(
+                "Offense target definitions must be non-empty, valid, and have unique authored IDs and campaign orders.");
+        }
+
+        HashSet<string> ids = source.Select(target => target.id)
+            .ToHashSet(StringComparer.Ordinal);
+        if (source.Any(target =>
+                !string.IsNullOrWhiteSpace(target.prerequisiteTargetId)
+                && !ids.Contains(target.prerequisiteTargetId))
+            || source.Count(target => target.revealsTruth) != 1)
+        {
+            throw new InvalidOperationException(
+                "Offense target definitions contain a missing prerequisite or do not author exactly one truth target.");
         }
 
         source = source
@@ -160,20 +173,6 @@ public static class OffenseWorldMapService
             .ThenBy(target => target.distance)
             .ThenBy(target => target.id)
             .ToList();
-        for (int i = 1; i < source.Count; i++)
-        {
-            if (string.IsNullOrWhiteSpace(source[i].prerequisiteTargetId))
-            {
-                source[i].prerequisiteTargetId = source[i - 1].id;
-            }
-        }
-
-        if (!source.Any(target => target.revealsTruth))
-        {
-            OffenseTargetDefinition terminal = source[source.Count - 1];
-            terminal.revealsTruth = true;
-            terminal.truthText = TruthRevealText;
-        }
 
         return source;
     }
@@ -263,6 +262,7 @@ public static class OffenseWorldMapService
         return NormalizeTargets(targets).FirstOrDefault((target) => target.id == targetId);
     }
 
+#if UNITY_EDITOR
     private static OffenseTargetDefinition CreateTarget(
         string id,
         string title,
@@ -372,4 +372,5 @@ public static class OffenseWorldMapService
     {
         return new OffenseRewardPreview(label, amount, grantSpec);
     }
+#endif
 }

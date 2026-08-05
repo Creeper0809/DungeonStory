@@ -54,11 +54,12 @@ public sealed class WildlifeHabitatDecorationRuntime : IDisposable
     private GameObject root;
     private Grid grid;
     private WildlifeHabitatDecorationPaletteSO palette;
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
+    private readonly WildlifeHabitatDecorationPaletteSO authoredPalette;
 
-    public WildlifeHabitatDecorationRuntime(IResourcesAssetLoader resourcesAssetLoader = null)
+    public WildlifeHabitatDecorationRuntime(IGameContentCatalog content)
     {
-        this.resourcesAssetLoader = resourcesAssetLoader;
+        authoredPalette = (content ?? throw new ArgumentNullException(nameof(content)))
+            .RequireSingle<WildlifeHabitatDecorationPaletteSO>();
     }
 
     public int FlowerPatchCount => flowerPatchVisuals.Count;
@@ -83,8 +84,7 @@ public sealed class WildlifeHabitatDecorationRuntime : IDisposable
         grid = runtimeGrid;
         palette = explicitPalette != null
             ? explicitPalette
-            : resourcesAssetLoader?.LoadOptional<WildlifeHabitatDecorationPaletteSO>(
-                WildlifeHabitatDecorationPaletteSO.ResourcePath);
+            : authoredPalette;
         if (grid == null || patches == null || patches.Count == 0 || palette == null || !palette.IsComplete)
         {
             return;

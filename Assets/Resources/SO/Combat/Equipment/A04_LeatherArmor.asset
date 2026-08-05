@@ -24,6 +24,14 @@ MonoBehaviour:
   primaryMaterialAmount: 4
   allowedMaterialFamilies: 05000000
   craftMaterials: []
+  requiredComponentInputs: []
+  requiredResearchId: research:textile:tanning
+  era: 1
+  tier: 1
+  slotProfile: 1
+  lineageKind: 1
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
   layer: 4
   collisionTag: torso-outer
   bodyPartDefense:

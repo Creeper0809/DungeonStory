@@ -7,6 +7,21 @@ using Object = UnityEngine.Object;
 
 public static class CodexDebugScenarios
 {
+    public static bool RunSingleForVerification(string scenarioId)
+    {
+        return scenarioId switch
+        {
+            "reference" => VerifyReferenceCodexData(),
+            "recipe" => VerifySpecialRecipeHintAndResearchReveal(),
+            "defense" => VerifyDefenseObservationUpdatesInvasionCodex(),
+            "visit" => VerifyFacilityVisitUpdatesMonsterCodex(),
+            "evolution" => VerifyFacilityEvolutionUpdatesFacilityCodex(),
+            "panel" => VerifyCodexPanelRendering(),
+            "restore" => VerifyDiscardedRestoreLeavesLiveCodexUntouched(),
+            _ => throw new ArgumentOutOfRangeException(nameof(scenarioId), scenarioId, null)
+        };
+    }
+
     [MenuItem("DungeonStory/Debug/Codex/Run P1 Codex Scenarios")]
     public static void RunFromMenu()
     {
@@ -30,6 +45,10 @@ public static class CodexDebugScenarios
         RunScenario("손님 방문 몬스터 도감", VerifyFacilityVisitUpdatesMonsterCodex, errors);
         RunScenario("시설 진화 도감 기록", VerifyFacilityEvolutionUpdatesFacilityCodex, errors);
         RunScenario("도감 UI 렌더", VerifyCodexPanelRendering, errors);
+        RunScenario(
+            "실패한 복원 후보가 라이브 도감을 보존",
+            VerifyDiscardedRestoreLeavesLiveCodexUntouched,
+            errors);
 
         if (errors.Count > 0)
         {
@@ -98,7 +117,12 @@ public static class CodexDebugScenarios
 
         BlueprintResearchState researchState = new BlueprintResearchState();
         researchState.UnlockRecipe("recipe_arcane_ritual_2");
-        CodexService.ImportSynthesisRecipes(runtime.State, researchState, CreateSynthesisRecipeQuery());
+        CodexService.ImportSynthesisRecipes(
+            runtime.State,
+            CodexDomainSnapshotFactory.CreateRecipeObservation(
+                researchState,
+                CreateSynthesisRecipeQuery(),
+                CodexInfoSource.System));
         BuildingSO ritualFocus = LoadBuilding("M04_의식초점석");
         CodexEntrySnapshot ritualFocusEntry = runtime.State.GetSnapshot(
             CodexEntryCategory.Facility,
@@ -119,7 +143,8 @@ public static class CodexDebugScenarios
         report.AddMovementDelay(0.7f);
         report.AddEffectTag("감속");
 
-        runtime.OnTriggerEvent(new DefenseFacilityTriggeredEvent(report));
+        CharacterAiEditorTestDependencies.GameEvents.Publish(
+            new DefenseFacilityTriggeredEvent(report));
         CodexEntrySnapshot invasion = runtime.State.GetSnapshot(CodexEntryCategory.Invasion, CodexService.BreakthroughIntruderId);
         CodexEntrySnapshot ice = runtime.State.GetSnapshot(CodexEntryCategory.Facility, $"facility:{LoadBuilding("P1_IceVent").id}");
 
@@ -136,7 +161,8 @@ public static class CodexDebugScenarios
         CharacterActor orc = world.CreateCharacter("Owner_Orc");
         BuildableObject meatRestaurant = world.CreateFacility("P1_MeatRestaurant");
 
-        runtime.OnTriggerEvent(new FacilityVisitEvent(CharacterActor.From(orc), meatRestaurant));
+        CharacterAiEditorTestDependencies.GameEvents.Publish(
+            new FacilityVisitEvent(CharacterActor.From(orc), meatRestaurant));
         CodexEntrySnapshot orcEntry = runtime.State.GetSnapshot(CodexEntryCategory.Monster, "monster:Orc");
         CodexEntrySnapshot restaurantEntry = runtime.State.GetSnapshot(CodexEntryCategory.Facility, $"facility:{LoadBuilding("P1_MeatRestaurant").id}");
 
@@ -179,7 +205,8 @@ public static class CodexDebugScenarios
             "비전 연구 진화 완료",
             new[] { FacilityEvolutionTerms.Research, FacilityEvolutionTerms.Ritual });
 
-        runtime.OnTriggerEvent(new FacilityEvolutionCompletedEvent(result));
+        CharacterAiEditorTestDependencies.GameEvents.Publish(
+            new FacilityEvolutionCompletedEvent(result));
 
         BuildingSO alchemyBenchData = LoadBuilding("Q02_연금술작업대");
         CodexEntrySnapshot entry = runtime.State.GetSnapshot(
@@ -213,6 +240,73 @@ public static class CodexDebugScenarios
             && panel.LastRenderedText.Contains("침략 도감")
             && panel.LastRenderedText.Contains("시설 도감")
             && panel.LastRenderedText.Contains("약점: 감속");
+    }
+
+    private static bool VerifyDiscardedRestoreLeavesLiveCodexUntouched()
+    {
+        const string markerEntryId = "debug:discarded-candidate";
+        const string markerLine = "candidate-only-line";
+        using CodexScenarioWorld source = new CodexScenarioWorld();
+        CodexRuntime sourceRuntime = source.CreateRuntime();
+        sourceRuntime.State.AddInfo(
+            CodexEntryCategory.Invasion,
+            markerEntryId,
+            "Discard candidate",
+            markerLine,
+            CodexInfoSource.System);
+        CodexSaveApplicationAdapter sourceAdapter =
+            new CodexSaveApplicationAdapter(
+                new FacilityFeatureSceneRuntimeReferences(
+                    null,
+                    null,
+                    sourceRuntime));
+        string candidatePayload = new CodexSaveSection(
+            sourceAdapter,
+            sourceAdapter,
+            sourceAdapter).Capture();
+
+        using CodexScenarioWorld target = new CodexScenarioWorld();
+        CodexRuntime targetRuntime = target.CreateRuntime();
+        CodexSaveApplicationAdapter targetAdapter =
+            new CodexSaveApplicationAdapter(
+                new FacilityFeatureSceneRuntimeReferences(
+                    null,
+                    null,
+                    targetRuntime));
+        CodexSaveSection targetSection = new CodexSaveSection(
+            targetAdapter,
+            targetAdapter,
+            targetAdapter);
+        CodexFailureSection lateFailure = new CodexFailureSection
+        {
+            RemainingCommitFailures = 1
+        };
+        CodexDiscardObserver observer = new CodexDiscardObserver(
+            targetRuntime,
+            markerEntryId,
+            markerLine);
+        DungeonSaveSectionRegistry registry = new DungeonSaveSectionRegistry(
+            new IDungeonSaveSection[] { targetSection, lateFailure },
+            target.RootStore,
+            new IDungeonRestoreTransactionParticipant[] { observer });
+        List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
+        envelopes.First(envelope => string.Equals(
+                envelope.sectionId,
+                CodexSaveSection.Id,
+                StringComparison.Ordinal))
+            .payloadJson = candidatePayload;
+
+        bool restored = registry.RestoreAll(
+            envelopes,
+            new DungeonGameRestoreReport());
+        return !restored
+            && observer.DiscardCount == 1
+            && !observer.ObservedMarker
+            && !targetRuntime.State.HasInfo(
+                CodexEntryCategory.Invasion,
+                markerEntryId,
+                markerLine)
+            && target.RootStore.PublishedRestoreRevision == 1;
     }
 
     private static bool ContainsLine(CodexEntrySnapshot entry, string line)
@@ -287,9 +381,112 @@ public static class CodexDebugScenarios
         }
     }
 
+    private sealed class CodexFailureSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection
+    {
+        public string SectionId => "codex.debug.late-failure";
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.Presentation;
+        public IReadOnlyList<string> DependsOn => new[] { CodexSaveSection.Id };
+        public int RemainingCommitFailures { get; set; }
+
+        public string Capture() => "{}";
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            if (sectionVersion != SectionVersion)
+            {
+                throw new InvalidOperationException("Codex scenario version mismatch.");
+            }
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+        }
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            return new DungeonDelegateSaveRestoreStage(SectionId, _ =>
+            {
+                if (RemainingCommitFailures <= 0)
+                {
+                    return;
+                }
+
+                RemainingCommitFailures--;
+                throw new InvalidOperationException(
+                    "Injected late Codex restore failure.");
+            });
+        }
+    }
+
+    private sealed class CodexDiscardObserver :
+        IDungeonRestoreTransactionParticipant
+    {
+        private readonly CodexRuntime runtime;
+        private readonly string entryId;
+        private readonly string line;
+        private bool hasCandidate;
+
+        public CodexDiscardObserver(
+            CodexRuntime runtime,
+            string entryId,
+            string line)
+        {
+            this.runtime = runtime;
+            this.entryId = entryId;
+            this.line = line;
+        }
+
+        public string ParticipantId => "codex.debug.discard-observer";
+        public int DiscardCount { get; private set; }
+        public bool ObservedMarker { get; private set; }
+
+        public void BeginRestoreCandidate()
+        {
+            hasCandidate = true;
+        }
+
+        public void PublishRestoreCandidate()
+        {
+            hasCandidate = false;
+        }
+
+        public void DiscardRestoreCandidate()
+        {
+            if (!hasCandidate)
+            {
+                return;
+            }
+
+            hasCandidate = false;
+            DiscardCount++;
+            ObservedMarker = runtime.State.HasInfo(
+                CodexEntryCategory.Invasion,
+                entryId,
+                line);
+        }
+    }
+
     private sealed class CodexScenarioWorld : IDisposable
     {
         private readonly List<GameObject> objects = new List<GameObject>();
+
+        public DungeonRuntimeAggregateRootStore RootStore { get; } =
+            new DungeonRuntimeAggregateRootStore();
 
         public CodexRuntime CreateRuntime()
         {
@@ -298,12 +495,18 @@ public static class CodexDebugScenarios
             CodexRuntime runtime = obj.AddComponent<CodexRuntime>();
             IFacilitySynthesisRecipeQuery recipeQuery = CreateSynthesisRecipeQuery();
             ScenarioCodexReferenceCatalog referenceCatalog = new ScenarioCodexReferenceCatalog();
+            ScenarioBlueprintResearchStateService researchStateService =
+                new ScenarioBlueprintResearchStateService();
+            CodexRuntimeApplicationAdapter applicationAdapter =
+                new CodexRuntimeApplicationAdapter(
+                    researchStateService,
+                    referenceCatalog,
+                    recipeQuery,
+                    CharacterAiEditorTestDependencies.GameEvents);
             runtime.ConstructCodexRuntime(
-                new ScenarioBlueprintResearchStateService(),
-                new CodexReferenceImporter(referenceCatalog, recipeQuery),
-                recipeQuery,
-                new ScenarioFacilityShopCatalog(referenceCatalog.Facilities),
-                CharacterAiEditorTestDependencies.GameEvents);
+                applicationAdapter,
+                new CodexReferenceImporter(applicationAdapter),
+                RootStore);
             runtime.ImportReferenceData();
             return runtime;
         }
@@ -313,12 +516,28 @@ public static class CodexDebugScenarios
             BuildingSO building = LoadBuilding(assetName);
             GameObject obj = new GameObject(assetName);
             objects.Add(obj);
-            BuildableObject facility = obj.AddComponent(building != null && building.type != null ? building.type : typeof(BuildableObject)) as BuildableObject;
+            BuildableObject facility = (building != null
+                    ? building.runtimeArchetype
+                    : BuildingRuntimeArchetypeKind.Generic)
+                .AddComponent(obj);
             if (facility == null)
             {
                 throw new InvalidOperationException($"{assetName} is not a BuildableObject.");
             }
 
+            facility.ConstructBuildableObject(
+                ScenarioBuildingDependencies.Instance,
+                ScenarioBuildingDependencies.Instance,
+                ScenarioBuildingDependencies.Instance,
+                combatEquipmentRuntime: null,
+                worldRegistry: null,
+                worldItemStackRuntime: null,
+                abilityRuntimeDispatcher: null,
+                gameClock: null,
+                paidFacilityContracts: null,
+                evolutionState: new FacilityEvolutionStateComponentFactory());
+            facility.RestorePersistentIdentity(
+                (BuildingInstanceId)$"building:codex-fixture:{building.id}:{objects.Count}");
             facility.Initialization(building, Vector2Int.zero);
             return facility;
         }
@@ -333,6 +552,7 @@ public static class CodexDebugScenarios
             CharacterSO characterData = LoadCharacter(assetName);
             GameObject obj = new GameObject(assetName);
             objects.Add(obj);
+            CharacterAiEditorTestDependencies.EnsureCharacterProgression(obj);
             CharacterActor character = obj.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(obj);
             character.data = characterData;
@@ -362,6 +582,55 @@ public static class CodexDebugScenarios
             public BlueprintResearchState GetState()
             {
                 return state;
+            }
+        }
+
+        private sealed class ScenarioBuildingDependencies :
+            IBuildingResearchWorkPort,
+            IBuildingFacilityStateChangePort,
+            IBuildingRoomPolicyPort
+        {
+            public static readonly ScenarioBuildingDependencies Instance =
+                new ScenarioBuildingDependencies();
+
+            private ScenarioBuildingDependencies()
+            {
+            }
+
+            public bool HasResearchWorkFor(IBuildingWorldEntryPort facility)
+            {
+                return false;
+            }
+
+            public void MarkDynamicStateDirty()
+            {
+            }
+
+            public bool IsFacilityRoleAvailable(
+                IBuildingWorldEntryPort building,
+                FacilityRole requestedRole,
+                out string rejectReason)
+            {
+                rejectReason = string.Empty;
+                return true;
+            }
+
+            public float GetRoomUtilityScore(
+                IBuildingWorldEntryPort building,
+                FacilityRole role)
+            {
+                return 0f;
+            }
+
+            public int GetEffectiveCapacity(IBuildingWorldEntryPort building)
+            {
+                return 0;
+            }
+
+            public BuildingRoomOperationalSnapshot GetOperationalProfile(
+                IBuildingWorldEntryPort building)
+            {
+                return null;
             }
         }
 

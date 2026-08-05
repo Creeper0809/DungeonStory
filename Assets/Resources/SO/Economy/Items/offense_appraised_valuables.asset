@@ -28,21 +28,23 @@ MonoBehaviour:
     \uADC0\uC911\uD488. \uD310\uB9E4 \uC815\uCC45\uC73C\uB85C \uAE08\uACE0 \uC790\uAE08\uD654\uD560
     \uC218 \uC788\uB2E4."
   stockCategory: 1
-  kind: 8
-  ingredientTags: 0
-  unitPrice: 1
-  marketSaleRate: 1
   unitWeight: 0.05
   maxStack: 100
   sprite: {fileID: 0}
-  requiredResearchId: 
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 1
+  features:
+  - rid: 7737211674039681363
+  - rid: 7737211674039681364
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681363
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 0
+        sharedIntermediate: 0
+    - rid: 7737211674039681364
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 1

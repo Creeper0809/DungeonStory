@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uD765\uD589\uACFC \uAD8C\uC704 \uC7A5\uC2DD\uC5D0 \uC4F0\uB294 \uAC70\uCE5C
     \uC7A5\uC2E0\uAD6C."
   stockCategory: 1
-  kind: 8
-  ingredientTags: 512
-  unitPrice: 18
-  marketSaleRate: 0.6
   unitWeight: 0.2
   maxStack: 40
   sprite: {fileID: 0}
-  requiredResearchId: research:authority:prestige
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 18
+  features:
+  - rid: 7737211673962611572
+  - rid: 7737211673962611573
+  - rid: 7737211673962611574
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611572
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:authority:prestige
+    - rid: 7737211673962611573
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 512
+        sharedIntermediate: 0
+    - rid: 7737211673962611574
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

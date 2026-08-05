@@ -9,6 +9,19 @@ using UnityEngine;
 
 internal static class CharacterAiEditorTestDependencies
 {
+    private static readonly IGameContentCatalog GameContent =
+        new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+    private static readonly ICharacterSpeciesCatalog CharacterSpecies =
+        new ResourceCharacterSpeciesCatalog(GameContent);
+    private static readonly EditorNoCharacterMedicalAccess CharacterMedical = new();
+    private static readonly ICharacterSkillSystemSettingsProvider SkillSettings =
+        new ResourceCharacterSkillSystemSettingsProvider(GameContent);
+    internal static readonly AuthoredGameplayCatalog AuthoredGameplay =
+        new AuthoredGameplayCatalog(GameContent);
+    internal static IGameContentDefinitionSource ContentDefinitions => GameContent;
+    internal static ICharacterSpeciesCatalog CharacterSpeciesCatalog => CharacterSpecies;
+    private static readonly ICharacterSkillGenerationService SkillGeneration =
+        new EditorCharacterSkillGenerationService();
     private static readonly ICharacterAiSchedulingService Scheduling =
         new ImmediateSchedulingService();
     private static readonly EditorCharacterAiPerformanceRecorder PerformanceRecorder =
@@ -16,7 +29,7 @@ internal static class CharacterAiEditorTestDependencies
     private static readonly IGridPathSearchBroker PathSearchBroker =
         new GridPathSearchBroker(
             new UnityGameClock(),
-            performanceRecorder: PerformanceRecorder);
+            performanceRecorder: PerformanceRecorder, doorAccessQuery: null, costPolicy: null);
     internal static readonly IGameClock GameClock = new UnityGameClock();
     internal static readonly IUiClock UiClock = new UnityUiClock();
     private static readonly IDynamicFrameWorkBudget FrameWorkBudget =
@@ -24,6 +37,17 @@ internal static class CharacterAiEditorTestDependencies
     internal static readonly IGameEventBus GameEvents = new GameEventBus();
     private static readonly IRandomStreamProvider RandomStreams =
         new RandomStreamProvider(rootSeed: 9173);
+    private static readonly IPersistentIdGenerator PersistentIds =
+        new GuidPersistentIdGenerator();
+    private static readonly WorldItemRepository PhysicalItems =
+        new WorldItemRepository(
+            PersistentIds,
+            new DungeonRuntimeAggregateRootStore());
+    private static readonly IStockQuery StockQuery =
+        new PhysicalStockQuery(
+            PhysicalItems,
+            new ResourceDungeonItemCatalogProvider(
+                new ResourceItemDefinitionCatalog(GameContent)));
     internal static readonly ICharacterAiWorldRegistry WorldRegistry =
         new CharacterAiWorldRegistry(
             new SceneRuntimeRegistry<CharacterActor>(),
@@ -31,14 +55,25 @@ internal static class CharacterAiEditorTestDependencies
             new SceneRuntimeRegistry<BuildableObject>(),
             new SceneRuntimeRegistry<IWarehouseFacility>(),
             new SceneRuntimeRegistry<IRetailFacility>(),
-            new FixedGameDataProvider(GetGameData()));
+            new FixedGameDataProvider(GetGameData()),
+            new RestoreWorldCandidateIndex());
     private static readonly ICharacterAiWorldSignalQuery WorldSignalQuery =
         new DefaultCharacterAiWorldSignalQuery(
             WorldRegistry,
             GameClock,
-            performanceRecorder: PerformanceRecorder);
+            performanceRecorder: PerformanceRecorder, survivalFoodRuntime: null, survivalEnvironment: null);
+    private static readonly Lazy<CharacterBodyHealthRuntime> BodyHealth =
+        new Lazy<CharacterBodyHealthRuntime>(() =>
+            new CharacterBodyHealthRuntime(
+                WorldRegistry,
+                GameClock,
+                GameEvents,
+                FrameWorkBudget,
+                new ResourceAnatomyProfileCatalog(GameContent),
+                new DefaultAnatomyActivityProfileCatalog(),
+                new DungeonRuntimeAggregateRootStore()));
     private static readonly IFacilityCandidateCache FacilityCandidates =
-        new FacilityCandidateCacheStore(WorldRegistry);
+        new FacilityCandidateCacheStore(WorldRegistry, frameWorkBudget: null);
     private static readonly IRoomFacilityPolicy RoomPolicy =
         new RoomFacilityPolicyService(RoomRegistry.EditorCache);
     private static readonly IStaffDiscontentRuntimeService StaffDiscontent =
@@ -48,34 +83,60 @@ internal static class CharacterAiEditorTestDependencies
     private static readonly IFloatingIconFeedbackService FloatingIcons =
         new NoopFloatingIconFeedbackService();
     private static readonly IBlueprintResearchWorkService BlueprintResearch =
-        new SceneBlueprintResearchWorkService();
-    private static readonly IWorkPolicyRegistry WorkPolicies =
-        new WorkExecutionHandlerRegistry(
-            Array.Empty<IWorkExecutionHandler>(),
-            new IWorkCandidateProvider[]
-            {
-                new ResearchWorkExecutionHandler(BlueprintResearch),
-                new EditorRepairCandidateProvider()
-            },
-            Array.Empty<IWorkUrgencyProvider>());
+        new EditorNoBlueprintResearchWorkService();
+    private static readonly IWorkOrderRuntime WorkOrders =
+        new EditorNoWorkOrderRuntime();
+    private static readonly IWorkAmountCalculator WorkAmounts =
+        new EditorFixedWorkAmountCalculator();
+    private static readonly IRoomEnvironmentExperienceService RoomExperience =
+        new EditorNoRoomEnvironmentExperienceService();
+    private static readonly IPaidFacilityContractRuntime PaidFacilities =
+        new EditorNoPaidFacilityContractRuntime();
+    private static readonly IEmploymentContractRuntime EmploymentContracts =
+        new EditorNoEmploymentContractRuntime();
+    private static readonly IEnvironmentWorkPolicy EnvironmentWork =
+        new EditorSafeEnvironmentWorkPolicy();
     private static readonly IWorldInfoClickSelector WorldInfo =
         new NoopWorldInfoClickSelector();
     private static readonly IBuildingAbilityRuntimeDispatcher BuildingAbilities =
-        new BuildingAbilityRuntimeDispatcher(
+        CreateBuildingAbilityRuntimeDispatcher();
+    internal static IBuildingAbilityRuntimeDispatcher BuildingAbilityRuntimeDispatcher =>
+        BuildingAbilities;
+
+    private static IBuildingAbilityRuntimeDispatcher CreateBuildingAbilityRuntimeDispatcher()
+    {
+        ModularBuildingCoreFacilityEffectsAdapter effects = new();
+        return new BuildingAbilityRuntimeDispatcher(
             new IBuildingAbilityWorkCompletedHandler[]
             {
                 new EditorSurvivalBuildingAbilityHandler(),
-                new ProductionBuildingAbilityHandler(),
-                new CleaningBuildingAbilityHandler(),
-                new SecurityBuildingAbilityHandler(),
-                new ReceptionBuildingAbilityHandler(),
-                new PatrolPostBuildingAbilityHandler(),
-                new OutdoorRestBuildingAbilityHandler(),
-                new ExteriorMaintenanceBuildingAbilityHandler()
+                new ProductionBuildingAbilityHandler(
+                    new EditorFacilityEvolutionModifierQuery(),
+                    new DungeonStory.Buildings.ProductionBuildingAbilityHandler(effects)),
+                new CleaningBuildingAbilityHandler(
+                    new DungeonStory.Buildings.CleaningBuildingAbilityHandler(effects)),
+                new SecurityBuildingAbilityHandler(
+                    new DungeonStory.Buildings.SecurityBuildingAbilityHandler(effects)),
+                new ReceptionBuildingAbilityHandler(
+                    new DungeonStory.Buildings.ReceptionBuildingAbilityHandler()),
+                new PatrolPostBuildingAbilityHandler(
+                    new DungeonStory.Buildings.PatrolPostBuildingAbilityHandler()),
+                new OutdoorRestBuildingAbilityHandler(
+                    new DungeonStory.Buildings.OutdoorRestBuildingAbilityHandler()),
+                new ExteriorMaintenanceBuildingAbilityHandler(
+                    new DungeonStory.Buildings.ExteriorMaintenanceBuildingAbilityHandler())
             },
             Array.Empty<IBuildingWorkCompletionFallbackHandler>());
-    internal static IBuildingAbilityRuntimeDispatcher BuildingAbilityRuntimeDispatcher =>
-        BuildingAbilities;
+    }
+
+    private sealed class EditorFacilityEvolutionModifierQuery :
+        IFacilityEvolutionModifierQuery
+    {
+        public float GetMultiplier(BuildableObject facility, string statId) => 1f;
+        public float GetAdditive(BuildableObject facility, string statId) => 0f;
+        public float GetOutputMultiplier(BuildableObject facility, WorkTypeId workTypeId) => 1f;
+        public float GetWorkSpeedMultiplier(BuildableObject facility, WorkTypeId workTypeId) => 1f;
+    }
 
     private sealed class EditorSurvivalBuildingAbilityHandler :
         IBuildingAbilityWorkCompletedHandler
@@ -149,18 +210,29 @@ internal static class CharacterAiEditorTestDependencies
         new NoopCharacterFeedbackBubbleFactory();
     private static readonly IOwnerCandidateCatalog OwnerCandidates =
         new EditorOwnerCandidateCatalog();
-    private static GameData gameData;
+    private static GameSessionState gameData;
 
     public static void Inject(GameObject actorObject)
     {
-        Inject(actorObject, Scheduling);
+        Inject(actorObject, Scheduling, StaffDiscontent, BlueprintResearch);
     }
 
     public static void Inject(
         GameObject actorObject,
         ICharacterAiSchedulingService scheduling)
     {
-        Inject(actorObject, scheduling, StaffDiscontent);
+        Inject(actorObject, scheduling, StaffDiscontent, BlueprintResearch);
+    }
+
+    public static void Inject(
+        GameObject actorObject,
+        BlueprintResearchRuntime blueprintResearchRuntime)
+    {
+        Inject(
+            actorObject,
+            Scheduling,
+            StaffDiscontent,
+            new EditorBlueprintResearchWorkService(blueprintResearchRuntime));
     }
 
     public static void Inject(
@@ -170,13 +242,15 @@ internal static class CharacterAiEditorTestDependencies
         Inject(
             actorObject,
             Scheduling,
-            new EditorStaffDiscontentRuntimeService(staffDiscontentRuntime));
+            new EditorStaffDiscontentRuntimeService(staffDiscontentRuntime),
+            BlueprintResearch);
     }
 
     private static void Inject(
         GameObject actorObject,
         ICharacterAiSchedulingService scheduling,
-        IStaffDiscontentRuntimeService staffDiscontent)
+        IStaffDiscontentRuntimeService staffDiscontent,
+        IBlueprintResearchWorkService blueprintResearch)
     {
         if (actorObject == null)
         {
@@ -185,6 +259,8 @@ internal static class CharacterAiEditorTestDependencies
 
         scheduling ??= Scheduling;
         PathSearchBroker.BeginFrame(int.MaxValue, enforceBudget: false);
+        WorkExecutionHandlerRegistry workRegistry =
+            CreateWorkRegistry(blueprintResearch);
 
         foreach (CharacterAbility ability in actorObject.GetComponents<CharacterAbility>())
         {
@@ -196,16 +272,17 @@ internal static class CharacterAiEditorTestDependencies
             scheduling,
             PathSearchBroker,
             RandomStreams,
-            GameClock);
+            GameClock, defenseEngagementRuntime: null);
 
         actorObject.GetComponent<CharacterLifecycle>()?.ConstructCharacterLifecycle(GridSystem);
 
-        actorObject.GetComponent<CharacterStats>()?.ConstructCharacterStats(
+        InjectCharacterStats(
+            actorObject.GetComponent<CharacterStats>(),
             staffDiscontent,
-            new NoopOwnerRunLifecycleService(),
             MetaProgression,
             GameClock,
-            gameEventBus: GameEvents);
+            AuthoredGameplay,
+            DisabledDungeonDebugRuleQuery.Instance);
 
         actorObject.GetComponent<CustomerPersonaRuntime>()?.ConstructCustomerPersonaRuntime(
             LocalLlm);
@@ -214,18 +291,20 @@ internal static class CharacterAiEditorTestDependencies
             LocalLlm,
             scheduling,
             DialogueBubbles,
-            GameClock);
+            GameClock, frameWorkBudget: null);
         actorObject.GetComponent<CharacterVisual>()?.ConstructCharacterVisual(GameClock);
 
         actorObject.GetComponent<AbilityWork>()?.ConstructAbilityWork(
-            BlueprintResearch,
+            blueprintResearch,
             staffDiscontent,
             FloatingIcons,
             new ActiveWorkGridResolver(),
             FacilityCandidates,
             null,
-            workPolicyRegistry: WorkPolicies,
-            gameClock: GameClock);
+            workPolicyRegistry: workRegistry,
+            gameClock: GameClock, exteriorZoneQuery: null, workExecutionHandlerRegistry: workRegistry, workOrderRuntime: WorkOrders, workAmountCalculator: WorkAmounts, captiveLaborQuery: null, defenseEngagementRuntime: null, roomEnvironmentExperienceService: RoomExperience, paidFacilityContracts: PaidFacilities, environmentWorkPolicy: EnvironmentWork, characterEnvironment: NoCharacterEnvironmentWorkContext.Instance, environmentalWorkwearCommands: NoEnvironmentalWorkwearCommand.Instance,
+            needDefinitionCatalog: AuthoredGameplay,
+            debugRules: DisabledDungeonDebugRuleQuery.Instance);
 
         actorObject.GetComponent<AbilityShopping>()?.ConstructAbilityShopping(
             ShopStock,
@@ -235,19 +314,24 @@ internal static class CharacterAiEditorTestDependencies
             GameEvents);
 
         actorObject.GetComponent<AIBrain>()?.ConstructAIBrain(
-            new ResourceCharacterAiActionAssetCatalog(new UnityResourcesAssetLoader()),
-            scheduling,
-            new NeutralSocialReputationBiasService(),
-            FacilityCandidates,
-            new SceneFacilityLookup(),
-            new CharacterAiJobGiverCatalog(),
-            new CharacterAiDecisionPipeline(),
-            RoomPolicy,
-            PathSearchBroker,
-            new UnityGameClock(),
-            RandomStreams,
-            PerformanceRecorder);
+            new AIBrainDecisionServices(
+                new ResourceCharacterAiActionAssetCatalog(GameContent),
+                scheduling,
+                FacilityCandidates,
+                new SceneFacilityLookup(),
+                new CharacterAiJobGiverCatalog(),
+                new CharacterAiDecisionPipeline(
+                    NoCharacterDeprivationBoundary.Instance,
+                    NoCharacterDeprivationBoundary.Instance),
+                PerformanceRecorder),
+            new AIBrainExecutionServices(
+                PathSearchBroker,
+                GameClock,
+                RandomStreams,
+                new NeutralSocialReputationBiasService(),
+                RoomPolicy));
 
+        EnsureCharacterProgression(actorObject);
         actorObject.GetComponent<CharacterActor>()?.ConstructCharacterActor(
             GridSystem,
             scheduling,
@@ -259,12 +343,98 @@ internal static class CharacterAiEditorTestDependencies
             WorldRegistry,
             WorldSignalQuery,
             FrameWorkBudget,
+            new CharacterCarryInventoryRegistry(),
+            new CharacterIdRegistryAdapter(
+                WorldRegistry,
+                new DungeonStory.Characters.CharacterIdRegistry(
+                    new GuidPersistentIdGenerator())),
+            GameContent,
+            new EditorDungeonUserSettingsService(),
             null,
             null,
+            CharacterMedical,
+            CharacterMedical,
             null,
             null,
-            null,
-            GameClock);
+            GameClock, tmpKoreanFontService: null, presentationScheduler: null);
+
+    }
+
+    private static WorkExecutionHandlerRegistry CreateWorkRegistry(
+        IBlueprintResearchWorkService blueprintResearch)
+    {
+        return new WorkExecutionHandlerRegistry(
+            Array.Empty<IWorkExecutionHandler>(),
+            new IWorkCandidateProvider[]
+            {
+                new ResearchWorkExecutionHandler(
+                    blueprintResearch
+                    ?? throw new ArgumentNullException(nameof(blueprintResearch))),
+                new EditorRepairCandidateProvider()
+            },
+            Array.Empty<IWorkUrgencyProvider>());
+    }
+
+    internal static void EnsureCharacterProgression(GameObject actorObject)
+    {
+        if (actorObject == null)
+        {
+            return;
+        }
+
+        CharacterProgression progression =
+            actorObject.GetComponent<CharacterProgression>();
+        if (progression == null)
+        {
+            progression = actorObject.AddComponent<CharacterProgression>();
+        }
+
+        progression.ConstructCharacterProgression(
+            SkillGeneration,
+            SkillSettings,
+            GameEvents,
+            new CharacterProgressionProfileProjector(GameContent));
+    }
+
+    internal static void InjectCharacterStats(
+        CharacterStats stats,
+        IStaffDiscontentRuntimeService staffDiscontent,
+        IMetaProgressionRuntimeReader metaProgression,
+        IGameClock gameClock,
+        ICharacterNeedDefinitionCatalog needDefinitions,
+        IDungeonDebugRuleQuery debugRules)
+    {
+        if (stats == null)
+        {
+            return;
+        }
+
+        CharacterStatsProjectionService projection =
+            new CharacterStatsProjectionService(
+                staffDiscontent,
+                metaProgression,
+                NeutralCharacterPhysicalCapacityQuery.Instance,
+                NoCharacterDeprivationBoundary.Instance,
+                NeutralCharacterSubstanceRuntime.Instance,
+                NeutralSurgicalAugmentationQuery.Instance,
+                NeutralCharacterEnvironmentStatusQuery.Instance,
+                NeutralExternalCombatInfluenceQuery.Instance);
+        stats.ConstructCharacterStats(
+            gameClock,
+            needDefinitions,
+            debugRules,
+            projection,
+            new CharacterNeedStateService(
+                DefaultCharacterNeedBalanceRuntime.Instance,
+                debugRules),
+            new CharacterMoodStateService(gameClock, needDefinitions),
+            new CharacterStatsMaintenanceSchedule());
+        stats.ConstructCharacterVitals(
+            new CharacterStatsVitalsService(
+                BodyHealth.Value,
+                BodyHealth.Value,
+                GameEvents,
+                new NoopOwnerRunLifecycleService()));
     }
 
     public static void Inject(SocialReputationRuntime runtime)
@@ -275,7 +445,7 @@ internal static class CharacterAiEditorTestDependencies
             WorldRegistry,
             SocialMemoryFactory,
             GameClock,
-            RandomStreams);
+            RandomStreams, uiClock: null);
     }
 
     public static void Inject(LocalLlmRequestQueue queue)
@@ -320,7 +490,8 @@ internal static class CharacterAiEditorTestDependencies
             DirectorContext,
             Scheduling,
             new SceneFacilityLookup(),
-            GameClock);
+            GameClock, uiClock: null,
+            needDefinitionCatalog: AuthoredGameplay);
     }
 
     public static void Inject(CharacterAiScheduler scheduler)
@@ -334,7 +505,9 @@ internal static class CharacterAiEditorTestDependencies
             FrameWorkBudget,
             PerformanceRecorder,
             UiClock,
-            FacilityCandidates);
+            FacilityCandidates,
+            playerStaffCommands: null,
+            debugRules: DisabledDungeonDebugRuleQuery.Instance);
     }
 
     internal static void ResetPerformanceRecorder(
@@ -369,12 +542,21 @@ internal static class CharacterAiEditorTestDependencies
             new EmptyFacilityShopCatalog(),
             new NeutralRunVariableReader(),
             new FixedGameDataProvider(GetGameData()),
-            GameEvents);
+            GameEvents,
+            EmploymentContracts,
+            new EditorGameMoneyAccount(GetGameData()),
+            PaidFacilities,
+            stockCategoryCatalog: AuthoredGameplay,
+            buildingCategoryCatalog: AuthoredGameplay,
+            aggregateRootStore: new DungeonRuntimeAggregateRootStore());
     }
 
     public static void Inject(StaffDiscontentRuntime runtime)
     {
-        runtime?.Construct(WorldRegistry, GameEvents);
+        runtime?.Construct(
+            WorldRegistry,
+            GameEvents,
+            new DungeonRuntimeAggregateRootStore());
     }
 
     public static void Inject(BlueprintResearchRuntime runtime)
@@ -384,60 +566,103 @@ internal static class CharacterAiEditorTestDependencies
             new EmptyFacilityShopCatalog(),
             FacilityCandidates,
             new NoopWorkforceReplanService(),
-            GameEvents);
+            GameEvents,
+            itemStackRuntime: null,
+            projectCoordinator: new BlueprintResearchProjectCoordinator(
+                new ResourceResearchProjectCatalog(
+                    Array.Empty<ResearchProjectSO>()),
+                UnavailableResearchBlueprintArchiveQuery.Instance,
+                UnrestrictedResearchFacilityCapacityQuery.Instance),
+            worldDropZoneQuery: null,
+            aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
+            debugRules: DisabledDungeonDebugRuleQuery.Instance,
+            uiClock: UiClock);
     }
 
     public static void Inject(
         StaffDiscontentRuntime runtime,
         IEnumerable<GameObject> scenarioRoots)
     {
-        runtime?.Construct(WorldRegistry, GameEvents);
+        runtime?.Construct(
+            WorldRegistry,
+            GameEvents,
+            new DungeonRuntimeAggregateRootStore());
     }
 
     public static void Inject(BuildableObject building)
     {
+        Inject(building, BlueprintResearch);
+    }
+
+    public static void Inject(
+        BuildableObject building,
+        BlueprintResearchRuntime blueprintResearchRuntime)
+    {
+        Inject(
+            building,
+            new EditorBlueprintResearchWorkService(blueprintResearchRuntime));
+    }
+
+    private static void Inject(
+        BuildableObject building,
+        IBlueprintResearchWorkService blueprintResearch)
+    {
+        building?.ConstructPersistentIdentity(PersistentIds);
         building?.ConstructBuildableObject(
-            BlueprintResearch,
-            WorldInfo,
+            new BuildingResearchWorkPortAdapter(blueprintResearch),
             FacilityCandidates,
             RoomPolicy,
-            worldRegistry: WorldRegistry,
+            worldRegistry: (IBuildingWorldRegistryPort)WorldRegistry,
             abilityRuntimeDispatcher: BuildingAbilities,
-            gameClock: GameClock);
-        building?.ConstructBuildableObjectEventBus(GameEvents);
+            gameClock: GameClock, combatEquipmentRuntime: null, worldItemStackRuntime: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+        building?.ConstructBuildableObjectEventBus(
+            GameEvents,
+            new BuildingVisitEventPublisher(GameEvents),
+            new BuildingInfoPresentationAdapter(GameEvents));
+        building?.ConstructDebugRules(DisabledDungeonDebugRuleQuery.Instance);
+
+        if (building is Facility facility)
+        {
+            facility.ConstructFacility(
+                roomEnvironmentExperienceService: null,
+                stockQuery: StockQuery,
+                mealConsumptionRuntime: null,
+                waterFixtureUseRuntime: null,
+                wastewaterNetworkRuntime: PermissiveWastewaterTransaction.Instance,
+                serviceSessionRuntime: null,
+                serviceRoomLinkRuntime: null,
+                stockCategoryCatalog: AuthoredGameplay);
+        }
 
         if (building is DefenseFacility defenseFacility)
         {
-            defenseFacility.ConstructDefenseFacilityEventBus(GameEvents);
+            defenseFacility.ConstructDefenseFacilityEventBus(GameEvents, worldThreatModifiers: null, defenseRuntime: null);
         }
     }
 
     public static void InjectShop(Shop shop)
     {
+        GameSessionState state = GetGameData();
         shop?.ConstructShop(
-            new FixedGameDataProvider(GetGameData()),
+            new EditorGameMoneyAccount(state),
             ShopStock,
             new NoopFloatingNumberFeedbackService(),
             new NoopWorkforceReplanService(),
             FacilityCrimeEditorTestDependencies.Evaluator,
-            RandomStreams);
+            RandomStreams,
+            null,
+            null,
+            null);
     }
 
-    private static GameData GetGameData()
+    private static GameSessionState GetGameData()
     {
         if (gameData != null)
         {
             return gameData;
         }
 
-        gameData = ScriptableObject.CreateInstance<GameData>();
-        gameData.hideFlags = HideFlags.HideAndDontSave;
-        gameData.gameSpeed = new Data<int>();
-        gameData.holdingMoney = new Data<int>();
-        gameData.day = new Data<int>();
-        gameData.curTime = new Data<float>();
-        gameData.hour = new Data<int>();
-        gameData.timeOfDay = new Data<TimeOfDay>();
+        gameData = new GameSessionState();
         gameData.gameSpeed.Initialize(1);
         gameData.holdingMoney.Initialize(100000);
         gameData.day.Initialize(7);
@@ -445,6 +670,41 @@ internal static class CharacterAiEditorTestDependencies
         gameData.hour.Initialize(0);
         gameData.timeOfDay.Initialize(TimeOfDay.Morning);
         return gameData;
+    }
+
+    private sealed class PermissiveWastewaterTransaction :
+        IFluidWastewaterTransaction
+    {
+        public static readonly PermissiveWastewaterTransaction Instance = new();
+
+        public bool TryAddWastewater(
+            BuildableObject fixture,
+            float amount,
+            out float accepted,
+            out DomainFailure failure)
+        {
+            accepted = Mathf.Max(0f, amount);
+            failure = default;
+            return true;
+        }
+
+        public bool TryConsumeWastewater(
+            BuildableObject processor,
+            float amount,
+            out float consumed)
+        {
+            consumed = Mathf.Max(0f, amount);
+            return true;
+        }
+
+        public bool CanAcceptWastewater(
+            BuildableObject fixture,
+            float amount,
+            out DomainFailure failure)
+        {
+            failure = default;
+            return true;
+        }
     }
 
     private sealed class ImmediateSchedulingService : ICharacterAiSchedulingService
@@ -674,18 +934,27 @@ internal static class CharacterAiEditorTestDependencies
                 ? ownerSpawnPoint.position
                 : Vector3.zero;
             Inject(ownerObject);
-            ownerObject.GetComponent<CharacterStats>()?.ConstructCharacterStats(
+            InjectCharacterStats(
+                ownerObject.GetComponent<CharacterStats>(),
                 StaffDiscontent,
-                new EditorOwnerRunLifecycleService(manager),
                 MetaProgression,
                 GameClock,
-                gameEventBus: GameEvents);
+                AuthoredGameplay,
+                DisabledDungeonDebugRuleQuery.Instance);
             owner.EnsureRuntimeState();
             owner.RefreshAbilityCache();
             owner.Initialization(ownerData);
             owner.SetLifecycleState(CharacterLifecycleState.Active);
             owner.Brain?.UseOwnerWorkActions();
             return owner;
+        }
+
+        public CharacterActor CreateOwnerDetached(
+            CharacterSO ownerData,
+            GameObject ownerPrefab)
+        {
+            throw new NotSupportedException(
+                "The shared editor dependency fixture does not restore character worlds.");
         }
     }
 
@@ -733,6 +1002,8 @@ internal static class CharacterAiEditorTestDependencies
         public float GetBlueprintCostMultiplier(FacilityBlueprintSO blueprint) => 1f;
         public float GetThreatRiseMultiplier() => 1f;
         public float GetWarningThresholdMultiplier() => 1f;
+        public DungeonSurvivalPressure GetSurvivalPressure() =>
+            DungeonSurvivalPressure.Standard;
         public InvasionIntruderSettings ApplyInvasionSettings(InvasionIntruderSettings source) => source;
     }
 
@@ -831,47 +1102,46 @@ internal static class CharacterAiEditorTestDependencies
         public bool Show(Component target, Sprite sprite, float maxWorldSize) => false;
     }
 
-    private sealed class SceneBlueprintResearchWorkService : IBlueprintResearchWorkService
+    private sealed class EditorNoBlueprintResearchWorkService : IBlueprintResearchWorkService
     {
-        public bool HasResearchWorkFor(BuildableObject facility)
-        {
-            return TryGetRuntime(preferActive: true, out BlueprintResearchRuntime runtime)
-                && runtime.HasActiveResearch
-                && facility != null
-                && facility.SupportsWork(BuiltInWorkTypeIds.Research);
-        }
+        public bool HasResearchWorkFor(BuildableObject facility) => false;
 
         public BlueprintResearchWorkResult ApplyResearchWork(
             CharacterActor researcher,
             BuildableObject researchFacility,
             float seconds)
         {
-            if (!TryGetRuntime(preferActive: true, out BlueprintResearchRuntime runtime))
-            {
-                return new BlueprintResearchWorkResult(
-                    false,
-                    null,
-                    0f,
-                    0f,
-                    1f,
-                    false,
-                    "Editor test fixture has no blueprint research runtime.");
-            }
-
-            return runtime.ApplyResearchWork(researcher, researchFacility, seconds);
+            return new BlueprintResearchWorkResult(
+                false,
+                null,
+                0f,
+                0f,
+                1f,
+                false,
+                "Editor test fixture has no blueprint research runtime.");
         }
+    }
 
-        private static bool TryGetRuntime(bool preferActive, out BlueprintResearchRuntime runtime)
+    private sealed class EditorBlueprintResearchWorkService : IBlueprintResearchWorkService
+    {
+        private readonly BlueprintResearchRuntime runtime;
+
+        public EditorBlueprintResearchWorkService(BlueprintResearchRuntime runtime)
         {
-            BlueprintResearchRuntime[] runtimes = UnityEngine.Object.FindObjectsByType<BlueprintResearchRuntime>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
-            runtime = preferActive
-                ? runtimes.FirstOrDefault((candidate) => candidate != null && candidate.HasActiveResearch)
-                    ?? runtimes.FirstOrDefault((candidate) => candidate != null)
-                : runtimes.FirstOrDefault((candidate) => candidate != null);
-            return runtime != null;
+            this.runtime = runtime
+                ?? throw new ArgumentNullException(nameof(runtime));
         }
+
+        public bool HasResearchWorkFor(BuildableObject facility) =>
+            runtime.HasActiveResearch
+            && facility != null
+            && facility.SupportsWork(BuiltInWorkTypeIds.Research);
+
+        public BlueprintResearchWorkResult ApplyResearchWork(
+            CharacterActor researcher,
+            BuildableObject researchFacility,
+            float seconds) =>
+            runtime.ApplyResearchWork(researcher, researchFacility, seconds);
     }
 
     private sealed class NoopWorldInfoClickSelector : IWorldInfoClickSelector
@@ -934,16 +1204,16 @@ internal static class CharacterAiEditorTestDependencies
         }
     }
 
-    private sealed class FixedGameDataProvider : IGameDataProvider
+    private sealed class FixedGameDataProvider : IGameSessionStateProvider
     {
-        private readonly GameData value;
+        private readonly GameSessionState value;
 
-        public FixedGameDataProvider(GameData value)
+        public FixedGameDataProvider(GameSessionState value)
         {
             this.value = value;
         }
 
-        public bool TryGetGameData(out GameData resolvedGameData)
+        public bool TryGetSessionState(out GameSessionState resolvedGameData)
         {
             resolvedGameData = value;
             return resolvedGameData != null;
@@ -965,6 +1235,368 @@ internal static class CharacterAiEditorTestDependencies
         public void RequestOneHaulerToReplan(
             bool clearFailures = true,
             bool forceInterrupt = false) { }
+    }
+
+    private sealed class EditorNoCharacterMedicalAccess :
+        ICharacterMedicalQuery,
+        ICharacterMedicalCommand
+    {
+        public IReadOnlyList<CharacterMedicalOrder> ActiveOrders =>
+            Array.Empty<CharacterMedicalOrder>();
+
+        public bool HasAvailableRescueOrder(CharacterActor rescuer) => false;
+
+        public bool TryGetOrder(
+            string orderId,
+            out CharacterMedicalOrder order)
+        {
+            order = null;
+            return false;
+        }
+
+        public bool TryGetPatient(
+            CharacterMedicalOrder order,
+            out CharacterActor patient)
+        {
+            patient = null;
+            return false;
+        }
+
+        public bool TryGetTreatmentFacility(
+            CharacterMedicalOrder order,
+            out BuildableObject facility)
+        {
+            facility = null;
+            return false;
+        }
+
+        public bool TryReserveBestOrder(
+            CharacterActor rescuer,
+            out CharacterMedicalOrder order,
+            out DomainFailure failure)
+        {
+            order = null;
+            failure = Unavailable();
+            return false;
+        }
+
+        public bool TryReserveOrderForPatient(
+            CharacterActor rescuer,
+            CharacterActor patient,
+            out CharacterMedicalOrder order,
+            out DomainFailure failure)
+        {
+            order = null;
+            failure = Unavailable();
+            return false;
+        }
+
+        public bool TryRequestTreatment(
+            CharacterActor patient,
+            out CharacterMedicalOrder order,
+            out DomainFailure failure)
+        {
+            order = null;
+            failure = Unavailable();
+            return false;
+        }
+
+        public bool TryAssignSpecificTreatmentFacility(
+            string orderId,
+            BuildableObject facility,
+            out DomainFailure failure)
+        {
+            failure = Unavailable();
+            return false;
+        }
+
+        public float AdvanceStabilization(
+            string orderId,
+            CharacterActor rescuer,
+            float work) => 0f;
+
+        public bool TryBeginCarrying(
+            string orderId,
+            CharacterActor rescuer,
+            out DomainFailure failure)
+        {
+            failure = Unavailable();
+            return false;
+        }
+
+        public bool TryPlaceAtTreatmentDestination(
+            string orderId,
+            CharacterActor rescuer,
+            out DomainFailure failure)
+        {
+            failure = Unavailable();
+            return false;
+        }
+
+        public float AdvanceTreatment(
+            string orderId,
+            CharacterActor rescuer,
+            float work) => 0f;
+
+        public bool TryReleaseReservation(
+            string orderId,
+            CharacterActor rescuer,
+            CharacterMedicalStatusCode releaseStatus,
+            out DomainFailure failure)
+        {
+            failure = Unavailable();
+            return false;
+        }
+
+        public void NotifyCharacterDowned(CharacterActor actor) { }
+        public void NotifyCharacterRecovered(CharacterActor actor) { }
+
+        private static DomainFailure Unavailable() => new(
+            FailureCode.CharacterMedicalRuntimeUnavailable);
+    }
+
+    private sealed class EditorNoWorkOrderRuntime : IWorkOrderRuntime
+    {
+        public int WorkOrderCandidateVersion => 0;
+
+        public DungeonWorkOrderSaveData Capture() => new DungeonWorkOrderSaveData();
+
+        public void ValidateRestorePayload(
+            DungeonWorkOrderSaveData snapshot)
+        {
+        }
+
+        public WorkOrderRestoreCandidate PrepareRestoreCandidate(
+            DungeonWorkOrderSaveData snapshot)
+        {
+            throw new InvalidOperationException(
+                "Editor fixture does not restore work orders.");
+        }
+
+        public void PublishRestoreCandidate(WorkOrderRestoreCandidate candidate)
+        {
+        }
+
+        public bool TryCreateConstructionOrder(
+            ConstructionSite site,
+            BuildingSO building,
+            Vector2Int position,
+            out string orderId,
+            out string failureReason)
+        {
+            orderId = string.Empty;
+            failureReason = "Editor fixture does not create construction orders.";
+            return false;
+        }
+
+        public bool TryGetOrderFor(
+            BuildableObject target,
+            WorkTypeId workTypeId,
+            out WorkOrderProgressState order)
+        {
+            order = null;
+            return false;
+        }
+
+        public bool ApplyWork(
+            CharacterActor worker,
+            BuildableObject target,
+            WorkTypeId workTypeId,
+            float amount,
+            out bool completed,
+            out bool appliedCompletionEffects,
+            out string message)
+        {
+            completed = false;
+            appliedCompletionEffects = false;
+            message = "Editor fixture has no persistent work order.";
+            return false;
+        }
+
+        public bool RefreshMaterialsReady(ConstructionSite site) => false;
+        public bool CancelOrder(string orderId, bool refundDeliveredMaterials) => false;
+
+        public bool DebugCompleteOrder(string orderId, out string message)
+        {
+            message = "Editor fixture has no persistent work order.";
+            return false;
+        }
+
+        public int DebugCompleteAllOrders() => 0;
+    }
+
+    private sealed class EditorFixedWorkAmountCalculator : IWorkAmountCalculator
+    {
+        public float CalculateWorkPerSecond(
+            CharacterActor actor,
+            BuildableObject target,
+            WorkTypeId workTypeId,
+            float environmentDurationMultiplier)
+        {
+            return Mathf.Max(0.01f, environmentDurationMultiplier);
+        }
+    }
+
+    private sealed class EditorNoRoomEnvironmentExperienceService :
+        IRoomEnvironmentExperienceService
+    {
+        public bool Apply(RoomEnvironmentExperienceEvent eventType) => false;
+    }
+
+    private sealed class EditorSafeEnvironmentWorkPolicy : IEnvironmentWorkPolicy
+    {
+        private static WorkEnvironmentAssessment Safe => new WorkEnvironmentAssessment(
+            canStart: true,
+            needsProtection: false,
+            projectedExposure: 0f,
+            workSpeedMultiplier: 1f,
+            failure: DomainFailure.None);
+
+        public WorkEnvironmentAssessment Assess(
+            CharacterActor actor,
+            Vector2Int destination,
+            float expectedSeconds,
+            EnvironmentalWorkKind workKind,
+            bool forced) => Safe;
+
+        public WorkEnvironmentAssessment AssessStart(
+            CharacterActor actor,
+            Vector2Int destination,
+            IReadOnlyList<GridMoveStep> route,
+            float expectedSeconds,
+            EnvironmentalWorkKind workKind,
+            bool forced) => Safe;
+
+        public WorkEnvironmentAssessment RecheckActive(
+            CharacterActor actor,
+            Vector2Int currentPosition,
+            float remainingSeconds,
+            EnvironmentalWorkKind workKind,
+            bool forced) => Safe;
+
+        public bool TryFindEvacuationCell(
+            CharacterActor actor,
+            Grid grid,
+            out Vector2Int destination,
+            out bool fullySafe,
+            out DomainFailure failure)
+        {
+            destination = actor != null ? actor.GetNowXY() : Vector2Int.zero;
+            fullySafe = true;
+            failure = DomainFailure.None;
+            return true;
+        }
+    }
+
+    private sealed class EditorNoPaidFacilityContractRuntime :
+        IPaidFacilityContractRuntime
+    {
+        public IReadOnlyList<PaidFacilityContractState> Contracts =>
+            Array.Empty<PaidFacilityContractState>();
+
+        public int ForecastCost(int days) => 0;
+        public int SettleDay(int day) => 0;
+        public PaidFacilityContractState GetContract(BuildableObject facility) => null;
+
+        public bool CanBeginUse(BuildableObject facility, out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryChargeUse(BuildableObject facility, out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryChargeOrder(
+            BuildableObject facility,
+            string orderKey,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TrySetDailyContractActive(
+            BuildableObject facility,
+            bool active,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public void SynchronizeFacility(BuildableObject facility) { }
+        public void RemoveFacility(BuildableObject facility) { }
+        public string GetLastFailureReason(BuildableObject facility) => string.Empty;
+        public PaidFacilityContractSaveData Capture() => new PaidFacilityContractSaveData();
+
+        public bool CanBeginUse(
+            IBuildingWorldEntryPort facility,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool TryChargeUse(
+            IBuildingWorldEntryPort facility,
+            out string failureReason)
+        {
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public void SynchronizeFacility(IBuildingWorldEntryPort facility) { }
+        public void RemoveFacility(IBuildingWorldEntryPort facility) { }
+    }
+
+    private sealed class EditorNoEmploymentContractRuntime :
+        IEmploymentContractRuntime
+    {
+        public IReadOnlyList<EmployeeWageState> WageStates =>
+            Array.Empty<EmployeeWageState>();
+
+        public IReadOnlyList<MercenaryContract> MercenaryContracts =>
+            Array.Empty<MercenaryContract>();
+
+        public int ForecastCost(int days) => 0;
+        public int GetDailyCost(string characterId) => 0;
+
+        public int QuoteMercenaryDailyCost(
+            string characterId,
+            int level,
+            int rolePremium) => 0;
+
+        public EmploymentDailySettlement SettleDay(int day) =>
+            new EmploymentDailySettlement
+            {
+                day = Mathf.Max(1, day)
+            };
+
+        public bool TryHireMercenary(
+            CharacterActor actor,
+            int rolePremium,
+            int day,
+            out string failureReason)
+        {
+            failureReason = "Employment mutation is unavailable in this fixture.";
+            return false;
+        }
+
+        public bool SetEmployeeRolePremium(
+            string characterId,
+            int premium,
+            out string failureReason)
+        {
+            failureReason = "Employment mutation is unavailable in this fixture.";
+            return false;
+        }
+
+        public EmploymentContractSaveData Capture() =>
+            new EmploymentContractSaveData();
     }
 }
 
@@ -1015,6 +1647,16 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
     }
 
     public bool DetailedCollectionEnabled => detailedCollectionEnabled;
+    public bool SlowTraceEnabled => false;
+
+    public void RecordSlowOperation(
+        string stage,
+        CharacterActor actor,
+        AIActionSet actionSet,
+        Consideration consideration,
+        double elapsedMilliseconds)
+    {
+    }
 
     public void SetDetailedCollectionEnabled(bool enabled)
     {
@@ -1034,6 +1676,11 @@ internal sealed class EditorCharacterAiPerformanceRecorder : ICharacterAiPerform
         {
             samples[index].Add(Math.Max(0d, elapsedMilliseconds));
         }
+    }
+
+    public void RecordGridPathSearch(double elapsedMilliseconds)
+    {
+        Record(AiPerformanceCategory.PathSearch, elapsedMilliseconds);
     }
 
     public void RecordPathCounters(int pathSearches, int pathCacheHits, int budgetDeferrals)

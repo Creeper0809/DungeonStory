@@ -3,54 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-[Flags]
-public enum DefenseTriggerTiming
-{
-    None = 0,
-    OnEnter = 1 << 0,
-    Periodic = 1 << 1,
-    Cooldown = 1 << 2,
-    GuardResponse = 1 << 3
-}
-
-public enum DefenseAttackConcept
-{
-    None,
-    Physical,
-    Poison,
-    Fire,
-    Lightning,
-    Ice,
-    Guard
-}
-
-public enum DefenseTargetRule
-{
-    EnteringIntruder,
-    IntrudersInRoom,
-    AllIntrudersInRoom,
-    GuardTarget
-}
-
-public enum DefenseStatusKind
-{
-    Corrosion,
-    Burn,
-    Charge,
-    Slow
-}
-
-public enum DefenseSupplyKind
-{
-    None = 0,
-    MetalParts = 1,
-    Toxin = 2,
-    Fuel = 3,
-    Ammunition = 4,
-    ElectricalCharge = 5,
-    Treasury = 6
-}
-
 [Serializable]
 public sealed class DefenseFacilityGrowthData
 {
@@ -225,8 +177,8 @@ public class DefenseFacility : Facility
     [VContainer.Inject]
     public void ConstructDefenseFacilityEventBus(
         DungeonStory.Foundation.IGameEventBus gameEventBus,
-        IWorldThreatModifierQuery worldThreatModifiers = null,
-        IDefenseFacilityRuntime defenseRuntime = null)
+        IWorldThreatModifierQuery worldThreatModifiers,
+        IDefenseFacilityRuntime defenseRuntime)
     {
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
@@ -239,37 +191,43 @@ public class DefenseFacility : Facility
         Mathf.Max(0f, nextTriggerTime - GameTime),
         defenseRuntime?.GetSnapshot(this).CooldownRemaining ?? 0f);
 
-    public bool CanTrigger(DefenseTriggerTiming timing, out string failureReason)
+    public bool CanTrigger(DefenseTriggerTiming timing, out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         DefenseFacilityData defense = Defense;
         if (defense == null || !defense.IsDefenseFacility)
         {
-            failureReason = "방어 시설 아님";
+            failure = new DomainFailure(FailureCode.DefenseFacilityUnavailable);
             return false;
         }
 
         if (isDestroy)
         {
-            failureReason = "시설 파괴됨";
+            failure = new DomainFailure(FailureCode.DefenseDestroyed);
             return false;
         }
 
         if (IsDamaged && (Facility == null || Facility.disabledWhenDamaged))
         {
-            failureReason = "시설 파손";
+            failure = new DomainFailure(FailureCode.DefenseConditionCritical);
             return false;
         }
 
         if (!defense.SupportsTrigger(timing))
         {
-            failureReason = "발동 조건 불일치";
+            failure = new DomainFailure(
+                FailureCode.DefenseTriggerUnsupported,
+                timing.ToString());
             return false;
         }
 
         if (GameTime < nextTriggerTime)
         {
-            failureReason = "쿨타임";
+            failure = new DomainFailure(
+                FailureCode.DefenseCooldownActive,
+                (nextTriggerTime - GameTime).ToString(
+                    "0.0",
+                    System.Globalization.CultureInfo.InvariantCulture));
             return false;
         }
 
@@ -278,7 +236,7 @@ public class DefenseFacility : Facility
                 this,
                 null,
                 timing,
-                out failureReason))
+                out failure))
         {
             return false;
         }
@@ -358,7 +316,7 @@ public static class DefenseFacilityResolver
         Vector2Int position,
         DefenseTriggerTiming timing,
         IDefenseStatusRuntimeService statusRuntimeService,
-        ITreasuryDefenseRuntime treasuryDefenseRuntime = null,
+        ITreasuryDefenseRuntime treasuryDefenseRuntime,
         string invasionId = "",
         float threat = 0f,
         bool isBoss = false)
@@ -489,22 +447,6 @@ public static class DefenseEffectResolver
 
         return statusRuntimeService.TickStatuses(target, deltaSeconds);
     }
-}
-
-public readonly struct DefenseStatusSnapshot
-{
-    public DefenseStatusSnapshot(DefenseStatusKind kind, float value, float remainingSeconds, int stacks)
-    {
-        Kind = kind;
-        Value = value;
-        RemainingSeconds = Mathf.Max(0f, remainingSeconds);
-        Stacks = Mathf.Max(0, stacks);
-    }
-
-    public DefenseStatusKind Kind { get; }
-    public float Value { get; }
-    public float RemainingSeconds { get; }
-    public int Stacks { get; }
 }
 
 public class DefenseStatusRuntime : MonoBehaviour

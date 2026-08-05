@@ -3,16 +3,13 @@ using TMPro;
 
 public sealed class ResourceTmpKoreanFontProvider : ITmpKoreanFontProvider
 {
-    private const string SettingsResourcePath = "Config/TMPKoreanFontSettings";
-
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
-    private TmpKoreanFontSettingsSO cachedSettings;
+    private readonly TmpKoreanFontSettingsSO settings;
     private TMP_FontAsset cachedFont;
 
-    public ResourceTmpKoreanFontProvider(IResourcesAssetLoader resourcesAssetLoader)
+    public ResourceTmpKoreanFontProvider(IGameContentCatalog content)
     {
-        this.resourcesAssetLoader = resourcesAssetLoader
-            ?? throw new ArgumentNullException(nameof(resourcesAssetLoader));
+        settings = (content ?? throw new ArgumentNullException(nameof(content)))
+            .Media.KoreanFontSettings;
     }
 
     public TMP_FontAsset GetRequiredFont()
@@ -22,12 +19,7 @@ public sealed class ResourceTmpKoreanFontProvider : ITmpKoreanFontProvider
             return cachedFont;
         }
 
-        if (cachedSettings == null)
-        {
-            cachedSettings = resourcesAssetLoader.LoadRequired<TmpKoreanFontSettingsSO>(SettingsResourcePath);
-        }
-
-        cachedFont = cachedSettings.GetRequiredFont();
+        cachedFont = settings.GetRequiredFont();
         return cachedFont;
     }
 }

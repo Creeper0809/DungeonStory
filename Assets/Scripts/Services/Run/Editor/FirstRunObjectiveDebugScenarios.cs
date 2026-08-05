@@ -17,6 +17,10 @@ public static class FirstRunObjectiveDebugScenarios
     public static bool RunAll(bool logSuccess)
     {
         List<string> failures = new List<string>();
+        if (!OnboardingRunStartConstructorFacadeDebugScenarios.Verify())
+        {
+            failures.Add("onboarding/run-start constructor facade");
+        }
         VerifyObjectiveChain(failures);
         VerifyCompletedRunPersistence(failures);
 
@@ -104,7 +108,10 @@ public static class FirstRunObjectiveDebugScenarios
 
     private static void VerifyCompletedRunPersistence(List<string> failures)
     {
-        MetaProgressionState state = new MetaProgressionState();
+        MetaProgressionState state = new MetaProgressionState(
+            new AuthoredGameplayCatalog(
+                new ResourceGameContentCatalog(new UnityGameContentRootLoader())),
+            new DungeonRuntimeAggregateRootStore());
         state.Restore(
             30,
             10,

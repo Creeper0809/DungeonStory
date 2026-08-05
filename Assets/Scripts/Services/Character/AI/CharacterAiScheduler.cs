@@ -45,25 +45,15 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     private readonly List<CharacterActor> actors = new List<CharacterActor>();
     private readonly HashSet<CharacterActor> actorSet = new HashSet<CharacterActor>();
     private readonly Dictionary<CharacterActor, float> nextDecisionTime = new Dictionary<CharacterActor, float>();
-    private readonly Dictionary<CharacterActor, int> decisionScheduleVersions =
-        new Dictionary<CharacterActor, int>();
-    private readonly Dictionary<CharacterActor, double> actorDecisionCostMilliseconds =
-        new Dictionary<CharacterActor, double>();
     private readonly HashSet<CharacterActor> urgentDecisionRequests =
         new HashSet<CharacterActor>();
-    private readonly List<ScheduledDecision> decisionScheduleHeap =
-        new List<ScheduledDecision>();
     private readonly HashSet<CharacterActor> missingBehaviorTreeLogged = new HashSet<CharacterActor>();
     private readonly HashSet<CharacterActor> missingExternalBehaviorLogged = new HashSet<CharacterActor>();
-    private long decisionScheduleSequence;
-    private int pathBudgetFrame = -1;
-    private int pathSearchesThisFrame;
-    private int currentDecisionBudget;
-    private int currentPathSearchBudget;
-    private double estimatedDecisionMilliseconds;
-    private double estimatedPathSearchMilliseconds;
-    private double currentFrameBudgetMilliseconds;
-    private double smoothedFrameMilliseconds;
+    private readonly CharacterAiSchedulerBudgetState budgetState =
+        new CharacterAiSchedulerBudgetState();
+    private readonly CharacterAiDecisionCadencePolicy cadencePolicy =
+        new CharacterAiDecisionCadencePolicy();
+    private CharacterAiDecisionSchedule decisionSchedule;
     private int schedulerTickSequence;
     private int lastOverdraftTick = int.MinValue / 2;
     private float manualTime;
@@ -72,7 +62,6 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     private long cumulativeStarvedDecisionCount;
     private long cumulativeSkippedDecisionCount;
     private long cumulativeLegacyFallbackCount;
-    private float maximumObservedDecisionDeferralSeconds;
     private ICharacterWorldQuery characterWorld;
     private IMainCameraProvider mainCameraProvider;
     private ICharacterBehaviorTreeRuntimeConfigurator behaviorTreeConfigurator;
@@ -83,35 +72,40 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     private ICharacterAiPerformanceRecorder performanceRecorder;
     private IFacilityCandidateCache facilityCandidateCache;
     private IPlayerStaffCommandSource playerStaffCommands;
+    private IDungeonDebugRuleQuery debugRules;
     private double worldIndexMillisecondsThisFrame;
 
     public int RegisteredCharacterCount => actors.Count;
+    public bool HasInjectedGameClock => gameClock != null;
     public int LastProcessedDecisionCount { get; private set; }
     public int LastBehaviorTreeTickCount { get; private set; }
     public int LastLegacyFallbackCount { get; private set; }
-    public int LastPathSearchCount { get; private set; }
-    public int LastBrokerPathSearchCount { get; private set; }
-    public int LastBrokerUnboundedPathSearchCount { get; private set; }
-    public int LastBrokerPathCacheHitCount { get; private set; }
-    public int LastBrokerPathBudgetDeferralCount { get; private set; }
+    public int LastPathSearchCount => budgetState.LastPathSearchCount;
+    public int LastBrokerPathSearchCount => budgetState.LastBrokerPathSearchCount;
+    public int LastBrokerUnboundedPathSearchCount => budgetState.LastBrokerUnboundedPathSearchCount;
+    public int LastBrokerPathCacheHitCount => budgetState.LastBrokerPathCacheHitCount;
+    public int LastBrokerPathBudgetDeferralCount => budgetState.LastBrokerPathBudgetDeferralCount;
     public double LastProcessingMilliseconds { get; private set; }
     public long LastAllocatedBytes { get; private set; } = -1L;
-    public double CurrentFrameBudgetMilliseconds => currentFrameBudgetMilliseconds;
-    public double EstimatedDecisionMilliseconds => estimatedDecisionMilliseconds;
-    public double EstimatedPathSearchMilliseconds => estimatedPathSearchMilliseconds;
-    public double SmoothedFrameMilliseconds => smoothedFrameMilliseconds;
+    public double CurrentFrameBudgetMilliseconds => budgetState.CurrentFrameBudgetMilliseconds;
+    public double EstimatedDecisionMilliseconds => budgetState.EstimatedDecisionMilliseconds;
+    public double EstimatedPathSearchMilliseconds => budgetState.EstimatedPathSearchMilliseconds;
+    public double SmoothedFrameMilliseconds => budgetState.SmoothedFrameMilliseconds;
     public long CumulativeProcessedDecisionCount => cumulativeProcessedDecisionCount;
     public long CumulativeStarvedDecisionCount => cumulativeStarvedDecisionCount;
     public long CumulativeSkippedDecisionCount => cumulativeSkippedDecisionCount;
     public long CumulativeLegacyFallbackCount => cumulativeLegacyFallbackCount;
-    public float LastOldestDecisionDeferralSeconds { get; private set; }
-    public float MaximumObservedDecisionDeferralSeconds =>
-        maximumObservedDecisionDeferralSeconds;
+    public float LastOldestDecisionDeferralSeconds => budgetState.LastOldestDecisionDeferralSeconds;
+    public float MaximumObservedDecisionDeferralSeconds => budgetState.MaximumObservedDecisionDeferralSeconds;
     public bool LastBudgetExhausted { get; private set; }
     public ExternalBehaviorTree CharacterAiExternalBehavior => characterAiExternalBehavior;
     public bool IsDrivingAi => enabled && driveCharacterUpdates;
-    public int CurrentDecisionBudget => Mathf.Max(0, currentDecisionBudget);
-    public int CurrentPathSearchBudget => Mathf.Max(0, currentPathSearchBudget);
+    public int CurrentDecisionBudget => budgetState.CurrentDecisionBudget;
+    public int CurrentPathSearchBudget => budgetState.CurrentPathSearchBudget;
+    private CharacterAiDecisionSchedule DecisionSchedule =>
+        decisionSchedule ??= new CharacterAiDecisionSchedule(
+            actorSet,
+            nextDecisionTime);
     public bool IsPathBudgetActiveForDebug => enabled
         && driveCharacterUpdates
         && limitPathSearches;
@@ -138,10 +132,11 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         IGridPathSearchBroker pathSearchBroker,
         IGameClock gameClock,
         IDynamicFrameWorkBudget frameWorkBudget,
-        ICharacterAiPerformanceRecorder performanceRecorder = null,
-        IUiClock uiClock = null,
-        IFacilityCandidateCache facilityCandidateCache = null,
-        IPlayerStaffCommandSource playerStaffCommands = null)
+        ICharacterAiPerformanceRecorder performanceRecorder,
+        IUiClock uiClock,
+        IFacilityCandidateCache facilityCandidateCache,
+        IPlayerStaffCommandSource playerStaffCommands,
+        IDungeonDebugRuleQuery debugRules)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
@@ -159,6 +154,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         this.uiClock = uiClock;
         this.facilityCandidateCache = facilityCandidateCache;
         this.playerStaffCommands = playerStaffCommands;
+        this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
         schedulingTime = uiClock != null
             ? uiClock.Time
             : gameClock.Time;
@@ -184,7 +180,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
             LastProcessedDecisionCount = 0;
             LastBehaviorTreeTickCount = 0;
             LastLegacyFallbackCount = 0;
-            LastPathSearchCount = 0;
+            budgetState.ResetLastTickCounters();
             LastAllocatedBytes = -1L;
             return;
         }
@@ -224,7 +220,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
         RegisterInternal(actor);
         urgentDecisionRequests.Add(actor);
-        ScheduleDecision(actor, CurrentSchedulingTime);
+        DecisionSchedule.Schedule(actor, CurrentSchedulingTime);
     }
 
     public bool TryConsumePathSearchBudget()
@@ -244,7 +240,10 @@ public sealed class CharacterAiScheduler : MonoBehaviour
             return true;
         }
 
-        return IsHighDetailCharacter(actor);
+        return cadencePolicy.IsHighDetailCharacter(
+            actor,
+            RequireMainCameraProvider().Camera,
+            BuildCadenceSettings());
     }
 
     public bool ShouldCollectDetailedDiagnosticsFor(CharacterActor actor)
@@ -266,25 +265,24 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     {
         if (!enabled
             || !driveCharacterUpdates
-            || offscreenMovementFrameStride <= 1
-            || IsHighDetailCharacter(actor))
+            || offscreenMovementFrameStride <= 1)
         {
             return 1;
         }
 
-        return offscreenMovementFrameStride;
+        return cadencePolicy.GetMovementFrameStride(
+            actor,
+            schedulerEnabled: true,
+            RequireMainCameraProvider().Camera,
+            BuildCadenceSettings());
     }
 
     public double GetDecisionWorkSliceMillisecondsFor(CharacterActor actor)
     {
-        EnsureAdaptiveBudgetsInitialized();
-        double frameShare = currentFrameBudgetMilliseconds * 0.18;
-        double predictedCost = GetPredictedDecisionCost(actor);
-        double adaptiveSlice = Math.Min(predictedCost * 0.35, frameShare);
-        return Math.Clamp(
-            adaptiveSlice,
-            minimumUsefulSliceMilliseconds,
-            Math.Max(minimumUsefulSliceMilliseconds, 0.65));
+        return budgetState.GetDecisionWorkSliceMilliseconds(
+            actor,
+            BuildBudgetSettings(),
+            actors.Count);
     }
 
     public void RunManualTick(float deltaTime)
@@ -295,33 +293,24 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
     public void ClearRegistrationsForDebug()
     {
-        ResetAdaptiveBudgets();
+        budgetState.Clear(BuildBudgetSettings(), actors.Count);
         manualTime = CurrentSchedulingTime;
         actors.Clear();
         actorSet.Clear();
-        nextDecisionTime.Clear();
-        decisionScheduleVersions.Clear();
-        actorDecisionCostMilliseconds.Clear();
+        DecisionSchedule.Clear();
         urgentDecisionRequests.Clear();
-        decisionScheduleHeap.Clear();
         missingBehaviorTreeLogged.Clear();
         missingExternalBehaviorLogged.Clear();
-        decisionScheduleSequence = 0L;
         cumulativeProcessedDecisionCount = 0L;
         cumulativeStarvedDecisionCount = 0L;
         cumulativeSkippedDecisionCount = 0L;
         cumulativeLegacyFallbackCount = 0L;
-        LastOldestDecisionDeferralSeconds = 0f;
-        maximumObservedDecisionDeferralSeconds = 0f;
         LastBudgetExhausted = false;
     }
 
     public void ResetPathSearchBudgetForDebugInstance()
     {
-        pathBudgetFrame = -1;
-        pathSearchesThisFrame = 0;
-        LastPathSearchCount = 0;
-        EnsureAdaptiveBudgetsInitialized();
+        budgetState.ResetPathWindowForDebug(BuildBudgetSettings(), actors.Count);
     }
 
     public float GetNextDecisionDelayForDebug(CharacterActor actor)
@@ -336,12 +325,12 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
     private void ProcessAiBudget(float now)
     {
-        if (DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.PauseHumanoidAi))
+        if (debugRules.IsEnabled(DungeonDebugCheat.PauseHumanoidAi))
         {
             LastProcessedDecisionCount = 0;
             LastBehaviorTreeTickCount = 0;
             LastLegacyFallbackCount = 0;
-            LastPathSearchCount = 0;
+            budgetState.ResetLastTickCounters();
             LastAllocatedBytes = -1L;
             return;
         }
@@ -349,27 +338,31 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         using (ProcessAiBudgetMarker.Auto())
         {
             schedulerTickSequence++;
-            UpdateFrameTimeBudget();
-            frameWorkBudget.SetBacklog(
-                DynamicFrameWorkDomain.AiDecision,
-                decisionScheduleHeap.Count);
-            currentFrameBudgetMilliseconds = Math.Min(
-                currentFrameBudgetMilliseconds,
-                frameWorkBudget.GetSliceMilliseconds(
-                    DynamicFrameWorkDomain.AiDecision,
-                    minimumUsefulSliceMilliseconds,
-                    targetAiMilliseconds,
-                    LastOldestDecisionDeferralSeconds
-                        >= maximumDecisionDeferralSeconds));
+            CharacterAiSchedulerBudgetSettings budgetSettings = BuildBudgetSettings();
+            budgetState.BeginTick(
+                budgetSettings,
+                actors.Count,
+                uiClock,
+                frameWorkBudget,
+                DecisionSchedule.Count,
+                LastOldestDecisionDeferralSeconds >= maximumDecisionDeferralSeconds,
+                LastProcessingMilliseconds);
             long startTimestamp = Stopwatch.GetTimestamp();
             long startAllocatedBytes = performanceRecorder?.DetailedCollectionEnabled == true
                 ? GC.GetAllocatedBytesForCurrentThread()
                 : -1L;
             try
             {
-                BeginPathBudgetWindow();
-                worldIndexMillisecondsThisFrame = 0.0;
-                AdvanceIncrementalWorldIndexes();
+                budgetState.BeginPathBudgetWindow(
+                    budgetSettings,
+                    actors.Count,
+                    gameClock.FrameCount,
+                    enabled && driveCharacterUpdates && limitPathSearches,
+                    RequirePathSearchBroker());
+                worldIndexMillisecondsThisFrame = budgetState.AdvanceIncrementalWorldIndex(
+                    facilityCandidateCache,
+                    frameWorkBudget,
+                    budgetSettings);
                 LastProcessedDecisionCount = 0;
                 LastBehaviorTreeTickCount = 0;
                 LastLegacyFallbackCount = 0;
@@ -377,23 +370,29 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
                 if (actors.Count == 0)
                 {
-                    LastPathSearchCount = 0;
-                    LastOldestDecisionDeferralSeconds = 0f;
-                    CaptureBrokerCounters();
+                    budgetState.UpdateBacklogTelemetry(DecisionSchedule, now);
+                    budgetState.CapturePathResults(RequirePathSearchBroker());
                     return;
                 }
 
-                int decisionCountBudget = GetDecisionBudgetForFrame();
-                int decisionSafetyLimit = ResolveDecisionSafetyLimit();
+                int decisionCountBudget = budgetState.GetDecisionBudgetForFrame(
+                    budgetSettings,
+                    actors.Count);
+                int decisionSafetyLimit = Mathf.Clamp(
+                    Mathf.Max(maxDecisionsPerFrame, actors.Count),
+                    64,
+                    4096);
                 while (actors.Count > 0
                     && LastProcessedDecisionCount < decisionSafetyLimit
-                    && TryPeekDueDecision(now, out ScheduledDecision scheduled))
+                    && DecisionSchedule.TryPeekDue(
+                        now,
+                        out CharacterAiScheduledDecision scheduled))
                 {
                     CharacterActor actor = scheduled.Actor;
                     double elapsedBeforeDecision =
                         GetElapsedMilliseconds(startTimestamp);
                     double predictedDecisionMilliseconds =
-                        GetPredictedDecisionCost(actor);
+                        budgetState.GetPredictedDecisionCost(actor, budgetSettings);
                     bool urgent = urgentDecisionRequests.Contains(actor);
                     bool starved = now - scheduled.DueTime
                         >= maximumDecisionDeferralSeconds;
@@ -401,7 +400,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                         LastProcessedDecisionCount < decisionCountBudget;
                     bool withinTimeBudget =
                         elapsedBeforeDecision + predictedDecisionMilliseconds
-                        <= currentFrameBudgetMilliseconds;
+                        <= budgetState.CurrentFrameBudgetMilliseconds;
                     bool canOverdraft = LastProcessedDecisionCount == 0
                         && schedulerTickSequence - lastOverdraftTick
                             >= Mathf.Max(1, overdraftCooldownTicks);
@@ -419,7 +418,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                         lastOverdraftTick = schedulerTickSequence;
                     }
 
-                    if (!TryTakeDueDecision(now, out actor))
+                    if (!DecisionSchedule.TryTakeDue(now, out actor))
                     {
                         break;
                     }
@@ -446,7 +445,10 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     bool decided = TryRunScheduledDecision(actor);
                     double decisionMilliseconds =
                         GetElapsedMilliseconds(behaviorStart);
-                    UpdateEstimatedDecisionCost(actor, decisionMilliseconds);
+                    budgetState.RecordDecisionCost(
+                        actor,
+                        decisionMilliseconds,
+                        budgetSettings);
                     if (collectDecisionPerformance)
                     {
                         performanceRecorder.Record(
@@ -465,7 +467,7 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                         || hasPendingDecisionWork
                         ? retryDelay
                         : decided ? GetDecisionInterval(actor) : retryDelay;
-                    ScheduleDecision(actor, now + nextDelay);
+                    DecisionSchedule.Schedule(actor, now + nextDelay);
                     LastProcessedDecisionCount++;
                     cumulativeProcessedDecisionCount++;
                     if (starved)
@@ -474,19 +476,18 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     }
                     double elapsedMilliseconds =
                         GetElapsedMilliseconds(startTimestamp);
-                    if (elapsedMilliseconds >= currentFrameBudgetMilliseconds)
+                    if (elapsedMilliseconds >= budgetState.CurrentFrameBudgetMilliseconds)
                     {
                         LastBudgetExhausted = true;
                         break;
                     }
                 }
 
-                UpdateBacklogTelemetry(now);
+                budgetState.UpdateBacklogTelemetry(DecisionSchedule, now);
 #if UNITY_EDITOR
                 RefreshBehaviorDesignerVisualsForEditor();
 #endif
-                LastPathSearchCount = pathSearchesThisFrame;
-                CaptureBrokerCounters();
+                budgetState.CapturePathResults(RequirePathSearchBroker());
             }
             finally
             {
@@ -519,7 +520,9 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                     LastBrokerPathSearchCount,
                     LastBrokerPathCacheHitCount,
                     LastBrokerPathBudgetDeferralCount);
-                UpdatePathSearchCostEstimate();
+                budgetState.RecordPathSearchCost(
+                    RequirePathSearchBroker(),
+                    budgetSettings);
             }
         }
     }
@@ -527,40 +530,6 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     private static double GetElapsedMilliseconds(long startTimestamp)
     {
         return (Stopwatch.GetTimestamp() - startTimestamp) * 1000.0 / Stopwatch.Frequency;
-    }
-
-    private void AdvanceIncrementalWorldIndexes()
-    {
-        if (facilityCandidateCache?.HasPendingIndexBuild != true)
-        {
-            frameWorkBudget.SetBacklog(
-                DynamicFrameWorkDomain.WorldIndex,
-                0);
-            return;
-        }
-
-        frameWorkBudget.SetBacklog(
-            DynamicFrameWorkDomain.WorldIndex,
-            1);
-        double indexBudgetMilliseconds =
-            frameWorkBudget.GetSliceMilliseconds(
-                DynamicFrameWorkDomain.WorldIndex,
-                minimumUsefulSliceMilliseconds,
-                Math.Max(
-                    minimumUsefulSliceMilliseconds,
-                    currentFrameBudgetMilliseconds * 0.25));
-        if (indexBudgetMilliseconds < minimumUsefulSliceMilliseconds)
-        {
-            return;
-        }
-
-        long started = Stopwatch.GetTimestamp();
-        facilityCandidateCache.AdvanceIndex(indexBudgetMilliseconds);
-        worldIndexMillisecondsThisFrame =
-            GetElapsedMilliseconds(started);
-        frameWorkBudget.ReportConsumed(
-            DynamicFrameWorkDomain.WorldIndex,
-            worldIndexMillisecondsThisFrame);
     }
 
 #if UNITY_EDITOR
@@ -620,13 +589,15 @@ public sealed class CharacterAiScheduler : MonoBehaviour
         }
 
         actor.EnsureRuntimeState();
-        EnsureAdaptiveBudgetsInitialized();
         actors.Add(actor);
         float now = CurrentSchedulingTime;
-        float spread = Mathf.Min(
-            Mathf.Max(0f, registrationSpreadSeconds),
-            GetRegistrationDecisionInterval(actor));
-        ScheduleDecision(actor, now + spread * ResolveActorStableFraction(actor));
+        DecisionSchedule.Schedule(
+            actor,
+            now + cadencePolicy.GetRegistrationDelay(
+                actor,
+                mainCameraProvider != null ? mainCameraProvider.Camera : null,
+                mainCameraProvider != null,
+                BuildCadenceSettings()));
     }
 
     private bool TryRunScheduledDecision(CharacterActor actor)
@@ -717,14 +688,12 @@ public sealed class CharacterAiScheduler : MonoBehaviour
     {
         if (!actorSet.Remove(actor))
         {
-            nextDecisionTime.Remove(actor);
-            decisionScheduleVersions.Remove(actor);
+            DecisionSchedule.Remove(actor);
             return;
         }
 
-        nextDecisionTime.Remove(actor);
-        decisionScheduleVersions.Remove(actor);
-        actorDecisionCostMilliseconds.Remove(actor);
+        DecisionSchedule.Remove(actor);
+        budgetState.RemoveActor(actor);
         urgentDecisionRequests.Remove(actor);
         int index = actors.IndexOf(actor);
         if (index >= 0)
@@ -742,218 +711,18 @@ public sealed class CharacterAiScheduler : MonoBehaviour
 
         CharacterActor actor = actors[index];
         actorSet.Remove(actor);
-        nextDecisionTime.Remove(actor);
-        decisionScheduleVersions.Remove(actor);
-        actorDecisionCostMilliseconds.Remove(actor);
+        DecisionSchedule.Remove(actor);
+        budgetState.RemoveActor(actor);
         urgentDecisionRequests.Remove(actor);
         actors.RemoveAt(index);
     }
 
-    private void ScheduleDecision(CharacterActor actor, float dueTime)
-    {
-        if (actor == null || !actorSet.Contains(actor))
-        {
-            return;
-        }
-
-        if (nextDecisionTime.TryGetValue(actor, out float existingDueTime)
-            && existingDueTime <= dueTime + 0.0001f)
-        {
-            return;
-        }
-
-        int version = decisionScheduleVersions.TryGetValue(actor, out int currentVersion)
-            ? currentVersion + 1
-            : 1;
-        decisionScheduleVersions[actor] = version;
-        nextDecisionTime[actor] = dueTime;
-        PushScheduledDecision(new ScheduledDecision(
-            actor,
-            dueTime,
-            version,
-            decisionScheduleSequence++));
-        CompactScheduleHeapIfNeeded();
-    }
-
-    private bool TryPeekDueDecision(float now, out ScheduledDecision scheduled)
-    {
-        scheduled = default;
-        while (decisionScheduleHeap.Count > 0)
-        {
-            ScheduledDecision next = decisionScheduleHeap[0];
-            if (next.Actor == null
-                || !actorSet.Contains(next.Actor)
-                || !decisionScheduleVersions.TryGetValue(next.Actor, out int activeVersion)
-                || activeVersion != next.Version)
-            {
-                PopScheduledDecision();
-                continue;
-            }
-
-            if (next.DueTime > now)
-            {
-                return false;
-            }
-
-            scheduled = next;
-            return true;
-        }
-
-        return false;
-    }
-
-    private bool TryTakeDueDecision(float now, out CharacterActor actor)
-    {
-        actor = null;
-        while (decisionScheduleHeap.Count > 0)
-        {
-            ScheduledDecision next = decisionScheduleHeap[0];
-            if (next.DueTime > now)
-            {
-                return false;
-            }
-
-            PopScheduledDecision();
-            if (next.Actor == null
-                || !actorSet.Contains(next.Actor)
-                || !decisionScheduleVersions.TryGetValue(next.Actor, out int activeVersion)
-                || activeVersion != next.Version)
-            {
-                continue;
-            }
-
-            nextDecisionTime.Remove(next.Actor);
-            actor = next.Actor;
-            return true;
-        }
-
-        return false;
-    }
-
-    private void PushScheduledDecision(ScheduledDecision entry)
-    {
-        int index = decisionScheduleHeap.Count;
-        decisionScheduleHeap.Add(entry);
-        while (index > 0)
-        {
-            int parent = (index - 1) >> 1;
-            if (!entry.IsEarlierThan(decisionScheduleHeap[parent]))
-            {
-                break;
-            }
-
-            decisionScheduleHeap[index] = decisionScheduleHeap[parent];
-            index = parent;
-        }
-
-        decisionScheduleHeap[index] = entry;
-    }
-
-    private void PopScheduledDecision()
-    {
-        int lastIndex = decisionScheduleHeap.Count - 1;
-        ScheduledDecision tail = decisionScheduleHeap[lastIndex];
-        decisionScheduleHeap.RemoveAt(lastIndex);
-        if (lastIndex == 0)
-        {
-            return;
-        }
-
-        int index = 0;
-        while (true)
-        {
-            int left = (index << 1) + 1;
-            if (left >= lastIndex)
-            {
-                break;
-            }
-
-            int right = left + 1;
-            int child = right < lastIndex
-                && decisionScheduleHeap[right].IsEarlierThan(decisionScheduleHeap[left])
-                    ? right
-                    : left;
-            if (!decisionScheduleHeap[child].IsEarlierThan(tail))
-            {
-                break;
-            }
-
-            decisionScheduleHeap[index] = decisionScheduleHeap[child];
-            index = child;
-        }
-
-        decisionScheduleHeap[index] = tail;
-    }
-
-    private void CompactScheduleHeapIfNeeded()
-    {
-        int maximumUsefulEntries = Mathf.Max(128, actorSet.Count * 4 + 128);
-        if (decisionScheduleHeap.Count <= maximumUsefulEntries)
-        {
-            return;
-        }
-
-        decisionScheduleHeap.Clear();
-        foreach (KeyValuePair<CharacterActor, float> pair in nextDecisionTime)
-        {
-            CharacterActor actor = pair.Key;
-            if (actor == null
-                || !actorSet.Contains(actor)
-                || !decisionScheduleVersions.TryGetValue(actor, out int version))
-            {
-                continue;
-            }
-
-            PushScheduledDecision(new ScheduledDecision(
-                actor,
-                pair.Value,
-                version,
-                decisionScheduleSequence++));
-        }
-    }
-
-    private readonly struct ScheduledDecision
-    {
-        public ScheduledDecision(
-            CharacterActor actor,
-            float dueTime,
-            int version,
-            long sequence)
-        {
-            Actor = actor;
-            DueTime = dueTime;
-            Version = version;
-            Sequence = sequence;
-        }
-
-        public CharacterActor Actor { get; }
-        public float DueTime { get; }
-        public int Version { get; }
-        public long Sequence { get; }
-
-        public bool IsEarlierThan(ScheduledDecision other)
-        {
-            return DueTime < other.DueTime
-                || (DueTime == other.DueTime
-                    && Sequence < other.Sequence);
-        }
-    }
-
     private float GetDecisionInterval(CharacterActor actor)
     {
-        float interval;
-        if (actor != null && actor.IsOwner)
-        {
-            interval = ownerDecisionInterval;
-        }
-        else
-        {
-            interval = IsHighDetailCharacter(actor)
-                ? visibleDecisionInterval
-                : offscreenDecisionInterval;
-        }
-
-        return interval * ResolveActorIntervalJitter(actor);
+        return cadencePolicy.GetNextDecisionInterval(
+            actor,
+            RequireMainCameraProvider().Camera,
+            BuildCadenceSettings());
     }
 
     private float CurrentSchedulingTime =>
@@ -963,375 +732,43 @@ public sealed class CharacterAiScheduler : MonoBehaviour
                 ? gameClock.Time
                 : manualTime;
 
-    private float GetRegistrationDecisionInterval(CharacterActor actor)
-    {
-        if (actor != null && actor.IsOwner)
-        {
-            return ownerDecisionInterval;
-        }
-
-        if (mainCameraProvider == null)
-        {
-            return offscreenDecisionInterval;
-        }
-
-        return GetDecisionInterval(actor);
-    }
-
-    private float ResolveActorIntervalJitter(CharacterActor actor)
-    {
-        if (actor == null || decisionIntervalJitterRatio <= 0f)
-        {
-            return 1f;
-        }
-
-        float fraction = ResolveActorStableFraction(actor);
-        return Mathf.Lerp(1f - decisionIntervalJitterRatio, 1f + decisionIntervalJitterRatio, fraction);
-    }
-
-    private static float ResolveActorStableFraction(CharacterActor actor)
-    {
-        if (actor == null)
-        {
-            return 0f;
-        }
-
-        float raw = Mathf.Abs(
-            Mathf.Sin(actor.GetInstanceID() * 12.9898f)
-            * 43758.5453f);
-        return raw - Mathf.Floor(raw);
-    }
-
-    private bool IsHighDetailCharacter(CharacterActor actor)
-    {
-        if (actor == null)
-        {
-            return false;
-        }
-
-        if (actor.IsOwner)
-        {
-            return true;
-        }
-
-        Camera camera = RequireMainCameraProvider().Camera;
-        if (camera == null)
-        {
-            return true;
-        }
-
-        Vector3 viewport = camera.WorldToViewportPoint(actor.transform.position);
-        return viewport.z >= 0f
-            && viewport.x >= -viewportMargin
-            && viewport.x <= 1f + viewportMargin
-            && viewport.y >= -viewportMargin
-            && viewport.y <= 1f + viewportMargin;
-    }
-
     private bool TryConsumePathSearchBudgetInternal()
     {
-        ResetPathBudgetIfNeeded();
-        if (pathSearchesThisFrame >= GetPathSearchBudgetForFrame())
-        {
-            return false;
-        }
-
-        pathSearchesThisFrame++;
-        return true;
+        return budgetState.TryConsumePathSearchBudget(
+            BuildBudgetSettings(),
+            actors.Count,
+            gameClock.FrameCount);
     }
 
-    private void BeginPathBudgetWindow()
+    private CharacterAiSchedulerBudgetSettings BuildBudgetSettings()
     {
-        EnsureAdaptiveBudgetsInitialized();
-        RequirePathSearchBroker().BeginFrame(
-            GetPathSearchBudgetForFrame(),
-            enabled && driveCharacterUpdates && limitPathSearches,
-            currentFrameBudgetMilliseconds * 0.3);
-        pathBudgetFrame = gameClock.FrameCount;
-        pathSearchesThisFrame = 0;
-        LastPathSearchCount = 0;
-        LastBrokerPathSearchCount = 0;
-        LastBrokerUnboundedPathSearchCount = 0;
-        LastBrokerPathCacheHitCount = 0;
-        LastBrokerPathBudgetDeferralCount = 0;
+        return new CharacterAiSchedulerBudgetSettings
+        {
+            AdaptBudgetsToFrameCost = adaptBudgetsToFrameCost,
+            MaxDecisionsPerFrame = maxDecisionsPerFrame,
+            MaxPathSearchesPerFrame = maxPathSearchesPerFrame,
+            MinDecisionsPerFrame = minDecisionsPerFrame,
+            MinPathSearchesPerFrame = minPathSearchesPerFrame,
+            TargetAiMilliseconds = targetAiMilliseconds,
+            TargetFrameMilliseconds = targetFrameMilliseconds,
+            FrameHeadroomShare = frameHeadroomShare,
+            BaselineBudgetRatio = baselineBudgetRatio,
+            MinimumUsefulSliceMilliseconds = minimumUsefulSliceMilliseconds,
+        };
     }
 
-    private void CaptureBrokerCounters()
+    private CharacterAiDecisionCadenceSettings BuildCadenceSettings()
     {
-        IGridPathSearchBroker broker = RequirePathSearchBroker();
-        LastBrokerPathSearchCount = broker.SearchesThisFrame;
-        LastBrokerUnboundedPathSearchCount = broker.UnboundedSearchesThisFrame;
-        LastBrokerPathCacheHitCount = broker.CacheHitsThisFrame;
-        LastBrokerPathBudgetDeferralCount = broker.BudgetDeferralsThisFrame;
-    }
-
-    private void ResetPathBudgetIfNeeded()
-    {
-        if (pathBudgetFrame == gameClock.FrameCount)
+        return new CharacterAiDecisionCadenceSettings
         {
-            return;
-        }
-
-        pathBudgetFrame = gameClock.FrameCount;
-        pathSearchesThisFrame = 0;
-    }
-
-    private int GetDecisionBudgetForFrame()
-    {
-        EnsureAdaptiveBudgetsInitialized();
-        return Mathf.Clamp(
-            currentDecisionBudget,
-            Mathf.Max(0, minDecisionsPerFrame),
-            ResolveDecisionSafetyLimit());
-    }
-
-    private int GetPathSearchBudgetForFrame()
-    {
-        EnsureAdaptiveBudgetsInitialized();
-        return Mathf.Clamp(
-            currentPathSearchBudget,
-            Mathf.Max(0, minPathSearchesPerFrame),
-            ResolvePathSearchSafetyLimit());
-    }
-
-    private int ResolveDecisionSafetyLimit()
-    {
-        return Mathf.Clamp(
-            Mathf.Max(maxDecisionsPerFrame, actors.Count),
-            64,
-            4096);
-    }
-
-    private int ResolvePathSearchSafetyLimit()
-    {
-        return Mathf.Clamp(
-            Mathf.Max(maxPathSearchesPerFrame, actors.Count),
-            32,
-            4096);
-    }
-
-    private void UpdateBacklogTelemetry(float now)
-    {
-        if (!TryPeekDueDecision(now, out ScheduledDecision scheduled))
-        {
-            LastOldestDecisionDeferralSeconds = 0f;
-            return;
-        }
-
-        LastOldestDecisionDeferralSeconds = Mathf.Max(
-            0f,
-            now - scheduled.DueTime);
-        maximumObservedDecisionDeferralSeconds = Mathf.Max(
-            maximumObservedDecisionDeferralSeconds,
-            LastOldestDecisionDeferralSeconds);
-    }
-
-    private void EnsureAdaptiveBudgetsInitialized()
-    {
-        if (estimatedDecisionMilliseconds <= 0.0
-            || estimatedPathSearchMilliseconds <= 0.0)
-        {
-            ResetAdaptiveBudgets();
-        }
-    }
-
-    private void ResetAdaptiveBudgets()
-    {
-        estimatedDecisionMilliseconds = 0.25;
-        estimatedPathSearchMilliseconds = 0.35;
-        currentFrameBudgetMilliseconds = Mathf.Max(
-            minimumUsefulSliceMilliseconds,
-            targetAiMilliseconds * baselineBudgetRatio);
-        smoothedFrameMilliseconds = targetFrameMilliseconds;
-        RecalculateWorkUnitBudgets();
-    }
-
-    private void UpdateEstimatedDecisionCost(
-        CharacterActor actor,
-        double elapsedMilliseconds)
-    {
-        if (elapsedMilliseconds <= 0.0)
-        {
-            return;
-        }
-
-        double cappedSample = Math.Min(
-            elapsedMilliseconds,
-            Math.Max(
-                targetAiMilliseconds,
-                estimatedDecisionMilliseconds * 4.0));
-        if (estimatedDecisionMilliseconds <= 0.0)
-        {
-            estimatedDecisionMilliseconds = cappedSample;
-            return;
-        }
-
-        const double recentSampleWeight = 0.2;
-        estimatedDecisionMilliseconds +=
-            (cappedSample - estimatedDecisionMilliseconds)
-            * recentSampleWeight;
-
-        if (actor == null)
-        {
-            return;
-        }
-
-        if (!actorDecisionCostMilliseconds.TryGetValue(
-                actor,
-                out double actorEstimate)
-            || actorEstimate <= 0.0)
-        {
-            actorDecisionCostMilliseconds[actor] = cappedSample;
-            return;
-        }
-
-        actorDecisionCostMilliseconds[actor] =
-            actorEstimate
-            + (cappedSample - actorEstimate)
-            * recentSampleWeight;
-    }
-
-    private double GetPredictedDecisionCost(CharacterActor actor)
-    {
-        if (actor != null
-            && actorDecisionCostMilliseconds.TryGetValue(
-                actor,
-                out double actorEstimate)
-            && actorEstimate > 0.0)
-        {
-            return Math.Max(
-                minimumUsefulSliceMilliseconds,
-                actorEstimate);
-        }
-
-        return Math.Max(
-            minimumUsefulSliceMilliseconds,
-            estimatedDecisionMilliseconds);
-    }
-
-    private void UpdateFrameTimeBudget()
-    {
-        EnsureAdaptiveBudgetsInitialized();
-        if (!adaptBudgetsToFrameCost)
-        {
-            currentFrameBudgetMilliseconds = targetAiMilliseconds;
-            RecalculateWorkUnitBudgets();
-            return;
-        }
-
-        double observedFrameMilliseconds = uiClock != null
-            ? Math.Max(0.0, uiClock.DeltaTime * 1000.0)
-            : targetFrameMilliseconds;
-        if (smoothedFrameMilliseconds <= 0.0)
-        {
-            smoothedFrameMilliseconds = observedFrameMilliseconds;
-        }
-        else
-        {
-            const double frameSampleWeight = 0.12;
-            smoothedFrameMilliseconds +=
-                (observedFrameMilliseconds - smoothedFrameMilliseconds)
-                * frameSampleWeight;
-        }
-
-        double headroomMilliseconds = targetFrameMilliseconds
-            - smoothedFrameMilliseconds;
-        double baselineMilliseconds =
-            targetAiMilliseconds * baselineBudgetRatio;
-        if (headroomMilliseconds < 0.0)
-        {
-            double overrunRatio = Math.Min(
-                1.0,
-                -headroomMilliseconds
-                / Math.Max(1.0, targetFrameMilliseconds * 0.5));
-            baselineMilliseconds *= 1.0 - overrunRatio;
-        }
-
-        double desiredBudgetMilliseconds = baselineMilliseconds
-            + Math.Max(0.0, headroomMilliseconds) * frameHeadroomShare;
-        if (LastProcessingMilliseconds > targetAiMilliseconds)
-        {
-            desiredBudgetMilliseconds *= Math.Max(
-                0.2,
-                targetAiMilliseconds
-                / Math.Max(targetAiMilliseconds, LastProcessingMilliseconds));
-        }
-
-        desiredBudgetMilliseconds = Math.Clamp(
-            desiredBudgetMilliseconds,
-            0.0,
-            targetAiMilliseconds);
-        double adjustmentWeight = desiredBudgetMilliseconds
-            < currentFrameBudgetMilliseconds
-                ? 0.45
-                : 0.16;
-        currentFrameBudgetMilliseconds +=
-            (desiredBudgetMilliseconds - currentFrameBudgetMilliseconds)
-            * adjustmentWeight;
-        if (currentFrameBudgetMilliseconds < minimumUsefulSliceMilliseconds)
-        {
-            currentFrameBudgetMilliseconds = 0.0;
-        }
-
-        RecalculateWorkUnitBudgets();
-    }
-
-    private void RecalculateWorkUnitBudgets()
-    {
-        double usableBudgetMilliseconds = Math.Max(
-            0.0,
-            currentFrameBudgetMilliseconds);
-        currentDecisionBudget = usableBudgetMilliseconds
-            < minimumUsefulSliceMilliseconds
-                ? 0
-                : Mathf.Clamp(
-                    (int)Math.Floor(
-                        usableBudgetMilliseconds
-                        / Math.Max(
-                            minimumUsefulSliceMilliseconds,
-                            estimatedDecisionMilliseconds)),
-                    Mathf.Max(0, minDecisionsPerFrame),
-                    ResolveDecisionSafetyLimit());
-
-        double pathBudgetMilliseconds =
-            usableBudgetMilliseconds * 0.3;
-        currentPathSearchBudget = pathBudgetMilliseconds
-            < minimumUsefulSliceMilliseconds
-                ? 0
-                : Mathf.Clamp(
-                    (int)Math.Floor(
-                        pathBudgetMilliseconds
-                        / Math.Max(
-                            minimumUsefulSliceMilliseconds,
-                            estimatedPathSearchMilliseconds)),
-                    Mathf.Max(0, minPathSearchesPerFrame),
-                    ResolvePathSearchSafetyLimit());
-    }
-
-    private void UpdatePathSearchCostEstimate()
-    {
-        IGridPathSearchBroker broker = pathSearchBroker;
-        if (broker == null || broker.SearchesThisFrame <= 0)
-        {
-            return;
-        }
-
-        double rawSample = broker.SearchMillisecondsThisFrame
-            / broker.SearchesThisFrame;
-        if (rawSample <= 0.0)
-        {
-            return;
-        }
-
-        double sample = Math.Min(
-            rawSample,
-            Math.Max(
-                targetAiMilliseconds * 0.5,
-                estimatedPathSearchMilliseconds * 4.0));
-        const double recentSampleWeight = 0.2;
-        estimatedPathSearchMilliseconds +=
-            (sample - estimatedPathSearchMilliseconds)
-            * recentSampleWeight;
+            RegistrationSpreadSeconds = registrationSpreadSeconds,
+            OwnerDecisionInterval = ownerDecisionInterval,
+            VisibleDecisionInterval = visibleDecisionInterval,
+            OffscreenDecisionInterval = offscreenDecisionInterval,
+            DecisionIntervalJitterRatio = decisionIntervalJitterRatio,
+            ViewportMargin = viewportMargin,
+            OffscreenMovementFrameStride = offscreenMovementFrameStride,
+        };
     }
 
     private IMainCameraProvider RequireMainCameraProvider()

@@ -1,0 +1,17 @@
+{
+  "name": "DungeonStory.Grid",
+  "rootNamespace": "DungeonStory.Grid",
+  "references": [
+    "DungeonStory.Foundation",
+    "DungeonStory.World"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

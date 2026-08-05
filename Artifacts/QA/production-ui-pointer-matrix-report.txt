@@ -1,0 +1,84 @@
+﻿OWNER_SELECTION_POINTER_TARGET=PASS; OwnerOption_1001
+OWNER_SELECTION_POINTER=PASS; target=OwnerOption_1001; point=(770.93, 1006.00); hits=4
+DESKTOP_RESOLUTION=PASS; actual=1600x900
+SCENARIO_CONTENT=recipe:recipe:advanced-medicine; building:1091:연금대; branches:3
+FACILITY=연금대; position=1,0; instance=building:95ce5817b000467aa2df63bc77915f93
+DESKTOP_ORDER_CREATED=PASS; recipe=recipe:advanced-medicine; outcome=BillAdded; failure=None
+DESKTOP_BEFORE_SENSOR_BRANCH_CONSUMERS=PASS; expected=3; rows=3; labels=인공 안구 조립 | 고급 약품 | 고급 약품
+DESKTOP_BEFORE_SENSOR_RECIPE_BRANCH_SUMMARY=PASS; production recipe branch summary is visible
+DESKTOP_TARGET_STOCK_LOCKED=PASS; 감지반 설치
+DESKTOP_PRE_INSTALL_ORDER=PASS; id=production-bill:1; mode=RepeatForever; sensor=False
+DESKTOP_SENSOR_PHYSICAL_ITEM=PASS; item=component:stock-sensor-panel; spawned=1
+DESKTOP_SENSOR_INSTALL_POINTER_TARGET=PASS; ProductionTargetStockTab_0
+DESKTOP_SENSOR_INSTALL_POINTER=PASS; target=ProductionTargetStockTab_0; point=(920.15, 270.02); hits=4
+DESKTOP_INSTALL_REQUEST_PRESERVES_ORDER=PASS; id=production-bill:1; mode=RepeatForever
+DESKTOP_SENSOR_DELIVERY_RESERVED=PASS; stack:eb7305698d584b40864fd96941cf2ce7
+DESKTOP_SENSOR_PHYSICAL_DELIVERY=PASS; None
+DESKTOP_INSTALL_PRESERVES_EXISTING_ORDER=PASS; id=production-bill:1; mode=RepeatForever; sensor=True
+DESKTOP_TARGET_STOCK_UNLOCKED=PASS; 목표 재고 해금됨
+DESKTOP_TARGET_STOCK_POINTER_TARGET=PASS; ProductionTargetStockTab_0
+DESKTOP_TARGET_STOCK_POINTER=PASS; target=ProductionTargetStockTab_0; point=(920.15, 270.02); hits=4
+DESKTOP_TARGET_STOCK_ENABLED=PASS; mode=MaintainStock; target=10
+DESKTOP_ROUTE_POLICY_COUNT=PASS; routes=3
+DESKTOP_ROUTE_PRIORITY_POINTER_TARGET=PASS; ProductionRoutePriorityPlus_0_0
+DESKTOP_ROUTE_PRIORITY_POINTER=PASS; target=ProductionRoutePriorityPlus_0_0; point=(918.48, 269.19); hits=5
+DESKTOP_ROUTE_WEIGHT_POINTER_TARGET=PASS; ProductionRouteWeightPlus_0_0
+DESKTOP_ROUTE_WEIGHT_POINTER=PASS; target=ProductionRouteWeightPlus_0_0; point=(1005.15, 269.19); hits=5
+DESKTOP_ROUTE_RESERVE_POINTER_TARGET=PASS; ProductionRouteReservePlus_0_0
+DESKTOP_ROUTE_RESERVE_POINTER=PASS; target=ProductionRouteReservePlus_0_0; point=(1091.81, 269.19); hits=5
+DESKTOP_ROUTE_VALUES_EDITED=PASS; priority=51; weight=2; minimum=1
+DESKTOP_OUTPUT_BUFFER_FILLED=PASS; item=medicine:advanced; quantity=30; destination=production-output:building:95ce5817b000467aa2df63bc77915f93
+DESKTOP_OUTPUT_FULL_STATUS=PASS; status=WaitingForOutputSpace; label=1. 고급 약품 · 출력 버퍼 가득 참 · 0 % · 출력 30(+0)/30
+예약할 출력 공간이 없습니다.
+DESKTOP_AFTER_SENSOR_BRANCH_CONSUMERS=PASS; expected=3; rows=3; labels=인공 안구 조립 | 고급 약품 | 고급 약품
+DESKTOP_AFTER_SENSOR_RECIPE_BRANCH_SUMMARY=PASS; production recipe branch summary is visible
+DESKTOP_BUILDING_PANEL_SCREEN_BOUNDS=PASS; screen=1600x900; rect=335.3,211.9..1264.7,688.1
+DESKTOP_BUILDING_ACTIONS_SCREEN_BOUNDS=PASS; buttons=15; outOfBounds=
+DESKTOP_CONTEXT_PANEL_SCREEN_BOUNDS=PASS; screen=1600x900; rect=688.5,250.0..1246.1,554.8
+DESKTOP_ALL_ROUTE_ROWS_VISIBLE=PASS; expected=3; actual=3; ProductionRoute_0_0:row=-318.6,-93.8..318.6,-57.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_1:row=-318.6,-135.8..318.6,-99.8; view=-326.6,-182.8..326.6,182.8 | ProductionRoute_0_2:row=-318.6,-177.8..318.6,-141.8; view=-326.6,-182.8..326.6,182.8
+DESKTOP_THIRD_ROUTE_VISIBLE=PASS; row=-318.6,-177.8..318.6,-141.8; view=-326.6,-182.8..326.6,182.8
+DESKTOP_CAPTURE=PASS; size=1600x900; visible=1415156
+DESKTOP_ARTIFACT=Artifacts/QA/production-branches-1600x900.png
+PORTRAIT_RESOLUTION=PASS; actual=900x1600
+SCENARIO_CONTENT=recipe:recipe:advanced-medicine; building:1091:연금대; branches:3
+FACILITY=연금대; position=1,0; instance=building:5b2747bf952841ed8fda650a4b056a73
+PORTRAIT_ORDER_CREATED=PASS; recipe=recipe:advanced-medicine; outcome=BillAdded; failure=None
+PORTRAIT_BEFORE_SENSOR_BRANCH_CONSUMERS=PASS; expected=3; rows=3; labels=인공 안구 조립 | 고급 약품 | 고급 약품
+PORTRAIT_BEFORE_SENSOR_RECIPE_BRANCH_SUMMARY=PASS; production recipe branch summary is visible
+PORTRAIT_TARGET_STOCK_LOCKED=PASS; 감지반 설치
+PORTRAIT_PRE_INSTALL_ORDER=PASS; id=production-bill:1; mode=RepeatForever; sensor=False
+PORTRAIT_SENSOR_PHYSICAL_ITEM=PASS; item=component:stock-sensor-panel; spawned=1
+PORTRAIT_SENSOR_INSTALL_POINTER_TARGET=PASS; ProductionTargetStockTab_0
+PORTRAIT_SENSOR_INSTALL_POINTER=PASS; target=ProductionTargetStockTab_0; point=(300.79, 775.86); hits=6
+PORTRAIT_INSTALL_REQUEST_PRESERVES_ORDER=PASS; id=production-bill:1; mode=RepeatForever
+PORTRAIT_SENSOR_DELIVERY_RESERVED=PASS; stack:c4db259bcb7b411181b9e85eca67ad25
+PORTRAIT_SENSOR_PHYSICAL_DELIVERY=PASS; None
+PORTRAIT_INSTALL_PRESERVES_EXISTING_ORDER=PASS; id=production-bill:1; mode=RepeatForever; sensor=True
+PORTRAIT_TARGET_STOCK_UNLOCKED=PASS; 목표 재고 해금됨
+PORTRAIT_TARGET_STOCK_POINTER_TARGET=PASS; ProductionTargetStockTab_0
+PORTRAIT_TARGET_STOCK_POINTER=PASS; target=ProductionTargetStockTab_0; point=(300.79, 745.86); hits=6
+PORTRAIT_TARGET_STOCK_ENABLED=PASS; mode=MaintainStock; target=10
+PORTRAIT_ROUTE_POLICY_COUNT=PASS; routes=3
+PORTRAIT_ROUTE_PRIORITY_POINTER_TARGET=PASS; ProductionRoutePriorityPlus_0_0
+PORTRAIT_ROUTE_PRIORITY_POINTER=PASS; target=ProductionRoutePriorityPlus_0_0; point=(299.12, 689.19); hits=7
+PORTRAIT_ROUTE_WEIGHT_POINTER_TARGET=PASS; ProductionRouteWeightPlus_0_0
+PORTRAIT_ROUTE_WEIGHT_POINTER=PASS; target=ProductionRouteWeightPlus_0_0; point=(385.79, 689.19); hits=7
+PORTRAIT_ROUTE_RESERVE_POINTER_TARGET=PASS; ProductionRouteReservePlus_0_0
+PORTRAIT_ROUTE_RESERVE_POINTER=PASS; target=ProductionRouteReservePlus_0_0; point=(472.45, 689.19); hits=7
+PORTRAIT_ROUTE_VALUES_EDITED=PASS; priority=51; weight=2; minimum=1
+PORTRAIT_OUTPUT_BUFFER_FILLED=PASS; item=medicine:advanced; quantity=30; destination=production-output:building:5b2747bf952841ed8fda650a4b056a73
+PORTRAIT_OUTPUT_FULL_STATUS=PASS; status=WaitingForOutputSpace; label=1. 고급 약품 · 출력 버퍼 가득 참 · 0 % · 출력 30(+0)/30
+예약할 출력 공간이 없습니다.
+PORTRAIT_AFTER_SENSOR_BRANCH_CONSUMERS=PASS; expected=3; rows=3; labels=인공 안구 조립 | 고급 약품 | 고급 약품
+PORTRAIT_AFTER_SENSOR_RECIPE_BRANCH_SUMMARY=PASS; production recipe branch summary is visible
+PORTRAIT_BUILDING_PANEL_SCREEN_BOUNDS=PASS; screen=900x1600; rect=36.0,561.9..864.0,1038.1
+PORTRAIT_BUILDING_ACTIONS_SCREEN_BOUNDS=PASS; buttons=15; outOfBounds=
+PORTRAIT_CONTEXT_PANEL_SCREEN_BOUNDS=PASS; screen=900x1600; rect=69.1,585.7..830.9,904.8
+PORTRAIT_ALL_ROUTE_ROWS_VISIBLE=PASS; expected=3; actual=3; ProductionRoute_0_0:row=-441.1,-85.3..441.1,-49.3; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_1:row=-441.1,-127.3..441.1,-91.3; view=-449.1,-191.4..449.1,191.4 | ProductionRoute_0_2:row=-441.1,-169.3..441.1,-133.3; view=-449.1,-191.4..449.1,191.4
+PORTRAIT_THIRD_ROUTE_VISIBLE=PASS; row=-441.1,-169.3..441.1,-133.3; view=-449.1,-191.4..449.1,191.4
+PORTRAIT_CAPTURE=PASS; size=900x1600; visible=1439822
+PORTRAIT_ARTIFACT=Artifacts/QA/production-branches-900x1600.png
+CONSOLE errors=0; warnings=0
+REPORT_UTF8_BOM=PASS; preambleBytes=3
+REPORT_KOREAN_ROUND_TRIP=PASS; Korean verification labels decoded without replacement.
+RESULT=PASS

@@ -24,6 +24,14 @@ MonoBehaviour:
   primaryMaterialAmount: 3
   allowedMaterialFamilies: 000000000200000003000000
   craftMaterials: []
+  requiredComponentInputs: []
+  requiredResearchId: 
+  era: 0
+  tier: 0
+  slotProfile: 0
+  lineageKind: 2
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
   frontalBlockChance: 0.28
   slashDefense: 10
   pierceDefense: 7

@@ -1,26 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using DungeonStory.Foundation;
-using Unity.Profiling;
+using DungeonStory.Characters;
 using UnityEngine;
 using VContainer;
 
 [DisallowMultipleComponent]
 public sealed class CharacterProgression : MonoBehaviour
 {
-    public const int MaxLevel = 50;
+    public const int MaxLevel = CharacterProgressionRules.MaxLevel;
     public const int NormalActiveSlots = 3;
     public const int PassiveSlots = 2;
     public const int MaxEquippedSkills = NormalActiveSlots;
-    private const string TraitResourcePath = "SO/Character/Traits";
-
-    private static readonly Dictionary<int, CharacterTraitSO> TraitCache =
-        new Dictionary<int, CharacterTraitSO>();
-    private static readonly ProfilerMarker EffectiveProfileBuildMarker =
-        new ProfilerMarker("Character.Progression.BuildEffectiveProfile");
-    private static IResourcesAssetLoader traitResourcesAssetLoader;
-
     [SerializeField, Min(1)] private int level = 1;
     [SerializeField, Min(0)] private int currentExperience;
     [SerializeField] private CharacterGrowthState growthState = new CharacterGrowthState();
@@ -29,25 +20,22 @@ public sealed class CharacterProgression : MonoBehaviour
     private readonly List<string> learnedSkillIds = new List<string>();
     private readonly List<string> equippedSkillIds = new List<string>();
     private CharacterActor actor;
-    private int initializedDataInstanceId;
     private ICharacterSkillGenerationService generationService;
     private ICharacterSkillSystemSettingsProvider settingsProvider;
-    private IGameEventBus gameEventBus;
-    private CharacterRuntimeProfile effectiveRuntimeProfile;
-    private int effectiveRuntimeProfileKey;
-    private readonly List<CharacterTraitSO> resolvedSelectedTraits =
-        new List<CharacterTraitSO>();
-    private IReadOnlyList<CharacterTraitSO> resolvedSelectedTraitsView;
-    private int resolvedSelectedTraitsKey = int.MinValue;
+    private CharacterProgressionNotificationApplicationAdapter notifications;
+    private CharacterProgressionProfileProjector profileProjector;
     private bool suppressPublicSkillNotifications;
 
     public CharacterActor Actor => actor;
+    public CharacterSkillSystemSettingsSO SkillSettings => settingsProvider?.Settings
+        ?? throw new InvalidOperationException(
+            "Character progression has no authored skill settings.");
     public int Level => Mathf.Clamp(level, 1, MaxLevel);
     public int CurrentExperience => Level >= MaxLevel ? 0 : Mathf.Max(0, currentExperience);
     public int ExperienceToNextLevel => Level >= MaxLevel ? 0 : GetExperienceRequired(Level);
     public float ExperienceRatio => Level >= MaxLevel
         ? 1f
-        : Mathf.Clamp01(CurrentExperience / (float)Mathf.Max(1, ExperienceToNextLevel));
+        : CharacterProgressionRules.GetExperienceRatio(Level, CurrentExperience);
     public CharacterGrowthState GrowthState
     {
         get
@@ -95,31 +83,43 @@ public sealed class CharacterProgression : MonoBehaviour
     public void ConstructCharacterProgression(
         ICharacterSkillGenerationService generationService,
         ICharacterSkillSystemSettingsProvider settingsProvider,
-        IGameEventBus gameEventBus = null,
-        IResourcesAssetLoader resourcesAssetLoader = null)
+        CharacterProgressionNotificationApplicationAdapter notifications,
+        CharacterProgressionProfileProjector profileProjector)
     {
         this.generationService = generationService
             ?? throw new ArgumentNullException(nameof(generationService));
         this.settingsProvider = settingsProvider
             ?? throw new ArgumentNullException(nameof(settingsProvider));
-        this.gameEventBus = gameEventBus ?? this.gameEventBus;
-        traitResourcesAssetLoader = resourcesAssetLoader ?? traitResourcesAssetLoader;
-        EnsureInitialized();
-        EnsureUnlockedDrafts();
+        this.notifications = notifications
+            ?? throw new ArgumentNullException(nameof(notifications));
+        this.profileProjector = profileProjector
+            ?? throw new ArgumentNullException(nameof(profileProjector));
+        CompleteConfigurationIfReady();
+    }
+
+    public void ConfigurePreview(
+        ICharacterSkillGenerationService generationService,
+        ICharacterSkillSystemSettingsProvider settingsProvider,
+        CharacterProgressionProfileProjector profileProjector)
+    {
+        this.generationService = generationService
+            ?? throw new ArgumentNullException(nameof(generationService));
+        this.settingsProvider = settingsProvider
+            ?? throw new ArgumentNullException(nameof(settingsProvider));
+        this.profileProjector = profileProjector
+            ?? throw new ArgumentNullException(nameof(profileProjector));
+        CompleteConfigurationIfReady();
     }
 
     public static int GetExperienceRequired(int currentLevel)
     {
-        int normalizedLevel = Mathf.Clamp(currentLevel, 1, MaxLevel - 1);
-        return 20 + Mathf.FloorToInt((normalizedLevel - 1) / 10f) * 5;
+        return CharacterProgressionRules.GetExperienceRequired(currentLevel);
     }
 
     public void Bind(CharacterActor owner)
     {
         actor = owner;
-        EnsureInitialized();
-        WarmEffectiveRuntimeProfile();
-        EnsureUnlockedDrafts();
+        CompleteConfigurationIfReady();
     }
 
     public int AddExperience(int amount)
@@ -130,22 +130,18 @@ public sealed class CharacterProgression : MonoBehaviour
             return 0;
         }
 
-        int previousLevel = Level;
-        currentExperience += amount;
-        while (level < MaxLevel && currentExperience >= GetExperienceRequired(level))
+        CharacterProgressionTransition transition = CharacterProgressionRules.AddExperience(
+            level,
+            currentExperience,
+            amount);
+        level = transition.Level;
+        currentExperience = transition.CurrentExperience;
+        foreach (int reachedLevel in transition.ReachedLevels)
         {
-            currentExperience -= GetExperienceRequired(level);
-            level++;
-            AllocateStatsForReachedLevel(level);
+            AllocateStatsForReachedLevel(reachedLevel);
         }
 
-        if (level >= MaxLevel)
-        {
-            level = MaxLevel;
-            currentExperience = 0;
-        }
-
-        if (level != previousLevel)
+        if (transition.HasLevelChanged)
         {
             actor?.Stats?.RecalculateVitals(resetCurrentHealth: false);
             actor?.AddLog($"레벨 {level}에 도달했다.");
@@ -153,31 +149,29 @@ public sealed class CharacterProgression : MonoBehaviour
 
         EnsureUnlockedDrafts();
         Changed?.Invoke();
-        return level - previousLevel;
+        return transition.LevelDelta;
     }
 
     public bool EnsureMinimumLevel(int targetLevel, string reason = "")
     {
         EnsureInitialized();
-        int clampedTarget = Mathf.Clamp(targetLevel, 1, MaxLevel);
-        if (Level >= clampedTarget)
+        CharacterProgressionTransition transition =
+            CharacterProgressionRules.EnsureMinimumLevel(
+                level,
+                currentExperience,
+                targetLevel);
+        if (!transition.HasLevelChanged)
         {
             return false;
         }
 
-        int previousLevel = Level;
-        while (level < clampedTarget)
+        level = transition.Level;
+        currentExperience = transition.CurrentExperience;
+        foreach (int reachedLevel in transition.ReachedLevels)
         {
-            level++;
-            AllocateStatsForReachedLevel(level);
+            AllocateStatsForReachedLevel(reachedLevel);
         }
 
-        if (level >= MaxLevel)
-        {
-            level = MaxLevel;
-        }
-
-        currentExperience = 0;
         actor?.Stats?.RecalculateVitals(resetCurrentHealth: false);
         if (!string.IsNullOrWhiteSpace(reason))
         {
@@ -186,7 +180,7 @@ public sealed class CharacterProgression : MonoBehaviour
 
         EnsureUnlockedDrafts();
         Changed?.Invoke();
-        return Level > previousLevel;
+        return true;
     }
 
     public void SetAutoChooseSkillDrafts(bool autoChoose)
@@ -292,87 +286,61 @@ public sealed class CharacterProgression : MonoBehaviour
     public int GetFinalStat(CharacterStatType statType)
     {
         EnsureInitialized();
-        if (!GrowthState.initialized)
-        {
-            return actor?.Identity?.Profile?.GetStat(statType) ?? 5;
-        }
-
-        int value = GrowthState.initialBaseStats.Get(statType);
-        CharacterSO data = actor?.Identity?.Data;
-        value += data?.species?.statBonus?.Get(statType) ?? 0;
-        foreach (CharacterTraitSO trait in ResolveSelectedTraits())
-        {
-            value += trait?.statBonus?.Get(statType) ?? 0;
-        }
-
-        value += GrowthState.levelGrowthStats.Get(statType);
-        value += GetConditionalPassiveStatBonus(statType);
-        return Mathf.Max(0, value);
+        return RequireProfileProjector().GetFinalStat(
+            actor,
+            GrowthState,
+            statType);
     }
 
     public CharacterStatBreakdown GetStatBreakdown(CharacterStatType statType)
     {
         EnsureInitialized();
-        if (!GrowthState.initialized)
-        {
-            int fallback = actor?.Identity?.Profile?.GetStat(statType) ?? 5;
-            return new CharacterStatBreakdown(statType, fallback, 0, 0, 0, fallback);
-        }
-
-        int baseValue = GrowthState.initialBaseStats.Get(statType);
-        int speciesTrait = GetSpeciesTraitStatBonus(statType);
-        int levelGrowth = GrowthState.levelGrowthStats.Get(statType);
-        int conditionalPassive = GetConditionalPassiveStatBonus(statType);
-        int finalValue = Mathf.Max(0, baseValue + speciesTrait + levelGrowth + conditionalPassive);
-        return new CharacterStatBreakdown(
-            statType,
-            baseValue,
-            speciesTrait,
-            levelGrowth,
-            conditionalPassive,
-            finalValue);
+        return RequireProfileProjector().GetStatBreakdown(
+            actor,
+            GrowthState,
+            statType);
     }
 
     public int GetBaseStat(CharacterStatType statType)
     {
         EnsureInitialized();
-        return GrowthState.initialized
-            ? GrowthState.initialBaseStats.Get(statType)
-            : actor?.Identity?.Profile?.GetStat(statType) ?? 5;
+        return RequireProfileProjector().GetBaseStat(
+            actor,
+            GrowthState,
+            statType);
     }
 
     public int GetSpeciesTraitStatBonus(CharacterStatType statType)
     {
-        int value = 0;
-        CharacterSO data = actor?.Identity?.Data;
-        value += data?.species?.statBonus?.Get(statType) ?? 0;
-        foreach (CharacterTraitSO trait in ResolveSelectedTraits())
-        {
-            value += trait?.statBonus?.Get(statType) ?? 0;
-        }
-
-        return value;
+        EnsureInitialized();
+        return RequireProfileProjector().GetSpeciesTraitStatBonus(
+            actor,
+            GrowthState,
+            statType);
     }
 
     public int GetLevelGrowthStat(CharacterStatType statType)
     {
         EnsureInitialized();
-        return GrowthState.initialized
-            ? GrowthState.levelGrowthStats.Get(statType)
-            : 0;
+        return RequireProfileProjector().GetLevelGrowthStat(
+            GrowthState,
+            statType);
     }
 
     public int GetCurrentConditionalPassiveStatBonus(CharacterStatType statType)
     {
         EnsureInitialized();
-        return GrowthState.initialized
-            ? GetConditionalPassiveStatBonus(statType)
-            : 0;
+        return RequireProfileProjector().GetConditionalPassiveStatBonus(
+            actor,
+            GrowthState,
+            statType);
     }
 
     public int GetFinalStat(string statId)
     {
-        return CharacterStatCatalog.TryGet(statId, out CharacterStatDefinition definition)
+        return CharacterStatCatalog.TryGet(
+                statId,
+                out CharacterStatDefinition definition)
             && definition.LegacyType.HasValue
                 ? GetFinalStat(definition.LegacyType.Value)
                 : 0;
@@ -380,116 +348,18 @@ public sealed class CharacterProgression : MonoBehaviour
 
     public IReadOnlyList<CharacterTraitSO> ResolveSelectedTraits()
     {
-        CharacterSO data = actor?.Identity?.Data;
-        int key = data != null
-            ? BuildEffectiveRuntimeProfileKey(data)
-            : 0;
-        if (resolvedSelectedTraitsKey == key
-            && resolvedSelectedTraitsView != null)
-        {
-            return resolvedSelectedTraitsView;
-        }
-
-        resolvedSelectedTraits.Clear();
-        IReadOnlyList<int> traitIds = GrowthState.traitIds;
-        if (traitIds == null || traitIds.Count == 0)
-        {
-            IReadOnlyList<CharacterTraitSO> sourceTraits = data?.traits;
-            if (sourceTraits != null)
-            {
-                for (int index = 0; index < sourceTraits.Count; index++)
-                {
-                    CharacterTraitSO trait = sourceTraits[index];
-                    if (trait != null)
-                    {
-                        resolvedSelectedTraits.Add(trait);
-                    }
-                }
-            }
-        }
-        else
-        {
-            EnsureTraitCache();
-            for (int index = 0; index < traitIds.Count; index++)
-            {
-                if (TraitCache.TryGetValue(
-                        traitIds[index],
-                        out CharacterTraitSO trait)
-                    && trait != null)
-                {
-                    resolvedSelectedTraits.Add(trait);
-                }
-            }
-        }
-
-        resolvedSelectedTraitsKey = key;
-        resolvedSelectedTraitsView ??= ReadOnlyView.List(resolvedSelectedTraits);
-        return resolvedSelectedTraitsView;
+        EnsureInitialized();
+        return RequireProfileProjector().ResolveSelectedTraits(
+            actor,
+            GrowthState);
     }
 
     public CharacterRuntimeProfile GetEffectiveRuntimeProfile()
     {
-        CharacterSO data = actor?.Identity?.Data;
-        if (data == null)
-        {
-            return actor?.Identity?.Profile;
-        }
-
-        int key = BuildEffectiveRuntimeProfileKey(data);
-
-        if (effectiveRuntimeProfile == null || effectiveRuntimeProfileKey != key)
-        {
-            effectiveRuntimeProfileKey = key;
-            using (EffectiveProfileBuildMarker.Auto())
-            {
-                effectiveRuntimeProfile = CharacterRuntimeProfile.From(data, ResolveSelectedTraits());
-            }
-        }
-
-        return effectiveRuntimeProfile;
-    }
-
-    private int BuildEffectiveRuntimeProfileKey(CharacterSO data)
-    {
-        IReadOnlyList<int> traitIds = GrowthState.traitIds;
-        if (traitIds == null || traitIds.Count == 0)
-        {
-            return data.GetInstanceID();
-        }
-
-        unchecked
-        {
-            uint sum = 0u;
-            uint squaredSum = 0u;
-            uint xor = 0u;
-            for (int index = 0; index < traitIds.Count; index++)
-            {
-                uint mixed = MixTraitId((uint)traitIds[index]);
-                sum += mixed;
-                squaredSum += mixed * mixed;
-                xor ^= mixed;
-            }
-
-            int key = data.GetInstanceID();
-            key = (key * 397) ^ traitIds.Count;
-            key = (key * 397) ^ (int)sum;
-            key = (key * 397) ^ (int)squaredSum;
-            key = (key * 397) ^ (int)xor;
-            return key;
-        }
-    }
-
-    private static uint MixTraitId(uint value)
-    {
-        unchecked
-        {
-            value ^= value >> 16;
-            value *= 0x7FEB352Du;
-            value ^= value >> 15;
-            value *= 0x846CA68Bu;
-            value ^= value >> 16;
-            return value;
-        }
+        EnsureInitialized();
+        return RequireProfileProjector().GetEffectiveRuntimeProfile(
+            actor,
+            GrowthState);
     }
 
     public CharacterSkillSlotProfile GetSlotProfile()
@@ -566,18 +436,10 @@ public sealed class CharacterProgression : MonoBehaviour
             }
             else if (!suppressPublicSkillNotifications)
             {
-                gameEventBus?.RaiseAlert(
-                    "기술 선택 가능",
-                    $"{actor?.Identity?.DisplayName ?? "인물"}의 Lv.{draft.unlockLevel} 액티브 후보가 준비되었습니다.",
-                    EventAlertImportance.Medium,
-                    "성장",
-                    new[]
-                    {
-                        new EventAlertChoice(
-                            "성장 탭 열기",
-                            "후보 3개를 확인합니다.",
-                            RequestGrowthTab)
-                    });
+                notifications?.NotifyActiveDraftReady(
+                    actor,
+                    draft.unlockLevel,
+                    RequestGrowthTab);
             }
         }
         else if (draft.kind == CharacterSkillKind.Passive)
@@ -599,8 +461,7 @@ public sealed class CharacterProgression : MonoBehaviour
             return;
         }
 
-        gameEventBus?.ShowInfo(actor);
-        gameEventBus?.Publish(new CharacterGrowthTabRequestedEvent(actor));
+        notifications?.ShowGrowth(actor);
     }
 
     public CharacterProgressionSnapshot CapturePersistentState()
@@ -621,18 +482,17 @@ public sealed class CharacterProgression : MonoBehaviour
         }
 
         generationService?.CancelRequests(this);
-        level = Mathf.Clamp(snapshot.Level, 1, MaxLevel);
-        currentExperience = level >= MaxLevel
-            ? 0
-            : Mathf.Clamp(snapshot.CurrentExperience, 0, GetExperienceRequired(level) - 1);
+        CharacterProgressionTransition transition =
+            CharacterProgressionRules.NormalizeRestoredState(
+                snapshot.Level,
+                snapshot.CurrentExperience);
+        level = transition.Level;
+        currentExperience = transition.CurrentExperience;
         growthState = snapshot.GrowthState?.Clone() ?? new CharacterGrowthState();
         narrativeLedger = snapshot.NarrativeLedger?.Clone() ?? new CharacterNarrativeLedger();
         InvalidateEffectiveRuntimeProfile();
         GrowthState.EnsureCollections();
         EnsureMedicalStat();
-        initializedDataInstanceId = actor?.Identity?.Data != null
-            ? actor.Identity.Data.GetInstanceID()
-            : 0;
         RebuildLegacySkillViews();
         EnsureInitialized();
         WarmEffectiveRuntimeProfile();
@@ -646,10 +506,12 @@ public sealed class CharacterProgression : MonoBehaviour
         IEnumerable<string> restoredLearnedSkillIds,
         IEnumerable<string> restoredEquippedSkillIds)
     {
-        level = Mathf.Clamp(restoredLevel <= 0 ? 1 : restoredLevel, 1, MaxLevel);
-        currentExperience = level >= MaxLevel
-            ? 0
-            : Mathf.Clamp(restoredExperience, 0, GetExperienceRequired(level) - 1);
+        CharacterProgressionTransition transition =
+            CharacterProgressionRules.NormalizeRestoredState(
+                restoredLevel,
+                restoredExperience);
+        level = transition.Level;
+        currentExperience = transition.CurrentExperience;
         EnsureInitialized();
         Changed?.Invoke();
     }
@@ -689,71 +551,36 @@ public sealed class CharacterProgression : MonoBehaviour
         Changed?.Invoke();
     }
 
+    private void CompleteConfigurationIfReady()
+    {
+        if (profileProjector == null)
+        {
+            return;
+        }
+
+        EnsureInitialized();
+        WarmEffectiveRuntimeProfile();
+        EnsureUnlockedDrafts();
+    }
+
     private void EnsureInitialized()
     {
         level = Mathf.Clamp(level, 1, MaxLevel);
         GrowthState.EnsureCollections();
-        if (actor == null || actor.Identity == null || actor.Identity.Data == null)
+        if (actor?.Identity?.Data == null)
         {
             return;
         }
 
-        int dataInstanceId = actor.Identity.Data.GetInstanceID();
-        if (initializedDataInstanceId == dataInstanceId && GrowthState.initialized)
-        {
-            return;
-        }
-
-        initializedDataInstanceId = dataInstanceId;
-        if (!GrowthState.initialized)
-        {
-            CharacterSkillSystemSettingsSO settings = settingsProvider?.Settings
-                ?? CharacterSkillSystemSettingsSO.CreateRuntimeDefaults();
-            string seedSource = actor.Identity.PersistentId;
-            if (string.IsNullOrWhiteSpace(seedSource))
-            {
-                seedSource = $"{actor.Identity.Data.id}:{actor.Identity.DisplayName}:{GetInstanceID()}";
-            }
-
-            int seed = CharacterGrowthRules.StableHash(seedSource);
-            System.Random random = new System.Random(seed);
-            GrowthState.initialized = true;
-            GrowthState.generationSeed = seed;
-            GrowthState.displayName = actor.Identity.DisplayName;
-            GrowthState.origin = actor.Identity.GetSpeciesShortDescription();
-            GrowthState.initialBaseStats = actor.Identity.Data.baseStats != null
-                ? CharacterSkillModelUtility.CopyStats(actor.Identity.Data.baseStats)
-                : CharacterGrowthRules.RollInitialStats(settings, random);
-            GrowthState.levelGrowthStats = new CharacterStatBlock();
-            GrowthState.potentialGrade = CharacterGrowthRules.RollPotential(settings, random);
-            GrowthState.traitIds = actor.Identity.Data.traits?
-                .Where(item => item != null)
-                .Select(item => item.id)
-                .Distinct()
-                .Take(3)
-                .ToList() ?? new List<int>();
-            GrowthState.autoChooseDrafts = actor.Identity.CharacterType == CharacterType.Customer;
-            EnsureMedicalStat();
-            InvalidateEffectiveRuntimeProfile();
-        }
-
-        RebuildLegacySkillViews();
+        RequireProfileProjector().EnsureInitialized(
+            actor,
+            GrowthState,
+            SkillSettings);
     }
 
     private void EnsureMedicalStat()
     {
-        GrowthState.initialBaseStats ??= new CharacterStatBlock();
-        if (GrowthState.initialBaseStats.Contains(CharacterStatIds.Medical))
-        {
-            return;
-        }
-
-        int migratedValue = Mathf.RoundToInt(
-            GrowthState.initialBaseStats.Get(CharacterStatType.Research) * 0.6f
-            + GrowthState.initialBaseStats.Get(CharacterStatType.Dexterity) * 0.4f);
-        GrowthState.initialBaseStats.Set(
-            CharacterStatType.Medical,
-            Mathf.Clamp(migratedValue, 1, 10));
+        RequireProfileProjector().EnsureMedicalStat(GrowthState);
     }
 
     private void EnsureUnlockedDrafts()
@@ -831,74 +658,14 @@ public sealed class CharacterProgression : MonoBehaviour
 
     private void AllocateStatsForReachedLevel(int reachedLevel)
     {
-        CharacterSkillSystemSettingsSO settings = settingsProvider?.Settings
-            ?? CharacterSkillSystemSettingsSO.CreateRuntimeDefaults();
-        int points = CharacterGrowthRules.GetGrowthPointsForLevel(reachedLevel);
-        System.Random random = new System.Random(GrowthState.generationSeed ^ (reachedLevel * 486187739));
-        CharacterGrowthRules.AllocateGrowthPoints(
+        CharacterSkillSystemSettingsSO settings = SkillSettings;
+        CharacterProgressionGrowthApplicationAdapter.AllocateGrowthPoints(
             GrowthState,
             NarrativeLedger,
             reachedLevel,
-            points,
-            settings.levelGrowthStatCap,
-            settings.identityGrowthWeight,
-            random);
+            settings);
     }
 
-    private int GetConditionalPassiveStatBonus(CharacterStatType statType)
-    {
-        int bonus = 0;
-        IReadOnlyList<CharacterSkillInstance> passives =
-            GrowthState.passiveSkills;
-        for (int passiveIndex = 0;
-            passiveIndex < passives.Count;
-            passiveIndex++)
-        {
-            CharacterSkillInstance passive = passives[passiveIndex];
-            if (passive == null)
-            {
-                continue;
-            }
-
-            bool conditionActive = passive.trigger switch
-            {
-                CharacterSkillTrigger.DamageTaken => actor != null && actor.InjurySeverity >= 0.25f,
-                CharacterSkillTrigger.NeedChanged => actor?.Stats != null && actor.Stats.Mood < 50f,
-                CharacterSkillTrigger.MoodChanged => actor?.Stats != null && actor.Stats.Mood >= 70f,
-                _ => false
-            };
-            if (!conditionActive)
-            {
-                continue;
-            }
-
-            IReadOnlyList<CharacterSkillModuleSelection> modules =
-                passive.modules;
-            if (modules == null)
-            {
-                continue;
-            }
-
-            for (int moduleIndex = 0;
-                moduleIndex < modules.Count;
-                moduleIndex++)
-            {
-                CharacterSkillModuleSelection module = modules[moduleIndex];
-                if ((statType == CharacterStatType.Attack || statType == CharacterStatType.Strength)
-                    && string.Equals(module.moduleId, "buff", StringComparison.Ordinal))
-                {
-                    bonus += 2;
-                }
-                else if (statType == CharacterStatType.Endurance
-                    && string.Equals(module.moduleId, "protect", StringComparison.Ordinal))
-                {
-                    bonus += 2;
-                }
-            }
-        }
-
-        return bonus;
-    }
 
     private void TriggerPassivesForNarrativeDomain(CharacterNarrativeDomain domain)
     {
@@ -931,11 +698,7 @@ public sealed class CharacterProgression : MonoBehaviour
         GrowthState.passiveSkills.Add(skill);
         if (!suppressPublicSkillNotifications)
         {
-            gameEventBus?.RaiseAlert(
-                skill.displayName,
-                $"{skill.narrativeReason}\n{skill.description}",
-                EventAlertImportance.Medium,
-                "성장");
+            notifications?.NotifySkillUnlocked(skill, isUltimate: false);
         }
     }
 
@@ -951,11 +714,9 @@ public sealed class CharacterProgression : MonoBehaviour
         GrowthState.ultimate = draft.candidates[0].Clone();
         if (!suppressPublicSkillNotifications)
         {
-            gameEventBus?.RaiseAlert(
-                GrowthState.ultimate.displayName,
-                $"{GrowthState.ultimate.narrativeReason}\n{GrowthState.ultimate.description}",
-                EventAlertImportance.High,
-                "성장");
+            notifications?.NotifySkillUnlocked(
+                GrowthState.ultimate,
+                isUltimate: true);
         }
     }
 
@@ -1013,34 +774,19 @@ public sealed class CharacterProgression : MonoBehaviour
 
     private void InvalidateEffectiveRuntimeProfile()
     {
-        effectiveRuntimeProfile = null;
-        effectiveRuntimeProfileKey = 0;
-        resolvedSelectedTraitsKey = int.MinValue;
+        RequireProfileProjector().Invalidate();
     }
 
     private void WarmEffectiveRuntimeProfile()
     {
-        if (actor?.Identity?.Data != null)
-        {
-            GetEffectiveRuntimeProfile();
-        }
+        RequireProfileProjector().Warm(actor, GrowthState);
     }
 
-    private static void EnsureTraitCache()
+    private CharacterProgressionProfileProjector RequireProfileProjector()
     {
-        if (TraitCache.Count > 0)
-        {
-            return;
-        }
-
-        IResourcesAssetLoader loader = traitResourcesAssetLoader ?? new UnityResourcesAssetLoader();
-        foreach (CharacterTraitSO trait in loader.LoadAllOptional<CharacterTraitSO>(TraitResourcePath))
-        {
-            if (trait != null)
-            {
-                TraitCache[trait.id] = trait;
-            }
-        }
+        return profileProjector
+            ?? throw new InvalidOperationException(
+                "Character progression profile projector is not configured.");
     }
 }
 
@@ -1101,14 +847,4 @@ public sealed class CharacterProgressionSnapshot
         .Where(item => item != null).Select(item => item.id).ToArray()
         ?? Array.Empty<string>();
     public IReadOnlyList<string> EquippedSkillIds => LearnedSkillIds;
-}
-
-public readonly struct CharacterGrowthTabRequestedEvent
-{
-    public CharacterGrowthTabRequestedEvent(CharacterActor actor)
-    {
-        Actor = actor;
-    }
-
-    public CharacterActor Actor { get; }
 }

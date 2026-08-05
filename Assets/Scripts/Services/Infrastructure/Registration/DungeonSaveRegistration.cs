@@ -1,3 +1,4 @@
+using DungeonStory.Infrastructure;
 using VContainer;
 using VContainer.Unity;
 
@@ -6,22 +7,33 @@ public static class DungeonSaveRegistration
     public static void RegisterDungeonSaveInfrastructure(
         this IContainerBuilder builder)
     {
+        builder.Register<DungeonRuntimeAggregateRootStore>(Lifetime.Singleton);
+        builder.Register<InvasionAggregateStateStore>(Lifetime.Singleton);
+        builder.Register<CharacterWorldSpawnDependencies>(Lifetime.Singleton);
         RegisterSections(builder);
         builder.Register<DungeonSaveSectionRegistry>(Lifetime.Singleton)
             .As<IDungeonSaveSectionRegistry>();
+        builder.Register<DungeonAggregateReferencePreflight>(Lifetime.Singleton)
+            .As<IDungeonSavePreflightValidator>();
         builder.Register<DungeonGameSaveService>(Lifetime.Singleton)
             .As<IDungeonGameSaveService>();
         builder.Register<DungeonSaveSlotCatalog>(Lifetime.Singleton)
             .As<IDungeonSaveSlotCatalog>();
         builder.Register<DungeonSceneNavigator>(Lifetime.Singleton)
+            .AsSelf()
             .As<IDungeonSceneNavigator>();
         builder.Register<DungeonGameSaveSlotService>(Lifetime.Singleton)
             .As<IDungeonGameSaveSlotService>();
         builder.RegisterEntryPoint<DungeonAutosaveService>(Lifetime.Singleton)
             .As<IDungeonSaveCommandService>();
-        builder.RegisterEntryPoint<DungeonSaveUiController>(Lifetime.Singleton);
+        builder.Register<DungeonSaveUiPresentationContext>(Lifetime.Singleton);
+        builder.Register<DungeonSaveUiSessionContext>(Lifetime.Singleton);
+        builder.Register<DungeonSaveUiActionContext>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<DungeonSaveUiController>(Lifetime.Singleton)
+            .AsSelf();
         builder.RegisterEntryPoint<DungeonGameplayLaunchController>(
-            Lifetime.Singleton);
+                Lifetime.Singleton)
+            .AsSelf();
     }
 
     private static void RegisterSections(IContainerBuilder builder)
@@ -99,15 +111,9 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<ExteriorActivitySaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
-        builder.Register<OffenseSaveSection>(Lifetime.Singleton)
-            .As<IDungeonSaveSection>();
-        builder.Register<OffenseV17SaveSection>(Lifetime.Singleton)
-            .As<IDungeonSaveSection>();
-        builder.Register<OffenseRegionSaveSection>(Lifetime.Singleton)
+        builder.Register<OffenseAggregateSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<FactionSaveSection>(Lifetime.Singleton)
-            .As<IDungeonSaveSection>();
-        builder.Register<OffenseReturnArrivalSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<InvasionSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
@@ -119,6 +125,8 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<RunFlowSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<ExperiencePacingSaveSection>(Lifetime.Singleton)
+            .As<IDungeonSaveSection>();
         builder.Register<DungeonDebugSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<BlueprintResearchSaveSection>(Lifetime.Singleton)
@@ -129,6 +137,10 @@ public static class DungeonSaveRegistration
             .As<IDungeonSaveSection>();
         builder.Register<StaffDiscontentSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
+        builder.Register<CodexSaveApplicationAdapter>(Lifetime.Singleton)
+            .As<ICodexSaveQueryPort>()
+            .As<ICodexRestorePort>()
+            .As<ICodexSaveSerializationPort>();
         builder.Register<CodexSaveSection>(Lifetime.Singleton)
             .As<IDungeonSaveSection>();
         builder.Register<RunVariableSaveSection>(Lifetime.Singleton)

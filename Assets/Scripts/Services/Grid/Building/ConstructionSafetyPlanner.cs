@@ -66,14 +66,16 @@ public static class ConstructionSafetyPlanner
 
     public static ConstructionSafetyResult Evaluate(
         ConstructionSite site,
-        CharacterActor worker,
+        IBuildingVisitorPort worker,
         bool forced = false)
     {
         ConstructionSafetyResult result = EvaluateInternal(site, worker);
         return forced && !result.IsSafe ? result.AsForcedWarning() : result;
     }
 
-    private static ConstructionSafetyResult EvaluateInternal(ConstructionSite site, CharacterActor worker)
+    private static ConstructionSafetyResult EvaluateInternal(
+        ConstructionSite site,
+        IBuildingVisitorPort worker)
     {
         if (site == null || site.isDestroy || site.TargetBuilding == null || site.Grid == null)
         {
@@ -96,7 +98,10 @@ public static class ConstructionSafetyPlanner
             target.GetGridPosList(site.GridPosition));
 
         if (worker != null
-            && !CanWorkerReachExitAfterBuild(grid, worker.GetNowXY(), futureBlocked))
+            && !CanWorkerReachExitAfterBuild(
+                grid,
+                grid.GetXY(worker.VisitorSnapshot.Position),
+                futureBlocked))
         {
             return ConstructionSafetyResult.Delay(
                 ConstructionSafetyReason.WorkerEscapeBlocked,
@@ -232,8 +237,8 @@ public static class ConstructionSafetyPlanner
         ConstructionSite currentSite,
         HashSet<Vector2Int> futureBlocked)
     {
-        IEnumerable<BuildableObject> registeredBuildings =
-            currentSite.WorldRegistry?.Buildings ?? Array.Empty<BuildableObject>();
+        IEnumerable<IBuildingWorldEntryPort> registeredBuildings =
+            currentSite.WorldRegistry?.Buildings ?? Array.Empty<IBuildingWorldEntryPort>();
         foreach (ConstructionSite other in registeredBuildings.OfType<ConstructionSite>())
         {
             if (other == null

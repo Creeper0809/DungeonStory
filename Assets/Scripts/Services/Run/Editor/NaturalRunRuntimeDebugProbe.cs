@@ -10,13 +10,13 @@ public static class NaturalRunRuntimeDebugProbe
     {
         StringBuilder builder = new StringBuilder();
         DungeonRuntimeLifetimeScope scope = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
-        GameData gameData = null;
+        GameSessionState gameData = null;
         IDungeonRunFlowRuntime flow = null;
         if (scope != null)
         {
             try
             {
-                scope.Container.Resolve<IGameDataProvider>().TryGetGameData(out gameData);
+                scope.Container.Resolve<IGameSessionStateProvider>().TryGetSessionState(out gameData);
                 flow = scope.Container.Resolve<IDungeonRunFlowRuntime>();
             }
             catch (Exception exception)

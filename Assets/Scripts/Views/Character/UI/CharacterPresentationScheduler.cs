@@ -168,6 +168,7 @@ public sealed class CharacterPresentationScheduler :
             if (!CanPresent(entry.Actor) || !IsInsideViewport(entry.Actor))
             {
                 SetVisible(entry, false);
+                entry.Actor?.TickPresentationMaintenance();
                 entry.Nameplate?.TickFromScheduler(false, force: false);
                 entry.FeedbackBubble?.TickFromScheduler(false);
                 continue;

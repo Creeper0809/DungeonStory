@@ -168,11 +168,11 @@ public static class RoomEnvironmentDebugScenarios
     private static bool VerifyEnvironmentQueryWorkMultiplier()
     {
         using ScenarioWorld world = ScenarioWorld.Create();
-        FacilityCandidateCacheStore facilityCache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+        FacilityCandidateCacheStore facilityCache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
         RoomEnvironmentQuery query = new RoomEnvironmentQuery(
             new RoomLayoutCache(),
             world.CreateEvaluator(),
-            facilityCache);
+            facilityCache, worldFilthQuery: null);
 
         Require(query.TryGetSnapshot(world.MainFixture, out RoomEnvironmentSnapshot baseline),
             "Room environment query did not resolve the main fixture room.");
@@ -271,7 +271,7 @@ public static class RoomEnvironmentDebugScenarios
 
         public RoomEnvironmentEvaluator CreateEvaluator()
         {
-            return new RoomEnvironmentEvaluator(new TestSettingsProvider(settings), Records);
+            return new RoomEnvironmentEvaluator(new TestSettingsProvider(settings), Records, worldFilthQuery: null, survivalFoodRuntime: null, environmentalField: NoEnvironmentalFieldQuery.Instance);
         }
 
         public RoomInstance GetMainRoom()
@@ -312,9 +312,9 @@ public static class RoomEnvironmentDebugScenarios
             data.height = 1;
             data.layer = GridLayer.Building;
             data.category = category;
-            data.type = category == BuildingCategory.Movement
-                ? typeof(Door)
-                : typeof(BuildableObject);
+            data.runtimeArchetype = category == BuildingCategory.Movement
+                ? BuildingRuntimeArchetypeKind.Door
+                : BuildingRuntimeArchetypeKind.Generic;
             data.Facility = new FacilityData
             {
                 roles = roles,
@@ -326,6 +326,7 @@ public static class RoomEnvironmentDebugScenarios
             GameObject obj = new GameObject(name);
             cleanup.Add(obj);
             BuildableObject fixture = obj.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(fixture);
             fixture.SetGrid(Grid);
             fixture.Initialization(data, position);
             bool registered = Grid.RegisterOccupant(

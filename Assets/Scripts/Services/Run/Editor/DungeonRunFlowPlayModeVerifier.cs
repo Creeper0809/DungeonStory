@@ -118,6 +118,17 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
                 yield break;
             }
 
+            CharacterSpawner initialSpawner = FindFirstObjectByType<CharacterSpawner>(
+                FindObjectsInactive.Include);
+            CharacterAiScheduler initialScheduler =
+                FindFirstObjectByType<CharacterAiScheduler>(FindObjectsInactive.Include);
+            Check(initialSpawner != null && initialSpawner.HasInjectedGameClock,
+                "DI_CHARACTER_SPAWNER",
+                "scene CharacterSpawner received the required game clock");
+            Check(initialScheduler != null && initialScheduler.HasInjectedGameClock,
+                "DI_AI_SCHEDULER",
+                "scene CharacterAiScheduler received the required game clock");
+
             IDungeonGameSaveSlotService slots = scope.Container.Resolve<IDungeonGameSaveSlotService>();
             IMetaProfileStore profileStore = scope.Container.Resolve<IMetaProfileStore>();
             profilePath = profileStore.ProfilePath;
@@ -131,11 +142,14 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
 
             scope = FindScope();
             IDungeonRunFlowRuntime flow = scope?.Container.Resolve<IDungeonRunFlowRuntime>();
-            IMetaProgressionRuntimeProvider metaProvider = scope?.Container.Resolve<IMetaProgressionRuntimeProvider>();
+            IExperiencePacingRuntime pacing = scope?.Container.Resolve<IExperiencePacingRuntime>();
+            MetaProgressionRuntime meta = scope?.Container
+                .Resolve<ProgressionSceneRuntimeReferences>()
+                .MetaProgression;
             DungeonStory.Foundation.IGameEventBus gameEvents =
                 scope?.Container.Resolve<DungeonStory.Foundation.IGameEventBus>();
             Check(flow != null, "FLOW_RESOLVE", "run flow resolved from the game container");
-            if (flow == null || metaProvider == null)
+            if (flow == null || meta == null)
             {
                 yield break;
             }
@@ -143,13 +157,54 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
             gameEvents?.Publish(new OperatingDayStartedEvent(4));
             Check(flow.Phase == DungeonRunPhase.Growth, "GROWTH", $"day 4 phase={flow.Phase}");
             gameEvents?.Publish(new OperatingDayStartedEvent(7));
-            Check(flow.Phase == DungeonRunPhase.Escalation, "ESCALATION", $"day 7 phase={flow.Phase}");
+            Check(flow.Phase == DungeonRunPhase.Growth, "GROWTH_CONTINUES", $"day 7 phase={flow.Phase}");
             gameEvents?.Publish(new OperatingDayStartedEvent(10));
             yield return null;
             yield return null;
-            Check(flow.Phase == DungeonRunPhase.EndlessDefense, "ENDLESS_DEFENSE_PHASE", $"day 10 phase={flow.Phase}");
-            Check(flow.IsBossActive, "BOSS_SPAWN", "day 10 spawned the armed boss invasion");
-            Check(flow.BossCycle == 1, "BOSS_CYCLE_1", $"day 10 cycle={flow.BossCycle}");
+            Check(flow.Phase == DungeonRunPhase.Escalation, "ESCALATION", $"day 10 phase={flow.Phase}");
+            Check(pacing != null && pacing.IsRehearsalActive && pacing.ActiveRehearsalDay == 10,
+                "REHEARSAL_10", "day 10 armed the 25% rehearsal invasion");
+            Check(!flow.IsBossActive && flow.BossCycle == 0,
+                "NO_EARLY_BOSS", $"day 10 cycle={flow.BossCycle}; active={flow.IsBossActive}");
+            gameEvents?.Publish(new OperatingDayStartedEvent(10));
+            yield return null;
+            Check(pacing != null
+                    && pacing.IsRehearsalActive
+                    && pacing.ActiveRehearsalDay == 10
+                    && flow.CurrentDay == 10
+                    && flow.BossCycle == 0,
+                "REHEARSAL_10_IDEMPOTENT",
+                "duplicate day 10 does not reschedule rehearsal or advance boss state");
+            gameEvents?.Publish(new InvasionResolvedEvent(true, 0f));
+            yield return null;
+
+            gameEvents?.Publish(new OperatingDayStartedEvent(20));
+            yield return null;
+            Check(pacing != null && pacing.IsRehearsalActive && pacing.ActiveRehearsalDay == 20,
+                "REHEARSAL_20", "day 20 armed the 50% rehearsal invasion");
+            gameEvents?.Publish(new InvasionResolvedEvent(true, 0f));
+            yield return null;
+
+            gameEvents?.Publish(new OperatingDayStartedEvent(30));
+            yield return null;
+            Check(pacing != null && pacing.IsRehearsalActive && pacing.ActiveRehearsalDay == 30,
+                "REHEARSAL_30", "day 30 armed the 75% rehearsal invasion");
+            gameEvents?.Publish(new InvasionResolvedEvent(true, 0f));
+            yield return null;
+
+            gameEvents?.Publish(new OperatingDayStartedEvent(40));
+            yield return null;
+            yield return null;
+            Check(flow.Phase == DungeonRunPhase.EndlessDefense, "ENDLESS_DEFENSE_PHASE", $"day 40 phase={flow.Phase}");
+            Check(flow.IsBossActive, "BOSS_SPAWN", "day 40 spawned the first normal boss invasion");
+            Check(flow.BossCycle == 1, "BOSS_CYCLE_1", $"day 40 cycle={flow.BossCycle}");
+            gameEvents?.Publish(new OperatingDayStartedEvent(40));
+            yield return null;
+            Check(flow.IsBossActive
+                    && flow.BossCycle == 1
+                    && flow.CurrentDay == 40,
+                "BOSS_CYCLE_1_IDEMPOTENT",
+                "duplicate day 40 leaves the active boss schedule unchanged");
             IDungeonGameSaveService gameSave = scope.Container.Resolve<IDungeonGameSaveService>();
             DungeonGameSaveData activeBossSave = gameSave.Capture();
             DungeonGameSaveData activeBossRoundTrip = gameSave.FromJson(gameSave.ToJson(activeBossSave));
@@ -189,7 +244,7 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
                     && !defendedFlow.bossActive,
                 "DEFENSE_SAVE", "post-defense endless cycle state survives serialization");
 
-            gameEvents?.Publish(new OperatingDayStartedEvent(20));
+            gameEvents?.Publish(new OperatingDayStartedEvent(50));
             yield return null;
             yield return null;
             Check(flow.Outcome == DungeonRunOutcome.None
@@ -197,7 +252,14 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
                     && flow.BossCycle == 2
                     && flow.IsBossActive,
                 "BOSS_CYCLE_2",
-                $"day 20 outcome={flow.Outcome}; phase={flow.Phase}; cycle={flow.BossCycle}; active={flow.IsBossActive}");
+                $"day 50 outcome={flow.Outcome}; phase={flow.Phase}; cycle={flow.BossCycle}; active={flow.IsBossActive}");
+            gameEvents?.Publish(new OperatingDayStartedEvent(50));
+            yield return null;
+            Check(flow.BossCycle == 2
+                    && flow.IsBossActive
+                    && flow.CurrentDay == 50,
+                "BOSS_CYCLE_2_IDEMPOTENT",
+                "duplicate day 50 cannot arm or start the recurring boss twice");
             gameEvents?.Publish(new InvasionResolvedEvent(true, 0f));
             yield return null;
 
@@ -248,8 +310,7 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
                 "OWNER_RUN_END", "terminal offense completion ends the owner run");
             Check(flow.Outcome == DungeonRunOutcome.Victory && flow.Phase == DungeonRunPhase.Finished,
                 "OFFENSE_VICTORY", $"outcome={flow.Outcome}; phase={flow.Phase}");
-            Check(metaProvider.TryGetRuntime(out MetaProgressionRuntime meta)
-                    && meta.LatestResult != null
+            Check(meta.LatestResult != null
                     && meta.LatestResult.outcome == DungeonRunOutcome.Victory
                     && meta.LatestResult.endReason.Contains(OffenseWorldMapService.TruthTitle),
                 "RESULT", "meta result records an offense-owned truth victory");
@@ -264,12 +325,37 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
 
             yield return CaptureScreen();
             yield return Click(nextRunButton);
+            float preparationDeadline = Time.realtimeSinceStartup + 10f;
+            while (Time.realtimeSinceStartup < preparationDeadline
+                && SceneManager.GetActiveScene().name
+                    != DungeonSceneNavigator.PreparationSceneName)
+            {
+                yield return null;
+            }
+
+            Check(SceneManager.GetActiveScene().name
+                    == DungeonSceneNavigator.PreparationSceneName,
+                "NEXT_RUN_PREPARATION",
+                $"scene={SceneManager.GetActiveScene().name}");
+            Button preparationOwner = Resources.FindObjectsOfTypeAll<Button>()
+                .FirstOrDefault(candidate => candidate != null
+                    && candidate.gameObject.scene.IsValid()
+                    && candidate.gameObject.activeInHierarchy
+                    && candidate.interactable
+                    && candidate.name.StartsWith("OwnerCandidate_", StringComparison.Ordinal));
+            yield return Click(preparationOwner);
+            yield return Click(FindButton("PreparationOwnerNextButton"));
+            yield return StartPartyPlayModeTestDriver.CompleteIfVisible(30f);
+
             DungeonRuntimeLifetimeScope nextScope = null;
-            float transitionDeadline = Time.realtimeSinceStartup + 10f;
+            float transitionDeadline = Time.realtimeSinceStartup + 15f;
             while (Time.realtimeSinceStartup < transitionDeadline)
             {
                 nextScope = FindScope();
-                if (nextScope != null && nextScope != scope)
+                if (nextScope != null
+                    && nextScope != scope
+                    && SceneManager.GetActiveScene().name
+                        == DungeonSceneNavigator.GameplaySceneName)
                 {
                     break;
                 }
@@ -279,11 +365,12 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
 
             OwnerRunManager nextOwner = FindFirstObjectByType<OwnerRunManager>();
             OwnerSelectionPanel selection = FindFirstObjectByType<OwnerSelectionPanel>(FindObjectsInactive.Include);
-            Check(nextScope != null && nextScope != scope, "SCENE_RELOAD", "next-run click reloads the gameplay scene");
-            Check(nextOwner != null && nextOwner.CurrentOwnerActor == null,
-                "FRESH_OWNER", "next run waits for a new owner choice");
-            Check(selection != null && selection.gameObject.activeInHierarchy,
-                "OWNER_SELECTION", "owner selection is visible after the transition");
+            Check(nextScope != null && nextScope != scope, "SCENE_RELOAD",
+                "next-run click passes preparation and reloads the gameplay scene");
+            Check(nextOwner != null && nextOwner.CurrentOwnerActor != null,
+                "FRESH_OWNER", "next run applies the owner chosen in preparation");
+            Check(selection == null || !selection.gameObject.activeInHierarchy,
+                "OWNER_SELECTION", "legacy gameplay owner selection stays hidden");
 
             IDungeonGameSaveSlotService nextSlots = nextScope?.Container.Resolve<IDungeonGameSaveSlotService>();
             Check(nextSlots != null
@@ -291,9 +378,10 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
                     && !nextSlots.HasSave(DungeonGameSaveSlotService.QuickSaveSlot)
                     && !nextSlots.HasSave(DungeonGameSaveSlotService.ManualSaveSlot),
                 "RUN_SAVES_CLEARED", "next run clears only run save slots");
-            IMetaProgressionRuntimeProvider nextMetaProvider = nextScope?.Container.Resolve<IMetaProgressionRuntimeProvider>();
-            Check(nextMetaProvider != null
-                    && nextMetaProvider.TryGetRuntime(out MetaProgressionRuntime nextMeta)
+            MetaProgressionRuntime nextMeta = nextScope?.Container
+                .Resolve<ProgressionSceneRuntimeReferences>()
+                .MetaProgression;
+            Check(nextMeta != null
                     && nextMeta.State.LifetimeEarnedCurrency > 0,
                 "META_CARRY", "durable meta currency is loaded into the next run");
 
@@ -301,7 +389,7 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
             IDungeonRunFlowRuntime nextFlow = nextScope?.Container.Resolve<IDungeonRunFlowRuntime>();
             DungeonStory.Foundation.IGameEventBus nextGameEvents =
                 nextScope?.Container.Resolve<DungeonStory.Foundation.IGameEventBus>();
-            nextGameEvents?.Publish(new OperatingDayStartedEvent(10));
+            nextGameEvents?.Publish(new OperatingDayStartedEvent(40));
             yield return null;
             yield return null;
             Check(nextFlow != null && nextFlow.IsBossActive,
@@ -314,10 +402,9 @@ public sealed class DungeonRunFlowVerificationRunner : MonoBehaviour
                     && nextFlow.Outcome == DungeonRunOutcome.Defeat
                     && nextFlow.Phase == DungeonRunPhase.Finished,
                 "DEFEAT", $"invasion breach outcome={nextFlow?.Outcome}; phase={nextFlow?.Phase}");
-            Check(nextMetaProvider != null
-                    && nextMetaProvider.TryGetRuntime(out MetaProgressionRuntime defeatedMeta)
-                    && defeatedMeta.LatestResult != null
-                    && defeatedMeta.LatestResult.outcome == DungeonRunOutcome.Defeat,
+            Check(nextMeta != null
+                    && nextMeta.LatestResult != null
+                    && nextMeta.LatestResult.outcome == DungeonRunOutcome.Defeat,
                 "DEFEAT_RESULT", "invasion breach produces an explicit defeat result");
         }
         finally

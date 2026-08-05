@@ -1,10 +1,5 @@
 using System;
 
-public interface IStaffDiscontentRuntimeProvider
-{
-    bool TryGetRuntime(out StaffDiscontentRuntime runtime);
-}
-
 public interface IStaffDiscontentRuntimeService
 {
     float GetWorkEfficiencyMultiplier(CharacterActor staff);
@@ -13,38 +8,23 @@ public interface IStaffDiscontentRuntimeService
     bool ResolveSuppressedRebel(CharacterActor rebel, CharacterActor defender);
 }
 
-public sealed class StaffDiscontentRuntimeProvider :
-    IStaffDiscontentRuntimeProvider
-{
-    private readonly CharacterSceneRuntimeReferences runtimeReferences;
-
-    public StaffDiscontentRuntimeProvider(
-        CharacterSceneRuntimeReferences runtimeReferences)
-    {
-        this.runtimeReferences = runtimeReferences
-            ?? throw new ArgumentNullException(nameof(runtimeReferences));
-    }
-
-    public bool TryGetRuntime(out StaffDiscontentRuntime resolvedRuntime)
-    {
-        resolvedRuntime = runtimeReferences.StaffDiscontent;
-        return resolvedRuntime != null;
-    }
-}
-
 public sealed class StaffDiscontentRuntimeService : IStaffDiscontentRuntimeService
 {
-    private readonly IStaffDiscontentRuntimeProvider provider;
+    private readonly StaffDiscontentRuntime runtime;
 
-    public StaffDiscontentRuntimeService(IStaffDiscontentRuntimeProvider provider)
+    public StaffDiscontentRuntimeService(
+        CharacterSceneRuntimeReferences runtimeReferences)
     {
-        this.provider = provider
-            ?? throw new ArgumentNullException(nameof(provider));
+        runtime = (runtimeReferences
+                ?? throw new ArgumentNullException(nameof(runtimeReferences)))
+            .StaffDiscontent
+            ?? throw new InvalidOperationException(
+                $"{nameof(StaffDiscontentRuntimeService)} requires a loaded {nameof(StaffDiscontentRuntime)}.");
     }
 
     public float GetWorkEfficiencyMultiplier(CharacterActor staff)
     {
-        return staff != null && provider.TryGetRuntime(out StaffDiscontentRuntime runtime)
+        return staff != null
             ? runtime.GetWorkEfficiencyMultiplier(staff)
             : 1f;
     }
@@ -53,14 +33,12 @@ public sealed class StaffDiscontentRuntimeService : IStaffDiscontentRuntimeServi
     {
         reason = string.Empty;
         return staff != null
-            && provider.TryGetRuntime(out StaffDiscontentRuntime runtime)
             && runtime.ShouldBlockWork(staff, out reason);
     }
 
     public bool IsRebellionTarget(CharacterActor target)
     {
         return target != null
-            && provider.TryGetRuntime(out StaffDiscontentRuntime runtime)
             && runtime.IsRebellionTarget(target);
     }
 
@@ -68,7 +46,6 @@ public sealed class StaffDiscontentRuntimeService : IStaffDiscontentRuntimeServi
     {
         return rebel != null
             && defender != null
-            && provider.TryGetRuntime(out StaffDiscontentRuntime runtime)
             && runtime.ResolveSuppressedRebel(rebel, defender);
     }
 }

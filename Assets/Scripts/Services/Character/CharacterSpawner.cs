@@ -2,39 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Characters;
+using DungeonStory.Factions;
 using DungeonStory.Foundation;
 using UnityEngine;
 using UnityEngine.Pool;
 using VContainer;
-
-public static class DungeonEntranceGridResolver
-{
-    public static bool TryResolve(
-        Grid grid,
-        Vector2Int preferredInsidePosition,
-        out Door entrance)
-    {
-        entrance = null;
-        if (grid == null)
-        {
-            return false;
-        }
-
-        entrance = grid.GetCells()
-            .Select(cell => cell?.GetBuildingInlayer(GridLayer.Building))
-            .OfType<Door>()
-            .Where(door => door != null
-                && door.IsDungeonEntrance
-                && !door.isDestroy
-                && door.BuildingData != null
-                && !door.BuildingData.IsInteriorDoor)
-            .Distinct()
-            .OrderBy(door => Mathf.Abs(door.centerPos.x - preferredInsidePosition.x)
-                + Mathf.Abs(door.centerPos.y - preferredInsidePosition.y))
-            .FirstOrDefault();
-        return entrance != null;
-    }
-}
 
 public class CharacterSpawner : BuildableObject,IInteractable
 {
@@ -44,30 +17,24 @@ public class CharacterSpawner : BuildableObject,IInteractable
     [SerializeField] private Transform entryDoorPoint;
     [SerializeField] private Vector2Int entryGridPosition = new Vector2Int(4, 0);
 
-    private float timer;
-    private Dictionary<string, CharacterRespawnData> respawnDict = new Dictionary<string, CharacterRespawnData>();
-    private Dictionary<int, CharacterSO> charactersById = new Dictionary<int, CharacterSO>();
+    private readonly CharacterRespawnSchedule respawnSchedule = new();
+    private readonly CharacterSpawnerSceneApplicationAdapter sceneAdapter = new();
     public IObjectPool<GameObject> characterPool;
     private WaitForSeconds spawnDelay = new WaitForSeconds(0.3f);
-    private bool spawnRoutineStarted;
-    private IRegularCustomerRuntimeProvider regularCustomerRuntimeProvider;
+    private RegularCustomerRuntime regularCustomers;
     private IGridSystemProvider gridSystemProvider;
     private IRunVariableRuntimeReader runVariableReader;
     private ICharacterSpawnObjectFactory characterObjectFactory;
     private IRunCharacterCatalog characterCatalog;
     private ICharacterPopulationService characterPopulationService;
-    private IFactionRuntime factionRuntime;
+    private IFactionContractQuery factionContracts;
     private IOwnerRunManagerProvider ownerRunManagerProvider;
     private IBuildingWorldQuery buildingWorldQuery;
     private IRandomStream respawnRandomStream;
-    private bool catalogCustomersMerged;
-    private bool runtimeStateInitialized;
-    private int cachedEntranceBuildingVersion = -1;
-    private Door cachedEntranceDoor;
 
     [Inject]
     public void Construct(
-        IRegularCustomerRuntimeProvider regularCustomerRuntimeProvider,
+        RegularCustomerRuntime regularCustomers,
         IGridSystemProvider gridSystemProvider,
         IRunVariableRuntimeReader runVariableReader,
         ICharacterSpawnObjectFactory characterObjectFactory,
@@ -76,10 +43,10 @@ public class CharacterSpawner : BuildableObject,IInteractable
         IOwnerRunManagerProvider ownerRunManagerProvider,
         IBuildingWorldQuery buildingWorldQuery,
         IRandomStreamProvider randomStreamProvider,
-        IFactionRuntime factionRuntime = null)
+        IFactionContractQuery factionContracts)
     {
-        this.regularCustomerRuntimeProvider = regularCustomerRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(regularCustomerRuntimeProvider));
+        this.regularCustomers = regularCustomers
+            ?? throw new ArgumentNullException(nameof(regularCustomers));
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.runVariableReader = runVariableReader
@@ -94,12 +61,12 @@ public class CharacterSpawner : BuildableObject,IInteractable
             ?? throw new ArgumentNullException(nameof(ownerRunManagerProvider));
         this.buildingWorldQuery = buildingWorldQuery
             ?? throw new ArgumentNullException(nameof(buildingWorldQuery));
-        this.factionRuntime = factionRuntime;
+        this.factionContracts = factionContracts
+            ?? throw new ArgumentNullException(nameof(factionContracts));
         respawnRandomStream = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("character-spawner");
-        catalogCustomersMerged = false;
-        runtimeStateInitialized = false;
+        sceneAdapter.ResetInjectedProjection();
     }
 
     private void Awake()
@@ -113,16 +80,15 @@ public class CharacterSpawner : BuildableObject,IInteractable
         centerPos = GetEntryGridPosition();
         EnsureRuntimeState();
 
-        if (!spawnRoutineStarted)
+        if (sceneAdapter.BeginSpawnRoutine())
         {
-            spawnRoutineStarted = true;
             StartCoroutine(StartSpawn());
         }
     }
 
     private void EnsureRuntimeState()
     {
-        if (runtimeStateInitialized)
+        if (sceneAdapter.IsRuntimeInitialized)
         {
             EnsureCharacterPool();
             return;
@@ -133,7 +99,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
             characters = new CharacterSO[0];
         }
 
-        if (!catalogCustomersMerged && characterCatalog != null)
+        if (sceneAdapter.BeginCatalogMerge() && characterCatalog != null)
         {
             IEnumerable<CharacterSO> catalogCustomers = characterCatalog.Characters
                 .Where(data => data != null && data.characterType == CharacterType.Customer);
@@ -143,14 +109,12 @@ public class CharacterSpawner : BuildableObject,IInteractable
                 .GroupBy(data => data.id)
                 .Select(group => group.First())
                 .ToArray();
-            catalogCustomersMerged = true;
         }
 
         characters = characters.Where((x) => x != null).OrderBy((x) => x.id).ToArray();
-        charactersById = characters.GroupBy((x) => x.id).ToDictionary((x) => x.Key, (x) => x.First());
-        respawnDict ??= new Dictionary<string, CharacterRespawnData>();
+        sceneAdapter.RebuildCharacterIndex(characters);
         spawnDelay ??= new WaitForSeconds(0.3f);
-        runtimeStateInitialized = true;
+        sceneAdapter.BeginRuntimeInitialization();
         EnsureCharacterPool();
     }
 
@@ -181,22 +145,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
     }
     void Update()
     {
-        if (respawnDict == null) return;
-
-        timer += GameDeltaTime;
-        string respawnedId = null;
-        foreach(var item in respawnDict)
-        {
-            if (item.Value.CheckResapwn(timer))
-            {
-                respawnedId = item.Key;
-                break;
-            }
-        }
-        if (!string.IsNullOrWhiteSpace(respawnedId))
-        {
-            respawnDict.Remove(respawnedId);
-        }
+        respawnSchedule.Advance(GameDeltaTime);
     }
     public bool TrySpawnCharacter(int id)
     {
@@ -214,19 +163,23 @@ public class CharacterSpawner : BuildableObject,IInteractable
             return false;
         }
 
-        if (!charactersById.TryGetValue(id, out CharacterSO characterData))
+        if (!sceneAdapter.TryGetCharacter(id, out CharacterSO characterData))
         {
             Debug.LogWarning($"스폰할 캐릭터 데이터를 찾지 못했습니다. id: {id}");
             return false;
         }
 
         CharacterSpeciesSO species = characterData.species;
-        if (species != null
-            && !species.ownerSelectable
-            && (string.IsNullOrWhiteSpace(species.homeFactionId)
-                || factionRuntime?.IsContractUnlocked(
-                    species.homeFactionId,
-                    FactionContractKind.Recruitment) != true))
+        bool recruitmentUnlocked = species != null
+            && !string.IsNullOrWhiteSpace(species.homeFactionId)
+            && factionContracts.IsContractUnlocked(
+                species.homeFactionId,
+                FactionContractKind.Recruitment);
+        if (!CharacterSpawnRules.IsRecruitmentEligible(
+                species != null,
+                species?.ownerSelectable == true,
+                species?.homeFactionId,
+                recruitmentUnlocked))
         {
             return false;
         }
@@ -239,7 +192,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
 
         WorldCharacterProfile worldProfile = characterPopulationService.AcquireVisitor(
             characterData,
-            respawnDict.Keys);
+            respawnSchedule.UnavailableProfileIds);
         if (worldProfile == null)
         {
             return false;
@@ -252,7 +205,6 @@ public class CharacterSpawner : BuildableObject,IInteractable
         }
 
         GameObject spawnedCharacterGameobject = characterPool.Get();
-        RequireCharacterObjectFactory().Inject(spawnedCharacterGameobject);
         spawnedCharacterGameobject.transform.position = GetOutsideSpawnWorldPosition();
         CharacterActor spawnedCharacter = spawnedCharacterGameobject.GetComponent<CharacterActor>();
         if (spawnedCharacter == null)
@@ -266,12 +218,13 @@ public class CharacterSpawner : BuildableObject,IInteractable
         spawnedCharacter.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
         spawnedCharacter.Initialize(characterData);
         characterPopulationService.BindActor(worldProfile, spawnedCharacter);
+        RequireCharacterObjectFactory().Publish(spawnedCharacterGameobject);
         StartCoroutine(EnterWhenPrepared(spawnedCharacter, resolvedEntryGridPosition));
 
         float demandMultiplier = ResolveRunVariableReader().GetGuestDemandMultiplier(characterData.SpeciesTag);
         float respawnTime = characterData.GetRespawnSpeed(ResolveRespawnRandomStream())
             / Mathf.Max(0.1f, demandMultiplier);
-        respawnDict[worldProfile.persistentId] = new CharacterRespawnData(
+        respawnSchedule.Register(
             worldProfile.persistentId,
             id,
             respawnTime);
@@ -391,57 +344,16 @@ public class CharacterSpawner : BuildableObject,IInteractable
 
     private bool TryResolveEntranceDoor(Grid grid, out Door entrance)
     {
-        entrance = null;
-        if (grid == null || buildingWorldQuery == null)
-        {
-            return DungeonEntranceGridResolver.TryResolve(
-                grid,
-                entryGridPosition,
-                out entrance);
-        }
-
-        int buildingVersion = buildingWorldQuery.BuildingVersion;
-        if (cachedEntranceBuildingVersion == buildingVersion)
-        {
-            entrance = cachedEntranceDoor;
-            return entrance != null && !entrance.isDestroy;
-        }
-
-        cachedEntranceBuildingVersion = buildingVersion;
-        cachedEntranceDoor = null;
-        int bestDistance = int.MaxValue;
-        IReadOnlyList<BuildableObject> buildings = buildingWorldQuery.Buildings;
-        for (int index = 0; index < buildings.Count; index++)
-        {
-            if (buildings[index] is not Door candidate
-                || !candidate.IsDungeonEntrance
-                || candidate.isDestroy
-                || candidate.BuildingData == null
-                || candidate.BuildingData.IsInteriorDoor)
-            {
-                continue;
-            }
-
-            int distance = Mathf.Abs(candidate.centerPos.x - entryGridPosition.x)
-                + Mathf.Abs(candidate.centerPos.y - entryGridPosition.y);
-            if (distance >= bestDistance)
-            {
-                continue;
-            }
-
-            bestDistance = distance;
-            cachedEntranceDoor = candidate;
-        }
-
-        entrance = cachedEntranceDoor;
-        return entrance != null;
+        return sceneAdapter.TryResolveEntrance(
+            grid,
+            buildingWorldQuery,
+            entryGridPosition,
+            out entrance);
     }
 
     private RegularCustomerState GetRegularCustomerState()
     {
-        return ResolveRegularCustomerRuntimeProvider().TryGetRuntime(out RegularCustomerRuntime runtime)
-            ? runtime.State
-            : null;
+        return RequireRegularCustomers().State;
     }
 
     private bool TryGetGrid(out Grid grid)
@@ -449,10 +361,11 @@ public class CharacterSpawner : BuildableObject,IInteractable
         return ResolveGridSystemProvider().TryGetGrid(out grid);
     }
 
-    private IRegularCustomerRuntimeProvider ResolveRegularCustomerRuntimeProvider()
+    private RegularCustomerRuntime RequireRegularCustomers()
     {
-        return regularCustomerRuntimeProvider
-            ?? throw new InvalidOperationException($"{nameof(CharacterSpawner)} requires {nameof(IRegularCustomerRuntimeProvider)} injection.");
+        return regularCustomers
+            ?? throw new InvalidOperationException(
+                $"{nameof(CharacterSpawner)} requires {nameof(RegularCustomerRuntime)} injection.");
     }
 
     private IGridSystemProvider ResolveGridSystemProvider()
@@ -482,15 +395,18 @@ public class CharacterSpawner : BuildableObject,IInteractable
 
     public void Respawned(CharacterRespawnData data)
     {
-        respawnDict.Remove(data.id);
+        if (data != null)
+        {
+            respawnSchedule.Remove(data.id);
+        }
     }
     private GameObject CreatePooledItem()
     {
-        return RequireCharacterObjectFactory().Create(characterPrefab);
+        return RequireCharacterObjectFactory().CreateInactive(characterPrefab);
     }
     private void OnTakeFromPool(GameObject poolGo)
     {
-        poolGo.SetActive(true);
+        poolGo.SetActive(false);
     }
     private void OnReturnedToPool(GameObject poolGo)
     {
@@ -506,8 +422,23 @@ public class CharacterSpawner : BuildableObject,IInteractable
     {
         RequireCharacterObjectFactory().Destroy(poolGo);
     }
-    public IEnumerator Interact(CharacterActor actor)
+    public IEnumerator Interact(CharacterActor actor) =>
+        Interact(actor?.BuildingVisitor);
+
+    public IEnumerator Interact(IBuildingVisitorPort visitor)
     {
+        if (visitor == null)
+        {
+            yield break;
+        }
+        if (!CharacterBuildingVisitorAdapter.TryGetActor(
+                visitor,
+                out CharacterActor actor))
+        {
+            throw new InvalidOperationException(
+                "CharacterSpawner requires the Character visitor adapter.");
+        }
+
         CharacterIdentity identity = actor != null ? actor.Identity : null;
         if (identity == null || identity.Data == null) yield break;
 
@@ -533,10 +464,7 @@ public class CharacterSpawner : BuildableObject,IInteractable
         }
 
         string profileId = identity.PersistentId;
-        if (respawnDict.TryGetValue(profileId, out CharacterRespawnData respawnData))
-        {
-            respawnData.StartCheckRespawn(timer);
-        }
+        respawnSchedule.MarkDisabled(profileId);
 
         characterPopulationService?.ReleaseVisitor(actor);
 
@@ -551,31 +479,5 @@ public class CharacterSpawner : BuildableObject,IInteractable
         }
 
         yield return null;
-    }
-}
-public class CharacterRespawnData
-{
-    public string id;
-    public int characterDataId;
-    public float lastDisabledTime;
-    public float respawnTime;
-    public bool isDiabled;
-    public CharacterRespawnData(string id, int characterDataId, float respawnTime)
-    {
-        this.respawnTime = respawnTime;
-        this.id = id;
-        this.characterDataId = characterDataId;
-        isDiabled = false;
-    }
-    public void StartCheckRespawn(float lastDisabledTime)
-    {
-        isDiabled = true;
-        this.lastDisabledTime = lastDisabledTime;
-    }
-    public bool CheckResapwn(float time)
-    {
-        if (!isDiabled) return false;
-        if ((time - lastDisabledTime) < respawnTime) return false;
-        return true;
     }
 }

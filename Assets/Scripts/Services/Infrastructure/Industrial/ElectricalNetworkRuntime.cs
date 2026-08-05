@@ -40,8 +40,9 @@ internal readonly struct ElectricalConsumerEntry
 }
 
 internal sealed class ElectricalNetworkRuntime :
-    IElectricalNetworkRuntime,
-    IPowerPriorityCommandService,
+    IPowerInfrastructureQuery,
+    IPowerInfrastructureCommand,
+    IPowerInfrastructurePersistence,
     ITickable
 {
     private const float TickInterval = 0.25f;
@@ -51,8 +52,7 @@ internal sealed class ElectricalNetworkRuntime :
     private readonly IGameClock clock;
     private readonly IWorldItemStackRuntime items;
     private readonly AutomationPowerDemandRegistry automationPowerDemand;
-    private readonly Dictionary<string, ElectricalNodeState> states =
-        new Dictionary<string, ElectricalNodeState>(StringComparer.Ordinal);
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
     private readonly Dictionary<string, float> nextFuelRequestAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
     private readonly Dictionary<string, ElectricalNetworkSummaryState>
@@ -68,12 +68,21 @@ internal sealed class ElectricalNetworkRuntime :
     private float accumulated;
     private int topologyVersion = int.MinValue;
     private int automationPowerVersion = int.MinValue;
+    private int projectedRestoreRevision;
+
+    private ElectricalNetworkAggregateState State =>
+        aggregateRootStore.GetOrCreateWritable(
+            () => new ElectricalNetworkAggregateState(),
+            state => state.DeepClone());
+
+    private Dictionary<string, ElectricalNodeState> states => State.Nodes;
 
     public ElectricalNetworkRuntime(
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
         IGameClock clock,
         IWorldItemStackRuntime items,
-        AutomationPowerDemandRegistry automationPowerDemand)
+        AutomationPowerDemandRegistry automationPowerDemand,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
@@ -81,9 +90,13 @@ internal sealed class ElectricalNetworkRuntime :
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.automationPowerDemand = automationPowerDemand
             ?? throw new ArgumentNullException(nameof(automationPowerDemand));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        projectedRestoreRevision =
+            this.aggregateRootStore.PublishedRestoreRevision;
     }
 
-    public int Version { get; private set; }
+    public int Version => State.Version;
     public IReadOnlyList<PowerNetworkSnapshot> Networks
     {
         get
@@ -152,15 +165,14 @@ internal sealed class ElectricalNetworkRuntime :
             || node.Building.BuildingData
                 .GetAbility<BuildingPowerConsumerAbility>() == null)
         {
-            return InfrastructureCommandResult.Failure(
-                "전력 소비 시설을 선택해야 합니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.PowerConsumerUnavailable);
         }
 
         EnsureState(node).Priority = priority;
         Touch();
         EvaluateNetworks(0f);
-        return InfrastructureCommandResult.Success(
-            $"전력 우선순위를 {priority}로 변경했습니다.");
+        return InfrastructureCommandResult.Success();
     }
 
     public InfrastructureCommandResult ResetBreaker(
@@ -170,22 +182,23 @@ internal sealed class ElectricalNetworkRuntime :
             || node.Building.BuildingData
                 .GetAbility<BuildingCircuitBreakerAbility>() == null)
         {
-            return InfrastructureCommandResult.Failure(
-                "차단기 시설을 선택해야 합니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.PowerBreakerUnavailable);
         }
 
         ElectricalNodeState state = EnsureState(node);
         if (state.Heat >= 60f)
         {
-            return InfrastructureCommandResult.Failure(
-                "회로가 아직 뜨거워 차단기를 복구할 수 없습니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.PowerBreakerUnavailable,
+                state.Heat.ToString("0.###"));
         }
 
         state.BreakerTripped = false;
         state.Fault = Mathf.Max(0f, state.Fault - 10f);
         Touch();
         EvaluateNetworks(0f);
-        return InfrastructureCommandResult.Success("차단기를 복구했습니다.");
+        return InfrastructureCommandResult.Success();
     }
 
     public DungeonPowerInfrastructureSaveData Capture()
@@ -197,7 +210,7 @@ internal sealed class ElectricalNetworkRuntime :
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => new PowerNodeSaveData
                 {
-                    nodeId = pair.Key,
+                    buildingInstanceId = pair.Key,
                     priority = (int)pair.Value.Priority,
                     storedPower = pair.Value.StoredPower,
                     fuelSeconds = pair.Value.FuelSeconds,
@@ -209,13 +222,21 @@ internal sealed class ElectricalNetworkRuntime :
         };
     }
 
-    public void Restore(DungeonPowerInfrastructureSaveData snapshot)
+    public ElectricalNetworkRestoreCandidate PrepareRestore(
+        DungeonPowerInfrastructureSaveData snapshot)
     {
-        states.Clear();
+        IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
+        ElectricalNetworkAggregateState restored =
+            new ElectricalNetworkAggregateState
+            {
+                Version = 1
+            };
         foreach (PowerNodeSaveData saved in snapshot?.nodes
                  ?? new List<PowerNodeSaveData>())
         {
-            if (saved == null || string.IsNullOrWhiteSpace(saved.nodeId))
+            if (saved == null
+                || !new BuildingInstanceId(
+                    saved.buildingInstanceId).IsValid)
             {
                 continue;
             }
@@ -224,7 +245,8 @@ internal sealed class ElectricalNetworkRuntime :
                 Enum.IsDefined(typeof(PowerPriority), saved.priority)
                     ? (PowerPriority)saved.priority
                     : PowerPriority.Production;
-            states[saved.nodeId.Trim()] = new ElectricalNodeState
+            restored.Nodes[saved.buildingInstanceId.Trim()] =
+                new ElectricalNodeState
             {
                 Priority = priority,
                 StoredPower = Mathf.Max(0f, saved.storedPower),
@@ -235,14 +257,28 @@ internal sealed class ElectricalNetworkRuntime :
             };
         }
 
-        topologyVersion = int.MinValue;
-        EnsureTopology();
-        EvaluateNetworks(0f);
-        Touch();
+        return new ElectricalNetworkRestoreCandidate(restored);
+    }
+
+    public void Restore(ElectricalNetworkRestoreCandidate candidate)
+    {
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
+        }
+
+        aggregateRootStore.Replace(candidate.State);
+        if (!aggregateRootStore.IsRestoreStaging)
+        {
+            ResetProjectionAfterRestore();
+            EnsureTopology();
+            EvaluateNetworks(0f);
+        }
     }
 
     private void EnsureTopology()
     {
+        EnsureRestoreProjectionCurrent();
         IndustrialTopologySnapshot topology = topologyRuntime.Current;
         bool topologyChanged = topology.SourceVersion != topologyVersion;
         bool automationChanged =
@@ -718,7 +754,7 @@ internal sealed class ElectricalNetworkRuntime :
             data.GetAbility<BuildingPowerStorageAbility>();
         return new PowerNodeSnapshot
         {
-            NodeId = node.NodeId,
+            BuildingId = new BuildingInstanceId(node.NodeId),
             NetworkId = networkId,
             Priority = state.Priority,
             Powered = state.Powered,
@@ -749,14 +785,38 @@ internal sealed class ElectricalNetworkRuntime :
 
         return automationPowerDemand.ResolveDemand(
             node.NodeId,
-            automation);
+            automation.PowerDemandProfile);
     }
 
     private void Touch()
     {
         unchecked
         {
-            Version++;
+            State.Version++;
         }
+    }
+
+    private void EnsureRestoreProjectionCurrent()
+    {
+        int revision = aggregateRootStore.PublishedRestoreRevision;
+        if (projectedRestoreRevision == revision)
+        {
+            return;
+        }
+
+        projectedRestoreRevision = revision;
+        ResetProjectionAfterRestore();
+    }
+
+    private void ResetProjectionAfterRestore()
+    {
+        topologyVersion = int.MinValue;
+        automationPowerVersion = int.MinValue;
+        accumulated = 0f;
+        nextFuelRequestAt.Clear();
+        networkSummaries.Clear();
+        consumerScratch.Clear();
+        fuelRequirementScratch.Clear();
+        networks = Array.Empty<PowerNetworkSnapshot>();
     }
 }

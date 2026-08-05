@@ -5,53 +5,38 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
-internal sealed class FluidNodeState
-{
-    public float CleanWater;
-    public float UnsafeWater;
-    public float FoulWater;
-    public float Wastewater;
-    public float Blockage;
-    public float Leak;
-    public float ProcessorWork;
-    public float ManualWaterReserve;
-    public WaterContainerTransferMode TransferMode;
-    public float TransferWork;
-    public string TransferBlockedReason = string.Empty;
-}
-
 internal sealed class FluidNetworkRuntime :
-    IWaterNetworkRuntime,
-    IWastewaterNetworkRuntime,
-    IPlumbingCommandService,
+    IFluidInfrastructureQuery,
+    IFluidInfrastructureTransaction,
+    IFluidWastewaterTransaction,
+    IFluidInfrastructureCommand,
+    IFluidInfrastructurePersistence,
     ITickable
 {
     private const float TickInterval = 0.5f;
     private const float BackflowWarningInterval = 5f;
+    private const string BottledCleanWaterItemId = "resource:clean-water";
 
     private readonly IIndustrialInfrastructureTopologyRuntime topologyRuntime;
-    private readonly IElectricalNetworkRuntime power;
+    private readonly IPowerInfrastructureQuery power;
     private readonly IWorldItemStackRuntime items;
     private readonly IWorldFilthQuery filth;
     private readonly IGameClock clock;
-    private readonly Dictionary<string, FluidNodeState> states =
-        new Dictionary<string, FluidNodeState>(StringComparer.Ordinal);
+    private readonly FluidNetworkStateStore stateStore;
+    private readonly FluidNetworkProjectionAdapter projectionAdapter;
     private readonly Dictionary<string, float> nextBackflowAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
-    private IReadOnlyList<FluidNetworkSnapshot> networks =
-        Array.Empty<FluidNetworkSnapshot>();
     private IReadOnlyList<WaterTransferFacilitySnapshot> waterTransfers =
         Array.Empty<WaterTransferFacilitySnapshot>();
-    private int topologyVersion = int.MinValue;
-    private int snapshotVersion = int.MinValue;
     private float accumulated;
 
     public FluidNetworkRuntime(
         IIndustrialInfrastructureTopologyRuntime topologyRuntime,
-        IElectricalNetworkRuntime power,
+        IPowerInfrastructureQuery power,
         IWorldItemStackRuntime items,
         IWorldFilthQuery filth,
-        IGameClock clock)
+        IGameClock clock,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.topologyRuntime = topologyRuntime
             ?? throw new ArgumentNullException(nameof(topologyRuntime));
@@ -59,17 +44,22 @@ internal sealed class FluidNetworkRuntime :
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        stateStore = new FluidNetworkStateStore(
+            aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
+        projectionAdapter = new FluidNetworkProjectionAdapter(
+            this.topologyRuntime,
+            stateStore);
     }
 
-    public int Version { get; private set; }
+    public int Version => stateStore.Version;
 
     public IReadOnlyList<FluidNetworkSnapshot> Networks
     {
         get
         {
             EnsureTopology();
-            EnsureSnapshots();
-            return networks;
+            return projectionAdapter.GetSnapshots(Version);
         }
     }
 
@@ -103,7 +93,7 @@ internal sealed class FluidNetworkRuntime :
         TransferContainerWater(deltaTime);
         ProcessWastewater(deltaTime);
         ApplyLeaksAndBackflow(deltaTime);
-        Touch();
+        stateStore.Touch();
     }
 
     public bool TryConsume(
@@ -111,27 +101,28 @@ internal sealed class FluidNetworkRuntime :
         WorldWaterQuality minimumQuality,
         float amount,
         out WorldWaterQuality consumedQuality,
-        out string failureReason)
+        out DomainFailure failure)
     {
         consumedQuality = WorldWaterQuality.Foul;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (amount <= 0f)
         {
             consumedQuality = WorldWaterQuality.Clean;
             return true;
         }
 
-        if (!TryResolveNetwork(
+        if (!projectionAdapter.TryResolveNetwork(
                 consumer,
                 UtilityChannel.CleanWater,
                 out string networkId,
                 out _))
         {
-            failureReason = "상수도에 연결되어 있지 않습니다.";
+            failure = new DomainFailure(FailureCode.FluidNetworkUnavailable);
             return false;
         }
 
-        WorldWaterQuality[] order = GetConsumptionOrder(minimumQuality);
+        WorldWaterQuality[] order =
+            FluidNodeWaterRules.GetConsumptionOrder(minimumQuality);
         foreach (WorldWaterQuality quality in order)
         {
             float available = GetNetworkWater(networkId, quality);
@@ -142,13 +133,14 @@ internal sealed class FluidNetworkRuntime :
 
             RemoveNetworkWater(networkId, quality, amount);
             consumedQuality = quality;
-            Touch();
+            stateStore.Touch();
             return true;
         }
 
-        failureReason = minimumQuality == WorldWaterQuality.Clean
-            ? "깨끗한 물이 부족합니다."
-            : "사용 가능한 물이 부족합니다.";
+        failure = new DomainFailure(
+            FailureCode.FluidInsufficientWater,
+            minimumQuality.ToString(),
+            amount.ToString("0.###"));
         return false;
     }
 
@@ -156,25 +148,26 @@ internal sealed class FluidNetworkRuntime :
         BuildableObject consumer,
         WorldWaterQuality minimumQuality,
         float amount,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (amount <= 0f)
         {
             return true;
         }
 
-        if (!TryResolveNetwork(
+        if (!projectionAdapter.TryResolveNetwork(
                 consumer,
                 UtilityChannel.CleanWater,
                 out string networkId,
                 out _))
         {
-            failureReason = "상수도에 연결되어 있지 않습니다.";
+            failure = new DomainFailure(FailureCode.FluidNetworkUnavailable);
             return false;
         }
 
-        foreach (WorldWaterQuality quality in GetConsumptionOrder(minimumQuality))
+        foreach (WorldWaterQuality quality in
+                 FluidNodeWaterRules.GetConsumptionOrder(minimumQuality))
         {
             if (GetNetworkWater(networkId, quality) + 0.0001f >= amount)
             {
@@ -182,9 +175,10 @@ internal sealed class FluidNetworkRuntime :
             }
         }
 
-        failureReason = minimumQuality == WorldWaterQuality.Clean
-            ? "깨끗한 물이 부족합니다."
-            : "사용 가능한 물이 부족합니다.";
+        failure = new DomainFailure(
+            FailureCode.FluidInsufficientWater,
+            minimumQuality.ToString(),
+            amount.ToString("0.###"));
         return false;
     }
 
@@ -200,7 +194,7 @@ internal sealed class FluidNetworkRuntime :
             return true;
         }
 
-        if (!TryResolveNetwork(
+        if (!projectionAdapter.TryResolveNetwork(
                 producer,
                 UtilityChannel.CleanWater,
                 out string networkId,
@@ -212,7 +206,7 @@ internal sealed class FluidNetworkRuntime :
         accepted = AddNetworkWater(networkId, quality, amount);
         if (accepted > 0f)
         {
-            Touch();
+            stateStore.Touch();
         }
 
         return accepted + 0.0001f >= amount;
@@ -222,19 +216,22 @@ internal sealed class FluidNetworkRuntime :
         BuildableObject consumer,
         string destinationId,
         float amount,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (amount <= 0f)
         {
             return true;
         }
 
         EnsureTopology();
-        if (!TryResolveState(consumer, out FluidNodeState state)
+        if (!projectionAdapter.TryResolveState(
+                consumer,
+                out FluidNodeState state)
             || string.IsNullOrWhiteSpace(destinationId))
         {
-            failureReason = "수동 물통 보충 지점을 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.FluidManualWaterUnavailable);
             return false;
         }
 
@@ -260,7 +257,9 @@ internal sealed class FluidNetworkRuntime :
                     destinationId.Trim(),
                     out _,
                     out _);
-                failureReason = "물통 보충을 기다리는 중입니다.";
+                failure = new DomainFailure(
+                    FailureCode.FluidManualWaterUnavailable,
+                    destinationId.Trim());
                 return false;
             }
 
@@ -270,7 +269,7 @@ internal sealed class FluidNetworkRuntime :
         state.ManualWaterReserve = Mathf.Max(
             0f,
             state.ManualWaterReserve - amount);
-        Touch();
+        stateStore.Touch();
         return true;
     }
 
@@ -279,7 +278,6 @@ internal sealed class FluidNetworkRuntime :
         out FluidNetworkSnapshot snapshot)
     {
         EnsureTopology();
-        EnsureSnapshots();
         snapshot = null;
         if (building == null)
         {
@@ -294,15 +292,15 @@ internal sealed class FluidNetworkRuntime :
             return false;
         }
 
-        string cleanId = ResolveNetworkId(
+        string cleanId = projectionAdapter.ResolveNetworkId(
             topology,
             UtilityChannel.CleanWater,
             nodeId);
-        string wasteId = ResolveNetworkId(
+        string wasteId = projectionAdapter.ResolveNetworkId(
             topology,
             UtilityChannel.Wastewater,
             nodeId);
-        snapshot = networks.FirstOrDefault(candidate =>
+        snapshot = projectionAdapter.GetSnapshots(Version).FirstOrDefault(candidate =>
             string.Equals(candidate.NetworkId, cleanId, StringComparison.Ordinal)
             || string.Equals(candidate.NetworkId, wasteId, StringComparison.Ordinal));
         return snapshot != null;
@@ -312,23 +310,24 @@ internal sealed class FluidNetworkRuntime :
         BuildableObject fixture,
         float amount,
         out float accepted,
-        out string failureReason)
+        out DomainFailure failure)
     {
         accepted = 0f;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (amount <= 0f)
         {
             return true;
         }
 
-        if (!TryResolveNetwork(
+        if (!projectionAdapter.TryResolveNetwork(
                 fixture,
                 UtilityChannel.Wastewater,
                 out string networkId,
                 out _))
         {
             CreateBackflow(fixture, amount);
-            failureReason = "하수도에 연결되어 있지 않습니다.";
+            failure = new DomainFailure(
+                FailureCode.FluidWastewaterUnavailable);
             return false;
         }
 
@@ -339,10 +338,13 @@ internal sealed class FluidNetworkRuntime :
         if (accepted + 0.0001f < amount)
         {
             CreateBackflow(fixture, amount - accepted);
-            failureReason = "하수 저장 공간이 가득 차 역류가 발생했습니다.";
+            failure = new DomainFailure(
+                FailureCode.FluidWastewaterUnavailable,
+                amount.ToString("0.###"),
+                accepted.ToString("0.###"));
         }
 
-        Touch();
+        stateStore.Touch();
         return accepted + 0.0001f >= amount;
     }
 
@@ -357,7 +359,7 @@ internal sealed class FluidNetworkRuntime :
             return true;
         }
 
-        if (!TryResolveNetwork(
+        if (!projectionAdapter.TryResolveNetwork(
                 processor,
                 UtilityChannel.Wastewater,
                 out string networkId,
@@ -369,7 +371,7 @@ internal sealed class FluidNetworkRuntime :
         consumed = RemoveNetworkWastewater(networkId, amount);
         if (consumed > 0f)
         {
-            Touch();
+            stateStore.Touch();
         }
 
         return consumed + 0.0001f >= amount;
@@ -378,21 +380,22 @@ internal sealed class FluidNetworkRuntime :
     public bool CanAcceptWastewater(
         BuildableObject fixture,
         float amount,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (amount <= 0f)
         {
             return true;
         }
 
-        if (!TryResolveNetwork(
+        if (!projectionAdapter.TryResolveNetwork(
                 fixture,
                 UtilityChannel.Wastewater,
                 out string networkId,
                 out _))
         {
-            failureReason = "하수도에 연결되어 있지 않습니다.";
+            failure = new DomainFailure(
+                FailureCode.FluidWastewaterUnavailable);
             return false;
         }
 
@@ -405,22 +408,26 @@ internal sealed class FluidNetworkRuntime :
             return true;
         }
 
-        failureReason = "오수 저장 공간이 가득 찼습니다.";
+        failure = new DomainFailure(
+            FailureCode.FluidWastewaterUnavailable,
+            amount.ToString("0.###"));
         return false;
     }
 
     public InfrastructureCommandResult ClearBlockage(
         BuildableObject building)
     {
-        if (!TryResolveState(building, out FluidNodeState state))
+        if (!projectionAdapter.TryResolveState(
+                building,
+                out FluidNodeState state))
         {
-            return InfrastructureCommandResult.Failure(
-                "배관 시설을 선택해야 합니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.FluidMaintenanceUnavailable);
         }
 
         state.Blockage = 0f;
-        Touch();
-        return InfrastructureCommandResult.Success("배관 막힘을 제거했습니다.");
+        stateStore.Touch();
+        return InfrastructureCommandResult.Success();
     }
 
     public InfrastructureCommandResult SetWaterTransferMode(
@@ -430,25 +437,19 @@ internal sealed class FluidNetworkRuntime :
         if (!Enum.IsDefined(typeof(WaterContainerTransferMode), mode)
             || building?.BuildingData?.GetAbility<
                 BuildingWaterContainerTransferAbility>() == null
-            || !TryResolveState(building, out FluidNodeState state))
+            || !projectionAdapter.TryResolveState(
+                building,
+                out FluidNodeState state))
         {
-            return InfrastructureCommandResult.Failure(
-                "물통 충전소를 선택해야 합니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.IndustrialCommandInvalid);
         }
 
         state.TransferMode = mode;
         state.TransferWork = 0f;
-        state.TransferBlockedReason = string.Empty;
-        Touch();
-        return InfrastructureCommandResult.Success(
-            mode switch
-            {
-                WaterContainerTransferMode.BottleFromNetwork =>
-                    "배관 물을 물통으로 병입합니다.",
-                WaterContainerTransferMode.FeedNetwork =>
-                    "물통을 운반받아 상수망에 투입합니다.",
-                _ => "물통 충전소를 정지했습니다."
-            });
+        state.TransferStatus = InfrastructureStatus.None;
+        stateStore.Touch();
+        return InfrastructureCommandResult.Success();
     }
 
     public bool TryGetMaintenance(
@@ -457,7 +458,9 @@ internal sealed class FluidNetworkRuntime :
         out float leak)
     {
         EnsureTopology();
-        if (TryResolveState(building, out FluidNodeState state))
+        if (projectionAdapter.TryResolveState(
+                building,
+                out FluidNodeState state))
         {
             blockage = Mathf.Clamp(state.Blockage, 0f, 100f);
             leak = Mathf.Clamp(state.Leak, 0f, 100f);
@@ -471,15 +474,17 @@ internal sealed class FluidNetworkRuntime :
 
     public InfrastructureCommandResult RepairLeak(BuildableObject building)
     {
-        if (!TryResolveState(building, out FluidNodeState state))
+        if (!projectionAdapter.TryResolveState(
+                building,
+                out FluidNodeState state))
         {
-            return InfrastructureCommandResult.Failure(
-                "배관 시설을 선택해야 합니다.");
+            return InfrastructureCommandResult.Failed(
+                FailureCode.FluidMaintenanceUnavailable);
         }
 
         state.Leak = 0f;
-        Touch();
-        return InfrastructureCommandResult.Success("배관 누수를 수리했습니다.");
+        stateStore.Touch();
+        return InfrastructureCommandResult.Success();
     }
 
     public DungeonFluidInfrastructureSaveData Capture()
@@ -487,11 +492,11 @@ internal sealed class FluidNetworkRuntime :
         EnsureTopology();
         return new DungeonFluidInfrastructureSaveData
         {
-            nodes = states
+            nodes = stateStore.Nodes
                 .OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => new FluidNodeSaveData
                 {
-                    nodeId = pair.Key,
+                    buildingInstanceId = pair.Key,
                     cleanWater = pair.Value.CleanWater,
                     unsafeWater = pair.Value.UnsafeWater,
                     foulWater = pair.Value.FoulWater,
@@ -507,18 +512,26 @@ internal sealed class FluidNetworkRuntime :
         };
     }
 
-    public void Restore(DungeonFluidInfrastructureSaveData snapshot)
+    public FluidNetworkRestoreCandidate PrepareRestore(
+        DungeonFluidInfrastructureSaveData snapshot)
     {
-        states.Clear();
+        IndustrialInfrastructureSaveValidation.RequireValid(snapshot);
+        FluidNetworkAggregateState restored = new FluidNetworkAggregateState
+        {
+            Version = 1
+        };
         foreach (FluidNodeSaveData saved in snapshot?.nodes
                  ?? new List<FluidNodeSaveData>())
         {
-            if (saved == null || string.IsNullOrWhiteSpace(saved.nodeId))
+            if (saved == null
+                || !new BuildingInstanceId(
+                    saved.buildingInstanceId).IsValid)
             {
                 continue;
             }
 
-            states[saved.nodeId.Trim()] = new FluidNodeState
+            restored.Nodes[saved.buildingInstanceId.Trim()] =
+                new FluidNodeState
             {
                 CleanWater = Mathf.Max(0f, saved.cleanWater),
                 UnsafeWater = Mathf.Max(0f, saved.unsafeWater),
@@ -539,9 +552,22 @@ internal sealed class FluidNetworkRuntime :
             };
         }
 
-        topologyVersion = int.MinValue;
-        EnsureTopology();
-        Touch();
+        return new FluidNetworkRestoreCandidate(restored);
+    }
+
+    public void Restore(FluidNetworkRestoreCandidate candidate)
+    {
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
+        }
+
+        stateStore.Replace(candidate);
+        if (!stateStore.IsRestoreStaging)
+        {
+            ResetProjectionAfterRestore();
+            EnsureTopology();
+        }
     }
 
     private void TransferContainerWater(float deltaTime)
@@ -557,17 +583,18 @@ internal sealed class FluidNetworkRuntime :
                 continue;
             }
 
-            FluidNodeState state = EnsureState(node.NodeId);
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
             if (state.TransferMode == WaterContainerTransferMode.Disabled)
             {
                 state.TransferWork = 0f;
-                state.TransferBlockedReason = string.Empty;
+                state.TransferStatus = InfrastructureStatus.None;
                 continue;
             }
 
             if (transfer.requiresPower && !power.IsPowered(node.Building))
             {
-                state.TransferBlockedReason = "전력 부족";
+                state.TransferStatus = new InfrastructureStatus(
+                    InfrastructureStatusCode.PowerUnavailable);
                 continue;
             }
 
@@ -575,7 +602,7 @@ internal sealed class FluidNetworkRuntime :
             float required = Mathf.Max(0.1f, transfer.secondsPerBatch);
             if (state.TransferWork + 0.0001f < required)
             {
-                state.TransferBlockedReason = string.Empty;
+                state.TransferStatus = InfrastructureStatus.None;
                 continue;
             }
 
@@ -602,18 +629,26 @@ internal sealed class FluidNetworkRuntime :
         FluidNodeState state,
         BuildingWaterContainerTransferAbility transfer)
     {
-        string waterItemId =
-            DungeonItemCatalogSO.StockItemId(StockCategory.Water);
+        if (!items.CatalogProvider.TryGetDefinition(
+                BottledCleanWaterItemId,
+                out DungeonItemDefinition bottledWater)
+            || bottledWater.StockCategory != StockCategory.Water)
+        {
+            throw new InvalidOperationException(
+                $"Water-container transfer requires authored clean-water item '{BottledCleanWaterItemId}'.");
+        }
         int currentStock = items.GetAllStacks()
             .Where(stack => stack != null
                 && string.Equals(
                     stack.ItemId,
-                    waterItemId,
+                    BottledCleanWaterItemId,
                     StringComparison.Ordinal))
             .Sum(stack => stack.Quantity);
         if (currentStock >= Mathf.Max(1, transfer.bottleTargetStock))
         {
-            state.TransferBlockedReason = "병입 목표 재고 충족";
+            state.TransferStatus = new InfrastructureStatus(
+                InfrastructureStatusCode.OutputTargetReached,
+                transfer.bottleTargetStock.ToString());
             return false;
         }
 
@@ -622,14 +657,16 @@ internal sealed class FluidNetworkRuntime :
                 WorldWaterQuality.Clean,
                 transfer.waterPerBatch,
                 out _,
-                out string failureReason))
+                out DomainFailure failure))
         {
-            state.TransferBlockedReason = failureReason;
+            state.TransferStatus = new InfrastructureStatus(
+                InfrastructureStatusCode.StorageCapacityUnavailable,
+                failure.Code.ToString());
             return false;
         }
 
         if (!items.SpawnItemAt(
-                waterItemId,
+                BottledCleanWaterItemId,
                 Mathf.Max(1, Mathf.RoundToInt(transfer.waterPerBatch)),
                 node.Building.centerPos,
                 WorldItemStackState.Loose,
@@ -642,11 +679,12 @@ internal sealed class FluidNetworkRuntime :
                 WorldWaterQuality.Clean,
                 transfer.waterPerBatch,
                 out _);
-            state.TransferBlockedReason = "병입 출력 공간 부족";
+            state.TransferStatus = new InfrastructureStatus(
+                InfrastructureStatusCode.OutputSpaceUnavailable);
             return false;
         }
 
-        state.TransferBlockedReason = string.Empty;
+        state.TransferStatus = InfrastructureStatus.None;
         return true;
     }
 
@@ -655,7 +693,7 @@ internal sealed class FluidNetworkRuntime :
         FluidNodeState state,
         BuildingWaterContainerTransferAbility transfer)
     {
-        if (!TryResolveNetwork(
+        if (!projectionAdapter.TryResolveNetwork(
                 node.Building,
                 UtilityChannel.CleanWater,
                 out string networkId,
@@ -663,7 +701,8 @@ internal sealed class FluidNetworkRuntime :
             || GetNetworkWaterFreeCapacity(networkId)
                 + 0.0001f < transfer.waterPerBatch)
         {
-            state.TransferBlockedReason = "상수 저장 공간 부족";
+            state.TransferStatus = new InfrastructureStatus(
+                InfrastructureStatusCode.StorageCapacityUnavailable);
             return false;
         }
 
@@ -686,7 +725,9 @@ internal sealed class FluidNetworkRuntime :
                 destinationId,
                 out _,
                 out _);
-            state.TransferBlockedReason = "투입할 물통 운반 중";
+            state.TransferStatus = new InfrastructureStatus(
+                InfrastructureStatusCode.InputDeliveryPending,
+                destinationId);
             return false;
         }
 
@@ -694,10 +735,11 @@ internal sealed class FluidNetworkRuntime :
             networkId,
             WorldWaterQuality.Clean,
             transfer.waterPerBatch);
-        state.TransferBlockedReason = accepted + 0.0001f
+        state.TransferStatus = accepted + 0.0001f
             >= transfer.waterPerBatch
-                ? string.Empty
-                : "상수 저장 공간 부족";
+                ? InfrastructureStatus.None
+                : new InfrastructureStatus(
+                    InfrastructureStatusCode.StorageCapacityUnavailable);
         return accepted + 0.0001f >= transfer.waterPerBatch;
     }
 
@@ -712,10 +754,10 @@ internal sealed class FluidNetworkRuntime :
                 BuildingWaterContainerTransferAbility ability =
                     node.Building.BuildingData.GetAbility<
                         BuildingWaterContainerTransferAbility>();
-                FluidNodeState state = EnsureState(node.NodeId);
+                FluidNodeState state = stateStore.EnsureState(node.NodeId);
                 return new WaterTransferFacilitySnapshot
                 {
-                    FacilityId = node.NodeId,
+                    BuildingId = new BuildingInstanceId(node.NodeId),
                     Mode = state.TransferMode,
                     Powered = !ability.requiresPower
                         || power.IsPowered(node.Building),
@@ -725,7 +767,7 @@ internal sealed class FluidNetworkRuntime :
                             : Mathf.Clamp01(
                                 state.TransferWork
                                 / Mathf.Max(0.1f, ability.secondsPerBatch)),
-                    BlockedReason = state.TransferBlockedReason
+                    Status = state.TransferStatus
                 };
             })
             .ToArray();
@@ -736,20 +778,25 @@ internal sealed class FluidNetworkRuntime :
 
     private void EnsureTopology()
     {
+        if (projectionAdapter.EnsurePublishedRestoreRevision())
+        {
+            ResetTransientProjection();
+        }
+
         IndustrialTopologySnapshot topology = topologyRuntime.Current;
-        if (topology.SourceVersion == topologyVersion)
+        if (!projectionAdapter.TryUpdateTopologyVersion(
+                topology.SourceVersion))
         {
             return;
         }
 
-        topologyVersion = topology.SourceVersion;
         foreach (IndustrialNodeDescriptor node in topology.Nodes.Values.Where(
                      node => (node.Channels
                              & (UtilityChannel.CleanWater
                                 | UtilityChannel.Wastewater))
                          != 0))
         {
-            FluidNodeState state = EnsureState(node.NodeId);
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
             BuildingWaterStorageAbility storage =
                 node.Building.BuildingData
                     .GetAbility<BuildingWaterStorageAbility>();
@@ -758,14 +805,14 @@ internal sealed class FluidNetworkRuntime :
                 float waterCapacity = Mathf.Max(
                     0f,
                     storage.cleanWaterCapacity);
-                ClampWater(state, waterCapacity);
+                FluidNodeWaterRules.ClampToCapacity(state, waterCapacity);
                 state.Wastewater = Mathf.Min(
                     state.Wastewater,
                     Mathf.Max(0f, storage.wastewaterCapacity));
             }
         }
 
-        Touch();
+        stateStore.Touch();
     }
 
     private void ProduceWater(float deltaTime)
@@ -783,7 +830,7 @@ internal sealed class FluidNetworkRuntime :
                 continue;
             }
 
-            if (!TryResolveNetwork(
+            if (!projectionAdapter.TryResolveNetwork(
                     node.Building,
                     UtilityChannel.CleanWater,
                     out string networkId,
@@ -815,12 +862,12 @@ internal sealed class FluidNetworkRuntime :
                 continue;
             }
 
-            if (!TryResolveNetwork(
+            if (!projectionAdapter.TryResolveNetwork(
                     node.Building,
                     UtilityChannel.Wastewater,
                     out string wasteNetworkId,
                     out _)
-                || !TryResolveNetwork(
+                || !projectionAdapter.TryResolveNetwork(
                     node.Building,
                     UtilityChannel.CleanWater,
                     out string waterNetworkId,
@@ -833,7 +880,7 @@ internal sealed class FluidNetworkRuntime :
                 continue;
             }
 
-            FluidNodeState state = EnsureState(node.NodeId);
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
             state.ProcessorWork += deltaTime * ResolveFlowMultiplier(node);
             float required = Mathf.Max(0.1f, processor.secondsPerBatch);
             while (state.ProcessorWork + 0.0001f >= required
@@ -870,13 +917,16 @@ internal sealed class FluidNetworkRuntime :
         IndustrialTopologySnapshot topology = topologyRuntime.Current;
         foreach (IndustrialNodeDescriptor node in topology.Nodes.Values)
         {
-            FluidNodeState state = EnsureState(node.NodeId);
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
             if (state.Leak > 0f)
             {
                 float leaked = Mathf.Min(
                     state.CleanWater + state.UnsafeWater + state.FoulWater,
                     state.Leak * 0.001f * deltaTime);
-                RemoveFromNode(state, WorldWaterQuality.Foul, leaked);
+                FluidNodeWaterRules.Remove(
+                    state,
+                    WorldWaterQuality.Foul,
+                    leaked);
                 if (leaked > 0.02f)
                 {
                     filth.AddFilth(
@@ -931,7 +981,9 @@ internal sealed class FluidNetworkRuntime :
             return;
         }
 
-        if (TryResolveState(building, out FluidNodeState state))
+        if (projectionAdapter.TryResolveState(
+                building,
+                out FluidNodeState state))
         {
             state.Blockage = Mathf.Clamp(
                 state.Blockage + Mathf.Max(1f, amount * 2f),
@@ -949,7 +1001,7 @@ internal sealed class FluidNetworkRuntime :
 
     private float ResolveFlowMultiplier(IndustrialNodeDescriptor node)
     {
-        FluidNodeState state = EnsureState(node.NodeId);
+        FluidNodeState state = stateStore.EnsureState(node.NodeId);
         return Mathf.Clamp01(
             1f - state.Blockage / 100f - state.FaultEquivalent());
     }
@@ -960,7 +1012,7 @@ internal sealed class FluidNetworkRuntime :
         float amount)
     {
         float remaining = Mathf.Max(0f, amount);
-        foreach (IndustrialNodeDescriptor node in GetNetworkNodes(
+        foreach (IndustrialNodeDescriptor node in projectionAdapter.GetNetworkNodes(
                      UtilityChannel.CleanWater,
                      networkId))
         {
@@ -972,7 +1024,7 @@ internal sealed class FluidNetworkRuntime :
                 continue;
             }
 
-            FluidNodeState state = EnsureState(node.NodeId);
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
             float free = Mathf.Max(
                 0f,
                 storage.cleanWaterCapacity
@@ -980,7 +1032,7 @@ internal sealed class FluidNetworkRuntime :
                 - state.UnsafeWater
                 - state.FoulWater);
             float accepted = Mathf.Min(free, remaining);
-            AddToNode(state, quality, accepted);
+            FluidNodeWaterRules.Add(state, quality, accepted);
             remaining -= accepted;
             if (remaining <= 0.0001f)
             {
@@ -995,19 +1047,25 @@ internal sealed class FluidNetworkRuntime :
         string networkId,
         WorldWaterQuality quality)
     {
-        return GetNetworkNodes(UtilityChannel.CleanWater, networkId)
-            .Sum(node => GetNodeWater(EnsureState(node.NodeId), quality));
+        return projectionAdapter.GetNetworkNodes(
+                UtilityChannel.CleanWater,
+                networkId)
+            .Sum(node => FluidNodeWaterRules.GetWater(
+                stateStore.EnsureState(node.NodeId),
+                quality));
     }
 
     private float GetNetworkWaterFreeCapacity(string networkId)
     {
-        return GetNetworkNodes(UtilityChannel.CleanWater, networkId)
+        return projectionAdapter.GetNetworkNodes(
+                UtilityChannel.CleanWater,
+                networkId)
             .Sum(node =>
             {
                 BuildingWaterStorageAbility storage =
                     node.Building.BuildingData
                         .GetAbility<BuildingWaterStorageAbility>();
-                FluidNodeState state = EnsureState(node.NodeId);
+                FluidNodeState state = stateStore.EnsureState(node.NodeId);
                 return storage == null
                     ? 0f
                     : Mathf.Max(
@@ -1025,18 +1083,18 @@ internal sealed class FluidNetworkRuntime :
         float amount)
     {
         float remaining = Mathf.Max(0f, amount);
-        foreach (IndustrialNodeDescriptor node in GetNetworkNodes(
+        foreach (IndustrialNodeDescriptor node in projectionAdapter.GetNetworkNodes(
                      UtilityChannel.CleanWater,
                      networkId))
         {
-            FluidNodeState state = EnsureState(node.NodeId);
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
             float removed = Mathf.Min(
-                GetNodeWater(state, quality),
+                FluidNodeWaterRules.GetWater(state, quality),
                 remaining);
-            SetNodeWater(
+            FluidNodeWaterRules.SetWater(
                 state,
                 quality,
-                GetNodeWater(state, quality) - removed);
+                FluidNodeWaterRules.GetWater(state, quality) - removed);
             remaining -= removed;
             if (remaining <= 0.0001f)
             {
@@ -1047,13 +1105,17 @@ internal sealed class FluidNetworkRuntime :
 
     private float GetNetworkWastewater(string networkId)
     {
-        return GetNetworkNodes(UtilityChannel.Wastewater, networkId)
-            .Sum(node => EnsureState(node.NodeId).Wastewater);
+        return projectionAdapter.GetNetworkNodes(
+                UtilityChannel.Wastewater,
+                networkId)
+            .Sum(node => stateStore.EnsureState(node.NodeId).Wastewater);
     }
 
     private float GetWastewaterCapacity(string networkId)
     {
-        return GetNetworkNodes(UtilityChannel.Wastewater, networkId)
+        return projectionAdapter.GetNetworkNodes(
+                UtilityChannel.Wastewater,
+                networkId)
             .Sum(node => Mathf.Max(
                 0f,
                 node.Building.BuildingData
@@ -1065,7 +1127,7 @@ internal sealed class FluidNetworkRuntime :
     private void AddNetworkWastewater(string networkId, float amount)
     {
         float remaining = Mathf.Max(0f, amount);
-        foreach (IndustrialNodeDescriptor node in GetNetworkNodes(
+        foreach (IndustrialNodeDescriptor node in projectionAdapter.GetNetworkNodes(
                      UtilityChannel.Wastewater,
                      networkId))
         {
@@ -1077,7 +1139,7 @@ internal sealed class FluidNetworkRuntime :
                 continue;
             }
 
-            FluidNodeState state = EnsureState(node.NodeId);
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
             float accepted = Mathf.Min(
                 Mathf.Max(
                     0f,
@@ -1095,11 +1157,11 @@ internal sealed class FluidNetworkRuntime :
     private float RemoveNetworkWastewater(string networkId, float amount)
     {
         float remaining = Mathf.Max(0f, amount);
-        foreach (IndustrialNodeDescriptor node in GetNetworkNodes(
+        foreach (IndustrialNodeDescriptor node in projectionAdapter.GetNetworkNodes(
                      UtilityChannel.Wastewater,
                      networkId))
         {
-            FluidNodeState state = EnsureState(node.NodeId);
+            FluidNodeState state = stateStore.EnsureState(node.NodeId);
             float removed = Mathf.Min(state.Wastewater, remaining);
             state.Wastewater -= removed;
             remaining -= removed;
@@ -1112,289 +1174,16 @@ internal sealed class FluidNetworkRuntime :
         return amount - remaining;
     }
 
-    private IReadOnlyList<IndustrialNodeDescriptor> GetNetworkNodes(
-        UtilityChannel channel,
-        string networkId)
+    private void ResetProjectionAfterRestore()
     {
-        IndustrialTopologySnapshot topology = topologyRuntime.Current;
-        return topology.NodeDescriptorsByNetwork.TryGetValue(
-            channel,
-            out Dictionary<
-                string,
-                IReadOnlyList<IndustrialNodeDescriptor>> byNetwork)
-            && byNetwork.TryGetValue(
-                networkId,
-                out IReadOnlyList<IndustrialNodeDescriptor> nodes)
-                ? nodes
-                : Array.Empty<IndustrialNodeDescriptor>();
+        projectionAdapter.Reset(stateStore.PublishedRestoreRevision);
+        ResetTransientProjection();
     }
 
-    private void RefreshSnapshots()
+    private void ResetTransientProjection()
     {
-        IndustrialTopologySnapshot topology = topologyRuntime.Current;
-        List<FluidNetworkSnapshot> result =
-            new List<FluidNetworkSnapshot>();
-        foreach (UtilityChannel channel in new[]
-                 {
-                     UtilityChannel.CleanWater,
-                     UtilityChannel.Wastewater
-                 })
-        {
-            if (!topology.NodesByNetwork.TryGetValue(
-                    channel,
-                    out Dictionary<string, List<string>> byNetwork))
-            {
-                continue;
-            }
-
-            foreach (KeyValuePair<string, List<string>> pair in byNetwork
-                         .OrderBy(pair => pair.Key, StringComparer.Ordinal))
-            {
-                IReadOnlyList<IndustrialNodeDescriptor> nodes =
-                    GetNetworkNodes(channel, pair.Key);
-                float waterCapacity = nodes.Sum(node =>
-                    Mathf.Max(
-                        0f,
-                        node.Building.BuildingData
-                            .GetAbility<BuildingWaterStorageAbility>()
-                            ?.cleanWaterCapacity
-                        ?? 0f));
-                float wastewaterCapacity = nodes.Sum(node =>
-                    Mathf.Max(
-                        0f,
-                        node.Building.BuildingData
-                            .GetAbility<BuildingWaterStorageAbility>()
-                            ?.wastewaterCapacity
-                        ?? 0f));
-                result.Add(new FluidNetworkSnapshot
-                {
-                    NetworkId = pair.Key,
-                    Channel = channel,
-                    CleanWater = nodes.Sum(
-                        node => EnsureState(node.NodeId).CleanWater),
-                    UnsafeWater = nodes.Sum(
-                        node => EnsureState(node.NodeId).UnsafeWater),
-                    FoulWater = nodes.Sum(
-                        node => EnsureState(node.NodeId).FoulWater),
-                    Wastewater = nodes.Sum(
-                        node => EnsureState(node.NodeId).Wastewater),
-                    Capacity = channel == UtilityChannel.CleanWater
-                        ? waterCapacity
-                        : wastewaterCapacity,
-                    Blockage = nodes.Count == 0
-                        ? 0f
-                        : nodes.Average(
-                            node => EnsureState(node.NodeId).Blockage),
-                    Leak = nodes.Count == 0
-                        ? 0f
-                        : nodes.Average(
-                            node => EnsureState(node.NodeId).Leak),
-                    HasOverflowRisk =
-                        channel == UtilityChannel.Wastewater
-                        && wastewaterCapacity > 0f
-                        && nodes.Sum(
-                                node => EnsureState(node.NodeId).Wastewater)
-                            >= wastewaterCapacity - 0.001f
-                });
-            }
-        }
-
-        networks = result;
-        snapshotVersion = Version;
-    }
-
-    private void EnsureSnapshots()
-    {
-        if (snapshotVersion != Version)
-        {
-            RefreshSnapshots();
-        }
-    }
-
-    private bool TryResolveNetwork(
-        BuildableObject building,
-        UtilityChannel channel,
-        out string networkId,
-        out IndustrialNodeDescriptor node)
-    {
-        IndustrialTopologySnapshot topology = topologyRuntime.Current;
-        networkId = string.Empty;
-        node = null;
-        if (building == null
-            || !topology.NodeIdsByBuilding.TryGetValue(
-                building,
-                out string nodeId)
-            || !topology.Nodes.TryGetValue(nodeId, out node)
-            || (node.Channels & channel) == 0)
-        {
-            return false;
-        }
-
-        networkId = ResolveNetworkId(topology, channel, nodeId);
-        return !string.IsNullOrWhiteSpace(networkId);
-    }
-
-    private bool TryResolveState(
-        BuildableObject building,
-        out FluidNodeState state)
-    {
-        IndustrialTopologySnapshot topology = topologyRuntime.Current;
-        if (building != null
-            && topology.NodeIdsByBuilding.TryGetValue(
-                building,
-                out string nodeId)
-            && topology.Nodes.TryGetValue(nodeId, out IndustrialNodeDescriptor node)
-            && (node.Channels
-                    & (UtilityChannel.CleanWater
-                       | UtilityChannel.Wastewater))
-                != 0)
-        {
-            state = EnsureState(nodeId);
-            return true;
-        }
-
-        state = null;
-        return false;
-    }
-
-    private static string ResolveNetworkId(
-        IndustrialTopologySnapshot topology,
-        UtilityChannel channel,
-        string nodeId)
-    {
-        return topology.NetworkByNode.TryGetValue(
-                channel,
-                out Dictionary<string, string> byNode)
-            && byNode.TryGetValue(nodeId, out string networkId)
-                ? networkId
-                : string.Empty;
-    }
-
-    private FluidNodeState EnsureState(string nodeId)
-    {
-        if (!states.TryGetValue(nodeId, out FluidNodeState state))
-        {
-            state = new FluidNodeState();
-            states[nodeId] = state;
-        }
-
-        return state;
-    }
-
-    private static WorldWaterQuality[] GetConsumptionOrder(
-        WorldWaterQuality minimumQuality)
-    {
-        return minimumQuality switch
-        {
-            WorldWaterQuality.Clean => new[] { WorldWaterQuality.Clean },
-            WorldWaterQuality.Unsafe => new[]
-            {
-                WorldWaterQuality.Unsafe,
-                WorldWaterQuality.Clean
-            },
-            _ => new[]
-            {
-                WorldWaterQuality.Foul,
-                WorldWaterQuality.Unsafe,
-                WorldWaterQuality.Clean
-            }
-        };
-    }
-
-    private static float GetNodeWater(
-        FluidNodeState state,
-        WorldWaterQuality quality)
-    {
-        return quality switch
-        {
-            WorldWaterQuality.Clean => state.CleanWater,
-            WorldWaterQuality.Unsafe => state.UnsafeWater,
-            _ => state.FoulWater
-        };
-    }
-
-    private static void SetNodeWater(
-        FluidNodeState state,
-        WorldWaterQuality quality,
-        float value)
-    {
-        switch (quality)
-        {
-            case WorldWaterQuality.Clean:
-                state.CleanWater = Mathf.Max(0f, value);
-                break;
-            case WorldWaterQuality.Unsafe:
-                state.UnsafeWater = Mathf.Max(0f, value);
-                break;
-            default:
-                state.FoulWater = Mathf.Max(0f, value);
-                break;
-        }
-    }
-
-    private static void AddToNode(
-        FluidNodeState state,
-        WorldWaterQuality quality,
-        float amount)
-    {
-        SetNodeWater(
-            state,
-            quality,
-            GetNodeWater(state, quality) + Mathf.Max(0f, amount));
-    }
-
-    private static void RemoveFromNode(
-        FluidNodeState state,
-        WorldWaterQuality preferredQuality,
-        float amount)
-    {
-        float remaining = Mathf.Max(0f, amount);
-        foreach (WorldWaterQuality quality in GetConsumptionOrder(
-                     preferredQuality))
-        {
-            float removed = Mathf.Min(
-                GetNodeWater(state, quality),
-                remaining);
-            SetNodeWater(
-                state,
-                quality,
-                GetNodeWater(state, quality) - removed);
-            remaining -= removed;
-            if (remaining <= 0.0001f)
-            {
-                break;
-            }
-        }
-    }
-
-    private static void ClampWater(FluidNodeState state, float capacity)
-    {
-        float total =
-            state.CleanWater + state.UnsafeWater + state.FoulWater;
-        if (total <= capacity || total <= 0f)
-        {
-            return;
-        }
-
-        float multiplier = capacity / total;
-        state.CleanWater *= multiplier;
-        state.UnsafeWater *= multiplier;
-        state.FoulWater *= multiplier;
-    }
-
-    private void Touch()
-    {
-        unchecked
-        {
-            Version++;
-        }
-    }
-}
-
-internal static class FluidNodeStateExtensions
-{
-    public static float FaultEquivalent(this FluidNodeState state)
-    {
-        return state == null ? 0f : Mathf.Clamp01(state.Leak / 200f);
+        accumulated = 0f;
+        nextBackflowAt.Clear();
+        waterTransfers = Array.Empty<WaterTransferFacilitySnapshot>();
     }
 }

@@ -55,12 +55,13 @@ public static class ModularFacilitySaveLoadDebugScenarios
 
         Grid sourceGrid = new Grid(28, 3);
         Grid targetGrid = new Grid(28, 3);
-        GameData sourceGameData = CreateGameData(4321, 7, 88.5f, 11, 2, TimeOfDay.Noon);
-        GameData targetGameData = CreateGameData(1, 1, 0f, 0, 1, TimeOfDay.Morning);
+        GameSessionState sourceGameData = CreateGameData(4321, 7, 88.5f, 11, 2, TimeOfDay.Noon);
+        GameSessionState targetGameData = CreateGameData(1, 1, 0f, 0, 1, TimeOfDay.Morning);
 
         List<BuildableObject> sourceBuildings = new List<BuildableObject>();
         List<BuildableObject> targetStaleBuildings = new List<BuildableObject>();
         List<BuildableObject> restoredBuildings = new List<BuildableObject>();
+        GameObject textureObject = new GameObject("Facility Save Contract Texture");
 
         try
         {
@@ -75,14 +76,19 @@ public static class ModularFacilitySaveLoadDebugScenarios
             Place(sourceGrid, ceilingFixture, new Vector2Int(18, 0), sourceBuildings);
             Place(sourceGrid, floorOverlay, new Vector2Int(18, 0), sourceBuildings);
 
-            dining.RestoreLegacyFacilityStateV1(new LegacyFacilityOperationalStateV1
+            dining.RestoreFacilityState(new FacilityRuntimeState
             {
                 completedUses = 7,
                 completedWorkCycles = 3,
-                producedStock = 5,
-                alarmCharges = 0,
                 cleanliness = 31.5f
             });
+            BuildingProductionAbility diningProductionAbility =
+                dining.BuildingData.GetAbility<BuildingProductionAbility>();
+            dining.RequireStateModule<BuildingProductionStateModule>(
+                    BuildingStateModuleIds.ForAbility(
+                        "production",
+                        diningProductionAbility.AbilityId))
+                .SetProducedStock(5);
             dining.SetDamaged(true);
             dining.SetFacilityLevel(3);
 
@@ -91,11 +97,7 @@ public static class ModularFacilitySaveLoadDebugScenarios
             {
                 maxCapacity = 18,
                 restrictCategory = true,
-                acceptedCategoryId = StockCategoryPersistenceId.ToId(StockCategory.Food),
-                stocks = new List<StockAmountSnapshot>
-                {
-                    StockAmountSnapshot.From(StockCategory.Food, 9)
-                }
+                acceptedCategoryId = StockCategoryPersistenceId.ToId(StockCategory.Food)
             });
 
             Require(shop != null, "source shop exists");
@@ -113,24 +115,109 @@ public static class ModularFacilitySaveLoadDebugScenarios
             Place(targetGrid, hallway, new Vector2Int(25, 0), targetStaleBuildings);
             Place(targetGrid, diningCore, new Vector2Int(22, 0), targetStaleBuildings);
 
+            GridTexture texture = textureObject.AddComponent<GridTexture>();
+            TestGridSystemPublisher gridPublisher = new(targetGrid);
+            RestoreWorldCandidateIndex candidateIndex = new();
             ModularFacilityWorldSaveService service = new ModularFacilityWorldSaveService(
                 id => catalog.TryGetValue(id, out BuildingSO data) ? data : null,
-                CreateInjectedFactory());
+                new GridBuildingObjectFactory(),
+                InjectBuilding,
+                new StaticGridTextureProvider(texture),
+                new NoopFacilityRelocationWorldService(),
+                new TestGameSessionStateStore(targetGameData),
+                gridPublisher,
+                candidateIndex);
 
             ModularFacilityWorldSaveData snapshot = service.CreateSnapshot(sourceGrid, sourceGameData);
             string json = service.ToJson(snapshot, prettyPrint: true);
             ModularFacilityWorldSaveData parsed = service.FromJson(json);
-            bool restored = service.TryRestoreSnapshot(
-                targetGrid,
-                targetGameData,
-                parsed,
-                out ModularFacilityWorldRestoreReport report);
+            ModularFacilityWorldSaveData invalid = service.FromJson(json);
+            ModularFacilityBuildingSaveData overlap =
+                JsonUtility.FromJson<ModularFacilityBuildingSaveData>(
+                    JsonUtility.ToJson(invalid.buildings[0]));
+            overlap.persistentInstanceId = "building:validation-overlap";
+            invalid.buildings.Add(overlap);
+            ModularFacilityWorldRestoreReport invalidReport =
+                service.ValidateRestore(targetGrid, invalid);
+            Check(
+                lines,
+                "invalid_candidate_preflight",
+                !invalidReport.Success
+                && invalidReport.errors.Any(error =>
+                    error.Contains("overlap", StringComparison.OrdinalIgnoreCase)
+                    || error.Contains("cannot occupy", StringComparison.OrdinalIgnoreCase))
+                && targetStaleBuildings.All(item => item != null && !item.IsGridDestroyed),
+                string.Join("|", invalidReport.errors));
+            ModularFacilityWorldRestoreReport report =
+                service.ValidateRestore(targetGrid, parsed);
+            Grid rollbackGrid = targetGrid;
+            ModularFacilityGameDataSaveData rollbackGameData =
+                ModularFacilityGameDataSaveData.From(targetGameData);
+            ModularFacilityWorldRestoreCandidate rollbackCandidate =
+                service.PrepareRestoreCandidate(
+                    targetGrid,
+                    targetGameData,
+                    parsed);
+            Require(
+                candidateIndex.TryGetBuildings(
+                    out IReadOnlyList<BuildableObject> rollbackBuildings),
+                "rollback candidate buildings are indexed");
+            service.BeginRestoreCandidate();
+            service.StageRestoreCandidate(rollbackCandidate);
+            service.PublishRestoreCandidate();
+            bool oldWorldPreservedDuringPublish =
+                !ReferenceEquals(gridPublisher.CurrentGrid, rollbackGrid)
+                && targetStaleBuildings.All(item =>
+                    item != null && !item.IsGridDestroyed)
+                && EqualGameData(
+                    snapshot.gameData,
+                    ModularFacilityGameDataSaveData.From(targetGameData))
+                && candidateIndex.TryGetGrid(out Grid indexedGrid)
+                && ReferenceEquals(indexedGrid, gridPublisher.CurrentGrid);
+            service.RollbackPublishedRestoreCandidate();
+            bool rollbackRestoredExactWorld =
+                ReferenceEquals(gridPublisher.CurrentGrid, rollbackGrid)
+                && targetStaleBuildings.All(item =>
+                    item != null && !item.IsGridDestroyed)
+                && EqualGameData(
+                    rollbackGameData,
+                    ModularFacilityGameDataSaveData.From(targetGameData))
+                && !candidateIndex.TryGetGrid(out _)
+                && !candidateIndex.TryGetBuildings(out _)
+                && rollbackBuildings.All(item => item == null);
+            Check(
+                lines,
+                "late_participant_failure_rolls_back_facility_publication",
+                oldWorldPreservedDuringPublish && rollbackRestoredExactWorld,
+                $"preserved={oldWorldPreservedDuringPublish}; restored={rollbackRestoredExactWorld}");
+
+            bool restored = false;
+            ModularFacilityWorldRestoreCandidate candidate = null;
+            try
+            {
+                candidate = service.PrepareRestoreCandidate(
+                    targetGrid,
+                    targetGameData,
+                    parsed);
+                service.BeginRestoreCandidate();
+                service.StageRestoreCandidate(candidate);
+                service.PublishRestoreCandidate();
+                service.CompleteRestoreCandidate();
+                restored = true;
+            }
+            catch (Exception exception)
+            {
+                report.AddError(exception.Message);
+                candidate?.Discard();
+                service.DiscardRestoreCandidate();
+            }
+            targetGrid = gridPublisher.CurrentGrid;
 
             restoredBuildings.AddRange(targetGrid.FindAllOccupants(null).OfType<BuildableObject>());
             ModularFacilityWorldSaveData roundTrip = service.CreateSnapshot(targetGrid, targetGameData);
 
-            Check(lines, "restore_success", restored && report.Success, $"cleared={report.clearedCount}; restored={report.restoredCount}; errors={string.Join("|", report.errors)}");
-            Check(lines, "stale_world_cleared", report.clearedCount == targetStaleBuildings.Count && targetStaleBuildings.All(item => item == null || item.IsGridDestroyed), $"cleared={report.clearedCount}; stale={targetStaleBuildings.Count}");
+            Check(lines, "restore_success", restored && report.Success, $"cleared={report.clearedCount}; restored={candidate?.RestoredCount ?? 0}; errors={string.Join("|", report.errors)}");
+            Check(lines, "stale_world_cleared", targetStaleBuildings.All(item => item == null || item.IsGridDestroyed), $"stale={targetStaleBuildings.Count}");
             Check(lines, "game_data_round_trip", EqualGameData(snapshot.gameData, roundTrip.gameData), FormatGameData(roundTrip.gameData));
             Check(lines, "building_count_round_trip", snapshot.buildings.Count == roundTrip.buildings.Count, $"{snapshot.buildings.Count}->{roundTrip.buildings.Count}");
             Check(lines, "layer_counts_round_trip", EqualLayerCounts(snapshot, roundTrip), FormatLayerCounts(roundTrip));
@@ -143,8 +230,7 @@ public static class ModularFacilitySaveLoadDebugScenarios
             DestroyCreated(sourceBuildings);
             DestroyCreated(restoredBuildings);
             DestroyCreated(targetStaleBuildings);
-            UnityEngine.Object.DestroyImmediate(sourceGameData);
-            UnityEngine.Object.DestroyImmediate(targetGameData);
+            UnityEngine.Object.DestroyImmediate(textureObject);
         }
 
         return lines.Skip(1).All(line => line.Contains("\tPASS\t"));
@@ -152,14 +238,126 @@ public static class ModularFacilitySaveLoadDebugScenarios
 
     private static IGridBuildingFactory CreateInjectedFactory()
     {
-        return new GridBuildingFactory(building =>
+        return new GridBuildingFactory(InjectBuilding);
+    }
+
+    private static void InjectBuilding(BuildableObject building)
+    {
+        CharacterAiEditorTestDependencies.Inject(building);
+        if (building is Shop shop)
         {
-            CharacterAiEditorTestDependencies.Inject(building);
-            if (building is Shop shop)
+            CharacterAiEditorTestDependencies.InjectShop(shop);
+        }
+    }
+
+    private sealed class StaticGridTextureProvider : IGridTextureProvider
+    {
+        internal StaticGridTextureProvider(GridTexture texture)
+        {
+            Texture = texture ?? throw new ArgumentNullException(nameof(texture));
+        }
+
+        public GridTexture Texture { get; }
+    }
+
+    private sealed class TestGameSessionStateStore : IGameSessionStateStore
+    {
+        private readonly GameSessionState state;
+
+        internal TestGameSessionStateStore(GameSessionState state)
+        {
+            this.state = state ?? throw new ArgumentNullException(nameof(state));
+        }
+
+        public bool TryGetSessionState(out GameSessionState gameData)
+        {
+            gameData = state;
+            return true;
+        }
+
+        public void Restore(GameSessionSnapshot snapshot)
+        {
+            if (snapshot.IsPaused)
             {
-                CharacterAiEditorTestDependencies.InjectShop(shop);
+                throw new InvalidOperationException(
+                    "Facility save contract fixture does not support a paused session.");
             }
-        });
+
+            state.holdingMoney.Initialize(snapshot.Money);
+            state.day.Initialize(snapshot.Day);
+            state.gameSpeed.Initialize(snapshot.GameSpeed);
+            state.curTime.Initialize(snapshot.ElapsedSeconds);
+            state.hour.Initialize(snapshot.Hour);
+            state.timeOfDay.Initialize(snapshot.TimeOfDay);
+        }
+    }
+
+    private sealed class TestGridSystemPublisher : IGridSystemPublisher
+    {
+        internal TestGridSystemPublisher(Grid initialGrid)
+        {
+            CurrentGrid = initialGrid
+                ?? throw new ArgumentNullException(nameof(initialGrid));
+        }
+
+        internal Grid CurrentGrid { get; private set; }
+
+        public bool TryPublishGrid(
+            Grid expectedCurrent,
+            Grid replacement,
+            out string failureReason)
+        {
+            if (!ReferenceEquals(CurrentGrid, expectedCurrent)
+                || replacement == null)
+            {
+                failureReason = "Grid publication expectation changed.";
+                return false;
+            }
+
+            CurrentGrid = replacement;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public void CompleteGridPublication()
+        {
+        }
+    }
+
+    private sealed class NoopFacilityRelocationWorldService :
+        IFacilityRelocationWorldService
+    {
+        public bool CanRelocate(
+            BuildableObject source,
+            Vector2Int destination,
+            out string failureReason)
+        {
+            failureReason = "Relocation is not part of this save contract.";
+            return false;
+        }
+
+        public bool TryPackAtDestination(
+            BuildableObject source,
+            Vector2Int destination,
+            out string failureReason)
+        {
+            failureReason = "Relocation is not part of this save contract.";
+            return false;
+        }
+
+        public bool TryCompleteRelocation(
+            BuildableObject packedSource,
+            out BuildableObject relocated,
+            out string failureReason)
+        {
+            relocated = null;
+            failureReason = "Relocation is not part of this save contract.";
+            return false;
+        }
+
+        public void RestorePackedPresentation(BuildableObject packedSource)
+        {
+        }
     }
 
     private static BuildableObject Place(
@@ -214,7 +412,7 @@ public static class ModularFacilitySaveLoadDebugScenarios
         return building;
     }
 
-    private static GameData CreateGameData(
+    private static GameSessionState CreateGameData(
         int money,
         int day,
         float curTime,
@@ -222,14 +420,7 @@ public static class ModularFacilitySaveLoadDebugScenarios
         int speed,
         TimeOfDay timeOfDay)
     {
-        GameData gameData = ScriptableObject.CreateInstance<GameData>();
-        gameData.hideFlags = HideFlags.HideAndDontSave;
-        gameData.holdingMoney = new Data<int>();
-        gameData.day = new Data<int>();
-        gameData.curTime = new Data<float>();
-        gameData.hour = new Data<int>();
-        gameData.gameSpeed = new Data<int>();
-        gameData.timeOfDay = new Data<TimeOfDay>();
+        GameSessionState gameData = new GameSessionState();
         gameData.holdingMoney.Initialize(money);
         gameData.day.Initialize(day);
         gameData.curTime.Initialize(curTime);

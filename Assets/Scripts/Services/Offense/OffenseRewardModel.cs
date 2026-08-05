@@ -4,46 +4,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using UnityEngine;
 
-public sealed class OffenseRewardGrantResult
-{
-    public OffenseRewardGrantResult(
-        OffenseRewardCategory category,
-        string label,
-        int requestedAmount,
-        int grantedAmount,
-        bool success,
-        string detail)
-    {
-        this.category = category;
-        this.label = label ?? string.Empty;
-        this.requestedAmount = Mathf.Max(0, requestedAmount);
-        this.grantedAmount = Mathf.Max(0, grantedAmount);
-        this.success = success;
-        this.detail = detail ?? string.Empty;
-    }
-
-    public OffenseRewardCategory category { get; }
-    public string label { get; }
-    public int requestedAmount { get; }
-    public int grantedAmount { get; }
-    public bool success { get; }
-    public string detail { get; }
-
-    public string ToSummaryText()
-    {
-        string rewardName = string.IsNullOrWhiteSpace(label) ? category.ToString() : label;
-        if (success)
-        {
-            string amountText = grantedAmount > 0 ? $" x{grantedAmount}" : string.Empty;
-            string detailText = string.IsNullOrWhiteSpace(detail) ? string.Empty : $" - {detail}";
-            return $"{rewardName}{amountText}{detailText}";
-        }
-
-        string reason = string.IsNullOrWhiteSpace(detail) ? "지급 실패" : detail;
-        return $"{rewardName} 지급 실패 - {reason}";
-    }
-}
-
 public interface IOffenseRewardStateView
 {
     int MoneyEarned { get; }
@@ -131,7 +91,7 @@ public sealed class OffenseRewardState : IOffenseRewardStateView
 
 public sealed class OffenseRewardContext
 {
-    public GameData gameData;
+    public GameSessionState gameData;
     public IEnumerable<IWarehouseFacility> warehouses = Enumerable.Empty<IWarehouseFacility>();
     public FacilityShopUnlockState shopUnlockState;
     public BlueprintResearchState researchState;

@@ -112,41 +112,48 @@ public static class WorkPriorityDebugScenarios
     {
         DestroyScenarioResearchRuntimes();
 
-        using WorkScenarioWorld world = new WorkScenarioWorld();
-        BuildableObject training = world.Place("P1_TrainingRoom", new Vector2Int(2, 0));
-        BuildableObject lab = world.Place("P1_ResearchLab", new Vector2Int(6, 0));
         GameObject runtimeObject = new GameObject("Work Priority Research Runtime");
-        BlueprintResearchRuntime researchRuntime = runtimeObject.AddComponent<BlueprintResearchRuntime>();
-        CharacterAiEditorTestDependencies.Inject(researchRuntime);
-        researchRuntime.EnqueueBlueprint(AssetDatabase.LoadAssetAtPath<FacilityBlueprintSO>(
-            "Assets/Resources/SO/Blueprint/P1/BP_SupportBasics.asset"));
-        GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
-
-        CharacterActor orc = CreateCharacter("Owner_Orc");
-        CharacterActor vampire = CreateCharacter("Owner_Vampire");
-        AbilityWork orcWork = orc.GetAbility<AbilityWork>();
-        AbilityWork vampireWork = vampire.GetAbility<AbilityWork>();
+        WorkScenarioWorld world = null;
+        CharacterActor orc = null;
+        CharacterActor vampire = null;
 
         try
         {
-            SetOnly(orcWork, BuiltInWorkTypeIds.Guard, BuiltInWorkTypeIds.Research);
-            SetOnly(vampireWork, BuiltInWorkTypeIds.Guard, BuiltInWorkTypeIds.Research);
+            BlueprintResearchRuntime researchRuntime =
+                runtimeObject.AddComponent<BlueprintResearchRuntime>();
+            CharacterAiEditorTestDependencies.Inject(researchRuntime);
+            researchRuntime.EnqueueBlueprint(AssetDatabase.LoadAssetAtPath<FacilityBlueprintSO>(
+                "Assets/Resources/SO/Blueprint/P1/BP_SupportBasics.asset"));
+            world = new WorkScenarioWorld(researchRuntime);
+            BuildableObject training = world.Place(
+                "P1_TrainingRoom",
+                new Vector2Int(2, 0));
+            BuildableObject lab = world.Place(
+                "P1_ResearchLab",
+                new Vector2Int(6, 0));
+            GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
 
+            orc = CreateCharacter("Owner_Orc", researchRuntime);
+            AbilityWork orcWork = orc.GetAbility<AbilityWork>();
+            SetOnly(orcWork, BuiltInWorkTypeIds.Guard, BuiltInWorkTypeIds.Research);
             bool orcAssigned = orcWork.TryAssignShop(search);
+            BuildableObject orcTarget = orcWork.assignedShop;
+
+            Object.DestroyImmediate(orc.gameObject);
+            orc = null;
+
+            vampire = CreateCharacter("Owner_Vampire", researchRuntime);
+            AbilityWork vampireWork = vampire.GetAbility<AbilityWork>();
+            SetOnly(vampireWork, BuiltInWorkTypeIds.Guard, BuiltInWorkTypeIds.Research);
             bool vampireAssigned = vampireWork.TryAssignShop(search);
+            BuildableObject vampireTarget = vampireWork.assignedShop;
             bool valid = orcAssigned
                 && vampireAssigned
-                && orcWork.assignedShop == training
-                && vampireWork.assignedShop == lab;
+                && orcTarget == training
+                && vampireTarget == lab;
 
             if (!valid)
             {
-                IBlueprintResearchWorkService researchWorkService = new BlueprintResearchWorkService(
-                    new BlueprintResearchRuntimeProvider(
-                        new ProgressionSceneRuntimeReferences(
-                            null,
-                            researchRuntime,
-                            null)));
                 Debug.LogError(
                     $"Species work preference detail: " +
                     $"researchActive={researchRuntime.HasActiveResearch}, " +
@@ -154,19 +161,26 @@ public static class WorkPriorityDebugScenarios
                     $"lab={(lab != null ? lab.name : "null")}, " +
                     $"trainingGuard={training != null && training.SupportsWork(BuiltInWorkTypeIds.Guard)}, " +
                     $"labResearch={lab != null && lab.SupportsWork(BuiltInWorkTypeIds.Research)}, " +
-                    $"labHasResearchWork={researchWorkService.HasResearchWorkFor(lab)}, " +
+                    $"labHasResearchWork={lab != null && lab.SupportsWork(BuiltInWorkTypeIds.Research) && researchRuntime.HasActiveResearch}, " +
                     $"orcAssigned={orcAssigned}, " +
                     $"vampireAssigned={vampireAssigned}, " +
-                    $"orcTarget={(orcWork.assignedShop != null ? orcWork.assignedShop.name : "null")}, " +
-                    $"vampireTarget={(vampireWork.assignedShop != null ? vampireWork.assignedShop.name : "null")}");
+                    $"orcTarget={(orcTarget != null ? orcTarget.name : "null")}, " +
+                    $"vampireTarget={(vampireTarget != null ? vampireTarget.name : "null")}");
             }
 
             return valid;
         }
         finally
         {
-            Object.DestroyImmediate(orc.gameObject);
-            Object.DestroyImmediate(vampire.gameObject);
+            if (orc != null)
+            {
+                Object.DestroyImmediate(orc.gameObject);
+            }
+            if (vampire != null)
+            {
+                Object.DestroyImmediate(vampire.gameObject);
+            }
+            world?.Dispose();
             Object.DestroyImmediate(runtimeObject);
             DestroyScenarioResearchRuntimes();
         }
@@ -336,20 +350,34 @@ public static class WorkPriorityDebugScenarios
 
     private static bool VerifyPriorityPanelBuildsMatrix()
     {
-        GameObject panelObject = new GameObject("Work Priority Matrix Test", typeof(RectTransform));
-        StaffWorkPriorityPanel panel = panelObject.AddComponent<StaffWorkPriorityPanel>();
-        panel.ConstructStaffWorkPriorityPanel(
-            new StaffWorkPriorityPanelModelBuilder(
-                new StaffWorkforceRuntimeQueryService(
-                    CharacterAiEditorTestDependencies.WorldRegistry)),
-            new StaffWorkPriorityPanelUiFactory(TMPKoreanFontEditorResolver.CreateService()),
-            new DungeonStory.Foundation.UnityUiClock());
-        CharacterActor orc = CreateCharacter("Owner_Orc");
-        CharacterActor slime = CreateCharacter("Owner_Slime");
-        AbilityWork orcWork = orc.GetAbility<AbilityWork>();
+        GameObject panelObject = null;
+        CharacterActor orc = null;
+        CharacterActor worker = null;
 
         try
         {
+            panelObject = new GameObject(
+                "Work Priority Matrix Test",
+                typeof(RectTransform));
+            StaffWorkPriorityPanel panel =
+                panelObject.AddComponent<StaffWorkPriorityPanel>();
+            StaffWorkforceSceneAdapter workforceScene = new(
+                CharacterAiEditorTestDependencies.WorldRegistry);
+            panel.ConstructStaffWorkPriorityPanel(
+                new StaffWorkPriorityPanelModelBuilder(
+                    new StaffWorkforceRuntimeQueryServiceAdapter(
+                        workforceScene,
+                        new DungeonStory.Work.StaffWorkforceRuntimeQueryService(
+                            workforceScene))),
+                new StaffWorkPriorityPanelUiFactory(
+                    TMPKoreanFontEditorResolver.CreateService()),
+                new DungeonStory.Foundation.UnityUiClock());
+            orc = CreateCharacter("Owner_Orc");
+            worker = CreateRegularWorker(
+                "Assets/Resources/SO/Character/Customer_Vampire.asset");
+            AbilityWork orcWork = orc.GetAbility<AbilityWork>();
+            AbilityWork workerWork = worker.GetAbility<AbilityWork>();
+
             panel.Refresh();
             Button[] buttons = panelObject.GetComponentsInChildren<Button>(true);
             int buttonCount = buttons.Length;
@@ -358,10 +386,11 @@ public static class WorkPriorityDebugScenarios
                 .Select((button) => button.gameObject.name)
                 .Take(12)
                 .ToArray();
-            Dictionary<AbilityWork, WorkPriorityLevel> beforeByWorker = Object
-                .FindObjectsByType<CharacterActor>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
-                .Where((character) => character != null && character.TryGetAbility(out AbilityWork _))
-                .Select((character) => character.GetAbility<AbilityWork>())
+            Dictionary<AbilityWork, WorkPriorityLevel> beforeByWorker = new[]
+                {
+                    orcWork,
+                    workerWork
+                }
                 .Where((work) => work != null)
                 .Distinct()
                 .ToDictionary(
@@ -387,7 +416,7 @@ public static class WorkPriorityDebugScenarios
                 && hadOperateButton
                 && orcWork != null
                 && anyOperatePriorityChanged
-                && slime != null;
+                && worker != null;
 
             if (!valid)
             {
@@ -406,9 +435,18 @@ public static class WorkPriorityDebugScenarios
         }
         finally
         {
-            Object.DestroyImmediate(orc.gameObject);
-            Object.DestroyImmediate(slime.gameObject);
-            Object.DestroyImmediate(panelObject);
+            if (orc != null)
+            {
+                Object.DestroyImmediate(orc.gameObject);
+            }
+            if (worker != null)
+            {
+                Object.DestroyImmediate(worker.gameObject);
+            }
+            if (panelObject != null)
+            {
+                Object.DestroyImmediate(panelObject);
+            }
         }
     }
 
@@ -611,8 +649,8 @@ public static class WorkPriorityDebugScenarios
                     $"damaged={damaged.IsDamaged}, working={work.isWorking}, " +
                     $"assignedType={work.AssignedWorkTypeId}, " +
                     $"assignedTarget={(work.assignedShop != null ? work.assignedShop.name : "none")}, " +
-                    $"repair={repairFound}:{repairCandidate.Building?.name}:{repairCandidate.Score:0.##}, " +
-                    $"overall={overallFound}:{overallCandidate.WorkTypeId}:{overallCandidate.Building?.name}:{overallCandidate.Score:0.##}, " +
+                    $"repair={repairFound}:{WorkTargetCandidateRuntimeAdapter.ResolveBuilding(repairCandidate)?.name}:{repairCandidate.Score:0.##}, " +
+                    $"overall={overallFound}:{overallCandidate.WorkTypeId}:{WorkTargetCandidateRuntimeAdapter.ResolveBuilding(overallCandidate)?.name}:{overallCandidate.Score:0.##}, " +
                     $"bestAction={(worker.ai.bestAction != null ? worker.ai.bestAction.actionset?.name : "none")}, " +
                     $"actionEnded={worker.ai.isBestActionEnd}");
             }
@@ -638,8 +676,10 @@ public static class WorkPriorityDebugScenarios
 
     private static void ClearShopStock(BuildableObject building)
     {
-        FieldInfo field = typeof(Shop).GetField("stocks", BindingFlags.Instance | BindingFlags.NonPublic);
-        field?.SetValue(building, new List<RemainStock>());
+        if (building is Shop shop)
+        {
+            shop.DebugClearStock();
+        }
     }
 
     private static void DrainWarehouse(IWarehouseFacility warehouse)
@@ -649,32 +689,63 @@ public static class WorkPriorityDebugScenarios
             return;
         }
 
-        foreach (StockCategoryDefinition definition in StockCategoryCatalog.All)
+        foreach (StockCategoryDefinition definition in
+                 ((IStockCategoryDefinitionCatalog)CharacterAiEditorTestDependencies.AuthoredGameplay).All)
         {
             StockCategory category = definition.Category;
-            warehouse.Inventory.Withdraw(category, int.MaxValue);
+            warehouse.Inventory.ConsumePhysicalStockForTest(category, int.MaxValue);
         }
     }
 
-    private static CharacterActor CreateCharacter(string ownerAssetName)
+    private static CharacterActor CreateCharacter(
+        string ownerAssetName,
+        BlueprintResearchRuntime researchRuntime = null)
     {
         CharacterSO data = AssetDatabase.LoadAssetAtPath<CharacterSO>(
             $"Assets/Resources/SO/Character/Owners/{ownerAssetName}.asset");
 
-        GameObject obj = new GameObject(ownerAssetName);
+        return CreateCharacter(data, ownerAssetName, researchRuntime, regularWorker: false);
+    }
+
+    private static CharacterActor CreateRegularWorker(string assetPath)
+    {
+        CharacterSO data = AssetDatabase.LoadAssetAtPath<CharacterSO>(assetPath);
+        return CreateCharacter(data, "Work Priority Regular Worker", null, regularWorker: true);
+    }
+
+    private static CharacterActor CreateCharacter(
+        CharacterSO data,
+        string objectName,
+        BlueprintResearchRuntime researchRuntime,
+        bool regularWorker)
+    {
+        GameObject obj = new GameObject(objectName);
+
         obj.AddComponent<SpriteRenderer>();
         obj.AddComponent<CharacterActor>();
         obj.AddComponent<AbilityMove>();
         obj.AddComponent<AbilityWork>();
-        obj.AddComponent<AIBrain>();
+        AIBrain brain = obj.AddComponent<AIBrain>();
+        brain.availableActions = AiDebugScenarioActionFactory.CreateStaffActions();
 
-        CharacterAiEditorTestDependencies.Inject(obj);
+        if (researchRuntime != null)
+        {
+            CharacterAiEditorTestDependencies.Inject(obj, researchRuntime);
+        }
+        else
+        {
+            CharacterAiEditorTestDependencies.Inject(obj);
+        }
         CharacterActor character = obj.GetComponent<CharacterActor>();
         typeof(CharacterActor)
             .GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)
             ?.Invoke(character, null);
         character.RefreshAbilityCache();
         character.Initialization(data);
+        if (regularWorker)
+        {
+            character.Identity.SetCharacterType(CharacterType.NPC);
+        }
         character.SetLifecycleState(CharacterLifecycleState.Active);
         return character;
     }
@@ -682,9 +753,11 @@ public static class WorkPriorityDebugScenarios
     private sealed class WorkScenarioWorld : IDisposable
     {
         private readonly List<GameObject> objects = new List<GameObject>();
+        private readonly BlueprintResearchRuntime researchRuntime;
 
-        public WorkScenarioWorld()
+        public WorkScenarioWorld(BlueprintResearchRuntime researchRuntime = null)
         {
+            this.researchRuntime = researchRuntime;
             Grid = new Grid(12, 1);
             for (int x = 0; x < Grid.width; x++)
             {
@@ -705,7 +778,14 @@ public static class WorkPriorityDebugScenarios
             GridBuildingFactory factory = new GridBuildingFactory();
             BuildableObject building = factory.Create(Grid, buildingData, position);
             objects.Add(building.gameObject);
-            CharacterAiEditorTestDependencies.Inject(building);
+            if (researchRuntime != null)
+            {
+                CharacterAiEditorTestDependencies.Inject(building, researchRuntime);
+            }
+            else
+            {
+                CharacterAiEditorTestDependencies.Inject(building);
+            }
             if (building is Shop shop)
             {
                 CharacterAiEditorTestDependencies.InjectShop(shop);

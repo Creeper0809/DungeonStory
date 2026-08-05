@@ -19,7 +19,7 @@ public sealed class SurgeryBuildingPanelPresenter :
     ISurgeryBuildingPanelPresenter
 {
     private readonly ISurgicalFacilityQuery facilities;
-    private readonly ISurgeryRuntime surgery;
+    private readonly ISurgeryQuery surgery;
     private readonly ISurgeryCommandService commands;
     private readonly ISurgicalProcedureCatalog procedures;
     private readonly IWorldItemStackRuntime items;
@@ -27,7 +27,7 @@ public sealed class SurgeryBuildingPanelPresenter :
 
     public SurgeryBuildingPanelPresenter(
         ISurgicalFacilityQuery facilities,
-        ISurgeryRuntime surgery,
+        ISurgeryQuery surgery,
         ISurgeryCommandService commands,
         ISurgicalProcedureCatalog procedures,
         IWorldItemStackRuntime items,
@@ -75,7 +75,7 @@ public sealed class SurgeryBuildingPanelPresenter :
         AddText(
             parent,
             $"{(primary ? "집도 시설" : "지원 시설")} · "
-            + SurgicalFacilityQuery.FormatTags(ownTags),
+            + CharacterSurgeryUiText.FormatFacilityTags(ownTags),
             font,
             15f,
             DungeonUiTheme.TextSecondary,
@@ -93,7 +93,8 @@ public sealed class SurgeryBuildingPanelPresenter :
                     ? $"무균도 {snapshot.Sterility:P0} · 작업 속도 {snapshot.SpeedMultiplier:P0}"
                         + $" · 성공 보정 {snapshot.SuccessBonus:+0%;-0%;0%}"
                         + $" · 마취 안정 {snapshot.AnesthesiaBonus:P0}"
-                    : snapshot.BlockReason,
+                    : CharacterSurgeryUiText.LocalizeFailure(
+                        snapshot.BlockFailure),
                 font,
                 14f,
                 snapshot.IsAvailable
@@ -213,26 +214,43 @@ public sealed class SurgeryBuildingPanelPresenter :
                 created);
         }
 
-        if (!string.IsNullOrWhiteSpace(order.status))
-        {
-            AddText(
-                parent,
-                order.status,
-                font,
-                14f,
-                IsBlocked(order.state)
-                    ? DungeonUiTheme.Warning
-                    : DungeonUiTheme.TextSecondary,
-                38f,
-                created);
-        }
+        SurgeryOrderUiProjection statusProjection =
+            new SurgeryOrderUiProjection
+            {
+                OrderId = order.orderId,
+                ProcedureName = procedureName,
+                DoctorId = order.doctorId,
+                State = order.state,
+                EnvironmentResumeStage = order.environmentResumeStage,
+                EnvironmentStableSeconds = order.environmentStableSeconds,
+                Progress01 = order.Progress01,
+                Status = order.statusData?.Clone() ?? new SurgeryStatusData(),
+                EnvironmentWait = order.environmentWait?.Clone()
+                    ?? new SurgeryStatusData(),
+                EnvironmentRecovery = order.environmentRecovery?.Clone()
+                    ?? new SurgeryStatusData()
+            };
+        AddText(
+            parent,
+            CharacterSurgeryUiText.FormatOrderStatus(statusProjection),
+            font,
+            14f,
+            IsBlocked(order.state)
+                ? DungeonUiTheme.Warning
+                : DungeonUiTheme.TextSecondary,
+            38f,
+            created);
 
         GameObject cancel = CreateButton(parent, "수술 취소", font, () =>
         {
             bool succeeded = commands.TryCancel(
                 order.orderId,
-                out string message);
-            showFeedback?.Invoke(message);
+                out DomainFailure failure);
+            SurgeryUiCommandResult result = succeeded
+                ? SurgeryUiCommandResult.Success(order.orderId)
+                : SurgeryUiCommandResult.Rejected(failure);
+            showFeedback?.Invoke(
+                CharacterSurgeryUiText.FormatCancelResult(result));
             if (succeeded)
             {
                 refresh?.Invoke();

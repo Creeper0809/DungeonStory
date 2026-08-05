@@ -19,7 +19,7 @@ public sealed class AbilityHunt : MonoBehaviour
 
     public static AbilityHunt Ensure(
         CharacterActor targetActor,
-        IWildlifeRuntime wildlifeRuntime = null)
+        IWildlifeRuntime wildlifeRuntime)
     {
         if (targetActor == null)
         {
@@ -38,6 +38,23 @@ public sealed class AbilityHunt : MonoBehaviour
             ability?.Configure(wildlifeRuntime);
         }
 
+        return ability;
+    }
+
+    public static AbilityHunt Ensure(CharacterActor targetActor)
+    {
+        if (targetActor == null)
+        {
+            return null;
+        }
+
+        AbilityHunt ability = targetActor.GetComponent<AbilityHunt>();
+        if (ability == null && Application.isPlaying)
+        {
+            ability = targetActor.gameObject.AddComponent<AbilityHunt>();
+        }
+
+        ability?.CacheReferences();
         return ability;
     }
 

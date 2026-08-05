@@ -45,7 +45,7 @@ MonoBehaviour:
   allowsManualWaterFallback: 0
   spoilageItemId: waste:plant-rot
   inputs:
-  - itemId: material:alcohol
+  - itemId: material:young-wine
     amount: 2
   - itemId: material:syrup
     amount: 1

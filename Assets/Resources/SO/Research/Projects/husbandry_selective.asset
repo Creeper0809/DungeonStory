@@ -27,15 +27,36 @@ MonoBehaviour:
   description: "\uC704\uC0DD\uACFC \uD608\uD1B5\uC744 \uAD00\uB9AC\uD574 \uC548\uC815\uC801\uC778
     \uC0B0\uCD9C\uBB3C\uC744 \uC5BB\uB294\uB2E4."
   field: 9
-  requiredWork: 194
+  requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: 80c33ed657a2d1c4eb1266d6f8826dd2, type: 2}
   - {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:husbandry:breeding
+    prerequisite: {fileID: 11400000, guid: 80c33ed657a2d1c4eb1266d6f8826dd2, type: 2}
+    kind: 2
+    reason: "\uBC88\uC2DD \uAD00\uB9AC\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC120\uBCC4 \uC0AC\uC721 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:survival:sanitation
+    prerequisite: {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+    kind: 2
+    reason: "\uAE30\uCD08 \uC704\uC0DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC120\uBCC4 \uC0AC\uC721 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
-    items: []
+    items:
+    - rid: 7737211730927813039
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211730927813039
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 8818

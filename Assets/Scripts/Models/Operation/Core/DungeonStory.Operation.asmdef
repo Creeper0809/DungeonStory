@@ -1,0 +1,17 @@
+{
+  "name": "DungeonStory.Operation",
+  "rootNamespace": "DungeonStory.Operation",
+  "references": [
+    "DungeonStory.CoreSession",
+    "DungeonStory.Foundation"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

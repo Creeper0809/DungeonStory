@@ -52,7 +52,6 @@ public interface IBuildingStateModule
 
 public sealed class BuildingStateModuleRestoreResult
 {
-    public readonly List<string> warnings = new List<string>();
     public readonly List<string> errors = new List<string>();
     public readonly List<string> restoredModuleIds = new List<string>();
     public bool Success => errors.Count == 0;
@@ -177,8 +176,8 @@ public static class BuildingStateModulePersistence
         {
             if (!savedById.ContainsKey(moduleId))
             {
-                result.warnings.Add(
-                    $"{Describe(building)} has no saved state for current module '{moduleId}'; defaults were retained.");
+                result.errors.Add(
+                    $"{Describe(building)} has no saved state for current module '{moduleId}'.");
             }
         }
 
@@ -256,20 +255,6 @@ public sealed class FacilityRuntimeStateModule : IBuildingStateModule
     {
         try
         {
-            if (version == 1)
-            {
-                LegacyFacilityOperationalStateV1 legacy = JsonUtility.FromJson<LegacyFacilityOperationalStateV1>(payload);
-                if (legacy == null)
-                {
-                    error = "payload did not contain legacy facility operational state";
-                    return false;
-                }
-
-                building.RestoreLegacyFacilityStateV1(legacy);
-                error = string.Empty;
-                return true;
-            }
-
             if (version != CurrentVersion)
             {
                 error = $"unsupported version {version}; current version is {CurrentVersion}";
@@ -327,23 +312,15 @@ public sealed class WarehouseInventoryStateModule : IBuildingStateModule
 
         try
         {
-            WarehouseInventorySnapshot snapshot;
-            if (version == 1)
+            if (version == CurrentVersion)
             {
-                WarehouseInventorySnapshotV1 legacy = JsonUtility.FromJson<WarehouseInventorySnapshotV1>(payload);
-                snapshot = WarehouseInventorySnapshot.FromLegacy(legacy);
-            }
-            else if (version == CurrentVersion)
-            {
-                snapshot = JsonUtility.FromJson<WarehouseInventorySnapshot>(payload);
-            }
-            else
-            {
-                error = $"unsupported version {version}; current version is {CurrentVersion}";
-                return false;
+                WarehouseInventorySnapshot snapshot =
+                    JsonUtility.FromJson<WarehouseInventorySnapshot>(payload);
+                return warehouse.Inventory.TryApplySnapshot(snapshot, out error);
             }
 
-            return warehouse.Inventory.TryApplySnapshot(snapshot, out error);
+            error = $"unsupported version {version}; current version is {CurrentVersion}";
+            return false;
         }
         catch (Exception ex)
         {

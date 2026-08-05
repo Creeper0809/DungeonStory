@@ -1,0 +1,22 @@
+DungeonStory Item Architecture V6
+Generated: 2026-08-01 Asia/Seoul
+
+PASS canonical item definitions: 296
+PASS generated legacy/equipment SO assets: 110
+PASS generated asset script references: 110/110 valid, missing script 0
+PASS combat equipment item features: 43
+PASS duplicate stable IDs: 0
+PASS invalid/duplicate item features: 0
+PASS unknown item TryGet is strict
+PASS stack-component signature isolation
+PASS instance-component hauling/carry-save/deposit propagation
+PASS production runtime contracts
+PASS branched production graph V3
+PASS research/equipment contracts
+PASS pacing days M/E/A/L = 32.2 / 80.4 / 234.3 / 372.0
+PASS Unity MCP Main Camera capture: 1920x1080
+PASS final Unity Console: Error 0 / Warning 0
+
+Known pre-existing verifier mismatch:
+- PhysicalItemDebugScenarios.save_v10_contract expects global save V10 while the current contract is V17.
+  The remaining physical-item scenarios were not treated as an Item V6 failure.

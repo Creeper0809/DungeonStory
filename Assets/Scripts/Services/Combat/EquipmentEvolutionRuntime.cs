@@ -1,96 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
-
-[Serializable]
-public sealed class EquipmentEvolutionSaveData
-{
-    public List<EvolutionReforgeOrder> reforgeOrders =
-        new List<EvolutionReforgeOrder>();
-    public List<EquipmentReattunementOrder> reattunementOrders =
-        new List<EquipmentReattunementOrder>();
-}
-
-public interface IEquipmentEvolutionRuntime
-{
-    IReadOnlyList<EvolutionReforgeOrder> ReforgeOrders { get; }
-    IReadOnlyList<EquipmentReattunementOrder> ReattunementOrders { get; }
-    EquipmentEvolutionState GetState(string equipmentInstanceId);
-    EquipmentEvolutionState RecordUsage(
-        string equipmentInstanceId,
-        string eventId,
-        float mastery,
-        float amount,
-        string ownerPersistentId,
-        int attunementPoints,
-        IEnumerable<string> sourceTags = null);
-    bool TryRecordUsage(
-        string equipmentInstanceId,
-        string eventId,
-        float mastery,
-        float amount,
-        string ownerPersistentId,
-        int attunementPoints,
-        IEnumerable<string> sourceTags = null);
-    EquipmentReforgePreview GetPreview(string equipmentInstanceId);
-    bool TryGetActiveReforge(
-        BuildableObject craftingFacility,
-        out EvolutionReforgeOrder order);
-    bool TryGetActiveReattunement(
-        BuildableObject craftingFacility,
-        out EquipmentReattunementOrder order);
-    bool TryQueueReforge(
-        string equipmentInstanceId,
-        BuildableObject craftingFacility,
-        string catalystItemId,
-        string stabilizerItemId,
-        out EvolutionReforgeOrder order,
-        out string failureReason);
-    bool TryConfigurePrecision(
-        string orderId,
-        ReforgePrecisionSelection selection,
-        int goldCost,
-        out string failureReason);
-    bool ApplyReforgeWork(
-        string orderId,
-        float workUnits,
-        out EvolutionNode completedNode,
-        out string failureReason);
-    bool ApplyReattunementWork(
-        string orderId,
-        float workUnits,
-        out bool completed,
-        out string failureReason);
-    bool CancelReforge(string orderId, out string failureReason);
-    EquipmentEvolutionSaveData Capture();
-    void Restore(EquipmentEvolutionSaveData saveData);
-}
-
-public interface IAttunementRuntime
-{
-    IReadOnlyList<EquipmentReattunementOrder> ReattunementOrders { get; }
-    int GetAffinityScore(string equipmentInstanceId, string ownerPersistentId);
-    bool TryGetActiveReattunement(
-        BuildableObject craftingFacility,
-        out EquipmentReattunementOrder order);
-    bool TryQueueReattunement(
-        string equipmentInstanceId,
-        BuildableObject craftingFacility,
-        string nodeId,
-        bool active,
-        string catalystItemId,
-        out EquipmentReattunementOrder order,
-        out string failureReason);
-    bool ApplyReattunementWork(
-        string orderId,
-        float workUnits,
-        out bool completed,
-        out string failureReason);
-    bool CancelReattunement(
-        string orderId,
-        out string failureReason);
-}
+using static EquipmentEvolutionRules;
 
 public sealed class EquipmentEvolutionRuntime :
     IEquipmentEvolutionRuntime,
@@ -104,12 +17,18 @@ public sealed class EquipmentEvolutionRuntime :
     private readonly IResourceEconomyContentCatalog economyCatalog;
     private readonly IWorldItemStackRuntime worldItems;
     private readonly IFacilityEvolutionStateComponentFactory facilityStates;
-    private readonly List<EvolutionReforgeOrder> orders =
-        new List<EvolutionReforgeOrder>();
-    private readonly List<EquipmentReattunementOrder> reattunementOrders =
-        new List<EquipmentReattunementOrder>();
-    private IReadOnlyList<EvolutionReforgeOrder> ordersView;
-    private IReadOnlyList<EquipmentReattunementOrder> reattunementOrdersView;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+
+    private EquipmentEvolutionAggregateState CurrentState =>
+        aggregateRootStore.GetOrCreate(
+            () => new EquipmentEvolutionAggregateState());
+    private EquipmentEvolutionAggregateState WritableState =>
+        aggregateRootStore.GetOrCreateWritable(
+            () => new EquipmentEvolutionAggregateState(),
+            state => state.DeepClone());
+    private List<EvolutionReforgeOrder> orders => WritableState.ReforgeOrders;
+    private List<EquipmentReattunementOrder> reattunementOrders =>
+        WritableState.ReattunementOrders;
 
     public EquipmentEvolutionRuntime(
         ICombatEquipmentRuntime equipment,
@@ -117,7 +36,8 @@ public sealed class EquipmentEvolutionRuntime :
         IEvolutionModuleRegistry modules,
         IResourceEconomyContentCatalog economyCatalog,
         IWorldItemStackRuntime worldItems,
-        IFacilityEvolutionStateComponentFactory facilityStates)
+        IFacilityEvolutionStateComponentFactory facilityStates,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.equipment = equipment
             ?? throw new ArgumentNullException(nameof(equipment));
@@ -129,12 +49,14 @@ public sealed class EquipmentEvolutionRuntime :
         this.worldItems = worldItems;
         this.facilityStates = facilityStates
             ?? throw new ArgumentNullException(nameof(facilityStates));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
 
     public IReadOnlyList<EvolutionReforgeOrder> ReforgeOrders =>
-        ordersView ??= orders.AsReadOnly();
+        CurrentState.ReforgeOrders.Select(order => order.Clone()).ToArray();
     public IReadOnlyList<EquipmentReattunementOrder> ReattunementOrders =>
-        reattunementOrdersView ??= reattunementOrders.AsReadOnly();
+        CurrentState.ReattunementOrders.Select(order => order.Clone()).ToArray();
 
     public EquipmentEvolutionState GetState(string equipmentInstanceId)
     {
@@ -217,15 +139,15 @@ public sealed class EquipmentEvolutionRuntime :
         EquipmentEvolutionDirection direction = state.reforgeReady
             ? state.pendingDirection
             : InferDirectionFromOpenLedger(state.usageLedger);
-        int potency = EquipmentEvolutionProgression.GetMinimumCatalystPotency(
-            state.generation);
+        int requiredProgressionLevel = EquipmentEvolutionProgression
+            .GetMinimumCatalystProgressionLevel(state.generation);
         float generationScale = 1f + Mathf.Min(0.2f, state.generation * 0.01f);
         return new EquipmentReforgePreview(
             direction,
             1.04f * generationScale,
             1.12f * generationScale,
             new[] { "combat.weight", "combat.reload", "combat.accident" },
-            potency);
+            requiredProgressionLevel);
     }
 
     public bool TryGetActiveReforge(
@@ -313,13 +235,13 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
-        int requiredPotency =
-            EquipmentEvolutionProgression.GetMinimumCatalystPotency(
+        int requiredProgressionLevel =
+            EquipmentEvolutionProgression.GetMinimumCatalystProgressionLevel(
                 state.generation);
-        if (catalyst.potency < requiredPotency)
+        if (catalyst.progressionLevel < requiredProgressionLevel)
         {
             failureReason =
-                $"촉매 효능이 부족합니다. {catalyst.potency}/{requiredPotency}";
+                $"촉매 진행 단계가 부족합니다. {catalyst.progressionLevel}/{requiredProgressionLevel}";
             return false;
         }
 
@@ -681,13 +603,13 @@ public sealed class EquipmentEvolutionRuntime :
             return false;
         }
 
-        int requiredPotency =
-            EquipmentEvolutionProgression.GetMinimumCatalystPotency(
+        int requiredProgressionLevel =
+            EquipmentEvolutionProgression.GetMinimumCatalystProgressionLevel(
                 state.generation);
-        if (catalyst.potency < requiredPotency)
+        if (catalyst.progressionLevel < requiredProgressionLevel)
         {
             failureReason =
-                $"촉매 효능이 부족합니다. {catalyst.potency}/{requiredPotency}";
+                $"촉매 진행 단계가 부족합니다. {catalyst.progressionLevel}/{requiredProgressionLevel}";
             return false;
         }
 
@@ -877,13 +799,13 @@ public sealed class EquipmentEvolutionRuntime :
     {
         return new EquipmentEvolutionSaveData
         {
-            reforgeOrders = orders
+            reforgeOrders = CurrentState.ReforgeOrders
                 .Where(order => order != null
                     && order.state is not EvolutionReforgeOrderState.Completed
                         and not EvolutionReforgeOrderState.Cancelled)
                 .Select(order => order.Clone())
                 .ToList(),
-            reattunementOrders = reattunementOrders
+            reattunementOrders = CurrentState.ReattunementOrders
                 .Where(order => order != null
                     && order.state is not EvolutionReforgeOrderState.Completed
                         and not EvolutionReforgeOrderState.Cancelled)
@@ -892,43 +814,18 @@ public sealed class EquipmentEvolutionRuntime :
         };
     }
 
-    public void Restore(EquipmentEvolutionSaveData saveData)
+    public EquipmentEvolutionRestoreCandidate BuildRestoreCandidate(
+        EquipmentEvolutionSaveData saveData)
     {
-        orders.Clear();
-        reattunementOrders.Clear();
-        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (EvolutionReforgeOrder source in saveData?.reforgeOrders
-                     ?? new List<EvolutionReforgeOrder>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.orderId)
-                || !ids.Add(source.orderId)
-                || !equipment.TryGetInstance(source.equipmentInstanceId, out _)
-                || source.state is EvolutionReforgeOrderState.Completed
-                    or EvolutionReforgeOrderState.Cancelled)
-            {
-                continue;
-            }
+        return EquipmentEvolutionRestoreBuilder.Build(saveData);
+    }
 
-            orders.Add(source.Clone());
-        }
-
-        foreach (EquipmentReattunementOrder source in
-                 saveData?.reattunementOrders
-                 ?? new List<EquipmentReattunementOrder>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.orderId)
-                || !ids.Add(source.orderId)
-                || !equipment.TryGetInstance(source.equipmentInstanceId, out _)
-                || source.state is EvolutionReforgeOrderState.Completed
-                    or EvolutionReforgeOrderState.Cancelled)
-            {
-                continue;
-            }
-
-            reattunementOrders.Add(source.Clone());
-        }
+    public void PublishRestoreCandidate(
+        EquipmentEvolutionRestoreCandidate candidate)
+    {
+        aggregateRootStore.Replace(
+            (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+            .State);
     }
 
     private bool EnsureMaterialsReady(
@@ -1165,7 +1062,7 @@ public sealed class EquipmentEvolutionRuntime :
             order.lockedHistoryHash,
             order.catalystFamily,
             order.catalystPotency.ToString());
-        System.Random random = new System.Random(seed);
+        IRandomStream random = new DeterministicRandomSequence(seed);
         float potencyScale = 1f
             + Mathf.Min(0.75f, Mathf.Max(0, order.catalystPotency - 1) * 0.08f);
         potencyScale *= GetCatalystFamilyPotencyScale(
@@ -1175,7 +1072,7 @@ public sealed class EquipmentEvolutionRuntime :
             + Mathf.Lerp(
                 -variance,
                 variance,
-                (float)random.NextDouble());
+                random.NextFloat());
         bool stabilized = order.stabilizerAmount > 0;
         bool risky = !stabilized
             && (order.catalystFamily.IndexOf(
@@ -1244,307 +1141,8 @@ public sealed class EquipmentEvolutionRuntime :
         return material.ItemId;
     }
 
-    private static Dictionary<string, int> BuildRequirements(
-        EvolutionReforgeOrder order)
-    {
-        Dictionary<string, int> result =
-            new Dictionary<string, int>(StringComparer.Ordinal);
-        AddRequirement(
-            result,
-            order.primaryMaterialItemId,
-            order.primaryMaterialAmount);
-        AddRequirement(result, order.catalystItemId, 1);
-        AddRequirement(result, order.bindingItemId, order.bindingAmount);
-        AddRequirement(
-            result,
-            order.stabilizerItemId,
-            order.stabilizerAmount);
-        return result;
-    }
-
-    private static void AddRequirement(
-        IDictionary<string, int> destination,
-        string itemId,
-        int amount)
-    {
-        if (string.IsNullOrWhiteSpace(itemId) || amount <= 0)
-        {
-            return;
-        }
-
-        string normalized = itemId.Trim();
-        destination.TryGetValue(normalized, out int current);
-        destination[normalized] = current + amount;
-    }
-
-    private static EquipmentEvolutionDirection InferDirection(
-        CompactedHistorySegment segment)
-    {
-        string source = string.Join(
-            "|",
-            segment.metrics
-                .OrderByDescending(metric => Mathf.Abs(metric.value))
-                .Select(metric => metric.metricId)
-                .Concat(segment.sourceTags))
-            .ToLowerInvariant();
-        if (ContainsAny(source, "boss", "kill", "execution"))
-        {
-            return EquipmentEvolutionDirection.Execution;
-        }
-        if (ContainsAny(source, "absorb", "block", "armor", "shield"))
-        {
-            return EquipmentEvolutionDirection.Protection;
-        }
-        if (ContainsAny(source, "downed", "survive", "recovery"))
-        {
-            return EquipmentEvolutionDirection.Survival;
-        }
-        if (ContainsAny(source, "intercept", "guard", "defense"))
-        {
-            return EquipmentEvolutionDirection.Interception;
-        }
-        if (ContainsAny(source, "long", "medium", "ranged", "shoot"))
-        {
-            return EquipmentEvolutionDirection.Ranged;
-        }
-        if (ContainsAny(source, "accuracy", "hit"))
-        {
-            return EquipmentEvolutionDirection.Accuracy;
-        }
-        if (ContainsAny(source, "melee", "contact", "near"))
-        {
-            return EquipmentEvolutionDirection.Melee;
-        }
-        return EquipmentEvolutionDirection.Balanced;
-    }
-
-    private static EquipmentEvolutionDirection InferDirectionFromOpenLedger(
-        UsageLedger ledger)
-    {
-        CompactedHistorySegment synthetic = new CompactedHistorySegment
-        {
-            metrics = (ledger?.currentGenerationEvents
-                    ?? new List<UsageLedgerEvent>())
-                .Where(entry => entry != null)
-                .GroupBy(entry => entry.eventId, StringComparer.Ordinal)
-                .Select(group => new UsageLedgerMetric
-                {
-                    metricId = group.Key,
-                    value = group.Sum(entry => entry.amount)
-                })
-                .ToList(),
-            sourceTags = (ledger?.currentGenerationEvents
-                    ?? new List<UsageLedgerEvent>())
-                .Where(entry => entry != null)
-                .SelectMany(entry => entry.sourceTags)
-                .Distinct(StringComparer.Ordinal)
-                .ToList()
-        };
-        return InferDirection(synthetic);
-    }
-
-    private static string ResolveModuleId(
-        EquipmentEvolutionDirection direction,
-        string catalystFamily)
-    {
-        return direction switch
-        {
-            EquipmentEvolutionDirection.Melee
-                or EquipmentEvolutionDirection.Execution => "equipment:melee",
-            EquipmentEvolutionDirection.Ranged
-                or EquipmentEvolutionDirection.Accuracy => "equipment:ranged",
-            EquipmentEvolutionDirection.Interception
-                or EquipmentEvolutionDirection.Protection => "equipment:guard",
-            EquipmentEvolutionDirection.Survival => "equipment:survivor",
-            _ => catalystFamily?.IndexOf(
-                    "defense",
-                    StringComparison.OrdinalIgnoreCase) >= 0
-                ? "equipment:guard"
-                : catalystFamily?.IndexOf(
-                    "survival",
-                    StringComparison.OrdinalIgnoreCase) >= 0
-                    ? "equipment:survivor"
-                    : "equipment:melee"
-        };
-    }
-
-    public static float GetCatalystFamilyPotencyScale(string catalystFamily)
-    {
-        string normalized =
-            catalystFamily?.Trim().ToLowerInvariant() ?? string.Empty;
-        if (normalized.Contains("arcane"))
-        {
-            return 1.1f;
-        }
-
-        if (normalized.Contains("offense"))
-        {
-            return 1.07f;
-        }
-
-        if (normalized.Contains("defense"))
-        {
-            return 1.04f;
-        }
-
-        if (normalized.Contains("authority"))
-        {
-            return 1.02f;
-        }
-
-        if (normalized.Contains("survival"))
-        {
-            return 0.98f;
-        }
-
-        return 1f;
-    }
-
-    private static void AddAttunement(
-        EquipmentEvolutionState state,
-        string equipmentInstanceId,
-        string ownerPersistentId,
-        int points)
-    {
-        AttunementRecord record = state.attunements.FirstOrDefault(entry =>
-            entry != null
-            && string.Equals(
-                entry.ownerPersistentId,
-                ownerPersistentId,
-                StringComparison.Ordinal));
-        if (record == null)
-        {
-            record = new AttunementRecord
-            {
-                ownerPersistentId = ownerPersistentId,
-                startedGeneration = state.generation
-            };
-            state.attunements.Add(record);
-        }
-
-        int previousTier = record.attainedTier;
-        record.affinityScore = Mathf.Max(0, record.affinityScore + points);
-        int nextTier = record.affinityScore >= 250
-            ? 3
-            : record.affinityScore >= 100
-                ? 2
-                : record.affinityScore >= 30
-                    ? 1
-                    : 0;
-        for (int tier = previousTier + 1; tier <= nextTier; tier++)
-        {
-            CreateAttunementHistoryNode(
-                state,
-                record,
-                equipmentInstanceId,
-                tier);
-        }
-
-        record.attainedTier = nextTier;
-    }
-
-    private static void CreateAttunementHistoryNode(
-        EquipmentEvolutionState state,
-        AttunementRecord record,
-        string equipmentInstanceId,
-        int tier)
-    {
-        string historyHash = StableEvolutionHash.Compute(string.Join(
-            "|",
-            equipmentInstanceId,
-            record.ownerPersistentId,
-            tier.ToString(),
-            state.usageLedger != null
-                ? string.Join(
-                    ",",
-                    state.usageLedger.currentGenerationEvents
-                        .Where(entry => entry != null)
-                        .OrderBy(entry => entry.sequence)
-                        .Select(entry =>
-                            $"{entry.evidenceId}:{entry.eventId}:{entry.amount:R}"))
-                : string.Empty));
-        string parentNodeId = record.historyNodeIds.LastOrDefault()
-            ?? string.Empty;
-        EquipmentEvolutionDirection direction =
-            InferDirectionFromOpenLedger(state.usageLedger);
-        string effectId = ResolveModuleId(direction, string.Empty);
-        string historyNodeHash = StableEvolutionHash.Compute(
-            equipmentInstanceId
-            + "|"
-            + record.ownerPersistentId
-            + "|"
-            + tier
-            + "|"
-            + historyHash);
-        string nodeId = $"equipment-history:{historyNodeHash}";
-        EvolutionNode node = new EvolutionNode
-        {
-            nodeId = nodeId,
-            parentNodeId = parentNodeId,
-            effectId = effectId,
-            burdenEffectId = string.Empty,
-            generation = state.generation,
-            active = true,
-            historical = true,
-            playerVisible = false,
-            displayName = string.Empty,
-            description = string.Empty,
-            potencyMultiplier = tier switch
-            {
-                1 => 0.35f,
-                2 => 0.55f,
-                _ => 0.8f
-            },
-            activationRule = new EvolutionModuleActivationRule()
-        };
-        EvolutionNarrativeRequestSnapshot request =
-            EvolutionNarrativeRequestFactory.Create(
-                EvolutionNarrativeTargetKind.Equipment,
-                equipmentInstanceId,
-                node,
-                historyHash,
-                state.usageLedger,
-                state.ResonanceBudget);
-        node.evidenceIds = new List<string>(request.evidenceIds);
-        state.evolutionNodes.Add(node);
-        state.narrativeRequests ??=
-            new List<EvolutionNarrativeRequestSnapshot>();
-        state.narrativeRequests.Add(request);
-        record.historyNodeIds.Add(nodeId);
-        if (string.IsNullOrWhiteSpace(record.rootNodeId))
-        {
-            record.rootNodeId = nodeId;
-        }
-
-        state.activeHistoricalNodeIds ??= new List<string>();
-        if (state.activeHistoricalNodeIds.Count < state.ResonanceBudget)
-        {
-            state.activeHistoricalNodeIds.Add(nodeId);
-        }
-    }
-
-    private static void DisableNodeAndDescendants(
-        IReadOnlyList<EvolutionNode> nodes,
-        ISet<string> activeIds,
-        string rootNodeId)
-    {
-        Queue<string> queue = new Queue<string>();
-        queue.Enqueue(rootNodeId);
-        while (queue.Count > 0)
-        {
-            string current = queue.Dequeue();
-            activeIds.Remove(current);
-            foreach (EvolutionNode child in nodes.Where(node =>
-                         node != null
-                         && string.Equals(
-                             node.parentNodeId,
-                             current,
-                             StringComparison.Ordinal)))
-            {
-                queue.Enqueue(child.nodeId);
-            }
-        }
-    }
+    public static float GetCatalystFamilyPotencyScale(string catalystFamily) =>
+        EquipmentEvolutionRules.GetCatalystFamilyPotencyScale(catalystFamily);
 
     private CombatEquipmentInstance RequireInstance(string instanceId)
     {
@@ -1559,83 +1157,4 @@ public sealed class EquipmentEvolutionRuntime :
         return instance;
     }
 
-    private static bool ContainsAny(string source, params string[] values)
-    {
-        return values.Any(value =>
-            source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0);
-    }
-}
-
-public static class EvolutionCatalystItemId
-{
-    private const string CatalystPrefix = "evolution:catalyst:";
-    private const string ResiduePrefix = "evolution:residue:";
-
-    public static string BuildCatalyst(string family, int potency)
-    {
-        string normalized = NormalizeFamily(family);
-        return $"{CatalystPrefix}{normalized}:{Mathf.Max(1, potency)}";
-    }
-
-    public static string BuildResidue(int potency)
-    {
-        return $"{ResiduePrefix}{Mathf.Max(1, potency)}";
-    }
-
-    public static bool TryParseCatalyst(
-        string itemId,
-        out EquipmentCatalystDefinition definition)
-    {
-        definition = null;
-        string normalized = itemId?.Trim() ?? string.Empty;
-        if (!normalized.StartsWith(CatalystPrefix, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        string payload = normalized.Substring(CatalystPrefix.Length);
-        int separator = payload.LastIndexOf(':');
-        if (separator <= 0
-            || !int.TryParse(
-                payload.Substring(separator + 1),
-                out int potency)
-            || potency <= 0)
-        {
-            return false;
-        }
-
-        string family = NormalizeFamily(payload.Substring(0, separator));
-        definition = new EquipmentCatalystDefinition
-        {
-            itemId = normalized,
-            family = family,
-            potency = potency,
-            sourceTags = new List<string> { family }
-        };
-        return true;
-    }
-
-    public static bool TryParseResidue(string itemId, out int potency)
-    {
-        potency = 0;
-        string normalized = itemId?.Trim() ?? string.Empty;
-        return normalized.StartsWith(ResiduePrefix, StringComparison.Ordinal)
-            && int.TryParse(
-                normalized.Substring(ResiduePrefix.Length),
-                out potency)
-            && potency > 0;
-    }
-
-    private static string NormalizeFamily(string family)
-    {
-        string normalized = family?.Trim().ToLowerInvariant() ?? string.Empty;
-        if (normalized.StartsWith("catalyst:", StringComparison.Ordinal))
-        {
-            normalized = normalized.Substring("catalyst:".Length);
-        }
-
-        return string.IsNullOrWhiteSpace(normalized)
-            ? "universal"
-            : normalized.Replace(':', '-');
-    }
 }

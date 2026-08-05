@@ -1,0 +1,434 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: CharacterAI_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: 9fafb9d788be072478e8f067ae3ca8f4, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 376786944
+    m_Localized: Blocked exterior
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147072
+    m_Localized: Drop zone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147073
+    m_Localized: Dungeon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147074
+    m_Localized: Entrance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147075
+    m_Localized: Exterior path
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147076
+    m_Localized: Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147077
+    m_Localized: Continue previous
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147078
+    m_Localized: Interrupted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147079
+    m_Localized: Duty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147080
+    m_Localized: Eat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147081
+    m_Localized: Emergency response
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147082
+    m_Localized: Exit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147083
+    m_Localized: Hygiene
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147084
+    m_Localized: Pause
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147085
+    m_Localized: Interrupt check
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147086
+    m_Localized: Leisure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147087
+    m_Localized: Action in progress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147088
+    m_Localized: Look around
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147089
+    m_Localized: Long-term intent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147090
+    m_Localized: Rest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147091
+    m_Localized: Routine selection
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147092
+    m_Localized: Shopping
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147093
+    m_Localized: Retain intent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147094
+    m_Localized: Stop previous
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147095
+    m_Localized: Survival
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147096
+    m_Localized: Toilet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147097
+    m_Localized: Wait
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147098
+    m_Localized: Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147099
+    m_Localized: '{0}
+
+      {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147100
+    m_Localized: '{0} rejected: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147101
+    m_Localized: '{0} {1:0.#}%'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147102
+    m_Localized: "{0} {1:0.#}% \xB7 {2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147103
+    m_Localized: Crowding
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147104
+    m_Localized: Distance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147105
+    m_Localized: Fatigue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147106
+    m_Localized: '{0} {1:0.##}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147107
+    m_Localized: '{0} {1:0.##} ({2})'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147108
+    m_Localized: Memory
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147109
+    m_Localized: Momentum
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147110
+    m_Localized: Need
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147111
+    m_Localized: Novelty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147112
+    m_Localized: Path
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147113
+    m_Localized: Personality
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147114
+    m_Localized: Priority
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147115
+    m_Localized: Queue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147116
+    m_Localized: Reservation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147117
+    m_Localized: Risk
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147118
+    m_Localized: Room
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147119
+    m_Localized: Schedule
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147120
+    m_Localized: Social
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147121
+    m_Localized: Stock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147122
+    m_Localized: Weather
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147123
+    m_Localized: "{0} \xB7 {1} \xB7 {2} \xB7 {3} \xB7 {4}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147124
+    m_Localized: expires in {0:0.0}s
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147125
+    m_Localized: No retained intent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147126
+    m_Localized: "No retained intent \xB7 last break {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147127
+    m_Localized: Interruptible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147128
+    m_Localized: minimum {0:0.0}s
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147129
+    m_Localized: No expiry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147130
+    m_Localized: No target
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147131
+    m_Localized: Target {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147132
+    m_Localized: Exit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147133
+    m_Localized: Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147134
+    m_Localized: Hunt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147135
+    m_Localized: Idle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147136
+    m_Localized: Leisure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147137
+    m_Localized: Logistics
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147138
+    m_Localized: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147139
+    m_Localized: Recovery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147140
+    m_Localized: Shopping
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147141
+    m_Localized: Social
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147142
+    m_Localized: Survival
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147143
+    m_Localized: Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147144
+    m_Localized: base score
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147145
+    m_Localized: diligence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147146
+    m_Localized: enjoyment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147147
+    m_Localized: health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147148
+    m_Localized: light interaction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147149
+    m_Localized: mood/fun
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147150
+    m_Localized: natural momentum
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147151
+    m_Localized: nearby people
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147152
+    m_Localized: no urgent task
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147153
+    m_Localized: path confidence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147154
+    m_Localized: queue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147155
+    m_Localized: queueing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147156
+    m_Localized: recent failure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147157
+    m_Localized: recent flow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147158
+    m_Localized: risk capacity
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147159
+    m_Localized: survival stock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147160
+    m_Localized: walkable weather
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147161
+    m_Localized: weather
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147162
+    m_Localized: weather burden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147163
+    m_Localized: wildlife threat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147164
+    m_Localized: capacity to work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147165
+    m_Localized: work hours
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147166
+    m_Localized: work priority
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147167
+    m_Localized: Evening
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147168
+    m_Localized: Morning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147169
+    m_Localized: Night
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147170
+    m_Localized: Noon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147171
+    m_Localized: Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147172
+    m_Localized: "Time {0} \xB7 area {1} \xB7 queue {2:0}% \xB7 path {3:0}% \xB7
+      weather {4:0}% \xB7 nearby {5}"
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

@@ -113,14 +113,22 @@ public static class P1FacilityShopAssetBuilder
 
         foreach (BlueprintSpec spec in BlueprintSpecs)
         {
-            FacilityBlueprintSO blueprint = LoadOrCreateBlueprint(spec);
+            FacilityBlueprintSO blueprint = LoadOrCreateBlueprint(spec, out bool created);
+            if (!created)
+            {
+                continue;
+            }
+
             blueprint.id = spec.Id;
             blueprint.blueprintName = spec.DisplayName;
             blueprint.description = spec.Description;
             blueprint.rarity = spec.Rarity;
             blueprint.defaultCost = spec.Cost;
             blueprint.researchWorkRequired = spec.ResearchWorkRequired;
-            blueprint.unlocks = CreateUnlocks(spec);
+            // ResearchProjectSO is the sole authority for research completion rewards.
+            // A newly seeded shop blueprint only identifies the physical blueprint;
+            // the explicit research-tree migration command authors its rewards.
+            blueprint.unlocks = new BlueprintUnlockCollection();
             EditorUtility.SetDirty(blueprint);
         }
 
@@ -128,17 +136,21 @@ public static class P1FacilityShopAssetBuilder
         AssetDatabase.Refresh();
     }
 
-    private static FacilityBlueprintSO LoadOrCreateBlueprint(BlueprintSpec spec)
+    private static FacilityBlueprintSO LoadOrCreateBlueprint(
+        BlueprintSpec spec,
+        out bool created)
     {
         string path = $"{BlueprintFolder}/{spec.AssetName}.asset";
         FacilityBlueprintSO blueprint = AssetDatabase.LoadAssetAtPath<FacilityBlueprintSO>(path);
         if (blueprint != null)
         {
+            created = false;
             return blueprint;
         }
 
         blueprint = ScriptableObject.CreateInstance<FacilityBlueprintSO>();
         AssetDatabase.CreateAsset(blueprint, path);
+        created = true;
         return blueprint;
     }
 

@@ -23,9 +23,11 @@ public class OwnerRunManager : SerializedMonoBehaviour
     private IGameEventBus gameEventBus;
     private IDisposable deathSubscription;
     private IReadOnlyList<CharacterSO> ownerCandidatesView;
+    private OwnerRestorePublication pendingRestorePublication;
 
     public CharacterActor CurrentOwnerActor => currentOwnerActor;
     public bool IsRunEnded { get; private set; }
+    public bool HasPendingRestorePublication => pendingRestorePublication != null;
     public IReadOnlyList<CharacterSO> OwnerCandidates =>
         ownerCandidatesView ??= ReadOnlyView.List(ownerCandidates);
 
@@ -42,7 +44,7 @@ public class OwnerRunManager : SerializedMonoBehaviour
     public void ConstructOwnerRunManager(
         IOwnerCandidateCatalog ownerCandidateCatalog,
         IOwnerCharacterFactory ownerCharacterFactory,
-        IGameEventBus gameEventBus = null)
+        IGameEventBus gameEventBus)
     {
         this.ownerCandidateCatalog = ownerCandidateCatalog
             ?? throw new ArgumentNullException(nameof(ownerCandidateCatalog));
@@ -79,6 +81,8 @@ public class OwnerRunManager : SerializedMonoBehaviour
 
     public void SelectOwner(CharacterSO ownerData, string displayNameOverride = null)
     {
+        RequireNoPendingRestorePublication();
+
         if (ownerData == null)
         {
             gameEventBus?.ShowNotice("사장 데이터가 없습니다.", NoticeFeedEvent.Grade.DANGER);
@@ -110,6 +114,8 @@ public class OwnerRunManager : SerializedMonoBehaviour
 
     public CharacterActor RestoreOwner(CharacterSO ownerData)
     {
+        RequireNoPendingRestorePublication();
+
         if (ownerData == null)
         {
             throw new ArgumentNullException(nameof(ownerData));
@@ -129,9 +135,125 @@ public class OwnerRunManager : SerializedMonoBehaviour
         return currentOwnerActor;
     }
 
+    public CharacterActor CreateRestoreCandidate(CharacterSO ownerData)
+    {
+        if (ownerData == null)
+        {
+            throw new ArgumentNullException(nameof(ownerData));
+        }
+
+        return ResolveOwnerCharacterFactory().CreateOwnerDetached(
+            ownerData,
+            ownerPrefab);
+    }
+
+    public void PublishRestoreCandidate(
+        CharacterSO ownerData,
+        CharacterActor candidate)
+    {
+        OwnerRestorePublication publication =
+            BeginRestoreCandidatePublication(ownerData, candidate);
+        CompleteRestoreCandidatePublication(publication);
+    }
+
+    public OwnerRestorePublication BeginRestoreCandidatePublication(
+        CharacterSO ownerData,
+        CharacterActor candidate)
+    {
+        RequireNoPendingRestorePublication();
+
+        if (ownerData == null)
+        {
+            throw new ArgumentNullException(nameof(ownerData));
+        }
+
+        if (candidate == null || !candidate.IsDetachedRestoreCandidate)
+        {
+            throw new InvalidOperationException(
+                "A detached owner candidate is required.");
+        }
+        if (candidate.gameObject.activeSelf || candidate.gameObject.activeInHierarchy)
+        {
+            throw new InvalidOperationException(
+                "A detached owner candidate must remain inactive until publication.");
+        }
+        if (candidate == currentOwnerActor)
+        {
+            throw new InvalidOperationException(
+                "The current owner cannot be used as its own restore candidate.");
+        }
+
+        candidate.RequireDetachedReadyForPublication();
+
+        Data<CharacterSO> previousSelection = selectedOwnerData;
+        OwnerRestorePublication publication = new OwnerRestorePublication(
+            this,
+            ownerData,
+            candidate,
+            currentOwnerActor,
+            previousSelection,
+            previousSelection != null ? previousSelection.Value : null,
+            IsRunEnded,
+            candidate.transform.parent,
+            candidate.transform.GetSiblingIndex());
+        pendingRestorePublication = publication;
+
+        try
+        {
+            selectedOwnerData ??= new Data<CharacterSO>();
+            selectedOwnerData.Value = ownerData;
+            IsRunEnded = false;
+            currentOwnerActor = candidate;
+            DungeonRuntimeHierarchy.Parent(
+                candidate.gameObject,
+                DungeonRuntimeHierarchy.Characters);
+            candidate.PublishDetachedRestore();
+            publication.MarkCandidatePublished();
+            return publication;
+        }
+        catch
+        {
+            RollbackRestoreCandidatePublicationCore(publication);
+            throw;
+        }
+    }
+
+    public void RollbackRestoreCandidatePublication(
+        OwnerRestorePublication publication)
+    {
+        RequirePendingRestorePublication(publication);
+        RollbackRestoreCandidatePublicationCore(publication);
+    }
+
+    public void CompleteRestoreCandidatePublication(
+        OwnerRestorePublication publication)
+    {
+        RequirePendingRestorePublication(publication);
+
+        CharacterActor previousOwner = publication.PreviousOwner;
+        if (previousOwner != null)
+        {
+            previousOwner.gameObject.SetActive(false);
+        }
+        publication.Candidate.gameObject.SetActive(true);
+
+        pendingRestorePublication = null;
+        publication.MarkCompleted();
+
+        if (previousOwner != null)
+        {
+            DestroyOwnerObject(previousOwner.gameObject);
+        }
+
+        OnOwnerSelected?.Invoke(publication.OwnerData);
+    }
+
     public void HandleOwnerDeath(CharacterActor owner, string reason)
     {
-        if (owner == null || owner != currentOwnerActor || IsRunEnded)
+        if (pendingRestorePublication != null
+            || owner == null
+            || owner != currentOwnerActor
+            || IsRunEnded)
         {
             return;
         }
@@ -141,7 +263,10 @@ public class OwnerRunManager : SerializedMonoBehaviour
 
     public bool CompleteRun(DungeonRunOutcome outcome, string reason)
     {
-        if (outcome == DungeonRunOutcome.None || IsRunEnded || currentOwnerActor == null)
+        if (pendingRestorePublication != null
+            || outcome == DungeonRunOutcome.None
+            || IsRunEnded
+            || currentOwnerActor == null)
         {
             return false;
         }
@@ -166,7 +291,86 @@ public class OwnerRunManager : SerializedMonoBehaviour
 
     public void RestoreRunEnded(bool value)
     {
+        RequireNoPendingRestorePublication();
         IsRunEnded = value;
+    }
+
+    private void RollbackRestoreCandidatePublicationCore(
+        OwnerRestorePublication publication)
+    {
+        CharacterActor candidate = publication.Candidate;
+        if (candidate != null)
+        {
+            candidate.gameObject.SetActive(false);
+            if (publication.CandidateWasPublished)
+            {
+                candidate.RollbackDetachedRestorePublication();
+            }
+
+            candidate.transform.SetParent(
+                publication.PreviousCandidateParent,
+                true);
+            if (publication.PreviousCandidateParent != null)
+            {
+                candidate.transform.SetSiblingIndex(
+                    Mathf.Min(
+                        publication.PreviousCandidateSiblingIndex,
+                        publication.PreviousCandidateParent.childCount - 1));
+            }
+        }
+
+        currentOwnerActor = publication.PreviousOwner;
+        selectedOwnerData = publication.PreviousSelectionContainer;
+        if (selectedOwnerData != null)
+        {
+            selectedOwnerData.Value = publication.PreviousSelectionValue;
+        }
+        IsRunEnded = publication.PreviousRunEnded;
+
+        pendingRestorePublication = null;
+        publication.MarkRolledBack();
+    }
+
+    private static void DestroyOwnerObject(GameObject ownerObject)
+    {
+        if (ownerObject == null)
+        {
+            return;
+        }
+
+        if (Application.isPlaying)
+        {
+            Destroy(ownerObject);
+        }
+        else
+        {
+            DestroyImmediate(ownerObject);
+        }
+    }
+
+    private void RequireNoPendingRestorePublication()
+    {
+        if (pendingRestorePublication != null)
+        {
+            throw new InvalidOperationException(
+                "Owner state cannot change while restore publication is pending.");
+        }
+    }
+
+    private void RequirePendingRestorePublication(
+        OwnerRestorePublication publication)
+    {
+        if (publication == null)
+        {
+            throw new ArgumentNullException(nameof(publication));
+        }
+        if (!ReferenceEquals(publication.Manager, this)
+            || !ReferenceEquals(publication, pendingRestorePublication)
+            || !publication.IsPending)
+        {
+            throw new InvalidOperationException(
+                "The owner restore publication is not pending on this manager.");
+        }
     }
 
     public CharacterSO GetDefaultOwner()
@@ -242,6 +446,63 @@ public class OwnerRunManager : SerializedMonoBehaviour
         }
 
         deathSubscription = gameEventBus.Subscribe<CharacterDeathEvent>(OnCharacterDeath);
+    }
+}
+
+public sealed class OwnerRestorePublication
+{
+    internal OwnerRunManager Manager { get; }
+    internal CharacterSO OwnerData { get; }
+    internal CharacterActor Candidate { get; }
+    internal CharacterActor PreviousOwner { get; }
+    internal Data<CharacterSO> PreviousSelectionContainer { get; }
+    internal CharacterSO PreviousSelectionValue { get; }
+    internal bool PreviousRunEnded { get; }
+    internal Transform PreviousCandidateParent { get; }
+    internal int PreviousCandidateSiblingIndex { get; }
+    internal bool CandidateWasPublished { get; private set; }
+
+    public bool IsPending { get; private set; } = true;
+    public bool IsCompleted { get; private set; }
+    public bool IsRolledBack { get; private set; }
+
+    internal OwnerRestorePublication(
+        OwnerRunManager manager,
+        CharacterSO ownerData,
+        CharacterActor candidate,
+        CharacterActor previousOwner,
+        Data<CharacterSO> previousSelectionContainer,
+        CharacterSO previousSelectionValue,
+        bool previousRunEnded,
+        Transform previousCandidateParent,
+        int previousCandidateSiblingIndex)
+    {
+        Manager = manager ?? throw new ArgumentNullException(nameof(manager));
+        OwnerData = ownerData ?? throw new ArgumentNullException(nameof(ownerData));
+        Candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        PreviousOwner = previousOwner;
+        PreviousSelectionContainer = previousSelectionContainer;
+        PreviousSelectionValue = previousSelectionValue;
+        PreviousRunEnded = previousRunEnded;
+        PreviousCandidateParent = previousCandidateParent;
+        PreviousCandidateSiblingIndex = previousCandidateSiblingIndex;
+    }
+
+    internal void MarkCandidatePublished()
+    {
+        CandidateWasPublished = true;
+    }
+
+    internal void MarkCompleted()
+    {
+        IsPending = false;
+        IsCompleted = true;
+    }
+
+    internal void MarkRolledBack()
+    {
+        IsPending = false;
+        IsRolledBack = true;
     }
 }
 

@@ -12,7 +12,7 @@ public sealed class OffenseBattlePanel : MonoBehaviour
     private readonly List<GameObject> dynamicObjects = new List<GameObject>();
     private IOffensePanelButtonFactory buttonFactory;
     private IRunCharacterCatalog characterCatalog;
-    private IInvasionThreatRuntimeProvider threatProvider;
+    private InvasionThreatRuntime threat;
     private ITmpKoreanFontService fontService;
     private ICombatEquipmentRuntime combatEquipment;
     private ICombatEquipmentCatalog combatEquipmentCatalog;
@@ -37,14 +37,18 @@ public sealed class OffenseBattlePanel : MonoBehaviour
     public void Construct(
         IOffensePanelButtonFactory buttonFactory,
         IRunCharacterCatalog characterCatalog,
-        IInvasionThreatRuntimeProvider threatProvider,
+        InvasionSceneRuntimeReferences invasionRuntimes,
         ITmpKoreanFontService fontService,
         ICombatEquipmentRuntime combatEquipment,
         ICombatEquipmentCatalog combatEquipmentCatalog)
     {
         this.buttonFactory = buttonFactory ?? throw new ArgumentNullException(nameof(buttonFactory));
         this.characterCatalog = characterCatalog ?? throw new ArgumentNullException(nameof(characterCatalog));
-        this.threatProvider = threatProvider ?? throw new ArgumentNullException(nameof(threatProvider));
+        threat = (invasionRuntimes
+                ?? throw new ArgumentNullException(nameof(invasionRuntimes)))
+            .Threat
+            ?? throw new InvalidOperationException(
+                $"{nameof(OffenseBattlePanel)} requires a loaded {nameof(InvasionThreatRuntime)}.");
         this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
         this.combatEquipment = combatEquipment ?? throw new ArgumentNullException(nameof(combatEquipment));
         this.combatEquipmentCatalog = combatEquipmentCatalog
@@ -652,7 +656,7 @@ public sealed class OffenseBattlePanel : MonoBehaviour
 
     private string BuildThreatText()
     {
-        if (threatProvider.TryGetRuntime(out InvasionThreatRuntime threat))
+        if (threat != null)
         {
             return $"던전 실시간 진행  ·  침공 {threat.CurrentStage} {threat.CurrentThreat:0}";
         }
@@ -959,18 +963,21 @@ public sealed class OffenseBattleUiController : IStartable, IDisposable
 {
     private readonly IOffenseBattleRuntime battleRuntime;
     private readonly IOffenseBattlePanelFactory panelFactory;
-    private readonly IOffenseExpeditionRuntimeProvider expeditionProvider;
+    private readonly OffenseExpeditionRuntime expeditionRuntime;
     private OffenseBattlePanel panel;
 
     public OffenseBattleUiController(
         IOffenseBattleRuntime battleRuntime,
         IOffenseBattlePanelFactory panelFactory,
-        IOffenseExpeditionRuntimeProvider expeditionProvider)
+        OffenseSceneRuntimeReferences offenseRuntimes)
     {
         this.battleRuntime = battleRuntime ?? throw new ArgumentNullException(nameof(battleRuntime));
         this.panelFactory = panelFactory ?? throw new ArgumentNullException(nameof(panelFactory));
-        this.expeditionProvider = expeditionProvider
-            ?? throw new ArgumentNullException(nameof(expeditionProvider));
+        expeditionRuntime = (offenseRuntimes
+                ?? throw new ArgumentNullException(nameof(offenseRuntimes)))
+            .Expedition
+            ?? throw new InvalidOperationException(
+                $"{nameof(OffenseBattleUiController)} requires a loaded {nameof(OffenseExpeditionRuntime)}.");
     }
 
     public void Start()
@@ -992,7 +999,7 @@ public sealed class OffenseBattleUiController : IStartable, IDisposable
             return;
         }
 
-        if (UsesV17CommandSurface(battleRuntime.Session.ExpeditionId))
+        if (UsesStrategicCommandSurface(battleRuntime.Session.ExpeditionId))
         {
             if (panel != null)
             {
@@ -1007,14 +1014,12 @@ public sealed class OffenseBattleUiController : IStartable, IDisposable
         panel.Refresh();
     }
 
-    private bool UsesV17CommandSurface(string expeditionId)
+    private bool UsesStrategicCommandSurface(string expeditionId)
     {
         return !string.IsNullOrWhiteSpace(expeditionId)
-            && expeditionProvider.TryGetRuntime(
-                out OffenseExpeditionRuntime expeditionRuntime)
             && expeditionRuntime.ActiveExpeditions.Any(expedition =>
                 expedition != null
                 && expedition.ExpeditionId == expeditionId
-                && expedition.UsesV17WorldTravel);
+                && expedition.UsesWorldTravel);
     }
 }

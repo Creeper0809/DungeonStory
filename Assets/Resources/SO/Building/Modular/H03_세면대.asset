@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,24 +33,26 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 6d6dee36e848521429509ffba11e56b4, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239038812951
-    - rid: 7302563239038812952
-    - rid: 7302563239038812953
-    - rid: 7302563239038812954
-    - rid: 7302563239038812955
-    - rid: 7302563239038812956
-    - rid: 7302563239038812957
-    - rid: 7302563239038812958
-    - rid: 7302563239038812959
-    - rid: 7302563313672519737
-    - rid: 7302563313672519738
-    - rid: 7302563313672520078
+    - rid: 7737211730538791834
+    - rid: 7737211730538791835
+    - rid: 7737211730538791836
+    - rid: 7737211730538791837
+    - rid: 7737211730538791838
+    - rid: 7737211730538791839
+    - rid: 7737211730538791840
+    - rid: 7737211730538791841
+    - rid: 7737211730538791842
+    - rid: 7737211730538791843
+    - rid: 7737211730889015867
+    - rid: 7737211730889015868
+    - rid: 7737211730889016316
   width: 1
   height: 1
   layer: 1
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -68,21 +61,33 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239038812951
+    - rid: 7737211730538791834
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: H03
-    - rid: 7302563239038812952
+    - rid: 7737211730538791835
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 95
+        constructionValue: 95
+        constructionCost: 0
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563239038812953
+    - rid: 7737211730538791836
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 19.9
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:lumber
+          amount: 5
+    - rid: 7737211730538791837
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -93,11 +98,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 536879116
           disabledWhenDamaged: 1
-    - rid: 7302563239038812954
+    - rid: 7737211730538791838
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563239038812955
+    - rid: 7737211730538791839
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -109,7 +114,7 @@ MonoBehaviour:
           - key: Hygiene
             value: 3
           metrics: []
-    - rid: 7302563239038812956
+    - rid: 7737211730538791840
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -120,32 +125,32 @@ MonoBehaviour:
           hunger: 0
           excretion: 0
           hygiene: 62
-    - rid: 7302563239038812957
+    - rid: 7737211730538791841
       type: {class: BuildingCleaningAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCleaningAbility
         restoredCleanliness: 100
-    - rid: 7302563239038812958
+    - rid: 7737211730538791842
       type: {class: BuildingWaterSourceAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterSourceAbility
         waterPerWork: 4
         workSeconds: 0.9
         blockedByFreezingWeather: 1
-    - rid: 7302563239038812959
+    - rid: 7737211730538791843
       type: {class: BuildingVentilationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingVentilationAbility
         hygieneRiskReduction: 10
         smokeRiskReduction: 4
-    - rid: 7302563313672519737
+    - rid: 7737211730889015867
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7302563313672519738
+    - rid: 7737211730889015868
       type: {class: BuildingWaterFixtureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWaterFixtureAbility
@@ -155,7 +160,7 @@ MonoBehaviour:
         allowsManualWaterFallback: 1
         allowsDryFallback: 0
         manualWasteItemId: industrial:sludge
-    - rid: 7302563313672520078
+    - rid: 7737211730889016316
       type: {class: BuildingServiceHubAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingServiceHubAbility

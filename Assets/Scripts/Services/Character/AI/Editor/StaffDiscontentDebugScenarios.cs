@@ -39,6 +39,7 @@ public static class StaffDiscontentDebugScenarios
         RunScenario("3단계 이탈 영구 손실", VerifyDeparturePermanentLoss, errors);
         RunScenario("4단계 국지 반란", VerifyLocalRebellionPermanentLoss, errors);
         RunScenario("반란 장기 방치 사장 위협", VerifyOwnerThreatEscalation, errors);
+        RunScenario("Strict staff-discontent save boundary", VerifyStrictSaveBoundary, errors);
 
         if (errors.Count > 0)
         {
@@ -57,6 +58,8 @@ public static class StaffDiscontentDebugScenarios
 
         return true;
     }
+
+    public static bool RunStrictSaveBoundary() => VerifyStrictSaveBoundary();
 
     private static void RunScenario(string name, Func<bool> scenario, List<string> errors)
     {
@@ -233,6 +236,279 @@ public static class StaffDiscontentDebugScenarios
         return valid;
     }
 
+    private static bool VerifyStrictSaveBoundary()
+    {
+        using ScenarioRuntime source = new ScenarioRuntime();
+        using ScenarioRuntime target = new ScenarioRuntime();
+        source.Runtime.RestoreSnapshots(new[]
+        {
+            new StaffDiscontentSnapshot(
+                "staff-discontent-test:save-fixture",
+                "Save Fixture Staff",
+                StaffDiscontentStage.LocalRebellion,
+                StaffDiscontentOutcome.None,
+                5f,
+                4,
+                permanentLoss: true,
+                departed: false,
+                localRebellion: true,
+                ownerThreat: false,
+                isolated: true,
+                suppressed: false)
+        });
+
+        CharacterSceneRuntimeReferences sourceReferences =
+            new CharacterSceneRuntimeReferences(
+                null,
+                null,
+                source.Runtime,
+                null,
+                null,
+                null,
+                null,
+                null);
+        StaffDiscontentSaveSection sourceSection =
+            new StaffDiscontentSaveSection(sourceReferences);
+        string canonicalJson = sourceSection.Capture();
+
+        CharacterSceneRuntimeReferences targetReferences =
+            new CharacterSceneRuntimeReferences(
+                null,
+                null,
+                target.Runtime,
+                null,
+                null,
+                null,
+                null,
+                null);
+        StaffDiscontentSaveSection targetSection =
+            new StaffDiscontentSaveSection(targetReferences);
+        DungeonGameRestoreReport validReport =
+            new DungeonGameRestoreReport();
+        targetSection.Restore(
+            canonicalJson,
+            targetSection.SectionVersion,
+            validReport);
+        object sectionContract = targetSection;
+        int validRecordCount = target.Runtime.State.Records.Count;
+        bool validRoundTrip = string.Equals(
+            targetSection.Capture(),
+            canonicalJson,
+            StringComparison.Ordinal);
+        bool strictContract = sectionContract is IDungeonSaveSectionPreflight
+            && sectionContract is IDungeonRollbackFreeSaveSection
+            && sectionContract is not IOptionalDungeonSaveSection
+            && sectionContract is not IDungeonStagedOptionalSaveSection;
+        if (!validReport.Success
+            || validRecordCount != 1
+            || !validRoundTrip
+            || !strictContract)
+        {
+            return FailStrictSaveBoundary(
+                "valid-round-trip",
+                $"report={validReport.Success}, "
+                + $"errors={JoinErrors(validReport)}, "
+                + $"records={validRecordCount}, "
+                + $"canonical={validRoundTrip}, "
+                + $"strictContract={strictContract}");
+        }
+
+        string beforeInvalid = targetSection.Capture();
+        DungeonStaffDiscontentSaveData legacy =
+            JsonUtility.FromJson<DungeonStaffDiscontentSaveData>(canonicalJson);
+        legacy.version = DungeonStaffDiscontentSaveData.CurrentVersion - 1;
+        if (!RejectsStaffPayloadWithoutMutation(
+                targetSection,
+                legacy,
+                beforeInvalid))
+        {
+            return FailStrictSaveBoundary(
+                "legacy-version-rejection",
+                $"liveUnchanged={string.Equals(targetSection.Capture(), beforeInvalid, StringComparison.Ordinal)}");
+        }
+
+        string nullRecordsJson =
+            $"{{\"version\":{DungeonStaffDiscontentSaveData.CurrentVersion},\"records\":null}}";
+        if (!RejectsStaffPayloadJsonWithoutMutation(
+                targetSection,
+                nullRecordsJson,
+                beforeInvalid))
+        {
+            return FailStrictSaveBoundary(
+                "null-records-rejection",
+                $"liveUnchanged={string.Equals(targetSection.Capture(), beforeInvalid, StringComparison.Ordinal)}");
+        }
+
+        string missingRecordsJson =
+            $"{{\"version\":{DungeonStaffDiscontentSaveData.CurrentVersion}}}";
+        if (!RejectsStaffPayloadJsonWithoutMutation(
+                targetSection,
+                missingRecordsJson,
+                beforeInvalid))
+        {
+            return FailStrictSaveBoundary(
+                "missing-records-rejection",
+                $"liveUnchanged={string.Equals(targetSection.Capture(), beforeInvalid, StringComparison.Ordinal)}");
+        }
+
+        string recordsTextOnlyJson =
+            $"{{\"version\":{DungeonStaffDiscontentSaveData.CurrentVersion},"
+            + "\"note\":\"the token \\\"records\\\":[] is not a field\"}";
+        if (!RejectsStaffPayloadJsonWithoutMutation(
+                targetSection,
+                recordsTextOnlyJson,
+                beforeInvalid))
+        {
+            return FailStrictSaveBoundary(
+                "records-text-spoof-rejection",
+                $"liveUnchanged={string.Equals(targetSection.Capture(), beforeInvalid, StringComparison.Ordinal)}");
+        }
+
+        IDungeonSaveRestoreStage stagedForDiscard = targetSection.StageRestore(
+            canonicalJson,
+            targetSection.SectionVersion,
+            new DungeonGameRestoreReport());
+        if (stagedForDiscard is not IDungeonDiscardableSaveRestoreStage discardable)
+        {
+            return FailStrictSaveBoundary(
+                "direct-candidate-discard",
+                $"stageType={stagedForDiscard?.GetType().Name ?? "null"}, discardable=false");
+        }
+        discardable.Discard();
+        if (!string.Equals(
+                targetSection.Capture(),
+                beforeInvalid,
+                StringComparison.Ordinal))
+        {
+            return FailStrictSaveBoundary(
+                "direct-candidate-discard",
+                "discarded candidate changed the live capture");
+        }
+
+        DungeonStaffDiscontentSaveData invalid =
+            JsonUtility.FromJson<DungeonStaffDiscontentSaveData>(
+                canonicalJson);
+        invalid.records[0].ownerThreat = true;
+        DungeonGameRestoreReport invalidReport =
+            new DungeonGameRestoreReport();
+        bool invalidRejected = false;
+        try
+        {
+            targetSection.Restore(
+                JsonUtility.ToJson(invalid),
+                targetSection.SectionVersion,
+                invalidReport);
+        }
+        catch (InvalidOperationException)
+        {
+            invalidRejected = true;
+        }
+        if (!invalidRejected
+            || target.Runtime.State.Records.Count != 1
+            || !string.Equals(
+                targetSection.Capture(),
+                beforeInvalid,
+                StringComparison.Ordinal))
+        {
+            return FailStrictSaveBoundary(
+                "terminal-hierarchy-rejection",
+                $"rejected={invalidRejected}, "
+                + $"records={target.Runtime.State.Records.Count}, "
+                + $"liveUnchanged={string.Equals(targetSection.Capture(), beforeInvalid, StringComparison.Ordinal)}, "
+                + $"reportErrors={JoinErrors(invalidReport)}");
+        }
+
+        target.Runtime.RestoreSnapshots(
+            Array.Empty<StaffDiscontentSnapshot>());
+        string beforeLateFailure = targetSection.Capture();
+        StaffDiscontentFailureSection lateFailure =
+            new StaffDiscontentFailureSection();
+        int revisionBefore = target.RootStore.PublishedRestoreRevision;
+        DungeonSaveSectionRegistry registry = new DungeonSaveSectionRegistry(
+            new IDungeonSaveSection[] { targetSection, lateFailure },
+            target.RootStore);
+        List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
+        foreach (DungeonSaveSectionEnvelope envelope in envelopes)
+        {
+            if (string.Equals(
+                    envelope.sectionId,
+                    StaffDiscontentSaveSection.Id,
+                    StringComparison.Ordinal))
+            {
+                envelope.payloadJson = canonicalJson;
+            }
+        }
+        DungeonGameRestoreReport restoreReport =
+            new DungeonGameRestoreReport();
+        bool restored = registry.RestoreAll(envelopes, restoreReport);
+        bool valid = !restored
+            && !restoreReport.Success
+            && lateFailure.RemainingCommitFailures == 0
+            && target.Runtime.State.Records.Count == 0
+            && string.Equals(
+                targetSection.Capture(),
+                beforeLateFailure,
+                StringComparison.Ordinal)
+            && target.RootStore.PublishedRestoreRevision == revisionBefore;
+        if (!valid)
+        {
+            return FailStrictSaveBoundary(
+                "all-marker-late-failure",
+                $"restored={restored}, "
+                + $"reportSuccess={restoreReport.Success}, "
+                + $"reportErrors={JoinErrors(restoreReport)}, "
+                + $"remainingFailures={lateFailure.RemainingCommitFailures}, "
+                + $"records={target.Runtime.State.Records.Count}, "
+                + $"liveUnchanged={string.Equals(targetSection.Capture(), beforeLateFailure, StringComparison.Ordinal)}, "
+                + $"revision={target.RootStore.PublishedRestoreRevision}, "
+                + $"revisionBefore={revisionBefore}");
+        }
+        return true;
+    }
+
+    private static bool FailStrictSaveBoundary(string phase, string detail)
+    {
+        Debug.LogError(
+            $"Staff-discontent strict save detail: phase={phase}; {detail}");
+        return false;
+    }
+
+    private static string JoinErrors(DungeonGameRestoreReport report) =>
+        report == null || report.Errors.Count == 0
+            ? "none"
+            : string.Join(" | ", report.Errors);
+
+    private static bool RejectsStaffPayloadWithoutMutation(
+        StaffDiscontentSaveSection section,
+        DungeonStaffDiscontentSaveData payload,
+        string expectedLiveJson) =>
+        RejectsStaffPayloadJsonWithoutMutation(
+            section,
+            JsonUtility.ToJson(payload),
+            expectedLiveJson);
+
+    private static bool RejectsStaffPayloadJsonWithoutMutation(
+        StaffDiscontentSaveSection section,
+        string payloadJson,
+        string expectedLiveJson)
+    {
+        try
+        {
+            section.Restore(
+                payloadJson,
+                section.SectionVersion,
+                new DungeonGameRestoreReport());
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return string.Equals(
+                section.Capture(),
+                expectedLiveJson,
+                StringComparison.Ordinal);
+        }
+    }
+
     private static CharacterActor CreateStaff(int id, string name, float mood)
     {
         CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
@@ -289,14 +565,65 @@ public static class StaffDiscontentDebugScenarios
         {
             runtimeObject = new GameObject("StaffDiscontentRuntime_Test");
             Runtime = runtimeObject.AddComponent<StaffDiscontentRuntime>();
-            CharacterAiEditorTestDependencies.Inject(Runtime, System.Array.Empty<GameObject>());
+            RootStore = new DungeonRuntimeAggregateRootStore();
+            Runtime.Construct(
+                CharacterAiEditorTestDependencies.WorldRegistry,
+                CharacterAiEditorTestDependencies.GameEvents,
+                RootStore);
         }
 
         public StaffDiscontentRuntime Runtime { get; }
+        public DungeonRuntimeAggregateRootStore RootStore { get; }
 
         public void Dispose()
         {
             Object.DestroyImmediate(runtimeObject);
+        }
+    }
+
+    private sealed class StaffDiscontentFailureSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        public string SectionId => "staff-discontent.debug.late-failure";
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.Presentation;
+        public IReadOnlyList<string> DependsOn =>
+            new[] { StaffDiscontentSaveSection.Id };
+        public int RemainingCommitFailures { get; set; } = 1;
+        public string Capture() => "{}";
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+        }
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report) =>
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            return new DungeonDelegateSaveRestoreStage(
+                SectionId,
+                commitReport =>
+                {
+                    if (RemainingCommitFailures <= 0)
+                    {
+                        return;
+                    }
+
+                    RemainingCommitFailures--;
+                    commitReport.AddError(
+                        "Injected late staff-discontent restore failure.");
+                });
         }
     }
 }

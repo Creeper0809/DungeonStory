@@ -264,7 +264,7 @@ public class AbilityShopping : CharacterAbility
             && action.destination is IInteractable shop)
         {
             BeginVisitInteraction(action.destination);
-            yield return shop.Interact(actor);
+            yield return shop.Interact(actor?.BuildingVisitor);
             action.ReleaseReservation(actor);
             if (LastVisitOutcome == ShoppingVisitOutcome.Abandoned)
             {
@@ -523,7 +523,7 @@ public class AbilityShopping : CharacterAbility
 
         foreach(var events in item.onbuy)
         {
-            events.Onbuy(actor);
+            events.Onbuy(actor?.BuildingVisitor);
         }
     }
 
@@ -541,10 +541,17 @@ public class AbilityShopping : CharacterAbility
             return;
         }
 
-        string itemId = DungeonItemCatalogSO.StockItemId(itemInfo.category);
+        ItemDefinitionId itemId = itemInfo.ItemDefinitionId;
+        if (!itemId.IsValid
+            || !itemRuntime.CatalogProvider.TryGetDefinition(itemId.Value, out _))
+        {
+            throw new InvalidOperationException(
+                $"Sale item '{itemInfo.id}' has no valid authored physical item definition.");
+        }
+
         inventory.TryAdd(
             $"purchase:{itemInfo.id}:{RequireGameClock().FrameCount}",
-            itemId,
+            itemId.Value,
             1,
             itemRuntime.CatalogProvider,
             itemRuntime.HaulingSettingsProvider,
@@ -608,10 +615,8 @@ public class AbilityShopping : CharacterAbility
         IRandomStreamProvider provider = randomStreamProvider
             ?? throw new InvalidOperationException(
                 $"{nameof(AbilityShopping)} requires {nameof(IRandomStreamProvider)} injection.");
-        string actorId = identity != null
-            && !string.IsNullOrWhiteSpace(identity.PersistentId)
-                ? identity.PersistentId
-                : $"instance:{GetInstanceID()}";
+        CharacterActor actor = GetComponent<CharacterActor>();
+        string actorId = CharacterPersistentIdentity.Require(actor).Value;
         return provider.Get($"shopping:{actorId}");
     }
 

@@ -8,54 +8,46 @@ using UnityEngine;
 public static class ResourceEconomyAssetBuilder
 {
     public const int ExpectedItemCount = 108;
-    public const int ExpectedRecipeCount = 131;
+    public const int ExpectedRecipeCount = 109;
     public const int ExpectedCropCount = 8;
     public const int ExpectedMaterialCount = 12;
-    public const int ExpectedSubstanceCount = 7;
+    public const int ExpectedSubstanceCount = 9;
+    private const int ExpectedCoreSubstanceCount = 7;
 
     private const string Root = "Assets/Resources/SO/Economy";
     private const string ItemRoot = Root + "/Items";
     private const string RecipeRoot = Root + "/Recipes";
     private const string CropRoot = Root + "/Crops";
     private const string MaterialRoot = Root + "/Materials";
-    private const string SubstanceRoot = Root + "/Substances";
+    private const string LegacySubstanceRoot = Root + "/Substances";
 
     [MenuItem("Tools/DungeonStory/Economy/Rebuild Resource Economy Content")]
     public static void Rebuild()
     {
-        EnsureFolders(ItemRoot, RecipeRoot, CropRoot, MaterialRoot, SubstanceRoot);
+        EnsureFolders(ItemRoot, RecipeRoot, CropRoot, MaterialRoot);
+        ValidateNoLegacySubstanceAssets();
         ResourceItemDefinitionSO[] items = BuildItems();
         ProductionRecipeSO[] recipes = BuildRecipes();
         CropDefinitionSO[] crops = BuildCrops();
         CraftMaterialDefinitionSO[] materials = BuildMaterials();
-        SubstanceDefinitionSO[] substances = BuildSubstances();
         ProductionWorkshopContentAssetBuilder.EnsureAssets();
 
         RequireCount(items.Length, ExpectedItemCount, "items");
         RequireCount(recipes.Length, ExpectedRecipeCount, "recipes");
         RequireCount(crops.Length, ExpectedCropCount, "crops");
         RequireCount(materials.Length, ExpectedMaterialCount, "materials");
-        RequireCount(substances.Length, ExpectedSubstanceCount, "substances");
+        RequireCount(
+            items.Count(item => item.TryGetFeature(out SubstanceItemFeature _)),
+            ExpectedCoreSubstanceCount,
+            "core item substance features");
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
-        ResourceEconomyContentCatalog catalog = new ResourceEconomyContentCatalog(
-            items,
-            recipes,
-            crops,
-            materials,
-            substances);
-        IReadOnlyList<string> errors = ValidateContentGraph(catalog);
-        if (errors.Count > 0)
-        {
-            throw new InvalidOperationException(string.Join("\n", errors));
-        }
-
         Debug.Log(
             $"Resource economy rebuilt: {items.Length} items, "
             + $"{recipes.Length} recipes, {crops.Length} crops, "
-            + $"{materials.Length} materials, {substances.Length} substances.");
+            + $"{materials.Length} materials; substance definitions are projected from item features.");
     }
 
     private static void RequireCount(int actual, int expected, string contentKind)
@@ -201,6 +193,26 @@ public static class ResourceEconomyAssetBuilder
                 spec.Weight,
                 spec.MaxStack,
                 spec.ResearchId);
+            (float fuelValue, float feedValue, bool feedEligible) = spec.Id switch
+            {
+                "resource:log" => (10f, 0f, false),
+                "material:low-fuel" => (6f, 0f, false),
+                "resource:coal" => (20f, 0f, false),
+                "material:charcoal" => (24f, 0f, false),
+                "feed:hay" => (0f, 8f, true),
+                "feed:dog-food" => (0f, 14f, true),
+                "resource:twilight-grain" => (0f, 6f, true),
+                "resource:ember-root" => (0f, 6f, true),
+                "resource:cave-mushroom" => (0f, 5f, true),
+                "resource:meat" => (0f, 12f, true),
+                "craft:candle" => (2f, 0f, false),
+                _ => (0f, 0f, false)
+            };
+            asset.ConfigureFacilitySupply(
+                fuelValue,
+                feedValue,
+                feedEligible,
+                spec.Kind == ResourceItemKind.Intermediate);
             asset.ConfigureMarketSaleRate(spec.MarketSaleRate);
             if (spec.HasMealData)
             {
@@ -220,6 +232,7 @@ public static class ResourceEconomyAssetBuilder
                     spec.DetoxReduction,
                     spec.PainReduction);
             }
+            ConfigureSubstanceFeature(asset);
             EditorUtility.SetDirty(asset);
             return asset;
         }).ToArray();
@@ -272,15 +285,15 @@ public static class ResourceEconomyAssetBuilder
             R("recipe:compost-animal", "동물성 퇴비", "composter", "work:craft", "research:agriculture:compost", 10, A("waste:animal-rot", 2), A("resource:bone", 1), O("material:compost", 1)),
             R("recipe:compost-mixed", "혼합 퇴비", "composter", "work:craft", "research:agriculture:compost", 11, A("waste:mixed-rot", 2), A("resource:grass-straw", 1), O("material:compost", 1)),
             R("recipe:compost-manure", "분뇨 퇴비", "composter", "work:craft", "research:agriculture:compost", 7, A("resource:manure", 2), A("resource:grass-straw", 1), O("material:compost", 1)),
-            R("recipe:solvent", "연금 용매", "distillery", "work:craft", "research:pharmacology:distillation", 14, A("material:alcohol", 1), A("resource:coal", 1), A("resource:cave-mushroom", 1), O("material:alchemical-solvent", 1)),
+            R("recipe:solvent", "연금 용매", "distillery", "work:craft", "research:pharmacology:distillation", 14, A("resource:dark-resin", 2), A("resource:coal", 1), A("resource:cave-mushroom", 1), O("material:alchemical-solvent", 1)),
             R("recipe:tallow", "지방 정제", "cookbench", "work:cook", "research:cuisine:livestock", 8, A("resource:fat", 2), O("material:tallow", 1)),
             R("recipe:bowstring-fiber", "섬유 활시위", "loom", "work:craft", "research:textile:fiber", 8, A("resource:shade-fiber", 2), O("material:bowstring", 1)),
             R("recipe:bowstring-sinew", "뿔 보강 활시위", "loom", "work:craft", "research:husbandry:selective", 10, A("resource:horn", 1), A("resource:hide", 1), O("material:bowstring", 1)),
             R("recipe:treated-lumber", "목재 처리", "sawmill", "work:craft", "research:forestry:treated", 15, A("material:lumber", 2), A("resource:dark-resin", 1), O("material:treated-lumber", 2)),
             R("recipe:cheese", "치즈 숙성", "cookbench", "work:cook", "research:cuisine:livestock", 12, A("resource:milk", 3), A("resource:saltstone", 1), O("material:cheese", 2)),
-            R("recipe:low-fuel-rot", "부패 연료", "composter", "work:craft", "research:agriculture:compost", 10, A("waste:mixed-rot", 4), A("stock-item:4", 1), O("material:low-fuel", 1)),
-            R("recipe:low-fuel-plant", "식물성 부패 연료", "composter", "work:craft", "research:agriculture:compost", 9, A("waste:plant-rot", 4), A("stock-item:4", 1), O("material:low-fuel", 1)),
-            R("recipe:low-fuel-animal", "동물성 부패 연료", "composter", "work:craft", "research:agriculture:compost", 11, A("waste:animal-rot", 4), A("stock-item:4", 1), O("material:low-fuel", 1)),
+            R("recipe:low-fuel-rot", "부패 연료", "composter", "work:craft", "research:agriculture:compost", 10, A("waste:mixed-rot", 4), A("resource:grass-straw", 1), O("material:low-fuel", 1)),
+            R("recipe:low-fuel-plant", "식물성 부패 연료", "composter", "work:craft", "research:agriculture:compost", 9, A("waste:plant-rot", 4), A("resource:grass-straw", 1), O("material:low-fuel", 1)),
+            R("recipe:low-fuel-animal", "동물성 부패 연료", "composter", "work:craft", "research:agriculture:compost", 11, A("waste:animal-rot", 4), A("resource:grass-straw", 1), O("material:low-fuel", 1)),
             R("recipe:low-fuel-manure", "분뇨 연료", "composter", "work:craft", "research:husbandry:feed", 9, A("resource:manure", 3), A("resource:grass-straw", 1), O("material:low-fuel", 1)),
             R("recipe:rot-toxin", "부패 독소", "alchemy", "work:craft", "research:arcane:alchemy", 16, A("waste:forbidden-rot", 1), A("resource:bloodleaf", 1), O("material:rot-toxin", 1)),
             R("recipe:incinerate-plant", "식물성 부패물 소각", "incinerator", "work:craft", "research:survival:sanitation", 5, A("waste:plant-rot", 1)),
@@ -320,7 +333,7 @@ public static class ResourceEconomyAssetBuilder
             R("recipe:fang-poison", "송곳니 독액", "alchemy", "work:craft", "research:arcane:alchemy", 14, A("resource:fang", 2), A("material:alchemical-solvent", 1), O("craft:fang-poison", 1)),
 
             R("recipe:herbal-poultice", "약초 찜질약", "apothecary", "work:craft", "research:pharmacology:herbalism", 7, A("resource:moonflower", 1), A("resource:shade-fiber", 1), O("medicine:herbal-poultice", 2)),
-            R("recipe:antiseptic", "소독제", "apothecary", "work:craft", "research:pharmacology:antiseptic", 9, A("resource:bloodleaf", 1), A("resource:saltstone", 1), A("material:alcohol", 1), O("medicine:antiseptic", 2)),
+            R("recipe:antiseptic", "소독제", "apothecary", "work:craft", "research:pharmacology:antiseptic", 9, A("resource:bloodleaf", 1), A("resource:saltstone", 1), O("medicine:antiseptic", 2)),
             R("recipe:standard-medicine", "표준 약품", "apothecary", "work:craft", "research:pharmacology:distillation", 14, A("resource:cave-mushroom", 1), A("resource:moonflower", 1), A("material:alchemical-solvent", 1), O("medicine:standard", 2)),
             R("recipe:advanced-medicine", "고급 약품", "alchemy", "work:craft", "research:pharmacology:advanced", 22, A("medicine:standard", 1), A("resource:mana-crystal", 1), A("resource:moonflower", 2), A("resource:milk", 1), O("medicine:advanced", 1)),
             R("recipe:antidote", "해독제", "alchemy", "work:craft", "research:pharmacology:advanced", 18, A("resource:bloodleaf", 1), A("resource:cave-mushroom", 1), A("material:alchemical-solvent", 1), O("medicine:antidote", 1)),
@@ -343,30 +356,17 @@ public static class ResourceEconomyAssetBuilder
             R("recipe:bolt-steel", "강철촉 볼트", "forge", "work:craft", "research:metallurgy:steel", 12, A("material:lumber", 1), A("material:steel-ingot", 1), A("resource:fang", 1), O("ammo:bolt-steel", 10)),
             R("recipe:bolt-rune", "룬촉 볼트", "arcane-forge", "work:craft", "research:arcane:advanced", 16, A("material:treated-lumber", 1), A("resource:horn", 1), A("resource:mana-crystal", 1), O("ammo:bolt-rune", 8)),
 
-            Sink("sink:indoor-compost", "실내 재배 영양", "indoor-farm", "research:agriculture:indoor", A("material:compost", 1)),
-            Sink("sink:starch-preservative", "보존 전분", "smoker", "research:survival:preservation", A("material:starch", 1)),
-            Sink("sink:lumber-construction", "목재 건설", "construction", "research:forestry:sawmill", A("material:lumber", 2)),
-            Sink("sink:treated-lumber-construction", "처리 목재 건설", "construction", "research:forestry:treated", A("material:treated-lumber", 2)),
-            Sink("sink:stone-construction", "석조 건설", "construction", "research:mining:stonecutting", A("material:stone-block", 2)),
-            Sink("sink:bowstring-equipment", "활 제작", "forge", "research:defense:ranged-positions", A("material:bowstring", 1)),
-            Sink("sink:solvent-research", "연금 연구", "alchemy", "research:arcane:alchemy", A("material:alchemical-solvent", 1)),
-            Sink("sink:low-fuel-consumer", "저급 연료 사용", "fuel-consumer", "research:agriculture:compost", A("material:low-fuel", 1)),
-            Sink("sink:rot-direct-feed-plant", "부패물 초식 급여", "animal-pen", "research:husbandry:feed", A("waste:plant-rot", 1)),
-            Sink("sink:rot-direct-feed-animal", "부패물 육식 급여", "animal-pen", "research:husbandry:feed", A("waste:animal-rot", 1)),
-            Sink("sink:rot-direct-feed-mixed", "부패물 잡식 급여", "animal-pen", "research:husbandry:feed", A("waste:mixed-rot", 1)),
-            Sink("sink:rot-incinerate-forbidden", "금기 부패물 소각", "incinerator", "research:survival:sanitation", A("waste:forbidden-rot", 1)),
-            Sink("sink:fertility-bone", "뼛가루 토양 보강", "composter", "research:agriculture:compost", A("resource:bone", 1)),
-            Sink("sink:coal-furnace", "석탄 시설 연료", "fuel-consumer", "research:mining:sorting", A("resource:coal", 1)),
-            Sink("sink:cloth-bandage", "천 붕대", "medical", "research:pharmacology:antiseptic", A("material:cloth", 1)),
-            Sink("sink:leather-equipment", "가죽 장비", "forge", "research:textile:tailoring", A("material:leather", 1)),
-            Sink("sink:rune-leather-equipment", "룬가죽 장비", "forge", "research:textile:rune-leather", A("material:rune-leather", 1)),
-            Sink("sink:dreamweave-equipment", "몽직물 장비", "forge", "research:textile:dreamweave", A("material:dreamweave", 1)),
-            Sink("sink:iron-equipment", "철 장비", "forge", "research:metallurgy:iron", A("material:iron-ingot", 1)),
-            Sink("sink:steel-equipment", "강철 장비", "forge", "research:metallurgy:steel", A("material:steel-ingot", 1)),
-            Sink("sink:gold-equipment", "금 장비", "forge", "research:metallurgy:precious", A("material:gold-ingot", 1)),
-            Sink("sink:blacksteel-equipment", "흑강 장비", "forge", "research:metallurgy:blacksteel", A("material:blacksteel-ingot", 1)),
-            R("recipe:loot-appraisal", "원정 전리품 감정", "loot-appraisal", "work:craft", string.Empty, 8, A("offense:unappraised-loot", 10), O("offense:appraised-valuables", 10))
+            R("recipe:loot-appraisal", "원정 전리품 감정", "workstation:v3:appraisal", "work:craft", "research:equipment:relic-appraisal", 8, A("offense:unappraised-loot", 10), O("offense:appraised-valuables", 10))
         };
+
+        foreach (string staleSinkPath in AssetDatabase.FindAssets(
+                     "t:ProductionRecipeSO", new[] { RecipeRoot })
+                 .Select(AssetDatabase.GUIDToAssetPath)
+                 .Where(path => AssetDatabase.LoadAssetAtPath<ProductionRecipeSO>(path)
+                     ?.RecipeId.StartsWith("sink:", StringComparison.Ordinal) == true))
+        {
+            AssetDatabase.DeleteAsset(staleSinkPath);
+        }
 
         return specs.Select((spec, index) =>
         {
@@ -383,6 +383,15 @@ public static class ResourceEconomyAssetBuilder
                 spec.RequiredWork,
                 spec.Inputs,
                 spec.Outputs);
+            if (spec.FacilityTag.StartsWith(
+                    "workstation:",
+                    StringComparison.Ordinal))
+            {
+                asset.ConfigureWorkshop(
+                    spec.FacilityTag,
+                    Array.Empty<string>(),
+                    ProductionProcessKind.WorkOnly);
+            }
             EditorUtility.SetDirty(asset);
             return asset;
         }).ToArray();
@@ -463,46 +472,68 @@ public static class ResourceEconomyAssetBuilder
         }).ToArray();
     }
 
-    private static SubstanceDefinitionSO[] BuildSubstances()
+    private static void ConfigureSubstanceFeature(ResourceItemDefinitionSO item)
     {
-        SubstanceSpec[] specs =
+        switch (item.ItemId)
         {
-            U("substance:moonflower-tea", "drug:moonflower-tea", "월화차", SubstanceUseClass.NonAddictive, 0, 0.002f, 0, 0, 3, 0.04f, 0, 180, "research:pharmacology:herbalism"),
-            U("substance:vitality-tonic", "drug:vitality-tonic", "활력 강장제", SubstanceUseClass.NonAddictive, 0, 0.006f, 0, 0, 2, 0.12f, 0, 150, "research:pharmacology:distillation"),
-            U("substance:dreamleaf-analgesic", "drug:dreamleaf-analgesic", "몽엽 진통제", SubstanceUseClass.Addictive, 0.08f, 0.02f, 0.12f, 0.02f, 4, 0.05f, -0.03f, 240, "research:pharmacology:anesthesia"),
-            U("substance:blood-stimulant", "drug:blood-stimulant", "혈화 촉진제", SubstanceUseClass.Addictive, 0.14f, 0.06f, 0.18f, 0.03f, 1, 0.16f, 0.20f, 150, "research:pharmacology:stimulants"),
-            U("substance:mana-awakener", "drug:mana-awakener", "마나 각성제", SubstanceUseClass.Addictive, 0.11f, 0.05f, 0.16f, 0.025f, 2, 0.18f, 0.08f, 180, "research:pharmacology:stimulants"),
-            U("substance:night-wine", "drug:night-wine", "밤포도주", SubstanceUseClass.Recreational, 0.04f, 0.025f, 0.08f, 0.015f, 7, -0.04f, -0.04f, 240, "research:cuisine:fermentation"),
-            U("substance:hallucinogenic", "drug:hallucinogenic-distillate", "환각균 증류액", SubstanceUseClass.Recreational, 0.09f, 0.04f, 0.13f, 0.025f, 10, -0.12f, -0.08f, 210, "research:pharmacology:distillation")
-        };
+            case "drug:moonflower-tea":
+                item.ConfigureSubstance("substance:moonflower-tea", SubstanceUseClass.NonAddictive,
+                    0f, 0.002f, 0f, 0f, 3f, 0.04f, 0f, 180f);
+                break;
+            case "drug:vitality-tonic":
+                item.ConfigureSubstance("substance:vitality-tonic", SubstanceUseClass.NonAddictive,
+                    0f, 0.006f, 0f, 0f, 2f, 0.12f, 0f, 150f);
+                break;
+            case "drug:dreamleaf-analgesic":
+                item.ConfigureSubstance("substance:dreamleaf-analgesic", SubstanceUseClass.Addictive,
+                    0.08f, 0.02f, 0.12f, 0.02f, 4f, 0.05f, -0.03f, 240f);
+                break;
+            case "drug:blood-stimulant":
+                item.ConfigureSubstance("substance:blood-stimulant", SubstanceUseClass.Addictive,
+                    0.14f, 0.06f, 0.18f, 0.03f, 1f, 0.16f, 0.20f, 150f);
+                break;
+            case "drug:mana-awakener":
+                item.ConfigureSubstance("substance:mana-awakener", SubstanceUseClass.Addictive,
+                    0.11f, 0.05f, 0.16f, 0.025f, 2f, 0.18f, 0.08f, 180f);
+                break;
+            case "drug:night-wine":
+                item.ConfigureSubstance("substance:night-wine", SubstanceUseClass.Recreational,
+                    0.04f, 0.025f, 0.08f, 0.015f, 7f, -0.04f, -0.04f, 240f);
+                break;
+            case "drug:hallucinogenic-distillate":
+                item.ConfigureSubstance("substance:hallucinogenic", SubstanceUseClass.Recreational,
+                    0.09f, 0.04f, 0.13f, 0.025f, 10f, -0.12f, -0.08f, 210f);
+                break;
+            default:
+                item.ClearSubstance();
+                break;
+        }
+    }
 
-        return specs.Select((spec, index) =>
+    private static void ValidateNoLegacySubstanceAssets()
+    {
+        string[] legacyAssets = AssetDatabase.IsValidFolder(LegacySubstanceRoot)
+            ? AssetDatabase.FindAssets("t:ScriptableObject", new[] { LegacySubstanceRoot })
+            : Array.Empty<string>();
+        if (legacyAssets.Length > 0)
         {
-            SubstanceDefinitionSO asset = GetOrCreate<SubstanceDefinitionSO>(
-                $"{SubstanceRoot}/{Sanitize(spec.Id)}.asset");
-            asset.id = 12000 + index;
-            asset.Configure(
-                spec.Id,
-                spec.ItemId,
-                spec.Name,
-                spec.UseClass,
-                spec.Addiction,
-                spec.Overdose,
-                spec.Tolerance,
-                spec.Withdrawal,
-                new Vector3(spec.Mood, spec.WorkSpeed, spec.Combat),
-                spec.Duration,
-                spec.ResearchId);
-            EditorUtility.SetDirty(asset);
-            return asset;
-        }).ToArray();
+            throw new InvalidOperationException(
+                "Legacy SubstanceDefinitionSO assets are forbidden. "
+                + "Substance content must be authored only as SubstanceItemFeature on item definitions.");
+        }
     }
 
     private static IReadOnlyList<string> ValidateContentGraph(
         IResourceEconomyContentCatalog catalog)
     {
         NullWorldItemStackRuntime nullRuntime = new NullWorldItemStackRuntime();
-        ResourceUsageIndex index = new ResourceUsageIndex(catalog, nullRuntime);
+        ResourceGameContentCatalog content = new ResourceGameContentCatalog(
+            new UnityGameContentRootLoader());
+        ResourceUsageIndex index = new ResourceUsageIndex(
+            catalog,
+            nullRuntime,
+            new ResourceCombatEquipmentCatalog(content),
+            content);
         return index.ValidateContentGraph();
     }
 
@@ -775,24 +806,6 @@ public static class ResourceEconomyAssetBuilder
         return new MaterialSpec(id, itemId, name, family, damage, penetration, durability, weight, value, insulation, mentalResistance, arcaneResistance, tint, rare, researchId);
     }
 
-    private static SubstanceSpec U(
-        string id,
-        string itemId,
-        string name,
-        SubstanceUseClass useClass,
-        float addiction,
-        float overdose,
-        float tolerance,
-        float withdrawal,
-        float mood,
-        float workSpeed,
-        float combat,
-        float duration,
-        string researchId)
-    {
-        return new SubstanceSpec(id, itemId, name, useClass, addiction, overdose, tolerance, withdrawal, mood, workSpeed, combat, duration, researchId);
-    }
-
     private sealed class ItemSpec
     {
         public ItemSpec(
@@ -924,29 +937,6 @@ public static class ResourceEconomyAssetBuilder
         public string ResearchId { get; }
     }
 
-    private sealed class SubstanceSpec
-    {
-        public SubstanceSpec(string id, string itemId, string name, SubstanceUseClass useClass, float addiction, float overdose, float tolerance, float withdrawal, float mood, float workSpeed, float combat, float duration, string researchId)
-        {
-            Id = id; ItemId = itemId; Name = name; UseClass = useClass; Addiction = addiction;
-            Overdose = overdose; Tolerance = tolerance; Withdrawal = withdrawal; Mood = mood;
-            WorkSpeed = workSpeed; Combat = combat; Duration = duration; ResearchId = researchId;
-        }
-        public string Id { get; }
-        public string ItemId { get; }
-        public string Name { get; }
-        public SubstanceUseClass UseClass { get; }
-        public float Addiction { get; }
-        public float Overdose { get; }
-        public float Tolerance { get; }
-        public float Withdrawal { get; }
-        public float Mood { get; }
-        public float WorkSpeed { get; }
-        public float Combat { get; }
-        public float Duration { get; }
-        public string ResearchId { get; }
-    }
-
     private sealed class NullWorldItemStackRuntime : IWorldItemStackRuntime
     {
         public IDungeonItemCatalogProvider CatalogProvider => null;
@@ -964,6 +954,8 @@ public static class ResourceEconomyAssetBuilder
         public bool SpawnWasteAt(string itemId, int amount, Vector2Int position, WasteOriginKind wasteOrigin, float contamination, out int spawned) { spawned = 0; return false; }
         public bool SpawnUniqueItemAt(string itemId, Vector2Int position, WorldItemStackState state, string destinationId, out string stackId) { stackId = string.Empty; return false; }
         public bool SpawnUniqueItemAt(string itemId, Vector2Int position, WorldItemStackState state, string destinationId, Vector2Int destinationPosition, out string stackId) { stackId = string.Empty; return false; }
+        public bool SpawnExistingUniqueItemAt(string itemId, ItemInstanceId itemInstanceId, Vector2Int position, WorldItemStackState state, string destinationId, out string stackId) { stackId = string.Empty; return false; }
+        public bool TryAbsorbUniqueItemStack(string stackId, ItemInstanceId expectedInstanceId) => false;
         public bool SpawnHumanoidCorpse(CharacterActor source, Vector2Int position, string deathReason, out string stackId) { stackId = string.Empty; return false; }
         public bool TryRequestFacilityDelivery(StockCategory category, int amount, Vector2Int destinationPosition, string destinationId, out int requested, out string failureReason) { requested = 0; failureReason = string.Empty; return false; }
         public bool TryRequestItemDelivery(string itemId, int amount, Vector2Int destinationPosition, string destinationId, out int requested, out string failureReason) { requested = 0; failureReason = string.Empty; return false; }
@@ -993,6 +985,7 @@ public static class ResourceEconomyAssetBuilder
         public bool TryRouteStackToDestination(string stackId, WorldItemStackState state, string destinationId, Vector2Int destinationPosition, out string failureReason) { failureReason = string.Empty; return false; }
         public bool DeleteStack(string stackId) => false;
         public bool TryConsumeStackQuantity(string stackId, int quantity, out WorldItemStackSnapshot consumed) { consumed = null; return false; }
+        public bool TrySetInstanceComponent(string stackId, ItemInstanceComponentSaveData component) => false;
         public bool SetEmergencyButcheryAllowed(string stackId, bool allowed) => false;
         public int RemoveStacksByStateAndDestination(WorldItemStackState state, string destinationId) => 0;
         public int ReleaseStacksByDestination(string destinationId, Vector2Int releasePosition) => 0;

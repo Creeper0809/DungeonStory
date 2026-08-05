@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Operation;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -29,6 +30,8 @@ public static class MetaProgressionDebugScenarios
         RunScenario("세 전략 계승 강화 실제 배율", VerifyStrategyUpgradeEffects, errors);
         RunScenario("미등록 메타 효과/안정 ID 확장", VerifyOpenMetaEffectRegistration, errors);
 
+        RunScenario("Strict meta save restore", VerifyStrictMetaSaveRestore, errors);
+
         if (errors.Count > 0)
         {
             foreach (string error in errors)
@@ -46,6 +49,9 @@ public static class MetaProgressionDebugScenarios
 
         return true;
     }
+
+    public static bool RunStrictSaveInvalidNoMutationOnly() =>
+        VerifyStrictMetaSaveRestore();
 
     private static void RunScenario(string name, Func<bool> scenario, List<string> errors)
     {
@@ -69,20 +75,20 @@ public static class MetaProgressionDebugScenarios
         using CountingRunResultReadyListener results =
             new CountingRunResultReadyListener(scenario.GameEvents);
 
-        scenario.Runtime.OnTriggerEvent(new OperatingDayStartedEvent(4));
-        scenario.Runtime.OnTriggerEvent(new OperatingDayReportEvent(OperatingDayReport.Create(1)));
-        scenario.Runtime.OnTriggerEvent(new OperatingDayReportEvent(OperatingDayReport.Create(2)));
-        scenario.Runtime.OnTriggerEvent(new InvasionStartedEvent(new InvasionThreatSnapshot(
+        scenario.GameEvents.Publish(new OperatingDayStartedEvent(4));
+        scenario.GameEvents.Publish(new OperatingDayReportEvent(OperatingDayReport.Create(1)));
+        scenario.GameEvents.Publish(new OperatingDayReportEvent(OperatingDayReport.Create(2)));
+        scenario.GameEvents.Publish(new InvasionStartedEvent(new InvasionThreatSnapshot(
             120f,
             InvasionThreatStage.Candidate,
             new InvasionThreatFactors(2f, 2f, 2f, 1f),
             0f,
             0f)));
-        scenario.Runtime.OnTriggerEvent(new InvasionResolvedEvent(true, 1f));
-        scenario.Runtime.OnTriggerEvent(new FacilityVisitEvent((CharacterActor)null, CreateFacility(9001, "발견 시설")));
+        scenario.GameEvents.Publish(new InvasionResolvedEvent(true, 1f));
+        scenario.GameEvents.Publish(new FacilityVisitEvent((CharacterActor)null, CreateFacility(9001, "발견 시설")));
 
         CharacterActor owner = CreateOwner(scenario.Runtime);
-        RunResultSnapshot result = scenario.Runtime.EndRun(CharacterActor.From(owner), "테스트 사망");
+        RunResultSnapshot result = scenario.Runtime.EndRun(MetaRuntimeApplicationAdapter.GetOwnerName(CharacterActor.From(owner)), "테스트 사망");
 
         bool valid = result != null
             && result.legacyCurrency > 0
@@ -136,8 +142,13 @@ public static class MetaProgressionDebugScenarios
         IReadOnlyList<FacilityShopOffer> offers = FacilityShopService.CreateBasicPurchaseOffers(
             new[] { second, first },
             new FacilityShopUnlockState(),
-            scenario.Runtime.GetExpandedBasicPurchaseBuildingIds(new[] { second, first }),
-            DefaultBuildingCostMultiplier);
+            scenario.Runtime.GetExpandedBasicPurchaseBuildingIds(new[]
+            {
+                new MetaFacilityCandidateSnapshot(second.id, true),
+                new MetaFacilityCandidateSnapshot(first.id, true)
+            }),
+            DefaultBuildingCostMultiplier,
+            CharacterAiEditorTestDependencies.AuthoredGameplay);
 
         bool valid = purchasedFacility
             && purchasedBasic
@@ -172,9 +183,9 @@ public static class MetaProgressionDebugScenarios
         BlueprintResearchUnlockResult unlock = new BlueprintResearchUnlockResult(
             blueprint,
             new[] { recipeUnlock });
-        scenario.Runtime.OnTriggerEvent(new BlueprintResearchCompletedEvent(blueprint, unlock));
+        scenario.GameEvents.Publish(new BlueprintResearchCompletedEvent(blueprint, unlock));
         CharacterActor owner = CreateOwner(scenario.Runtime);
-        scenario.Runtime.EndRun(CharacterActor.From(owner), "테스트 사망");
+        scenario.Runtime.EndRun(MetaRuntimeApplicationAdapter.GetOwnerName(CharacterActor.From(owner)), "테스트 사망");
 
         bool valid = scenario.Runtime.IsRecipePreserved("recipe_preserve_test");
 
@@ -215,8 +226,26 @@ public static class MetaProgressionDebugScenarios
         BuildingSO defense = CreateBuilding(9401, "전략 방어 시설", true);
         BuildingSO general = CreateBuilding(9402, "전략 일반 시설", false);
         RuntimeMetaProgressionReader metaReader = new RuntimeMetaProgressionReader(scenario.Runtime);
+        AuthoredGameplayCatalog authored = new AuthoredGameplayCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        DungeonSceneRuntimeReferences runReferences =
+            EditorRuntimeReferenceFixtures.DungeonWithRunVariables;
+        RunVariableRuntime runVariables = runReferences.RunVariables;
+        runVariables.Construct(
+            new EmptyOwnerRunDataProvider(),
+            EditorRuntimeReferenceFixtures.Invasion,
+            new RunStartVariableSelector(
+                EmptyRunStartVariableCatalog.Instance,
+                metaReader,
+                authored),
+            new DungeonStory.Foundation.RandomStreamProvider(9405),
+            new DungeonStory.Foundation.GameEventBus(),
+            authored,
+            authored,
+            new DungeonRuntimeAggregateRootStore());
+        runVariables.StartRun(9405);
         RunVariableRuntimeReader runReader = new RunVariableRuntimeReader(
-            new EmptyRunVariableRuntimeProvider(),
+            runReferences,
             metaReader);
 
         BuildingSO researchBuilding = CreateBuilding(9403, "전략 연구 시설", false);
@@ -228,6 +257,7 @@ public static class MetaProgressionDebugScenarios
         researchBuilding.Facility.SetSupportedWorkTypeIds(new[] { BuiltInWorkTypeIds.Research });
         GameObject researchFacilityObject = new GameObject("Strategy Research Facility");
         BuildableObject researchFacility = researchFacilityObject.AddComponent<BuildableObject>();
+        CharacterAiEditorTestDependencies.Inject(researchFacility);
         researchFacility.Initialization(researchBuilding, Vector2Int.zero);
         FacilityBlueprintSO researchBlueprint = ScriptableObject.CreateInstance<FacilityBlueprintSO>();
         researchBlueprint.id = 9404;
@@ -235,10 +265,12 @@ public static class MetaProgressionDebugScenarios
         researchBlueprint.researchWorkRequired = 100f;
         GameObject researchRuntimeObject = new GameObject("Strategy Research Runtime");
         BlueprintResearchRuntime researchRuntime = researchRuntimeObject.AddComponent<BlueprintResearchRuntime>();
+        CharacterAiEditorTestDependencies.Inject(researchRuntime);
         researchRuntime.State.EnqueueBlueprint(researchBlueprint);
         BlueprintResearchWorkService researchService = new BlueprintResearchWorkService(
-            new FixedBlueprintResearchRuntimeProvider(researchRuntime),
-            metaReader);
+            new ProgressionSceneRuntimeReferences(null, researchRuntime, null),
+            metaReader,
+            new EmptyKnowledgeResidueProcessingRuntime());
         BlueprintResearchWorkResult researchResult = researchService.ApplyResearchWork(
             null,
             researchFacility,
@@ -247,11 +279,11 @@ public static class MetaProgressionDebugScenarios
         bool valid = commercePurchased
             && fortressPurchased
             && arcanePurchased
-            && Mathf.Approximately(scenario.Runtime.GetCommerceStockCostMultiplier(StockCategory.Food), 0.96f)
-            && Mathf.Approximately(scenario.Runtime.GetCommerceStockCostMultiplier(StockCategory.General), 0.96f)
-            && Mathf.Approximately(scenario.Runtime.GetCommerceStockCostMultiplier(StockCategory.Mana), 1f)
-            && Mathf.Approximately(scenario.Runtime.GetFortressFacilityCostMultiplier(defense), 0.95f)
-            && Mathf.Approximately(scenario.Runtime.GetFortressFacilityCostMultiplier(general), 1f)
+            && Mathf.Approximately(scenario.Runtime.GetCommerceStockCostMultiplier(true), 0.96f)
+            && Mathf.Approximately(scenario.Runtime.GetCommerceStockCostMultiplier(true), 0.96f)
+            && Mathf.Approximately(scenario.Runtime.GetCommerceStockCostMultiplier(false), 1f)
+            && Mathf.Approximately(scenario.Runtime.GetFortressFacilityCostMultiplier(true), 0.95f)
+            && Mathf.Approximately(scenario.Runtime.GetFortressFacilityCostMultiplier(false), 1f)
             && Mathf.Approximately(scenario.Runtime.GetArcaneResearchWorkMultiplier(), 1.08f)
             && Mathf.Approximately(runReader.GetStockCostMultiplier(StockCategory.Food), 0.96f)
             && Mathf.Approximately(runReader.GetFacilityShopCostMultiplier(defense), 0.95f)
@@ -259,7 +291,7 @@ public static class MetaProgressionDebugScenarios
             && Mathf.Approximately(
                 researchResult.AddedProgress,
                 BlueprintResearchService.CalculateResearchWork(null, researchFacility, 1f) * 1.08f)
-            && MetaProgressionCatalog.All.Count == 9;
+            && scenario.Runtime.State.Catalog.All.Count == 9;
 
         Object.DestroyImmediate(defense);
         Object.DestroyImmediate(general);
@@ -274,31 +306,25 @@ public static class MetaProgressionDebugScenarios
     {
         const string UpgradeId = "meta:test:custom-capacity";
         const string EffectId = "meta:test:custom-capacity-value";
-        try
-        {
-            MetaProgressionCatalog.Register(new MetaUpgradeDefinition(
-                UpgradeId,
-                MetaProgressionBranch.OperationKnowledge,
-                "테스트 수용량",
-                "확장 계약 검증",
-                1,
-                3,
-                new IMetaUpgradeEffect[] { new TestMetaIntegerEffect(EffectId) }));
-
-            MetaProgressionState state = new MetaProgressionState();
-            state.SetUpgradeLevelForDebug(UpgradeId, 2);
-            var idProperty = typeof(MetaUpgradeDefinition).GetProperty("id");
-            bool immutableStableId = idProperty != null
-                && idProperty.PropertyType == typeof(string)
-                && !idProperty.CanWrite;
-            return MetaProgressionEffects.GetIntegerBonus(state, EffectId) == 6
-                && state.UpgradeLevels.ContainsKey(UpgradeId)
-                && immutableStableId;
-        }
-        finally
-        {
-            MetaProgressionCatalog.ResetToBuiltIns();
-        }
+        MetaUpgradeDefinition definition = new MetaUpgradeDefinition(
+            UpgradeId,
+            MetaProgressionBranch.OperationKnowledge,
+            "테스트 수용량",
+            "확장 계약 검증",
+            1,
+            3,
+            new IMetaUpgradeEffect[] { new TestMetaIntegerEffect(EffectId) });
+        MetaProgressionState state = new MetaProgressionState(
+            new SingleMetaUpgradeCatalog(definition),
+            new DungeonRuntimeAggregateRootStore());
+        state.SetUpgradeLevelForDebug(UpgradeId, 2);
+        var idProperty = typeof(MetaUpgradeDefinition).GetProperty("id");
+        bool immutableStableId = idProperty != null
+            && idProperty.PropertyType == typeof(string)
+            && !idProperty.CanWrite;
+        return MetaProgressionEffects.GetIntegerBonus(state, EffectId) == 6
+            && state.UpgradeLevels.ContainsKey(UpgradeId)
+            && immutableStableId;
     }
 
     private static CharacterActor CreateOwner(MetaProgressionRuntime runtime)
@@ -314,15 +340,14 @@ public static class MetaProgressionDebugScenarios
         obj.AddComponent<SpriteRenderer>();
         CharacterActor character = obj.AddComponent<CharacterActor>();
         obj.AddComponent<AbilityMove>();
-        obj.AddComponent<AbilityWork>();
-        obj.AddComponent<AIBrain>();
         CharacterAiEditorTestDependencies.Inject(obj);
-        character.GetComponent<CharacterStats>()?.ConstructCharacterStats(
+        CharacterAiEditorTestDependencies.InjectCharacterStats(
+            character.GetComponent<CharacterStats>(),
             new NoopStaffDiscontentRuntimeService(),
-            new NoopOwnerRunLifecycleService(),
             new RuntimeMetaProgressionReader(runtime),
             new DungeonStory.Foundation.UnityGameClock(),
-            gameEventBus: CharacterAiEditorTestDependencies.GameEvents);
+            CharacterAiEditorTestDependencies.AuthoredGameplay,
+            DisabledDungeonDebugRuleQuery.Instance);
         character.RefreshAbilityCache();
         character.Initialization(data);
         character.SetLifecycleState(CharacterLifecycleState.Active);
@@ -334,8 +359,70 @@ public static class MetaProgressionDebugScenarios
         BuildingSO building = CreateBuilding(id, name, false);
         GameObject obj = new GameObject(name);
         BuildableObject facility = obj.AddComponent<BuildableObject>();
+        CharacterAiEditorTestDependencies.Inject(facility);
         facility.Initialization(building, Vector2Int.zero);
         return facility;
+    }
+
+    private static bool VerifyStrictMetaSaveRestore()
+    {
+        using ScenarioRuntime scenario = new ScenarioRuntime();
+        scenario.Runtime.State.AddCurrency(17);
+        MetaProgressionSaveSection section = new MetaProgressionSaveSection(
+            scenario.Runtime);
+        string captured = section.Capture();
+
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        IDungeonSaveRestoreStage staged = section.StageRestore(
+            captured,
+            1,
+            report);
+        int earnedBeforeCommit = scenario.Runtime.State.LifetimeEarnedCurrency;
+        staged.Commit(report);
+        bool currentVersionRoundTrip =
+            scenario.Runtime.State.LifetimeEarnedCurrency == earnedBeforeCommit;
+
+        DungeonMetaProgressionSaveData invalid =
+            JsonUtility.FromJson<DungeonMetaProgressionSaveData>(captured);
+        invalid.spentCurrency = invalid.lifetimeEarnedCurrency + 1;
+        int earnedBeforeInvalid = scenario.Runtime.State.LifetimeEarnedCurrency;
+        int spentBeforeInvalid = scenario.Runtime.State.SpentCurrency;
+        int runsBeforeInvalid = scenario.Runtime.State.CompletedRunCount;
+        bool invalidRejected = false;
+        try
+        {
+            section.StageRestore(
+                JsonUtility.ToJson(invalid),
+                1,
+                new DungeonGameRestoreReport());
+        }
+        catch (InvalidOperationException)
+        {
+            invalidRejected = true;
+        }
+
+        bool invalidLeftStateUntouched =
+            scenario.Runtime.State.LifetimeEarnedCurrency == earnedBeforeInvalid
+            && scenario.Runtime.State.SpentCurrency == spentBeforeInvalid
+            && scenario.Runtime.State.CompletedRunCount == runsBeforeInvalid;
+
+        bool legacyRejected = false;
+        try
+        {
+            section.StageRestore(captured, 0, new DungeonGameRestoreReport());
+        }
+        catch (InvalidOperationException)
+        {
+            legacyRejected = true;
+        }
+
+        return currentVersionRoundTrip
+            && invalidRejected
+            && invalidLeftStateUntouched
+            && legacyRejected
+            && section is IDungeonRollbackFreeSaveSection
+            && section is IDungeonSaveSectionPreflight
+            && section is IDungeonStagedSaveSection;
     }
 
     private static BuildingSO CreateBuilding(int id, string name, bool defense)
@@ -375,12 +462,15 @@ public static class MetaProgressionDebugScenarios
             runtimeObject = new GameObject("Meta Progression Scenario Runtime");
             Runtime = runtimeObject.AddComponent<MetaProgressionRuntime>();
             Runtime.Construct(
-                new MetaRunResultBuilder(
-                    new MissingThreatRuntimeProvider(),
-                    gameClock),
-                new NoopRunResultPanelService(),
+                new MetaRunResultBuilder(),
+                new MetaRuntimeApplicationAdapter(
+                    GameEvents,
+                    EditorRuntimeReferenceFixtures.Invasion,
+                    runVariables: null,
+                    new NoopRunResultPanelService()),
                 gameClock,
-                GameEvents);
+                CreateAuthoredMetaCatalog(),
+                new DungeonRuntimeAggregateRootStore());
             Runtime.SetShowRunResultPanel(false);
             Runtime.StartNewRun();
         }
@@ -454,6 +544,37 @@ public static class MetaProgressionDebugScenarios
         }
     }
 
+    private static IMetaUpgradeDefinitionCatalog CreateAuthoredMetaCatalog()
+    {
+        return new AuthoredGameplayCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+    }
+
+    private sealed class SingleMetaUpgradeCatalog : IMetaUpgradeDefinitionCatalog
+    {
+        private readonly MetaUpgradeDefinition definition;
+
+        public SingleMetaUpgradeCatalog(MetaUpgradeDefinition definition)
+        {
+            this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
+        }
+
+        public IReadOnlyCollection<MetaUpgradeDefinition> All =>
+            new[] { definition };
+
+        public MetaUpgradeDefinition Get(string id)
+        {
+            return string.Equals(definition.id, id, StringComparison.Ordinal)
+                ? definition
+                : null;
+        }
+
+        public MetaUpgradeDefinition Require(string id)
+        {
+            return Get(id) ?? throw new KeyNotFoundException(id);
+        }
+    }
+
     private sealed class TestMetaIntegerEffect : IMetaIntegerBonusEffect
     {
         public TestMetaIntegerEffect(string effectId)
@@ -466,15 +587,6 @@ public static class MetaProgressionDebugScenarios
         public int GetBonus(int level)
         {
             return level * 3;
-        }
-    }
-
-    private sealed class MissingThreatRuntimeProvider : IInvasionThreatRuntimeProvider
-    {
-        public bool TryGetRuntime(out InvasionThreatRuntime runtime)
-        {
-            runtime = null;
-            return false;
         }
     }
 
@@ -507,6 +619,23 @@ public static class MetaProgressionDebugScenarios
         }
     }
 
+    private sealed class EmptyOwnerRunDataProvider : IOwnerRunDataProvider
+    {
+        public CharacterSO SelectedOwnerData => null;
+    }
+
+    private sealed class EmptyRunStartVariableCatalog : IRunStartVariableCatalog
+    {
+        public static readonly EmptyRunStartVariableCatalog Instance = new();
+
+        public IReadOnlyCollection<BuildingSO> Buildings =>
+            Array.Empty<BuildingSO>();
+        public IReadOnlyCollection<CharacterSO> Characters =>
+            Array.Empty<CharacterSO>();
+        public IReadOnlyCollection<FacilityBlueprintSO> Blueprints =>
+            Array.Empty<FacilityBlueprintSO>();
+    }
+
     private sealed class RuntimeMetaProgressionReader : IMetaProgressionRuntimeReader
     {
         private readonly MetaProgressionRuntime runtime;
@@ -520,40 +649,32 @@ public static class MetaProgressionDebugScenarios
         public int GetStartingOwnerTraitCandidateBonus() => runtime.GetStartingOwnerTraitCandidateBonus();
         public float GetOwnerMaxHealthMultiplier() => runtime.GetOwnerMaxHealthMultiplier();
         public float GetInvasionWarningThresholdMultiplier() => runtime.GetInvasionWarningThresholdMultiplier();
-        public float GetCommerceStockCostMultiplier(StockCategory category) => runtime.GetCommerceStockCostMultiplier(category);
-        public float GetFortressFacilityCostMultiplier(BuildingSO building) => runtime.GetFortressFacilityCostMultiplier(building);
+        public float GetCommerceStockCostMultiplier(StockCategory category) => runtime.GetCommerceStockCostMultiplier(category == StockCategory.Food || category == StockCategory.General);
+        public float GetFortressFacilityCostMultiplier(BuildingSO building) => runtime.GetFortressFacilityCostMultiplier(building?.Defense != null && building.Defense.IsDefenseFacility);
         public float GetArcaneResearchWorkMultiplier() => runtime.GetArcaneResearchWorkMultiplier();
         public bool IsRecipePreserved(string recipeId) => runtime.IsRecipePreserved(recipeId);
 
         public IReadOnlyCollection<int> GetExpandedBasicPurchaseBuildingIds(
             IEnumerable<BuildingSO> buildings)
         {
-            return runtime.GetExpandedBasicPurchaseBuildingIds(buildings);
+            return runtime.GetExpandedBasicPurchaseBuildingIds((buildings ?? Array.Empty<BuildingSO>())
+                .Where(building => building != null)
+                .Select(building => new MetaFacilityCandidateSnapshot(building.id, !building.IsGridMovement && !building.IsWall && FacilityShopService.GetBuildingStar(building) <= 1)));
         }
     }
 
-    private sealed class EmptyRunVariableRuntimeProvider : IRunVariableRuntimeProvider
+    private sealed class EmptyKnowledgeResidueProcessingRuntime :
+        IKnowledgeResidueProcessingRuntime
     {
-        public bool TryGetRuntime(out RunVariableRuntime runtime)
-        {
-            runtime = null;
-            return false;
-        }
-    }
-
-    private sealed class FixedBlueprintResearchRuntimeProvider : IBlueprintResearchRuntimeProvider
-    {
-        private readonly BlueprintResearchRuntime runtime;
-
-        public FixedBlueprintResearchRuntimeProvider(BlueprintResearchRuntime runtime)
-        {
-            this.runtime = runtime;
-        }
-
-        public bool TryGetRuntime(out BlueprintResearchRuntime resolved)
-        {
-            resolved = runtime;
-            return resolved != null;
-        }
+        public IReadOnlyList<KnowledgeResidueTaskSnapshot> Tasks =>
+            Array.Empty<KnowledgeResidueTaskSnapshot>();
+        public bool TryQueueCodexAnalysis(out string message) { message = string.Empty; return false; }
+        public bool TryQueueRegionReconnaissance(string regionId, out string message) { message = string.Empty; return false; }
+        public bool HasProcessingWorkFor(BuildableObject facility) => false;
+        public BlueprintResearchWorkResult ApplyWork(CharacterActor researcher, BuildableObject facility, float seconds) => default;
+        public IReadOnlyList<KnowledgeResidueTaskSaveData> Capture() => Array.Empty<KnowledgeResidueTaskSaveData>();
+        public KnowledgeResidueRestoreCandidate PrepareRestore(IEnumerable<KnowledgeResidueTaskSaveData> tasks) =>
+            new KnowledgeResidueRestoreCandidate(new KnowledgeResidueAggregateState());
+        public void Restore(KnowledgeResidueRestoreCandidate candidate) { }
     }
 }

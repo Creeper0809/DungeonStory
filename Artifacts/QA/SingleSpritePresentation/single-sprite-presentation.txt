@@ -1,0 +1,14 @@
+PASS ACTORS: runtime actors=8
+PASS COMPOSITION: motion=True; carry=True; action=True
+PASS RESET_BASELINE: position=(0.00, 0.50, 0.00); scale=(1.00, 1.00, 1.00); rotation=0
+PASS STATIC_SPRITE: sprite=char_010_walk_0; unchanged=True
+PASS OFFSCREEN_ZERO_WORK: transform=59->59; action=59->59; carry=1->1
+PASS CARRY_SETUP: added=True; accepted=1; failure=
+PASS CARRY_FACING_SORTING: enabled=True; x=0.313/-0.313; orders=1/1/1; layer=0/0
+PASS STEADY_STATE_GC: allocatedBytes=0
+PASS FACILITY_COMPOSITION: presentations=152; eligibleBuildings=152
+PASS FACILITY_STATES: operating=True; completed=True; idle=True; drainBlocked=True
+PASS CAPTURE_1600x900: requested=1600x900; actual=1600x900; rotationCompatible=False
+PASS CAPTURE_900x1600: requested=900x1600; actual=900x1600; rotationCompatible=False
+PASS CONSOLE: Error 0 / Warning 0
+RESULT: PASS

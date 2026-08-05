@@ -1,0 +1,16 @@
+{
+  "name": "DungeonStory.Buildings.Editor",
+  "rootNamespace": "DungeonStory.Buildings.Editor",
+  "references": [
+    "DungeonStory.Buildings"
+  ],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

@@ -22,15 +22,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Hallway, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 7
       Data: 1|System.Collections.Generic.Dictionary`2[[GridTexture+TilemapLayer,
@@ -97,13 +88,15 @@ MonoBehaviour:
   sprite: {fileID: 21300000, guid: 656bc58be51180c409a3ddf1b2ae9a47, type: 3}
   icon: {fileID: 21300000, guid: 656bc58be51180c409a3ddf1b2ae9a47, type: 3}
   abilityModules:
-    items: []
+    items:
+    - rid: 8800000000000000002
   width: 3
   height: 1
   layer: 1
   category: 4
   horizontalDraggable: 0
   verticalDraggable: 1
+  runtimeArchetype: 5
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -111,4 +104,16 @@ MonoBehaviour:
   unlocked: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 8800000000000000002
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 30
+        repairWorkRequired: 14
+        cleanWorkRequired: 8.75
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: component:machine-parts
+          amount: 3

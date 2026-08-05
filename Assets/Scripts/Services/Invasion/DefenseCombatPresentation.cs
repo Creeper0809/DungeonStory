@@ -19,16 +19,15 @@ public sealed class DefenseCombatPresentation : MonoBehaviour
     private Quaternion visualRestRotation = Quaternion.identity;
     private Color visualRestColor = Color.white;
     private bool downed;
-    private static readonly ICombatEquipmentCatalog EquipmentCatalog =
-        new ResourceCombatEquipmentCatalog();
-    private static readonly IDungeonItemCatalogProvider ItemCatalog =
-        new ResourceDungeonItemCatalogProvider();
     private IGameClock gameClock;
     private ITmpKoreanFontService tmpKoreanFontService;
+    private string currentStatus = string.Empty;
+    private bool combatActive;
 
-    public static DefenseCombatPresentation Ensure(
-        CharacterActor owner,
-        ITmpKoreanFontService tmpKoreanFontService = null)
+    public string CurrentStatus => currentStatus;
+    public bool IsCombatActive => combatActive;
+
+    public static DefenseCombatPresentation Ensure(CharacterActor owner)
     {
         if (owner == null)
         {
@@ -40,7 +39,7 @@ public sealed class DefenseCombatPresentation : MonoBehaviour
             presentation = owner.gameObject.AddComponent<DefenseCombatPresentation>();
         }
 
-        presentation.Bind(owner, tmpKoreanFontService ?? owner.TmpKoreanFontService);
+        presentation.Bind(owner, owner.TmpKoreanFontService);
         return presentation;
     }
 
@@ -85,6 +84,8 @@ public sealed class DefenseCombatPresentation : MonoBehaviour
 
     public void SetStatus(string status, bool combatActive = false)
     {
+        currentStatus = status?.Trim() ?? string.Empty;
+        this.combatActive = combatActive;
         EnsureTexts();
         if (statusRoutine != null)
         {
@@ -94,7 +95,7 @@ public sealed class DefenseCombatPresentation : MonoBehaviour
 
         if (engagementText != null)
         {
-            engagementText.text = status?.Trim() ?? string.Empty;
+            engagementText.text = currentStatus;
             float roleOffset = string.Equals(engagementText.text, "대기", System.StringComparison.Ordinal)
                 ? 0.22f
                 : 0f;
@@ -175,7 +176,10 @@ public sealed class DefenseCombatPresentation : MonoBehaviour
         }
     }
 
-    public void PlayHit(float damage, CombatDamageType damageType = CombatDamageType.Slash)
+    public void PlayHit(
+        float damage,
+        CombatDamageType damageType,
+        IWorldUiHierarchy worldUiHierarchy)
     {
         if (!isActiveAndEnabled || actor == null)
         {
@@ -195,7 +199,11 @@ public sealed class DefenseCombatPresentation : MonoBehaviour
 
         hitRoutine = StartCoroutine(HitFlash());
         damageRoutine = StartCoroutine(ShowDamage(damage));
-        CombatImpactPresentation.Play(actor.transform.position, damageType, gameClock);
+        CombatImpactPresentation.Play(
+            actor.transform.position,
+            damageType,
+            gameClock,
+            worldUiHierarchy);
     }
 
     private IEnumerator AttackMotion(Vector3 targetWorldPosition, CombatWeaponSnapshot weapon)
@@ -330,12 +338,16 @@ public sealed class DefenseCombatPresentation : MonoBehaviour
     private void PrepareHeldEquipment(CombatWeaponSnapshot weapon, Vector3 targetWorldPosition)
     {
         EnsureHeldEquipment();
+        IDungeonItemCatalogProvider itemCatalog =
+            actor?.WorldItemStackRuntime?.CatalogProvider;
+        string itemId = weapon != null
+            ? PhysicalItemIds.ForEquipment(weapon.DefinitionId)
+            : string.Empty;
         if (heldEquipment == null
             || weapon == null
             || string.IsNullOrWhiteSpace(weapon.DefinitionId)
-            || !EquipmentCatalog.TryGet(weapon.DefinitionId, out CombatEquipmentDefinitionSO definition)
-            || string.IsNullOrWhiteSpace(definition.ItemId)
-            || !ItemCatalog.TryGetDefinition(definition.ItemId, out DungeonItemDefinition item)
+            || itemCatalog == null
+            || !itemCatalog.TryGetDefinition(itemId, out DungeonItemDefinition item)
             || item?.Sprite == null)
         {
             if (heldEquipment != null)

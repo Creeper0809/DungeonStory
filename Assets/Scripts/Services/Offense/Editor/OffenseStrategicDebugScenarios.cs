@@ -1,0 +1,1625 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using DungeonStory.Foundation;
+using UnityEditor;
+using UnityEngine;
+
+public static class OffenseStrategicDebugScenarios
+{
+    [MenuItem("Tools/DungeonStory/Validation/Run Offense Strategic Scenarios")]
+    public static void RunFromMenu()
+    {
+        string report = RunAll();
+        Debug.Log(report);
+    }
+
+    public static string RunAll()
+    {
+        List<string> passed = new List<string>();
+        Run("콘텐츠 카탈로그", VerifyContentCatalog, passed);
+        Run("월드 생성 결정성", VerifyWorldDeterminism, passed);
+        Run("육각 A*와 안전 이동", VerifyPathAndReturnSafety, passed);
+        Run("긴급 거점 단계와 완화", VerifyUrgentSiteLifecycle, passed);
+        Run("긴급 거점 물리 완화 작업", VerifyPhysicalUrgentMitigation, passed);
+        Run("원정 보급 물리 집결", VerifyPhysicalExpeditionPacking, passed);
+        Run("원정 정비 도구 물리 집결", VerifyPhysicalExpeditionToolPacking, passed);
+        Run("Strategic 중간 상태 저장 왕복", VerifySaveRoundTrip, passed);
+        Run("사건 선택 실제 결과", VerifyDecisionEffects, passed);
+        Run("전술 사슬 전달률", VerifyChainFallbacks, passed);
+        Run("명령 덱과 적 의도 단일 실행", VerifyCommandBattle, passed);
+        return $"Offense Strategic scenarios passed ({passed.Count}): "
+            + string.Join(", ", passed);
+    }
+
+    private static void VerifyContentCatalog()
+    {
+        EditorContentCatalog catalog = LoadCatalog();
+        Require(catalog.SiteArchetypes.Count >= 12, "고정 보스를 포함한 거점 원형이 12개 미만입니다.");
+        Require(catalog.UrgentSites.Count == 6, "긴급 거점 정의는 6개여야 합니다.");
+        Require(catalog.DecisionCards.Count >= 48, "사건 카드는 최소 48개여야 합니다.");
+        Require(catalog.Encounters.Count >= 6, "인카운터 정의가 6개 미만입니다.");
+        Require(
+            catalog.DecisionCards.All(card =>
+                card != null
+                && !string.IsNullOrWhiteSpace(card.cardId)
+                && card.choices != null
+                && card.choices.Count == 2
+                && card.choices.All(choice =>
+                    choice != null
+                    && !string.IsNullOrWhiteSpace(choice.choiceId))),
+            "모든 사건 카드는 정확히 두 개의 유효 선택지를 가져야 합니다.");
+        string[] effectlessChoices = catalog.DecisionCards
+            .SelectMany(card => card.choices.Select(choice =>
+                new { card, choice }))
+            .Where(pair => pair.choice.effects == null
+                || pair.choice.effects.Count == 0)
+            .Select(pair =>
+                $"{pair.card.cardId}:{pair.choice.choiceId}"
+                + $"({pair.choice.directionLabel})")
+            .ToArray();
+        Require(
+            effectlessChoices.Length == 0,
+            "실제 결과 모듈이 없는 사건 선택지가 있습니다: "
+            + string.Join(", ", effectlessChoices));
+        Require(
+            catalog.DecisionCards
+                .SelectMany(card => card.choices)
+                .Where(choice => choice.mayStartCombat)
+                .All(choice => choice.effects.Any(effect =>
+                    effect is OffenseCombatDecisionEffect)),
+            "전투 사건에 전투 실행 효과가 없습니다.");
+        Require(
+            catalog.DecisionCards
+                .SelectMany(card => card.choices)
+                .Where(choice => choice.mayMoveExpedition)
+                .All(choice => choice.effects.Any(effect =>
+                    effect is OffenseForcedMoveDecisionEffect)),
+            "강제 이동 사건에 이동 실행 효과가 없습니다.");
+        RequireUnique(
+            catalog.DecisionCards.Select(card => card.cardId),
+            "사건 카드 ID");
+        RequireUnique(
+            catalog.SiteArchetypes.Select(site => site.siteTypeId),
+            "거점 원형 ID");
+        RequireUnique(
+            catalog.UrgentSites.Select(site => site.urgentSiteId),
+            "긴급 거점 ID");
+        Require(
+            catalog.SiteArchetypes.All(site =>
+                site != null
+                && site.rewards != null
+                && site.rewards.Any(reward =>
+                    reward != null && reward.IsConfigured)),
+            "실제 보상 정의가 없는 거점 원형이 있습니다.");
+        Require(
+            catalog.SiteArchetypes
+                .Where(site => site != null
+                    && site.pressureAxis != StrategicPressureAxis.None
+                    && site.pressureAmount > 0f)
+                .All(site => site.rewards.Any(reward =>
+                    reward?.GrantSpec is OffenseRegionalPressureRewardSpec)),
+            "전략 압력 거점에 지역 압력 보상이 연결되지 않았습니다.");
+        Require(
+            catalog.SiteArchetypes.Any(site =>
+                site.rewards.Any(reward =>
+                    reward?.GrantSpec is OffenseStockRewardSpec)),
+            "실물 재고 보상을 지급하는 거점이 없습니다.");
+        Require(
+            catalog.SiteArchetypes.Any(site =>
+                site.rewards.Any(reward =>
+                    reward?.GrantSpec is OffensePrisonerRewardSpec)),
+            "실물 포로 귀환 보상을 지급하는 거점이 없습니다.");
+        Require(
+            catalog.SiteArchetypes.Count(site =>
+                site != null && !site.dynamicSpawnEligible) == 2,
+            "고정 보스 원형 두 개가 동적 생성 제외로 설정되지 않았습니다.");
+    }
+
+    private static void VerifyWorldDeterminism()
+    {
+        EditorContentCatalog catalog = LoadCatalog();
+        OffenseHexWorldSimulation first = CreateWorld(catalog, 71231);
+        OffenseHexWorldSimulation second = CreateWorld(catalog, 71231);
+        string firstJson = JsonUtility.ToJson(first.Capture());
+        string secondJson = JsonUtility.ToJson(second.Capture());
+        Require(firstJson == secondJson, "같은 시드의 월드 상태가 다릅니다.");
+        Require(
+            first.Tiles.Count == 1 + 3 * OffenseHexWorldSimulation.DefaultRadius
+                * (OffenseHexWorldSimulation.DefaultRadius + 1),
+            "육각 월드 타일 수가 반지름 공식과 다릅니다.");
+        Require(
+            first.Sites.Any(site =>
+                site.siteId == OffenseHexWorldSimulation.RivalDungeonSiteId),
+            "고정 경쟁 던전 권역이 없습니다.");
+        Require(
+            first.Sites.Any(site =>
+                site.siteId == OffenseHexWorldSimulation.TruthCoreSiteId),
+            "고정 진실 권역이 없습니다.");
+        Require(
+            first.Sites
+                .Where(site => site != null && !site.fixedBoss)
+                .All(site => catalog.SiteArchetypes.Any(archetype =>
+                    archetype != null
+                    && archetype.dynamicSpawnEligible
+                    && archetype.siteTypeId == site.archetypeId)),
+            "동적 거점에 고정 보스 전용 원형이 생성되었습니다.");
+        OffenseWorldSiteStateData[] initialApproachSites = first.Sites
+            .Where(site => site != null
+                && !site.fixedBoss
+                && site.state == OffenseWorldSiteState.Revealed)
+            .ToArray();
+        Require(
+            initialApproachSites.Length
+                == OffenseHexWorldSimulation.InitialRevealedSiteCount,
+            "새 런 기본 정찰 거점 수가 다릅니다.");
+        Require(
+            initialApproachSites.All(site => site.strength <= 4),
+            "기본 정찰 거점이 시작 직원 두 명으로 출정할 수 없습니다.");
+    }
+
+    private static void VerifyPathAndReturnSafety()
+    {
+        OffenseHexWorldSimulation world = CreateWorld(LoadCatalog(), 8031);
+        OffenseWorldSiteStateData destination = world.Sites
+            .Where(site => site != null && site.IsActive)
+            .OrderByDescending(site =>
+                world.GetMinimumStepDistance(world.DungeonCoord, site.Coord))
+            .First();
+        Require(
+            world.TryFindPath(
+                world.DungeonCoord,
+                destination.Coord,
+                OffenseTravelProfile.Default,
+                out IReadOnlyList<OffenseHexCoord> path,
+                out float cost),
+            "거점까지 A* 경로를 찾지 못했습니다.");
+        Require(path.Count > 0 && cost > 0f, "A* 경로 또는 비용이 비어 있습니다.");
+        OffenseHexCoord previous = world.DungeonCoord;
+        foreach (OffenseHexCoord step in path)
+        {
+            Require(previous.DistanceTo(step) == 1, "A* 경로에 인접하지 않은 이동이 있습니다.");
+            previous = step;
+        }
+
+        OffenseReturnSafetyRuntime safety = new OffenseReturnSafetyRuntime(world);
+        int minimumSteps = world.GetMinimumStepDistance(
+            destination.Coord,
+            world.DungeonCoord);
+        int granted = safety.GrantForObjective(
+            "expedition:test",
+            destination.Coord,
+            world.DungeonCoord);
+        Require(granted == minimumSteps, "안전 이동 칸이 최단 칸 수와 다릅니다.");
+        Require(safety.Get("expedition:test").StressMultiplier == 0.35f,
+            "안전 이동 스트레스 배율이 다릅니다.");
+        Require(safety.ConsumeMovedStep("expedition:test"), "안전 이동 칸을 소비하지 못했습니다.");
+        Require(
+            safety.Get("expedition:test").SafeStepBudget == granted - 1,
+            "실제 한 칸 이동이 안전 이동 한 칸만 소비하지 않았습니다.");
+        safety.RecordProtectedDangerousEvent("expedition:test", true);
+        Require(safety.MustUseNonCombatCard("expedition:test"),
+            "위험 사건 뒤 비전투 카드 pity가 켜지지 않았습니다.");
+        Require(!safety.CanGenerateForcedCombat(
+                "expedition:test",
+                1f,
+                false,
+                true),
+            "보호 이동의 강제 전투 상한이 적용되지 않았습니다.");
+        safety.ClearForSiteAttack("expedition:test");
+        Require(!safety.Get("expedition:test").IsProtected,
+            "다른 거점 공격이 안전 이동을 해제하지 않았습니다.");
+    }
+
+    private static void VerifyUrgentSiteLifecycle()
+    {
+        EditorContentCatalog catalog = LoadCatalog();
+        OffenseHexWorldSimulation world = CreateWorld(catalog, 4407);
+        OffenseUrgentSiteDefinitionSO definition = catalog.UrgentSites[0];
+        OffenseHexCoord coord = FindReachableEmptyCoord(world);
+        Require(
+            world.TrySpawnUrgentSite(definition.urgentSiteId, coord, out string siteId),
+            "긴급 거점을 생성하지 못했습니다.");
+        Require(world.TryGetUrgentSite(siteId, out OffenseUrgentSiteStateData site)
+            && site.stage == OffenseUrgentSiteStage.Signal,
+            "긴급 거점이 징후 단계에서 시작하지 않았습니다.");
+        Require(world.TryMitigateUrgentSite(siteId, 1f),
+            "긴급 거점을 완화하지 못했습니다.");
+        Require(site.mitigation <= 0.6001f,
+            "긴급 거점 완화가 60% 상한을 넘었습니다.");
+
+        world.AdvanceHours(12f);
+        Require(site.stage == OffenseUrgentSiteStage.Warning,
+            "12시간 후 경고 단계가 되지 않았습니다.");
+        world.AdvanceHours(18f);
+        Require(site.stage == OffenseUrgentSiteStage.Crisis,
+            "경고 18시간 후 위기 단계가 되지 않았습니다.");
+        Require(
+            ((IWorldThreatModifierQuery)world)
+                .GetModifier(definition.modifierKind)
+                .EffectiveStrength > 0f,
+            "위기 거점이 실제 위협 보정을 만들지 않았습니다.");
+        world.AdvanceHours(24f);
+        Require(site.stage == OffenseUrgentSiteStage.Withdrawing,
+            "위기 24시간 후 철수 준비 단계가 되지 않았습니다.");
+        world.AdvanceHours(6f);
+        Require(site.stage == OffenseUrgentSiteStage.Expired,
+            "철수 준비 6시간 후 긴급 거점이 만료되지 않았습니다.");
+    }
+
+    private static void VerifyDecisionEffects()
+    {
+        OffenseHexWorldSimulation world = CreateWorld(LoadCatalog(), 99031);
+        OffenseReturnSafetyRuntime safety = new OffenseReturnSafetyRuntime(world);
+        OffenseTravelRuntime travel = new OffenseTravelRuntime(world, safety, fieldMedical: null);
+        Require(
+            travel.TryCreateExpedition("decision-effects", out string reason),
+            reason);
+        OffenseSupplyLoadout supplies = new OffenseSupplyLoadout(
+            new Dictionary<OffenseSupplyType, int>
+            {
+                [OffenseSupplyType.Rations] = 3
+            });
+        OffenseExpeditionRun expedition = new OffenseExpeditionRun(
+            "decision-effects",
+            new OffenseTargetDefinition
+            {
+                id = "decision-target",
+                title = "사건 대상",
+                durationSeconds = 10f,
+                campaignOrder = 1
+            },
+            Array.Empty<CharacterActor>(),
+            0f,
+            10f,
+            null,
+            supplies,
+            null);
+        FixedMoneyRuntime money = new FixedMoneyRuntime(500);
+        OffenseDecisionEffectExecutor executor =
+            new OffenseDecisionEffectExecutor(
+                new IOffenseDecisionEffectHandler[]
+                {
+                    new OffenseSupplyDecisionEffectHandler(),
+                    new OffenseGoldDecisionEffectHandler(),
+                    new OffenseStressDecisionEffectHandler(),
+                    new OffenseExposureDecisionEffectHandler(),
+                    new OffenseInjuryDecisionEffectHandler(),
+                    new OffenseLootDecisionEffectHandler(),
+                    new OffenseReconDecisionEffectHandler(),
+                    new OffenseTimeDecisionEffectHandler(),
+                    new OffenseEquipmentWearDecisionEffectHandler(),
+                    new OffenseForcedMoveDecisionEffectHandler(),
+                    new OffenseCombatDecisionEffectHandler()
+                });
+        OffenseDecisionEffectContext context =
+            new OffenseDecisionEffectContext(
+                expedition,
+                travel,
+                world,
+                money,
+                deterministicRoll: 17, equipment: null);
+        OffenseDecisionEffectDefinition[] effects =
+        {
+            new OffenseSupplyDecisionEffect
+            {
+                supplyType = OffenseSupplyType.Rations,
+                amount = -1
+            },
+            new OffenseGoldDecisionEffect { amount = -100 },
+            new OffenseExposureDecisionEffect { amount = 20f },
+            new OffenseLootDecisionEffect
+            {
+                stockCategory = StockCategory.General,
+                amount = 3
+            },
+            new OffenseReconDecisionEffect { revealCount = 1 },
+            new OffenseForcedMoveDecisionEffect(),
+            new OffenseCombatDecisionEffect()
+        };
+        Require(executor.CanExecute(effects, context, out reason), reason);
+        executor.Execute(effects, context);
+        Require(
+            expedition.Supplies.Get(OffenseSupplyType.Rations) == 2,
+            "사건이 실제 원정 식량을 소비하지 않았습니다.");
+        Require(money.Balance == 400, "사건 뇌물이 실제 골드를 소비하지 않았습니다.");
+        Require(
+            travel.TryGetState(
+                expedition.ExpeditionId,
+                out OffenseTravelStateData state)
+            && Mathf.Approximately(state.exposure, 20f),
+            "사건 노출도가 이동 상태에 반영되지 않았습니다.");
+        Require(
+            expedition.GetCarriedStock(StockCategory.General) == 3,
+            "사건 전리품이 원정 적재에 반영되지 않았습니다.");
+        Require(
+            context.ForcesMovement && context.StartsCombat,
+            "사건 제어 효과가 이동·전투 후속 흐름을 만들지 않았습니다.");
+
+        OffenseDecisionEffectContext insufficient =
+            new OffenseDecisionEffectContext(
+                expedition,
+                travel,
+                world,
+                money,
+                deterministicRoll: 18, equipment: null);
+        Require(
+            !executor.CanExecute(
+                new OffenseDecisionEffectDefinition[]
+                {
+                    new OffenseGoldDecisionEffect { amount = -999 }
+                },
+                insufficient,
+                out _),
+            "부족한 골드 비용 선택이 실행 가능으로 판정됐습니다.");
+        Require(money.Balance == 400, "실행 가능성 검사만으로 골드가 변했습니다.");
+    }
+
+    private static void VerifyChainFallbacks()
+    {
+        OffenseChainResolution start = new OffenseChainResolution(
+            OffenseChainState.Full,
+            1f,
+            OffenseTacticalTag.Intercept,
+            0);
+        RequireApproximately(
+            OffenseTacticalChainRules.Advance(
+                start,
+                OffenseTacticalTag.Maneuver,
+                OffenseCommandOutcome.Executed,
+                true).Multiplier,
+            1f,
+            "정상 실행 100%");
+        RequireApproximately(
+            OffenseTacticalChainRules.Advance(
+                start,
+                OffenseTacticalTag.Maneuver,
+                OffenseCommandOutcome.Retargeted,
+                true).Multiplier,
+            0.75f,
+            "자동 재지정 75%");
+        RequireApproximately(
+            OffenseTacticalChainRules.Advance(
+                start,
+                OffenseTacticalTag.Maneuver,
+                OffenseCommandOutcome.ClashLost,
+                false).Multiplier,
+            0.5f,
+            "맞대응 완패 50%");
+        OffenseChainResolution residual = OffenseTacticalChainRules.Advance(
+            start,
+            OffenseTacticalTag.Maneuver,
+            OffenseCommandOutcome.Unavailable,
+            false);
+        RequireApproximately(residual.Multiplier, 0.25f, "행동 불능 25%");
+        OffenseChainResolution broken = OffenseTacticalChainRules.Advance(
+            residual,
+            OffenseTacticalTag.Break,
+            OffenseCommandOutcome.Unavailable,
+            false);
+        Require(broken.State == OffenseChainState.Broken
+            && broken.Multiplier == 0f,
+            "연속 두 슬롯 행동 불능이 사슬을 끊지 않았습니다.");
+    }
+
+    private static void VerifyPhysicalUrgentMitigation()
+    {
+        EditorContentCatalog catalog = LoadCatalog();
+        OffenseHexWorldSimulation world = CreateWorld(catalog, 8821);
+        OffenseUrgentSiteDefinitionSO definition = catalog.UrgentSites
+            .First(candidate =>
+                candidate != null
+                && !string.IsNullOrWhiteSpace(
+                    candidate.mitigationWorkTypeId)
+                && !string.IsNullOrWhiteSpace(
+                    candidate.mitigationItemId)
+                && candidate.mitigationItemAmount > 0
+                && candidate.mitigationWork > 0f);
+        OffenseHexCoord coord = FindReachableEmptyCoord(world);
+        Require(
+            world.TrySpawnUrgentSite(
+                definition.urgentSiteId,
+                coord,
+                out string siteId),
+            "물리 완화 검증용 긴급 거점을 생성하지 못했습니다.");
+
+        GameObject facilityObject =
+            new GameObject("OffenseMitigationFacilityFixture");
+        BuildingSO facilityData = ScriptableObject.CreateInstance<BuildingSO>();
+        try
+        {
+            facilityData.id = 917001;
+            facilityData.name = "OffenseMitigationFacilityFixture";
+            facilityData.objectName = "완화 검증 시설";
+            facilityData.width = 1;
+            facilityData.height = 1;
+            facilityData.category = BuildingCategory.Special;
+            facilityData.layer = GridLayer.Building;
+            facilityData.Facility = new FacilityData();
+            facilityData.Facility.AddSupportedWorkTypeId(
+                new WorkTypeId(definition.mitigationWorkTypeId));
+            Facility facility = facilityObject.AddComponent<Facility>();
+            facility.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
+            facility.ConstructBuildableObject(
+                new BuildingResearchWorkPortAdapter(
+                    BatchACoreSessionSaveDebugScenarios.DefaultInterfaceProxy
+                        .Create<IBlueprintResearchWorkService>()),
+                new FacilityCandidateCacheStore(
+                    CharacterAiEditorTestDependencies.WorldRegistry,
+                    frameWorkBudget: null),
+                new RoomFacilityPolicyService(RoomRegistry.EditorCache),
+                combatEquipmentRuntime: null,
+                worldRegistry: null,
+                worldItemStackRuntime: null,
+                abilityRuntimeDispatcher: null,
+                gameClock: null,
+                paidFacilityContracts: null,
+                evolutionState: new FacilityEvolutionStateComponentFactory());
+            facility.Initialization(facilityData, new Vector2Int(3, 2));
+
+            RecordingProductionItemGateway items =
+                new RecordingProductionItemGateway();
+            MutableGameClock clock = new MutableGameClock();
+            OffenseUrgentMitigationRuntime runtime =
+                new OffenseUrgentMitigationRuntime(
+                    world,
+                    catalog,
+                    new FixedBuildingWorldQuery(facility),
+                    items,
+                    clock, workforce: null, facilityCandidates: null);
+            runtime.Initialize();
+
+            Require(runtime.TryStart(siteId, out string message), message);
+            Require(
+                RuntimeWorkCapabilityUtility.Supports(
+                    facility,
+                    BuiltInWorkTypeIds.ThreatMitigation),
+                "완화 주문이 담당 시설에 런타임 작업 능력을 부여하지 않았습니다.");
+            Require(
+                items.RequestedAmount == definition.mitigationItemAmount,
+                "완화 재료가 물리 운반 요청으로 발행되지 않았습니다.");
+            Require(
+                !runtime.TryGetWork(facility, null, out _),
+                "재료 납품 전에 완화 작업이 시작 가능해졌습니다.");
+
+            items.DeliverAll();
+            clock.Advance(1f);
+            runtime.Tick();
+            Require(
+                runtime.TryGetWork(
+                    facility,
+                    null,
+                    out OffenseUrgentMitigationWorkSnapshot work)
+                && work.Available,
+                "재료 납품 후 완화 작업이 활성화되지 않았습니다.");
+            Require(
+                runtime.ApplyWork(
+                    facility,
+                    null,
+                    definition.mitigationWork,
+                    out bool completed)
+                && completed,
+                "필요 작업량을 채운 뒤 완화 주문이 완료되지 않았습니다.");
+            Require(
+                items.ConsumedAmount == definition.mitigationItemAmount,
+                "완화 완료 시 납품 재료를 정확히 소비하지 않았습니다.");
+            Require(
+                world.TryGetUrgentSite(
+                    siteId,
+                    out OffenseUrgentSiteStateData urgent)
+                && urgent.mitigation > 0f,
+                "실제 작업 완료가 긴급 거점 완화에 반영되지 않았습니다.");
+            Require(
+                !RuntimeWorkCapabilityUtility.Supports(
+                    facility,
+                    BuiltInWorkTypeIds.ThreatMitigation),
+                "완료된 완화 주문의 임시 작업 능력이 남아 있습니다.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(facilityObject);
+            UnityEngine.Object.DestroyImmediate(facilityData);
+        }
+    }
+
+    private static void VerifyCommandBattle()
+    {
+        CharacterCombatAbilityDefinition statusOnlyAbility =
+            new CharacterCombatAbilityDefinition(
+                "skill:status-only",
+                "취약 노출",
+                "피해 없이 취약만 부여하는 검증 기술",
+                0,
+                OffenseBattleTargetRule.Enemy,
+                new OffenseVulnerabilityEffect(0.25f, 2));
+        OffenseBattleCombatant deckCombatant = new OffenseBattleCombatant(
+            "ally:deck",
+            "덱 검증원",
+            "human",
+            OffenseBattleTeam.Allies,
+            new OffenseBattleStats(60f, 8f, 7f, 6f, 7f, 6f),
+            60f,
+            new[] { statusOnlyAbility });
+        OffenseBattleSession deckSession = new OffenseBattleSession(
+            "battle:deck",
+            "expedition:deck",
+            "site:deck",
+            "덱 검증",
+            DungeonDifficulty.Normal,
+            new[] { deckCombatant },
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
+        IReadOnlyList<OffenseCommandCardStateData> generatedCards =
+            OffenseStrategicBattleSetupFactory.CreateMemberDecks(deckSession)[0].cards;
+        Require(
+            generatedCards.Count == 8,
+            "개인 명령 덱이 8장으로 구성되지 않았습니다.");
+        Require(
+            generatedCards[0].sourceSkillId.Length == 0
+            && generatedCards[1].sourceSkillId.Length == 0,
+            "무기 기본기 두 장이 생성 액티브를 복제했습니다.");
+        Require(
+            generatedCards[0].displayName == "기본 공격"
+            && generatedCards[1].displayName == "견제 공격",
+            "무기 기본기 이름이 계획된 한국어 이름과 다릅니다.");
+        Require(
+            generatedCards.Skip(2).All(
+                card => card.sourceSkillId == statusOnlyAbility.Id),
+            "일반 기술 카드가 캐릭터 액티브와 연결되지 않았습니다.");
+
+        RecordingResolutionAdapter adapter = new RecordingResolutionAdapter();
+        OffenseBattleDirector director = new OffenseBattleDirector(adapter);
+        OffenseBattleMemberDeckSeed[] party =
+        {
+            CreateDeck("ally:1", OffenseFormationPosition.FrontLeft),
+            CreateDeck("ally:2", OffenseFormationPosition.MiddleLeft)
+        };
+        OffenseEnemyIntentStateData[] intents =
+        {
+            CreateIntent("intent:1", "enemy:1", "ally:1"),
+            CreateIntent("intent:2", "enemy:2", "ally:2")
+        };
+        Require(director.TryStartBattle(
+                "battle:test",
+                party,
+                intents,
+                91,
+                out string reason),
+            reason);
+        Require(director.TryDrawTurn(out reason), reason);
+        Require(director.State.decks.All(deck => deck.candidates.Count == 2),
+            "각 캐릭터가 후보 카드 두 장을 뽑지 않았습니다.");
+
+        foreach (OffenseCommandDeckStateData deck in director.State.decks)
+        {
+            Require(director.TryCommitCommand(
+                    deck.characterId,
+                    deck.candidates[0].instanceId,
+                    "intent:1",
+                    "enemy:1",
+                    out reason),
+                reason);
+        }
+
+        IReadOnlyList<OffenseResolvedCommand> resolved = director.ResolveTurn();
+        Require(resolved.Count == 2, "두 아군 명령이 모두 해결되지 않았습니다.");
+        Require(
+            adapter.Requests.Count(request => request.actorId == "enemy:1") == 1,
+            "하나의 적 의도가 여러 번 실행되었습니다.");
+        Require(
+            adapter.Requests.Count(request => request.actorId == "enemy:2") == 1,
+            "가로채지 않은 적 의도가 실행되지 않았습니다.");
+        Require(adapter.FinalizeCount == 1, "한 명령열이 한 번만 마감되지 않았습니다.");
+        Require(director.TryReplaceEnemyIntents(
+                new[] { CreateIntent("intent:next", "enemy:1", "ally:2") },
+                out reason),
+            reason);
+        Require(director.TryDrawTurn(out reason), reason);
+        Require(director.State.turn == 2, "다음 턴 카드가 갱신되지 않았습니다.");
+    }
+
+    private static void VerifyPhysicalExpeditionPacking()
+    {
+        GameObject stagingObject =
+            new GameObject("OffenseExpeditionStagingFixture");
+        try
+        {
+            ExteriorZoneMarker staging =
+                stagingObject.AddComponent<ExteriorZoneMarker>();
+            typeof(BuildableObject)
+                .GetProperty(
+                    nameof(BuildableObject.centerPos),
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.Public
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?.SetValue(staging, new Vector2Int(9, 4));
+            RecordingProductionItemGateway items =
+                new RecordingProductionItemGateway();
+            DungeonOffensePreparationService preparation =
+                new DungeonOffensePreparationService(
+                    new EmptyWarehouseInventoryQuery(),
+                    items,
+                    new FixedExteriorZoneQuery(staging));
+            OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
+            loadout.Add(OffenseSupplyType.Rations, 2);
+
+            Require(
+                preparation.TryCommitLoadout(
+                    loadout,
+                    new OffenseExpeditionPreparation(supplyCapacity: 6),
+                    "packing:cancel",
+                    out string message),
+                message);
+            OffenseSupplyPackingSnapshot pending =
+                preparation.GetPackingSnapshot("packing:cancel");
+            Require(
+                pending.IsInTransit
+                && pending.Delivered == 0
+                && pending.Required == 2
+                && !preparation.IsPackageReady("packing:cancel"),
+                "운반 전 보급품이 집결 완료로 처리됐습니다.");
+            Require(
+                items.LastDestinationPosition == staging.centerPos,
+                "보급 운반 목적지가 출정 집결지가 아닙니다.");
+            IReadOnlyList<OffenseSupplyPackingStateData> savedPacking =
+                preparation.CapturePackingState();
+            Require(
+                savedPacking.Count == 1
+                && savedPacking[0].costs.Sum(cost => cost.amount) == 2,
+                "운반 중 보급 패키지가 저장되지 않았습니다.");
+            DungeonOffensePreparationService restoredPreparation =
+                new DungeonOffensePreparationService(
+                    new EmptyWarehouseInventoryQuery(),
+                    items,
+                    new FixedExteriorZoneQuery(staging));
+            restoredPreparation.RestorePackingState(savedPacking);
+            Require(
+                restoredPreparation.GetPackingSnapshot("packing:cancel")
+                    .IsInTransit
+                && items.RequestedAmount == 2,
+                "로드 후 보급 패키지 또는 기존 물리 예약이 중복 없이 복원되지 않았습니다.");
+            preparation = restoredPreparation;
+
+            preparation.ReturnSupplies(loadout, "packing:cancel");
+            Require(
+                items.ReleasedAmount == 2
+                && !preparation.GetPackingSnapshot("packing:cancel").Exists,
+                "출정 취소 시 예약 물자가 정상 운반 흐름으로 반환되지 않았습니다.");
+
+            Require(
+                preparation.TryCommitLoadout(
+                    loadout,
+                    new OffenseExpeditionPreparation(supplyCapacity: 6),
+                    "packing:depart",
+                    out message),
+                message);
+            items.DeliverAll();
+            Require(
+                preparation.IsPackageReady("packing:depart"),
+                "실제 납품 후에도 원정 보급이 준비되지 않았습니다.");
+            Require(
+                preparation.TryConsumePackedSupplies(
+                    "packing:depart",
+                    out message),
+                message);
+            OffenseSupplyPackingSnapshot consumed =
+                preparation.GetPackingSnapshot("packing:depart");
+            Require(
+                consumed.Consumed
+                && items.ConsumedAmount == 2,
+                "실제 출발 시 집결지 보급품을 정확히 소비하지 않았습니다.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(stagingObject);
+        }
+    }
+
+    private static void VerifyPhysicalExpeditionToolPacking()
+    {
+        GameObject stagingObject = new GameObject(
+            "OffenseExpeditionToolStagingFixture");
+        try
+        {
+            ExteriorZoneMarker staging =
+                stagingObject.AddComponent<ExteriorZoneMarker>();
+            RecordingProductionItemGateway items =
+                new RecordingProductionItemGateway();
+            DungeonOffensePreparationService preparation =
+                new DungeonOffensePreparationService(
+                    new EmptyWarehouseInventoryQuery(),
+                    items,
+                    new FixedExteriorZoneQuery(staging));
+            OffenseSupplyLoadout loadout = new OffenseSupplyLoadout();
+            loadout.Add(OffenseSupplyType.Tools, 2);
+
+            Require(
+                preparation.TryCommitLoadout(
+                    loadout,
+                    new OffenseExpeditionPreparation(supplyCapacity: 6),
+                    "packing:tools",
+                    out string message),
+                message);
+            Require(
+                string.Equals(
+                    items.RequestedItemId,
+                    "tool:field-repair-kit",
+                    StringComparison.Ordinal),
+                $"expedition tools requested {items.RequestedItemId}");
+            items.DeliverAll();
+            Require(
+                preparation.TryConsumePackedSupplies(
+                    "packing:tools",
+                    out message),
+                message);
+            Require(
+                items.ConsumedAmount == 2,
+                "field repair kits were not physically consumed");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(stagingObject);
+        }
+    }
+
+    private static void VerifySaveRoundTrip()
+    {
+        const int worldSeed = 170017;
+        const string expeditionId = "save:travel";
+        EditorContentCatalog catalog = LoadCatalog();
+        OffenseHexWorldSimulation world = CreateWorld(catalog, worldSeed);
+        OffenseReturnSafetyRuntime safety = new OffenseReturnSafetyRuntime(world);
+        OffenseTravelRuntime travel = new OffenseTravelRuntime(world, safety, fieldMedical: null);
+        OffenseDecisionRuntime decisions = new OffenseDecisionRuntime(catalog, safety);
+        OffenseBattleDirector battle =
+            new OffenseBattleDirector(new RecordingResolutionAdapter());
+        CapturingMitigationRuntime mitigation =
+            new CapturingMitigationRuntime(new[]
+            {
+                new OffenseUrgentMitigationOrderStateData
+                {
+                    orderId = "mitigation:save",
+                    siteId = "urgent:save",
+                    definitionId = catalog.UrgentSites[0].urgentSiteId,
+                    facilityPersistentId = "facility:save",
+                    facilityX = 4,
+                    facilityY = 2,
+                    destinationId = "mitigation:save:materials",
+                    requiredWork = 32f,
+                    completedWork = 11f,
+                    status = OffenseUrgentMitigationOrderStatus.InProgress,
+                    statusText = "완화 작업 중"
+                }
+            });
+        CapturingPreparationService preparation =
+            new CapturingPreparationService(new[]
+            {
+                new OffenseSupplyPackingStateData
+                {
+                    packageId = "package:save",
+                    destinationId = "expedition-staging:save",
+                    stagingX = 8,
+                    stagingY = 3,
+                    consumed = false,
+                    costs = new List<OffenseSupplyPackingItemStateData>
+                    {
+                        new OffenseSupplyPackingItemStateData
+                        {
+                            itemId = "food:preserved-ration",
+                            amount = 4
+                        },
+                        new OffenseSupplyPackingItemStateData
+                        {
+                            itemId = "medicine:standard",
+                            amount = 2
+                        }
+                    }
+                }
+            });
+
+        OffenseWorldSiteStateData destination = world.Sites
+            .Where(site => site != null && site.IsActive)
+            .OrderByDescending(site =>
+                world.GetMinimumStepDistance(world.DungeonCoord, site.Coord))
+            .First();
+        Require(travel.TryCreateExpedition(expeditionId, out string reason), reason);
+        Require(
+            travel.TrySetDestination(
+                expeditionId,
+                destination.Coord,
+                destination.siteId,
+                OffenseTravelProfile.Default,
+                startsSiteAttack: false,
+                out reason),
+            reason);
+        safety.GrantForObjective(expeditionId, destination.Coord, world.DungeonCoord);
+        Require(
+            travel.TryAdvanceOneStep(
+                expeditionId,
+                forcedMovement: true,
+                out _,
+                out reason),
+            reason);
+        safety.RecordProtectedDangerousEvent(expeditionId, forcedCombat: true);
+        Require(travel.TryAdjustExposure(expeditionId, 37f, out _),
+            "이동 노출도를 변경하지 못했습니다.");
+        Require(
+            decisions.TryCreateDecision(
+                new OffenseDecisionContext
+                {
+                    expeditionId = expeditionId,
+                    sequence = 3,
+                    stage = OffenseDecisionStage.Travel,
+                    protectedMovement = true,
+                    canGenerateForcedCombat = false
+                },
+                out _,
+                out reason),
+            reason);
+
+        OffenseBattleMemberDeckSeed[] party =
+        {
+            CreateDeck("save:ally:1", OffenseFormationPosition.FrontLeft),
+            CreateDeck("save:ally:2", OffenseFormationPosition.MiddleLeft)
+        };
+        OffenseEnemyIntentStateData[] intents =
+        {
+            CreateIntent("save:intent:1", "save:enemy:1", "save:ally:1")
+        };
+        Require(
+            battle.TryStartBattle(
+                "save:battle",
+                party,
+                intents,
+                deterministicSeed: 731,
+                out reason),
+            reason);
+        Require(battle.TryDrawTurn(out reason), reason);
+        OffenseCommandDeckStateData firstDeck = battle.State.decks[0];
+        Require(
+            battle.TryCommitCommand(
+                firstDeck.characterId,
+                firstDeck.candidates[0].instanceId,
+                intents[0].intentId,
+                intents[0].enemyId,
+                out reason),
+            reason);
+
+        OffenseWorldStateSaveCodec sourceSection = new OffenseWorldStateSaveCodec(
+            world,
+            travel,
+            safety,
+            decisions,
+            battle,
+            mitigation,
+            preparation,
+            EditorRuntimeReferenceFixtures.OffenseWithExpedition,
+            new OffenseFieldMedicalRuntime());
+        OffenseWorldSaveData sourceState = sourceSection.CaptureState();
+        string sourceJson = JsonUtility.ToJson(sourceState);
+
+        OffenseHexWorldSimulation restoredWorld =
+            CreateWorld(catalog, worldSeed + 1);
+        OffenseReturnSafetyRuntime restoredSafety =
+            new OffenseReturnSafetyRuntime(restoredWorld);
+        OffenseTravelRuntime restoredTravel =
+            new OffenseTravelRuntime(restoredWorld, restoredSafety, fieldMedical: null);
+        OffenseDecisionRuntime restoredDecisions =
+            new OffenseDecisionRuntime(catalog, restoredSafety);
+        OffenseBattleDirector restoredBattle =
+            new OffenseBattleDirector(new RecordingResolutionAdapter());
+        OffenseUrgentMitigationRuntime restoredMitigation =
+            new OffenseUrgentMitigationRuntime(
+                restoredWorld,
+                catalog,
+                new FixedBuildingWorldQuery(),
+                new RecordingProductionItemGateway(),
+                new MutableGameClock(),
+                workforce: null,
+                facilityCandidates: null);
+        DungeonOffensePreparationService restoredPreparation =
+            new DungeonOffensePreparationService(
+                new EmptyWarehouseInventoryQuery(),
+                new RecordingProductionItemGateway(),
+                new FixedExteriorZoneQuery(null));
+        OffenseWorldStateSaveCodec restoredSection = new OffenseWorldStateSaveCodec(
+            restoredWorld,
+            restoredTravel,
+            restoredSafety,
+            restoredDecisions,
+            restoredBattle,
+            restoredMitigation,
+            restoredPreparation,
+            EditorRuntimeReferenceFixtures.OffenseWithExpedition,
+            new OffenseFieldMedicalRuntime());
+        DungeonGameRestoreReport restoreReport = new DungeonGameRestoreReport();
+        OffenseWorldRuntimeRestoreCandidate restoreCandidate =
+            restoredSection.BuildRestoreCandidate(sourceState, restoreReport);
+        Require(
+            restoreReport.Success,
+            "Strategic state restore candidate validation failed.");
+        restoredSection.PublishRestoreCandidate(restoreCandidate);
+        string restoredJson = restoredSection.Capture();
+
+        Require(
+            string.Equals(sourceJson, restoredJson, StringComparison.Ordinal),
+            "Strategic 중간 상태가 저장 후 동일하게 복원되지 않았습니다.");
+        Require(
+            restoredTravel.TryGetState(
+                expeditionId,
+                out OffenseTravelStateData restoredTravelState)
+            && Mathf.Approximately(restoredTravelState.exposure, 37f)
+            && restoredTravelState.remainingPath.Count > 0,
+            "이동 경로와 노출도가 복원되지 않았습니다.");
+        Require(
+            restoredSafety.Get(expeditionId).ForcedCombatCount == 1
+            && restoredSafety.Get(expeditionId).NonCombatPitySteps == 2,
+            "안전 이동 pity 상태가 복원되지 않았습니다.");
+        Require(
+            restoredDecisions.TryGetActiveDecision(expeditionId, out _),
+            "미해결 선택 카드가 복원되지 않았습니다.");
+        Require(
+            restoredBattle.State != null
+            && restoredBattle.State.commandQueue.Count == 1,
+            "확정 전 명령열 전투가 복원되지 않았습니다.");
+        Require(
+            restoredMitigation.Orders.Count == 1
+            && Mathf.Approximately(
+                restoredMitigation.Orders[0].completedWork,
+                11f),
+            "긴급 거점 완화 주문이 복원되지 않았습니다.");
+        Require(
+            restoredPreparation.CapturePackingState().Count == 1,
+            "집결 중인 실물 보급 패키지가 복원되지 않았습니다.");
+    }
+
+    private static OffenseBattleMemberDeckSeed CreateDeck(
+        string characterId,
+        OffenseFormationPosition formation)
+    {
+        return new OffenseBattleMemberDeckSeed
+        {
+            characterId = characterId,
+            formation = formation,
+            cards = Enumerable.Range(0, 8)
+                .Select(index => new OffenseCommandCardStateData
+                {
+                    instanceId = $"{characterId}:card:{index}",
+                    sourceSkillId = string.Empty,
+                    displayName = $"검증 카드 {index + 1}",
+                    tacticalTag = (OffenseTacticalTag)(1 + index % 5),
+                    damageType = CombatDamageType.Slash,
+                    executionStages = 1,
+                    speed = 1,
+                    power = 1
+                })
+                .ToList()
+        };
+    }
+
+    private static OffenseEnemyIntentStateData CreateIntent(
+        string intentId,
+        string enemyId,
+        string targetId)
+    {
+        return new OffenseEnemyIntentStateData
+        {
+            intentId = intentId,
+            enemyId = enemyId,
+            targetCharacterId = targetId,
+            displayName = "검증 공격",
+            tacticalTag = OffenseTacticalTag.Break,
+            executionStages = 3,
+            speed = 99,
+            threat = 99
+        };
+    }
+
+    private static OffenseHexWorldSimulation CreateWorld(
+        EditorContentCatalog catalog,
+        int seed)
+    {
+        OffenseHexWorldSimulation world = new OffenseHexWorldSimulation(
+            EditorRuntimeReferenceFixtures.DungeonWithRunVariables,
+            catalog,
+            new GameEventBus());
+        world.Initialize(seed);
+        return world;
+    }
+
+    private static OffenseHexCoord FindReachableEmptyCoord(
+        OffenseHexWorldSimulation world)
+    {
+        HashSet<OffenseHexCoord> occupied = world.Sites
+            .Where(site => site != null && site.IsActive)
+            .Select(site => site.Coord)
+            .ToHashSet();
+        return world.Tiles
+            .Where(tile => tile != null
+                && !tile.blocked
+                && tile.Coord != world.DungeonCoord
+                && !occupied.Contains(tile.Coord)
+                && world.GetMinimumStepDistance(
+                    world.DungeonCoord,
+                    tile.Coord) is >= 1 and <= 12)
+            .OrderBy(tile => tile.Coord.DistanceTo(world.DungeonCoord))
+            .ThenBy(tile => tile.q)
+            .ThenBy(tile => tile.r)
+            .Select(tile => tile.Coord)
+            .First();
+    }
+
+    private static EditorContentCatalog LoadCatalog()
+    {
+        return new EditorContentCatalog(
+            LoadAssets<OffenseSiteArchetypeSO>(),
+            LoadAssets<OffenseUrgentSiteDefinitionSO>(),
+            LoadAssets<OffenseDecisionCardSO>(),
+            LoadAssets<OffenseEncounterSO>());
+    }
+
+    private static IReadOnlyList<T> LoadAssets<T>()
+        where T : UnityEngine.Object
+    {
+        return AssetDatabase.FindAssets($"t:{typeof(T).Name}")
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<T>)
+            .Where(asset => asset != null)
+            .OrderBy(asset => AssetDatabase.GetAssetPath(asset), StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static void Run(
+        string label,
+        Action scenario,
+        ICollection<string> passed)
+    {
+        scenario();
+        passed.Add(label);
+    }
+
+    private static void Require(bool condition, string message)
+    {
+        if (!condition)
+        {
+            throw new InvalidOperationException(message);
+        }
+    }
+
+    private static void RequireApproximately(
+        float actual,
+        float expected,
+        string label)
+    {
+        Require(
+            Mathf.Abs(actual - expected) <= 0.0001f,
+            $"{label}: expected={expected}, actual={actual}");
+    }
+
+    private static void RequireUnique(
+        IEnumerable<string> values,
+        string label)
+    {
+        string[] ids = values.Where(value => !string.IsNullOrWhiteSpace(value)).ToArray();
+        Require(ids.Length == ids.Distinct(StringComparer.Ordinal).Count(),
+            $"{label}가 중복되었습니다.");
+    }
+
+    private sealed class CapturingMitigationRuntime :
+        IOffenseUrgentMitigationRuntime
+    {
+        private readonly List<OffenseUrgentMitigationOrderStateData> orders =
+            new List<OffenseUrgentMitigationOrderStateData>();
+
+        public CapturingMitigationRuntime(
+            IEnumerable<OffenseUrgentMitigationOrderStateData> initial = null)
+        {
+            Replace(initial?.ToArray()
+                ?? Array.Empty<OffenseUrgentMitigationOrderStateData>());
+        }
+
+        public event Action Changed
+        {
+            add { }
+            remove { }
+        }
+
+        public int Version { get; private set; }
+        public IReadOnlyList<OffenseUrgentMitigationOrderStateData> Orders =>
+            orders;
+
+        public bool TryStart(string siteId, out string message)
+        {
+            message = "검증용 런타임에서는 시작하지 않습니다.";
+            return false;
+        }
+
+        public bool TryCancel(string siteId, out string message)
+        {
+            message = "검증용 런타임에서는 취소하지 않습니다.";
+            return false;
+        }
+
+        public bool TryGetOrder(
+            string siteId,
+            out OffenseUrgentMitigationOrderStateData order)
+        {
+            order = orders.FirstOrDefault(candidate =>
+                candidate != null
+                && string.Equals(
+                    candidate.siteId,
+                    siteId,
+                    StringComparison.Ordinal));
+            return order != null;
+        }
+
+        public bool TryGetWork(
+            BuildableObject facility,
+            CharacterActor worker,
+            out OffenseUrgentMitigationWorkSnapshot work)
+        {
+            work = default;
+            return false;
+        }
+
+        public bool ApplyWork(
+            BuildableObject facility,
+            CharacterActor worker,
+            float amount,
+            out bool completed)
+        {
+            completed = false;
+            return false;
+        }
+
+        public IReadOnlyList<OffenseUrgentMitigationOrderStateData> Capture()
+        {
+            return orders.Select(Clone).ToArray();
+        }
+
+        private void Replace(
+            IReadOnlyList<OffenseUrgentMitigationOrderStateData> restored)
+        {
+            orders.Clear();
+            orders.AddRange((restored
+                    ?? Array.Empty<OffenseUrgentMitigationOrderStateData>())
+                .Where(order => order != null)
+                .Select(Clone));
+            Version++;
+        }
+
+        private static OffenseUrgentMitigationOrderStateData Clone(
+            OffenseUrgentMitigationOrderStateData source)
+        {
+            return new OffenseUrgentMitigationOrderStateData
+            {
+                orderId = source.orderId,
+                siteId = source.siteId,
+                definitionId = source.definitionId,
+                facilityPersistentId = source.facilityPersistentId,
+                facilityX = source.facilityX,
+                facilityY = source.facilityY,
+                destinationId = source.destinationId,
+                requiredWork = source.requiredWork,
+                completedWork = source.completedWork,
+                status = source.status,
+                statusText = source.statusText
+            };
+        }
+    }
+
+    private sealed class CapturingPreparationService :
+        IOffensePreparationService
+    {
+        private readonly List<OffenseSupplyPackingStateData> packages =
+            new List<OffenseSupplyPackingStateData>();
+
+        public CapturingPreparationService(
+            IEnumerable<OffenseSupplyPackingStateData> initial = null)
+        {
+            RestorePackingState(initial);
+        }
+
+        public OffensePreparationSnapshot Evaluate()
+        {
+            return new OffensePreparationSnapshot(
+                new OffenseExpeditionPreparation(),
+                new Dictionary<OffenseSupplyType, int>());
+        }
+
+        public OffenseSupplyPackingSnapshot GetPackingSnapshot(string packageId)
+        {
+            OffenseSupplyPackingStateData package = packages.FirstOrDefault(
+                candidate => candidate != null
+                    && string.Equals(
+                        candidate.packageId,
+                        packageId,
+                        StringComparison.Ordinal));
+            int required = package?.costs?.Sum(cost =>
+                Mathf.Max(0, cost?.amount ?? 0)) ?? 0;
+            return package != null
+                ? new OffenseSupplyPackingSnapshot(
+                    package.packageId,
+                    required,
+                    delivered: 0,
+                    package.consumed)
+                : default;
+        }
+
+        public bool IsPackageReady(string packageId) => false;
+
+        public bool TryCommitLoadout(
+            OffenseSupplyLoadout loadout,
+            OffenseExpeditionPreparation preparation,
+            string packageId,
+            out string message)
+        {
+            message = "검증용 런타임에서는 보급을 등록하지 않습니다.";
+            return false;
+        }
+
+        public bool TryConsumePackedSupplies(
+            string packageId,
+            out string message)
+        {
+            message = "검증용 런타임에서는 보급을 소비하지 않습니다.";
+            return false;
+        }
+
+        public void ConsumePackedSupplies(string packageId)
+        {
+        }
+
+        public void AbandonPackedSupplies(string packageId)
+        {
+        }
+
+        public void ReturnSupplies(
+            OffenseSupplyLoadout loadout,
+            string packageId = "")
+        {
+        }
+
+        public void DepositLoot(
+            IReadOnlyDictionary<StockCategory, int> loot)
+        {
+        }
+
+        public IReadOnlyList<OffenseSupplyPackingStateData> CapturePackingState()
+        {
+            return packages.Select(Clone).ToArray();
+        }
+
+        public void RestorePackingState(
+            IEnumerable<OffenseSupplyPackingStateData> restored,
+            DungeonGameRestoreReport report = null)
+        {
+            packages.Clear();
+            packages.AddRange((restored
+                    ?? Array.Empty<OffenseSupplyPackingStateData>())
+                .Where(package => package != null)
+                .Select(Clone));
+        }
+
+        private static OffenseSupplyPackingStateData Clone(
+            OffenseSupplyPackingStateData source)
+        {
+            return new OffenseSupplyPackingStateData
+            {
+                packageId = source.packageId,
+                destinationId = source.destinationId,
+                stagingX = source.stagingX,
+                stagingY = source.stagingY,
+                consumed = source.consumed,
+                costs = (source.costs
+                        ?? new List<OffenseSupplyPackingItemStateData>())
+                    .Where(cost => cost != null)
+                    .Select(cost => new OffenseSupplyPackingItemStateData
+                    {
+                        itemId = cost.itemId,
+                        amount = cost.amount
+                    })
+                    .ToList()
+            };
+        }
+    }
+
+    private sealed class FixedBuildingWorldQuery : IBuildingWorldQuery
+    {
+        private readonly IReadOnlyList<BuildableObject> buildings;
+
+        public FixedBuildingWorldQuery(params BuildableObject[] buildings)
+        {
+            this.buildings = buildings ?? Array.Empty<BuildableObject>();
+        }
+
+        public int BuildingVersion => 1;
+        public IReadOnlyList<BuildableObject> Buildings => buildings;
+    }
+
+    private sealed class EmptyWarehouseInventoryQuery :
+        IFacilityEvolutionWarehouseInventoryQuery
+    {
+        public IReadOnlyList<IWarehouseFacility> GetWarehouses()
+        {
+            return Array.Empty<IWarehouseFacility>();
+        }
+
+        public int Consume(StockCategory category, int amount) => 0;
+    }
+
+    private sealed class FixedExteriorZoneQuery : IExteriorZoneQuery
+    {
+        private readonly ExteriorZoneMarker staging;
+
+        public FixedExteriorZoneQuery(ExteriorZoneMarker staging)
+        {
+            this.staging = staging;
+        }
+
+        public IReadOnlyList<ExteriorZoneMarker> Zones =>
+            staging != null
+                ? new[] { staging }
+                : Array.Empty<ExteriorZoneMarker>();
+
+        public IEnumerable<ExteriorZoneMarker> GetZones(
+            ExteriorZoneType zoneType)
+        {
+            return staging != null
+                && zoneType == ExteriorZoneType.ExpeditionStaging
+                    ? new[] { staging }
+                    : Array.Empty<ExteriorZoneMarker>();
+        }
+
+        public bool TryGetZone(
+            ExteriorZoneType zoneType,
+            out ExteriorZoneMarker marker)
+        {
+            marker = zoneType == ExteriorZoneType.ExpeditionStaging
+                ? staging
+                : null;
+            return marker != null;
+        }
+
+        public ExteriorActivityOverviewSnapshot GetOverview()
+        {
+            return default;
+        }
+    }
+
+    private sealed class MutableGameClock : IGameClock
+    {
+        public float DeltaTime { get; private set; }
+        public float Time { get; private set; }
+        public int FrameCount { get; private set; }
+        public bool IsPaused { get; set; }
+
+        public void Advance(float seconds)
+        {
+            DeltaTime = Mathf.Max(0f, seconds);
+            Time += DeltaTime;
+            FrameCount++;
+        }
+    }
+
+    private sealed class RecordingProductionItemGateway :
+        IProductionItemGateway
+    {
+        private string requestedItemId = string.Empty;
+        private string requestedDestinationId = string.Empty;
+        private int deliveredAmount;
+
+        public int RequestedAmount { get; private set; }
+        public string RequestedItemId => requestedItemId;
+        public int ConsumedAmount { get; private set; }
+        public int ReleasedAmount { get; private set; }
+        public Vector2Int LastDestinationPosition { get; private set; }
+
+        public int CountDelivered(string itemId, string destinationId)
+        {
+            return Matches(itemId, destinationId)
+                ? deliveredAmount
+                : 0;
+        }
+
+        public int CountPending(string itemId, string destinationId)
+        {
+            return Matches(itemId, destinationId)
+                ? RequestedAmount
+                : 0;
+        }
+
+        public int CountAvailableStock(
+            string itemId,
+            string excludedDestinationId)
+        {
+            return 999;
+        }
+
+        public bool RequestDelivery(
+            string itemId,
+            int amount,
+            Vector2Int destinationPosition,
+            string destinationId,
+            out int requested,
+            out string failureReason)
+        {
+            requestedItemId = itemId ?? string.Empty;
+            requestedDestinationId = destinationId ?? string.Empty;
+            LastDestinationPosition = destinationPosition;
+            requested = Mathf.Max(0, amount);
+            RequestedAmount += requested;
+            failureReason = string.Empty;
+            return requested > 0;
+        }
+
+        public bool ConsumeDelivered(
+            string destinationId,
+            IReadOnlyDictionary<string, int> costs,
+            out string failureReason)
+        {
+            int amount = costs?.Values.Sum() ?? 0;
+            if (!string.Equals(
+                    requestedDestinationId,
+                    destinationId,
+                    StringComparison.Ordinal)
+                || deliveredAmount < amount)
+            {
+                failureReason = "납품량 부족";
+                return false;
+            }
+
+            deliveredAmount -= amount;
+            ConsumedAmount += amount;
+            failureReason = string.Empty;
+            return true;
+        }
+
+        public bool SpawnOutput(
+            string itemId,
+            int amount,
+            Vector2Int position)
+        {
+            return true;
+        }
+
+        public void PrioritizeDestination(string destinationId)
+        {
+        }
+
+        public int ReleaseDestination(
+            string destinationId,
+            Vector2Int releasePosition)
+        {
+            int released = RequestedAmount;
+            ReleasedAmount += released;
+            deliveredAmount = 0;
+            RequestedAmount = 0;
+            return released;
+        }
+
+        public int RemoveDestination(string destinationId)
+        {
+            int removed = deliveredAmount;
+            deliveredAmount = 0;
+            RequestedAmount = 0;
+            return removed;
+        }
+
+        public void DeliverAll()
+        {
+            deliveredAmount = RequestedAmount;
+        }
+
+        private bool Matches(string itemId, string destinationId)
+        {
+            return string.Equals(
+                    requestedItemId,
+                    itemId,
+                    StringComparison.Ordinal)
+                && string.Equals(
+                    requestedDestinationId,
+                    destinationId,
+                    StringComparison.Ordinal);
+        }
+    }
+
+    private sealed class EditorContentCatalog : IOffenseContentCatalog
+    {
+        public EditorContentCatalog(
+            IReadOnlyList<OffenseSiteArchetypeSO> sites,
+            IReadOnlyList<OffenseUrgentSiteDefinitionSO> urgent,
+            IReadOnlyList<OffenseDecisionCardSO> cards,
+            IReadOnlyList<OffenseEncounterSO> encounters)
+        {
+            SiteArchetypes = sites;
+            UrgentSites = urgent;
+            DecisionCards = cards;
+            Encounters = encounters;
+        }
+
+        public IReadOnlyList<OffenseSiteArchetypeSO> SiteArchetypes { get; }
+        public IReadOnlyList<OffenseUrgentSiteDefinitionSO> UrgentSites { get; }
+        public IReadOnlyList<OffenseDecisionCardSO> DecisionCards { get; }
+        public IReadOnlyList<OffenseEncounterSO> Encounters { get; }
+    }
+
+    private sealed class RecordingResolutionAdapter :
+        IOffenseCommandResolutionAdapter
+    {
+        public readonly List<OffenseCommandExecutionRequest> Requests =
+            new List<OffenseCommandExecutionRequest>();
+        public int FinalizeCount { get; private set; }
+
+        public OffenseCommandExecutionResult Execute(
+            OffenseCommandExecutionRequest request)
+        {
+            Requests.Add(request);
+            return new OffenseCommandExecutionResult(
+                OffenseCommandOutcome.Executed,
+                true,
+                request.targetCombatantId);
+        }
+
+        public void FinalizeTurn()
+        {
+            FinalizeCount++;
+        }
+    }
+
+    private sealed class FixedMoneyRuntime : IGameMoneyAccount
+    {
+        public FixedMoneyRuntime(int balance)
+        {
+            Balance = Mathf.Max(0, balance);
+        }
+
+        public int Balance { get; private set; }
+
+        public bool CanSpend(int amount)
+        {
+            return Balance >= Mathf.Max(0, amount);
+        }
+
+        public bool TrySpend(int amount, out string reason)
+        {
+            int cost = Mathf.Max(0, amount);
+            if (Balance < cost)
+            {
+                reason = "골드 부족";
+                return false;
+            }
+
+            Balance -= cost;
+            reason = string.Empty;
+            return true;
+        }
+
+        public bool TrySpend(
+            int amount,
+            EconomyTransactionContext context,
+            out string reason)
+        {
+            return TrySpend(amount, out reason);
+        }
+
+        public void Add(int amount)
+        {
+            Balance += Mathf.Max(0, amount);
+        }
+
+        public void Add(
+            int amount,
+            EconomyTransactionContext context)
+        {
+            Add(amount);
+        }
+
+        public void SetBalance(
+            int amount,
+            EconomyTransactionContext context)
+        {
+            Balance = Mathf.Max(0, amount);
+        }
+    }
+}

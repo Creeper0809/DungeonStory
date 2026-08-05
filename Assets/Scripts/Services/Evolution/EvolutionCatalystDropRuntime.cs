@@ -79,9 +79,13 @@ public sealed class EvolutionCatalystDropRuntime :
         out string itemId,
         out string failureReason)
     {
-        int minimumPotency = 1 + Mathf.FloorToInt(
+        int minimumProgressionLevel = 1 + Mathf.FloorToInt(
             Mathf.Max(0f, danger) / 25f);
-        return TryDrop(minimumPotency, true, out itemId, out failureReason);
+        return TryDrop(
+            minimumProgressionLevel,
+            true,
+            out itemId,
+            out failureReason);
     }
 
     public bool TryGrantDefenseCatalyst(
@@ -89,9 +93,13 @@ public sealed class EvolutionCatalystDropRuntime :
         out string itemId,
         out string failureReason)
     {
-        int minimumPotency = 1 + Mathf.FloorToInt(
+        int minimumProgressionLevel = 1 + Mathf.FloorToInt(
             Mathf.Max(0f, threat) / 125f);
-        return TryDrop(minimumPotency, false, out itemId, out failureReason);
+        return TryDrop(
+            minimumProgressionLevel,
+            false,
+            out itemId,
+            out failureReason);
     }
 
     private void OnOffenseRewardGranted(OffenseRewardGrantedEvent eventType)
@@ -143,13 +151,19 @@ public sealed class EvolutionCatalystDropRuntime :
     }
 
     private bool TryDrop(
-        int minimumPotency,
+        int minimumProgressionLevel,
         bool expeditionDrop,
         out string itemId,
         out string failureReason)
     {
         itemId = string.Empty;
         failureReason = string.Empty;
+        if (!EvolutionCatalystProgression.IsValid(minimumProgressionLevel))
+        {
+            failureReason = "획득 가능한 촉매 진행 단계 범위를 벗어났습니다.";
+            return false;
+        }
+
         bool hasDropoff = expeditionDrop
             ? dropZones.TryGetExpeditionLootDropoff(out Vector2Int dropoff)
             : dropZones.TryGetDeliveryDropoff(out dropoff);
@@ -161,8 +175,9 @@ public sealed class EvolutionCatalystDropRuntime :
 
         string family = CatalystFamilies[
             random.NextInt(0, CatalystFamilies.Length)];
-        int potency = Mathf.Max(1, minimumPotency);
-        itemId = EvolutionCatalystItemId.BuildCatalyst(family, potency);
+        itemId = EvolutionCatalystItemId.BuildCatalyst(
+            family,
+            minimumProgressionLevel);
         if (!items.SpawnItemAt(
                 itemId,
                 1,
@@ -180,12 +195,8 @@ public sealed class EvolutionCatalystDropRuntime :
         return true;
     }
 
-    private static string GetDisplayName(string itemId)
+    private string GetDisplayName(string itemId)
     {
-        return EvolutionCatalystItemDefinitions.TryGetDefinition(
-            itemId,
-            out DungeonItemDefinition definition)
-            ? definition.DisplayName
-            : "진화 촉매";
+        return items.CatalogProvider.GetDefinition(itemId).DisplayName;
     }
 }

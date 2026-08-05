@@ -1,0 +1,243 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public enum CharacterMoodFactorKind
+{
+    Need,
+    Interaction
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CharacterMoodFactorSnapshot
+{
+    public CharacterMoodFactorSnapshot(
+        string id,
+        string label,
+        float value,
+        CharacterMoodFactorKind kind,
+        float remainingSeconds)
+    {
+        Id = id ?? string.Empty;
+        Label = label ?? string.Empty;
+        Value = value;
+        Kind = kind;
+        RemainingSeconds = Mathf.Max(0f, remainingSeconds);
+    }
+
+    public string Id { get; }
+    public string Label { get; }
+    public float Value { get; }
+    public CharacterMoodFactorKind Kind { get; }
+    public float RemainingSeconds { get; }
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CharacterMoodSnapshot
+{
+    public CharacterMoodSnapshot(
+        float value,
+        float baseValue,
+        IReadOnlyList<CharacterMoodFactorSnapshot> factors)
+    {
+        Value = Mathf.Clamp(value, 0f, 100f);
+        BaseValue = Mathf.Clamp(baseValue, 0f, 100f);
+        Factors = factors ?? Array.Empty<CharacterMoodFactorSnapshot>();
+    }
+
+    public float Value { get; }
+    public float BaseValue { get; }
+    public IReadOnlyList<CharacterMoodFactorSnapshot> Factors { get; }
+    public float TotalOffset => Value - BaseValue;
+}
+
+[Serializable]
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public sealed class CharacterMoodMemory
+{
+    [SerializeField] private string id;
+    [SerializeField] private string label;
+    [SerializeField] private float valuePerStack;
+    [SerializeField] private int stacks = 1;
+    [SerializeField] private int maxStacks = 1;
+    [SerializeField] private float expiresAt;
+
+    public string Id => id;
+    public float ExpiresAt => expiresAt;
+    public float TotalValue =>
+        Mathf.Clamp(valuePerStack * stacks, -25f, 25f);
+
+    public CharacterMoodMemory(
+        string factorId,
+        string factorLabel,
+        float value,
+        float durationSeconds,
+        int stackLimit,
+        float now)
+    {
+        id = factorId;
+        Apply(factorLabel, value, durationSeconds, stackLimit, now, resetStacks: true);
+    }
+
+    public void Apply(
+        string factorLabel,
+        float value,
+        float durationSeconds,
+        int stackLimit,
+        float now,
+        bool resetStacks = false)
+    {
+        int nextLimit = Mathf.Clamp(stackLimit, 1, 8);
+        bool signChanged = !Mathf.Approximately(valuePerStack, 0f)
+            && Mathf.Sign(valuePerStack) != Mathf.Sign(value);
+        if (resetStacks || signChanged)
+        {
+            stacks = 1;
+        }
+        else if (nextLimit > 1)
+        {
+            stacks = Mathf.Min(stacks + 1, nextLimit);
+        }
+        else
+        {
+            stacks = 1;
+        }
+
+        label = factorLabel;
+        valuePerStack = Mathf.Clamp(value, -25f, 25f);
+        maxStacks = nextLimit;
+        stacks = Mathf.Clamp(stacks, 1, maxStacks);
+        expiresAt = now + Mathf.Max(0.25f, durationSeconds);
+    }
+
+    public bool IsExpired(float now)
+    {
+        return now >= expiresAt;
+    }
+
+    public CharacterMoodFactorSnapshot CreateSnapshot(float now)
+    {
+        string displayLabel = stacks > 1 ? $"{label} x{stacks}" : label;
+        return new CharacterMoodFactorSnapshot(
+            id,
+            displayLabel,
+            TotalValue,
+            CharacterMoodFactorKind.Interaction,
+            expiresAt - now);
+    }
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+public static class CharacterMoodRules
+{
+    public const float DefaultBaseMood = 55f;
+
+    public static List<CharacterMoodFactorSnapshot> BuildNeedFactors(
+        IReadOnlyDictionary<CharacterCondition, float> stats,
+        ICharacterNeedDefinitionQuery needCatalog)
+    {
+        if (needCatalog == null)
+        {
+            throw new ArgumentNullException(nameof(needCatalog));
+        }
+
+        List<CharacterMoodFactorSnapshot> factors = new List<CharacterMoodFactorSnapshot>();
+        foreach (CharacterNeedDefinition definition in needCatalog.All)
+        {
+            if (definition.HasTag(CharacterNeedTag.MoodInteraction)
+                && TryCreateNeedMoodFactor(
+                    definition,
+                    stats,
+                    out CharacterMoodFactorSnapshot factor))
+            {
+                factors.Add(factor);
+            }
+        }
+
+        return factors;
+    }
+
+    public static float CalculateNeedFactorTotal(
+        IReadOnlyDictionary<CharacterCondition, float> stats,
+        ICharacterNeedDefinitionQuery needCatalog)
+    {
+        if (needCatalog == null)
+        {
+            throw new ArgumentNullException(nameof(needCatalog));
+        }
+
+        float total = 0f;
+        IReadOnlyList<CharacterNeedDefinition> definitions =
+            needCatalog.All;
+        for (int i = 0; i < definitions.Count; i++)
+        {
+            CharacterNeedDefinition definition = definitions[i];
+            if (!definition.HasTag(CharacterNeedTag.MoodInteraction))
+            {
+                continue;
+            }
+
+            float value = stats != null
+                && stats.TryGetValue(definition.Condition, out float current)
+                    ? Mathf.Clamp(current, 0f, 100f)
+                    : definition.DefaultValue;
+            if (definition.MoodProfile != null
+                && definition.MoodProfile.TryEvaluate(
+                    value,
+                    out _,
+                    out float mood))
+            {
+                total += mood;
+            }
+        }
+
+        return total;
+    }
+
+    public static bool TryCreateNeedMoodFactor(
+        CharacterNeedDefinition definition,
+        IReadOnlyDictionary<CharacterCondition, float> stats,
+        out CharacterMoodFactorSnapshot factor)
+    {
+        if (definition == null)
+        {
+            factor = null;
+            return false;
+        }
+
+        float value = stats != null
+            && stats.TryGetValue(definition.Condition, out float current)
+                ? Mathf.Clamp(current, 0f, 100f)
+                : definition.DefaultValue;
+        if (definition.MoodProfile == null
+            || !definition.MoodProfile.TryEvaluate(
+                value,
+                out string label,
+                out float mood))
+        {
+            factor = null;
+            return false;
+        }
+
+        factor = new CharacterMoodFactorSnapshot(
+            definition.Id,
+            label,
+            mood,
+            CharacterMoodFactorKind.Need,
+            0f);
+        return true;
+    }
+
+    public static string GetMoodLabel(float mood)
+    {
+        if (mood < 15f) return "절망적";
+        if (mood < 30f) return "불쾌함";
+        if (mood < 45f) return "가라앉음";
+        if (mood < 60f) return "평온함";
+        if (mood < 80f) return "만족함";
+        return "아주 좋음";
+    }
+
+}

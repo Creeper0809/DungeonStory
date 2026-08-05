@@ -27,20 +27,38 @@ MonoBehaviour:
   description: "\uB204\uC804, \uB204\uC218, \uC5ED\uB958\uC640 \uAE30\uACC4 \uC0AC\uACE0\uB97C
     \uAC10\uC9C0\uD558\uACE0 \uD68C\uB85C\uB97C \uACA9\uB9AC\uD55C\uB2E4."
   field: 15
-  requiredWork: 276
+  requiredWork: 960
   prerequisites:
   - {fileID: 11400000, guid: 2659f185e4da05a4ea2ae6da429b7a46, type: 2}
   - {fileID: 11400000, guid: e8304218a91814b44bbdc6fb4d4705b2, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:industry:maintenance
+    prerequisite: {fileID: 11400000, guid: 2659f185e4da05a4ea2ae6da429b7a46, type: 2}
+    kind: 3
+    reason: "\uC608\uBC29 \uC815\uBE44\uC758 \uC548\uC804 \uAE30\uC900\uC774(\uAC00)
+      \uC0B0\uC5C5 \uC548\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:plumbing:sewer
+    prerequisite: {fileID: 11400000, guid: e8304218a91814b44bbdc6fb4d4705b2, type: 2}
+    kind: 3
+    reason: "\uD558\uC218 \uBC30\uAD00\uC758 \uC548\uC804 \uAE30\uC900\uC774(\uAC00)
+      \uC0B0\uC5C5 \uC548\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687331
+    - rid: 7737211730927813146
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687331
+    - rid: 7737211730927813146
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9804

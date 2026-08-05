@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
-public sealed class GrandProjectSaveSection : IDungeonSaveSection
+// V18 required section: validation succeeds before the candidate Aggregate root is replaced.
+public sealed class GrandProjectSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonGrandProjectSaveData,
+        GrandProjectRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "economy.grand-projects";
 
@@ -21,34 +25,35 @@ public sealed class GrandProjectSaveSection : IDungeonSaveSection
             ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => DungeonGrandProjectSaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase =>
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonGrandProjectSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => Dependencies;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
+    protected override DungeonGrandProjectSaveData CapturePayload()
     {
-        return JsonUtility.ToJson(runtime.Capture());
+        return runtime.Capture();
     }
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
+    protected override GrandProjectRestoreCandidate BuildRestoreCandidate(
+        DungeonGrandProjectSaveData payload)
     {
-        if (sectionVersion != SectionVersion)
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        GrandProjectSaveValidation.Validate(
+            payload,
+            runtime.Definitions,
+            report);
+        if (!report.Success)
         {
-            report.AddError(
-                $"{SectionId}: 지원하지 않는 섹션 버전 {sectionVersion}입니다.");
-            return;
+            throw new InvalidOperationException(
+                "Grand-project restore candidate is invalid: "
+                + string.Join(" | ", report.Errors));
         }
-
-        runtime.Restore(
-            string.IsNullOrWhiteSpace(payloadJson)
-                ? new DungeonGrandProjectSaveData()
-                : JsonUtility.FromJson<DungeonGrandProjectSaveData>(
-                    payloadJson)
-                    ?? new DungeonGrandProjectSaveData());
+        return runtime.BuildRestore(payload);
     }
+
+    protected override void PublishRestoreCandidate(
+        GrandProjectRestoreCandidate candidate) =>
+        runtime.PublishRestoreCandidate(candidate);
 }

@@ -151,6 +151,12 @@ public enum WildlifeFoodRaidOrderState
     Failed = 4
 }
 
+public static class WildlifeFoodRaidOutcomeCodes
+{
+    public const string RaidActorRemoved =
+        "wildlife.food-raid.actor-removed";
+}
+
 [Serializable]
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class WildlifeFoodRaidOrderSaveData

@@ -320,7 +320,7 @@ public static class LargeGridNavigationDebugScenarios
             destination,
             position => position.y != row
                 || position.x <= startX
-                || position.x >= endX);
+                || position.x >= endX, costPolicy: null);
         Queue<GridMoveStep> path = search.GetMovePathTo(destination);
         stopwatch.Stop();
         int cost = search.GetMoveCostTo(destination);
@@ -344,7 +344,7 @@ public static class LargeGridNavigationDebugScenarios
         GridPathSearchResult search = grid.SearchPathTo(
             start,
             destination,
-            position => position.y == row && position.x != blockedX);
+            position => position.y == row && position.x != blockedX, costPolicy: null);
         Queue<GridMoveStep> path = search.GetMovePathTo(destination);
         stopwatch.Stop();
         int cost = search.GetMoveCostTo(destination);
@@ -362,7 +362,7 @@ public static class LargeGridNavigationDebugScenarios
     private static CacheResult MeasureCacheAndInvalidation(Grid grid, int row)
     {
         BenchmarkClock clock = new BenchmarkClock();
-        GridPathSearchBroker broker = new GridPathSearchBroker(clock);
+        GridPathSearchBroker broker = new GridPathSearchBroker(clock, doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
         Vector2Int start = new Vector2Int(0, row);
         Vector2Int destination = new Vector2Int(grid.width - 1, row);
 
@@ -504,7 +504,7 @@ public static class LargeGridNavigationDebugScenarios
     {
         const int requestCount = 500;
         BenchmarkClock clock = new BenchmarkClock();
-        GridPathSearchBroker broker = new GridPathSearchBroker(clock);
+        GridPathSearchBroker broker = new GridPathSearchBroker(clock, doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
         List<double> frameTimes = new List<double>(80);
         int completed = 0;
         int maxSearches = 0;

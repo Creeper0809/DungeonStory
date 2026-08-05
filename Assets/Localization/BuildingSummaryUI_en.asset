@@ -1,0 +1,251 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: BuildingSummaryUI_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: 873f4fcf510db81469f0d0d07d1c8aac, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 351621120
+    m_Localized: Clear priority
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786944
+    m_Localized: Close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786945
+    m_Localized: Details
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786946
+    m_Localized: Prioritize cleaning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786947
+    m_Localized: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786948
+    m_Localized: Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786949
+    m_Localized: '{0} installation kit'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786950
+    m_Localized: "Location  ({0}, {1})  \xB7  construction site"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786951
+    m_Localized: Material  {0} {1}/{2}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786952
+    m_Localized: Materials  none required
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786953
+    m_Localized: Status  no construction order
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786954
+    m_Localized: "Work  {0:0.#}/{1:0.#}  \xB7  {2}%"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786955
+    m_Localized: Reserved worker  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786956
+    m_Localized: Safety  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786957
+    m_Localized: Status  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786958
+    m_Localized: Target  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786959
+    m_Localized: Facility {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786960
+    m_Localized: "Craftable  {0}  \xB7  queue empty"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786961
+    m_Localized: ' / materials in transit'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786962
+    m_Localized: '{0} work {1:0.#}{2}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786963
+    m_Localized: Crafting queue  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786964
+    m_Localized: Crafting  equipment runtime unavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786965
+    m_Localized: No visitor usage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786966
+    m_Localized: Roles  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786967
+    m_Localized: "Usage {0}/{1}  \xB7  reservations {2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786968
+    m_Localized: "Work  {0}  \xB7  required staff {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786969
+    m_Localized: "Contamination  {0:0.#}  \xB7  infection {1:0.#}%"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786970
+    m_Localized: Cleaning order  automatic priority
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786971
+    m_Localized: Cleaning order  highest priority
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786972
+    m_Localized: "Cleanliness impact  -{0:0.#}  \xB7  cleaning work {1:0.#}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786973
+    m_Localized: "Location  ({0}, {1})  \xB7  {2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786974
+    m_Localized: Removed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786975
+    m_Localized: Source character  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786976
+    m_Localized: Floor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786977
+    m_Localized: Floor and wall
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786978
+    m_Localized: Type  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786979
+    m_Localized: Bloodstain
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786980
+    m_Localized: Rot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786981
+    m_Localized: Wall stain
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786982
+    m_Localized: Filth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786983
+    m_Localized: Waste
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786984
+    m_Localized: "Location  ({0}, {1})  \xB7  {2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786985
+    m_Localized: Damaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786986
+    m_Localized: Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786987
+    m_Localized: "Status  {0}  \xB7  Facility Lv.{1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786988
+    m_Localized: Stock  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786989
+    m_Localized: Stock  {0}/{1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786990
+    m_Localized: "Stock  {0}  \xB7  restock needed"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786991
+    m_Localized: Warehouse  {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786992
+    m_Localized: Warehouse  {0}/{1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786993
+    m_Localized: Blocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786994
+    m_Localized: Cancelled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786995
+    m_Localized: Completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786996
+    m_Localized: Under construction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786997
+    m_Localized: Ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786998
+    m_Localized: Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786999
+    m_Localized: Waiting for materials
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

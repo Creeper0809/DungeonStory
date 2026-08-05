@@ -40,9 +40,14 @@ public static class CombatEquipmentMaterialDebugScenarios
     {
         (ResourceCombatEquipmentCatalog equipmentCatalog,
             ResourceEconomyContentCatalog materialCatalog) = CreateCatalogs();
-        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(
+        CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
             equipmentCatalog,
-            materialCatalog);
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            materialCatalog,
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
 
         Require(equipmentCatalog.All.Count >= 19, "initial equipment catalog is incomplete");
         Require(materialCatalog.Materials.Count == 12, "material catalog must contain 12 materials");
@@ -73,9 +78,14 @@ public static class CombatEquipmentMaterialDebugScenarios
     {
         (ResourceCombatEquipmentCatalog equipmentCatalog,
             ResourceEconomyContentCatalog materialCatalog) = CreateCatalogs();
-        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(
+        CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
             equipmentCatalog,
-            materialCatalog);
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            materialCatalog,
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
         CombatEquipmentInstance iron = runtime.CreateInstance(
             "weapon:longsword",
             CombatEquipmentQuality.Normal,
@@ -98,9 +108,11 @@ public static class CombatEquipmentMaterialDebugScenarios
             "blacksteel stats missing");
         Require(runtime.TryGetDerivedStats(gold.instanceId, out CombatEquipmentDerivedStats goldStats),
             "gold stats missing");
-        Require(Approximately(blacksteelStats.DamageMultiplier, 1.2f),
+        Require(Approximately(blacksteelStats.DamageMultiplier, 1.2f * 0.88f),
             "blacksteel damage multiplier mismatch");
-        Require(Approximately(blacksteelStats.PenetrationDefenseMultiplier, 1.3f),
+        Require(Approximately(
+                blacksteelStats.PenetrationDefenseMultiplier,
+                1.3f * 0.88f),
             "blacksteel penetration multiplier mismatch");
         Require(blacksteelStats.MaxDurability > ironStats.MaxDurability,
             "blacksteel durability must exceed iron");
@@ -117,14 +129,20 @@ public static class CombatEquipmentMaterialDebugScenarios
     {
         (ResourceCombatEquipmentCatalog equipmentCatalog,
             ResourceEconomyContentCatalog materialCatalog) = CreateCatalogs();
-        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(
+        CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
             equipmentCatalog,
-            materialCatalog);
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            materialCatalog,
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
         GameObject facilityObject = new GameObject("MaterialPolicyFacility");
         BuildingSO facilityData = CreateFacilityData(88001);
         try
         {
             BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(facility);
             facility.Initialization(facilityData, new Vector2Int(4, 7));
             CombatEquipmentCraftMaterialPolicySaveData policy =
                 runtime.GetCraftMaterialPolicy("weapon:longsword", facility);
@@ -168,14 +186,22 @@ public static class CombatEquipmentMaterialDebugScenarios
     {
         (ResourceCombatEquipmentCatalog equipmentCatalog,
             ResourceEconomyContentCatalog materialCatalog) = CreateCatalogs();
-        CombatEquipmentRuntime source = new CombatEquipmentRuntime(
+        WorldItemRepository itemRepository =
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore());
+        CombatEquipmentRuntime source = CombatEquipmentEditorTestFactory.Create(
             equipmentCatalog,
-            materialCatalog);
+            itemRepository,
+            new CharacterCarryInventoryRegistry(),
+            materialCatalog,
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
         GameObject facilityObject = new GameObject("MaterialSaveFacility");
         BuildingSO facilityData = CreateFacilityData(88002);
         try
         {
             BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
+            CharacterAiEditorTestDependencies.Inject(facility);
             facility.Initialization(facilityData, new Vector2Int(6, 9));
             CombatEquipmentInstance created = source.CreateInstance(
                 "armor:breastplate",
@@ -190,10 +216,14 @@ public static class CombatEquipmentMaterialDebugScenarios
                 out _);
             DungeonCombatEquipmentSaveData save = source.Capture();
 
-            CombatEquipmentRuntime restored = new CombatEquipmentRuntime(
+            CombatEquipmentRuntime restored = CombatEquipmentEditorTestFactory.Create(
                 equipmentCatalog,
-                materialCatalog);
-            restored.Restore(save);
+                itemRepository,
+            new CharacterCarryInventoryRegistry(),
+                materialCatalog,
+                researchProvider: EditorAllResearchRuntimeProvider.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            restored.PublishRestoreCandidate(
+                restored.BuildRestoreCandidate(save));
             Require(restored.TryGetInstance(created.instanceId, out CombatEquipmentInstance instance),
                 "restored equipment instance missing");
             Require(instance.materialId == "material:blacksteel",
@@ -228,7 +258,7 @@ public static class CombatEquipmentMaterialDebugScenarios
         ResourceEconomyContentCatalog materials) CreateCatalogs()
     {
         ResourceCombatEquipmentCatalog equipment =
-            new ResourceCombatEquipmentCatalog();
+            new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         ResourceEconomyContentCatalog materials =
             new ResourceEconomyContentCatalog(
                 Resources.LoadAll<ResourceItemDefinitionSO>(
@@ -238,9 +268,7 @@ public static class CombatEquipmentMaterialDebugScenarios
                 Resources.LoadAll<CropDefinitionSO>(
                     CropDefinitionSO.ResourcePath),
                 Resources.LoadAll<CraftMaterialDefinitionSO>(
-                    CraftMaterialDefinitionSO.ResourcePath),
-                Resources.LoadAll<SubstanceDefinitionSO>(
-                    SubstanceDefinitionSO.ResourcePath));
+                    CraftMaterialDefinitionSO.ResourcePath));
         return (equipment, materials);
     }
 

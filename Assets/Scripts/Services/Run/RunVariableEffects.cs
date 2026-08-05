@@ -2,15 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface IRunVariableEffect
-{
-}
-
-public interface IRunVariableMultiplierEffect<in TContext> : IRunVariableEffect
-{
-    float GetMultiplier(TContext context);
-}
-
 public interface IRunVariableInvasionEffect : IRunVariableEffect
 {
     void Apply(InvasionIntruderSettings settings);
@@ -214,46 +205,69 @@ public sealed class RunFinalCombatDamageEffect : IRunVariableInvasionEffect
 
 public static class RunVariableEffects
 {
-    public static float GetGuestDemandMultiplier(IRunVariableStateView state, string speciesTag)
+    public static float GetGuestDemandMultiplier(
+        IRunVariableStateView state,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines,
+        string speciesTag)
     {
-        return AggregateOperationMultiplier(state, speciesTag);
+        return AggregateOperationMultiplier(state, ownerDoctrines, speciesTag);
     }
 
-    public static float GetStockCostMultiplier(IRunVariableStateView state, StockCategory category)
+    public static float GetStockCostMultiplier(
+        IRunVariableStateView state,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines,
+        StockCategory category)
     {
-        return AggregateOperationMultiplier(state, category);
+        return AggregateOperationMultiplier(state, ownerDoctrines, category);
     }
 
-    public static float GetFacilityShopCostMultiplier(IRunVariableStateView state, BuildingSO building)
+    public static float GetFacilityShopCostMultiplier(
+        IRunVariableStateView state,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines,
+        BuildingSO building)
     {
-        return AggregateOperationMultiplier(state, building);
+        return AggregateOperationMultiplier(state, ownerDoctrines, building);
     }
 
-    public static float GetBlueprintCostMultiplier(IRunVariableStateView state, FacilityBlueprintSO blueprint)
+    public static float GetBlueprintCostMultiplier(
+        IRunVariableStateView state,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines,
+        FacilityBlueprintSO blueprint)
     {
-        return AggregateOperationMultiplier(state, blueprint);
+        return AggregateOperationMultiplier(state, ownerDoctrines, blueprint);
     }
 
-    public static float GetThreatRiseMultiplier(IRunVariableStateView state)
+    public static float GetThreatRiseMultiplier(
+        IRunVariableStateView state,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines)
     {
         float startMultiplier = state?.StartVariables != null
             ? Mathf.Max(0.05f, state.StartVariables.threatRiseMultiplier)
             : 1f;
-        return startMultiplier * AggregateOperationMultiplier(state, new RunThreatRiseQuery());
+        return startMultiplier * AggregateOperationMultiplier(
+            state,
+            ownerDoctrines,
+            new RunThreatRiseQuery());
     }
 
-    public static float GetWarningThresholdMultiplier(IRunVariableStateView state)
+    public static float GetWarningThresholdMultiplier(
+        IRunVariableStateView state,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines)
     {
-        return AggregateOperationMultiplier(state, new RunWarningThresholdQuery());
+        return AggregateOperationMultiplier(
+            state,
+            ownerDoctrines,
+            new RunWarningThresholdQuery());
     }
 
     public static InvasionIntruderSettings ApplyInvasionSettings(
         IRunVariableStateView state,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines,
         InvasionIntruderSettings source)
     {
         InvasionIntruderSettings result = CloneSettings(source);
         ApplyInvasionEffects(
-            OwnerDoctrineCatalog.Get(state?.StartVariables?.ownerDoctrineId)?.effects,
+            ResolveOwnerDoctrineEffects(state, ownerDoctrines),
             result);
         RunVariableDefinition definition = state?.CurrentInvasionVariable;
         ApplyInvasionEffects(definition?.effects, result);
@@ -263,6 +277,7 @@ public static class RunVariableEffects
 
     private static float AggregateOperationMultiplier<TContext>(
         IRunVariableStateView state,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines,
         TContext context)
     {
         if (state == null)
@@ -271,7 +286,7 @@ public static class RunVariableEffects
         }
 
         float multiplier = AggregateEffects(
-            OwnerDoctrineCatalog.Get(state.StartVariables?.ownerDoctrineId)?.effects,
+            ResolveOwnerDoctrineEffects(state, ownerDoctrines),
             context);
         IReadOnlyList<ActiveRunVariable> activeVariables = state.ActiveOperationVariables;
         for (int i = 0; i < activeVariables.Count; i++)
@@ -286,6 +301,16 @@ public static class RunVariableEffects
         }
 
         return multiplier;
+    }
+
+    private static IReadOnlyList<IRunVariableEffect> ResolveOwnerDoctrineEffects(
+        IRunVariableStateView state,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines)
+    {
+        string doctrineId = state?.StartVariables?.ownerDoctrineId;
+        return string.IsNullOrWhiteSpace(doctrineId) || ownerDoctrines == null
+            ? null
+            : ownerDoctrines.Get(doctrineId)?.effects;
     }
 
     private static float AggregateEffects<TContext>(

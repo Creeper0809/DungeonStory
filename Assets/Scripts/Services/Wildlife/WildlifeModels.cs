@@ -4,148 +4,99 @@ using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
-public sealed class WildlifeSpeciesDefinition
-{
-    public WildlifeSpeciesDefinition(
-        string speciesId,
-        string displayName,
-        string description,
-        Sprite sprite,
-        int maxHealth,
-        float moveSpeed,
-        float fearSensitivity,
-        float aggression,
-        int retaliationDamage,
-        float spawnWeight,
-        int herdSize,
-        bool canEnterDungeon,
-        float carcassWeight,
-        IEnumerable<WildlifeButcherYield> butcherYields,
-        WildlifeDietType diet = WildlifeDietType.Herbivore,
-        IEnumerable<WildlifeHabitatType> preferredHabitats = null,
-        float territoryRadius = 6f,
-        float dailyFoodNeed = 1f,
-        float dailyWaterNeed = 1f,
-        float restPreference = 0.5f,
-        float predationDrive = 0f,
-        float fleePreference = 0.5f,
-        WildlifeHusbandryProfile husbandry = null)
-    {
-        SpeciesId = string.IsNullOrWhiteSpace(speciesId) ? "wildlife:unknown" : speciesId.Trim();
-        DisplayName = string.IsNullOrWhiteSpace(displayName) ? SpeciesId : displayName.Trim();
-        Description = description?.Trim() ?? string.Empty;
-        Sprite = sprite;
-        MaxHealth = Mathf.Max(1, maxHealth);
-        MoveSpeed = Mathf.Max(0.1f, moveSpeed);
-        FearSensitivity = Mathf.Clamp(fearSensitivity, 0f, 2f);
-        Aggression = Mathf.Clamp(aggression, 0f, 2f);
-        RetaliationDamage = Mathf.Max(0, retaliationDamage);
-        SpawnWeight = Mathf.Max(0f, spawnWeight);
-        HerdSize = Mathf.Max(1, herdSize);
-        CanEnterDungeon = canEnterDungeon;
-        CarcassWeight = Mathf.Max(0.1f, carcassWeight);
-        Diet = ResolveDiet(diet, Aggression);
-        TerritoryRadius = Mathf.Clamp(territoryRadius, 2f, 18f);
-        DailyFoodNeed = Mathf.Clamp(dailyFoodNeed, 0.1f, 4f);
-        DailyWaterNeed = Mathf.Clamp(dailyWaterNeed, 0.1f, 4f);
-        RestPreference = Mathf.Clamp01(restPreference);
-        PredationDrive = Mathf.Clamp01(predationDrive);
-        FleePreference = Mathf.Clamp01(fleePreference);
-        Husbandry = husbandry
-            ?? WildlifeHusbandryProfile.CreateDefault(
-                Aggression,
-                CarcassWeight);
-        PreferredHabitats = (preferredHabitats ?? GetDefaultHabitats(Diet, Aggression))
-            .Distinct()
-            .ToArray();
-        ButcherYields = (butcherYields ?? Array.Empty<WildlifeButcherYield>())
-            .Where(yieldItem => yieldItem != null
-                && yieldItem.amount > 0
-                && !string.IsNullOrWhiteSpace(yieldItem.itemId))
-            .Select(yieldItem => new WildlifeButcherYield
-            {
-                itemId = yieldItem.itemId.Trim(),
-                amount = Mathf.Max(0, yieldItem.amount)
-            })
-            .ToArray();
-    }
-
-    public string SpeciesId { get; }
-    public string DisplayName { get; }
-    public string Description { get; }
-    public Sprite Sprite { get; }
-    public int MaxHealth { get; }
-    public float MoveSpeed { get; }
-    public float FearSensitivity { get; }
-    public float Aggression { get; }
-    public int RetaliationDamage { get; }
-    public float SpawnWeight { get; }
-    public int HerdSize { get; }
-    public bool CanEnterDungeon { get; }
-    public float CarcassWeight { get; }
-    public WildlifeDietType Diet { get; }
-    public IReadOnlyList<WildlifeHabitatType> PreferredHabitats { get; }
-    public float TerritoryRadius { get; }
-    public float DailyFoodNeed { get; }
-    public float DailyWaterNeed { get; }
-    public float RestPreference { get; }
-    public float PredationDrive { get; }
-    public float FleePreference { get; }
-    public WildlifeHusbandryProfile Husbandry { get; }
-    public IReadOnlyList<WildlifeButcherYield> ButcherYields { get; }
-    public string CarcassItemId => WildlifeItemDefinitions.GetCarcassItemId(SpeciesId);
-    public bool IsPredator => Aggression >= 0.75f;
-    public bool IsDangerous => RetaliationDamage > 0 || Aggression >= 0.5f;
-
-    private static WildlifeDietType ResolveDiet(WildlifeDietType diet, float aggression)
-    {
-        if (diet == WildlifeDietType.Herbivore && aggression >= 0.85f)
-        {
-            return WildlifeDietType.Carnivore;
-        }
-
-        if (diet == WildlifeDietType.Herbivore && aggression >= 0.45f)
-        {
-            return WildlifeDietType.Omnivore;
-        }
-
-        return diet;
-    }
-
-    private static IEnumerable<WildlifeHabitatType> GetDefaultHabitats(WildlifeDietType diet, float aggression)
-    {
-        yield return WildlifeHabitatType.Water;
-        if (diet == WildlifeDietType.Carnivore || aggression >= 0.75f)
-        {
-            yield return WildlifeHabitatType.Lair;
-            yield return WildlifeHabitatType.Brush;
-            yield break;
-        }
-
-        yield return WildlifeHabitatType.Grass;
-        yield return WildlifeHabitatType.Brush;
-        yield return WildlifeHabitatType.Burrow;
-    }
-}
-
-public interface IWildlifeSpeciesCatalogProvider
+public interface IWildlifeSpeciesCatalogProvider :
+    IWildlifeSpeciesDefinitionCatalog
 {
     IReadOnlyList<WildlifeSpeciesDefinition> All { get; }
-    bool TryGetSpecies(string speciesId, out WildlifeSpeciesDefinition species);
     WildlifeSpeciesDefinition GetRandomSpecies(IRandomStream randomStream);
 }
 
 public sealed class ResourceWildlifeSpeciesCatalogProvider : IWildlifeSpeciesCatalogProvider
 {
-    private const string ResourcePath = "SO/Wildlife/Species";
-    private List<WildlifeSpeciesDefinition> species;
-    private Dictionary<string, WildlifeSpeciesDefinition> speciesById;
+    private readonly IReadOnlyList<WildlifeSpeciesDefinition> species;
+    private readonly IReadOnlyDictionary<string, WildlifeSpeciesDefinition> speciesById;
+
+    public ResourceWildlifeSpeciesCatalogProvider(
+        IGameContentCatalog contentCatalog,
+        IItemDefinitionCatalog itemCatalog)
+    {
+        if (contentCatalog == null)
+        {
+            throw new ArgumentNullException(nameof(contentCatalog));
+        }
+        if (itemCatalog == null)
+        {
+            throw new ArgumentNullException(nameof(itemCatalog));
+        }
+
+        WildlifeSpeciesSO[] authored = contentCatalog.GetAll<WildlifeSpeciesSO>()
+            .Where(asset => asset != null)
+            .ToArray();
+        if (authored.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "Game content catalog has no authored wildlife species.");
+        }
+
+        string[] duplicateIds = authored
+            .GroupBy(asset => asset.SpeciesId?.Trim() ?? string.Empty, StringComparer.Ordinal)
+            .Where(group => string.IsNullOrWhiteSpace(group.Key) || group.Count() > 1)
+            .Select(group => string.IsNullOrWhiteSpace(group.Key) ? "<empty>" : group.Key)
+            .ToArray();
+        if (duplicateIds.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Wildlife species catalog has empty or duplicate ids: "
+                + string.Join(", ", duplicateIds));
+        }
+
+        foreach (WildlifeSpeciesSO asset in authored)
+        {
+            if (string.IsNullOrWhiteSpace(asset.DisplayName))
+            {
+                throw new InvalidOperationException(
+                    $"Wildlife species '{asset.name}' has no authored display name.");
+            }
+            if (!Enum.IsDefined(typeof(WildlifeDietType), asset.Diet))
+            {
+                throw new InvalidOperationException(
+                    $"Wildlife species '{asset.SpeciesId}' has an invalid authored diet.");
+            }
+            foreach (WildlifeButcherYield yieldItem in asset.ButcherYields
+                         ?? Array.Empty<WildlifeButcherYield>())
+            {
+                ItemDefinitionId itemId = new(yieldItem?.itemId);
+                if (!itemId.IsValid || !itemCatalog.TryGet(itemId, out _))
+                {
+                    throw new InvalidOperationException(
+                        $"Wildlife species '{asset.SpeciesId}' references unknown butcher item '{itemId.Value}'.");
+                }
+            }
+            foreach (WildlifeHusbandryProductDefinition product in
+                     asset.Husbandry.Products)
+            {
+                ItemDefinitionId itemId = new(product?.ItemId);
+                if (!itemId.IsValid || !itemCatalog.TryGet(itemId, out _))
+                {
+                    throw new InvalidOperationException(
+                        $"Wildlife species '{asset.SpeciesId}' references unknown husbandry item '{itemId.Value}'.");
+                }
+            }
+        }
+
+        species = authored
+            .Select(asset => asset.ToDefinition())
+            .OrderBy(definition => definition.SpeciesId, StringComparer.Ordinal)
+            .ToArray();
+        speciesById = species.ToDictionary(
+            definition => definition.SpeciesId,
+            StringComparer.Ordinal);
+    }
 
     public IReadOnlyList<WildlifeSpeciesDefinition> All
     {
         get
         {
-            EnsureLoaded();
             return species;
         }
     }
@@ -153,7 +104,6 @@ public sealed class ResourceWildlifeSpeciesCatalogProvider : IWildlifeSpeciesCat
     public bool TryGetSpecies(string speciesId, out WildlifeSpeciesDefinition definition)
     {
         string normalized = speciesId?.Trim() ?? string.Empty;
-        EnsureLoaded();
         return speciesById.TryGetValue(normalized, out definition);
     }
 
@@ -164,11 +114,10 @@ public sealed class ResourceWildlifeSpeciesCatalogProvider : IWildlifeSpeciesCat
             throw new ArgumentNullException(nameof(randomStream));
         }
 
-        EnsureLoaded();
         float total = species.Sum(candidate => Mathf.Max(0f, candidate.SpawnWeight));
         if (total <= 0f)
         {
-            return species.Count > 0 ? species[0] : WildlifeBuiltIns.CaveRat;
+            return species[0];
         }
 
         float roll = randomStream.NextFloat() * total;
@@ -183,46 +132,10 @@ public sealed class ResourceWildlifeSpeciesCatalogProvider : IWildlifeSpeciesCat
 
         return species[species.Count - 1];
     }
-
-    private void EnsureLoaded()
-    {
-        if (species != null)
-        {
-            return;
-        }
-
-        species = Resources
-            .LoadAll<WildlifeSpeciesSO>(ResourcePath)
-            .Where(asset => asset != null)
-            .Select(asset => asset.ToDefinition())
-            .Where(definition => !string.IsNullOrWhiteSpace(definition.SpeciesId))
-            .GroupBy(definition => definition.SpeciesId, StringComparer.Ordinal)
-            .Select(group => group.First())
-            .ToList();
-
-        foreach (WildlifeSpeciesDefinition builtIn in WildlifeBuiltIns.All)
-        {
-            if (species.All(candidate => !string.Equals(
-                    candidate.SpeciesId,
-                    builtIn.SpeciesId,
-                    StringComparison.Ordinal)))
-            {
-                species.Add(builtIn);
-            }
-        }
-
-        speciesById = new Dictionary<string, WildlifeSpeciesDefinition>(
-            species.Count,
-            StringComparer.Ordinal);
-        for (int index = 0; index < species.Count; index++)
-        {
-            WildlifeSpeciesDefinition definition = species[index];
-            speciesById[definition.SpeciesId] = definition;
-        }
-    }
 }
 
-public static class WildlifeBuiltIns
+#if UNITY_EDITOR
+public static class WildlifeTestFixtures
 {
     public static readonly WildlifeSpeciesDefinition CaveRat = Create(
         "cave_rat",
@@ -427,7 +340,7 @@ public static class WildlifeBuiltIns
         WildlifeHusbandryProfile husbandry = null)
     {
         List<WildlifeButcherYield> yields = new List<WildlifeButcherYield>();
-        AddYield(yields, DungeonItemCatalogSO.StockItemId(StockCategory.Food), food);
+        AddYield(yields, "resource:meat", food);
         AddYield(yields, WildlifeItemDefinitions.HideItemId, hide);
         AddYield(yields, WildlifeItemDefinitions.FangItemId, fang);
         AddYield(yields, WildlifeItemDefinitions.RuneDustItemId, runeDust);
@@ -492,121 +405,7 @@ public static class WildlifeBuiltIns
         }
     }
 }
-
-public static class WildlifeItemDefinitions
-{
-    public const string CarcassPrefix = "wild:carcass:";
-    public const string HideItemId = "resource:hide";
-    public const string FangItemId = "resource:fang";
-    public const string RuneDustItemId = "resource:rune-dust";
-    public const string RotItemId = "wild:rot";
-
-    public static string GetCarcassItemId(string speciesId)
-    {
-        string normalized = string.IsNullOrWhiteSpace(speciesId) ? "unknown" : speciesId.Trim();
-        return CarcassPrefix + normalized;
-    }
-
-    public static bool TryGetSpeciesIdFromCarcass(string itemId, out string speciesId)
-    {
-        string normalized = itemId?.Trim() ?? string.Empty;
-        if (normalized.StartsWith(CarcassPrefix, StringComparison.Ordinal))
-        {
-            speciesId = normalized.Substring(CarcassPrefix.Length).Trim();
-            return !string.IsNullOrWhiteSpace(speciesId);
-        }
-
-        speciesId = string.Empty;
-        return false;
-    }
-
-    public static bool TryGetDefinition(string itemId, out DungeonItemDefinition definition)
-    {
-        string normalized = itemId?.Trim() ?? string.Empty;
-        if (TryGetSpeciesIdFromCarcass(normalized, out string speciesId))
-        {
-            definition = new DungeonItemDefinition(
-                normalized,
-                GetCarcassName(speciesId),
-                "도축 시설로 옮기면 식량과 부산물을 얻습니다.",
-                StockCategory.Food,
-                4,
-                null,
-                GetCarcassWeight(speciesId),
-                1);
-            return true;
-        }
-
-        switch (normalized)
-        {
-            case HideItemId:
-                definition = new DungeonItemDefinition(
-                    HideItemId,
-                    "야생 가죽",
-                    "장비 제작과 거래에 쓸 수 있는 질긴 가죽.",
-                    StockCategory.General,
-                    8,
-                    null,
-                    1.2f,
-                    50);
-                return true;
-            case FangItemId:
-                definition = new DungeonItemDefinition(
-                    FangItemId,
-                    "그림자 송곳니",
-                    "위험한 포식자에게서 얻은 날카로운 부산물.",
-                    StockCategory.General,
-                    14,
-                    null,
-                    0.35f,
-                    50);
-                return true;
-            case RuneDustItemId:
-                definition = new DungeonItemDefinition(
-                    RuneDustItemId,
-                    "룬 가루",
-                    "마나 재료로 취급되는 희미한 결정 가루.",
-                    StockCategory.Mana,
-                    18,
-                    null,
-                    0.2f,
-                    75);
-                return true;
-            case RotItemId:
-                definition = new DungeonItemDefinition(
-                    RotItemId,
-                    "부패물",
-                    "방치된 사체가 썩으며 남긴 오염원.",
-                    StockCategory.General,
-                    0,
-                    null,
-                    0.8f,
-                    75);
-                return true;
-            default:
-                definition = null;
-                return false;
-        }
-    }
-
-    private static string GetCarcassName(string speciesId)
-    {
-        if (WildlifeBuiltIns.All.FirstOrDefault(species =>
-                string.Equals(species.SpeciesId, speciesId, StringComparison.Ordinal)) is { } species)
-        {
-            return species.DisplayName + " 사체";
-        }
-
-        return speciesId + " 사체";
-    }
-
-    private static float GetCarcassWeight(string speciesId)
-    {
-        WildlifeSpeciesDefinition species = WildlifeBuiltIns.All.FirstOrDefault(candidate =>
-            string.Equals(candidate.SpeciesId, speciesId, StringComparison.Ordinal));
-        return species != null ? species.CarcassWeight : 8f;
-    }
-}
+#endif
 
 public readonly struct WildlifeHuntJob
 {
@@ -664,7 +463,10 @@ public readonly struct WildlifeFoodRaidOrderSnapshot
 public interface IWildlifeRuntime : IWildlifeQuery, IWildlifeHuntCommandService
 {
     DungeonWildlifeSaveData Capture();
-    void Restore(DungeonWildlifeSaveData saveData, DungeonGameRestoreReport report = null);
+    void ValidateRestorePayload(DungeonWildlifeSaveData saveData);
+    WildlifeRestoreCandidate BuildRestoreCandidate(
+        DungeonWildlifeSaveData saveData);
+    void PublishRestoreCandidate(WildlifeRestoreCandidate candidate);
     bool HasAvailableHuntJob(CharacterActor actor);
     bool TryReserveBestHuntJob(CharacterActor actor, out WildlifeHuntJob job, out string reason);
     void ReleaseHuntReservation(string wildlifeId, CharacterActor actor);
@@ -710,7 +512,15 @@ public interface IWildlifeEcosystemRuntime
     IReadOnlyList<WildlifeHabitatPatch> Patches { get; }
     WildlifeEcosystemOverview GetOverview(IReadOnlyList<WildlifeActor> wildlife);
     DungeonWildlifeEcosystemSaveData Capture();
-    void Restore(DungeonWildlifeEcosystemSaveData saveData);
+    WildlifeEcosystemRestoreCandidate PrepareRestoreCandidate(
+        DungeonWildlifeEcosystemSaveData saveData,
+        Grid restoreGrid);
+    void PublishRestoreCandidate(
+        WildlifeEcosystemRestoreCandidate candidate);
+    WildlifeEcosystemRestoreTransaction ApplyRestoreCandidate(
+        WildlifeEcosystemRestoreCandidate candidate);
+    void RollbackRestore(WildlifeEcosystemRestoreTransaction transaction);
+    void CompleteRestore(WildlifeEcosystemRestoreTransaction transaction);
     void SetOverlayEnabled(bool enabled);
     void EnsureInitialized(Grid grid);
     void TickAnimal(WildlifeActor actor, Grid grid, float deltaTime);
@@ -731,18 +541,51 @@ public interface IWildlifeEcosystemRuntime
     bool ShouldRemoveLeavingAnimal(WildlifeActor actor, Grid grid);
 }
 
-public interface ISurvivalFoodRuntime
+public interface ISurvivalFoodQuery
 {
-    DungeonSurvivalSaveData Capture();
-    void Restore(DungeonSurvivalSaveData saveData);
     SurvivalFoodOverview GetOverview();
     bool TryGetItemStatus(string stackId, string itemId, out SurvivalItemStatus status);
     bool TryGetCharacterStatus(CharacterActor actor, out SurvivalCharacterStatus status);
-    bool TryApplySurvivalWork(CharacterActor actor, BuildableObject building, WorkTypeId workTypeId, out int amount, out string message);
     bool HasSurvivalWorkAvailable(BuildableObject building, WorkTypeId workTypeId);
     float GetSurvivalWorkUrgency(BuildableObject building, WorkTypeId workTypeId);
     int GetStoredStockCount(StockCategory category);
+}
+
+public interface ISurvivalFoodCommand
+{
+    bool TryApplySurvivalWork(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        WorkTypeId workTypeId,
+        out int amount,
+        out DomainFailure failure);
     int TryConsumeStoredStock(StockCategory category, int amount);
+}
+
+public interface ISurvivalServiceSessionCapability
+{
+    ServiceHubSnapshot GetHubSnapshot(BuildableObject hub);
+    bool TryBeginSession(
+        ServiceSessionRequest request,
+        out ServiceSessionSnapshot session,
+        out DomainFailure failure);
+    bool TryCompleteSession(
+        string sessionId,
+        out ServiceSessionSnapshot completed,
+        out DomainFailure failure);
+    bool CancelSession(string sessionId, string reason);
+}
+
+public interface ISurvivalFoodPersistence
+{
+    DungeonSurvivalSaveData Capture();
+    SurvivalFoodRestoreCandidate BuildRestoreCandidate(
+        DungeonSurvivalSaveData saveData);
+    void PublishRestoreCandidate(SurvivalFoodRestoreCandidate candidate);
+}
+
+public interface ISurvivalFoodDebugCommand
+{
     void DebugSetWeather(SurvivalWeatherType weather);
     void DebugAdvanceSpoilage(float seconds);
     void DebugResetSpoilage();

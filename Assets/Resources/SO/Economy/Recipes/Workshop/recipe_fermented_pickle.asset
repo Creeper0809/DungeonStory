@@ -47,6 +47,8 @@ MonoBehaviour:
   inputs:
   - itemId: material:brined-vegetable
     amount: 2
+  - itemId: craft:fermented-vinegar
+    amount: 1
   outputs:
   - itemId: food:fermented-pickle
     amount: 2

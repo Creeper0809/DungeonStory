@@ -303,7 +303,11 @@ public abstract class CharacterAiJobGiver
 
     public static float Need(CharacterActor actor, CharacterCondition condition)
     {
-        if (CharacterNeedCatalog.TryGet(condition, out CharacterNeedDefinition definition))
+        ICharacterNeedDefinitionCatalog needCatalog = actor != null && actor.Stats != null
+            ? actor.Stats.NeedDefinitionCatalog
+            : null;
+        if (needCatalog != null
+            && needCatalog.TryGet(condition, out CharacterNeedDefinition definition))
         {
             return definition.GetUrgency(actor);
         }
@@ -655,7 +659,9 @@ public sealed class GetFoodJobGiver : CharacterAiJobGiver
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
-        float hungerNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Meal);
+        float hungerNeed = CharacterNeedAiThresholds.GetRoutineUtility(
+            actor,
+            CharacterCondition.HUNGER);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
             ? $"hungerNeed={hungerNeed:0.###}"
             : "허기";
@@ -667,11 +673,40 @@ public sealed class GetFoodJobGiver : CharacterAiJobGiver
         in CharacterAiDecisionContext context,
         out string reason)
     {
-        float hungerNeed = context.HungerUrgency;
+        float hungerNeed = CharacterNeedAiThresholds.GetRoutineUtility(
+            actor,
+            CharacterCondition.HUNGER);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
             ? $"hungerNeed={hungerNeed:0.###}"
             : "허기";
         return hungerNeed;
+    }
+}
+
+public sealed class DrinkJobGiver : CharacterAiJobGiver
+{
+    public override CharacterAiBranch Branch => CharacterAiBranch.Drink;
+    public override string Name => "DrinkJobGiver";
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        out string reason)
+    {
+        float utility = CharacterNeedAiThresholds.GetRoutineUtility(
+            actor,
+            CharacterCondition.THIRST);
+        reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
+            ? $"thirstNeed={utility:0.###}"
+            : "갈증";
+        return utility;
+    }
+
+    protected override float GetDomainScore(
+        CharacterActor actor,
+        in CharacterAiDecisionContext context,
+        out string reason)
+    {
+        return GetDomainScore(actor, out reason);
     }
 }
 
@@ -683,7 +718,9 @@ public sealed class RestJobGiver : CharacterAiJobGiver
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
-        float restNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Rest);
+        float restNeed = CharacterNeedAiThresholds.GetRoutineUtility(
+            actor,
+            CharacterCondition.SLEEP);
         float recoveryNeed = FacilityCandidateScorer.GetExpeditionRecoveryNeed(actor);
         float domain = Mathf.Max(restNeed, recoveryNeed * 0.95f);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
@@ -697,7 +734,11 @@ public sealed class RestJobGiver : CharacterAiJobGiver
         in CharacterAiDecisionContext context,
         out string reason)
     {
-        float restNeed = context.RestUrgency;
+        float restNeed = Mathf.Max(
+            CharacterNeedAiThresholds.GetRoutineUtility(
+                actor,
+                CharacterCondition.SLEEP),
+            context.MoodUrgency * 0.4f);
         float recoveryNeed = context.ExpeditionRecoveryUrgency;
         float domain = Mathf.Max(restNeed, recoveryNeed * 0.95f);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
@@ -715,7 +756,9 @@ public sealed class ToiletJobGiver : CharacterAiJobGiver
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
-        float toiletNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Toilet);
+        float toiletNeed = CharacterNeedAiThresholds.GetRoutineUtility(
+            actor,
+            CharacterCondition.EXCRETION);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
             ? $"toiletNeed={toiletNeed:0.###}"
             : "배변";
@@ -727,7 +770,9 @@ public sealed class ToiletJobGiver : CharacterAiJobGiver
         in CharacterAiDecisionContext context,
         out string reason)
     {
-        float toiletNeed = context.ExcretionUrgency;
+        float toiletNeed = CharacterNeedAiThresholds.GetRoutineUtility(
+            actor,
+            CharacterCondition.EXCRETION);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
             ? $"toiletNeed={toiletNeed:0.###}"
             : "배변";
@@ -743,7 +788,9 @@ public sealed class HygieneJobGiver : CharacterAiJobGiver
 
     protected override float GetDomainScore(CharacterActor actor, out string reason)
     {
-        float hygieneNeed = FacilityCandidateScorer.GetNeedScore(actor, FacilityRole.Hygiene);
+        float hygieneNeed = FacilityCandidateScorer.GetNeedScore(
+            actor,
+            FacilityRole.Hygiene);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
             ? $"hygieneNeed={hygieneNeed:0.###}"
             : "위생";
@@ -755,7 +802,9 @@ public sealed class HygieneJobGiver : CharacterAiJobGiver
         in CharacterAiDecisionContext context,
         out string reason)
     {
-        float hygieneNeed = context.GetFacilityNeedScore(FacilityRole.Hygiene);
+        float hygieneNeed = FacilityCandidateScorer.GetNeedScore(
+            actor,
+            FacilityRole.Hygiene);
         reason = actor != null && actor.ShouldCollectDetailedAiDiagnostics
             ? $"hygieneNeed={hygieneNeed:0.###}"
             : "위생";
@@ -974,6 +1023,7 @@ public interface ICharacterAiJobGiverCatalog
 {
     CharacterAiJobGiver ExitDungeon { get; }
     CharacterAiJobGiver GetFood { get; }
+    CharacterAiJobGiver Drink { get; }
     CharacterAiJobGiver Rest { get; }
     CharacterAiJobGiver Toilet { get; }
     CharacterAiJobGiver Hygiene { get; }
@@ -993,6 +1043,7 @@ public sealed class CharacterAiJobGiverCatalog : ICharacterAiJobGiverCatalog
     {
         Register(new ExitDungeonJobGiver());
         Register(new GetFoodJobGiver());
+        Register(new DrinkJobGiver());
         Register(new RestJobGiver());
         Register(new ToiletJobGiver());
         Register(new HygieneJobGiver());
@@ -1004,6 +1055,7 @@ public sealed class CharacterAiJobGiverCatalog : ICharacterAiJobGiverCatalog
 
     public CharacterAiJobGiver ExitDungeon => Get(CharacterAiBranch.ExitDungeon);
     public CharacterAiJobGiver GetFood => Get(CharacterAiBranch.Eat);
+    public CharacterAiJobGiver Drink => Get(CharacterAiBranch.Drink);
     public CharacterAiJobGiver Rest => Get(CharacterAiBranch.Rest);
     public CharacterAiJobGiver Toilet => Get(CharacterAiBranch.Toilet);
     public CharacterAiJobGiver Hygiene => Get(CharacterAiBranch.Hygiene);

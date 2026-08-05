@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,27 +33,29 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 39459b07f5a953140b1079a13598c03d, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239583285371
-    - rid: 7302563239583285372
-    - rid: 7302563239583285373
-    - rid: 7302563239583285374
-    - rid: 7302563239583285375
-    - rid: 7302563239583285376
-    - rid: 7302563239583285377
-    - rid: 7302563239583285378
-    - rid: 7302563239583285379
-    - rid: 7302563239583285380
-    - rid: 7302563313672519874
-    - rid: 7302563313672519875
-    - rid: 7302563313672519876
-    - rid: 7302563313672519877
-    - rid: 7302563313672519878
+    - rid: 7737211730834227637
+    - rid: 7737211730834227638
+    - rid: 7737211730834227639
+    - rid: 7737211730834227640
+    - rid: 7737211730834227641
+    - rid: 7737211730834227642
+    - rid: 7737211730834227643
+    - rid: 7737211730834227644
+    - rid: 7737211730834227645
+    - rid: 7737211730834227646
+    - rid: 7737211730834227647
+    - rid: 7737211730889016013
+    - rid: 7737211730889016014
+    - rid: 7737211730889016015
+    - rid: 7737211730889016016
+    - rid: 7737211730889016017
   width: 2
   height: 1
   layer: 1
   category: 2
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -71,21 +64,33 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239583285371
+    - rid: 7737211730834227637
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: D02
-    - rid: 7302563239583285372
+    - rid: 7737211730834227638
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 110
+        constructionValue: 110
+        constructionCost: 0
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563239583285373
+    - rid: 7737211730834227639
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 26.2
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:lumber
+          amount: 6
+    - rid: 7737211730834227640
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -96,11 +101,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 536952845
           disabledWhenDamaged: 1
-    - rid: 7302563239583285374
+    - rid: 7737211730834227641
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563239583285375
+    - rid: 7737211730834227642
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -115,7 +120,7 @@ MonoBehaviour:
           - key: Meat
             value: 2
           metrics: []
-    - rid: 7302563239583285376
+    - rid: 7737211730834227643
       type: {class: BuildingNeedRecoveryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingNeedRecoveryAbility
@@ -126,13 +131,13 @@ MonoBehaviour:
           hunger: 48
           excretion: 0
           hygiene: 0
-    - rid: 7302563239583285377
+    - rid: 7737211730834227644
       type: {class: BuildingProductionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionAbility
         outputCategory: 0
         amount: 6
-    - rid: 7302563239583285378
+    - rid: 7737211730834227645
       type: {class: BuildingCookingAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCookingAbility
@@ -140,7 +145,7 @@ MonoBehaviour:
         cookedMeals: 3
         workSeconds: 1.3
         requiresFuel: 1
-    - rid: 7302563239583285379
+    - rid: 7737211730834227646
       type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFuelConsumerAbility
@@ -148,21 +153,21 @@ MonoBehaviour:
         workSeconds: 0.9
         warmth: 10
         lightSafety: 7
-    - rid: 7302563239583285380
+    - rid: 7737211730834227647
       type: {class: BuildingTemperatureAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingTemperatureAbility
         roomTemperatureOffset: 5
         coldProtection: 8
         heatProtection: 1
-    - rid: 7302563313672519874
+    - rid: 7737211730889016013
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563313672519875
+    - rid: 7737211730889016014
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -173,21 +178,21 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563313672519876
+    - rid: 7737211730889016015
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7302563313672519877
+    - rid: 7737211730889016016
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563313672519878
+    - rid: 7737211730889016017
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

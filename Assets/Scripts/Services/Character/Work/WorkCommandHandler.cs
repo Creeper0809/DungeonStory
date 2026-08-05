@@ -30,7 +30,9 @@ public sealed class WorkCommandHandler
     public CharacterActor PrioritySuppressActor => prioritySuppressTarget != null ? prioritySuppressTarget : null;
     public bool HasPrioritySuppressTarget => prioritySuppressTarget != null && !prioritySuppressTarget.IsDead;
     internal FacilityWorkType PriorityWorkType => priorityWorkType;
-    public WorkTypeId PriorityWorkTypeId => WorkTypeCatalog.TryGet(priorityWorkType, out WorkTypeDefinition definition)
+    public WorkTypeId PriorityWorkTypeId => FacilityWorkTypeMap.TryGet(
+            priorityWorkType,
+            out WorkTypeDefinition definition)
         ? definition.WorkTypeId
         : default;
 
@@ -52,7 +54,7 @@ public sealed class WorkCommandHandler
         FacilityWorkType preferredWorkType = WorkTypeCatalog.TryGet(
                 preferredWorkTypeId,
                 out WorkTypeDefinition definition)
-            ? definition.Type
+            ? FacilityWorkTypeMap.GetRequired(definition)
             : FacilityWorkType.None;
         return TrySetPriorityWorkTargetWithLegacyType(
             building,
@@ -74,7 +76,7 @@ public sealed class WorkCommandHandler
         }
 
         bool forced = preferredWorkType != FacilityWorkType.None;
-        WorkTypeId preferredWorkTypeId = WorkTypeCatalog.TryGet(
+        WorkTypeId preferredWorkTypeId = FacilityWorkTypeMap.TryGet(
                 preferredWorkType,
                 out WorkTypeDefinition preferredDefinition)
             ? preferredDefinition.WorkTypeId
@@ -152,7 +154,7 @@ public sealed class WorkCommandHandler
             CharacterActivityOutcomes.Changed,
             $"우선 제압 지정: {target.name}",
             actionId: "command:suppress",
-            targetId: $"character:{target.GetInstanceID()}",
+            targetId: CharacterPersistentIdentity.Require(target).Value,
             targetName: target.name));
         errorMessage = string.Empty;
         return true;
@@ -230,7 +232,9 @@ public sealed class WorkCommandHandler
                 CharacterActivityOutcomes.Failed,
                 $"제압 실패: {errorMessage}",
                 actionId: "combat:suppress",
-                targetId: target != null ? $"character:{target.GetInstanceID()}" : string.Empty,
+                targetId: target != null
+                    ? CharacterPersistentIdentity.Require(target).Value
+                    : string.Empty,
                 targetName: target != null ? target.name : string.Empty,
                 reasonCode: errorMessage,
                 sentiment: -0.7f,
@@ -304,7 +308,7 @@ public sealed class WorkCommandHandler
             CharacterActivityOutcomes.Started,
             $"제압 시작: {target.name}",
             actionId: "combat:suppress",
-            targetId: $"character:{target.GetInstanceID()}",
+            targetId: CharacterPersistentIdentity.Require(target).Value,
             targetName: target.name));
         while (target != null && !target.IsDead && actor != null && !actor.IsDead)
         {
@@ -320,7 +324,7 @@ public sealed class WorkCommandHandler
                         CharacterActivityOutcomes.Blocked,
                         "제압 실패: 도달할 수 없는 대상",
                         actionId: "combat:suppress",
-                        targetId: $"character:{target.GetInstanceID()}",
+                        targetId: CharacterPersistentIdentity.Require(target).Value,
                         targetName: target.name,
                         reasonCode: "target-unreachable",
                         sentiment: -0.7f,
@@ -333,12 +337,18 @@ public sealed class WorkCommandHandler
             }
 
             float damage = Mathf.Max(1f, work.SuppressBaseDamage * actor.GetCombatPowerMultiplier());
-            ICharacterDeprivationRuntime deprivationRuntime = target.DeprivationRuntime;
-            bool breakdownTarget = deprivationRuntime?.IsSuppressible(target) ?? false;
+            ICharacterDeprivationQuery deprivationQuery = target.DeprivationQuery;
+            ICharacterDeprivationCommand deprivationCommands =
+                target.DeprivationCommands;
+            bool breakdownTarget =
+                deprivationQuery?.IsSuppressible(target) ?? false;
             bool suppressionEnded = false;
             if (breakdownTarget)
             {
-                deprivationRuntime.ApplySuppression(target, damage, out suppressionEnded);
+                deprivationCommands.ApplySuppression(
+                    target,
+                    damage,
+                    out suppressionEnded);
             }
             else
             {
@@ -351,7 +361,7 @@ public sealed class WorkCommandHandler
                     ? $"제압 완료: {target.name}"
                     : $"저항을 누르는 중: {target.name}",
                 actionId: "combat:suppress",
-                targetId: $"character:{target.GetInstanceID()}",
+                targetId: CharacterPersistentIdentity.Require(target).Value,
                 targetName: target.name,
                 value: damage,
                 sentiment: target.IsDead || suppressionEnded ? 0.2f : -0.3f));

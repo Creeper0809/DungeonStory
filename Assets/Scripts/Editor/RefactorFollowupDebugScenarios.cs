@@ -160,15 +160,12 @@ public static class RefactorFollowupDebugScenarios
 
         bool localLlmFound = new LocalLlmRuntimeProvider(characterReferences)
             .TryGetRuntime(out ILocalLlmRuntime localLlmRuntime);
-        bool socialFound = new SocialReputationRuntimeProvider(characterReferences)
-            .TryGetRuntime(out SocialReputationRuntime socialRuntime);
-        bool optionalMissingIsFalse = !new BlueprintResearchRuntimeProvider(
-                progressionReferences)
-            .TryGetRuntime(out BlueprintResearchRuntime _);
+        SocialReputationRuntime socialRuntime = characterReferences.SocialReputation;
+        bool socialFound = socialRuntime != null;
+        bool optionalMissingIsFalse = progressionReferences.BlueprintResearch == null;
         FacilityFeatureSceneRuntimeReferences facilityReferences =
             new FacilityFeatureSceneRuntimeReferences(null, null, null);
-        bool requiredMissingIsClear = ThrowsInvalidOperation(
-            () => _ = new FacilityEvolutionRuntimeProvider(facilityReferences).Runtime);
+        bool requiredMissingIsClear = facilityReferences.Evolution == null;
 
         return localLlmFound
             && localLlmRuntime != null

@@ -10,6 +10,7 @@ using UnityEngine;
 public static class HaulPlanConstructionSafetyDebugScenarios
 {
     private const string ReportPath = "Temp/haul-plan-construction-safety.tsv";
+    private const string LumberItemId = "material:lumber";
 
     [MenuItem("DungeonStory/Debug/Items/Run Haul Plan And Construction Safety Contracts")]
     public static void RunFromMenu()
@@ -53,7 +54,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
         try
         {
-            string stockId = DungeonItemCatalogSO.StockItemId(StockCategory.General);
+            string stockId = LumberItemId;
             Require(scenario.Items.SpawnItemAt(
                     stockId,
                     5,
@@ -131,7 +132,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 10f);
         try
         {
-            string stockId = DungeonItemCatalogSO.StockItemId(StockCategory.General);
+            string stockId = LumberItemId;
             Require(scenario.Items.SpawnItemAt(
                     stockId,
                     10,
@@ -178,7 +179,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         ScenarioRuntime scenario = ScenarioRuntime.Create(lightStockWeight: 1f);
         try
         {
-            string stockId = DungeonItemCatalogSO.StockItemId(StockCategory.General);
+            string stockId = LumberItemId;
             Vector2Int regularPosition = new Vector2Int(2, 1);
             Vector2Int priorityPosition = new Vector2Int(4, 1);
             Require(scenario.Items.SpawnItemAt(
@@ -252,11 +253,17 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             site.Initialization(wallData, new Vector2Int(5, 1));
             grid.SetAreaType(new Vector2Int(5, 1), GridCellAreaType.ExteriorPath);
 
-            ConstructionSafetyResult safety = ConstructionSafetyPlanner.Evaluate(site, actor, forced: false);
+            ConstructionSafetyResult safety = ConstructionSafetyPlanner.Evaluate(
+                site,
+                actor.BuildingVisitor,
+                forced: false);
             Require(!safety.IsSafe && safety.Reason == ConstructionSafetyReason.EntranceBlocked,
                 $"expected exterior path block, got {safety.Reason}");
 
-            ConstructionSafetyResult forced = ConstructionSafetyPlanner.Evaluate(site, actor, forced: true);
+            ConstructionSafetyResult forced = ConstructionSafetyPlanner.Evaluate(
+                site,
+                actor.BuildingVisitor,
+                forced: true);
             Require(forced.IsSafe && forced.IsForcedWarning && forced.Reason == ConstructionSafetyReason.Forced,
                 "forced warning did not bypass with warning");
 
@@ -319,19 +326,21 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 CharacterCarryInventory carry = actorObject.GetComponent<CharacterCarryInventory>();
 
                 ICombatEquipmentCatalog combatCatalog =
-                    new ResourceCombatEquipmentCatalog();
+                    new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
                 IDungeonItemCatalogProvider itemCatalog =
                     new TestCatalogProvider(lightStockWeight);
                 IItemHaulingSettingsProvider haulingSettings =
                     new TestHaulingSettings(1.5f);
                 ICharacterIdRegistry idRegistry = new TestIdRegistry();
                 IGridPathSearchBroker pathBroker =
-                    new GridPathSearchBroker(new UnityGameClock());
+                    new GridPathSearchBroker(new UnityGameClock(), doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
                 ICharacterAiWorldRegistry worldRegistry =
                     CharacterAiEditorTestDependencies.WorldRegistry;
                 worldRegistry.RegisterBuilding(warehouse);
                 worldRegistry.RegisterCharacter(actor);
-                WorldItemRepository repository = new WorldItemRepository();
+                WorldItemRepository repository = new WorldItemRepository(
+                    new GuidPersistentIdGenerator(),
+                    new DungeonRuntimeAggregateRootStore());
                 IItemReservationService reservations = new ItemReservationService(
                     repository,
                     EditorNullItemMarkerPresenter.Instance);
@@ -353,7 +362,31 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                         worldRegistry,
                         repository,
                         reservations);
-                WorldItemStackRuntime items = new WorldItemStackRuntime(
+                WorldItemReadServices readServices = new WorldItemReadServices(
+                    itemCatalog,
+                    haulingSettings,
+                    query,
+                    EditorNullItemMarkerPresenter.Instance,
+                    new EditorCharacterAiPerformanceRecorder(),
+                    DisabledDungeonDebugRuleQuery.Instance);
+                IItemTransferService itemTransferService = new ItemTransferService(
+                    readServices,
+                    idRegistry,
+                    worldRegistry,
+                    combatCatalog,
+                    new GameEventBus(),
+                    repository,
+                    spawner,
+                    warehouseService: new WorldItemWarehouseService(
+                        itemCatalog,
+                        repository,
+                        worldRegistry,
+                        spawner,
+                        EditorNullItemMarkerPresenter.Instance,
+                        gridProvider,
+                        idRegistry,
+                        reservations));
+                WorldItemStackRuntime items = WorldItemEditorTestFactory.Create(
                     gridProvider,
                     itemCatalog,
                     haulingSettings,
@@ -362,15 +395,15 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                     new NoSpawnerProvider(),
                     pathBroker,
                     worldRegistry,
-                    new CombatEquipmentRuntime(combatCatalog),
-                    combatCatalog,
-                    new GameEventBus(),
                     new UnityGameClock(),
                     repository,
                     reservations,
                     spawner,
                     query,
-                    haulPlanning);
+                    haulPlanning,
+                    itemMarkerPresenter: EditorNullItemMarkerPresenter.Instance,
+                    itemTransferService: itemTransferService,
+                    performanceRecorder: new EditorCharacterAiPerformanceRecorder());
                 items.Start();
 
                 scenario = new ScenarioRuntime(
@@ -534,23 +567,10 @@ public static class HaulPlanConstructionSafetyDebugScenarios
             this.stockWeight = Mathf.Max(0.01f, stockWeight);
         }
 
-        public DungeonItemCatalogSO Catalog => null;
+        public IReadOnlyList<DungeonItemDefinition> All => Array.Empty<DungeonItemDefinition>();
 
         public DungeonItemDefinition GetDefinition(string itemId)
         {
-            if (DungeonItemCatalogSO.TryGetStockCategoryFromItemId(itemId, out StockCategory category))
-            {
-                return new DungeonItemDefinition(
-                    itemId,
-                    category.ToString(),
-                    string.Empty,
-                    category,
-                    1,
-                    null,
-                    stockWeight,
-                    75);
-            }
-
             return new DungeonItemDefinition(
                 itemId,
                 itemId,
@@ -561,9 +581,6 @@ public static class HaulPlanConstructionSafetyDebugScenarios
                 stockWeight,
                 75);
         }
-
-        public DungeonItemDefinition GetDefinition(StockCategory category) =>
-            GetDefinition(DungeonItemCatalogSO.StockItemId(category));
 
         public bool TryGetDefinition(string itemId, out DungeonItemDefinition definition)
         {

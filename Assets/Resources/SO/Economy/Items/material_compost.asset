@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uBC2D\uACFC \uC2E4\uB0B4 \uC7AC\uBC30\uC5D0 \uC4F0\uB294 \uD1A0\uC591
     \uC601\uC591\uC81C."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 2049
-  unitPrice: 3
-  marketSaleRate: 0.6
   unitWeight: 0.7
   maxStack: 75
   sprite: {fileID: 0}
-  requiredResearchId: research:agriculture:compost
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 3
+  features:
+  - rid: 7737211673962611643
+  - rid: 7737211673962611644
+  - rid: 7737211673962611645
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611643
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:agriculture:compost
+    - rid: 7737211673962611644
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 2049
+        sharedIntermediate: 1
+    - rid: 7737211673962611645
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

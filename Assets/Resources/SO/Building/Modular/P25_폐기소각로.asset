@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,21 +33,23 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: bc8b0141628155f4cbee82a6c09250a9, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239038813055
-    - rid: 7302563239038813056
-    - rid: 7302563239038813057
-    - rid: 7302563239038813058
-    - rid: 7302563239038813059
-    - rid: 7302563313672519857
-    - rid: 7302563313672519858
-    - rid: 7302563313672519859
-    - rid: 7302563313672519860
+    - rid: 7737211730834227249
+    - rid: 7737211730834227250
+    - rid: 7737211730834227251
+    - rid: 7737211730834227252
+    - rid: 7737211730834227253
+    - rid: 7737211730834227254
+    - rid: 7737211730889015994
+    - rid: 7737211730889015995
+    - rid: 7737211730889015996
+    - rid: 7737211730889015997
   width: 2
   height: 1
   layer: 1
   category: 5
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -65,27 +58,39 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239038813055
+    - rid: 7737211730834227249
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: P25
-    - rid: 7302563239038813056
+    - rid: 7737211730834227250
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - incinerator
-    - rid: 7302563239038813057
+    - rid: 7737211730834227251
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 110
+        constructionValue: 110
+        constructionCost: 0
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563239038813058
+    - rid: 7737211730834227252
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 26.2
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:lumber
+          amount: 6
+    - rid: 7737211730834227253
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -96,7 +101,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 268
           disabledWhenDamaged: 1
-    - rid: 7302563239038813059
+    - rid: 7737211730834227254
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -114,21 +119,21 @@ MonoBehaviour:
           - key: Hygiene
             value: 3
           metrics: []
-    - rid: 7302563313672519857
+    - rid: 7737211730889015994
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563313672519858
+    - rid: 7737211730889015995
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563313672519859
+    - rid: 7737211730889015996
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -139,7 +144,7 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563313672519860
+    - rid: 7737211730889015997
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility

@@ -27,24 +27,37 @@ MonoBehaviour:
   description: "\uC2DC\uC124 \uBC84\uD37C\uC640 \uCEE8\uBCA0\uC774\uC5B4 \uC0AC\uC774\uC5D0\uC11C
     \uC544\uC774\uD15C\uC744 \uBCF4\uC874\uD55C \uCC44 \uC778\uACC4\uD55C\uB2E4."
   field: 15
-  requiredWork: 128
+  requiredWork: 560
   prerequisites:
   - {fileID: 11400000, guid: d4a6af96d6d3a894ea7d05a008cfa007, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:industry:conveyor
+    prerequisite: {fileID: 11400000, guid: d4a6af96d6d3a894ea7d05a008cfa007, type: 2}
+    kind: 2
+    reason: "\uCEE8\uBCA0\uC774\uC5B4\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC785\uCD9C\uB825 \uD3EC\uD2B8 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687355
-    - rid: 7302563278452687356
+    - rid: 7737211730927813425
+    - rid: 7737211730927813426
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687355
+    - rid: 7737211730927813425
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9844
-    - rid: 7302563278452687356
+    - rid: 7737211730927813426
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9845

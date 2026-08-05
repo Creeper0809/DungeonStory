@@ -24,82 +24,6 @@ public enum DungeonDebugTargetKind
     Wildlife
 }
 
-public enum DungeonDebugCheat
-{
-    FriendlyInvincible,
-    FacilityInvincible,
-    FreezeNeeds,
-    PreventBreakdowns,
-    NoMoneyOrItemCost,
-    FreeConstruction,
-    IgnorePlacementRules,
-    InstantConstruction,
-    InstantWork,
-    IgnoreUnlocks,
-    PauseHumanoidAi,
-    PauseWildlifeAi
-}
-
-public enum DungeonDebugOverlayKind
-{
-    Grid,
-    GridOccupancy,
-    Rooms,
-    BuildingRanges,
-    Lighting,
-    CharacterAi,
-    Hauling,
-    Wildlife,
-    WaterAndFilth,
-    ExteriorZones,
-    Defense
-}
-
-public enum DungeonDebugOverlayScope
-{
-    SelectedOnly,
-    VisibleWorld
-}
-
-[Serializable]
-public sealed class DungeonDebugCommandHistorySaveData
-{
-    public string gameTime = string.Empty;
-    public string commandId = string.Empty;
-    public string target = string.Empty;
-    public string result = string.Empty;
-}
-
-[Serializable]
-public sealed class DungeonDebugRunSaveData
-{
-    public bool debugModified;
-    public List<DungeonDebugCommandHistorySaveData> recentCommands =
-        new List<DungeonDebugCommandHistorySaveData>();
-}
-
-public readonly struct DungeonDebugCommandResult
-{
-    private DungeonDebugCommandResult(bool success, string message)
-    {
-        Success = success;
-        Message = message ?? string.Empty;
-    }
-
-    public bool Success { get; }
-    public string Message { get; }
-
-    public static DungeonDebugCommandResult Succeeded(string message)
-    {
-        return new DungeonDebugCommandResult(true, message);
-    }
-
-    public static DungeonDebugCommandResult Failed(string message)
-    {
-        return new DungeonDebugCommandResult(false, message);
-    }
-}
-
 public sealed class DungeonDebugTargetSelection
 {
     public DungeonDebugTargetKind Kind { get; set; }
@@ -179,22 +103,35 @@ public interface IDungeonDebugCommandRegistry
     DungeonDebugCommandResult Execute(IDungeonDebugCommand command, DungeonDebugExecutionContext context);
 }
 
-public interface IDungeonDebugModeService
+public interface IDungeonDebugRuleQuery : IBuildingDamageRulePort
 {
-    bool IsDeveloperModeEnabled { get; }
-    bool IsDebugModified { get; }
-    DungeonDebugOverlayScope OverlayScope { get; }
-    IReadOnlyList<DungeonDebugCommandHistorySaveData> RecentCommands { get; }
-    event Action StateChanged;
-    bool IsCheatEnabled(DungeonDebugCheat cheat);
-    bool IsOverlayEnabled(DungeonDebugOverlayKind overlay);
-    void SetCheat(DungeonDebugCheat cheat, bool enabled);
-    void SetOverlay(DungeonDebugOverlayKind overlay, bool enabled);
-    void SetOverlayScope(DungeonDebugOverlayScope scope);
-    void MarkMutation(string commandId, string target, DungeonDebugCommandResult result);
-    DungeonDebugRunSaveData Capture();
-    void Restore(DungeonDebugRunSaveData data);
-    void ResetTransientState();
+    bool IsExecutingCommand { get; }
+    bool IsEnabled(DungeonDebugCheat cheat);
+    bool ShouldFreezeNeed(CharacterCondition condition, float delta);
+    bool ShouldBlockFriendlyDamage(CharacterActor actor);
+    bool ShouldSkipCosts();
+}
+
+public interface IDungeonDebugRuleRuntime : IDungeonDebugRuleQuery
+{
+    void BeginCommandExecution();
+    void EndCommandExecution();
+}
+
+public sealed class DisabledDungeonDebugRuleQuery : IDungeonDebugRuleQuery
+{
+    public static readonly DisabledDungeonDebugRuleQuery Instance = new();
+
+    private DisabledDungeonDebugRuleQuery()
+    {
+    }
+
+    public bool IsExecutingCommand => false;
+    public bool IsEnabled(DungeonDebugCheat cheat) => false;
+    public bool ShouldFreezeNeed(CharacterCondition condition, float delta) => false;
+    public bool ShouldBlockFriendlyDamage(CharacterActor actor) => false;
+    public bool ShouldBlockFacilityDamage(bool damaged) => false;
+    public bool ShouldSkipCosts() => false;
 }
 
 public interface IDungeonDebugOverlayProvider
@@ -211,4 +148,3 @@ public sealed class DungeonDebugOverlayRenderContext
     public DungeonDebugTargetSelection Selection { get; set; }
     public DungeonDebugOverlayRenderer Renderer { get; set; }
 }
-

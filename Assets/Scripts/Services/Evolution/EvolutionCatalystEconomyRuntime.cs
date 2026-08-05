@@ -6,7 +6,7 @@ using UnityEngine;
 public static class EvolutionCatalystEconomyRules
 {
     public const int RefinementResidueCost = 3;
-    public const int PotencyUpgradeResidueCost = 5;
+    public const int ProgressionUpgradeResidueCost = 5;
     public const float MerchantExchangeValueMultiplier = 1.5f;
 }
 
@@ -15,65 +15,10 @@ public static class EvolutionCatalystItemDefinitions
     public const string FacilityPackageItemId =
         "evolution:facility-package";
 
-    public static bool TryGetDefinition(
-        string itemId,
-        out DungeonItemDefinition definition)
+    public static int GetCatalystValue(int progressionLevel)
     {
-        if (string.Equals(
-                itemId?.Trim(),
-                FacilityPackageItemId,
-                StringComparison.Ordinal))
-        {
-            definition = new DungeonItemDefinition(
-                FacilityPackageItemId,
-                "포장된 시설",
-                "해체한 시설과 그 기록을 보존한 운반 상자.",
-                StockCategory.General,
-                0,
-                null,
-                12f,
-                1);
-            return true;
-        }
-
-        if (EvolutionCatalystItemId.TryParseCatalyst(
-                itemId,
-                out EquipmentCatalystDefinition catalyst))
-        {
-            int value = GetCatalystValue(catalyst.potency);
-            definition = new DungeonItemDefinition(
-                catalyst.itemId,
-                $"{GetFamilyDisplayName(catalyst.family)} 촉매 {catalyst.potency}등급",
-                "시설 개조와 장비 재단조에 사용하는 진화 촉매.",
-                StockCategory.General,
-                value,
-                null,
-                0.25f,
-                20);
-            return true;
-        }
-
-        if (EvolutionCatalystItemId.TryParseResidue(itemId, out int potency))
-        {
-            definition = new DungeonItemDefinition(
-                EvolutionCatalystItemId.BuildResidue(potency),
-                $"범용 촉매 잔재 {potency}등급",
-                "촉매를 분해해 얻은 잔재. 정제하거나 상위 등급으로 합칠 수 있다.",
-                StockCategory.General,
-                Mathf.Max(1, GetCatalystValue(potency) / 3),
-                null,
-                0.1f,
-                75);
-            return true;
-        }
-
-        definition = null;
-        return false;
-    }
-
-    public static int GetCatalystValue(int potency)
-    {
-        int exponent = Mathf.Clamp(Mathf.Max(1, potency) - 1, 0, 20);
+        EvolutionCatalystProgression.RequireValid(progressionLevel);
+        int exponent = progressionLevel - 1;
         long value = 120L << exponent;
         return (int)Math.Min(int.MaxValue, value);
     }
@@ -100,12 +45,12 @@ public interface IEvolutionCatalystEconomyRuntime
         Vector2Int outputPosition,
         out string failureReason);
     bool TryRefine(
-        int potency,
+        int progressionLevel,
         string catalystFamily,
         Vector2Int outputPosition,
         out string failureReason);
-    bool TryUpgradeResidue(
-        int potency,
+    bool TryAdvanceResidue(
+        int progressionLevel,
         Vector2Int outputPosition,
         out string failureReason);
     bool TryMerchantExchange(
@@ -120,14 +65,14 @@ public sealed class EvolutionCatalystEconomyRuntime :
     IEvolutionCatalystEconomyRuntime
 {
     private readonly IWorldItemStackRuntime items;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameMoneyAccount money;
 
     public EvolutionCatalystEconomyRuntime(
         IWorldItemStackRuntime items,
-        IGameDataProvider gameDataProvider)
+        IGameMoneyAccount money)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
-        this.gameDataProvider = gameDataProvider;
+        this.money = money ?? throw new ArgumentNullException(nameof(money));
     }
 
     public bool TryDismantle(
@@ -153,7 +98,8 @@ public sealed class EvolutionCatalystEconomyRuntime :
         }
 
         if (items.SpawnItemAt(
-                EvolutionCatalystItemId.BuildResidue(catalyst.potency),
+                EvolutionCatalystItemId.BuildResidue(
+                    catalyst.progressionLevel),
                 1,
                 outputPosition,
                 WorldItemStackState.Loose,
@@ -170,15 +116,20 @@ public sealed class EvolutionCatalystEconomyRuntime :
     }
 
     public bool TryRefine(
-        int potency,
+        int progressionLevel,
         string catalystFamily,
         Vector2Int outputPosition,
         out string failureReason)
     {
-        int normalizedPotency = Mathf.Max(1, potency);
+        if (!EvolutionCatalystProgression.IsValid(progressionLevel))
+        {
+            failureReason = "촉매 진행 단계가 유효하지 않습니다.";
+            return false;
+        }
+
         string outputId = EvolutionCatalystItemId.BuildCatalyst(
             catalystFamily,
-            normalizedPotency);
+            progressionLevel);
         if (!EvolutionCatalystItemId.TryParseCatalyst(outputId, out _))
         {
             failureReason = "정제할 촉매 계열이 올바르지 않습니다.";
@@ -186,23 +137,29 @@ public sealed class EvolutionCatalystEconomyRuntime :
         }
 
         return TryTransform(
-            EvolutionCatalystItemId.BuildResidue(normalizedPotency),
+            EvolutionCatalystItemId.BuildResidue(progressionLevel),
             EvolutionCatalystEconomyRules.RefinementResidueCost,
             outputId,
             outputPosition,
             out failureReason);
     }
 
-    public bool TryUpgradeResidue(
-        int potency,
+    public bool TryAdvanceResidue(
+        int progressionLevel,
         Vector2Int outputPosition,
         out string failureReason)
     {
-        int normalizedPotency = Mathf.Max(1, potency);
+        if (!EvolutionCatalystProgression.IsValid(progressionLevel)
+            || progressionLevel >= EvolutionCatalystProgression.MaximumLevel)
+        {
+            failureReason = "더 높은 촉매 진행 단계가 존재하지 않습니다.";
+            return false;
+        }
+
         return TryTransform(
-            EvolutionCatalystItemId.BuildResidue(normalizedPotency),
-            EvolutionCatalystEconomyRules.PotencyUpgradeResidueCost,
-            EvolutionCatalystItemId.BuildResidue(normalizedPotency + 1),
+            EvolutionCatalystItemId.BuildResidue(progressionLevel),
+            EvolutionCatalystEconomyRules.ProgressionUpgradeResidueCost,
+            EvolutionCatalystItemId.BuildResidue(progressionLevel + 1),
             outputPosition,
             out failureReason);
     }
@@ -228,7 +185,7 @@ public sealed class EvolutionCatalystEconomyRuntime :
 
         string outputId = EvolutionCatalystItemId.BuildCatalyst(
             targetFamily,
-            catalyst.potency);
+            catalyst.progressionLevel);
         if (!EvolutionCatalystItemId.TryParseCatalyst(outputId, out _))
         {
             failureReason = "교환할 촉매 계열이 올바르지 않습니다.";
@@ -236,12 +193,10 @@ public sealed class EvolutionCatalystEconomyRuntime :
         }
 
         int price = Mathf.CeilToInt(
-            EvolutionCatalystItemDefinitions.GetCatalystValue(catalyst.potency)
+            EvolutionCatalystItemDefinitions.GetCatalystValue(
+                catalyst.progressionLevel)
             * EvolutionCatalystEconomyRules.MerchantExchangeValueMultiplier);
-        if (gameDataProvider == null
-            || !gameDataProvider.TryGetGameData(out GameData gameData)
-            || gameData.holdingMoney == null
-            || gameData.holdingMoney.Value < price)
+        if (!money.CanSpend(price))
         {
             failureReason = $"촉매 교환에 {price} 골드가 필요합니다.";
             return false;
@@ -267,7 +222,18 @@ public sealed class EvolutionCatalystEconomyRuntime :
             return false;
         }
 
-        gameData.holdingMoney.Value -= price;
+        if (!money.TrySpend(
+                price,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.ShopPurchase,
+                    "evolution-catalyst-exchange",
+                    sourceCatalystStackId,
+                    "촉매 계열 교환"),
+                out failureReason))
+        {
+            RestoreItem(source.ItemId, outputPosition);
+            return false;
+        }
         goldSpent = price;
         return true;
     }

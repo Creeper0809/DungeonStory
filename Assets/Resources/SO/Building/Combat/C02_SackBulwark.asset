@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: BuildableObject, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,16 +33,17 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 2738964120cb19941b1437cebe81f51a, type: 3}
   abilityModules:
     items:
-    - rid: 7302563288033263645
-    - rid: 7302563288033263646
-    - rid: 7302563288033263647
-    - rid: 7302563288033263648
+    - rid: 7737211765905949127
+    - rid: 7737211765905949128
+    - rid: 7737211765905949129
+    - rid: 7737211765905949130
   width: 1
   height: 1
   layer: 1
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 0
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -60,8 +52,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563288033263645
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211765905949127
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -69,7 +61,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563288033263646
+    - rid: 7737211765905949128
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -80,7 +72,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 0
-    - rid: 7302563288033263647
+    - rid: 7737211765905949129
       type: {class: BuildingCoverAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCoverAbility
@@ -89,7 +81,7 @@ MonoBehaviour:
         facingDirection: {x: -1, y: 0}
         allowsCornerPeek: 0
         coverHitPoints: 90
-    - rid: 7302563288033263648
+    - rid: 7737211765905949130
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -98,6 +90,6 @@ MonoBehaviour:
         cleanWorkRequired: 4
         researchWorkRequired: 6
         operateWorkRequired: 10
-        constructionMaterialCategory: 1
-        constructionMaterialAmount: 4
-        materialUnitsPerConstructionCost: 0
+        constructionMaterials:
+        - itemId: material:cloth
+          amount: 4

@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
-public sealed class CropPlotSaveSection : IDungeonSaveSection
+public sealed class CropPlotSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonCropPlotSaveData,
+        CropPlotRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "economy.crop-plots";
 
@@ -12,42 +15,28 @@ public sealed class CropPlotSaveSection : IDungeonSaveSection
         PhysicalItemsSaveSection.Id
     };
 
-    private readonly ICropPlotRuntime runtime;
+    private readonly ICropPlotPersistence persistence;
 
-    public CropPlotSaveSection(ICropPlotRuntime runtime)
+    public CropPlotSaveSection(ICropPlotPersistence persistence)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => DungeonCropPlotSaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase =>
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonCropPlotSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.RuntimeState;
-    public IReadOnlyList<string> DependsOn => Dependencies;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
-    {
-        return JsonUtility.ToJson(runtime.Capture());
-    }
+    protected override DungeonCropPlotSaveData CapturePayload() =>
+        persistence.Capture();
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        if (sectionVersion != SectionVersion)
-        {
-            report.AddError(
-                $"Unsupported crop-plot section version {sectionVersion}; "
-                + $"expected {SectionVersion}.");
-            return;
-        }
+    protected override CropPlotRestoreCandidate BuildRestoreCandidate(
+        DungeonCropPlotSaveData payload) =>
+        persistence.BuildRestore(payload);
 
-        DungeonCropPlotSaveData snapshot =
-            string.IsNullOrWhiteSpace(payloadJson)
-                ? new DungeonCropPlotSaveData()
-                : JsonUtility.FromJson<DungeonCropPlotSaveData>(payloadJson)
-                    ?? new DungeonCropPlotSaveData();
-        runtime.Restore(snapshot);
-    }
+    protected override void PublishRestoreCandidate(
+        CropPlotRestoreCandidate candidate) =>
+        persistence.Restore(candidate);
 }

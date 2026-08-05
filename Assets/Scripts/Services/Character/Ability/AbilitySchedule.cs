@@ -6,7 +6,7 @@ public class AbilitySchedule : CharacterAbility
 {
     private Schedule[] schedules = new Schedule[24];
     public Data<Schedule> nowSheduleData;
-    public GameData gameData;
+    public GameSessionState gameData;
     protected override void Awake()
     {
         base.Awake();

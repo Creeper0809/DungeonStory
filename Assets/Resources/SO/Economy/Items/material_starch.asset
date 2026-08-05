@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uBCF4\uC874\uC2DD\uACFC \uC811\uCC29 \uAC00\uACF5\uC5D0 \uC4F0\uB294
     \uB18D\uC0B0 \uC911\uAC04\uC7AC."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 1
-  unitPrice: 3
-  marketSaleRate: 0.6
   unitWeight: 0.25
   maxStack: 75
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:milling
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 3
+  features:
+  - rid: 7737211674039681269
+  - rid: 7737211674039681270
+  - rid: 7737211674039681271
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681269
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:milling
+    - rid: 7737211674039681270
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 1
+        sharedIntermediate: 1
+    - rid: 7737211674039681271
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

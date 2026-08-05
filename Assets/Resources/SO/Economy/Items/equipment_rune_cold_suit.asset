@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "2\xB0C \uC7A5\uAE30 \uADFC\uBB34\uB97C \uC9C0\uC6D0\uD558\uB418 \uCE58\uBA85\uC120\uC744
     \uBC14\uAFB8\uC9C0 \uC54A\uB294 \uC791\uC5C5\uBCF5."
   stockCategory: 1
-  kind: 8
-  ingredientTags: 1152
-  unitPrice: 95
-  marketSaleRate: 0.6
   unitWeight: 0.8
-  maxStack: 25
+  maxStack: 1
   sprite: {fileID: 0}
-  requiredResearchId: research:environment:rune-insulation
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 95
+  features:
+  - rid: 7737211673962611646
+  - rid: 7737211673962611647
+  - rid: 7737211673962611648
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611646
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:environment:rune-insulation
+    - rid: 7737211673962611647
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 1152
+        sharedIntermediate: 0
+    - rid: 7737211673962611648
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

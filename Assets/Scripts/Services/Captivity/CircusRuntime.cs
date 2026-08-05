@@ -5,9 +5,12 @@ using DungeonStory.Foundation;
 using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
+using static CircusRuntimeQueries;
 
 public sealed class CircusRuntime :
     ICircusRuntime,
+    ICircusPersistence,
+    IDungeonRestoreTransactionParticipant,
     ITickable,
     IStartable,
     IDisposable
@@ -22,76 +25,90 @@ public sealed class CircusRuntime :
     private readonly ICharacterAiWorldRegistry world;
     private readonly IGridSystemProvider gridProvider;
     private readonly IRoomLayoutCache rooms;
-    private readonly IGameMoneyRuntime money;
-    private readonly ICharacterBodyHealthRuntime bodyHealth;
+    private readonly IGameMoneyAccount money;
+    private readonly ICharacterBodyHealthQuery bodyHealthQuery;
+    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICombatResolutionService combat;
     private readonly ICombatEquipmentRuntime equipment;
-    private readonly ICharacterMedicalRuntime medical;
+    private readonly ICharacterMedicalQuery medicalQuery;
+    private readonly ICharacterMedicalCommand medicalCommands;
     private readonly IWorldFilthQuery filth;
-    private readonly IDoorAccessCommandService doorAccess;
     private readonly IGameClock clock;
     private readonly IRandomStream random;
     private readonly IGameEventBus events;
     private readonly IExternalInfluenceRuntime externalInfluence;
-    private readonly List<CircusShowOrder> orders = new List<CircusShowOrder>();
-    private readonly Dictionary<string, IDisposable> accessPasses =
-        new Dictionary<string, IDisposable>(StringComparer.Ordinal);
-    private readonly Dictionary<string, Vector2Int> wildlifeReturnTargets =
-        new Dictionary<string, Vector2Int>(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> wildlifeReturnOrders =
-        new Dictionary<string, string>(StringComparer.Ordinal);
-    private readonly List<string> wildlifeReturnTickIds =
-        new List<string>();
-    private int nextOrderSequence;
+    private readonly CircusProgramForecastService forecastService;
+    private readonly CircusProgramForecastProjectionAdapter forecastProjection;
+    private readonly CircusStateSession stateSession;
+    private readonly ICircusRestoreLifecycle restoreLifecycle;
+    private readonly ICircusMovementCommands movement;
     private IDisposable invasionSubscription;
 
-    public CircusRuntime(
-        CircusProgramRegistry programs,
-        ICaptivityRuntime captivity,
-        ICaptivityCommandService captivityCommands,
-        IWildlifeCaptureRuntime wildlifeCapture,
-        ICharacterAiWorldRegistry world,
-        IGridSystemProvider gridProvider,
-        IRoomLayoutCache rooms,
-        IGameMoneyRuntime money,
-        ICharacterBodyHealthRuntime bodyHealth,
-        ICombatResolutionService combat,
-        ICombatEquipmentRuntime equipment,
-        ICharacterMedicalRuntime medical,
-        IWorldFilthQuery filth,
-        IDoorAccessCommandService doorAccess,
-        IGameClock clock,
-        IRandomStreamProvider randomStreamProvider,
-        IGameEventBus events,
-        IExternalInfluenceRuntime externalInfluence = null)
+    private IReadOnlyList<CircusShowOrder> orders => stateSession.Orders;
+    private int nextOrderSequence
     {
-        this.programs = programs ?? throw new ArgumentNullException(nameof(programs));
-        this.captivity = captivity ?? throw new ArgumentNullException(nameof(captivity));
-        this.captivityCommands = captivityCommands
-            ?? throw new ArgumentNullException(nameof(captivityCommands));
-        this.wildlifeCapture = wildlifeCapture
-            ?? throw new ArgumentNullException(nameof(wildlifeCapture));
-        this.world = world ?? throw new ArgumentNullException(nameof(world));
-        this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
-        this.rooms = rooms ?? throw new ArgumentNullException(nameof(rooms));
-        this.money = money ?? throw new ArgumentNullException(nameof(money));
-        this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
-        this.combat = combat ?? throw new ArgumentNullException(nameof(combat));
-        this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
-        this.medical = medical ?? throw new ArgumentNullException(nameof(medical));
-        this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
-        this.doorAccess = doorAccess ?? throw new ArgumentNullException(nameof(doorAccess));
-        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        random = (randomStreamProvider
-            ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
+        get => stateSession.NextOrderSequence;
+        set => stateSession.NextOrderSequence = value;
+    }
+
+    public CircusRuntime(
+        CircusProgramContext program,
+        CircusWorldContext worldContext,
+        CircusCombatContext combatContext,
+        CircusSessionContext session)
+    {
+        program = program ?? throw new ArgumentNullException(nameof(program));
+        worldContext = worldContext
+            ?? throw new ArgumentNullException(nameof(worldContext));
+        combatContext = combatContext
+            ?? throw new ArgumentNullException(nameof(combatContext));
+        session = session ?? throw new ArgumentNullException(nameof(session));
+        programs = program.Programs;
+        captivity = program.Captivity;
+        captivityCommands = program.CaptivityCommands;
+        wildlifeCapture = program.WildlifeCapture;
+        externalInfluence = program.ExternalInfluence;
+        world = worldContext.World;
+        gridProvider = worldContext.GridProvider;
+        rooms = worldContext.Rooms;
+        filth = worldContext.Filth;
+        bodyHealthQuery = combatContext.BodyHealthQuery;
+        bodyHealthCommands = combatContext.BodyHealthCommands;
+        combat = combatContext.Combat;
+        equipment = combatContext.Equipment;
+        medicalQuery = combatContext.MedicalQuery;
+        medicalCommands = combatContext.MedicalCommands;
+        money = session.Money;
+        clock = session.Clock;
+        random = session.RandomStreamProvider
             .Get("circus.runtime");
-        this.events = events ?? throw new ArgumentNullException(nameof(events));
-        this.externalInfluence = externalInfluence;
+        events = session.Events;
+        DungeonRuntimeAggregateRootStore aggregateRootStore =
+            session.AggregateRootStore;
+        stateSession = new CircusStateSession(
+            aggregateRootStore,
+            ClearOrderActorProjection,
+            ClearTransientProjection);
+        forecastService = new CircusProgramForecastService();
+        forecastProjection = new CircusProgramForecastProjectionAdapter(
+            captivity,
+            wildlifeCapture,
+            TryGetValidCircusRoom,
+            SelectAudience);
+        movement = CircusRuntimeInfrastructureFactory.CreateMovement(
+            program,
+            worldContext,
+            session);
+        restoreLifecycle = CircusRuntimeInfrastructureFactory.CreateRestore(
+            program,
+            worldContext,
+            new CircusRestoreStateContext(
+                aggregateRootStore,
+                stateSession));
     }
 
     public IReadOnlyList<CircusProgramModule> Programs => programs.Definitions;
-    public IReadOnlyList<CircusShowOrder> Orders =>
-        orders.Select(order => order.Clone()).ToArray();
+    public IReadOnlyList<CircusShowOrder> Orders => orders.Select(order => order.Clone()).ToArray();
 
     public CircusProgramForecast GetForecast(
         BuildableObject stage,
@@ -100,138 +117,51 @@ public sealed class CircusRuntime :
         IReadOnlyList<string> performerIds,
         IReadOnlyList<string> wildlifeIds)
     {
-        BuildingCircusStageAbility stageAbility =
-            stage?.BuildingData.GetCircusStageAbility();
-        if (stage == null || stageAbility == null || !stageAbility.IsValid)
-        {
-            return UnavailableForecast("유효한 서커스 무대가 아닙니다.");
-        }
-
         if (!programs.TryGet(programId, out ICircusProgramHandler handler))
         {
-            return UnavailableForecast("공연 프로그램을 찾을 수 없습니다.");
+            return CircusProgramForecastService.Unavailable(
+                "공연 프로그램을 찾을 수 없습니다.");
         }
 
-        if (!TryGetValidCircusRoom(
+        if (!forecastProjection.TryProject(
                 stage,
-                out RoomInstance room,
-                out string roomFailure))
+                handler.Definition.publiclyCruel,
+                performerIds,
+                wildlifeIds,
+                out CircusProgramForecastContext context,
+                out string failureReason))
         {
-            return UnavailableForecast(roomFailure);
+            return CircusProgramForecastService.Unavailable(failureReason);
         }
 
-        CircusProgramModule definition = handler.Definition;
-        CircusVenueModifiers venue = EvaluateVenue(
-            room,
-            definition.publiclyCruel);
-        List<CaptiveState> performers = (performerIds ?? Array.Empty<string>())
-            .Select(id => captivity.TryGetCaptive(id, out CaptiveState captive)
-                ? captive
-                : null)
-            .Where(captive => captive != null && captive.IsActive)
-            .Take(stageAbility.performerCapacity)
-            .ToList();
-        List<string> animals = (wildlifeIds ?? Array.Empty<string>())
-            .Where(wildlifeCapture.IsCaptured)
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-        CircusShowOrder candidate = new CircusShowOrder
-        {
-            programId = definition.programId,
-            lethality = lethality,
-            performerIds = performers.Select(item => item.captiveId).ToList(),
-            wildlifeIds = animals,
-            venueSatisfactionBonus = venue.SatisfactionBonus,
-            venueAccidentRiskBonus = venue.AccidentRiskBonus,
-            venueGamblingVariance = venue.GamblingVariance
-        };
-        bool valid = handler.Validate(
-            candidate,
-            performers,
-            out string failureReason);
-        int audienceCount = SelectAudience(room).Count();
-        int ticketPrice = Mathf.Max(
-            1,
-            Mathf.RoundToInt(
-                stageAbility.baseTicketPrice * venue.RevenueMultiplier));
-        float skill = performers
-            .Select(item => item.performerSkill)
-            .DefaultIfEmpty(0f)
-            .Average();
-        float centerSatisfaction = Mathf.Clamp(
-            definition.baseAudienceSatisfaction
-            + skill * 0.12f
-            + venue.SatisfactionBonus,
-            0f,
-            100f);
-        float satisfactionVariance = Mathf.Max(0f, venue.GamblingVariance);
-        float accidentChance = Mathf.Clamp01(
-            definition.baseAccidentRisk + venue.AccidentRiskBonus);
-        float injuryChance = definition.usesCombat
-            ? Mathf.Max(0.25f, accidentChance)
-            : accidentChance;
-        float deathChance = lethality switch
-        {
-            CircusLethalityPolicy.FightToDeath => 1f,
-            CircusLethalityPolicy.ExecuteDesignatedTarget => 1f,
-            CircusLethalityPolicy.AllowAccidents => injuryChance * 0.2f,
-            _ => 0f
-        };
-        float fame = Mathf.Max(1f, definition.basePerformerFame);
-        string requirement =
-            $"포로 {(definition.requiresCaptive ? "필수" : "선택")}"
-            + $" · 야생동물 {(definition.requiresWildlife ? "필수" : "선택")}"
-            + $" · 현재 포로 {performers.Count}명/동물 {animals.Count}마리";
-        return new CircusProgramForecast(
-            audienceCount
-            * (ticketPrice + venue.FlatRevenuePerAudience),
-            centerSatisfaction - satisfactionVariance,
-            centerSatisfaction + satisfactionVariance,
-            accidentChance,
-            definition.publiclyCruel ? 0f : fame,
-            definition.publiclyCruel ? Mathf.Max(3f, fame) : 0f,
-            definition.publiclyCruel ? Mathf.Max(1f, fame * 0.35f) : 0f,
-            injuryChance,
-            deathChance,
-            valid,
-            requirement,
-            valid ? string.Empty : failureReason);
-    }
-
-    private static CircusProgramForecast UnavailableForecast(string reason)
-    {
-        return new CircusProgramForecast(
-            0,
-            0f,
-            0f,
-            0f,
-            0f,
-            0f,
-            0f,
-            0f,
-            0f,
-            false,
-            string.Empty,
-            reason);
+        return forecastService.GetForecast(handler, context, lethality);
     }
 
     public void Start()
     {
+        stateSession.EnsureProjection();
         invasionSubscription = events.Subscribe<InvasionStartedEvent>(
-            _ => CancelActiveShows("침공이 시작되어 공연을 취소했습니다."));
+            _ => CancelActiveShows(
+                orders,
+                Cancel,
+                "침공이 시작되어 공연을 취소했습니다."));
     }
 
     public void Dispose()
     {
         invasionSubscription?.Dispose();
         invasionSubscription = null;
-        foreach (IDisposable pass in accessPasses.Values)
-        {
-            pass?.Dispose();
-        }
-        accessPasses.Clear();
-        wildlifeReturnTargets.Clear();
-        wildlifeReturnOrders.Clear();
+        ClearTransientProjection();
+    }
+
+    private void ClearTransientProjection()
+    {
+        movement.Clear();
+    }
+
+    private void ClearOrderActorProjection(CircusShowOrder order)
+    {
+        movement.ClearOrderActorProjection(order);
     }
 
     public void Tick()
@@ -244,6 +174,7 @@ public sealed class CircusRuntime :
 
     private void TickRuntime()
     {
+        stateSession.EnsureProjection();
         if (clock.IsPaused || clock.DeltaTime <= 0f)
         {
             return;
@@ -258,7 +189,7 @@ public sealed class CircusRuntime :
             }
         }
 
-        TickWildlifeReturns();
+        movement.TickWildlifeReturns();
     }
 
     public bool TrySchedule(
@@ -291,7 +222,9 @@ public sealed class CircusRuntime :
             return false;
         }
 
-        CircusVenueModifiers venue = EvaluateVenue(room, program.Definition.publiclyCruel);
+        CircusVenueModifiers venue = CircusVenueEvaluator.Evaluate(
+            room,
+            program.Definition.publiclyCruel);
         List<CaptiveState> performers = (performerIds ?? Array.Empty<string>())
             .Select(id => captivity.TryGetCaptive(id, out CaptiveState captive) ? captive : null)
             .Where(captive => captive != null && captive.IsActive)
@@ -299,8 +232,8 @@ public sealed class CircusRuntime :
             .ToList();
         foreach (CaptiveState performer in performers)
         {
-            CharacterActor actor = FindActor(performer.captiveId);
-            CharacterBodyHealthSnapshot health = bodyHealth.GetSnapshot(actor);
+            CharacterActor actor = FindActor(world, performer.captiveId);
+            CharacterBodyHealthSnapshot health = bodyHealthQuery.GetSnapshot(actor);
             bool injured = actor == null
                 || health.Downed
                 || health.BloodLoss > 0.01f
@@ -313,7 +246,7 @@ public sealed class CircusRuntime :
 
             if (actor != null)
             {
-                medical.TryRequestTreatment(actor, out _, out _);
+                medicalCommands.TryRequestTreatment(actor, out _, out _);
             }
 
             failureReason = $"{performer.displayName}은 부상 치료가 끝날 때까지 공연할 수 없습니다.";
@@ -358,7 +291,12 @@ public sealed class CircusRuntime :
         {
             if (!captivityCommands.TryAssignPerformer(captiveId, true, out failureReason))
             {
-                ReleasePerformers(candidate);
+                ReleasePerformers(
+                    candidate,
+                    captiveId => captivityCommands.TryAssignPerformer(
+                        captiveId,
+                        false,
+                        out _));
                 return false;
             }
         }
@@ -370,13 +308,18 @@ public sealed class CircusRuntime :
                     candidate.orderId,
                     out failureReason))
             {
-                ReleasePerformers(candidate);
+                ReleasePerformers(
+                    candidate,
+                    captiveId => captivityCommands.TryAssignPerformer(
+                        captiveId,
+                        false,
+                        out _));
                 return false;
             }
         }
 
         candidate.audienceIds = SelectAudience(room).Select(GetCharacterId).ToList();
-        List<Vector2Int> participantPositions = ChoosePositions(
+        List<Vector2Int> participantPositions = movement.ChoosePositions(
             room,
             stage.centerPos,
             candidate.performerIds.Count + candidate.wildlifeIds.Count,
@@ -388,10 +331,10 @@ public sealed class CircusRuntime :
             .Skip(candidate.performerIds.Count)
             .Take(candidate.wildlifeIds.Count)
             .ToList();
-        candidate.audiencePositions = ChooseAudiencePositions(
+        candidate.audiencePositions = movement.ChooseAudiencePositions(
             room,
             candidate.audienceIds.Count);
-        orders.Add(candidate);
+        stateSession.Add(candidate);
         order = candidate.Clone();
         return true;
     }
@@ -402,7 +345,7 @@ public sealed class CircusRuntime :
         float workAmount,
         out string status)
     {
-        CircusShowOrder order = FindOrder(orderId);
+        CircusShowOrder order = FindOrder(orders, orderId);
         if (order == null || order.state != CircusShowState.Composition)
         {
             status = "준비 중인 공연이 없습니다.";
@@ -421,7 +364,7 @@ public sealed class CircusRuntime :
             order.state = CircusShowState.ParticipantEscort;
             order.phaseElapsedSeconds = 0f;
             order.statusMessage = "참가자 호송 중";
-            StartParticipantMovement(order);
+            movement.StartParticipantMovement(order);
         }
 
         return true;
@@ -429,7 +372,7 @@ public sealed class CircusRuntime :
 
     public bool Cancel(string orderId, string reason)
     {
-        CircusShowOrder order = FindOrder(orderId);
+        CircusShowOrder order = FindOrder(orders, orderId);
         if (order == null || order.IsTerminal)
         {
             return false;
@@ -439,64 +382,37 @@ public sealed class CircusRuntime :
         order.statusMessage = string.IsNullOrWhiteSpace(reason)
             ? "공연 취소"
             : reason;
-        ReleaseOrderActors(order);
+        movement.ReleaseOrderActors(order);
         return true;
     }
 
     public CircusSaveData Capture()
     {
-        return new CircusSaveData
-        {
-            version = CircusSaveData.CurrentVersion,
-            nextOrderSequence = nextOrderSequence,
-            orders = orders.Select(order => order.Clone()).ToList(),
-            capturedWildlife = wildlifeCapture.Capture()
-                .Select(item => item.Clone())
-                .ToList()
-        };
+        return stateSession.Capture(wildlifeCapture.Capture());
     }
 
-    public void Restore(CircusSaveData saveData, IList<string> warnings)
-    {
-        foreach (CircusShowOrder order in orders)
-        {
-            ReleaseOrderActors(order);
-        }
-        orders.Clear();
-        wildlifeCapture.Restore(saveData?.capturedWildlife, warnings);
-        nextOrderSequence = Mathf.Max(0, saveData?.nextOrderSequence ?? 0);
-        foreach (CircusShowOrder source in saveData?.orders ?? new List<CircusShowOrder>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.orderId)
-                || orders.Any(item => string.Equals(
-                    item.orderId,
-                    source.orderId,
-                    StringComparison.Ordinal)))
-            {
-                warnings?.Add("유효하지 않거나 중복된 공연 주문을 건너뛰었습니다.");
-                continue;
-            }
+    public string ParticipantId => restoreLifecycle.ParticipantId;
 
-            CircusShowOrder restored = source.Clone();
-            if (!programs.TryGet(restored.programId, out _))
-            {
-                restored.state = CircusShowState.Cancelled;
-                restored.statusMessage = "공연 프로그램이 없어 취소됨";
-                warnings?.Add($"{restored.orderId}: 공연 프로그램이 없어 취소했습니다.");
-            }
-            else if (!restored.IsTerminal)
-            {
-                restored.state = CircusShowState.Composition;
-                restored.preparationWorkCompleted = Mathf.Min(
-                    restored.preparationWorkCompleted,
-                    restored.preparationWorkRequired);
-                restored.statusMessage = "불러온 공연 준비 재개";
-            }
+    public CircusRestoreCandidate BuildRestore(CircusSaveData saveData) =>
+        restoreLifecycle.BuildRestore(saveData);
 
-            orders.Add(restored);
-        }
-    }
+    public void PublishRestoreCandidate(CircusRestoreCandidate candidate) =>
+        restoreLifecycle.StageRestore(candidate);
+
+    public void BeginRestoreCandidate() =>
+        restoreLifecycle.BeginRestoreCandidate();
+
+    public void PublishRestoreCandidate() =>
+        restoreLifecycle.PublishRestoreCandidate();
+
+    public void RollbackPublishedRestoreCandidate() =>
+        restoreLifecycle.RollbackPublishedRestoreCandidate();
+
+    public void CompleteRestoreCandidate() =>
+        restoreLifecycle.CompleteRestoreCandidate();
+
+    public void DiscardRestoreCandidate() =>
+        restoreLifecycle.DiscardRestoreCandidate();
 
     private void TickOrder(CircusShowOrder order)
     {
@@ -504,12 +420,12 @@ public sealed class CircusRuntime :
         {
             case CircusShowState.ParticipantEscort:
                 order.phaseElapsedSeconds += clock.DeltaTime;
-                if (AreParticipantsAt(order))
+                if (movement.AreParticipantsAt(order))
                 {
                     order.state = CircusShowState.AudienceEntering;
                     order.phaseElapsedSeconds = 0f;
                     order.statusMessage = "관객 입장 중";
-                    StartAudienceMovement(order);
+                    movement.StartAudienceMovement(order);
                 }
                 else if (order.phaseElapsedSeconds >= 30f)
                 {
@@ -518,7 +434,7 @@ public sealed class CircusRuntime :
                 break;
             case CircusShowState.AudienceEntering:
                 order.phaseElapsedSeconds += clock.DeltaTime;
-                if (AreActorsAt(order.audienceIds, order.audiencePositions))
+                if (movement.AreActorsAt(order.audienceIds, order.audiencePositions))
                 {
                     order.state = CircusShowState.Performing;
                     order.phaseElapsedSeconds = 0f;
@@ -548,7 +464,7 @@ public sealed class CircusRuntime :
                     order.performerIds ?? new List<string>(),
                     StringComparer.Ordinal);
                 bool treatmentPending = order.treatmentRequired
-                    && medical.ActiveOrders.Any(item =>
+                    && medicalQuery.ActiveOrders.Any(item =>
                         item.IsActive && performerIds.Contains(item.patientId));
                 if (cleanupPending || treatmentPending)
                 {
@@ -560,7 +476,7 @@ public sealed class CircusRuntime :
 
                 order.state = CircusShowState.Completed;
                 order.statusMessage = "공연 종료 · 청소와 치료 완료";
-                ReleaseOrderActors(order);
+                movement.ReleaseOrderActors(order);
                 break;
         }
     }
@@ -691,7 +607,7 @@ public sealed class CircusRuntime :
 
         foreach (string audienceId in order.audienceIds)
         {
-            CharacterActor audience = FindActor(audienceId);
+            CharacterActor audience = FindActor(world, audienceId);
             if (audience == null)
             {
                 continue;
@@ -772,13 +688,15 @@ public sealed class CircusRuntime :
             order.venueAccidentDamageMultiplier,
             0.25f,
             1f);
-        if (victim.Character != null)
+        CharacterActor victimCharacter = victim.GetRuntime<CharacterActor>();
+        WildlifeActor victimWildlife = victim.GetRuntime<WildlifeActor>();
+        if (victimCharacter != null)
         {
-            victim.Character.ApplyBodyDamage(damage, "서커스 공연 사고");
+            victimCharacter.ApplyBodyDamage(damage, "서커스 공연 사고");
         }
         else
         {
-            victim.Wildlife?.ApplyDamage(Mathf.CeilToInt(damage), null);
+            victimWildlife?.ApplyDamage(Mathf.CeilToInt(damage), null);
         }
 
         order.treatmentRequired = true;
@@ -824,98 +742,6 @@ public sealed class CircusRuntime :
         }
     }
 
-    private static CircusVenueModifiers EvaluateVenue(
-        RoomInstance room,
-        bool publiclyCruel)
-    {
-        CircusVenueModifiers result = CircusVenueModifiers.Default;
-        foreach (BuildableObject part in room?.Furniture
-                     ?? Array.Empty<BuildableObject>())
-        {
-            BuildingSO data = part?.BuildingData;
-            BuildingCircusTicketBoothAbility ticket =
-                data.GetCircusTicketBoothAbility();
-            if (ticket != null)
-            {
-                result.RevenueMultiplier *= Mathf.Max(1f, ticket.revenueMultiplier);
-                result.FlatRevenuePerAudience += Mathf.Max(
-                    0,
-                    ticket.flatRevenuePerAudience);
-            }
-
-            BuildingCircusGamblingAbility gambling =
-                data.GetCircusGamblingAbility();
-            if (gambling != null)
-            {
-                result.FlatRevenuePerAudience += Mathf.Max(
-                    0,
-                    gambling.revenuePerAudience);
-                result.GamblingVariance += Mathf.Max(
-                    0f,
-                    gambling.satisfactionVariance);
-            }
-
-            BuildingCircusAnnouncerAbility announcer =
-                data.GetCircusAnnouncerAbility();
-            if (announcer != null)
-            {
-                result.SatisfactionBonus += Mathf.Max(
-                    0f,
-                    announcer.satisfactionBonus);
-                result.PreparationWorkMultiplier *= Mathf.Clamp(
-                    announcer.preparationWorkMultiplier,
-                    0.5f,
-                    1f);
-            }
-
-            BuildingCircusHazardAbility hazard =
-                data.GetCircusHazardAbility();
-            if (hazard != null)
-            {
-                result.AccidentRiskBonus += Mathf.Max(
-                    0f,
-                    hazard.accidentRiskBonus);
-                result.SatisfactionBonus += Mathf.Max(
-                    0f,
-                    hazard.satisfactionBonus);
-            }
-
-            BuildingCircusTreatmentZoneAbility treatment =
-                data.GetCircusTreatmentZoneAbility();
-            if (treatment != null)
-            {
-                result.AccidentDamageMultiplier *= Mathf.Clamp(
-                    treatment.accidentDamageMultiplier,
-                    0.25f,
-                    1f);
-            }
-
-            BuildingPublicPunishmentAbility punishment =
-                data.GetPublicPunishmentAbility();
-            if (publiclyCruel && punishment != null)
-            {
-                result.SatisfactionBonus += Mathf.Max(
-                    0f,
-                    punishment.cruelSatisfactionBonus);
-                result.FilthMultiplier *= Mathf.Max(
-                    1f,
-                    punishment.filthMultiplier);
-                result.WitnessMoodPenalty = Mathf.Max(
-                    result.WitnessMoodPenalty,
-                    punishment.witnessMoodPenalty);
-            }
-        }
-
-        result.RevenueMultiplier = Mathf.Clamp(result.RevenueMultiplier, 1f, 2.5f);
-        result.SatisfactionBonus = Mathf.Clamp(result.SatisfactionBonus, 0f, 35f);
-        result.AccidentRiskBonus = Mathf.Clamp(result.AccidentRiskBonus, 0f, 0.5f);
-        result.AccidentDamageMultiplier = Mathf.Clamp(
-            result.AccidentDamageMultiplier,
-            0.25f,
-            1f);
-        return result;
-    }
-
     private void ResolveCombatExchange(CircusShowOrder order)
     {
         List<CircusCombatant> fighters = BuildCombatants(order)
@@ -929,63 +755,67 @@ public sealed class CircusRuntime :
         CircusCombatant attacker = fighters[random.NextInt(0, fighters.Count)];
         CircusCombatant defender = fighters.First(candidate =>
             !candidate.Equals(attacker));
-        CharacterBodyHealthSnapshot attackerBody = attacker.Character != null
-            ? bodyHealth.GetSnapshot(attacker.Character)
+        CharacterActor attackerCharacter = attacker.GetRuntime<CharacterActor>();
+        WildlifeActor attackerWildlife = attacker.GetRuntime<WildlifeActor>();
+        CharacterActor defenderCharacter = defender.GetRuntime<CharacterActor>();
+        WildlifeActor defenderWildlife = defender.GetRuntime<WildlifeActor>();
+        CharacterBodyHealthSnapshot attackerBody = attackerCharacter != null
+            ? bodyHealthQuery.GetSnapshot(attackerCharacter)
             : default;
-        CharacterBodyHealthSnapshot defenderBody = defender.Character != null
-            ? bodyHealth.GetSnapshot(defender.Character)
+        CharacterBodyHealthSnapshot defenderBody = defenderCharacter != null
+            ? bodyHealthQuery.GetSnapshot(defenderCharacter)
             : default;
-        CombatWeaponSnapshot weapon = attacker.Character != null
+        CombatWeaponSnapshot weapon = attackerCharacter != null
             && equipment.TryGetActiveWeapon(
                 attacker.Id,
                 out CombatWeaponSnapshot active)
                     ? active
-                    : attacker.Wildlife != null
-                        ? CreateWildlifeNaturalWeapon(attacker.Wildlife)
+                    : attackerWildlife != null
+                        ? CreateWildlifeNaturalWeapon(attackerWildlife)
                         : CombatWeaponSnapshot.CreateUnarmed();
         CombatAttackResult result = combat.Resolve(new CombatAttackRequest(
             $"{order.orderId}:{clock.FrameCount}",
             attacker.Id,
             defender.Id,
-            attacker.Character != null
-                ? CombatRuntimeStatFactory.Create(attacker.Character, attackerBody)
-                : CombatRuntimeStatFactory.Create(attacker.Wildlife),
-            defender.Character != null
-                ? CombatRuntimeStatFactory.Create(defender.Character, defenderBody)
-                : CombatRuntimeStatFactory.Create(defender.Wildlife),
+            attackerCharacter != null
+                ? CombatRuntimeStatFactory.Create(attackerCharacter, attackerBody)
+                : CombatRuntimeStatFactory.Create(attackerWildlife),
+            defenderCharacter != null
+                ? CombatRuntimeStatFactory.Create(defenderCharacter, defenderBody)
+                : CombatRuntimeStatFactory.Create(defenderWildlife),
             weapon,
             1,
             CombatFireMode.Aimed,
             default,
-            defenderDowned: defender.Character != null && defenderBody.Downed,
+            defenderDowned: defenderCharacter != null && defenderBody.Downed,
             defenderMeleeLocked: true,
-            attackerSuppression: attacker.Character != null
+            attackerSuppression: attackerCharacter != null
                 ? attackerBody.Suppression
                 : 0f,
-            defenderSuppression: defender.Character != null
+            defenderSuppression: defenderCharacter != null
                 ? defenderBody.Suppression
                 : 0f,
-            attackPowerMultiplier: attacker.Character != null
-                ? attacker.Character.GetCombatPowerMultiplier()
+            attackPowerMultiplier: attackerCharacter != null
+                ? attackerCharacter.GetCombatPowerMultiplier()
                 : 1f,
-            defenderArmor: defender.Character != null
+            defenderArmor: defenderCharacter != null
                 ? equipment.GetArmor(defender.Id)
                 : null,
-            defenderShield: defender.Character != null
+            defenderShield: defenderCharacter != null
                 ? equipment.GetShield(defender.Id)
                 : default));
-        if (defender.Character != null)
+        if (defenderCharacter != null)
         {
-            bodyHealth.ApplyCombatResult(
-                defender.Character,
+            bodyHealthCommands.ApplyCombatResult(
+                defenderCharacter,
                 result,
                 "서커스 교전");
         }
         else if (result.Hit)
         {
-            defender.Wildlife?.ApplyCombatDamage(
+            defenderWildlife?.ApplyCombatDamage(
                 result,
-                attacker.Character);
+                attackerCharacter);
         }
     }
 
@@ -995,14 +825,16 @@ public sealed class CircusRuntime :
         if (order.lethality == CircusLethalityPolicy.ExecuteDesignatedTarget)
         {
             CircusCombatant designated = performers.FirstOrDefault();
-            if (designated.Character != null && !designated.Character.IsDead)
+            CharacterActor designatedCharacter = designated.GetRuntime<CharacterActor>();
+            WildlifeActor designatedWildlife = designated.GetRuntime<WildlifeActor>();
+            if (designatedCharacter != null && !designatedCharacter.IsDead)
             {
-                designated.Character.Die("지정 처형");
+                designatedCharacter.Die("지정 처형");
             }
-            else if (designated.Wildlife != null && designated.Wildlife.IsAlive)
+            else if (designatedWildlife != null && designatedWildlife.IsAlive)
             {
-                designated.Wildlife.ApplyDamage(
-                    designated.Wildlife.CurrentHealth,
+                designatedWildlife.ApplyDamage(
+                    designatedWildlife.CurrentHealth,
                     null);
             }
             return true;
@@ -1010,13 +842,7 @@ public sealed class CircusRuntime :
 
         if (order.lethality == CircusLethalityPolicy.StopWhenDowned)
         {
-            return performers.Any(combatant =>
-                !combatant.IsAlive
-                || (combatant.Character != null
-                    && bodyHealth.GetSnapshot(combatant.Character).Downed)
-                || (combatant.Wildlife != null
-                    && combatant.Wildlife.CurrentHealth
-                        <= combatant.Wildlife.MaxHealth * 0.2f));
+            return performers.Any(IsCombatantDowned);
         }
 
         if (order.lethality == CircusLethalityPolicy.FightToDeath)
@@ -1038,18 +864,46 @@ public sealed class CircusRuntime :
         {
             if (captivity.TryGetActor(captiveId, out CharacterActor actor))
             {
-                yield return new CircusCombatant(actor);
+                yield return new CircusCombatant(
+                    new CircusCombatantIdentity(
+                        CircusCombatantKind.Character,
+                        actor?.Identity?.PersistentId),
+                    actor,
+                    () => actor != null && !actor.IsDead);
             }
         }
 
         foreach (string wildlifeId in order.wildlifeIds)
         {
-            WildlifeActor wildlife = FindWildlife(wildlifeId);
+            WildlifeActor wildlife = FindWildlife(world, wildlifeId);
             if (wildlife != null)
             {
-                yield return new CircusCombatant(wildlife);
+                yield return new CircusCombatant(
+                    new CircusCombatantIdentity(
+                        CircusCombatantKind.Wildlife,
+                        GetWildlifeCombatantId(wildlife.WildlifeId)),
+                    wildlife,
+                    () => wildlife != null && wildlife.IsAlive);
             }
         }
+    }
+
+    private bool IsCombatantDowned(CircusCombatant combatant)
+    {
+        if (!combatant.IsAlive)
+        {
+            return true;
+        }
+
+        CharacterActor character = combatant.GetRuntime<CharacterActor>();
+        if (character != null)
+        {
+            return bodyHealthQuery.GetSnapshot(character).Downed;
+        }
+
+        WildlifeActor wildlife = combatant.GetRuntime<WildlifeActor>();
+        return wildlife != null
+            && wildlife.CurrentHealth <= wildlife.MaxHealth * 0.2f;
     }
 
     private static CombatWeaponSnapshot CreateWildlifeNaturalWeapon(
@@ -1135,383 +989,41 @@ public sealed class CircusRuntime :
             .ToArray();
     }
 
-    private List<Vector2Int> ChooseAudiencePositions(RoomInstance room, int count)
-    {
-        List<Vector2Int> seats = room.Furniture
-            .Where(item => item?.BuildingData.GetAudienceSeatingAbility()?.IsValid == true)
-            .Select(item => item.centerPos)
-            .Distinct()
-            .ToList();
-        if (seats.Count < count)
-        {
-            Vector2Int roomCenter = new Vector2Int(
-                Mathf.RoundToInt(room.Bounds.center.x),
-                Mathf.RoundToInt(room.Bounds.center.y));
-            seats.AddRange(ChoosePositions(room, roomCenter, count - seats.Count, false));
-        }
-        return seats.Take(count).ToList();
-    }
-
-    private List<Vector2Int> ChoosePositions(
-        RoomInstance room,
-        Vector2Int origin,
-        int count,
-        bool nearFirst)
-    {
-        if (!gridProvider.TryGetGrid(out Grid grid))
-        {
-            return new List<Vector2Int>();
-        }
-
-        IEnumerable<Vector2Int> candidates = room.Cells
-            .Where(cell => grid.IsWalkable(cell))
-            .OrderBy(cell => nearFirst
-                ? Manhattan(cell, origin)
-                : -Manhattan(cell, origin));
-        return candidates.Distinct().Take(Mathf.Max(0, count)).ToList();
-    }
-
-    private void StartParticipantMovement(CircusShowOrder order)
-    {
-        for (int index = 0;
-             index < order.performerIds.Count && index < order.performerPositions.Count;
-             index++)
-        {
-            string captiveId = order.performerIds[index];
-            if (!captivity.TryGetActor(captiveId, out CharacterActor actor))
-            {
-                continue;
-            }
-
-            DoorAccessSubjectRef subject = new DoorAccessSubjectRef(
-                captiveId,
-                DoorAccessGroup.Captive,
-                character: actor);
-            accessPasses[captiveId] = doorAccess.BeginTemporaryOverride(
-                subject,
-                DoorAccessOverrideKind.EscortPass,
-                order.orderId);
-            actor.SetAiPaused(true);
-            actor.SetLifecycleState(CharacterLifecycleState.Active);
-            actor.GetAbility<AbilityMove>()?.TryStartSystemMove(
-                order.performerPositions[index],
-                DoorAccessOverrideKind.EscortPass,
-                out _);
-        }
-
-        for (int index = 0;
-             index < order.wildlifeIds.Count && index < order.wildlifePositions.Count;
-             index++)
-        {
-            string wildlifeId = order.wildlifeIds[index];
-            WildlifeActor wildlife = FindWildlife(wildlifeId);
-            if (wildlife == null)
-            {
-                continue;
-            }
-
-            string passKey = WildlifePassKey(wildlifeId);
-            accessPasses[passKey] = doorAccess.BeginTemporaryOverride(
-                new DoorAccessSubjectRef(
-                    wildlifeId,
-                    DoorAccessGroup.CaptiveWildlife,
-                    wildlife: wildlife),
-                DoorAccessOverrideKind.EscortPass,
-                order.orderId);
-            wildlife.TrySetManagedCaptivePath(
-                order.wildlifePositions[index],
-                clock.Time);
-        }
-    }
-
-    private void StartAudienceMovement(CircusShowOrder order)
-    {
-        for (int index = 0;
-             index < order.audienceIds.Count && index < order.audiencePositions.Count;
-             index++)
-        {
-            CharacterActor actor = FindActor(order.audienceIds[index]);
-            if (actor == null)
-            {
-                continue;
-            }
-
-            actor.SetAiPaused(true);
-            actor.GetAbility<AbilityMove>()?.TryStartSystemMove(
-                order.audiencePositions[index],
-                DoorAccessOverrideKind.None,
-                out _);
-        }
-    }
-
-    private bool AreActorsAt(
-        IReadOnlyList<string> actorIds,
-        IReadOnlyList<Vector2Int> targets)
-    {
-        int checkedCount = Mathf.Min(actorIds?.Count ?? 0, targets?.Count ?? 0);
-        if (checkedCount == 0)
-        {
-            return true;
-        }
-
-        for (int index = 0; index < checkedCount; index++)
-        {
-            CharacterActor actor = FindActor(actorIds[index]);
-            if (actor != null && actor.GetNowXY() != targets[index])
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private bool AreParticipantsAt(CircusShowOrder order)
-    {
-        if (!AreActorsAt(order.performerIds, order.performerPositions))
-        {
-            return false;
-        }
-
-        int checkedCount = Mathf.Min(
-            order.wildlifeIds?.Count ?? 0,
-            order.wildlifePositions?.Count ?? 0);
-        for (int index = 0; index < checkedCount; index++)
-        {
-            WildlifeActor actor = FindWildlife(order.wildlifeIds[index]);
-            if (actor != null && actor.GridPosition != order.wildlifePositions[index])
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void ReleaseOrderActors(CircusShowOrder order)
-    {
-        foreach (string captiveId in order.performerIds ?? new List<string>())
-        {
-            if (accessPasses.Remove(captiveId, out IDisposable pass))
-            {
-                pass?.Dispose();
-            }
-            captivityCommands.TryAssignPerformer(captiveId, false, out _);
-        }
-
-        foreach (string wildlifeId in order.wildlifeIds ?? new List<string>())
-        {
-            WildlifeActor wildlife = FindWildlife(wildlifeId);
-            if (!wildlifeCapture.TryGetCaptured(
-                    wildlifeId,
-                    out CapturedWildlifeState state))
-            {
-                ReleaseWildlifePass(wildlifeId);
-                continue;
-            }
-
-            wildlifeReturnTargets[wildlifeId] = state.penPosition;
-            wildlifeReturnOrders[wildlifeId] = order.orderId;
-            if (wildlife != null)
-            {
-                wildlife.TrySetManagedCaptivePath(state.penPosition, clock.Time);
-            }
-        }
-
-        foreach (string audienceId in order.audienceIds ?? new List<string>())
-        {
-            CharacterActor audience = FindActor(audienceId);
-            audience?.SetAiPaused(false);
-        }
-    }
-
-    private void TickWildlifeReturns()
-    {
-        if (wildlifeReturnTargets.Count == 0)
-        {
-            return;
-        }
-
-        wildlifeReturnTickIds.Clear();
-        foreach (string wildlifeId in wildlifeReturnTargets.Keys)
-        {
-            wildlifeReturnTickIds.Add(wildlifeId);
-        }
-
-        for (int index = 0; index < wildlifeReturnTickIds.Count; index++)
-        {
-            string wildlifeId = wildlifeReturnTickIds[index];
-            if (!wildlifeReturnTargets.TryGetValue(
-                    wildlifeId,
-                    out Vector2Int returnTarget))
-            {
-                continue;
-            }
-
-            WildlifeActor wildlife = FindWildlife(wildlifeId);
-            if (wildlife == null)
-            {
-                FinishWildlifeReturn(wildlifeId);
-                continue;
-            }
-
-            if (wildlife.GridPosition == returnTarget)
-            {
-                FinishWildlifeReturn(wildlifeId);
-                continue;
-            }
-
-            if (!wildlife.IsMoving)
-            {
-                wildlife.TrySetManagedCaptivePath(returnTarget, clock.Time);
-            }
-        }
-    }
-
-    private void FinishWildlifeReturn(string wildlifeId)
-    {
-        wildlifeReturnOrders.Remove(wildlifeId, out string orderId);
-        wildlifeReturnTargets.Remove(wildlifeId);
-        ReleaseWildlifePass(wildlifeId);
-        wildlifeCapture.CompleteShowAssignment(wildlifeId, orderId);
-    }
-
-    private void ReleaseWildlifePass(string wildlifeId)
-    {
-        string key = WildlifePassKey(wildlifeId);
-        if (accessPasses.Remove(key, out IDisposable pass))
-        {
-            pass?.Dispose();
-        }
-    }
-
-    private void ReleasePerformers(CircusShowOrder order)
-    {
-        foreach (string captiveId in order.performerIds)
-        {
-            captivityCommands.TryAssignPerformer(captiveId, false, out _);
-        }
-    }
-
-    private void CancelActiveShows(string reason)
-    {
-        foreach (CircusShowOrder order in orders.Where(item => !item.IsTerminal).ToArray())
-        {
-            Cancel(order.orderId, reason);
-        }
-    }
-
-    private CircusShowOrder FindOrder(string orderId)
-    {
-        return orders.FirstOrDefault(item => string.Equals(
-            item.orderId,
-            orderId?.Trim(),
-            StringComparison.Ordinal));
-    }
-
-    private CharacterActor FindActor(string persistentId)
-    {
-        return world.AllCharacters.FirstOrDefault(actor => string.Equals(
+    private static CharacterActor FindActor(
+        ICharacterAiWorldRegistry world,
+        string persistentId) =>
+        world.AllCharacters.FirstOrDefault(actor => string.Equals(
             GetCharacterId(actor),
             persistentId?.Trim(),
             StringComparison.Ordinal));
-    }
 
-    private WildlifeActor FindWildlife(string wildlifeId)
-    {
-        return world.Wildlife.FirstOrDefault(actor =>
+    private static WildlifeActor FindWildlife(
+        ICharacterAiWorldRegistry world,
+        string wildlifeId) =>
+        world.Wildlife.FirstOrDefault(actor =>
             actor != null
             && string.Equals(
                 actor.WildlifeId,
                 wildlifeId?.Trim(),
                 StringComparison.Ordinal));
+
+    private static string GetCharacterId(CharacterActor actor) =>
+        actor?.Identity?.PersistentId?.Trim() ?? string.Empty;
+
+    private static string GetWildlifeCombatantId(string wildlifeId)
+    {
+        string normalizedId = wildlifeId?.Trim() ?? string.Empty;
+        if (normalizedId.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "A circus wildlife combatant requires a stable wildlife ID.");
+        }
+
+        return $"wildlife:{normalizedId}";
     }
 
-    private static string WildlifePassKey(string wildlifeId)
-    {
-        return $"wildlife:{wildlifeId?.Trim() ?? string.Empty}";
-    }
-
-    private static string GetCharacterId(CharacterActor actor)
-    {
-        return actor?.Identity?.PersistentId?.Trim() ?? string.Empty;
-    }
-
-    private static string GetBuildingId(BuildableObject building, string prefix)
-    {
-        return building == null
+    private static string GetBuildingId(BuildableObject building, string prefix) =>
+        building == null
             ? string.Empty
-            : $"{prefix}:{building.id}:{building.centerPos.x}:{building.centerPos.y}";
-    }
-
-    private static int Manhattan(Vector2Int left, Vector2Int right)
-    {
-        return Mathf.Abs(left.x - right.x) + Mathf.Abs(left.y - right.y);
-    }
-
-    private struct CircusVenueModifiers
-    {
-        public float RevenueMultiplier;
-        public int FlatRevenuePerAudience;
-        public float SatisfactionBonus;
-        public float GamblingVariance;
-        public float PreparationWorkMultiplier;
-        public float AccidentRiskBonus;
-        public float AccidentDamageMultiplier;
-        public float FilthMultiplier;
-        public float WitnessMoodPenalty;
-
-        public static CircusVenueModifiers Default => new CircusVenueModifiers
-        {
-            RevenueMultiplier = 1f,
-            PreparationWorkMultiplier = 1f,
-            AccidentDamageMultiplier = 1f,
-            FilthMultiplier = 1f,
-            WitnessMoodPenalty = 3f
-        };
-    }
-
-    private readonly struct CircusCombatant : IEquatable<CircusCombatant>
-    {
-        public CircusCombatant(CharacterActor character)
-        {
-            Character = character;
-            Wildlife = null;
-        }
-
-        public CircusCombatant(WildlifeActor wildlife)
-        {
-            Character = null;
-            Wildlife = wildlife;
-        }
-
-        public CharacterActor Character { get; }
-        public WildlifeActor Wildlife { get; }
-        public string Id => Character != null
-            ? GetCharacterId(Character)
-            : $"wildlife:{Wildlife?.WildlifeId ?? string.Empty}";
-        public bool IsAlive => Character != null
-            ? !Character.IsDead
-            : Wildlife != null && Wildlife.IsAlive;
-
-        public bool Equals(CircusCombatant other)
-        {
-            return ReferenceEquals(Character, other.Character)
-                && ReferenceEquals(Wildlife, other.Wildlife);
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is CircusCombatant other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return ((Character != null ? Character.GetInstanceID() : 0) * 397)
-                    ^ (Wildlife != null ? Wildlife.GetInstanceID() : 0);
-            }
-        }
-    }
+            : $"{prefix}:{building.RequirePersistentInstanceId().Value}";
 }

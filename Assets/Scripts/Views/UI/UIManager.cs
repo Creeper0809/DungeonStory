@@ -12,16 +12,36 @@ public class UIManager : SerializedMonoBehaviour
     public TMP_Text holdingMoneyText;
     public TMP_Text gameSpeedText;
     public CanvasGroup touchGaurd;
-    public GameData gameData;
+    public GameSessionState gameData { get; private set; }
     [ReadOnly]
     [ShowInInspector]
     private Stack<UIPopUp> popups = new Stack<UIPopUp>();
     private IPlayerInputReader inputReader;
+    private IGameSessionStateProvider sessionStateProvider;
 
     [Inject]
-    public void Construct(IPlayerInputReader inputReader)
+    public void Construct(
+        IPlayerInputReader inputReader,
+        IGameSessionStateProvider sessionStateProvider)
     {
         this.inputReader = inputReader ?? throw new ArgumentNullException(nameof(inputReader));
+        this.sessionStateProvider = sessionStateProvider
+            ?? throw new ArgumentNullException(nameof(sessionStateProvider));
+    }
+
+    private void Start()
+    {
+        if (!sessionStateProvider.TryGetSessionState(out GameSessionState state)
+            || state == null)
+        {
+            throw new InvalidOperationException("UI requires an active game session state.");
+        }
+
+        gameData = state;
+        Subscribe();
+        UpdateTime();
+        UpdateHoldingMoneyText(gameData.holdingMoney.Value);
+        UpdateGameSpeedText(gameData.gameSpeed.Value);
     }
 
     public void Update()
@@ -82,7 +102,7 @@ public class UIManager : SerializedMonoBehaviour
         touchGaurd.interactable = false;
         touchGaurd.blocksRaycasts = false;
     }
-    private void OnEnable()
+    private void Subscribe()
     {
         gameData.gameSpeed.OnValueChange += UpdateGameSpeedText;
         gameData.holdingMoney.OnValueChange += UpdateHoldingMoneyText;
@@ -91,6 +111,11 @@ public class UIManager : SerializedMonoBehaviour
     }
     private void OnDisable()
     {
+        if (gameData == null)
+        {
+            return;
+        }
+
         gameData.gameSpeed.OnValueChange -= UpdateGameSpeedText;
         gameData.holdingMoney.OnValueChange -= UpdateHoldingMoneyText;
         gameData.hour.OnValueChange -= OnHourChanged;

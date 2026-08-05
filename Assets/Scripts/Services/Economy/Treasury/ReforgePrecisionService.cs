@@ -19,13 +19,13 @@ public sealed class ReforgePrecisionService : IReforgePrecisionService
     private readonly IEquipmentEvolutionRuntime evolution;
     private readonly ICombatEquipmentRuntime equipment;
     private readonly IWorldItemStackRuntime worldItems;
-    private readonly IGameMoneyRuntime money;
+    private readonly IGameMoneyAccount money;
 
     public ReforgePrecisionService(
         IEquipmentEvolutionRuntime evolution,
         ICombatEquipmentRuntime equipment,
         IWorldItemStackRuntime worldItems,
-        IGameMoneyRuntime money)
+        IGameMoneyAccount money)
     {
         this.evolution = evolution
             ?? throw new ArgumentNullException(nameof(evolution));

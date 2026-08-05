@@ -1,0 +1,95 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: Exterior_IncidentPoint_Hallway
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: -1949999300
+  objectName: "\uC678\uBD80 \uC0AC\uAC74 \uC9C0\uC810"
+  sprite: {fileID: 0}
+  icon: {fileID: 0}
+  abilityModules:
+    items:
+    - rid: 8799999998050000700
+    - rid: 7737211679622037829
+    - rid: 7737211679622037830
+    - rid: 7737211679622037831
+  width: 1
+  height: 1
+  layer: 0
+  category: 3
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  runtimeArchetype: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots:
+    - purposeId: facility.work
+      offset: {x: 0, y: 0}
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 8799999998050000700
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 18
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 1
+    - rid: 7737211679622037829
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 0
+          capacity: 0
+          useDuration: 1
+          requiredWorkers: 1
+          supportedWorkTypes: 1056
+          disabledWhenDamaged: 0
+    - rid: 7737211679622037830
+      type: {class: BuildingReceptionAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingReceptionAbility
+        workSeconds: 1.2
+        readinessGain: 45
+        firstImpressionBonus: 4
+        moodBonus: 1.5
+        moodDurationSeconds: 120
+    - rid: 7737211679622037831
+      type: {class: BuildingPatrolPostAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingPatrolPostAbility
+        workSeconds: 1.6
+        patrolReadinessGain: 45
+        incidentDetectionBonus: 0.15

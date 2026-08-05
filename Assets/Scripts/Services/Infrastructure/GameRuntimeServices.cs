@@ -1,13 +1,24 @@
 using System;
 using DamageNumbersPro;
+using DungeonStory.Foundation;
 using UnityEngine;
 
-public interface IGameDataProvider
+public interface IGameSessionStateProvider
 {
-    bool TryGetGameData(out GameData gameData);
+    bool TryGetSessionState(out GameSessionState gameData);
 }
 
-public interface IGameMoneyRuntime
+public interface IGameSessionStateStore : IGameSessionStateProvider
+{
+    void Restore(GameSessionSnapshot snapshot);
+}
+
+public interface IGameSessionPauseAuthority
+{
+    void SetPaused(bool paused);
+}
+
+public interface IGameMoneyAccount
 {
     int Balance { get; }
     bool CanSpend(int amount);
@@ -18,6 +29,7 @@ public interface IGameMoneyRuntime
         out string reason);
     void Add(int amount);
     void Add(int amount, EconomyTransactionContext context);
+    void SetBalance(int amount, EconomyTransactionContext context);
 }
 
 public interface IFloatingNumberFeedbackService
@@ -25,31 +37,59 @@ public interface IFloatingNumberFeedbackService
     bool TryShow(NumberCondition condition, Vector3 worldPosition, float value);
 }
 
-public sealed class GameManagerGameDataProvider : IGameDataProvider
+public sealed class ScopedGameSessionStateStore :
+    IGameSessionStateStore,
+    IGameSessionPauseAuthority
 {
-    private readonly DungeonSceneRuntimeReferences sceneReferences;
+    private readonly GameSessionState state;
+    private readonly IGameSessionStateMutation mutation;
+    private readonly IGameTimeScaleController timeScaleController;
 
-    public GameManagerGameDataProvider(DungeonSceneRuntimeReferences sceneReferences)
+    public ScopedGameSessionStateStore(
+        DungeonSceneRuntimeReferences sceneReferences,
+        IGameTimeScaleController timeScaleController)
     {
-        this.sceneReferences = sceneReferences
+        DungeonSceneRuntimeReferences requiredReferences = sceneReferences
             ?? throw new ArgumentNullException(nameof(sceneReferences));
+        GameData settings = requiredReferences.GameManager?.Settings
+            ?? throw new InvalidOperationException(
+                $"{nameof(ScopedGameSessionStateStore)} requires a loaded "
+                + $"{nameof(GameManager)} with {nameof(GameData)} settings.");
+        state = GameSessionState.Create(
+            settings,
+            out IGameSessionStateMutation stateMutation);
+        mutation = stateMutation;
+        this.timeScaleController = timeScaleController
+            ?? throw new ArgumentNullException(nameof(timeScaleController));
     }
 
-    public bool TryGetGameData(out GameData gameData)
+    public bool TryGetSessionState(out GameSessionState gameData)
     {
-        GameManager gameManager = sceneReferences.GameManager;
-        gameData = gameManager != null ? gameManager.gameData : null;
-        return gameData != null;
+        gameData = state;
+        return true;
+    }
+
+    public void Restore(GameSessionSnapshot snapshot)
+    {
+        mutation.Restore(snapshot);
+        timeScaleController.Scale = snapshot.IsPaused
+            ? 0f
+            : snapshot.GameSpeed;
+    }
+
+    public void SetPaused(bool paused)
+    {
+        mutation.SetPaused(paused);
     }
 }
 
-public sealed class GameMoneyRuntime : IGameMoneyRuntime
+public sealed class GameMoneyAccount : IGameMoneyAccount
 {
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IEconomyTransactionLedger transactionLedger;
 
-    public GameMoneyRuntime(
-        IGameDataProvider gameDataProvider,
+    public GameMoneyAccount(
+        IGameSessionStateProvider gameDataProvider,
         IEconomyTransactionLedger transactionLedger)
     {
         this.gameDataProvider = gameDataProvider
@@ -74,7 +114,7 @@ public sealed class GameMoneyRuntime : IGameMoneyRuntime
             amount,
             new EconomyTransactionContext(
                 EconomyTransactionKind.LegacyExpense,
-                nameof(GameMoneyRuntime),
+                nameof(GameMoneyAccount),
                 description: "기존 지출"),
             out reason);
     }
@@ -105,10 +145,13 @@ public sealed class GameMoneyRuntime : IGameMoneyRuntime
             return false;
         }
 
-        using (transactionLedger.Begin(context))
-        {
-            money.Value -= cost;
-        }
+        int balanceBefore = money.Value;
+        money.Value = balanceBefore - cost;
+        transactionLedger.RecordSuccess(
+            context,
+            -cost,
+            balanceBefore,
+            money.Value);
 
         reason = string.Empty;
         return true;
@@ -120,7 +163,7 @@ public sealed class GameMoneyRuntime : IGameMoneyRuntime
             amount,
             new EconomyTransactionContext(
                 EconomyTransactionKind.LegacyIncome,
-                nameof(GameMoneyRuntime),
+                nameof(GameMoneyAccount),
                 description: "기존 수입"));
     }
 
@@ -129,23 +172,48 @@ public sealed class GameMoneyRuntime : IGameMoneyRuntime
         int gain = Mathf.Max(0, amount);
         if (gain > 0 && TryGetMoney(out Data<int> money))
         {
-            using (transactionLedger.Begin(context))
-            {
-                money.Value += gain;
-            }
+            int balanceBefore = money.Value;
+            money.Value = balanceBefore + gain;
+            transactionLedger.RecordSuccess(
+                context,
+                gain,
+                balanceBefore,
+                money.Value);
         }
+    }
+
+    public void SetBalance(int amount, EconomyTransactionContext context)
+    {
+        if (!TryGetMoney(out Data<int> money))
+        {
+            throw new InvalidOperationException(
+                "Cannot set the balance without an active game session.");
+        }
+
+        int balanceBefore = money.Value;
+        int balanceAfter = Mathf.Max(0, amount);
+        if (balanceAfter == balanceBefore)
+        {
+            return;
+        }
+
+        money.Value = balanceAfter;
+        transactionLedger.RecordSuccess(
+            context,
+            balanceAfter - balanceBefore,
+            balanceBefore,
+            balanceAfter);
     }
 
     private bool TryGetMoney(out Data<int> money)
     {
         money = null;
-        if (!gameDataProvider.TryGetGameData(out GameData gameData)
+        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData)
             || gameData == null)
         {
             return false;
         }
 
-        gameData.holdingMoney ??= new Data<int>();
         money = gameData.holdingMoney;
         return true;
     }

@@ -5,6 +5,46 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
+public sealed class ResourceStockPolicyLogisticsDependencies
+{
+    public ResourceStockPolicyLogisticsDependencies(
+        IWorldItemStackRuntime itemRuntime,
+        IWorldDropZoneQuery dropZones,
+        IWorkforceReplanService workforce)
+    {
+        ItemRuntime = itemRuntime
+            ?? throw new ArgumentNullException(nameof(itemRuntime));
+        DropZones = dropZones
+            ?? throw new ArgumentNullException(nameof(dropZones));
+        Workforce = workforce
+            ?? throw new ArgumentNullException(nameof(workforce));
+    }
+
+    internal IWorldItemStackRuntime ItemRuntime { get; }
+    internal IWorldDropZoneQuery DropZones { get; }
+    internal IWorkforceReplanService Workforce { get; }
+}
+
+public sealed class ResourceStockPolicyProductionDependencies
+{
+    public ResourceStockPolicyProductionDependencies(
+        IProductionBillQuery productionBillQuery,
+        IProductionBillOrderCommand productionBillCommands,
+        IBuildingWorldQuery buildingWorld)
+    {
+        ProductionBillQuery = productionBillQuery
+            ?? throw new ArgumentNullException(nameof(productionBillQuery));
+        ProductionBillCommands = productionBillCommands
+            ?? throw new ArgumentNullException(nameof(productionBillCommands));
+        BuildingWorld = buildingWorld
+            ?? throw new ArgumentNullException(nameof(buildingWorld));
+    }
+
+    internal IProductionBillQuery ProductionBillQuery { get; }
+    internal IProductionBillOrderCommand ProductionBillCommands { get; }
+    internal IBuildingWorldQuery BuildingWorld { get; }
+}
+
 public sealed class ResourceStockPolicyRuntime :
     IResourceStockPolicyRuntime,
     IInitializable,
@@ -14,44 +54,42 @@ public sealed class ResourceStockPolicyRuntime :
     private const string SellDestinationPrefix = "stock-policy:sell:";
 
     private readonly IResourceEconomyContentCatalog catalog;
-    private readonly IWorldItemStackRuntime itemRuntime;
-    private readonly IProductionBillRuntime productionBills;
-    private readonly IBuildingWorldQuery buildingWorld;
-    private readonly IWorldDropZoneQuery dropZones;
-    private readonly IGameMoneyRuntime money;
+    private readonly ResourceStockPolicyLogisticsDependencies logistics;
+    private readonly ResourceStockPolicyProductionDependencies production;
+    private readonly IGameMoneyAccount money;
     private readonly IGameClock gameClock;
-    private readonly IWorkforceReplanService workforce;
-    private readonly Dictionary<string, ResourceStockPolicyData> byItemId =
-        new Dictionary<string, ResourceStockPolicyData>(StringComparer.Ordinal);
-    private IReadOnlyList<ResourceStockPolicyData> policyView =
-        Array.Empty<ResourceStockPolicyData>();
-    private float nextEvaluationTime;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+
+    private ResourceStockPolicyAggregateState state
+    {
+        get => aggregateRootStore.GetOrCreate(
+            () => new ResourceStockPolicyAggregateState());
+        set => aggregateRootStore.Replace(value);
+    }
+
+    private Dictionary<string, ResourceStockPolicyData> byItemId => state.ByItemId;
+    private IReadOnlyList<ResourceStockPolicyData> policyView => state.PolicyView;
 
     public ResourceStockPolicyRuntime(
         IResourceEconomyContentCatalog catalog,
-        IWorldItemStackRuntime itemRuntime,
-        IProductionBillRuntime productionBills,
-        IBuildingWorldQuery buildingWorld,
-        IWorldDropZoneQuery dropZones,
-        IGameMoneyRuntime money,
+        ResourceStockPolicyLogisticsDependencies logistics,
+        ResourceStockPolicyProductionDependencies production,
+        IGameMoneyAccount money,
         IGameClock gameClock,
-        IWorkforceReplanService workforce = null)
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        this.itemRuntime = itemRuntime
-            ?? throw new ArgumentNullException(nameof(itemRuntime));
-        this.productionBills = productionBills
-            ?? throw new ArgumentNullException(nameof(productionBills));
-        this.buildingWorld = buildingWorld
-            ?? throw new ArgumentNullException(nameof(buildingWorld));
-        this.dropZones = dropZones
-            ?? throw new ArgumentNullException(nameof(dropZones));
+        this.logistics = logistics
+            ?? throw new ArgumentNullException(nameof(logistics));
+        this.production = production
+            ?? throw new ArgumentNullException(nameof(production));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
-        this.workforce = workforce;
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
 
-    public int Version { get; private set; }
+    public int Version => state.Version;
     public IReadOnlyList<ResourceStockPolicyData> Policies => policyView;
 
     public void Initialize()
@@ -66,12 +104,12 @@ public sealed class ResourceStockPolicyRuntime :
 
     public void Tick()
     {
-        if (gameClock.IsPaused || gameClock.Time < nextEvaluationTime)
+        if (gameClock.IsPaused || gameClock.Time < state.NextEvaluationTime)
         {
             return;
         }
 
-        nextEvaluationTime = gameClock.Time + EvaluationInterval;
+        state.NextEvaluationTime = gameClock.Time + EvaluationInterval;
         foreach (ResourceStockPolicyData policy in policyView)
         {
             Evaluate(policy);
@@ -124,7 +162,7 @@ public sealed class ResourceStockPolicyRuntime :
         }
 
         byItemId[copy.itemId] = copy;
-        Version++;
+        state.Version++;
         RefreshView();
         return true;
     }
@@ -132,7 +170,7 @@ public sealed class ResourceStockPolicyRuntime :
     public int CountOwned(string itemId)
     {
         string normalized = itemId?.Trim() ?? string.Empty;
-        return itemRuntime.GetAllStacks()
+        return logistics.ItemRuntime.GetAllStacks()
             .Where(stack => stack != null
                 && stack.Quantity > 0
                 && string.Equals(stack.ItemId, normalized, StringComparison.Ordinal)
@@ -150,48 +188,38 @@ public sealed class ResourceStockPolicyRuntime :
         };
     }
 
-    public void Restore(DungeonResourceStockPolicySaveData saveData)
+    public ResourceStockPolicyRestoreCandidate PrepareRestoreCandidate(
+        DungeonResourceStockPolicySaveData saveData)
     {
-        byItemId.Clear();
-        foreach (ResourceStockPolicyData saved in saveData?.policies
-                 ?? new List<ResourceStockPolicyData>())
+        if (saveData?.policies == null)
         {
-            if (saved == null
-                || string.IsNullOrWhiteSpace(saved.itemId)
-                || !IsKnownPolicyItem(saved.itemId))
-            {
-                continue;
-            }
-
+            throw new InvalidOperationException(
+                "Stock-policy restore payload or policy list is missing.");
+        }
+        ResourceStockPolicyAggregateState restored = new()
+        {
+            Version = state.Version + 1,
+            NextEvaluationTime = gameClock.Time + EvaluationInterval
+        };
+        foreach (ResourceStockPolicyData saved in saveData.policies)
+        {
             ResourceStockPolicyData copy = saved.Clone();
-            copy.Normalize();
-            byItemId[copy.itemId] = copy;
+            restored.ByItemId.Add(copy.itemId, copy);
         }
 
-        foreach (ResourceItemDefinitionSO item in catalog.Items)
-        {
-            if (!byItemId.ContainsKey(item.ItemId))
-            {
-                byItemId[item.ItemId] = new ResourceStockPolicyData
-                {
-                    itemId = item.ItemId,
-                    minimumStock = 10,
-                    targetStock = 20,
-                    maximumStock = 40
-                };
-            }
-        }
+        RefreshView(restored);
+        return new ResourceStockPolicyRestoreCandidate(restored, saveData);
+    }
 
-        Version++;
-        RefreshView();
+    public void PublishRestoreCandidate(
+        ResourceStockPolicyRestoreCandidate candidate)
+    {
+        state = candidate.State;
     }
 
     private bool IsKnownPolicyItem(string itemId)
     {
-        return catalog.TryGetItem(itemId, out _)
-            || DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
-                itemId,
-                out _);
+        return catalog.TryGetItem(itemId, out _);
     }
 
     private void Evaluate(ResourceStockPolicyData policy)
@@ -244,7 +272,7 @@ public sealed class ResourceStockPolicyRuntime :
             WorldItemStackState.FacilityBuffer);
         if (delivered > 0)
         {
-            if (itemRuntime.TryConsumeFacilityItemBuffer(
+            if (logistics.ItemRuntime.TryConsumeFacilityItemBuffer(
                     destinationId,
                     new Dictionary<string, int>(StringComparer.Ordinal)
                     {
@@ -262,7 +290,7 @@ public sealed class ResourceStockPolicyRuntime :
                     delivered * unitPrice * saleRate));
                 AddMoney(proceeds);
                 SetStatus(policy, $"초과 재고 {delivered}개 판매 · {proceeds} 골드");
-                Version++;
+                state.Version++;
                 return;
             }
 
@@ -278,13 +306,13 @@ public sealed class ResourceStockPolicyRuntime :
             return;
         }
 
-        if (!dropZones.TryGetDeliveryDropoff(out Vector2Int dropoff))
+        if (!logistics.DropZones.TryGetDeliveryDropoff(out Vector2Int dropoff))
         {
             SetStatus(policy, "판매 집결점이 없습니다.");
             return;
         }
 
-        itemRuntime.TryRequestItemDelivery(
+        logistics.ItemRuntime.TryRequestItemDelivery(
             policy.itemId,
             missing,
             dropoff,
@@ -294,7 +322,7 @@ public sealed class ResourceStockPolicyRuntime :
         if (requested > 0)
         {
             PrioritizeDestination(destinationId);
-            workforce?.RequestOneHaulerToReplan(forceInterrupt: false);
+            logistics.Workforce.RequestOneHaulerToReplan(forceInterrupt: false);
             SetStatus(policy, $"판매 물품 운반 요청 {pending + requested}/{surplus}");
         }
         else
@@ -320,7 +348,7 @@ public sealed class ResourceStockPolicyRuntime :
             return;
         }
 
-        BuildableObject facility = buildingWorld.Buildings
+        BuildableObject facility = production.BuildingWorld.Buildings
             .FirstOrDefault(building => building != null
                 && !building.IsGridDestroyed
                 && building.HasSemanticTag(recipe.FacilityTag)
@@ -331,7 +359,7 @@ public sealed class ResourceStockPolicyRuntime :
             return;
         }
 
-        bool alreadyQueued = productionBills.GetBills(facility)
+        bool alreadyQueued = production.ProductionBillQuery.GetBills(facility)
             .Any(bill => string.Equals(
                 bill.RecipeId,
                 recipe.RecipeId,
@@ -352,14 +380,14 @@ public sealed class ResourceStockPolicyRuntime :
         int cycles = Mathf.Max(
             1,
             Mathf.Min(10, surplus / Mathf.Max(1, inputPerCycle)));
-        ProductionBillCommandResult result = productionBills.AddBill(
+        ProductionBillCommandResult result = production.ProductionBillCommands.AddBill(
             facility,
             recipe.RecipeId,
             ProductionOrderMode.RepeatCount,
             cycles);
         SetStatus(policy, result.Succeeded
             ? $"{recipe.DisplayName} {cycles}회 등록"
-            : result.Message);
+            : result.Failure.Code.ToString());
     }
 
     private ProductionRecipeSO FindSurplusRecipe(
@@ -404,7 +432,7 @@ public sealed class ResourceStockPolicyRuntime :
         string destinationId,
         WorldItemStackState? requiredState)
     {
-        return itemRuntime.GetAllStacks()
+        return logistics.ItemRuntime.GetAllStacks()
             .Where(stack => stack != null
                 && stack.Quantity > 0
                 && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
@@ -419,7 +447,7 @@ public sealed class ResourceStockPolicyRuntime :
 
     private void PrioritizeDestination(string destinationId)
     {
-        foreach (WorldItemStackSnapshot stack in itemRuntime.GetAllStacks())
+        foreach (WorldItemStackSnapshot stack in logistics.ItemRuntime.GetAllStacks())
         {
             if (stack != null
                 && string.Equals(
@@ -427,7 +455,7 @@ public sealed class ResourceStockPolicyRuntime :
                     destinationId,
                     StringComparison.Ordinal))
             {
-                itemRuntime.PrioritizeHaul(stack.StackId);
+                logistics.ItemRuntime.PrioritizeHaul(stack.StackId);
             }
         }
     }
@@ -456,18 +484,18 @@ public sealed class ResourceStockPolicyRuntime :
         }
 
         policy.lastStatus = normalized;
-        Version++;
+        state.Version++;
     }
 
     private void RefreshView()
     {
-        policyView = byItemId.Values
-            .OrderBy(policy => catalog.TryGetItem(
-                    policy.itemId,
-                    out ResourceItemDefinitionSO item)
-                ? item.DisplayName
-                : policy.itemId,
-                StringComparer.Ordinal)
+        RefreshView(state);
+    }
+
+    private static void RefreshView(ResourceStockPolicyAggregateState target)
+    {
+        target.PolicyView = target.ByItemId.Values
+            .OrderBy(policy => policy.itemId, StringComparer.Ordinal)
             .ToArray();
     }
 

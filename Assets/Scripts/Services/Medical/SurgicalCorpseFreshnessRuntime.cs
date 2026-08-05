@@ -15,19 +15,24 @@ public sealed class SurgicalCorpseFreshnessRuntime :
     private readonly IWorldItemStackRuntime items;
     private readonly IWildlifeCarcassService wildlifeCarcasses;
     private readonly IGameClock clock;
-    private readonly Dictionary<string, SurgicalCorpseFreshnessState> humanoidCorpses =
-        new(StringComparer.Ordinal);
+    private readonly SurgeryAggregateStateStore stateStore;
     private int observedItemVersion = -1;
+
+    private Dictionary<string, SurgicalCorpseFreshnessState> humanoidCorpses =>
+        stateStore.State.CorpseFreshness;
 
     public SurgicalCorpseFreshnessRuntime(
         IWorldItemStackRuntime items,
         IWildlifeCarcassService wildlifeCarcasses,
-        IGameClock clock)
+        IGameClock clock,
+        SurgeryAggregateStateStore stateStore)
     {
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.wildlifeCarcasses = wildlifeCarcasses
             ?? throw new ArgumentNullException(nameof(wildlifeCarcasses));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
     public void Tick()
@@ -89,30 +94,6 @@ public sealed class SurgicalCorpseFreshnessRuntime :
             .OrderBy(state => state.stackId, StringComparer.Ordinal)
             .Select(state => state.Clone())
             .ToArray();
-    }
-
-    public void Restore(
-        IEnumerable<SurgicalCorpseFreshnessState> states,
-        IList<string> warnings)
-    {
-        humanoidCorpses.Clear();
-        foreach (SurgicalCorpseFreshnessState source in
-                 states ?? Array.Empty<SurgicalCorpseFreshnessState>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.stackId)
-                || humanoidCorpses.ContainsKey(source.stackId))
-            {
-                warnings?.Add(
-                    "중복되거나 유효하지 않은 인간형 사체 신선도 기록을 제외했습니다.");
-                continue;
-            }
-
-            humanoidCorpses.Add(source.stackId, source.Clone());
-        }
-
-        observedItemVersion = -1;
-        RefreshHumanoidCorpseIndex();
     }
 
     private void RefreshHumanoidCorpseIndex()

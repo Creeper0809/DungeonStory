@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9e6da5c74e20e54282793c35d186af0, type: 3}
+  m_Name: shadow_screen
+  m_EditorClassIdentifier: Assembly-CSharp::OffenseUrgentSiteDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 170204
+  urgentSiteId: shadow_screen
+  displayName: "\uADF8\uB9BC\uC790 \uCC28\uAD11\uB9C9"
+  description: "\uB358\uC804\uC758 \uC870\uBA85\uACFC \uC6D0\uAC70\uB9AC \uBA85\uC911\uC744
+    \uC57D\uD654\uC2DC\uD0A4\uB294 \uADF8\uB9BC\uC790\uB97C \uB4DC\uB9AC\uC6C1\uB2C8\uB2E4."
+  modifierKind: 7
+  maximumStrength: 1
+  maximumMitigation: 0.6
+  mitigationWorkTypeId: work:refuel
+  mitigationItemId: material:low-fuel
+  mitigationItemAmount: 3
+  mitigationWork: 24

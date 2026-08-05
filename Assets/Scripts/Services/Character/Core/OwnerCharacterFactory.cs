@@ -1,7 +1,6 @@
 using System;
 using BehaviorDesigner.Runtime;
 using UnityEngine;
-using VContainer;
 
 public interface IOwnerCharacterFactory
 {
@@ -10,6 +9,9 @@ public interface IOwnerCharacterFactory
         GameObject ownerPrefab,
         Transform ownerSpawnPoint,
         Vector2Int ownerSpawnGridPosition);
+    CharacterActor CreateOwnerDetached(
+        CharacterSO ownerData,
+        GameObject ownerPrefab);
 }
 
 public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
@@ -17,17 +19,17 @@ public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
     private static readonly Vector2 OwnerClickColliderOffset = new Vector2(0f, 0.5f);
     private static readonly Vector2 OwnerClickColliderSize = Vector2.one;
 
-    private readonly IObjectResolver objectResolver;
+    private readonly ICharacterSpawnObjectFactory characterObjectFactory;
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly ICharacterVisualRootFactory visualRootFactory;
 
     public OwnerCharacterFactory(
-        IObjectResolver objectResolver,
+        ICharacterSpawnObjectFactory characterObjectFactory,
         IGridSystemProvider gridSystemProvider,
         ICharacterVisualRootFactory visualRootFactory)
     {
-        this.objectResolver = objectResolver
-            ?? throw new ArgumentNullException(nameof(objectResolver));
+        this.characterObjectFactory = characterObjectFactory
+            ?? throw new ArgumentNullException(nameof(characterObjectFactory));
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.visualRootFactory = visualRootFactory
@@ -40,24 +42,55 @@ public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
         Transform ownerSpawnPoint,
         Vector2Int ownerSpawnGridPosition)
     {
+        return CreateOwnerInternal(
+            ownerData,
+            ownerPrefab,
+            ResolveOwnerSpawnPosition(
+                ownerSpawnPoint,
+                ownerSpawnGridPosition),
+            detached: false);
+    }
+
+    public CharacterActor CreateOwnerDetached(
+        CharacterSO ownerData,
+        GameObject ownerPrefab)
+    {
+        return CreateOwnerInternal(
+            ownerData,
+            ownerPrefab,
+            Vector3.zero,
+            detached: true);
+    }
+
+    private CharacterActor CreateOwnerInternal(
+        CharacterSO ownerData,
+        GameObject ownerPrefab,
+        Vector3 spawnPosition,
+        bool detached)
+    {
         if (ownerData == null)
         {
             throw new ArgumentNullException(nameof(ownerData));
         }
 
-        GameObject ownerObject = ownerPrefab != null
-            ? UnityEngine.Object.Instantiate(ownerPrefab)
-            : new GameObject("OwnerCharacter");
-
-        ownerObject.SetActive(false);
+        GameObject ownerObject = CreateOwnerObject(ownerPrefab, detached);
         ownerObject.name = ownerData.characterName;
-        ownerObject.transform.position = ResolveOwnerSpawnPosition(ownerSpawnPoint, ownerSpawnGridPosition);
-        DungeonRuntimeHierarchy.Parent(ownerObject, DungeonRuntimeHierarchy.Characters);
+        ownerObject.transform.position = spawnPosition;
 
         try
         {
             CharacterActor owner = EnsureOwnerComponents(ownerObject);
-            InjectOwnerRuntime(ownerObject);
+            if (ownerPrefab == null)
+            {
+                if (detached)
+                {
+                    characterObjectFactory.ComposeDetached(ownerObject);
+                }
+                else
+                {
+                    InjectOwnerRuntime(ownerObject);
+                }
+            }
             owner.EnsureRuntimeState();
             owner.AbilityCache?.RefreshAbilityCache();
             if (owner.Brain == null || !owner.Brain.HasResumableDecisionPipeline)
@@ -69,7 +102,10 @@ public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
             owner.Initialize(ownerData);
             owner.Brain.UseOwnerWorkActions();
             owner.SetLifecycleState(CharacterLifecycleState.Active);
-            ownerObject.SetActive(true);
+            if (!detached)
+            {
+                characterObjectFactory.Publish(ownerObject);
+            }
             return owner;
         }
         catch
@@ -85,6 +121,41 @@ public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
 
             throw;
         }
+    }
+
+    private GameObject CreateOwnerObject(GameObject ownerPrefab, bool detached)
+    {
+        if (ownerPrefab != null)
+        {
+            return detached
+                ? characterObjectFactory.CreateDetached(
+                    ownerPrefab,
+                    candidate => EnsureOwnerComponents(candidate))
+                : characterObjectFactory.CreateInactive(
+                    ownerPrefab,
+                    candidate => EnsureOwnerComponents(candidate));
+        }
+
+        GameObject ownerObject = new GameObject("OwnerCharacter");
+        ownerObject.SetActive(false);
+        if (detached)
+        {
+            Transform candidateRoot = DungeonRuntimeHierarchy.GetCategory(
+                DungeonRuntimeHierarchy.RestoreCandidates,
+                ownerObject);
+            candidateRoot.gameObject.SetActive(false);
+            ownerObject.transform.SetParent(candidateRoot, true);
+        }
+        else
+        {
+            Transform stagingRoot = DungeonRuntimeHierarchy.GetCategory(
+                DungeonRuntimeHierarchy.CharacterComposition,
+                ownerObject);
+            stagingRoot.gameObject.SetActive(false);
+            ownerObject.transform.SetParent(stagingRoot, true);
+        }
+
+        return ownerObject;
     }
 
     private CharacterActor EnsureOwnerComponents(GameObject ownerObject)
@@ -143,10 +214,7 @@ public sealed class OwnerCharacterFactory : IOwnerCharacterFactory
 
     private void InjectOwnerRuntime(GameObject ownerObject)
     {
-        foreach (MonoBehaviour component in ownerObject.GetComponentsInChildren<MonoBehaviour>(includeInactive: true))
-        {
-            objectResolver.Inject(component);
-        }
+        characterObjectFactory.Inject(ownerObject);
     }
 
     private Vector3 ResolveOwnerSpawnPosition(Transform ownerSpawnPoint, Vector2Int ownerSpawnGridPosition)

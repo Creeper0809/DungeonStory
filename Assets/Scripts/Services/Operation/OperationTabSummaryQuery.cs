@@ -53,7 +53,7 @@ public sealed class OperationTabSummaryService : IOperationTabSummaryService
     public OperationTabSummary Capture()
     {
         UIManager uiManager = sceneReferences.UIManager;
-        GameData gameData = uiManager != null ? uiManager.gameData : null;
+        GameSessionState gameData = uiManager != null ? uiManager.gameData : null;
         OperatingDaySettlementRuntime settlement = sceneReferences.Settlement;
         EventAlertRuntime alerts = sceneReferences.Alerts;
         RunVariableRuntime runVariables = sceneReferences.RunVariables;

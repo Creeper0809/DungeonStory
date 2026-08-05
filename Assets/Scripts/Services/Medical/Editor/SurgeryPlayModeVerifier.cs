@@ -20,7 +20,6 @@ public static class SurgeryPlayModeVerifier
     public const string ReportPath = "Artifacts/QA/surgery-playmode-report.txt";
     public const string CapturePath = "Artifacts/QA/surgery-playmode.png";
     private const string GameplayScenePath = "Assets/Scenes/GameplayScene.unity";
-
     private static bool runnerCreated;
 
     static SurgeryPlayModeVerifier()
@@ -82,6 +81,7 @@ public static class SurgeryPlayModeVerifier
 
 public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
 {
+    private const string StandardMedicineItemId = "medicine:standard";
     private const string SutureProcedureId = "procedure:emergency-suture";
     private const string MedicalResearchId = "research:survival:medical";
     private const float TimeoutSeconds = 60f;
@@ -93,8 +93,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
     private readonly List<GameObject> temporaryObjects = new();
     private readonly HashSet<SurgeryOrderState> observedStates = new();
 
-    private DungeonPhysicalItemSaveData itemSnapshot;
-    private DungeonSurgerySaveData surgerySnapshot;
+    private DungeonGameSaveData gameSnapshot;
     private CharacterActor patient;
     private CharacterActor doctor;
     private AbilityWork doctorWork;
@@ -106,7 +105,8 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
     private Vector3 originalCameraPosition;
     private Camera gameplayCamera;
     private IWorldItemStackRuntime items;
-    private ISurgeryRuntime surgery;
+    private ISurgeryQuery surgery;
+    private IDungeonGameSaveService gameSave;
     private IAnatomyHealthRuntime anatomy;
     private ICharacterDeprivationRuntime deprivation;
     private string targetNodeId = string.Empty;
@@ -125,7 +125,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
         yield return null;
 
         DungeonRuntimeLifetimeScope scope = FindScope();
-        surgery = Resolve<ISurgeryRuntime>(scope);
+        surgery = Resolve<ISurgeryQuery>(scope);
         ISurgeryCommandService commands = Resolve<ISurgeryCommandService>(scope);
         ISurgicalProcedureCatalog procedures = Resolve<ISurgicalProcedureCatalog>(scope);
         ISurgicalFacilityQuery facilities = Resolve<ISurgicalFacilityQuery>(scope);
@@ -139,6 +139,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
         anatomy = Resolve<IAnatomyHealthRuntime>(scope);
         deprivation = Resolve<ICharacterDeprivationRuntime>(scope);
         items = Resolve<IWorldItemStackRuntime>(scope);
+        gameSave = Resolve<IDungeonGameSaveService>(scope);
         IRandomStreamProvider randomStreams =
             Resolve<IRandomStreamProvider>(scope);
         randomStreams?.Get("medical:surgery-outcomes").Restore(1UL);
@@ -151,7 +152,10 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
         Check(procedures != null && facilities != null, "SURGERY_CATALOG_READY", "catalog and facility query resolved");
         Check(rooms != null && grid != null, "SURGERY_GRID_READY", "room cache and grid resolved");
         Check(research != null && characters != null, "SURGERY_WORLD_READY", "research and character query resolved");
-        Check(anatomy != null && items != null, "SURGERY_DATA_READY", "anatomy and item runtime resolved");
+        Check(
+            anatomy != null && items != null && gameSave != null,
+            "SURGERY_DATA_READY",
+            "anatomy, item runtime, and V18 save service resolved");
         Check(surgeryWindow != null, "SURGERY_UI_READY", "surgery planning window resolved");
         if (failures.Count > 0)
         {
@@ -190,8 +194,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             StabilizeVerificationActor(actor);
         }
 
-        itemSnapshot = items.Capture();
-        surgerySnapshot = surgery.Capture();
+        gameSnapshot = gameSave.Capture();
         originalPatientAiPaused = patient.IsAiPaused();
         doctorWork = doctor.GetAbility<AbilityWork>();
         if (doctorWork != null)
@@ -246,7 +249,9 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 procedure.RequiredFacilityTags);
             Check(registered, "EMERGENCY_TABLE_REGISTERED", $"position={tablePosition}");
             Check(tableSnapshot.IsAvailable, "EMERGENCY_TABLE_AVAILABLE",
-                tableSnapshot.IsAvailable ? "closed medical room recognized" : tableSnapshot.BlockReason);
+                tableSnapshot.IsAvailable
+                    ? "closed medical room recognized"
+                    : tableSnapshot.BlockFailure.Code.ToString());
             if (!registered || !tableSnapshot.IsAvailable)
             {
                 Finish();
@@ -289,8 +294,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             Check(injured && injuredHealth < beforeHealth, "PATIENT_INJURED",
                 $"{beforeHealth:0.##}->{injuredHealth:0.##}");
 
-            string medicineId =
-                DungeonItemCatalogSO.StockItemId(StockCategory.Medicine);
+            string medicineId = StandardMedicineItemId;
             bool medicineSpawned = items.SpawnItemAt(
                 medicineId,
                 2,
@@ -431,7 +435,7 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
                 .Sum(stack => stack.Quantity);
             Check(!order.IsActive && order.state == SurgeryOrderState.Completed,
                 "SURGERY_COMPLETED_BY_WORK_AI",
-                $"state={order.state}; status={order.status}; elapsed={Time.realtimeSinceStartup - startedAt:0.0}s");
+                $"state={order.state}; status={order.statusData?.code}; elapsed={Time.realtimeSinceStartup - startedAt:0.0}s");
             Check(order.materialsRequested && order.materialsConsumed,
                 "SURGERY_MATERIAL_FLOW",
                 $"requested={order.materialsRequested}; consumed={order.materialsConsumed}; medicine={initialMedicine}->{remainingMedicine}");
@@ -885,14 +889,18 @@ public sealed class SurgeryPlayModeVerificationRunner : MonoBehaviour
             doctorWork.SetDutyState(originalDutyState);
         }
 
-        if (surgerySnapshot != null)
+        DungeonGameRestoreReport restoreReport = null;
+        if (gameSnapshot != null
+            && (gameSave == null
+                || !gameSave.TryRestore(
+                    gameSnapshot,
+                    out restoreReport)))
         {
-            surgery?.Restore(surgerySnapshot, new List<string>());
-        }
-
-        if (itemSnapshot != null)
-        {
-            items?.Restore(itemSnapshot);
+            capturedErrors.Add(
+                "Surgery verifier baseline restore failed: "
+                + (restoreReport == null
+                    ? "missing restore report"
+                    : string.Join(" | ", restoreReport.Errors)));
         }
 
         foreach (GameObject obj in temporaryObjects)

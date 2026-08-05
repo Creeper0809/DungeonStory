@@ -21,30 +21,42 @@ public readonly struct DungeonGameplayLaunchRequest
         DungeonGameplayLaunchMode mode,
         string slotId = "",
         DungeonDifficulty difficulty = DungeonDifficulty.Normal,
-        PreparedStartPartySnapshot preparedStartParty = null)
+        PreparedStartPartySnapshot preparedStartParty = null,
+        DungeonSurvivalPressure survivalPressure =
+            DungeonSurvivalPressure.Standard)
     {
         Mode = mode;
         SlotId = slotId ?? string.Empty;
         Difficulty = difficulty;
         PreparedStartParty = preparedStartParty;
+        SurvivalPressure =
+            DungeonSurvivalPressureRules.Normalize((int)survivalPressure);
     }
 
     public DungeonGameplayLaunchMode Mode { get; }
     public string SlotId { get; }
     public DungeonDifficulty Difficulty { get; }
     public PreparedStartPartySnapshot PreparedStartParty { get; }
+    public DungeonSurvivalPressure SurvivalPressure { get; }
 }
 
 public readonly struct DungeonPreparationLaunchRequest
 {
-    public DungeonPreparationLaunchRequest(DungeonDifficulty difficulty, int runSeed)
+    public DungeonPreparationLaunchRequest(
+        DungeonDifficulty difficulty,
+        int runSeed,
+        DungeonSurvivalPressure survivalPressure =
+            DungeonSurvivalPressure.Standard)
     {
         Difficulty = difficulty;
         RunSeed = runSeed;
+        SurvivalPressure =
+            DungeonSurvivalPressureRules.Normalize((int)survivalPressure);
     }
 
     public DungeonDifficulty Difficulty { get; }
     public int RunSeed { get; }
+    public DungeonSurvivalPressure SurvivalPressure { get; }
 }
 
 public interface IDungeonSceneNavigator
@@ -52,7 +64,13 @@ public interface IDungeonSceneNavigator
     bool IsTransitioning { get; }
     bool StartNewGame();
     bool StartNewGame(DungeonDifficulty difficulty);
+    bool StartNewGame(
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure);
     bool StartNewPreparation(DungeonDifficulty difficulty);
+    bool StartNewPreparation(
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure);
     bool StartPreparedNewGame(PreparedStartPartySnapshot preparedStartParty);
     bool LoadGame(string slotId);
     bool LoadTitle(string message = "");
@@ -68,19 +86,8 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
     public const string GameplaySceneName = "GameplayScene";
     public const string DebugSampleSceneName = "SampleScene";
 
-    private static DungeonSceneTransitionHost transitionHost;
-    private static DungeonPreparationLaunchRequest? pendingPreparationLaunch;
-    private static DungeonGameplayLaunchRequest? pendingGameplayLaunch;
-    private static string pendingTitleMessage = string.Empty;
-    private static bool isTransitioning;
-
     private readonly IGameTimeScaleController timeScaleController;
     private readonly IUiClock uiClock;
-
-    public DungeonSceneNavigator()
-        : this(new UnityGameTimeScaleController(), new UnityUiClock())
-    {
-    }
 
     public DungeonSceneNavigator(
         IGameTimeScaleController timeScaleController,
@@ -91,7 +98,7 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
         this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
     }
 
-    public bool IsTransitioning => isTransitioning;
+    public bool IsTransitioning => GetMailbox().IsTransitioning;
 
     public bool StartNewGame()
     {
@@ -100,21 +107,41 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
 
     public bool StartNewGame(DungeonDifficulty difficulty)
     {
-        return StartNewPreparation(difficulty);
+        return StartNewGame(
+            difficulty,
+            DungeonSurvivalPressure.Standard);
+    }
+
+    public bool StartNewGame(
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure)
+    {
+        return StartNewPreparation(difficulty, survivalPressure);
     }
 
     public bool StartNewPreparation(DungeonDifficulty difficulty)
+    {
+        return StartNewPreparation(
+            difficulty,
+            DungeonSurvivalPressure.Standard);
+    }
+
+    public bool StartNewPreparation(
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure)
     {
         if (!BeginTransition(PreparationSceneName, HandlePreparationTransitionFailure))
         {
             return false;
         }
 
-        pendingTitleMessage = string.Empty;
-        pendingGameplayLaunch = null;
-        pendingPreparationLaunch = new DungeonPreparationLaunchRequest(
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        mailbox.PendingTitleMessage = string.Empty;
+        mailbox.PendingGameplayLaunch = null;
+        mailbox.PendingPreparationLaunch = new DungeonPreparationLaunchRequest(
             difficulty,
-            CreateRunSeed(difficulty));
+            CreateRunSeed(difficulty),
+            survivalPressure);
         return true;
     }
 
@@ -128,14 +155,25 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
         return BeginGameplayTransition(new DungeonGameplayLaunchRequest(
             DungeonGameplayLaunchMode.PreparedNewRun,
             difficulty: preparedStartParty.difficulty,
-            preparedStartParty: preparedStartParty));
+            preparedStartParty: preparedStartParty,
+            survivalPressure: preparedStartParty.survivalPressure));
     }
 
     public bool StartNewGameDirectForDebug(DungeonDifficulty difficulty)
     {
+        return StartNewGameDirectForDebug(
+            difficulty,
+            DungeonSurvivalPressure.Standard);
+    }
+
+    public bool StartNewGameDirectForDebug(
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure)
+    {
         return BeginGameplayTransition(new DungeonGameplayLaunchRequest(
             DungeonGameplayLaunchMode.NewRun,
-            difficulty: difficulty));
+            difficulty: difficulty,
+            survivalPressure: survivalPressure));
     }
 
     public bool LoadGame(string slotId)
@@ -157,15 +195,17 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
             return false;
         }
 
-        pendingGameplayLaunch = null;
-        pendingPreparationLaunch = null;
-        pendingTitleMessage = message?.Trim() ?? string.Empty;
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        mailbox.PendingGameplayLaunch = null;
+        mailbox.PendingPreparationLaunch = null;
+        mailbox.PendingTitleMessage = message?.Trim() ?? string.Empty;
         return true;
     }
 
     public bool TryConsumePreparationLaunch(out DungeonPreparationLaunchRequest request)
     {
-        if (!pendingPreparationLaunch.HasValue)
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        if (!mailbox.PendingPreparationLaunch.HasValue)
         {
             request = new DungeonPreparationLaunchRequest(
                 DungeonDifficulty.Normal,
@@ -173,28 +213,30 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
             return false;
         }
 
-        request = pendingPreparationLaunch.Value;
-        pendingPreparationLaunch = null;
+        request = mailbox.PendingPreparationLaunch.Value;
+        mailbox.PendingPreparationLaunch = null;
         return true;
     }
 
     public bool TryConsumeGameplayLaunch(out DungeonGameplayLaunchRequest request)
     {
-        if (!pendingGameplayLaunch.HasValue)
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        if (!mailbox.PendingGameplayLaunch.HasValue)
         {
             request = default;
             return false;
         }
 
-        request = pendingGameplayLaunch.Value;
-        pendingGameplayLaunch = null;
+        request = mailbox.PendingGameplayLaunch.Value;
+        mailbox.PendingGameplayLaunch = null;
         return request.Mode != DungeonGameplayLaunchMode.None;
     }
 
     public string ConsumeTitleMessage()
     {
-        string message = pendingTitleMessage;
-        pendingTitleMessage = string.Empty;
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        string message = mailbox.PendingTitleMessage;
+        mailbox.PendingTitleMessage = string.Empty;
         return message;
     }
 
@@ -205,9 +247,10 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
             return false;
         }
 
-        pendingTitleMessage = string.Empty;
-        pendingPreparationLaunch = null;
-        pendingGameplayLaunch = request;
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        mailbox.PendingTitleMessage = string.Empty;
+        mailbox.PendingPreparationLaunch = null;
+        mailbox.PendingGameplayLaunch = request;
         return true;
     }
 
@@ -224,7 +267,8 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
 
     private bool BeginTransition(string targetScene, Action<string> onFailure)
     {
-        if (isTransitioning || string.IsNullOrWhiteSpace(targetScene))
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        if (mailbox.IsTransitioning || string.IsNullOrWhiteSpace(targetScene))
         {
             return false;
         }
@@ -236,56 +280,77 @@ public sealed class DungeonSceneNavigator : IDungeonSceneNavigator
         }
 
         timeScaleController.Scale = 1f;
-        isTransitioning = true;
+        mailbox.IsTransitioning = true;
         GameObject hostObject = new GameObject("DungeonSceneTransitionHost");
         UnityEngine.Object.DontDestroyOnLoad(hostObject);
-        transitionHost = hostObject.AddComponent<DungeonSceneTransitionHost>();
-        transitionHost.Begin(targetScene, CompleteTransition, onFailure, uiClock);
+        mailbox.TransitionHost = hostObject.AddComponent<DungeonSceneTransitionHost>();
+        mailbox.TransitionHost.Begin(
+            targetScene,
+            CompleteTransition,
+            onFailure,
+            uiClock);
         return true;
     }
 
-    private static void CompleteTransition()
+    private void CompleteTransition()
     {
-        isTransitioning = false;
-        transitionHost = null;
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        mailbox.IsTransitioning = false;
+        mailbox.TransitionHost = null;
     }
 
-    private static void HandleGameplayTransitionFailure(string message)
+    private void HandleGameplayTransitionFailure(string message)
     {
-        pendingPreparationLaunch = null;
-        pendingGameplayLaunch = null;
-        pendingTitleMessage = string.IsNullOrWhiteSpace(message)
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        mailbox.PendingPreparationLaunch = null;
+        mailbox.PendingGameplayLaunch = null;
+        mailbox.PendingTitleMessage = string.IsNullOrWhiteSpace(message)
             ? "게임 화면을 불러오지 못했습니다."
             : message;
         CompleteTransition();
     }
 
-    private static void HandleTitleTransitionFailure(string message)
+    private void HandleTitleTransitionFailure(string message)
     {
-        pendingTitleMessage = string.IsNullOrWhiteSpace(message)
+        GetMailbox().PendingTitleMessage = string.IsNullOrWhiteSpace(message)
             ? "타이틀 화면을 불러오지 못했습니다."
             : message;
         CompleteTransition();
     }
 
-    private static void HandlePreparationTransitionFailure(string message)
+    private void HandlePreparationTransitionFailure(string message)
     {
-        pendingPreparationLaunch = null;
-        pendingTitleMessage = string.IsNullOrWhiteSpace(message)
+        DungeonSceneTransitionMailbox mailbox = GetMailbox();
+        mailbox.PendingPreparationLaunch = null;
+        mailbox.PendingTitleMessage = string.IsNullOrWhiteSpace(message)
             ? "준비 화면을 불러오지 못했습니다."
             : message;
         CompleteTransition();
     }
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStaticState()
+    private static DungeonSceneTransitionMailbox GetMailbox()
     {
-        transitionHost = null;
-        pendingPreparationLaunch = null;
-        pendingGameplayLaunch = null;
-        pendingTitleMessage = string.Empty;
-        isTransitioning = false;
+        DungeonSceneTransitionMailbox existing =
+            UnityEngine.Object.FindFirstObjectByType<DungeonSceneTransitionMailbox>(
+                FindObjectsInactive.Include);
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        GameObject mailboxObject = new GameObject("DungeonSceneTransitionMailbox");
+        UnityEngine.Object.DontDestroyOnLoad(mailboxObject);
+        return mailboxObject.AddComponent<DungeonSceneTransitionMailbox>();
     }
+}
+
+public sealed class DungeonSceneTransitionMailbox : MonoBehaviour
+{
+    public DungeonPreparationLaunchRequest? PendingPreparationLaunch { get; set; }
+    public DungeonGameplayLaunchRequest? PendingGameplayLaunch { get; set; }
+    public string PendingTitleMessage { get; set; } = string.Empty;
+    public bool IsTransitioning { get; set; }
+    public DungeonSceneTransitionHost TransitionHost { get; set; }
 }
 
 public sealed class DungeonGameplayLaunchController : IStartable, ITickable
@@ -293,7 +358,7 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
     private readonly IDungeonSceneNavigator sceneNavigator;
     private readonly IDungeonGameSaveSlotService slotService;
     private readonly DungeonSceneRuntimeReferences sceneReferences;
-    private readonly IInvasionThreatRuntimeProvider threatProvider;
+    private readonly InvasionThreatRuntime threat;
     private readonly IPreparedStartPartyGameplayApplier preparedStartPartyApplier;
     private readonly IStartPartyPreparationService startPartyPreparationService;
     private readonly IOwnerCandidateCatalog ownerCandidateCatalog;
@@ -306,7 +371,7 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
         IDungeonSceneNavigator sceneNavigator,
         IDungeonGameSaveSlotService slotService,
         DungeonSceneRuntimeReferences sceneReferences,
-        IInvasionThreatRuntimeProvider threatProvider,
+        InvasionSceneRuntimeReferences invasionRuntimes,
         IPreparedStartPartyGameplayApplier preparedStartPartyApplier,
         IStartPartyPreparationService startPartyPreparationService,
         IOwnerCandidateCatalog ownerCandidateCatalog)
@@ -315,7 +380,11 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
         this.slotService = slotService ?? throw new ArgumentNullException(nameof(slotService));
         this.sceneReferences = sceneReferences
             ?? throw new ArgumentNullException(nameof(sceneReferences));
-        this.threatProvider = threatProvider ?? throw new ArgumentNullException(nameof(threatProvider));
+        threat = (invasionRuntimes
+                ?? throw new ArgumentNullException(nameof(invasionRuntimes)))
+            .Threat
+            ?? throw new InvalidOperationException(
+                $"{nameof(DungeonSceneNavigator)} requires a loaded {nameof(InvasionThreatRuntime)}.");
         this.preparedStartPartyApplier = preparedStartPartyApplier
             ?? throw new ArgumentNullException(nameof(preparedStartPartyApplier));
         this.startPartyPreparationService = startPartyPreparationService
@@ -350,7 +419,9 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
             case DungeonGameplayLaunchMode.NewRun:
                 DeleteRunSlots();
                 ApplyNewRunDifficulty(request.Difficulty);
-                ApplyDebugFallbackNewRun(request.Difficulty);
+                ApplyDebugFallbackNewRun(
+                    request.Difficulty,
+                    request.SurvivalPressure);
                 break;
             case DungeonGameplayLaunchMode.PreparedNewRun:
                 DeleteRunSlots();
@@ -381,7 +452,9 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
         pendingTitleFailure = reason;
     }
 
-    private void ApplyDebugFallbackNewRun(DungeonDifficulty difficulty)
+    private void ApplyDebugFallbackNewRun(
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure)
     {
         CharacterSO owner = ownerCandidateCatalog.OwnerCandidates
             .FirstOrDefault(candidate => candidate != null);
@@ -400,6 +473,7 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
         int seed = Environment.TickCount == 0 ? 1 : Environment.TickCount;
         if (!startPartyPreparationService.TryCreatePreparedSnapshot(
                 difficulty,
+                survivalPressure,
                 seed,
                 out PreparedStartPartySnapshot snapshot,
                 out string snapshotMessage))
@@ -430,8 +504,7 @@ public sealed class DungeonGameplayLaunchController : IStartable, ITickable
 
     private void ApplyNewRunDifficulty(DungeonDifficulty difficulty)
     {
-        if (threatProvider.TryGetRuntime(out InvasionThreatRuntime threat)
-            && threat.Settings != null)
+        if (threat.Settings != null)
         {
             threat.Settings.difficulty = DungeonDifficultyRules.ToLegacy(difficulty);
         }

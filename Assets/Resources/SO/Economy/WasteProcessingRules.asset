@@ -1,0 +1,124 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f7733929b46eaa4594ce4f6e10ca93b, type: 3}
+  m_Name: WasteProcessingRules
+  m_EditorClassIdentifier: Assembly-CSharp::WasteProcessingRulesSO
+  tickIntervalSeconds: 10
+  toxicThreshold: 80
+  origins:
+  - origin: 1
+    defaultDisposition: 2
+    defaultMaximumFeedContamination: 79
+    supportedDispositions: 0000000001000000020000000300000005000000
+  - origin: 2
+    defaultDisposition: 1
+    defaultMaximumFeedContamination: 79
+    supportedDispositions: 0000000001000000020000000300000005000000
+  - origin: 3
+    defaultDisposition: 3
+    defaultMaximumFeedContamination: 79
+    supportedDispositions: 0000000001000000020000000300000005000000
+  - origin: 4
+    defaultDisposition: 4
+    defaultMaximumFeedContamination: 79
+    supportedDispositions: 000000000400000005000000
+  recipes:
+  - origin: 1
+    disposition: 2
+    recipeId: recipe:compost-plant
+  - origin: 2
+    disposition: 2
+    recipeId: recipe:compost-animal
+  - origin: 3
+    disposition: 2
+    recipeId: recipe:compost-mixed
+  - origin: 1
+    disposition: 3
+    recipeId: recipe:low-fuel-plant
+  - origin: 2
+    disposition: 3
+    recipeId: recipe:low-fuel-animal
+  - origin: 3
+    disposition: 3
+    recipeId: recipe:low-fuel-rot
+  - origin: 4
+    disposition: 4
+    recipeId: recipe:rot-toxin
+  - origin: 1
+    disposition: 5
+    recipeId: recipe:incinerate-plant
+  - origin: 2
+    disposition: 5
+    recipeId: recipe:incinerate-animal
+  - origin: 3
+    disposition: 5
+    recipeId: recipe:incinerate-mixed
+  - origin: 4
+    disposition: 5
+    recipeId: recipe:incinerate-forbidden
+  feedRules:
+  - diet: 0
+    origin: 1
+    nutrition: 0.5
+    diseaseChance: 0.12
+  - diet: 2
+    origin: 2
+    nutrition: 0.65
+    diseaseChance: 0.1
+  - diet: 2
+    origin: 3
+    nutrition: 0.65
+    diseaseChance: 0.1
+  - diet: 1
+    origin: 1
+    nutrition: 0.6
+    diseaseChance: 0.08
+  - diet: 1
+    origin: 2
+    nutrition: 0.6
+    diseaseChance: 0.08
+  - diet: 1
+    origin: 3
+    nutrition: 0.6
+    diseaseChance: 0.08
+  - diet: 3
+    origin: 1
+    nutrition: 0.85
+    diseaseChance: 0.02
+  - diet: 3
+    origin: 2
+    nutrition: 0.85
+    diseaseChance: 0.02
+  - diet: 3
+    origin: 3
+    nutrition: 0.85
+    diseaseChance: 0.02
+  - diet: 3
+    origin: 4
+    nutrition: 0.85
+    diseaseChance: 0.02
+  legacyItems:
+  - itemId: waste:plant-rot
+    origin: 1
+    contamination: 50
+  - itemId: waste:animal-rot
+    origin: 2
+    contamination: 50
+  - itemId: waste:mixed-rot
+    origin: 3
+    contamination: 50
+  - itemId: waste:forbidden-rot
+    origin: 4
+    contamination: 50
+  - itemId: wild:rot
+    origin: 3
+    contamination: 50

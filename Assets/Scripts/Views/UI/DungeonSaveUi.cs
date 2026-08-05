@@ -9,6 +9,77 @@ using UnityEngine.Events;
 using UnityEngine.UI;
 using VContainer.Unity;
 
+public sealed class DungeonSaveUiPresentationContext
+{
+    public DungeonSaveUiPresentationContext(
+        IDungeonUiCanvasProvider canvasProvider,
+        ITmpKoreanFontService fontService,
+        IUiClock uiClock,
+        IDungeonUserSettingsService userSettings)
+    {
+        CanvasProvider = canvasProvider
+            ?? throw new ArgumentNullException(nameof(canvasProvider));
+        FontService = fontService
+            ?? throw new ArgumentNullException(nameof(fontService));
+        UiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        UserSettings = userSettings
+            ?? throw new ArgumentNullException(nameof(userSettings));
+    }
+
+    public IDungeonUiCanvasProvider CanvasProvider { get; }
+    public ITmpKoreanFontService FontService { get; }
+    public IUiClock UiClock { get; }
+    public IDungeonUserSettingsService UserSettings { get; }
+}
+
+public sealed class DungeonSaveUiSessionContext
+{
+    public DungeonSaveUiSessionContext(
+        IGameSessionStateProvider gameDataProvider,
+        DungeonSceneRuntimeReferences sceneReferences,
+        IGameSpeedController gameSpeedController,
+        IOwnerRunManagerProvider ownerRunManagerProvider)
+    {
+        GameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        SceneReferences = sceneReferences
+            ?? throw new ArgumentNullException(nameof(sceneReferences));
+        GameSpeedController = gameSpeedController
+            ?? throw new ArgumentNullException(nameof(gameSpeedController));
+        OwnerRunManagerProvider = ownerRunManagerProvider
+            ?? throw new ArgumentNullException(nameof(ownerRunManagerProvider));
+    }
+
+    public IGameSessionStateProvider GameDataProvider { get; }
+    public DungeonSceneRuntimeReferences SceneReferences { get; }
+    public IGameSpeedController GameSpeedController { get; }
+    public IOwnerRunManagerProvider OwnerRunManagerProvider { get; }
+}
+
+public sealed class DungeonSaveUiActionContext
+{
+    public DungeonSaveUiActionContext(
+        IDungeonGameSaveSlotService slotService,
+        IDungeonSaveCommandService saveCommandService,
+        IDungeonSettingsUi settingsUi,
+        IDungeonSceneNavigator sceneNavigator)
+    {
+        SlotService = slotService
+            ?? throw new ArgumentNullException(nameof(slotService));
+        SaveCommandService = saveCommandService
+            ?? throw new ArgumentNullException(nameof(saveCommandService));
+        SettingsUi = settingsUi
+            ?? throw new ArgumentNullException(nameof(settingsUi));
+        SceneNavigator = sceneNavigator
+            ?? throw new ArgumentNullException(nameof(sceneNavigator));
+    }
+
+    public IDungeonGameSaveSlotService SlotService { get; }
+    public IDungeonSaveCommandService SaveCommandService { get; }
+    public IDungeonSettingsUi SettingsUi { get; }
+    public IDungeonSceneNavigator SceneNavigator { get; }
+}
+
 public sealed class DungeonSaveUiController : IStartable, IDisposable
 {
     private const string RuntimeRootName = "DungeonSaveRuntimeUI";
@@ -17,14 +88,15 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
     private readonly IDungeonGameSaveSlotService slotService;
     private readonly IDungeonUiCanvasProvider canvasProvider;
     private readonly ITmpKoreanFontService fontService;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameSessionStateProvider gameDataProvider;
     private readonly DungeonSceneRuntimeReferences sceneReferences;
     private readonly IUiClock uiClock;
-    private readonly IGameTimeScaleController timeScaleController;
+    private readonly IGameSpeedController gameSpeedController;
     private readonly IOwnerRunManagerProvider ownerRunManagerProvider;
     private readonly IDungeonSaveCommandService saveCommandService;
     private readonly IDungeonSettingsUi settingsUi;
     private readonly IDungeonSceneNavigator sceneNavigator;
+    private readonly IDungeonUserSettingsService userSettings;
 
     private readonly Dictionary<string, SlotRow> slotRows = new Dictionary<string, SlotRow>();
     private Canvas canvas;
@@ -35,40 +107,32 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
     private Button closeButton;
     private TMP_Text titleText;
     private TMP_Text statusText;
-    private GameManager gameManager;
     private bool pauseWasCaptured;
     private bool wasPausedBeforeModal;
-    private float timeScaleBeforeModal;
     private string pendingConfirmationKey = string.Empty;
     private float confirmationExpiresAt;
 
     public DungeonSaveUiController(
-        IDungeonGameSaveSlotService slotService,
-        IDungeonUiCanvasProvider canvasProvider,
-        ITmpKoreanFontService fontService,
-        IGameDataProvider gameDataProvider,
-        DungeonSceneRuntimeReferences sceneReferences,
-        IUiClock uiClock,
-        IGameTimeScaleController timeScaleController,
-        IOwnerRunManagerProvider ownerRunManagerProvider,
-        IDungeonSaveCommandService saveCommandService,
-        IDungeonSettingsUi settingsUi,
-        IDungeonSceneNavigator sceneNavigator)
+        DungeonSaveUiPresentationContext presentation,
+        DungeonSaveUiSessionContext session,
+        DungeonSaveUiActionContext actions)
     {
-        this.slotService = slotService ?? throw new ArgumentNullException(nameof(slotService));
-        this.canvasProvider = canvasProvider ?? throw new ArgumentNullException(nameof(canvasProvider));
-        this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
-        this.gameDataProvider = gameDataProvider ?? throw new ArgumentNullException(nameof(gameDataProvider));
-        this.sceneReferences = sceneReferences
-            ?? throw new ArgumentNullException(nameof(sceneReferences));
-        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
-        this.timeScaleController = timeScaleController
-            ?? throw new ArgumentNullException(nameof(timeScaleController));
-        this.ownerRunManagerProvider = ownerRunManagerProvider
-            ?? throw new ArgumentNullException(nameof(ownerRunManagerProvider));
-        this.saveCommandService = saveCommandService ?? throw new ArgumentNullException(nameof(saveCommandService));
-        this.settingsUi = settingsUi ?? throw new ArgumentNullException(nameof(settingsUi));
-        this.sceneNavigator = sceneNavigator ?? throw new ArgumentNullException(nameof(sceneNavigator));
+        presentation = presentation
+            ?? throw new ArgumentNullException(nameof(presentation));
+        session = session ?? throw new ArgumentNullException(nameof(session));
+        actions = actions ?? throw new ArgumentNullException(nameof(actions));
+        canvasProvider = presentation.CanvasProvider;
+        fontService = presentation.FontService;
+        uiClock = presentation.UiClock;
+        userSettings = presentation.UserSettings;
+        gameDataProvider = session.GameDataProvider;
+        sceneReferences = session.SceneReferences;
+        gameSpeedController = session.GameSpeedController;
+        ownerRunManagerProvider = session.OwnerRunManagerProvider;
+        slotService = actions.SlotService;
+        saveCommandService = actions.SaveCommandService;
+        settingsUi = actions.SettingsUi;
+        sceneNavigator = actions.SceneNavigator;
     }
 
     public void Start()
@@ -107,7 +171,11 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
         menuButton.onClick.AddListener(ShowSaveMenu);
         CreateText(buttonObject.transform, "Label", "저장", 18f, TextAlignmentOptions.Center, Vector2.zero, Vector2.one);
         DungeonUiTheme.StyleButton(menuButton);
-        DungeonUiThemeRuntime.Ensure(canvas, fontService, uiClock).ApplyNow();
+        DungeonUiThemeRuntime.Ensure(
+            canvas,
+            fontService,
+            uiClock,
+            userSettings).ApplyNow();
     }
 
     private void CreateModal()
@@ -276,7 +344,8 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
             return;
         }
 
-        timeScaleController.Scale = 1f;
+        gameSpeedController.SetSpeed(1);
+        gameSpeedController.SetPaused(false);
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
@@ -369,7 +438,13 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
         {
             bool exists = infoById.TryGetValue(pair.Key, out DungeonSaveSlotInfo info);
             bool valid = exists && info.IsValid;
-            pair.Value.Metadata.text = valid ? FormatSlot(info) : exists ? "호환되지 않는 저장" : "비어 있음";
+            pair.Value.Metadata.text = valid
+                ? FormatSlot(info)
+                : exists
+                    ? (string.IsNullOrWhiteSpace(info.IncompatibilityReason)
+                        ? "호환되지 않는 저장"
+                        : info.IncompatibilityReason)
+                    : "비어 있음";
             pair.Value.Load.interactable = valid;
             pair.Value.Delete.interactable = exists;
             if (pair.Value.Save != null)
@@ -384,7 +459,10 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
         DateTime savedAt = ParseTimestamp(info.SavedAtUtc).ToLocalTime();
         string time = savedAt == DateTime.MinValue ? "시간 정보 없음" : savedAt.ToString("M월 d일 HH:mm", CultureInfo.CurrentCulture);
         string debugBadge = info.DebugModified ? " · 디버그 사용" : string.Empty;
-        return $"{time}\n{info.Day}일차 · {info.Money:N0} 골드{debugBadge}";
+        string survival = DungeonSurvivalPressureRules.GetDisplayName(
+            DungeonSurvivalPressureRules.Normalize(
+                info.SurvivalPressureValue));
+        return $"{time}\n{info.Day}일차 · {info.Money:N0} 골드 · 생존 {survival}{debugBadge}";
     }
 
     private static DateTime ParseTimestamp(string value)
@@ -402,9 +480,7 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
             return;
         }
 
-        gameManager = gameManager != null ? gameManager : sceneReferences.GameManager;
-        wasPausedBeforeModal = gameManager != null && gameManager.isPause;
-        timeScaleBeforeModal = timeScaleController.Scale;
+        wasPausedBeforeModal = gameSpeedController.IsPaused;
         pauseWasCaptured = true;
     }
 
@@ -415,32 +491,18 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
             return;
         }
 
-        if (gameManager != null)
-        {
-            gameManager.isPause = wasPausedBeforeModal;
-        }
-
         if (wasPausedBeforeModal)
         {
-            timeScaleController.Scale = 0f;
+            gameSpeedController.SetPaused(true);
         }
         else if (ownerRunManagerProvider.TryGetManager(out OwnerRunManager ownerManager)
             && ownerManager.CurrentOwnerActor == null)
         {
-            if (gameManager != null)
-            {
-                gameManager.isPause = true;
-            }
-
-            timeScaleController.Scale = 0f;
-        }
-        else if (gameDataProvider.TryGetGameData(out GameData gameData) && gameData?.gameSpeed != null)
-        {
-            timeScaleController.Scale = Mathf.Max(0.01f, gameData.gameSpeed.Value);
+            gameSpeedController.SetPaused(true);
         }
         else
         {
-            timeScaleController.Scale = Mathf.Max(0.01f, timeScaleBeforeModal);
+            gameSpeedController.SetPaused(false);
         }
 
         pauseWasCaptured = false;
@@ -448,12 +510,7 @@ public sealed class DungeonSaveUiController : IStartable, IDisposable
 
     private void SetPaused(bool value)
     {
-        if (gameManager != null)
-        {
-            gameManager.isPause = value;
-        }
-
-        timeScaleController.Scale = value ? 0f : timeScaleBeforeModal;
+        gameSpeedController.SetPaused(value);
     }
 
     private void SetStatus(string message, bool error)

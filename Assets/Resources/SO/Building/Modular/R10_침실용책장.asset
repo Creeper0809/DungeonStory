@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,15 +33,17 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 0bd064a9734ba7b41bbdd6d50a74ad8d, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239038812930
-    - rid: 7302563239038812931
-    - rid: 7302563239038812932
+    - rid: 7737211730538791795
+    - rid: 7737211730538791796
+    - rid: 7737211730538791797
+    - rid: 7737211730538791798
   width: 1
   height: 1
   layer: 1
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -59,20 +52,33 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239038812930
+    - rid: 7737211730538791795
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: R10
-    - rid: 7302563239038812931
+    - rid: 7737211730538791796
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionCost: 85
+        constructionValue: 85
+        constructionCost: 0
         maintenance: 2
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302563239038812932
+    - rid: 7737211730538791797
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 19.7
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 5
+    - rid: 7737211730538791798
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility

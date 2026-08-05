@@ -11,7 +11,7 @@ public static class RoomSystemDebugScenarios
     private static readonly IWorldInfoClickSelector WorldInfoClickSelector =
         new NoopWorldInfoClickSelector();
     private static readonly IFacilityCandidateCache FacilityCandidateCacheService =
-        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
     private static readonly IRoomFacilityPolicy RoomFacilityPolicyService =
         new RoomFacilityPolicyService(RoomRegistry.EditorCache);
 
@@ -218,13 +218,13 @@ public static class RoomSystemDebugScenarios
             && wall.verticalDraggable
             && wall.unlocked
             && dungeonDoor != null
-            && dungeonDoor.type == typeof(Door)
+            && dungeonDoor.runtimeArchetype == BuildingRuntimeArchetypeKind.Door
             && dungeonDoor.width == 3
             && dungeonDoor.height == 1
             && !dungeonDoor.unlocked
             && !dungeonDoor.IsInteriorDoor
             && door != null
-            && door.type == typeof(InteriorDoor)
+            && door.runtimeArchetype == BuildingRuntimeArchetypeKind.InteriorDoor
             && door.IsInteriorDoor
             && door.width == 1
             && door.height == 1
@@ -235,9 +235,9 @@ public static class RoomSystemDebugScenarios
                 "Room boundary asset diagnostics: "
                 + $"wall={wall != null},name={wall?.objectName},sprite={wall?.sprite != null},icon={wall?.icon != null},"
                 + $"category={wall?.category},hDrag={wall?.horizontalDraggable},vDrag={wall?.verticalDraggable},unlocked={wall?.unlocked}; "
-                + $"dungeonDoor={dungeonDoor != null},type={dungeonDoor?.type?.Name},size={dungeonDoor?.width}x{dungeonDoor?.height},"
+                + $"dungeonDoor={dungeonDoor != null},archetype={dungeonDoor?.runtimeArchetype},size={dungeonDoor?.width}x{dungeonDoor?.height},"
                 + $"unlocked={dungeonDoor?.unlocked},interior={dungeonDoor?.IsInteriorDoor}; "
-                + $"interiorDoor={door != null},type={door?.type?.Name},size={door?.width}x{door?.height},"
+                + $"interiorDoor={door != null},archetype={door?.runtimeArchetype},size={door?.width}x{door?.height},"
                 + $"unlocked={door?.unlocked},interior={door?.IsInteriorDoor}");
         }
 
@@ -265,16 +265,21 @@ public static class RoomSystemDebugScenarios
                 false);
         }
 
+        int nextPlacementBuildingId = 1;
         GridBuildingPlacementService placement = new GridBuildingPlacementService(
             grid,
             null,
             null,
-            new GridBuildingFactory((building) => building.ConstructBuildableObject(
-                BlueprintResearchWorkService,
-                WorldInfoClickSelector,
-                FacilityCandidateCacheService,
-                RoomFacilityPolicyService)),
-            new BuildingPlacementValidator());
+            new GridBuildingFactory((building) =>
+            {
+                building.RestorePersistentIdentity(
+                    new BuildingInstanceId($"building:room-system-placement-{nextPlacementBuildingId++}"));
+                building.ConstructBuildableObject(
+                    new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
+                    FacilityCandidateCacheService,
+                    RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
+            }),
+            new BuildingPlacementValidator(), workOrderRuntime: null);
         Vector2Int target = new Vector2Int(3, 0);
         bool wallPlaced = placement.TryPlaceBuilding(wall, target, out _);
         bool doorPlaced = placement.TryPlaceBuilding(door, target, out _);
@@ -316,6 +321,7 @@ public static class RoomSystemDebugScenarios
     private sealed class RoomScenarioWorld : IDisposable
     {
         private readonly List<UnityEngine.Object> cleanup = new List<UnityEngine.Object>();
+        private int nextBuildingInstanceId = 1;
 
         private RoomScenarioWorld(Grid grid)
         {
@@ -416,7 +422,7 @@ public static class RoomSystemDebugScenarios
         private BuildableObject PlaceDoor(Vector2Int position)
         {
             BuildingSO data = CreateBuildingData("문", 901, BuildingCategory.None, FacilityRole.None, false);
-            data.type = typeof(Door);
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.Door;
             return Place(data, position);
         }
 
@@ -433,7 +439,7 @@ public static class RoomSystemDebugScenarios
             bool requiresRoom)
         {
             BuildingSO data = CreateBuildingData(name, 903, BuildingCategory.Special, roles, requiresRoom);
-            data.type = typeof(Facility);
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.Facility;
             return Place(data, position);
         }
 
@@ -441,14 +447,15 @@ public static class RoomSystemDebugScenarios
         {
             GameObject obj = new GameObject(data.objectName);
             cleanup.Add(obj);
-            BuildableObject building = data.type == typeof(Facility)
+            BuildableObject building = data.runtimeArchetype == BuildingRuntimeArchetypeKind.Facility
                 ? obj.AddComponent<Facility>()
                 : obj.AddComponent<BuildableObject>();
+            building.RestorePersistentIdentity(
+                new BuildingInstanceId($"building:room-system-{nextBuildingInstanceId++}"));
             building.ConstructBuildableObject(
-                BlueprintResearchWorkService,
-                WorldInfoClickSelector,
+                new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
                 FacilityCandidateCacheService,
-                RoomFacilityPolicyService);
+                RoomFacilityPolicyService, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
             building.SetGrid(Grid);
             building.Initialization(data, position);
             bool registered = Grid.RegisterOccupant(
@@ -479,7 +486,7 @@ public static class RoomSystemDebugScenarios
             data.height = 1;
             data.layer = GridLayer.Building;
             data.category = category;
-            data.type = typeof(BuildableObject);
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
             data.unlocked = true;
             data.Facility = new FacilityData
             {

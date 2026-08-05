@@ -25,24 +25,32 @@ public interface IBuildingSummaryFormatter
 public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
 {
     private readonly IBuildingDefinitionLookup buildingDefinitionLookup;
-    private readonly ICharacterAiWorldRegistry worldRegistry;
-    private readonly IWorkOrderRuntime workOrderRuntime;
+    private readonly IBuildingCharacterDisplayQuery characterDisplayQuery;
+    private readonly IBuildingWorkOrderSummaryQuery workOrderSummaryQuery;
     private readonly IWorldFilthQuery worldFilthQuery;
+    private readonly IStockCategoryDefinitionCatalog stockCategoryCatalog;
+    private readonly IBuildingCategoryDefinitionCatalog buildingCategoryCatalog;
 
     public BuildingSummaryFormatter(
         IBuildingDefinitionLookup buildingDefinitionLookup,
-        ICharacterAiWorldRegistry worldRegistry,
-        IWorkOrderRuntime workOrderRuntime,
-        IWorldFilthQuery worldFilthQuery)
+        IBuildingCharacterDisplayQuery characterDisplayQuery,
+        IBuildingWorkOrderSummaryQuery workOrderSummaryQuery,
+        IWorldFilthQuery worldFilthQuery,
+        IStockCategoryDefinitionCatalog stockCategoryCatalog,
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog)
     {
         this.buildingDefinitionLookup = buildingDefinitionLookup
             ?? throw new ArgumentNullException(nameof(buildingDefinitionLookup));
-        this.worldRegistry = worldRegistry
-            ?? throw new ArgumentNullException(nameof(worldRegistry));
-        this.workOrderRuntime = workOrderRuntime
-            ?? throw new ArgumentNullException(nameof(workOrderRuntime));
+        this.characterDisplayQuery = characterDisplayQuery
+            ?? throw new ArgumentNullException(nameof(characterDisplayQuery));
+        this.workOrderSummaryQuery = workOrderSummaryQuery
+            ?? throw new ArgumentNullException(nameof(workOrderSummaryQuery));
         this.worldFilthQuery = worldFilthQuery
             ?? throw new ArgumentNullException(nameof(worldFilthQuery));
+        this.stockCategoryCatalog = stockCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
+        this.buildingCategoryCatalog = buildingCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(buildingCategoryCatalog));
     }
 
     public BuildingSummaryPresentation Format(BuildableObject building)
@@ -75,19 +83,38 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
 
         List<string> lines = new List<string>
         {
-            $"상태  {(building.IsDamaged ? "손상" : "정상")}  ·  시설 Lv.{building.FacilityLevel}",
-            $"위치  ({building.centerPos.x}, {building.centerPos.y})  ·  {FormatCategory(building.category)}"
+            BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Status",
+                building.IsDamaged
+                    ? BuildingSummaryUiTextQuery.Get("BuildingSummary.State.Damaged")
+                    : BuildingSummaryUiTextQuery.Get("BuildingSummary.State.Normal"),
+                building.FacilityLevel),
+            BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.LocationCategory",
+                building.centerPos.x,
+                building.centerPos.y,
+                FormatCategory(building.category))
         };
 
         FacilityData facility = building.Facility;
         if (facility != null)
         {
             string capacity = facility.capacity > 0
-                ? $"이용 {building.CurrentUserCount}/{facility.capacity}  ·  예약 {building.ActiveVisitReservationCount}"
-                : "방문 이용 없음";
+                ? BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Facility.Usage",
+                    building.CurrentUserCount,
+                    facility.capacity,
+                    building.ActiveVisitReservationCount)
+                : BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Facility.NoVisitUsage");
             lines.Add(capacity);
-            lines.Add($"용도  {FormatRoles(facility.roles)}");
-            lines.Add($"업무  {FormatWorkTypes(facility.SupportedWorkTypeIds)}  ·  필요 직원 {facility.requiredWorkers}");
+            lines.Add(BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Facility.Roles",
+                FormatRoles(facility.roles)));
+            lines.Add(BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Facility.Work",
+                FormatWorkTypes(facility.SupportedWorkTypeIds),
+                facility.requiredWorkers));
         }
 
         string stock = FormatStockText(building);
@@ -114,25 +141,41 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
         float cleanlinessPenalty = worldFilthQuery.GetCleanlinessPenalty(target.centerPos);
         string types = entries.Count > 0
             ? string.Join(", ", entries.Select(entry => FormatFilthType(entry.Type)).Distinct())
-            : "제거됨";
+            : BuildingSummaryUiTextQuery.Get("BuildingSummary.Filth.Removed");
         string source = entries.Select(entry => entry.SourceCharacterId)
             .FirstOrDefault(id => !string.IsNullOrWhiteSpace(id));
 
         List<string> lines = new List<string>
         {
-            $"종류  {types}",
-            $"위치  ({target.centerPos.x}, {target.centerPos.y})  ·  {(entries.Any(entry => entry.WallStain) ? "바닥과 벽" : "바닥")}",
-            $"오염량  {amount:0.#}  ·  감염도 {infection * 100f:0.#}%",
-            $"청결 영향  -{cleanlinessPenalty:0.#}  ·  청소 작업량 {target.RequiredCleaningWork:0.#}",
-            target.IsPriorityCleaning ? "청소 명령  최우선 지정됨" : "청소 명령  자동 우선순위"
+            BuildingSummaryUiTextQuery.Get("BuildingSummary.Filth.Type", types),
+            BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Filth.Location",
+                target.centerPos.x,
+                target.centerPos.y,
+                entries.Any(entry => entry.WallStain)
+                    ? BuildingSummaryUiTextQuery.Get("BuildingSummary.Filth.SurfaceFloorAndWall")
+                    : BuildingSummaryUiTextQuery.Get("BuildingSummary.Filth.SurfaceFloor")),
+            BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Filth.Amount",
+                amount,
+                infection * 100f),
+            BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Filth.Cleanliness",
+                cleanlinessPenalty,
+                target.RequiredCleaningWork),
+            BuildingSummaryUiTextQuery.Get(
+                target.IsPriorityCleaning
+                    ? "BuildingSummary.Filth.CleaningPriority"
+                    : "BuildingSummary.Filth.CleaningAutomatic")
         };
         if (!string.IsNullOrWhiteSpace(source))
         {
-            CharacterActor sourceActor = worldRegistry.Characters.FirstOrDefault(actor =>
-                actor != null
-                && string.Equals(actor.Identity?.PersistentId, source, StringComparison.Ordinal));
-            string sourceName = sourceActor?.Identity?.DisplayName;
-            lines.Add($"원인 인물  {(string.IsNullOrWhiteSpace(sourceName) ? "알 수 없음" : sourceName)}");
+            characterDisplayQuery.TryGetDisplayName(source, out string sourceName);
+            lines.Add(BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Filth.Source",
+                string.IsNullOrWhiteSpace(sourceName)
+                    ? BuildingSummaryUiTextQuery.Get("BuildingSummary.Common.Unknown")
+                    : sourceName));
         }
 
         return lines;
@@ -142,11 +185,11 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
     {
         return type switch
         {
-            WorldFilthType.Waste => "배설 오염",
-            WorldFilthType.Blood => "핏자국",
-            WorldFilthType.Rot => "부패 오염",
-            WorldFilthType.Stain => "벽 얼룩",
-            _ => "오염"
+            WorldFilthType.Waste => BuildingSummaryUiTextQuery.Get("BuildingSummary.Filth.Type.Waste"),
+            WorldFilthType.Blood => BuildingSummaryUiTextQuery.Get("BuildingSummary.Filth.Type.Blood"),
+            WorldFilthType.Rot => BuildingSummaryUiTextQuery.Get("BuildingSummary.Filth.Type.Rot"),
+            WorldFilthType.Stain => BuildingSummaryUiTextQuery.Get("BuildingSummary.Filth.Type.Stain"),
+            _ => BuildingSummaryUiTextQuery.Get("BuildingSummary.Filth.Type.Unknown")
         };
     }
 
@@ -159,9 +202,12 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
             return string.Empty;
         }
 
-        if (!building.TryGetCombatEquipmentRuntime(out ICombatEquipmentRuntime runtime))
+        if (!building.TryGetCombatEquipmentRuntime(
+                out IBuildingEquipmentCraftingRuntimePort runtimePort)
+            || runtimePort is not ICombatEquipmentRuntime runtime)
         {
-            return "제작  장비 런타임 없음";
+            return BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Crafting.RuntimeUnavailable");
         }
 
         HashSet<string> craftableIds = new HashSet<string>(
@@ -176,16 +222,27 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
                 string name = runtime.TryGetDefinition(order.definitionId, out CombatEquipmentDefinitionSO definition)
                     ? definition.DisplayName
                     : order.definitionId;
-                string materialState = order.materialsReady ? string.Empty : " / 재료 이동 중";
-                return $"{name} 작업량 {order.RemainingWork:0.#}{materialState}";
+                string materialState = order.materialsReady
+                    ? string.Empty
+                    : BuildingSummaryUiTextQuery.Get(
+                        "BuildingSummary.Crafting.MaterialsMoving");
+                return BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Crafting.Order",
+                    name,
+                    order.RemainingWork,
+                    materialState);
             }));
         string craftable = string.Join(", ", runtime.Definitions
             .Where(definition => definition != null
                 && craftableIds.Contains(definition.EquipmentId))
             .Select(definition => definition.DisplayName));
         return string.IsNullOrWhiteSpace(queue)
-            ? $"제작 가능  {craftable}  ·  대기 없음"
-            : $"제작 대기  {queue}";
+            ? BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Crafting.AvailableNoQueue",
+                craftable)
+            : BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Crafting.Queue",
+                queue);
     }
 
     private static string FormatStockText(BuildableObject building)
@@ -197,21 +254,37 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
                 ? $"{restockable.CurrentStock}/{maximum}"
                 : restockable.CurrentStock.ToString();
             return restockable.NeedsRestock
-                ? $"재고  {amount}  ·  보충 필요"
-                : $"재고  {amount}";
+                ? BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Stock.RestockNeeded",
+                    amount)
+                : BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Stock.Amount",
+                    amount);
         }
 
         if (building is IWarehouseFacility warehouse && warehouse.HasWarehouseInventory)
         {
             return warehouse.Inventory.HasCapacityLimit
-                ? $"창고  {warehouse.Inventory.TotalStock}/{warehouse.Inventory.MaxCapacity}"
-                : $"창고  {warehouse.Inventory.TotalStock}";
+                ? BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Warehouse.Capacity",
+                    warehouse.Inventory.TotalStock,
+                    warehouse.Inventory.MaxCapacity)
+                : BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Warehouse.Amount",
+                    warehouse.Inventory.TotalStock);
         }
 
         if (building is IStockedFacility stocked)
         {
             int maximum = building.GetInternalStockCapacity();
-            return maximum > 0 ? $"재고  {stocked.CurrentStock}/{maximum}" : $"재고  {stocked.CurrentStock}";
+            return maximum > 0
+                ? BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Stock.Capacity",
+                    stocked.CurrentStock,
+                    maximum)
+                : BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Stock.Amount",
+                    stocked.CurrentStock);
         }
 
         return string.Empty;
@@ -221,36 +294,56 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
     {
         List<string> lines = new List<string>
         {
-            $"대상  {site.TargetBuilding?.objectName ?? site.name}",
-            $"위치  ({site.centerPos.x}, {site.centerPos.y})  ·  공사 현장"
+            BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Construction.Target",
+                site.TargetBuilding?.objectName ?? site.name),
+            BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Construction.Location",
+                site.centerPos.x,
+                site.centerPos.y)
         };
 
         ConstructionSafetyResult safety = site.GetConstructionSafetyState(null, forced: false);
-        lines.Add($"안전  {safety.Message}");
+        lines.Add(BuildingSummaryUiTextQuery.Get(
+            "BuildingSummary.Construction.Safety",
+            safety.Message));
 
-        if (!workOrderRuntime.TryGetOrderFor(site, BuiltInWorkTypeIds.Construct, out WorkOrderProgressState order))
+        if (!workOrderSummaryQuery.TryGetOrder(
+                site,
+                BuiltInWorkTypeIds.Construct,
+                out BuildingWorkOrderSummarySnapshot order))
         {
-            lines.Add("상태  공사 주문 없음");
+            lines.Add(BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Construction.NoOrder"));
             return lines;
         }
 
-        lines.Add($"상태  {FormatWorkOrderStatus(order.Status)}");
-        lines.Add($"작업  {order.CompletedWork:0.#}/{order.RequiredWork:0.#}  ·  {Mathf.RoundToInt(order.ProgressRatio * 100f)}%");
-        bool hasCategoryMaterials =
-            order.MaterialRequirements != null
-            && order.MaterialRequirements.Count > 0;
+        lines.Add(BuildingSummaryUiTextQuery.Get(
+            "BuildingSummary.Construction.Status",
+            FormatWorkOrderStatus(order.Status)));
+        lines.Add(BuildingSummaryUiTextQuery.Get(
+            "BuildingSummary.Construction.Progress",
+            order.CompletedWork,
+            order.RequiredWork,
+            Mathf.RoundToInt(order.ProgressRatio * 100f)));
+        IReadOnlyDictionary<StockCategory, int> legacyCategoryMaterials =
+            ReadOnlyView.Dictionary(new Dictionary<StockCategory, int>());
+        bool hasCategoryMaterials = false;
         bool hasItemMaterials =
             order.ItemMaterialRequirements != null
             && order.ItemMaterialRequirements.Count > 0;
         if (hasCategoryMaterials)
         {
-            foreach (KeyValuePair<StockCategory, int> pair in order.MaterialRequirements.OrderBy(pair => (int)pair.Key))
+            foreach (KeyValuePair<StockCategory, int> pair in legacyCategoryMaterials)
             {
-                int delivered = order.DeliveredMaterials != null
-                    && order.DeliveredMaterials.TryGetValue(pair.Key, out int value)
+                int delivered = legacyCategoryMaterials.TryGetValue(pair.Key, out int value)
                         ? value
                         : 0;
-                lines.Add($"재료  {StockCategoryCatalog.GetDisplayName(pair.Key)} {delivered}/{pair.Value}");
+                lines.Add(BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Construction.Material",
+                    stockCategoryCatalog.GetDisplayName(pair.Key),
+                    delivered,
+                    pair.Value));
             }
         }
 
@@ -274,49 +367,64 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
                 {
                     BuildingSO kitBuilding =
                         buildingDefinitionLookup.GetBuilding(buildingId);
-                    label =
-                        $"{kitBuilding?.objectName ?? $"시설 {buildingId}"} 설치 키트";
+                    string buildingName = kitBuilding?.objectName
+                        ?? BuildingSummaryUiTextQuery.Get(
+                            "BuildingSummary.Construction.UnnamedFacility",
+                            buildingId);
+                    label = BuildingSummaryUiTextQuery.Get(
+                        "BuildingSummary.Construction.InstallationKit",
+                        buildingName);
                 }
 
-                lines.Add($"재료  {label} {delivered}/{pair.Value}");
+                lines.Add(BuildingSummaryUiTextQuery.Get(
+                    "BuildingSummary.Construction.Material",
+                    label,
+                    delivered,
+                    pair.Value));
             }
         }
 
         if (!hasCategoryMaterials && !hasItemMaterials)
         {
-            lines.Add("재료  필요 없음");
+            lines.Add(BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Construction.NoMaterials"));
         }
 
         if (!string.IsNullOrWhiteSpace(order.ReservedWorkerPersistentId))
         {
-            lines.Add($"예약 직원  {order.ReservedWorkerPersistentId}");
+            lines.Add(BuildingSummaryUiTextQuery.Get(
+                "BuildingSummary.Construction.ReservedWorker",
+                order.ReservedWorkerPersistentId));
         }
 
         return lines;
     }
 
-    private static string FormatWorkOrderStatus(WorkOrderStatus status)
+    private static string FormatWorkOrderStatus(BuildingWorkOrderSummaryStatus status)
     {
         return status switch
         {
-            WorkOrderStatus.WaitingForMaterials => "재료 대기",
-            WorkOrderStatus.Ready => "작업 가능",
-            WorkOrderStatus.InProgress => "공사 중",
-            WorkOrderStatus.Blocked => "막힘",
-            WorkOrderStatus.Completed => "완료",
-            WorkOrderStatus.Cancelled => "취소됨",
-            _ => "알 수 없음"
+            BuildingWorkOrderSummaryStatus.WaitingForMaterials => BuildingSummaryUiTextQuery.Get("BuildingSummary.WorkOrder.WaitingForMaterials"),
+            BuildingWorkOrderSummaryStatus.Ready => BuildingSummaryUiTextQuery.Get("BuildingSummary.WorkOrder.Ready"),
+            BuildingWorkOrderSummaryStatus.InProgress => BuildingSummaryUiTextQuery.Get("BuildingSummary.WorkOrder.InProgress"),
+            BuildingWorkOrderSummaryStatus.Blocked => BuildingSummaryUiTextQuery.Get("BuildingSummary.WorkOrder.Blocked"),
+            BuildingWorkOrderSummaryStatus.Completed => BuildingSummaryUiTextQuery.Get("BuildingSummary.WorkOrder.Completed"),
+            BuildingWorkOrderSummaryStatus.Cancelled => BuildingSummaryUiTextQuery.Get("BuildingSummary.WorkOrder.Cancelled"),
+            _ => BuildingSummaryUiTextQuery.Get("BuildingSummary.WorkOrder.Unknown")
         };
     }
 
-    private static string FormatCategory(BuildingCategory category)
+    private string FormatCategory(BuildingCategory category)
     {
-        return BuildingCategoryCatalog.GetDisplayName(category);
+        return buildingCategoryCatalog.GetDisplayName(category);
     }
 
     private static string FormatRoles(FacilityRole roles)
     {
-        if (roles == FacilityRole.None) return "없음";
+        if (roles == FacilityRole.None)
+        {
+            return BuildingSummaryUiTextQuery.Get("BuildingSummary.Common.None");
+        }
 
         return string.Join(", ", FacilityRoleCatalog
             .Enumerate(roles)
@@ -325,8 +433,11 @@ public sealed class BuildingSummaryFormatter : IBuildingSummaryFormatter
 
     private static string FormatWorkTypes(IEnumerable<WorkTypeId> workTypeIds)
     {
-        string label = CodexTextFormatter.FormatWorkTypes(workTypeIds);
-        if (string.IsNullOrWhiteSpace(label)) return "없음";
+        string label = CodexDomainTextFormatter.FormatWorkTypes(workTypeIds);
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return BuildingSummaryUiTextQuery.Get("BuildingSummary.Common.None");
+        }
 
         return label;
     }

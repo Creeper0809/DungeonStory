@@ -4,15 +4,18 @@ using UnityEngine;
 
 public sealed class SpeciesRuntimeSaveSection :
     IDungeonSaveSection,
-    IOptionalDungeonSaveSection
+    IDungeonSaveSectionPreflight,
+    IDungeonStagedSaveSection,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "character.species-runtime";
 
-    private readonly ICharacterSpeciesRuntime runtime;
+    private readonly ICharacterSpeciesPersistence persistence;
 
-    public SpeciesRuntimeSaveSection(ICharacterSpeciesRuntime runtime)
+    public SpeciesRuntimeSaveSection(ICharacterSpeciesPersistence persistence)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
     public string SectionId => Id;
@@ -22,30 +25,76 @@ public sealed class SpeciesRuntimeSaveSection :
     public IReadOnlyList<string> DependsOn =>
         new[] { CharacterWorldSaveSection.Id };
 
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public string Capture() => JsonUtility.ToJson(persistence.Capture());
+
+    public void ValidatePayload(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        RequireVersion(sectionVersion);
+        persistence.BuildRestore(Parse(payloadJson));
+    }
 
     public void Restore(
         string payloadJson,
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion != SectionVersion)
+        IDungeonSaveRestoreStage stage = StageRestore(
+            payloadJson,
+            sectionVersion,
+            report);
+        if (report.Success)
         {
-            report?.AddError(
-                $"Unsupported {Id} section version {sectionVersion}.");
-            return;
+            stage.Commit(report);
         }
-
-        runtime.Restore(
-            JsonUtility.FromJson<CharacterSpeciesRuntimeSaveData>(
-                payloadJson ?? string.Empty)
-            ?? new CharacterSpeciesRuntimeSaveData());
     }
 
-    public void RestoreMissing(DungeonGameRestoreReport report)
+    public IDungeonSaveRestoreStage StageRestore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
     {
-        runtime.Restore(new CharacterSpeciesRuntimeSaveData());
-        report?.AddWarning(
-            "Species runtime section was absent; stable incident state and construct charge start from defaults.");
+        RequireVersion(sectionVersion);
+        CharacterSpeciesRestoreCandidate candidate =
+            persistence.BuildRestore(Parse(payloadJson));
+        return Stage(candidate);
+    }
+
+    private IDungeonSaveRestoreStage Stage(
+        CharacterSpeciesRestoreCandidate candidate) =>
+        new DungeonDelegateSaveRestoreStage(
+            SectionId,
+            _ => persistence.Restore(candidate));
+
+    private void RequireVersion(int sectionVersion)
+    {
+        if (sectionVersion != SectionVersion)
+        {
+            throw new InvalidOperationException(
+                $"Unsupported {SectionId} section version {sectionVersion}; expected {SectionVersion}.");
+        }
+    }
+
+    private CharacterSpeciesRuntimeSaveData Parse(string payloadJson)
+    {
+        if (string.IsNullOrWhiteSpace(payloadJson))
+        {
+            throw new InvalidOperationException(
+                $"{SectionId} payload is empty.");
+        }
+        try
+        {
+            return JsonUtility.FromJson<CharacterSpeciesRuntimeSaveData>(payloadJson)
+                ?? throw new InvalidOperationException(
+                    $"{SectionId} payload deserialized to null.");
+        }
+        catch (Exception exception) when (exception is not InvalidOperationException)
+        {
+            throw new InvalidOperationException(
+                $"{SectionId} payload JSON is invalid: {exception.Message}",
+                exception);
+        }
     }
 }

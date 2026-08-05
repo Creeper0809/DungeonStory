@@ -27,21 +27,37 @@ MonoBehaviour:
   description: "\uACE1\uBB3C\uACFC \uBFCC\uB9AC, \uBC84\uC12F\uC744 \uC11E\uC740
     \uBE44\uAC74 \uACE0\uAE09\uC2DD."
   stockCategory: 0
-  kind: 2
-  ingredientTags: 3
-  unitPrice: 12
-  marketSaleRate: 0.6
   unitWeight: 0.75
   maxStack: 40
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:vegan
-  mealQuality: 1
-  nutrition: 46
-  mealMood: 6
-  freshnessSeconds: 420
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 12
+  features:
+  - rid: 7737211674039681275
+  - rid: 7737211674039681276
+  - rid: 7737211674039681277
+  - rid: 7737211674039681278
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681275
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:vegan
+    - rid: 7737211674039681276
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 2
+        ingredientTags: 3
+        sharedIntermediate: 0
+    - rid: 7737211674039681277
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211674039681278
+      type: {class: FoodItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        quality: 1
+        nutrition: 46
+        mood: 6
+        freshnessSeconds: 420
+        preserved: 0

@@ -26,21 +26,28 @@ MonoBehaviour:
   displayName: "\uCCA0\uAD11\uC11D"
   description: "\uCCA0\uAD34\uC640 \uC81C\uAC15 \uC7AC\uB8CC\uAC00 \uB418\uB294 \uAD11\uC11D."
   stockCategory: 1
-  kind: 0
-  ingredientTags: 512
-  unitPrice: 4
-  marketSaleRate: 0.6
   unitWeight: 1.2
   maxStack: 60
   sprite: {fileID: 0}
-  requiredResearchId: research:mining:sorting
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 4
+  features:
+  - rid: 7737211674039681272
+  - rid: 7737211674039681273
+  - rid: 7737211674039681274
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681272
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:mining:sorting
+    - rid: 7737211674039681273
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 0
+        ingredientTags: 512
+        sharedIntermediate: 0
+    - rid: 7737211674039681274
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

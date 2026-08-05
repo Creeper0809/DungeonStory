@@ -1,7 +1,11 @@
 {
   "name": "DungeonStory.Work",
   "rootNamespace": "DungeonStory.Work",
-  "references": [],
+  "references": [
+    "DungeonStory.AI",
+    "DungeonStory.Buildings",
+    "DungeonStory.Foundation"
+  ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

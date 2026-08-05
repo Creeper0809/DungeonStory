@@ -148,7 +148,7 @@ public static class ModularFacilityRuntimeEffects
         public int[] TargetSortingLayers { get; }
     }
 
-    public static void ApplyUseCompleted(CharacterActor actor, BuildableObject building)
+    public static void ApplyUseCompleted(IBuildingVisitorPort actor, BuildableObject building)
     {
         if (building?.BuildingData == null)
         {
@@ -163,7 +163,7 @@ public static class ModularFacilityRuntimeEffects
     }
 
     public static int ApplyWorkCompleted(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         WorkTypeId workTypeId)
     {
@@ -185,93 +185,155 @@ public static class ModularFacilityRuntimeEffects
     }
 
     public static int ApplyProduction(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         BuildingProductionAbility ability,
         WorkTypeId workTypeId,
         float evolutionOutputMultiplier = 1f)
     {
+        return ability == null
+            ? 0
+            : ApplyProduction(
+                actor,
+                building,
+                ability.AbilityId,
+                ability.outputCategory,
+                ability.amount,
+                workTypeId,
+                evolutionOutputMultiplier);
+    }
+
+    public static int ApplyProduction(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        string abilityId,
+        StockCategory outputCategory,
+        int configuredAmount,
+        WorkTypeId workTypeId,
+        float evolutionOutputMultiplier = 1f)
+    {
         if (building == null
-            || ability == null
-            || !ability.IsValid
+            || string.IsNullOrWhiteSpace(abilityId)
+            || configuredAmount <= 0
             || (workTypeId != BuiltInWorkTypeIds.Operate
                 && workTypeId != BuiltInWorkTypeIds.Research))
         {
             return 0;
         }
 
-        float outputMultiplier = CharacterSkillRuntimeEffects.GetProductionOutputMultiplier(actor);
+        float outputMultiplier = actor?.VisitorSnapshot.ProductionOutputMultiplier ?? 1f;
         int requested = Mathf.CeilToInt(
-                Mathf.Max(0, ability.amount)
+                Mathf.Max(0, configuredAmount)
                 * outputMultiplier
                 * Mathf.Max(0.05f, evolutionOutputMultiplier))
-            + CharacterSkillRuntimeEffects.GetStockProductionBonus(actor);
-        int amount = Produce(building, ability.outputCategory, requested);
-        string moduleId = BuildingStateModuleIds.ForAbility("production", ability.AbilityId);
+            + (actor?.VisitorSnapshot.StockProductionBonus ?? 0);
+        int amount = Produce(building, outputCategory, requested);
+        string moduleId = BuildingStateModuleIds.ForAbility("production", abilityId);
         building.RequireStateModule<BuildingProductionStateModule>(moduleId).AddProducedStock(amount);
-        actor?.AddActivity(CharacterActivityEvent.Facility(
-            CharacterActivityKinds.Stock,
-            CharacterActivityOutcomes.Completed,
-            $"{GetName(building)}에서 {StockCategoryCatalog.GetDisplayName(ability.outputCategory)} {amount}개를 생산했다.",
-            building,
+        actor?.RecordActivity(building, new BuildingActivitySnapshot(
+            BuildingActivityKinds.Stock,
+            BuildingActivityOutcomes.Completed,
+            $"{GetName(building)}에서 {StockCategoryPersistenceId.ToId(outputCategory)} {amount}개를 생산했다.",
             actionId: "stock:produce",
             quantity: amount));
         return amount;
     }
 
     public static int ApplyCleaning(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         BuildingCleaningAbility ability,
         WorkTypeId workTypeId)
     {
+        return ability == null
+            ? 0
+            : ApplyCleaning(
+                actor,
+                building,
+                ability.restoredCleanliness,
+                workTypeId);
+    }
+
+    public static int ApplyCleaning(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        float restoredCleanliness,
+        WorkTypeId workTypeId)
+    {
         if (building == null
-            || ability == null
             || workTypeId != BuiltInWorkTypeIds.Clean)
         {
             return 0;
         }
 
-        foreach (BuildableObject part in building.GetRoomOperationalProfile().Parts)
+        foreach (BuildableObject part in building.GetRoomOperationalProfile()
+                     .Parts
+                     .OfType<BuildableObject>())
         {
             if (part != null)
             {
-                part.SetCleanliness(ability.restoredCleanliness);
+                part.SetCleanliness(restoredCleanliness);
             }
         }
 
-        actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Clean,
-            CharacterActivityOutcomes.Completed,
+        actor?.RecordActivity(building, new BuildingActivitySnapshot(
+            BuildingActivityKinds.Work,
+            BuildingActivityOutcomes.Completed,
             $"{GetName(building)} 청소를 마쳐 방이 말끔해졌다.",
-            building,
-            value: ability.restoredCleanliness));
+            BuiltInWorkTypeIds.Clean.Value,
+            string.Empty,
+            string.Empty,
+            restoredCleanliness,
+            0,
+            false));
         return 0;
     }
 
     public static int ApplySecurity(
-        CharacterActor actor,
+        IBuildingVisitorPort actor,
         BuildableObject building,
         BuildingSecurityAbility ability,
         WorkTypeId workTypeId)
     {
+        return ability == null
+            ? 0
+            : ApplySecurity(
+                actor,
+                building,
+                ability.AbilityId,
+                ability.maxAlarmCharges,
+                ability.chargesPerGuardWork,
+                workTypeId);
+    }
+
+    public static int ApplySecurity(
+        IBuildingVisitorPort actor,
+        BuildableObject building,
+        string abilityId,
+        int maxAlarmCharges,
+        int chargesPerGuardWork,
+        WorkTypeId workTypeId)
+    {
         if (building == null
-            || ability == null
+            || string.IsNullOrWhiteSpace(abilityId)
             || workTypeId != BuiltInWorkTypeIds.Guard)
         {
             return 0;
         }
 
-        string moduleId = BuildingStateModuleIds.ForAbility("security", ability.AbilityId);
+        string moduleId = BuildingStateModuleIds.ForAbility("security", abilityId);
         BuildingSecurityStateModule state = building.RequireStateModule<BuildingSecurityStateModule>(moduleId);
-        state.AddAlarmCharges(ability.chargesPerGuardWork, ability.maxAlarmCharges);
-        actor?.AddActivity(CharacterActivityEvent.Work(
-            FacilityWorkType.Guard,
-            CharacterActivityOutcomes.Completed,
-            $"{GetName(building)} 경계 태세를 갖췄다. ({state.AlarmCharges}/{Mathf.Max(1, ability.maxAlarmCharges)})",
-            building,
-            reasonCode: "alarm-charged",
-            quantity: state.AlarmCharges));
+        state.AddAlarmCharges(chargesPerGuardWork, maxAlarmCharges);
+        actor?.RecordActivity(building, new BuildingActivitySnapshot(
+            BuildingActivityKinds.Work,
+            BuildingActivityOutcomes.Completed,
+            $"{GetName(building)} 경계 태세를 갖췄다. ({state.AlarmCharges}/{Mathf.Max(1, maxAlarmCharges)})",
+            BuiltInWorkTypeIds.Guard.Value,
+            string.Empty,
+            "alarm-charged",
+            0f,
+            state.AlarmCharges,
+            false));
         return 0;
     }
 
@@ -288,7 +350,7 @@ public static class ModularFacilityRuntimeEffects
             .Parts
             .OfType<IWarehouseFacility>()
             .Where(IsUsableWarehouse);
-        int produced = Deposit(roomWarehouses, category, remaining, out remaining);
+        int produced = Deposit(source.WorldItemStackRuntime, roomWarehouses, category, remaining, out remaining);
 
         if (remaining > 0 && source.Grid != null)
         {
@@ -296,13 +358,14 @@ public static class ModularFacilityRuntimeEffects
                 .FindAllOccupants(null)
                 .OfType<IWarehouseFacility>()
                 .Where(IsUsableWarehouse);
-            produced += Deposit(allWarehouses, category, remaining, out remaining);
+            produced += Deposit(source.WorldItemStackRuntime, allWarehouses, category, remaining, out remaining);
         }
 
         return produced;
     }
 
     private static int Deposit(
+        IBuildingItemStackPort items,
         IEnumerable<IWarehouseFacility> warehouses,
         StockCategory category,
         int requested,
@@ -313,7 +376,16 @@ public static class ModularFacilityRuntimeEffects
         foreach (IWarehouseFacility warehouse in warehouses ?? Enumerable.Empty<IWarehouseFacility>())
         {
             if (remaining <= 0) break;
-            int amount = warehouse.Inventory.Deposit(category, remaining);
+            if (items == null)
+            {
+                throw new System.InvalidOperationException(
+                    "Facility production requires physical item runtime.");
+            }
+            items.SpawnStockInWarehouse(
+                warehouse as IBuildingWorldEntryPort,
+                category,
+                remaining,
+                out int amount);
             deposited += amount;
             remaining -= amount;
         }

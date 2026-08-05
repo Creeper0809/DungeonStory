@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: medicine_mana_core_restraint
+  m_EditorClassIdentifier: Assembly-CSharp::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: medicine:mana-core-restraint
+  displayName: "\uB9C8\uD575 \uAD6C\uC18D\uAD6C"
+  description: "\uBD88\uC548\uC815\uD55C \uB9C8\uD575\uC744 \uBD09\uC778\uD574 \uADC0\uD658
+    \uC911 \uD3ED\uC8FC\uB97C \uC5B5\uC81C\uD55C\uB2E4."
+  stockCategory: 3
+  unitWeight: 0.75
+  maxStack: 10
+  sprite: {fileID: 0}
+  unitPrice: 62
+  features:
+  - rid: 7737211673752633566
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673752633566
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 0
+        sharedIntermediate: 0

@@ -3,110 +3,9 @@ using System.IO;
 using UnityEngine;
 using VContainer.Unity;
 
-public enum DungeonWindowMode
-{
-    Windowed,
-    Borderless,
-    ExclusiveFullscreen
-}
-
-public enum DungeonCameraControlScheme
-{
-    WasdAndArrows,
-    WasdOnly,
-    ArrowsOnly
-}
-
-[Serializable]
-public sealed class DungeonUserSettingsData
-{
-    public const int CurrentVersion = 3;
-
-    public int version = CurrentVersion;
-    public DungeonWindowMode windowMode = DungeonWindowMode.Borderless;
-    public int resolutionWidth = 1920;
-    public int resolutionHeight = 1080;
-    public float masterVolume = 0.8f;
-    public float musicVolume = 0.55f;
-    public float effectsVolume = 0.8f;
-    public float uiVolume = 0.8f;
-    public float cameraSpeed = 1f;
-    public bool edgeScroll;
-    public DungeonCameraControlScheme cameraControls = DungeonCameraControlScheme.WasdAndArrows;
-    public float uiScale = 1f;
-    public float textScale = 1f;
-    public float maxCarryMultiplier = 1.5f;
-    public bool highContrast;
-    public bool reducedMotion;
-    public bool developerMode;
-    public bool pauseOnResearchTree;
-
-    public DungeonUserSettingsData Clone()
-    {
-        return (DungeonUserSettingsData)MemberwiseClone();
-    }
-
-    public void Normalize()
-    {
-        version = CurrentVersion;
-        if (!Enum.IsDefined(typeof(DungeonWindowMode), windowMode))
-        {
-            windowMode = DungeonWindowMode.Borderless;
-        }
-
-        if (!Enum.IsDefined(typeof(DungeonCameraControlScheme), cameraControls))
-        {
-            cameraControls = DungeonCameraControlScheme.WasdAndArrows;
-        }
-
-        resolutionWidth = Mathf.Clamp(resolutionWidth, 960, 7680);
-        resolutionHeight = Mathf.Clamp(resolutionHeight, 540, 4320);
-        masterVolume = Mathf.Clamp01(masterVolume);
-        musicVolume = Mathf.Clamp01(musicVolume);
-        effectsVolume = Mathf.Clamp01(effectsVolume);
-        uiVolume = Mathf.Clamp01(uiVolume);
-        cameraSpeed = Mathf.Clamp(cameraSpeed, 0.5f, 2f);
-        uiScale = Mathf.Clamp(uiScale, 0.8f, 1.25f);
-        textScale = Mathf.Clamp(textScale, 0.9f, 1.25f);
-        maxCarryMultiplier = Mathf.Clamp(Mathf.Round(maxCarryMultiplier / 0.05f) * 0.05f, 1f, 2.5f);
-    }
-}
-
-public static class DungeonUserSettingsRuntime
-{
-    private static DungeonUserSettingsData current = new DungeonUserSettingsData();
-
-    public static event Action Changed;
-
-    public static DungeonUserSettingsData Current => current;
-
-    public static void Publish(DungeonUserSettingsData value)
-    {
-        current = value?.Clone() ?? new DungeonUserSettingsData();
-        current.Normalize();
-        Changed?.Invoke();
-    }
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetRuntime()
-    {
-        current = new DungeonUserSettingsData();
-        Changed = null;
-    }
-}
-
-public interface IDungeonUserSettingsService
-{
-    DungeonUserSettingsData Current { get; }
-    string SettingsPath { get; }
-    string LastError { get; }
-    void Update(Action<DungeonUserSettingsData> change);
-    void ResetDefaults();
-    void ApplyCurrent();
-}
-
 public sealed class DungeonUserSettingsService :
     IDungeonUserSettingsService,
+    IBuildingPresentationSettingsPort,
     IStartable,
     IDisposable
 {
@@ -128,13 +27,14 @@ public sealed class DungeonUserSettingsService :
     }
 
     public DungeonUserSettingsData Current => current ??= new DungeonUserSettingsData();
+    bool IBuildingPresentationSettingsPort.ReducedMotion => Current.reducedMotion;
+    public event Action Changed;
     public string SettingsPath { get; }
     public string LastError { get; private set; } = string.Empty;
 
     public void Start()
     {
         current = Load();
-        DungeonUserSettingsRuntime.Publish(current);
         ApplyCurrent();
     }
 
@@ -149,7 +49,7 @@ public sealed class DungeonUserSettingsService :
         change?.Invoke(next);
         next.Normalize();
         current = next;
-        DungeonUserSettingsRuntime.Publish(current);
+        Changed?.Invoke();
         ApplyCurrent();
         Save();
     }
@@ -157,7 +57,7 @@ public sealed class DungeonUserSettingsService :
     public void ResetDefaults()
     {
         current = new DungeonUserSettingsData();
-        DungeonUserSettingsRuntime.Publish(current);
+        Changed?.Invoke();
         ApplyCurrent();
         Save();
     }
@@ -182,17 +82,37 @@ public sealed class DungeonUserSettingsService :
         }
 
 #if !UNITY_EDITOR
-        FullScreenMode fullScreenMode = Current.windowMode switch
+        if (!IsAutomationLaunch())
         {
-            DungeonWindowMode.Windowed => FullScreenMode.Windowed,
-            DungeonWindowMode.ExclusiveFullscreen => FullScreenMode.ExclusiveFullScreen,
-            _ => FullScreenMode.FullScreenWindow
-        };
-        Screen.SetResolution(
-            Current.resolutionWidth,
-            Current.resolutionHeight,
-            fullScreenMode);
+            FullScreenMode fullScreenMode = Current.windowMode switch
+            {
+                DungeonWindowMode.Windowed => FullScreenMode.Windowed,
+                DungeonWindowMode.ExclusiveFullscreen => FullScreenMode.ExclusiveFullScreen,
+                _ => FullScreenMode.FullScreenWindow
+            };
+            Screen.SetResolution(
+                Current.resolutionWidth,
+                Current.resolutionHeight,
+                fullScreenMode);
+        }
 #endif
+    }
+
+    private static bool IsAutomationLaunch()
+    {
+        string[] arguments = Environment.GetCommandLineArgs();
+        for (int index = 0; index < arguments.Length; index++)
+        {
+            if (string.Equals(
+                    arguments[index],
+                    "-automation",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private DungeonUserSettingsData Load()

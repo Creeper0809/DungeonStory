@@ -27,25 +27,41 @@ MonoBehaviour:
   description: "\uBAA9\uC695 \uC811\uC218\uC640 \uAE09\uBC30\uC218\xB7\uC704\uC0DD
     \uAD00\uB9AC \uC808\uCC28\uB97C \uAC16\uCD98\uB2E4."
   field: 16
-  requiredWork: 94
+  requiredWork: 92
   prerequisites:
   - {fileID: 11400000, guid: 95417a94ca080a740b183c0ab32898cc, type: 2}
   - {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:service-flow
+    prerequisite: {fileID: 11400000, guid: 95417a94ca080a740b183c0ab32898cc, type: 2}
+    kind: 4
+    reason: "\uC11C\uBE44\uC2A4 \uB3D9\uC120\uC758 \uC6B4\uC6A9 \uC808\uCC28\uC774(\uAC00)
+      \uBAA9\uC695 \uC601\uC5C5 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:survival:sanitation
+    prerequisite: {fileID: 11400000, guid: d75bc5c0a1a2a2e4aa3f082b164eadfa, type: 2}
+    kind: 2
+    reason: "\uAE30\uCD08 \uC704\uC0DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBAA9\uC695 \uC601\uC5C5 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563309877986095
-    - rid: 7302563309877986096
+    - rid: 7737211730927813138
+    - rid: 7737211730927813139
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563309877986095
+    - rid: 7737211730927813138
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1701
-    - rid: 7302563309877986096
+    - rid: 7737211730927813139
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1710

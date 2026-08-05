@@ -27,25 +27,41 @@ MonoBehaviour:
   description: "\uC12C\uC720\uC640 \uC57D\uCD08\uB85C \uAC10\uC5FC\uC744 \uB9C9\uB294
     \uCE58\uB8CC\uC7AC\uB97C \uB9CC\uB4E0\uB2E4."
   field: 13
-  requiredWork: 58
+  requiredWork: 60
   prerequisites:
   - {fileID: 11400000, guid: fa1b0718630dd0244b3cfafb2e1cb805, type: 2}
   - {fileID: 11400000, guid: 8f2a5bca31574f1478107e01d22cd5f2, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:pharmacology:herbalism
+    prerequisite: {fileID: 11400000, guid: fa1b0718630dd0244b3cfafb2e1cb805, type: 2}
+    kind: 2
+    reason: "\uC57D\uCD08\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC18C\uB3C5\xB7\uBD95\uB300
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:textile:fiber
+    prerequisite: {fileID: 11400000, guid: 8f2a5bca31574f1478107e01d22cd5f2, type: 2}
+    kind: 1
+    reason: "\uC12C\uC720 \uAC00\uACF5\uC758 \uC81C\uC791 \uAE30\uBC95\uC774(\uAC00)
+      \uC18C\uB3C5\xB7\uBD95\uB300 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563230216618562
-    - rid: 7302563305932456139
+    - rid: 7737211730927812960
+    - rid: 7737211730927812961
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 4
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563230216618562
+    - rid: 7737211730927812960
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1090
-    - rid: 7302563305932456139
+    - rid: 7737211730927812961
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1624

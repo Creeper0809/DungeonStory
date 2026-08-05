@@ -5,7 +5,6 @@ using System.Linq;
 using DungeonStory.Foundation;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem;
 using VContainer.Unity;
 
 public sealed class WorldItemStackMarker : MonoBehaviour, IGridOccupant
@@ -13,6 +12,7 @@ public sealed class WorldItemStackMarker : MonoBehaviour, IGridOccupant
     private Grid grid;
     private IWorldItemMarkerDataSource dataSource;
     private IMainCameraProvider mainCameraProvider;
+    private IPlayerInputReader inputReader;
     private TMP_FontAsset markerFont;
     private Sprite fallbackSprite;
     private Vector2Int position;
@@ -33,6 +33,7 @@ public sealed class WorldItemStackMarker : MonoBehaviour, IGridOccupant
     public static WorldItemStackMarker Create(
         IWorldItemMarkerDataSource dataSource,
         IMainCameraProvider mainCameraProvider,
+        IPlayerInputReader inputReader,
         TMP_FontAsset markerFont,
         Grid grid,
         Vector2Int position)
@@ -40,19 +41,27 @@ public sealed class WorldItemStackMarker : MonoBehaviour, IGridOccupant
         GameObject markerObject = new GameObject($"ItemPile_{position.x}_{position.y}");
         DungeonRuntimeHierarchy.Parent(markerObject, DungeonRuntimeHierarchy.Items);
         WorldItemStackMarker marker = markerObject.AddComponent<WorldItemStackMarker>();
-        marker.Initialize(dataSource, mainCameraProvider, markerFont, grid, position);
+        marker.Initialize(
+            dataSource,
+            mainCameraProvider,
+            inputReader,
+            markerFont,
+            grid,
+            position);
         return marker;
     }
 
     private void Initialize(
         IWorldItemMarkerDataSource source,
         IMainCameraProvider cameraProvider,
+        IPlayerInputReader playerInput,
         TMP_FontAsset font,
         Grid sourceGrid,
         Vector2Int gridPosition)
     {
         dataSource = source;
         mainCameraProvider = cameraProvider;
+        inputReader = playerInput ?? throw new ArgumentNullException(nameof(playerInput));
         markerFont = font;
         grid = sourceGrid;
         position = gridPosition;
@@ -85,12 +94,13 @@ public sealed class WorldItemStackMarker : MonoBehaviour, IGridOccupant
         }
 
         Camera camera = mainCameraProvider != null ? mainCameraProvider.Camera : null;
-        if (camera == null || !TryGetPointerPosition(out Vector3 screenPosition))
+        if (camera == null)
         {
             SetTooltipVisible(false);
             return;
         }
 
+        Vector3 screenPosition = inputReader.MousePosition;
         screenPosition.z = -camera.transform.position.z;
         Vector3 worldPosition = camera.ScreenToWorldPoint(screenPosition);
         WorldItemPileSnapshot pile = null;
@@ -204,27 +214,6 @@ public sealed class WorldItemStackMarker : MonoBehaviour, IGridOccupant
         }
 
         return label;
-    }
-
-    private static bool TryGetPointerPosition(out Vector3 screenPosition)
-    {
-        if (DungeonAutomationInputState.TryGetPointerPosition(out screenPosition))
-        {
-            return true;
-        }
-
-        if (Mouse.current != null)
-        {
-            Vector2 inputSystemPosition = Mouse.current.position.ReadValue();
-            screenPosition = new Vector3(inputSystemPosition.x, inputSystemPosition.y, 0f);
-            return !float.IsNaN(screenPosition.x)
-                && !float.IsNaN(screenPosition.y)
-                && !float.IsInfinity(screenPosition.x)
-                && !float.IsInfinity(screenPosition.y);
-        }
-
-        screenPosition = Input.mousePosition;
-        return true;
     }
 
     private Sprite GetFallbackSprite()

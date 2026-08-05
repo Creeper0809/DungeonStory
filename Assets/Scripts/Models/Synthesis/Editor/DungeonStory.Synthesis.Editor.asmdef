@@ -1,0 +1,14 @@
+{
+  "name": "DungeonStory.Synthesis.Editor",
+  "rootNamespace": "DungeonStory.Synthesis.Editor",
+  "references": ["DungeonStory.Synthesis"],
+  "includePlatforms": ["Editor"],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

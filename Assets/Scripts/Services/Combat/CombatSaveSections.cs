@@ -2,9 +2,14 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public sealed class CombatEquipmentSaveSection : IDungeonSaveSection
+public sealed class CombatEquipmentSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonCombatEquipmentSaveData,
+        CombatEquipmentRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.equipment";
+    public const int CurrentVersion = 6;
     private readonly ICombatEquipmentRuntime runtime;
 
     public CombatEquipmentSaveSection(ICombatEquipmentRuntime runtime)
@@ -12,176 +17,144 @@ public sealed class CombatEquipmentSaveSection : IDungeonSaveSection
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => 3;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
-    public IReadOnlyList<string> DependsOn => new[] { PhysicalItemsSaveSection.Id };
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public override string SectionId => Id;
+    public override int SectionVersion => CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.RuntimeState;
+    public override IReadOnlyList<string> DependsOn =>
+        new[] { PhysicalItemsSaveSection.Id };
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        ValidateVersion(sectionVersion);
-        runtime.Restore(JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(
-            payloadJson ?? string.Empty) ?? new DungeonCombatEquipmentSaveData());
-    }
+    protected override DungeonCombatEquipmentSaveData CapturePayload() =>
+        runtime.Capture();
 
-    private void ValidateVersion(int version)
-    {
-        if (version < 1 || version > SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {version}.");
-        }
-    }
+    protected override CombatEquipmentRestoreCandidate BuildRestoreCandidate(
+        DungeonCombatEquipmentSaveData payload) =>
+        runtime.BuildRestoreCandidate(payload);
+
+    protected override void PublishRestoreCandidate(
+        CombatEquipmentRestoreCandidate candidate) =>
+        runtime.PublishRestoreCandidate(candidate);
 }
 
-public sealed class EquipmentEvolutionSaveSection : IDungeonSaveSection
+public sealed class EquipmentEvolutionSaveSection :
+    DungeonStrictJsonSaveSection<
+        EquipmentEvolutionSaveData,
+        EquipmentEvolutionRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.equipment-evolution";
-    private readonly IEquipmentEvolutionRuntime runtime;
+    private readonly IEquipmentEvolutionPersistence runtime;
 
-    public EquipmentEvolutionSaveSection(IEquipmentEvolutionRuntime runtime)
+    public EquipmentEvolutionSaveSection(IEquipmentEvolutionPersistence runtime)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => 3;
-    public DungeonSaveRestorePhase RestorePhase =>
+    public override string SectionId => Id;
+    public override int SectionVersion => 3;
+    public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
+    public override IReadOnlyList<string> DependsOn => new[]
     {
         CombatEquipmentSaveSection.Id,
         PhysicalItemsSaveSection.Id,
         ModularFacilityWorldSaveSection.Id
     };
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    protected override EquipmentEvolutionSaveData CapturePayload() =>
+        runtime.Capture();
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        if (sectionVersion < 1 || sectionVersion > SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {sectionVersion}.");
-        }
+    protected override EquipmentEvolutionRestoreCandidate BuildRestoreCandidate(
+        EquipmentEvolutionSaveData payload) =>
+        runtime.BuildRestoreCandidate(payload);
 
-        runtime.Restore(JsonUtility.FromJson<EquipmentEvolutionSaveData>(
-            payloadJson ?? string.Empty) ?? new EquipmentEvolutionSaveData());
-    }
+    protected override void PublishRestoreCandidate(
+        EquipmentEvolutionRestoreCandidate candidate) =>
+        runtime.PublishRestoreCandidate(candidate);
 }
 
-public sealed class CharacterBodyHealthSaveSection : IDungeonSaveSection
+public sealed class CharacterBodyHealthSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonCharacterBodyHealthSaveData,
+        CharacterBodyHealthRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.body-health";
-    private readonly ICharacterBodyHealthRuntime runtime;
+    private readonly ICharacterBodyHealthPersistence persistence;
 
-    public CharacterBodyHealthSaveSection(ICharacterBodyHealthRuntime runtime)
+    public CharacterBodyHealthSaveSection(
+        ICharacterBodyHealthPersistence persistence)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => 2;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
-    public IReadOnlyList<string> DependsOn => new[] { CharacterWorldSaveSection.Id };
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonCharacterBodyHealthSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.RuntimeState;
+    public override IReadOnlyList<string> DependsOn =>
+        new[] { CharacterWorldSaveSection.Id };
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        ValidateVersion(sectionVersion);
-        runtime.Restore(JsonUtility.FromJson<DungeonCharacterBodyHealthSaveData>(
-            payloadJson ?? string.Empty) ?? new DungeonCharacterBodyHealthSaveData());
-    }
+    protected override DungeonCharacterBodyHealthSaveData CapturePayload() =>
+        persistence.Capture();
 
-    private void ValidateVersion(int version)
-    {
-        if (version < 1 || version > SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {version}.");
-        }
-    }
+    protected override CharacterBodyHealthRestoreCandidate
+        BuildRestoreCandidate(DungeonCharacterBodyHealthSaveData payload) =>
+        persistence.PrepareRestore(payload);
+
+    protected override void PublishRestoreCandidate(
+        CharacterBodyHealthRestoreCandidate candidate) =>
+        persistence.PublishRestore(candidate);
 }
 
-public sealed class CharacterMedicalSaveSection : IDungeonSaveSection
+public sealed class CharacterMedicalSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonCharacterMedicalSaveData,
+        CharacterMedicalRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.medical";
-    private readonly ICharacterMedicalRuntime runtime;
-
-    public CharacterMedicalSaveSection(ICharacterMedicalRuntime runtime)
-    {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
-    }
-
-    public string SectionId => Id;
-    public int SectionVersion => 2;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
+    private static readonly string[] Dependencies =
     {
         CharacterBodyHealthSaveSection.Id,
         PhysicalItemsSaveSection.Id
     };
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
+    private readonly ICharacterMedicalPersistence persistence;
+
+    public CharacterMedicalSaveSection(ICharacterMedicalPersistence persistence)
     {
-        ValidateVersion(sectionVersion);
-        List<string> warnings = new List<string>();
-        runtime.Restore(
-            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
-                payloadJson ?? string.Empty)
-            ?? new DungeonCharacterMedicalSaveData(),
-            warnings);
-        AddWarnings(report, warnings);
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
-    private void ValidateVersion(int version)
-    {
-        if (version != SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {version}.");
-        }
-    }
+    public override string SectionId => Id;
+    public override int SectionVersion =>
+        DungeonCharacterMedicalSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.RuntimeState;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    private static void AddWarnings(
-        DungeonGameRestoreReport report,
-        IEnumerable<string> warnings)
-    {
-        foreach (string warning in warnings)
-        {
-            report.AddWarning(warning);
-        }
-    }
+    protected override DungeonCharacterMedicalSaveData CapturePayload() =>
+        persistence.Capture();
+
+    protected override CharacterMedicalRestoreCandidate BuildRestoreCandidate(
+        DungeonCharacterMedicalSaveData payload) =>
+        persistence.PrepareRestore(payload);
+
+    protected override void PublishRestoreCandidate(
+        CharacterMedicalRestoreCandidate candidate) =>
+        persistence.PublishRestore(candidate);
 }
 
-public sealed class SurgerySaveSection : IDungeonSaveSection
+public sealed class SurgerySaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonSurgerySaveData,
+        SurgeryRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "medical.surgery";
-    private readonly ISurgeryRuntime runtime;
-
-    public SurgerySaveSection(ISurgeryRuntime runtime)
-    {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
-    }
-
-    public string SectionId => Id;
-    public int SectionVersion => 3;
-    public DungeonSaveRestorePhase RestorePhase =>
-        DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
+    private static readonly string[] Dependencies =
     {
         CharacterBodyHealthSaveSection.Id,
         CharacterMedicalSaveSection.Id,
@@ -189,57 +162,51 @@ public sealed class SurgerySaveSection : IDungeonSaveSection
         ModularFacilityWorldSaveSection.Id,
         WildlifeSaveSection.Id
     };
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
+    private readonly ISurgeryPersistence persistence;
+    private readonly SurgeryRestoreCoordinator restoreCoordinator;
+
+    public SurgerySaveSection(
+        ISurgeryPersistence persistence,
+        SurgeryRestoreCoordinator restoreCoordinator)
     {
-        if (sectionVersion < 2 || sectionVersion > SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {sectionVersion}.");
-        }
-
-        List<string> warnings = new List<string>();
-        DungeonSurgerySaveData saveData =
-            JsonUtility.FromJson<DungeonSurgerySaveData>(
-                payloadJson ?? string.Empty)
-            ?? new DungeonSurgerySaveData();
-        if (sectionVersion == 2)
-        {
-            foreach (SurgeryOrder order in
-                     saveData.orders ?? new List<SurgeryOrder>())
-            {
-                if (order == null)
-                {
-                    continue;
-                }
-
-                order.environmentResumeStage = order.state;
-                order.environmentWaitReason = string.Empty;
-                order.environmentStableSeconds = 0f;
-                order.environmentRecoveryWorkStatus = string.Empty;
-            }
-
-            warnings.Add(
-                "Surgery section V2 migrated to V3 with no active environment waits.");
-        }
-
-        runtime.Restore(
-            saveData,
-            warnings);
-        foreach (string warning in warnings)
-        {
-            report.AddWarning(warning);
-        }
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
+        this.restoreCoordinator = restoreCoordinator
+            ?? throw new ArgumentNullException(nameof(restoreCoordinator));
     }
+
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonSurgerySaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.LateRuntimeState;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
+
+    protected override DungeonSurgerySaveData CapturePayload() =>
+        persistence.Capture();
+
+    protected override SurgeryRestoreCandidate BuildRestoreCandidate(
+        DungeonSurgerySaveData payload) =>
+        restoreCoordinator.PrepareRestore(payload);
+
+    protected override void PublishRestoreCandidate(
+        SurgeryRestoreCandidate candidate) =>
+        restoreCoordinator.PublishRestore(candidate);
 }
 
-public sealed class DefenseTacticalSaveSection : IDungeonSaveSection
+public sealed class DefenseTacticalSaveSection :
+    DungeonStrictJsonSaveSection<
+        DefenseTacticalCoordinatorSaveData,
+        DefenseTacticalRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.defense-tactics";
+    private static readonly string[] Dependencies =
+    {
+        CharacterBodyHealthSaveSection.Id,
+        CombatEquipmentSaveSection.Id
+    };
+
     private readonly IDefenseTacticalCoordinator runtime;
 
     public DefenseTacticalSaveSection(IDefenseTacticalCoordinator runtime)
@@ -247,47 +214,39 @@ public sealed class DefenseTacticalSaveSection : IDungeonSaveSection
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => 1;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
-    {
-        CharacterBodyHealthSaveSection.Id,
-        CombatEquipmentSaveSection.Id
-    };
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public override string SectionId => Id;
+    public override int SectionVersion => 2;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.RuntimeState;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        ValidateVersion(sectionVersion);
-        List<string> warnings = new List<string>();
-        runtime.Restore(
-            JsonUtility.FromJson<DefenseTacticalCoordinatorSaveData>(
-                payloadJson ?? string.Empty)
-            ?? new DefenseTacticalCoordinatorSaveData(),
-            warnings);
-        foreach (string warning in warnings)
-        {
-            report.AddWarning(warning);
-        }
-    }
+    protected override DefenseTacticalCoordinatorSaveData CapturePayload() =>
+        runtime.Capture();
 
-    private void ValidateVersion(int version)
-    {
-        if (version != SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {version}.");
-        }
-    }
+    protected override DefenseTacticalRestoreCandidate BuildRestoreCandidate(
+        DefenseTacticalCoordinatorSaveData payload) =>
+        runtime.PrepareRestore(payload);
+
+    protected override void PublishRestoreCandidate(
+        DefenseTacticalRestoreCandidate candidate) =>
+        runtime.PublishRestore(candidate);
 }
 
-public sealed class EquipmentMaintenanceSaveSection : IDungeonSaveSection
+public sealed class EquipmentMaintenanceSaveSection :
+    DungeonStrictJsonSaveSection<
+        CombatEquipmentMaintenanceSaveData,
+        EquipmentMaintenanceRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.equipment-maintenance";
+    private static readonly string[] Dependencies =
+    {
+        CombatEquipmentSaveSection.Id,
+        PhysicalItemsSaveSection.Id,
+        ModularFacilityWorldSaveSection.Id,
+        CharacterBodyHealthSaveSection.Id
+    };
+
     private readonly ICombatEquipmentMaintenanceRuntime runtime;
 
     public EquipmentMaintenanceSaveSection(
@@ -296,47 +255,38 @@ public sealed class EquipmentMaintenanceSaveSection : IDungeonSaveSection
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => 1;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
-    {
-        CombatEquipmentSaveSection.Id,
-        PhysicalItemsSaveSection.Id
-    };
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public override string SectionId => Id;
+    public override int SectionVersion => 2;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.RuntimeState;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        ValidateVersion(sectionVersion);
-        List<string> warnings = new List<string>();
-        runtime.Restore(
-            JsonUtility.FromJson<CombatEquipmentMaintenanceSaveData>(
-                payloadJson ?? string.Empty)
-            ?? new CombatEquipmentMaintenanceSaveData(),
-            warnings);
-        foreach (string warning in warnings)
-        {
-            report.AddWarning(warning);
-        }
-    }
+    protected override CombatEquipmentMaintenanceSaveData CapturePayload() =>
+        runtime.Capture();
 
-    private void ValidateVersion(int version)
-    {
-        if (version != SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {version}.");
-        }
-    }
+    protected override EquipmentMaintenanceRestoreCandidate
+        BuildRestoreCandidate(CombatEquipmentMaintenanceSaveData payload) =>
+        runtime.PrepareRestore(payload);
+
+    protected override void PublishRestoreCandidate(
+        EquipmentMaintenanceRestoreCandidate candidate) =>
+        runtime.PublishRestore(candidate);
 }
 
-public sealed class CharacterCombatCommandSaveSection : IDungeonSaveSection
+public sealed class CharacterCombatCommandSaveSection :
+    DungeonStrictJsonSaveSection<
+        CharacterCombatCommandSaveData,
+        CharacterCombatCommandRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "combat.commands";
+    private static readonly string[] Dependencies =
+    {
+        CharacterBodyHealthSaveSection.Id,
+        CombatEquipmentSaveSection.Id,
+        DefenseTacticalSaveSection.Id
+    };
+
     private readonly ICharacterCombatCommandRuntime runtime;
 
     public CharacterCombatCommandSaveSection(
@@ -345,42 +295,20 @@ public sealed class CharacterCombatCommandSaveSection : IDungeonSaveSection
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => 1;
-    public DungeonSaveRestorePhase RestorePhase =>
+    public override string SectionId => Id;
+    public override int SectionVersion => 2;
+    public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
-    {
-        CharacterBodyHealthSaveSection.Id,
-        CombatEquipmentSaveSection.Id,
-        DefenseTacticalSaveSection.Id
-    };
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        ValidateVersion(sectionVersion);
-        List<string> warnings = new List<string>();
-        runtime.Restore(
-            JsonUtility.FromJson<CharacterCombatCommandSaveData>(
-                payloadJson ?? string.Empty)
-            ?? new CharacterCombatCommandSaveData(),
-            warnings);
-        foreach (string warning in warnings)
-        {
-            report.AddWarning(warning);
-        }
-    }
+    protected override CharacterCombatCommandSaveData CapturePayload() =>
+        runtime.Capture();
 
-    private void ValidateVersion(int version)
-    {
-        if (version != SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {version}.");
-        }
-    }
+    protected override CharacterCombatCommandRestoreCandidate
+        BuildRestoreCandidate(CharacterCombatCommandSaveData payload) =>
+        runtime.PrepareRestore(payload);
+
+    protected override void PublishRestoreCandidate(
+        CharacterCombatCommandRestoreCandidate candidate) =>
+        runtime.PublishRestore(candidate);
 }

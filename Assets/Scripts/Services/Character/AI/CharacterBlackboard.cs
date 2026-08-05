@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using DungeonStory.Foundation;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -26,10 +25,8 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
     [SerializeField, ReadOnly] private CharacterAiIntentState softLockIntent = new CharacterAiIntentState();
     [SerializeField, ReadOnly] private CharacterMacroGoal activeMacroGoal = new CharacterMacroGoal();
     [SerializeField, ReadOnly] private CharacterMoodImpulse activeMoodImpulse = new CharacterMoodImpulse();
-    [SerializeField, ReadOnly] private Dictionary<BuildableObject, float> failedBuildingCooldowns =
-        new Dictionary<BuildableObject, float>();
-    [SerializeField, ReadOnly] private Dictionary<string, int> recentFailureCounts =
-        new Dictionary<string, int>();
+    [SerializeField, ReadOnly] private CharacterAiFailureMemory failureMemory =
+        new CharacterAiFailureMemory();
     [SerializeField, ReadOnly] private Dictionary<CharacterAiBranch, float> jobGiverUtilityScores =
         new Dictionary<CharacterAiBranch, float>();
     [SerializeField, ReadOnly] private Dictionary<CharacterAiBranch, float> routineGroupPriorityScores =
@@ -44,7 +41,6 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
     [SerializeField, ReadOnly] private List<string> recentDecisionTrace =
         new List<string>();
     [NonSerialized] private Dictionary<CharacterAiBranch, CharacterAiJobCandidate> cachedJobGiverCandidates;
-    [NonSerialized] private IReadOnlyDictionary<string, int> recentFailureCountsView;
     [NonSerialized] private IReadOnlyDictionary<CharacterAiBranch, float> jobGiverUtilityScoresView;
     [NonSerialized] private IReadOnlyDictionary<CharacterAiBranch, float> routineGroupPriorityScoresView;
     [NonSerialized] private IReadOnlyList<string> topUtilityBreakdownsView;
@@ -60,6 +56,11 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
     private bool DetailedDiagnosticsEnabled =>
         actor == null || actor.ShouldCollectDetailedAiDiagnostics;
 
+    private CharacterAiNaturalnessSettingsSO RequireNaturalnessSettings()
+    {
+        return CharacterAiNaturalnessSettingsResolver.Require(actor);
+    }
+
     public CharacterAiBranch CurrentBranch => currentBranch;
     public string CurrentIntent => currentIntent;
     public string CurrentTask => currentTask;
@@ -72,7 +73,7 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
     public CharacterMoodImpulse ActiveMoodImpulse => activeMoodImpulse;
     public string LastCommitBreakReason => lastCommitBreakReason;
     public string LastFailureReason => lastFailureReason;
-    public IReadOnlyDictionary<string, int> RecentFailureCounts => recentFailureCountsView;
+    public IReadOnlyDictionary<string, int> RecentFailureCounts => failureMemory.RecentFailureCounts;
     public IReadOnlyDictionary<CharacterAiBranch, float> JobGiverUtilityScores => jobGiverUtilityScoresView;
     public IReadOnlyDictionary<CharacterAiBranch, float> RoutineGroupPriorityScores => routineGroupPriorityScoresView;
     public string LastJobGiverUtilitySummary => lastJobGiverUtilitySummary;
@@ -105,19 +106,18 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         activeMacroGoal ??= new CharacterMacroGoal();
         activeMoodImpulse ??= new CharacterMoodImpulse();
         softLockIntent ??= new CharacterAiIntentState();
-        failedBuildingCooldowns ??= new Dictionary<BuildableObject, float>();
-        recentFailureCounts ??= new Dictionary<string, int>();
+        failureMemory ??= new CharacterAiFailureMemory();
         jobGiverUtilityScores ??= new Dictionary<CharacterAiBranch, float>();
         routineGroupPriorityScores ??= new Dictionary<CharacterAiBranch, float>();
         topUtilityBreakdowns ??= new List<string>();
         recentDecisionTrace ??= new List<string>();
         cachedJobGiverCandidates ??= new Dictionary<CharacterAiBranch, CharacterAiJobCandidate>();
-        recentFailureCountsView ??= ReadOnlyView.Dictionary(recentFailureCounts);
         jobGiverUtilityScoresView ??= ReadOnlyView.Dictionary(jobGiverUtilityScores);
         routineGroupPriorityScoresView ??= ReadOnlyView.Dictionary(routineGroupPriorityScores);
         topUtilityBreakdownsView ??= ReadOnlyView.List(topUtilityBreakdowns);
         recentDecisionTraceView ??= ReadOnlyView.List(recentDecisionTrace);
-        PruneFacilityCooldowns();
+        failureMemory.EnsureInitialized();
+        failureMemory.PruneFacilityCooldowns(Now);
     }
 
     public void BeginDecisionTrace(int tick)
@@ -310,7 +310,7 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         committedDestination = action.destination;
         minCommitUntil = Now + Mathf.Max(0f, defaultCommitSeconds);
         currentIntent = intent ?? GetActionLabel(action.actionset);
-        CharacterAiNaturalnessSettingsSO settings = CharacterAiNaturalnessSettingsSO.Defaults;
+        CharacterAiNaturalnessSettingsSO settings = RequireNaturalnessSettings();
         softLockIntent.Begin(
             action.actionset.Branch,
             CharacterAiUtilityText.GetIntention(action.actionset.Branch),
@@ -332,7 +332,7 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         if (committedAction == action.actionset && committedDestination == action.destination)
         {
             minCommitUntil = Mathf.Max(minCommitUntil, Now + Mathf.Max(0f, defaultCommitSeconds));
-            CharacterAiNaturalnessSettingsSO settings = CharacterAiNaturalnessSettingsSO.Defaults;
+            CharacterAiNaturalnessSettingsSO settings = RequireNaturalnessSettings();
             softLockIntent.Refresh(
                 settings.SoftLockMinimumSeconds,
                 settings.SoftLockMaximumSeconds,
@@ -369,7 +369,7 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         {
             bonus += softLockIntent.GetScoreBonus(
                 Now,
-                CharacterAiNaturalnessSettingsSO.Defaults.SoftLockScoreBonus);
+                RequireNaturalnessSettings().SoftLockScoreBonus);
         }
 
         return bonus > 0f;
@@ -423,20 +423,10 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
 
     public bool IsFacilityCoolingDown(BuildableObject building, out float remainingSeconds)
     {
-        remainingSeconds = 0f;
-        if (building == null)
-        {
-            return false;
-        }
-
-        PruneFacilityCooldowns();
-        if (!failedBuildingCooldowns.TryGetValue(building, out float until))
-        {
-            return false;
-        }
-
-        remainingSeconds = Mathf.Max(0f, until - Now);
-        return remainingSeconds > 0f;
+        return failureMemory.IsFacilityCoolingDown(
+            building,
+            Now,
+            out remainingSeconds);
     }
 
     public void PutFacilityOnCooldown(BuildableObject building, string reason)
@@ -447,7 +437,10 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
             return;
         }
 
-        failedBuildingCooldowns[building] = Now + Mathf.Max(0.1f, failureCooldownSeconds);
+        failureMemory.PutFacilityOnCooldown(
+            building,
+            Now,
+            failureCooldownSeconds);
         lastFailureReason = string.IsNullOrWhiteSpace(reason)
             ? $"Facility cooldown: {GetBuildingLabel(building)}"
             : $"Facility cooldown: {GetBuildingLabel(building)} - {reason}";
@@ -460,10 +453,6 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
             return;
         }
 
-        string key = failure.Kind != AIActionFailureKind.Unknown
-            ? failure.Kind.ToString()
-            : failure.ToString();
-        recentFailureCounts[key] = recentFailureCounts.TryGetValue(key, out int count) ? count + 1 : 1;
         lastFailureReason = $"{GetActionLabel(actionSet)}: {failure}";
         actor?.AiMemory?.RecordFailure(
             failure.Kind,
@@ -478,10 +467,11 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
                 : null;
         }
 
-        if (target != null && ShouldCooldownFacility(failure.Kind))
-        {
-            failedBuildingCooldowns[target] = Now + Mathf.Max(0.1f, failureCooldownSeconds);
-        }
+        failureMemory.Record(
+            failure,
+            target,
+            Now,
+            failureCooldownSeconds);
 
         if (failure.Kind == AIActionFailureKind.NoPath)
         {
@@ -623,7 +613,7 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
 
     public int GetRecentFailureCount(AIActionFailureKind kind)
     {
-        return recentFailureCounts.TryGetValue(kind.ToString(), out int count) ? count : 0;
+        return failureMemory.GetRecentFailureCount(kind);
     }
 
     public string GetSoftLockDebugSummary()
@@ -634,11 +624,7 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
 
     public string GetDebugSummary()
     {
-        string cooldowns = string.Join(
-            ", ",
-            failedBuildingCooldowns
-                .Where((pair) => pair.Key != null && Now < pair.Value)
-                .Select((pair) => $"{GetBuildingLabel(pair.Key)} {pair.Value - Now:0.0}s"));
+        string cooldowns = failureMemory.BuildCooldownSummary(Now);
         string macro = HasActiveMacroGoal() ? activeMacroGoal.type.ToString() : "None";
         string moodImpulse = HasActiveMoodImpulse()
             ? $"{activeMoodImpulse.type} {activeMoodImpulse.strength:0.##}"
@@ -748,45 +734,6 @@ public sealed class CharacterBlackboard : SerializedMonoBehaviour
         return float.TryParse(summary.Substring(start, scoreIndex - start), out float score)
             ? score
             : 0f;
-    }
-
-    private void PruneFacilityCooldowns()
-    {
-        if (failedBuildingCooldowns.Count == 0)
-        {
-            return;
-        }
-
-        List<BuildableObject> expired = null;
-        foreach (KeyValuePair<BuildableObject, float> pair in failedBuildingCooldowns)
-        {
-            if (pair.Key != null && !pair.Key.isDestroy && Now < pair.Value)
-            {
-                continue;
-            }
-
-            expired ??= new List<BuildableObject>();
-            expired.Add(pair.Key);
-        }
-
-        if (expired == null)
-        {
-            return;
-        }
-
-        foreach (BuildableObject building in expired)
-        {
-            failedBuildingCooldowns.Remove(building);
-        }
-    }
-
-    private static bool ShouldCooldownFacility(AIActionFailureKind kind)
-    {
-        return kind == AIActionFailureKind.DestinationOccupied
-            || kind == AIActionFailureKind.NoDestination
-            || kind == AIActionFailureKind.DestinationSelectionFailed
-            || kind == AIActionFailureKind.NoPath
-            || kind == AIActionFailureKind.Destroyed;
     }
 
     private static bool IsDestinationInvalid(BuildableObject destination)

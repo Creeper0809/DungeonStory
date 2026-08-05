@@ -3,31 +3,35 @@ using UnityEngine;
 
 public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
 {
-    private readonly IWaterNetworkRuntime water;
-    private readonly IWastewaterNetworkRuntime wastewater;
+    private readonly IFluidInfrastructureTransaction water;
+    private readonly IFluidWastewaterTransaction wastewater;
     private readonly IWorldItemStackRuntime items;
     private readonly IWorldFilthQuery filth;
+    private readonly ICharacterNeedBalanceRuntime needBalance;
 
     public WaterFixtureUseRuntime(
-        IWaterNetworkRuntime water,
-        IWastewaterNetworkRuntime wastewater,
+        IFluidInfrastructureTransaction water,
+        IFluidWastewaterTransaction wastewater,
         IWorldItemStackRuntime items,
-        IWorldFilthQuery filth)
+        IWorldFilthQuery filth,
+        ICharacterNeedBalanceRuntime needBalance)
     {
         this.water = water ?? throw new ArgumentNullException(nameof(water));
         this.wastewater = wastewater
             ?? throw new ArgumentNullException(nameof(wastewater));
         this.items = items ?? throw new ArgumentNullException(nameof(items));
         this.filth = filth ?? throw new ArgumentNullException(nameof(filth));
+        this.needBalance = needBalance
+            ?? throw new ArgumentNullException(nameof(needBalance));
     }
 
     public bool TryBeginUse(
         BuildableObject fixture,
         out WaterFixtureUseTicket ticket,
-        out string failureReason)
+        out DomainFailure failure)
     {
         ticket = default;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         BuildingWaterFixtureAbility ability =
             fixture?.BuildingData?.GetAbility<BuildingWaterFixtureAbility>();
         if (fixture == null || ability == null)
@@ -35,34 +39,43 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
             return true;
         }
 
-        string fixtureId = IndustrialInfrastructureIdentity.GetNodeId(fixture);
+        BuildingInstanceId fixtureId = new BuildingInstanceId(
+            IndustrialInfrastructureIdentity.GetNodeId(fixture));
+        float personalWater =
+            needBalance.ApplyPersonalContinuousWaterMultiplier(
+                ability.cleanWaterPerUse);
+        float wastewaterAmount = ability.cleanWaterPerUse > 0f
+            ? ability.wastewaterPerUse
+                * personalWater
+                / ability.cleanWaterPerUse
+            : ability.wastewaterPerUse;
         if (water.TryConsume(
                 fixture,
                 ability.minimumQuality,
-                ability.cleanWaterPerUse,
+                personalWater,
                 out _,
-                out string pipeFailure))
+                out DomainFailure pipeFailure))
         {
             ticket = new WaterFixtureUseTicket(
                 fixtureId,
                 WaterFixtureSupplyKind.Piped,
-                ability.wastewaterPerUse);
+                wastewaterAmount);
             return true;
         }
 
         if (ability.allowsManualWaterFallback)
         {
-            string destinationId = CreateManualDestinationId(fixtureId);
+            string destinationId = CreateManualDestinationId(fixtureId.Value);
             if (water.TryConsumeManualContainer(
                     fixture,
                     destinationId,
-                    ability.cleanWaterPerUse,
+                    personalWater,
                     out _))
             {
                 ticket = new WaterFixtureUseTicket(
                     fixtureId,
                     WaterFixtureSupplyKind.ManualContainer,
-                    ability.wastewaterPerUse);
+                    wastewaterAmount);
                 return true;
             }
 
@@ -80,12 +93,12 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
             ticket = new WaterFixtureUseTicket(
                 fixtureId,
                 WaterFixtureSupplyKind.DryFallback,
-                ability.wastewaterPerUse);
+                wastewaterAmount);
             return true;
         }
 
-        failureReason = ability.allowsManualWaterFallback
-            ? "물통 보충을 기다리는 중입니다."
+        failure = ability.allowsManualWaterFallback
+            ? new DomainFailure(FailureCode.FluidManualWaterUnavailable)
             : pipeFailure;
         return false;
     }
@@ -94,7 +107,10 @@ public sealed class WaterFixtureUseRuntime : IWaterFixtureUseRuntime
         BuildableObject fixture,
         WaterFixtureUseTicket ticket)
     {
-        if (fixture == null || !ticket.IsValid)
+        if (fixture == null
+            || !ticket.IsValid
+            || !ticket.FixtureId.Equals(new BuildingInstanceId(
+                IndustrialInfrastructureIdentity.GetNodeId(fixture))))
         {
             return;
         }

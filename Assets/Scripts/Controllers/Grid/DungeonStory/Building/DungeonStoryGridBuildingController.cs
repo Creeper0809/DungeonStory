@@ -18,14 +18,16 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
     private IWorldPointerPositionProvider worldPointerPositionProvider;
     private IGridTextureProvider gridTextureProvider;
     private IObjectResolver objectResolver;
-    private IGameDataProvider gameDataProvider;
-    private IBlueprintResearchRuntimeProvider researchRuntimeProvider;
+    private IGameSessionStateProvider gameDataProvider;
+    private IGameMoneyAccount moneyAccount;
+    private BlueprintResearchRuntime research;
     private IGridBuildingObjectFactory gridBuildingObjectFactory;
     private IUiPointerBlocker uiPointerBlocker;
     private IPlayerInputReader inputReader;
     private IWorkOrderRuntime workOrderRuntime;
     private IGameEventBus gameEventBus;
     private IGameClock gameClock;
+    private IDungeonDebugRuleQuery debugRules;
     private GridBuildingPlacementService placementService;
     private bool initialized;
     private bool resetGridModeAtEndOfFrame;
@@ -44,14 +46,16 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
         IWorldPointerPositionProvider worldPointerPositionProvider,
         IGridTextureProvider gridTextureProvider,
         IObjectResolver objectResolver,
-        IGameDataProvider gameDataProvider,
-        IBlueprintResearchRuntimeProvider researchRuntimeProvider,
+        IGameSessionStateProvider gameDataProvider,
+        IGameMoneyAccount moneyAccount,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
         IGridBuildingObjectFactory gridBuildingObjectFactory,
         IUiPointerBlocker uiPointerBlocker,
         IPlayerInputReader inputReader,
         IWorkOrderRuntime workOrderRuntime,
         IGameEventBus gameEventBus,
-        IGameClock gameClock)
+        IGameClock gameClock,
+        IDungeonDebugRuleQuery debugRules)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -65,8 +69,13 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(objectResolver));
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
-        this.researchRuntimeProvider = researchRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(researchRuntimeProvider));
+        this.moneyAccount = moneyAccount
+            ?? throw new ArgumentNullException(nameof(moneyAccount));
+        research = (progressionRuntimes
+                ?? throw new ArgumentNullException(nameof(progressionRuntimes)))
+            .BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(DungeonStoryGridBuildingController)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
         this.gridBuildingObjectFactory = gridBuildingObjectFactory
             ?? throw new ArgumentNullException(nameof(gridBuildingObjectFactory));
         this.uiPointerBlocker = uiPointerBlocker
@@ -78,6 +87,7 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
     }
 
     private void Awake()
@@ -649,12 +659,9 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
 
     private BuildingConditionContext CreateBuildingConditionContext()
     {
-        ResolveGameDataProvider().TryGetGameData(out GameData gameData);
-        BlueprintResearchState researchState = researchRuntimeProvider != null
-            && researchRuntimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime)
-                ? runtime.State
-                : null;
-        return new BuildingConditionContext(gameData, researchState);
+        ResolveGameDataProvider().TryGetSessionState(out GameSessionState gameData);
+        BlueprintResearchState researchState = research.State;
+        return new BuildingConditionContext(gameData, researchState, moneyAccount, debugRules);
     }
 
     private void ConfigurePlacedBuilding(BuildableObject building)
@@ -719,10 +726,10 @@ public class DungeonStoryGridBuildingController : MonoBehaviour
             ?? throw new InvalidOperationException($"{nameof(DungeonStoryGridBuildingController)} requires {nameof(IObjectResolver)} injection.");
     }
 
-    private IGameDataProvider ResolveGameDataProvider()
+    private IGameSessionStateProvider ResolveGameDataProvider()
     {
         return gameDataProvider
-            ?? throw new InvalidOperationException($"{nameof(DungeonStoryGridBuildingController)} requires {nameof(IGameDataProvider)} injection.");
+            ?? throw new InvalidOperationException($"{nameof(DungeonStoryGridBuildingController)} requires {nameof(IGameSessionStateProvider)} injection.");
     }
 
     private IGridBuildingObjectFactory ResolveGridBuildingObjectFactory()

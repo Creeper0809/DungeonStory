@@ -2,7 +2,11 @@
   "name": "DungeonStory.Invasion",
   "rootNamespace": "DungeonStory.Invasion",
   "references": [
-    "DungeonStory.Foundation"
+    "DungeonStory.Characters",
+    "DungeonStory.Defense",
+    "DungeonStory.Foundation",
+    "DungeonStory.Grid",
+    "DungeonStory.World"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

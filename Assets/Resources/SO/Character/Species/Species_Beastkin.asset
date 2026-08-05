@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
   m_Name: Species_Beastkin
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  m_EditorClassIdentifier: DungeonStory.Species::CharacterSpeciesSO
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -26,7 +26,7 @@ MonoBehaviour:
   displayName: "\uC218\uC778"
   ownerSelectionPolicy: 1
   homeFactionId: faction:dungeon:beastkin
-  anatomyProfileId: anatomy:humanoid
+  anatomyProfileId: anatomy:beastkin
   needs:
     hungerRateMultiplier: 1.35
     thirstRateMultiplier: 1.15
@@ -151,12 +151,12 @@ MonoBehaviour:
     - "\uBB34\uB9AC"
   combatAbilities:
     abilities:
-    - rid: 7302563310531248887
+    - rid: 7302563319989403747
   references:
     version: 2
     RefIds:
-    - rid: 7302563310531248887
-      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+    - rid: 7302563319989403747
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: DungeonStory.Combat}
       data:
         id: species-active:beastkin
         displayName: "\uAC08\uD034 \uB3CC\uC9C4"
@@ -167,9 +167,9 @@ MonoBehaviour:
         usableFrom: 7
         targetPositions: 7
         effects:
-        - rid: 7302563310531248888
-    - rid: 7302563310531248888
-      type: {class: OffenseDamageEffect, ns: , asm: Assembly-CSharp}
+        - rid: 7302563319989403748
+    - rid: 7302563319989403748
+      type: {class: OffenseDamageEffect, ns: , asm: DungeonStory.Combat}
       data:
         basicDamageMultiplier: 1.15
         flatDamage: 2

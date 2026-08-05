@@ -21,15 +21,20 @@ public static class ResearchTreeDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
-        ResearchProjectAssetBuilder.Rebuild();
         List<string> failures = new List<string>();
-        Verify("135개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
-        Verify("135개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
+        Verify("168개 프로젝트와 설계도 규칙", VerifyCatalog, failures);
+        Verify("168개 결정적 자동 배치", () => VerifyLayout(LoadProjects()), failures);
         Verify("100개 합성 그래프 배치", () => VerifySyntheticLayout(100), failures);
         Verify("250개 합성 그래프 배치", () => VerifySyntheticLayout(250), failures);
         Verify("선행 자동 큐와 설계도 우회", VerifyQueueRules, failures);
+        Verify("연구 시설 수용력 중단·재개", VerifyFacilityCapacitySuspension, failures);
         Verify("큐 제거 후 진행률 보존", VerifyProgressPersistence, failures);
-        Verify("V3 저장 왕복과 V2 이관", VerifySaveRoundTripAndMigration, failures);
+        Verify("현행 저장 왕복과 V5 이전 거부", VerifySaveRoundTripAndLegacyRejection, failures);
+
+        Verify(
+            "Discarded restore candidate preserves live research",
+            VerifyDiscardedRestoreLeavesLiveResearchUntouched,
+            failures);
 
         foreach (string failure in failures)
         {
@@ -64,7 +69,7 @@ public static class ResearchTreeDebugScenarios
             .Distinct()
             .ToArray();
         int projectUnlockCount = projects.Sum(project => project.Unlocks.Count);
-        return projects.Length == 135
+        return projects.Length == 168
             && catalog.Validate().Count == 0
             && required == 4
             && shortcut == 3
@@ -242,7 +247,48 @@ public static class ResearchTreeDebugScenarios
                 13f);
     }
 
-    private static bool VerifySaveRoundTripAndMigration()
+    private static bool VerifyFacilityCapacitySuspension()
+    {
+        ResearchProjectSO[] projects = LoadProjects();
+        ResourceResearchProjectCatalog catalog = new ResourceResearchProjectCatalog(projects);
+        MutableCapacityQuery capacity = new MutableCapacityQuery();
+        using RuntimeScope scope = new RuntimeScope(
+            catalog,
+            new MutableArchiveQuery(),
+            capacity);
+        ResearchProjectSO project = projects.First(candidate =>
+            candidate.ProjectId.Value == "research:survival:sanitation");
+
+        ResearchQueueCommandResult queued = scope.Runtime.EnqueueProject(project.ProjectId);
+        bool blocked = queued.Succeeded
+            && !scope.Runtime.TryGetActiveProject(out _, out string initialBlocker)
+            && initialBlocker.Contains("기초 0/1", StringComparison.Ordinal)
+            && scope.Runtime.State.Projects.Queue[0].IsSuspended;
+
+        capacity.Set(ResearchFacilityCapabilityId.Basic, 1);
+        scope.Runtime.RefreshProjectQueueAfterRestore();
+        bool resumed = scope.Runtime.TryGetActiveProject(
+            out ResearchProjectSO active,
+            out _)
+            && active == project;
+        ResearchProjectProgressState progress =
+            scope.Runtime.State.Projects.GetProgress(project.ProjectId);
+        progress.Add(13f, project);
+
+        capacity.Set(ResearchFacilityCapabilityId.Basic, 0);
+        bool pausedAgain = !scope.Runtime.TryGetActiveProject(out _, out _)
+            && Mathf.Approximately(progress.Progress, 13f)
+            && scope.Runtime.State.Projects.Queue[0].IsSuspended;
+        capacity.Set(ResearchFacilityCapabilityId.Basic, 1);
+        scope.Runtime.RefreshProjectQueueAfterRestore();
+        bool resumedWithProgress = scope.Runtime.TryGetActiveProject(out active, out _)
+            && active == project
+            && Mathf.Approximately(progress.Progress, 13f);
+
+        return blocked && resumed && pausedAgain && resumedWithProgress;
+    }
+
+    private static bool VerifySaveRoundTripAndLegacyRejection()
     {
         ResearchProjectSO[] projects = LoadProjects();
         ResourceResearchProjectCatalog catalog = new ResourceResearchProjectCatalog(projects);
@@ -251,6 +297,8 @@ public static class ResearchTreeDebugScenarios
             project.ProjectId.Value == "research:survival:sanitation");
         ResearchProjectSO guard = projects.First(project =>
             project.ProjectId.Value == "research:defense:watch");
+        ResearchProjectSO completed = projects.First(project =>
+            project.ProjectId.Value == "research:arcane:records");
 
         using RuntimeScope source = new RuntimeScope(catalog, archive);
         source.Runtime.State.Projects.GetProgress(sanitation.ProjectId)
@@ -258,10 +306,10 @@ public static class ResearchTreeDebugScenarios
         source.Runtime.State.Projects.RestoreQueueEntry(sanitation.ProjectId, string.Empty);
         source.Runtime.State.Projects.RestoreQueueEntry(guard.ProjectId, "검증 중단");
         source.Runtime.State.Projects.RestoreActive(sanitation.ProjectId);
-        source.Runtime.State.Projects.RestoreCompleted(guard.ProjectId);
+        source.Runtime.State.Projects.RestoreCompleted(completed.ProjectId);
 
         BlueprintResearchSaveSection sourceSection = new BlueprintResearchSaveSection(
-            new FixedRuntimeProvider(source.Runtime),
+            new ProgressionSceneRuntimeReferences(null, source.Runtime, null),
             new EditorCatalog(),
             new EmptyKnowledgeRuntime(),
             catalog);
@@ -269,64 +317,139 @@ public static class ResearchTreeDebugScenarios
 
         using RuntimeScope restored = new RuntimeScope(catalog, archive);
         BlueprintResearchSaveSection restoredSection = new BlueprintResearchSaveSection(
-            new FixedRuntimeProvider(restored.Runtime),
+            new ProgressionSceneRuntimeReferences(null, restored.Runtime, null),
             new EditorCatalog(),
             new EmptyKnowledgeRuntime(),
             catalog);
         DungeonGameRestoreReport restoreReport = new DungeonGameRestoreReport();
-        restoredSection.Restore(captured, 3, restoreReport);
+        restoredSection.Restore(captured, 5, restoreReport);
         bool roundTrip = restoreReport.Success
             && Mathf.Approximately(
                 restored.Runtime.State.Projects.GetProgress(sanitation.ProjectId).Progress,
                 17f)
             && restored.Runtime.State.Projects.ContainsInQueue(sanitation.ProjectId)
-            && restored.Runtime.State.Projects.IsCompleted(guard.ProjectId)
+            && restored.Runtime.State.Projects.IsCompleted(completed.ProjectId)
             && restored.Runtime.State.Projects.ActiveProjectId.Equals(sanitation.ProjectId);
 
-        ResearchProjectSO legacyQueued = projects.First(project =>
-            project.Blueprint != null
-            && project.ProjectId.Value == "research:survival:support");
-        ResearchProjectSO legacyCompleted = projects.First(project =>
-            project.Blueprint != null
-            && project.ProjectId.Value == "research:defense:fortification");
-        DungeonResearchSaveData legacyPayload = new DungeonResearchSaveData
+        bool rejectedLegacy = false;
+        try
         {
-            tasks = new List<DungeonResearchTaskSaveData>
-            {
-                new DungeonResearchTaskSaveData
-                {
-                    blueprintId = legacyQueued.Blueprint.id,
-                    progress = 11f
-                }
-            },
-            completedBlueprintIds = new List<int>
-            {
-                legacyCompleted.Blueprint.id
-            }
-        };
+            restoredSection.Restore(captured, 3, new DungeonGameRestoreReport());
+        }
+        catch (InvalidOperationException exception)
+        {
+            rejectedLegacy = true;
+            _ = exception.Message.Contains(
+                "대규모 생산망·연구·장비 개편 이전 저장 — 새 게임 필요",
+                StringComparison.Ordinal);
+        }
 
-        using RuntimeScope migrated = new RuntimeScope(catalog, archive);
-        BlueprintResearchSaveSection migrationSection = new BlueprintResearchSaveSection(
-            new FixedRuntimeProvider(migrated.Runtime),
+        string beforeInvalidRestore = JsonUtility.ToJson(restoredSection.Capture());
+        DungeonResearchSaveData invalid = JsonUtility.FromJson<DungeonResearchSaveData>(captured);
+        invalid.projectProgress[0].requiredWorkAtCapture = 0f;
+        bool rejectedInvalid = false;
+        try
+        {
+            restoredSection.StageRestore(
+                JsonUtility.ToJson(invalid),
+                5,
+                new DungeonGameRestoreReport());
+        }
+        catch (InvalidOperationException)
+        {
+            rejectedInvalid = true;
+        }
+
+        bool invalidLeftLiveStateUntouched = string.Equals(
+            beforeInvalidRestore,
+            JsonUtility.ToJson(restoredSection.Capture()),
+            StringComparison.Ordinal);
+        bool strictContracts = restoredSection is IDungeonRollbackFreeSaveSection
+            && restoredSection is IDungeonSaveSectionPreflight
+            && restoredSection is IDungeonStagedSaveSection;
+
+        return roundTrip
+            && rejectedLegacy
+            && rejectedInvalid
+            && invalidLeftLiveStateUntouched
+            && strictContracts;
+    }
+
+    private static bool VerifyDiscardedRestoreLeavesLiveResearchUntouched()
+    {
+        ResearchProjectSO[] projects = LoadProjects();
+        ResourceResearchProjectCatalog catalog =
+            new ResourceResearchProjectCatalog(projects);
+        MutableArchiveQuery archive = new MutableArchiveQuery();
+        ResearchProjectSO project = projects.First(candidate =>
+            candidate.ProjectId.Value == "research:survival:sanitation");
+
+        using RuntimeScope source = new RuntimeScope(catalog, archive);
+        source.Runtime.State.Projects.GetProgress(project.ProjectId)
+            .Restore(31f, project);
+        source.Runtime.State.Projects.RestoreQueueEntry(
+            project.ProjectId,
+            string.Empty);
+        string candidatePayload = new BlueprintResearchSaveSection(
+            new ProgressionSceneRuntimeReferences(null, source.Runtime, null),
             new EditorCatalog(),
             new EmptyKnowledgeRuntime(),
-            catalog);
-        DungeonGameRestoreReport migrationReport = new DungeonGameRestoreReport();
-        migrationSection.Restore(
-            JsonUtility.ToJson(legacyPayload),
-            2,
-            migrationReport);
-        bool migratedLegacy = migrationReport.Success
-            && Mathf.Approximately(
-                migrated.Runtime.State.Projects.GetProgress(legacyQueued.ProjectId).Progress,
-                11f)
-            && migrated.Runtime.State.Projects.ContainsInQueue(legacyQueued.ProjectId)
-            && migrated.Runtime.State.Projects.IsCompleted(legacyCompleted.ProjectId)
-            && migrated.Runtime.State.Tasks.Count == 0
-            && migrationReport.Warnings.Any(message =>
-                message.Contains("새 연구 프로젝트", StringComparison.Ordinal));
+            catalog).Capture();
 
-        return roundTrip && migratedLegacy;
+        using RuntimeScope target = new RuntimeScope(catalog, archive);
+        target.Runtime.State.Projects.GetProgress(project.ProjectId)
+            .Restore(7f, project);
+        BlueprintResearchSaveSection targetSection =
+            new BlueprintResearchSaveSection(
+                new ProgressionSceneRuntimeReferences(
+                    null,
+                    target.Runtime,
+                    null),
+                new EditorCatalog(),
+                new EmptyKnowledgeRuntime(),
+                catalog);
+
+        ResearchScenarioSaveSection workDependency =
+            new ResearchScenarioSaveSection(
+                WorkOrdersSaveSection.Id,
+                DungeonSaveRestorePhase.RuntimeState);
+        ResearchScenarioSaveSection lateFailure =
+            new ResearchScenarioSaveSection(
+                "research.debug.late-failure",
+                DungeonSaveRestorePhase.LateRuntimeState,
+                BlueprintResearchSaveSection.Id)
+            {
+                RemainingCommitFailures = 1
+            };
+        ResearchDiscardObserver observer =
+            new ResearchDiscardObserver(target.Runtime, project.ProjectId);
+        DungeonSaveSectionRegistry registry = new DungeonSaveSectionRegistry(
+            new IDungeonSaveSection[]
+            {
+                workDependency,
+                targetSection,
+                lateFailure
+            },
+            target.RootStore,
+            new IDungeonRestoreTransactionParticipant[] { observer });
+        List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
+        envelopes.First(envelope => string.Equals(
+                envelope.sectionId,
+                BlueprintResearchSaveSection.Id,
+                StringComparison.Ordinal))
+            .payloadJson = candidatePayload;
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        bool restored = registry.RestoreAll(envelopes, report);
+
+        return !restored
+            && observer.DiscardCount == 1
+            && Mathf.Approximately(observer.ObservedProgress, 7f)
+            && !observer.ObservedQueued
+            && Mathf.Approximately(
+                target.Runtime.State.Projects.GetProgress(project.ProjectId).Progress,
+                7f)
+            && !target.Runtime.State.Projects.ContainsInQueue(project.ProjectId)
+            && target.RootStore.PublishedRestoreRevision == 1;
     }
 
     private static ResearchProjectSO[] LoadProjects()
@@ -367,22 +490,42 @@ public static class ResearchTreeDebugScenarios
         public RuntimeScope(
             IResearchProjectCatalog catalog,
             IResearchBlueprintArchiveQuery archive)
+            : this(
+                catalog,
+                archive,
+                UnrestrictedResearchFacilityCapacityQuery.Instance)
+        {
+        }
+
+        public RuntimeScope(
+            IResearchProjectCatalog catalog,
+            IResearchBlueprintArchiveQuery archive,
+            IResearchFacilityCapacityQuery capacity)
         {
             root = new GameObject("ResearchTreeScenarioRuntime");
+            RootStore = new DungeonRuntimeAggregateRootStore();
             Runtime = root.AddComponent<BlueprintResearchRuntime>();
             Runtime.Construct(
                 new FixedUnlockStateService(),
                 new EditorCatalog(),
                 new FacilityCandidateCacheStore(
-                    CharacterAiEditorTestDependencies.WorldRegistry),
+                    CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null),
                 new DungeonWorkforceReplanService(
-                    CharacterAiEditorTestDependencies.WorldRegistry),
+                    CharacterAiEditorTestDependencies.WorldRegistry, facilityCandidateCache: null),
                 new GameEventBus(),
-                projectCatalog: catalog,
-                blueprintArchiveQuery: archive);
+                itemStackRuntime: null,
+                projectCoordinator: new BlueprintResearchProjectCoordinator(
+                    catalog,
+                    archive,
+                    capacity),
+                worldDropZoneQuery: null,
+                aggregateRootStore: RootStore,
+                debugRules: DisabledDungeonDebugRuleQuery.Instance,
+                uiClock: new DungeonStory.Foundation.UnityUiClock());
         }
 
         public BlueprintResearchRuntime Runtime { get; }
+        public DungeonRuntimeAggregateRootStore RootStore { get; }
 
         public void Dispose()
         {
@@ -396,19 +539,112 @@ public static class ResearchTreeDebugScenarios
         public FacilityShopUnlockState GetUnlockState() => state;
     }
 
-    private sealed class FixedRuntimeProvider : IBlueprintResearchRuntimeProvider
+    private sealed class ResearchScenarioSaveSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection
     {
-        private readonly BlueprintResearchRuntime runtime;
+        private readonly IReadOnlyList<string> dependencies;
 
-        public FixedRuntimeProvider(BlueprintResearchRuntime runtime)
+        public ResearchScenarioSaveSection(
+            string sectionId,
+            DungeonSaveRestorePhase restorePhase,
+            params string[] dependencies)
         {
-            this.runtime = runtime;
+            SectionId = sectionId;
+            RestorePhase = restorePhase;
+            this.dependencies = dependencies ?? Array.Empty<string>();
         }
 
-        public bool TryGetRuntime(out BlueprintResearchRuntime result)
+        public string SectionId { get; }
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase { get; }
+        public IReadOnlyList<string> DependsOn => dependencies;
+        public int RemainingCommitFailures { get; set; }
+
+        public string Capture() => "{}";
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
         {
-            result = runtime;
-            return result != null;
+            if (sectionVersion != SectionVersion)
+            {
+                throw new InvalidOperationException("Research scenario version mismatch.");
+            }
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+        }
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            return new DungeonDelegateSaveRestoreStage(SectionId, _ =>
+            {
+                if (RemainingCommitFailures <= 0)
+                {
+                    return;
+                }
+
+                RemainingCommitFailures--;
+                throw new InvalidOperationException(
+                    "Injected late research restore failure.");
+            });
+        }
+    }
+
+    private sealed class ResearchDiscardObserver :
+        IDungeonRestoreTransactionParticipant
+    {
+        private readonly BlueprintResearchRuntime runtime;
+        private readonly ResearchProjectId projectId;
+        private bool hasCandidate;
+
+        public ResearchDiscardObserver(
+            BlueprintResearchRuntime runtime,
+            ResearchProjectId projectId)
+        {
+            this.runtime = runtime;
+            this.projectId = projectId;
+        }
+
+        public string ParticipantId => "research.debug.discard-observer";
+        public int DiscardCount { get; private set; }
+        public float ObservedProgress { get; private set; }
+        public bool ObservedQueued { get; private set; }
+
+        public void BeginRestoreCandidate()
+        {
+            hasCandidate = true;
+        }
+
+        public void PublishRestoreCandidate()
+        {
+            hasCandidate = false;
+        }
+
+        public void DiscardRestoreCandidate()
+        {
+            if (!hasCandidate)
+            {
+                return;
+            }
+
+            hasCandidate = false;
+            DiscardCount++;
+            ObservedProgress = runtime.State.Projects
+                .GetProgress(projectId)
+                .Progress;
+            ObservedQueued = runtime.State.Projects.ContainsInQueue(projectId);
         }
     }
 
@@ -439,11 +675,12 @@ public static class ResearchTreeDebugScenarios
         public IReadOnlyList<KnowledgeResidueTaskSaveData> Capture() =>
             Array.Empty<KnowledgeResidueTaskSaveData>();
 
-        public void Restore(
-            IEnumerable<KnowledgeResidueTaskSaveData> tasks,
-            DungeonGameRestoreReport report)
-        {
-        }
+        public KnowledgeResidueRestoreCandidate PrepareRestore(
+            IEnumerable<KnowledgeResidueTaskSaveData> tasks) =>
+            new KnowledgeResidueRestoreCandidate(
+                new KnowledgeResidueAggregateState());
+
+        public void Restore(KnowledgeResidueRestoreCandidate candidate) { }
     }
 
     private sealed class MutableArchiveQuery : IResearchBlueprintArchiveQuery
@@ -472,6 +709,53 @@ public static class ResearchTreeDebugScenarios
             archive = null;
             destinationId = string.Empty;
             return false;
+        }
+    }
+
+    private sealed class MutableCapacityQuery : IResearchFacilityCapacityQuery
+    {
+        private readonly Dictionary<ResearchFacilityCapabilityId, int> values =
+            new Dictionary<ResearchFacilityCapabilityId, int>();
+
+        public int Version { get; private set; }
+
+        public void Set(ResearchFacilityCapabilityId capability, int value)
+        {
+            values[capability] = Mathf.Max(0, value);
+            Version++;
+        }
+
+        public int GetAvailable(ResearchFacilityCapabilityId capability)
+        {
+            return values.TryGetValue(capability, out int value) ? value : 0;
+        }
+
+        public bool MeetsRequirements(ResearchProjectSO project, out string blocker)
+        {
+            ResearchFacilityRequirement? missing = project?.FacilityRequirements
+                .FirstOrDefault(requirement =>
+                    GetAvailable(requirement.capability) < requirement.requiredCount);
+            if (!missing.HasValue || missing.Value.requiredCount <= 0)
+            {
+                blocker = string.Empty;
+                return true;
+            }
+
+            ResearchFacilityRequirement requirement = missing.Value;
+            blocker = $"연구 시설 수용력 부족: "
+                + $"{ResearchFacilityCapacityQuery.GetDisplayName(requirement.capability)} "
+                + $"{GetAvailable(requirement.capability)}/{requirement.requiredCount}";
+            return false;
+        }
+
+        public string FormatRequirements(ResearchProjectSO project)
+        {
+            return string.Join(
+                " · ",
+                project?.FacilityRequirements.Select(requirement =>
+                    $"{ResearchFacilityCapacityQuery.GetDisplayName(requirement.capability)} "
+                    + $"{GetAvailable(requirement.capability)}/{requirement.requiredCount}")
+                ?? Array.Empty<string>());
         }
     }
 

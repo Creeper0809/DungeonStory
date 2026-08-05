@@ -21,18 +21,40 @@ public static class DungeonCombatRegistration
             .As<ICombatLineOfSightService>();
         builder.Register<GridCombatCoverQuery>(Lifetime.Singleton)
             .As<ICombatCoverQuery>();
+        builder.Register<CombatCoverDurabilityRegistry>(Lifetime.Singleton)
+            .As<ICombatCoverDurabilityRegistry>()
+            .As<IBuildingCoverDurabilityPort>();
         builder.Register<CombatFiringSolutionService>(Lifetime.Singleton)
             .As<ICombatFiringSolutionService>();
         builder.Register<ResourceAnatomyProfileCatalog>(Lifetime.Singleton)
             .As<IAnatomyProfileCatalog>();
+        builder.Register<DefaultAnatomyActivityProfileCatalog>(Lifetime.Singleton)
+            .As<IAnatomyActivityProfileCatalog>();
+        builder.Register<ResourceAnatomyConditionLexicon>(Lifetime.Singleton)
+            .As<IAnatomyConditionLexicon>();
         builder.Register<ResourceCombatEquipmentCatalog>(Lifetime.Singleton)
             .As<ICombatEquipmentCatalog>();
+        builder.Register<ResourceEquipmentModuleCatalog>(Lifetime.Singleton)
+            .As<IEquipmentModuleCatalog>();
+        builder.Register<CombatEquipmentStatProjector>(Lifetime.Singleton);
+        builder.Register<CombatEquipmentPhysicalStateWriter>(Lifetime.Singleton);
+        builder.Register<CombatEquipmentRuntimeStateStore>(Lifetime.Singleton);
+        builder.Register<CombatEquipmentLoadoutStore>(Lifetime.Singleton);
+        builder.Register<EquipmentModuleRuntime>(Lifetime.Singleton);
+        builder.Register<EquipmentHistoryTransferRuntime>(Lifetime.Singleton);
+        builder.Register<CombatEquipmentRuntimeCollaborators>(Lifetime.Singleton);
+        builder.Register<CombatEquipmentCraftingRuntime>(Lifetime.Singleton);
+        builder.Register<CombatEquipmentLoadoutRuntime>(Lifetime.Singleton);
         builder.Register<CombatEquipmentRuntime>(Lifetime.Singleton)
             .AsSelf()
             .As<ICombatEquipmentRuntime>()
+            .As<IBuildingEquipmentCraftingRuntimePort>()
             .As<ICombatLoadoutRuntime>();
+        builder.Register<EquipmentExpeditionRewardService>(Lifetime.Singleton)
+            .As<IEquipmentExpeditionRewardService>();
         builder.Register<EquipmentEvolutionRuntime>(Lifetime.Singleton)
             .As<IEquipmentEvolutionRuntime>()
+            .As<IEquipmentEvolutionPersistence>()
             .As<IAttunementRuntime>();
         builder.RegisterEntryPoint<EvolutionHistoryNarrativeRuntime>(
                 Lifetime.Singleton)
@@ -42,17 +64,26 @@ public static class DungeonCombatRegistration
         builder.RegisterEntryPoint<EvolutionCatalystDropRuntime>(
                 Lifetime.Singleton)
             .As<IEvolutionCatalystDropRuntime>();
-        builder.RegisterEntryPoint<CombatEquipmentItemRuntimeConnector>(
-            Lifetime.Singleton);
         builder.RegisterEntryPoint<CombatEquipmentCharacterDeathConnector>(
-            Lifetime.Singleton);
+                Lifetime.Singleton)
+            .AsSelf();
+        builder.Register<EquipmentMaintenanceItemServices>(Lifetime.Singleton);
+        builder.Register<EquipmentMaintenanceWorldServices>(Lifetime.Singleton);
+        builder.Register<EquipmentMaintenanceClockServices>(Lifetime.Singleton);
         builder.RegisterEntryPoint<EquipmentMaintenancePolicyRuntime>(
                 Lifetime.Singleton)
             .As<ICombatEquipmentMaintenanceRuntime>();
         builder.RegisterEntryPoint<CharacterBodyHealthRuntime>(
                 Lifetime.Singleton)
-            .As<ICharacterBodyHealthRuntime>()
-            .As<IAnatomyHealthRuntime>();
+            .AsSelf()
+            .As<ICharacterBodyHealthQuery>()
+            .As<ICharacterBodyHealthCommand>()
+            .As<ICharacterBodyHealthPersistence>()
+            .As<IAnatomyHealthRuntime>()
+            .As<IAnatomyEffectRuntime>();
+        builder.Register<SurgeryAggregateStateStore>(Lifetime.Singleton)
+            .AsSelf()
+            .As<ISurgeryOrderDemandQuery>();
         builder.RegisterEntryPoint<WildlifeAnatomyHealthRuntime>(
                 Lifetime.Singleton)
             .As<IWildlifeAnatomyHealthRuntime>();
@@ -61,8 +92,12 @@ public static class DungeonCombatRegistration
             .As<ISurgicalPatientTransportRuntime>();
         builder.Register<CharacterPhysicalCapacityQuery>(Lifetime.Singleton)
             .As<ICharacterPhysicalCapacityQuery>();
+        builder.Register<CharacterMedicalWorldServices>(Lifetime.Singleton);
         builder.RegisterEntryPoint<CharacterMedicalRuntime>(Lifetime.Singleton)
-            .As<ICharacterMedicalRuntime>();
+            .As<ICharacterMedicalQuery>()
+            .As<ICharacterMedicalCommand>()
+            .As<ICharacterMedicalPersistence>()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.Register<ResourceSurgicalProcedureCatalog>(Lifetime.Singleton)
             .As<ISurgicalProcedureCatalog>();
         builder.Register<SurgicalFacilityQuery>(Lifetime.Singleton)
@@ -86,6 +121,8 @@ public static class DungeonCombatRegistration
             .As<IProductionOutputHandler>();
         builder.Register<HealSurgicalNodeEffectHandler>(Lifetime.Singleton)
             .As<ISurgicalProcedureEffectHandler>();
+        builder.Register<MaintainSurgicalPartEffectHandler>(Lifetime.Singleton)
+            .As<ISurgicalProcedureEffectHandler>();
         builder.Register<RemoveSurgicalNodeEffectHandler>(Lifetime.Singleton)
             .As<ISurgicalProcedureEffectHandler>();
         builder.Register<InstallSurgicalPartEffectHandler>(Lifetime.Singleton)
@@ -94,17 +131,45 @@ public static class DungeonCombatRegistration
             .As<ISurgicalProcedureEffectHandler>();
         builder.Register<ReduceSurgicalBurdenEffectHandler>(Lifetime.Singleton)
             .As<ISurgicalProcedureEffectHandler>();
+        builder.Register<SurgeryContentServices>(Lifetime.Singleton);
+        builder.Register<SurgeryWorldServices>(Lifetime.Singleton);
+        builder.Register<SurgeryResourceServices>(Lifetime.Singleton);
+        builder.Register<SurgeryExecutionServices>(Lifetime.Singleton);
+        builder.Register<SurgeryRestoreCoordinator>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IDungeonRestoreTransactionParticipant>();
         builder.RegisterEntryPoint<SurgeryRuntime>(Lifetime.Singleton)
-            .As<ISurgeryRuntime>()
+            .As<ISurgeryQuery>()
+            .As<ISurgeryWorkCommand>()
+            .As<ISurgeryPersistence>()
             .As<ISurgeryCommandService>();
+        builder.Register<DefenseTacticalWorldQueryAdapter>(Lifetime.Singleton)
+            .As<IDefenseTacticalWorldQuery>();
         builder.RegisterEntryPoint<DefenseTacticalCoordinator>(
                 Lifetime.Singleton)
             .As<IDefenseTacticalCoordinator>();
-        builder.RegisterEntryPoint<CharacterCombatCommandRuntime>(
+        builder.Register<CombatAttackPositionPlanner>(Lifetime.Singleton);
+        builder.Register<CombatFallbackWeaponRuntimeAdapter>(Lifetime.Singleton)
+            .As<ICombatFallbackWeaponRuntimePort>();
+        builder.Register<CombatFallbackWeaponSelector>(Lifetime.Singleton);
+        builder.Register<CombatCommandResultApplier>(Lifetime.Singleton);
+        builder.Register<CombatCommandParticipantQuery>(Lifetime.Singleton);
+        builder.Register<CharacterCombatCommandCombatServices>(Lifetime.Singleton);
+        builder.Register<CombatCoverServices>(Lifetime.Singleton);
+        builder.Register<CharacterCombatCommandWorldServices>(Lifetime.Singleton);
+        builder.Register<CharacterCombatCommandCollaborators>(Lifetime.Singleton);
+        builder.Register<CharacterCombatUiTextLocalizer>(Lifetime.Singleton)
+            .As<ICharacterCombatUiTextQuery>();
+        builder.Register<CharacterCombatCommandRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<ICharacterCombatCommandRuntime>()
+            .As<IDungeonRestoreTransactionParticipant>();
+        builder.RegisterEntryPoint<CharacterCombatCommandUnityLifecycleAdapter>(
                 Lifetime.Singleton)
-            .As<ICharacterCombatCommandRuntime>();
+            .AsSelf();
         builder.RegisterEntryPoint<CombatCommandBarUiController>(
-            Lifetime.Singleton);
+                Lifetime.Singleton)
+            .AsSelf();
         builder.RegisterEntryPoint<CombatTacticalOverlayPresenter>(
                 Lifetime.Singleton)
             .As<ICombatTacticalOverlayPresenter>();
@@ -114,12 +179,6 @@ public static class DungeonCombatRegistration
             .As<ICombatAmmoResupplyRuntime>()
             .As<ICombatEquipmentPickupRuntime>();
 
-        builder.Register<InvasionThreatRuntimeProvider>(Lifetime.Singleton)
-            .As<IInvasionThreatRuntimeProvider>();
-        builder.Register<InvasionDirectorRuntimeProvider>(Lifetime.Singleton)
-            .As<IInvasionDirectorRuntimeProvider>();
-        builder.Register<InvasionCombatReportRuntimeProvider>(Lifetime.Singleton)
-            .As<IInvasionCombatReportRuntimeProvider>();
         builder.Register<ResourceFacilityCrimeSettingsProvider>(
                 Lifetime.Singleton)
             .As<IFacilityCrimeSettingsProvider>();
@@ -132,25 +191,42 @@ public static class DungeonCombatRegistration
             .As<IInvasionIntruderDataProvider>();
         builder.Register<InvasionIntruderContext>(Lifetime.Singleton)
             .As<IInvasionIntruderContext>();
+        builder.Register<DefenseBreachPlanner>(Lifetime.Singleton)
+            .As<IDefenseBreachPlanner>();
+        builder.Register<DefenseRaidAwarenessRuntime>(Lifetime.Singleton)
+            .As<IDefenseRaidAwarenessRuntime>();
         builder.Register<InvasionIntruderRuntimeFactory>(Lifetime.Singleton)
             .As<IInvasionIntruderFactory>();
         builder.Register<DefenseStatusRuntimeFactory>(Lifetime.Singleton)
             .As<IDefenseStatusRuntimeFactory>();
         builder.Register<DefenseStatusRuntimeService>(Lifetime.Singleton)
             .As<IDefenseStatusRuntimeService>();
+        builder.Register<DefenseFacilityNetworkRuntime>(Lifetime.Singleton)
+            .As<IDefenseFacilityNetworkRuntime>();
         builder.Register<DefenseFacilityRuntime>(Lifetime.Singleton)
+            .AsSelf()
             .As<IDefenseFacilityRuntime>();
+        builder.Register<DefenseFacilityPersistenceAdapter>(Lifetime.Singleton)
+            .As<IDefenseFacilityPersistence>();
+        builder.Register<BuildingStructuralIntegrityRuntime>(Lifetime.Singleton)
+            .As<IBuildingStructuralIntegrityRuntime>();
         builder.Register<DefenseResponsePolicyRuntime>(Lifetime.Singleton)
             .As<IDefenseResponsePolicyRuntime>();
         builder.RegisterEntryPoint<InvasionOwnerEvacuationService>(
                 Lifetime.Singleton)
             .As<IInvasionOwnerEvacuationService>();
+        builder.Register<DefenseCombatSupportServices>(Lifetime.Singleton);
         builder.Register<DefenseCombatExecutor>(Lifetime.Singleton)
             .As<IDefenseCombatExecutor>();
         builder.Register<DefenseEngagementStore>(Lifetime.Singleton)
             .As<IDefenseEngagementStore>();
+        builder.Register<DefenseEngagementWorldServices>(Lifetime.Singleton);
+        builder.Register<DefenseEngagementCombatServices>(Lifetime.Singleton);
         builder.RegisterEntryPoint<DefenseEngagementRuntime>(
                 Lifetime.Singleton)
             .As<IDefenseEngagementRuntime>();
+        builder.RegisterEntryPoint<DungeonDefenseTimeResponseRuntime>(
+                Lifetime.Singleton)
+            .AsSelf();
     }
 }

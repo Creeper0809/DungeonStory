@@ -1,67 +1,129 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
+using DungeonStory.Content.CoreSession;
 
-public sealed class RunFlowSaveSection : IDungeonSaveSection
+public sealed class RunFlowSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonRunFlowSaveData,
+        DungeonRunFlowAggregateState>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "run.flow";
 
     private readonly IDungeonRunFlowRuntime runtime;
+    private readonly IDungeonRunFlowRestorePublisher restorePublisher;
+    private readonly CoreSessionRulesDefinition rules;
 
-    public RunFlowSaveSection(IDungeonRunFlowRuntime runtime)
+    public RunFlowSaveSection(
+        IDungeonRunFlowRuntime runtime,
+        ICoreSessionRulesProvider rulesProvider)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        restorePublisher = runtime as IDungeonRunFlowRestorePublisher
+            ?? throw new InvalidOperationException(
+                $"{nameof(RunFlowSaveSection)} requires a detached-state restore publisher.");
+        rules = (rulesProvider
+                ?? throw new ArgumentNullException(nameof(rulesProvider)))
+            .CoreSessionRules
+            ?? throw new InvalidOperationException(
+                "Core-session rules are not authored.");
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => 1;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonRunFlowSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.LateRuntimeState;
+    public override IReadOnlyList<string> DependsOn => new[]
     {
-        OffenseSaveSection.Id,
+        OffenseAggregateSaveSection.Id,
         InvasionSaveSection.Id
     };
 
-    public string Capture()
+    protected override DungeonRunFlowSaveData CapturePayload()
     {
-        return JsonUtility.ToJson(new DungeonRunFlowSaveData
+        return new DungeonRunFlowSaveData
         {
             phase = runtime.Phase,
             outcome = runtime.Outcome,
             currentDay = runtime.CurrentDay,
             bossArmed = runtime.IsBossArmed,
             bossActive = runtime.IsBossActive,
-            finalInvasionDefended = runtime.IsFinalInvasionDefended,
             bossCycle = runtime.BossCycle
-        });
+        };
     }
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
+    protected override DungeonRunFlowAggregateState BuildRestoreCandidate(
+        DungeonRunFlowSaveData payload)
     {
-        ValidateVersion(sectionVersion);
-        DungeonRunFlowSaveData source =
-            JsonUtility.FromJson<DungeonRunFlowSaveData>(
-                payloadJson ?? string.Empty)
-            ?? new DungeonRunFlowSaveData();
-        runtime.RestoreState(
-            source.phase,
-            source.outcome,
-            Mathf.Max(1, source.currentDay),
-            source.bossArmed,
-            source.bossActive,
-            source.finalInvasionDefended,
-            Mathf.Max(0, source.bossCycle));
-    }
-
-    private void ValidateVersion(int version)
-    {
-        if (version != SectionVersion)
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        ValidatePayload(payload, report);
+        if (!report.Success)
         {
             throw new InvalidOperationException(
-                $"Unsupported {Id} section version {version}.");
+                "Run-flow restore candidate is invalid: "
+                + string.Join(" | ", report.Errors));
+        }
+
+        return new DungeonRunFlowAggregateState
+        {
+            Phase = payload.phase,
+            Outcome = payload.outcome,
+            CurrentDay = payload.currentDay,
+            BossArmed = payload.bossArmed,
+            BossActive = payload.bossActive,
+            BossCycle = payload.bossCycle
+        };
+    }
+
+    protected override void PublishRestoreCandidate(
+        DungeonRunFlowAggregateState candidate) =>
+        restorePublisher.PublishRestoreState(candidate);
+
+    private void ValidatePayload(
+        DungeonRunFlowSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload == null)
+        {
+            report.AddError("Run-flow payload is null.");
+            return;
+        }
+        if (payload.version != DungeonRunFlowSaveData.CurrentVersion)
+        {
+            report.AddError(
+                $"Run-flow payload version {payload.version} is unsupported.");
+        }
+        if (!Enum.IsDefined(typeof(DungeonRunOutcome), payload.outcome)
+            || payload.currentDay < 1)
+        {
+            report.AddError("Run-flow outcome or current day is invalid.");
+            return;
+        }
+
+        DungeonRunPhase expectedPhase = payload.outcome == DungeonRunOutcome.None
+            ? DungeonRunFlowRules.ResolvePhaseForDay(
+                payload.currentDay,
+                rules)
+            : DungeonRunPhase.Finished;
+        if (payload.phase != expectedPhase)
+        {
+            report.AddError(
+                $"Run-flow phase {payload.phase} does not match day/outcome state.");
+        }
+
+        int maximumBossCycle =
+            DungeonRunFlowRules.ResolveBossCycleForDay(
+                payload.currentDay,
+                rules);
+        if (payload.bossCycle < 0
+            || payload.bossCycle > maximumBossCycle
+            || payload.bossArmed && payload.bossActive
+            || (payload.bossArmed || payload.bossActive)
+                && (payload.outcome != DungeonRunOutcome.None
+                    || payload.bossCycle <= 0))
+        {
+            report.AddError("Run-flow boss-cycle hierarchy is invalid.");
         }
     }
+
 }

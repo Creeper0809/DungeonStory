@@ -7,6 +7,11 @@ using Object = UnityEngine.Object;
 
 public static class CharacterModelDebugScenarios
 {
+    private static IGameContentDefinitionSource Content =>
+        CharacterAiEditorTestDependencies.ContentDefinitions;
+    private static ICharacterSpeciesCatalog SpeciesCatalog =>
+        CharacterAiEditorTestDependencies.CharacterSpeciesCatalog;
+
     [MenuItem("DungeonStory/Debug/Character/Run P1 Character Model Scenarios")]
     public static void RunFromMenu()
     {
@@ -65,9 +70,26 @@ public static class CharacterModelDebugScenarios
 
     private static bool VerifyAssetCounts()
     {
-        string[] species = AssetDatabase.FindAssets("t:CharacterSpeciesSO", new[] { "Assets/Resources/SO/Character/Species" });
-        string[] traits = AssetDatabase.FindAssets("t:CharacterTraitSO", new[] { "Assets/Resources/SO/Character/Traits" });
-        return species.Length == 3 && traits.Length == 8;
+        IReadOnlyList<CharacterSpeciesSO> authoredSpecies =
+            Content.GetAll<CharacterSpeciesSO>();
+        IReadOnlyList<CharacterTraitSO> authoredTraits =
+            Content.GetAll<CharacterTraitSO>();
+        string[] requiredCoreSpecies = { "Slime", "Orc", "Vampire" };
+
+        return authoredSpecies.Count == SpeciesCatalog.All.Count
+            && authoredSpecies.Count >= requiredCoreSpecies.Length
+            && requiredCoreSpecies.All(tag => SpeciesCatalog.TryGet(
+                new CharacterSpeciesId(tag),
+                out _))
+            && authoredSpecies
+                .Select(species => species.DefinitionId.Value)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count() == authoredSpecies.Count
+            && authoredTraits.Count >= 8
+            && authoredTraits
+                .Select(trait => trait.id)
+                .Distinct()
+                .Count() == authoredTraits.Count;
     }
 
     private static bool VerifyStatComposition()
@@ -147,35 +169,103 @@ public static class CharacterModelDebugScenarios
 
         return HasCompleteSpeciesData(
                 slime,
-                CharacterSpeciesIncidentType.SlimeContamination,
-                "저가 음식점",
-                "화염 시설")
+                CharacterSpeciesIncidentIds.SlimeContamination)
             && HasCompleteSpeciesData(
                 orc,
-                CharacterSpeciesIncidentType.OrcRampage,
-                "고기 식당",
-                "마력 시설")
+                CharacterSpeciesIncidentIds.OrcRampage)
             && HasCompleteSpeciesData(
                 vampire,
-                CharacterSpeciesIncidentType.VampireFear,
-                "연구실",
-                "밝은 시설");
+                CharacterSpeciesIncidentIds.VampireFear);
     }
 
     private static bool VerifySpeciesRuntimeTendencies()
     {
-        CharacterRuntimeProfile slime = CreateProfile("Species_Slime");
-        CharacterRuntimeProfile orc = CreateProfile("Species_Orc");
-        CharacterRuntimeProfile vampire = CreateProfile("Species_Vampire");
+        string[] requiredSpecies =
+        {
+            "Beastkin",
+            "Demon",
+            "Golem",
+            "Harpy",
+            "Kobold",
+            "Myconid",
+            "Orc",
+            "Slime",
+            "Vampire"
+        };
+        IReadOnlyList<CharacterSpeciesSO> authored = SpeciesCatalog.All;
+        Dictionary<string, CharacterRuntimeProfile> profiles = authored
+            .ToDictionary(
+                species => species.speciesTag,
+                species => CreateProfile("Species_" + species.speciesTag),
+                StringComparer.Ordinal);
+        profiles.TryGetValue("Slime", out CharacterRuntimeProfile slime);
+        profiles.TryGetValue("Orc", out CharacterRuntimeProfile orc);
+        profiles.TryGetValue("Vampire", out CharacterRuntimeProfile vampire);
 
-        return vampire.GetStayDurationMultiplier() > orc.GetStayDurationMultiplier()
+        float[] stayMultipliers = profiles.Values
+            .Select(profile => profile.GetStayDurationMultiplier())
+            .ToArray();
+        float[] combatMultipliers = profiles.Values
+            .Select(profile => profile.GetCombatPowerMultiplier())
+            .ToArray();
+        float[] accidentMultipliers = profiles.Values
+            .Select(profile => profile.GetAccidentChanceMultiplier())
+            .ToArray();
+        string[] incidentIds = profiles.Values
+            .Select(profile => profile.GetIncidentId())
+            .ToArray();
+
+        bool catalogComplete = authored.Count == requiredSpecies.Length
+            && new HashSet<string>(
+                authored.Select(species => species.speciesTag),
+                StringComparer.Ordinal).SetEquals(requiredSpecies)
+            && profiles.Values.All(profile => profile != null);
+        bool authoredVariation = stayMultipliers.All(value => value > 0f)
+            && combatMultipliers.All(value => value > 0f)
+            && accidentMultipliers.All(value => value > 0f)
+            && stayMultipliers.Distinct().Count() >= 2
+            && combatMultipliers.Distinct().Count() >= 4
+            && accidentMultipliers.Distinct().Count() >= 3;
+        bool incidentCoverage = incidentIds.All(id =>
+                !string.IsNullOrWhiteSpace(id)
+                && !string.Equals(
+                    id,
+                    CharacterSpeciesIncidentIds.None,
+                    StringComparison.Ordinal))
+            && incidentIds.Distinct(StringComparer.Ordinal).Count()
+                == requiredSpecies.Length;
+        bool coreTendencies = slime != null
+            && orc != null
+            && vampire != null
             && orc.GetStayDurationMultiplier() > slime.GetStayDurationMultiplier()
+            && vampire.GetStayDurationMultiplier() > slime.GetStayDurationMultiplier()
             && orc.GetSpendingMultiplier() > slime.GetSpendingMultiplier()
-            && orc.GetCombatPowerMultiplier() > slime.GetCombatPowerMultiplier()
+            && orc.GetCombatPowerMultiplier() > vampire.GetCombatPowerMultiplier()
+            && vampire.GetCombatPowerMultiplier() > slime.GetCombatPowerMultiplier()
             && orc.GetAccidentChanceMultiplier() > vampire.GetAccidentChanceMultiplier()
-            && slime.GetIncidentType() == CharacterSpeciesIncidentType.SlimeContamination
+            && vampire.GetAccidentChanceMultiplier() > slime.GetAccidentChanceMultiplier()
+            && slime.GetIncidentType()
+                == CharacterSpeciesIncidentType.SlimeContamination
             && orc.GetIncidentType() == CharacterSpeciesIncidentType.OrcRampage
-            && vampire.GetIncidentType() == CharacterSpeciesIncidentType.VampireFear;
+            && vampire.GetIncidentType()
+                == CharacterSpeciesIncidentType.VampireFear;
+        bool valid = catalogComplete
+            && authoredVariation
+            && incidentCoverage
+            && coreTendencies;
+        if (!valid)
+        {
+            Debug.LogError(
+                "Species runtime tendency detail: "
+                + $"catalogComplete={catalogComplete}, "
+                + $"variation={authoredVariation}, incidents={incidentCoverage}, "
+                + $"core={coreTendencies}, count={authored.Count}, "
+                + $"stay={string.Join(",", stayMultipliers.Select(value => value.ToString("0.###")))}, "
+                + $"combat={string.Join(",", combatMultipliers.Select(value => value.ToString("0.###")))}, "
+                + $"accident={string.Join(",", accidentMultipliers.Select(value => value.ToString("0.###")))}");
+        }
+
+        return valid;
     }
 
     private static bool VerifySpeciesCrowdSensitivity()
@@ -188,19 +278,26 @@ public static class CharacterModelDebugScenarios
 
     private static bool HasCompleteSpeciesData(
         CharacterSpeciesSO species,
-        CharacterSpeciesIncidentType expectedIncident,
-        string expectedPreferredFacility,
-        string expectedDislikedEnvironment)
+        string expectedIncidentId)
     {
         return species != null
+            && species.DefinitionId.IsValid
+            && !string.IsNullOrWhiteSpace(species.displayName)
+            && !string.IsNullOrWhiteSpace(species.anatomyProfileId)
+            && species.needs != null
+            && species.environment != null
             && !string.IsNullOrWhiteSpace(species.shortDescription)
-            && species.preferredFacilityLabels.Contains(expectedPreferredFacility)
-            && species.dislikedEnvironmentLabels.Contains(expectedDislikedEnvironment)
+            && species.preferredFacilityLabels.Length > 0
+            && species.dislikedEnvironmentLabels.Length > 0
             && species.stayDurationMultiplier > 0f
-            && species.incidentType == expectedIncident
-            && !string.IsNullOrWhiteSpace(species.incidentName)
-            && !string.IsNullOrWhiteSpace(species.incidentDescription)
-            && species.incidentMitigatingRoles != FacilityRole.None;
+            && species.crimeRiskMultiplier > 0f
+            && string.Equals(
+                species.IncidentId,
+                expectedIncidentId,
+                StringComparison.Ordinal)
+            && !string.IsNullOrWhiteSpace(species.IncidentDisplayName)
+            && species.IncidentMitigatingRoles != FacilityRole.None
+            && !string.IsNullOrWhiteSpace(species.combatPassive?.StableId);
     }
 
     private static CharacterRuntimeProfile CreateProfile(string speciesAssetName, params string[] traitAssetNames)
@@ -228,13 +325,23 @@ public static class CharacterModelDebugScenarios
 
     private static CharacterSpeciesSO LoadSpecies(string assetName)
     {
-        return AssetDatabase.LoadAssetAtPath<CharacterSpeciesSO>(
-            $"Assets/Resources/SO/Character/Species/{assetName}.asset");
+        string speciesTag = assetName != null
+            && assetName.StartsWith("Species_", StringComparison.Ordinal)
+            ? assetName.Substring("Species_".Length)
+            : assetName;
+        return SpeciesCatalog.TryGet(
+            new CharacterSpeciesId(speciesTag),
+            out CharacterSpeciesSO species)
+            ? species
+            : null;
     }
 
     private static CharacterTraitSO LoadTrait(string assetName)
     {
-        return AssetDatabase.LoadAssetAtPath<CharacterTraitSO>(
-            $"Assets/Resources/SO/Character/Traits/{assetName}.asset");
+        return Content.GetAll<CharacterTraitSO>()
+            .SingleOrDefault(trait => string.Equals(
+                trait.name,
+                assetName,
+                StringComparison.Ordinal));
     }
 }

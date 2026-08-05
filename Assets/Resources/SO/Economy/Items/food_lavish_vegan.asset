@@ -27,21 +27,37 @@ MonoBehaviour:
   description: "\uC138 \uAC00\uC9C0 \uC2DD\uBB3C \uC7AC\uB8CC\uAD70\uC744 \uC4F4
     \uBE44\uAC74 \uD638\uD654\uC2DD."
   stockCategory: 0
-  kind: 2
-  ingredientTags: 3
-  unitPrice: 24
-  marketSaleRate: 0.6
   unitWeight: 0.9
   maxStack: 30
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:lavish
-  mealQuality: 2
-  nutrition: 58
-  mealMood: 13
-  freshnessSeconds: 480
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 24
+  features:
+  - rid: 7737211673962611546
+  - rid: 7737211673962611547
+  - rid: 7737211673962611548
+  - rid: 7737211673962611549
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611546
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:lavish
+    - rid: 7737211673962611547
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 2
+        ingredientTags: 3
+        sharedIntermediate: 0
+    - rid: 7737211673962611548
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211673962611549
+      type: {class: FoodItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        quality: 2
+        nutrition: 58
+        mood: 13
+        freshnessSeconds: 480
+        preserved: 0

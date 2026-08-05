@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uAD00\uD1B5 \uBB34\uAE30\uC640 \uC0AC\uB0E5\uC5D0 \uBC14\uB974\uB294
     \uB3C5\uC561."
   stockCategory: 8
-  kind: 8
-  ingredientTags: 4096
-  unitPrice: 20
-  marketSaleRate: 0.6
   unitWeight: 0.12
   maxStack: 30
   sprite: {fileID: 0}
-  requiredResearchId: research:arcane:alchemy
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 20
+  features:
+  - rid: 7737211673962611538
+  - rid: 7737211673962611539
+  - rid: 7737211673962611540
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611538
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:arcane:alchemy
+    - rid: 7737211673962611539
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 4096
+        sharedIntermediate: 0
+    - rid: 7737211673962611540
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

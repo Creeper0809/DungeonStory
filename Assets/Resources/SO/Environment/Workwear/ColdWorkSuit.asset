@@ -23,6 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 852633
   workwearId: workwear:cold-work-suit
+  itemDefinitionId: equipment:cold-work-suit
   displayName: "\uBC29\uD55C \uC791\uC5C5\uBCF5"
   description: "\uC804\uD22C \uBC29\uC5B4\uB825 \uC5C6\uC774 8\xB0C \uB0C9\uC7A5\uC2E4
     \uC0C1\uC2DC \uADFC\uBB34\uB97C \uC9C0\uC6D0\uD55C\uB2E4."

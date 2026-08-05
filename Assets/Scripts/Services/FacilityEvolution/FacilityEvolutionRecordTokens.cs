@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using FacilityEvolutionDomain = DungeonStory.FacilityEvolution;
 
 public enum FacilityEvolutionRecordTokenConsumePolicy
 {
@@ -98,22 +99,23 @@ public sealed class DefaultFacilityEvolutionRecordTokenConsumer : IFacilityEvolu
             return false;
         }
 
-        foreach (FacilityEvolutionTokenRequirement requirement in normalized)
-        {
-            int required = Mathf.Max(1, requirement.minCount);
-            int current = record.GetToken(requirement.key);
-            if (current < required)
-            {
-                reason = $"{requirement.key} {current}/{required}";
-                return false;
-            }
-        }
-
         if (!consumeRequestedByRecipe)
         {
+            foreach (FacilityEvolutionTokenRequirement requirement in normalized)
+            {
+                int required = Mathf.Max(1, requirement.minCount);
+                int current = record.GetToken(requirement.key);
+                if (current < required)
+                {
+                    reason = $"{requirement.key} {current}/{required}";
+                    return false;
+                }
+            }
             return true;
         }
 
+        Dictionary<string, int> consumption =
+            new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (FacilityEvolutionTokenRequirement requirement in normalized)
         {
             FacilityEvolutionRecordTokenDefinitionSO definition =
@@ -124,21 +126,36 @@ public sealed class DefaultFacilityEvolutionRecordTokenConsumer : IFacilityEvolu
 
             if (policy == FacilityEvolutionRecordTokenConsumePolicy.Preserve)
             {
+                int required = Mathf.Max(1, requirement.minCount);
+                if (record.GetToken(requirement.key) < required)
+                {
+                    reason = $"{requirement.key} {record.GetToken(requirement.key)}/{required}";
+                    return false;
+                }
                 continue;
             }
 
             if (policy == FacilityEvolutionRecordTokenConsumePolicy.ConsumeAll)
             {
-                record.SetToken(requirement.key, 0);
+                consumption[requirement.key] = record.GetToken(requirement.key);
                 continue;
             }
-
-            if (!record.TryConsumeToken(requirement.key, Mathf.Max(1, requirement.minCount), out reason))
-            {
-                return false;
-            }
+            consumption[requirement.key] = Mathf.Max(1, requirement.minCount);
         }
 
-        return true;
+        try
+        {
+            FacilityEvolutionDomain.FacilityEvolutionRecordSnapshot next =
+                FacilityEvolutionDomain.FacilityEvolutionRecordRules.ConsumeTokens(
+                    record.ToDomainSnapshot(),
+                    consumption);
+            record.ReplaceWith(next);
+            return true;
+        }
+        catch (InvalidOperationException ex)
+        {
+            reason = ex.Message;
+            return false;
+        }
     }
 }

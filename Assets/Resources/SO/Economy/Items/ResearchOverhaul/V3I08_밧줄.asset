@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: "V3I08_\uBC27\uC904"
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8908
+  itemId: material:rope
+  displayName: "\uBC27\uC904"
+  description: "\uBD84\uAE30\uD615 \uC0DD\uC0B0\uB9DD\uC758 \uBC27\uC904."
+  stockCategory: 1
+  unitWeight: 0.46
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 26
+  features:
+  - rid: 7737211730927812818
+  - rid: 7737211730927812819
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730927812818
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:textile:fiber
+    - rid: 7737211730927812819
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 128
+        sharedIntermediate: 1

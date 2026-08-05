@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public interface IPaidFacilityContractRuntime
+public interface IPaidFacilityContractRuntime : IBuildingPaidFacilityContractPort
 {
     int ForecastCost(int days);
     int SettleDay(int day);
@@ -23,32 +23,62 @@ public interface IPaidFacilityContractRuntime
     void RemoveFacility(BuildableObject facility);
     string GetLastFailureReason(BuildableObject facility);
     PaidFacilityContractSaveData Capture();
-    void Restore(PaidFacilityContractSaveData saveData);
 }
 
 public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
 {
     private const int MaxChargedOrderKeys = 256;
 
-    private readonly IGameDataProvider gameDataProvider;
-    private readonly IGameMoneyRuntime money;
-    private readonly List<PaidFacilityContractState> contracts =
-        new List<PaidFacilityContractState>();
-    private readonly HashSet<string> chargedOrderKeys =
-        new HashSet<string>(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> lastFailureByFacility =
-        new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly IGameSessionStateProvider gameDataProvider;
+    private readonly IGameMoneyAccount money;
+    private readonly TreasuryEconomyAggregateStateStore stateStore;
+
+    private List<PaidFacilityContractState> contracts =>
+        stateStore.Current.FacilityContracts;
+    private HashSet<string> chargedOrderKeys =>
+        stateStore.Current.ChargedFacilityOrderKeys;
+    private Dictionary<string, string> lastFailureByFacility =>
+        stateStore.Current.FacilityFailures;
 
     public PaidFacilityContractRuntime(
-        IGameDataProvider gameDataProvider,
-        IGameMoneyRuntime money)
+        IGameSessionStateProvider gameDataProvider,
+        IGameMoneyAccount money,
+        TreasuryEconomyAggregateStateStore stateStore)
     {
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.money = money ?? throw new ArgumentNullException(nameof(money));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
     public IReadOnlyList<PaidFacilityContractState> Contracts => contracts;
+
+    bool IBuildingPaidFacilityContractPort.CanBeginUse(
+        IBuildingWorldEntryPort facility,
+        out string failureReason)
+    {
+        return CanBeginUse(RequireBuildableFacility(facility), out failureReason);
+    }
+
+    bool IBuildingPaidFacilityContractPort.TryChargeUse(
+        IBuildingWorldEntryPort facility,
+        out string failureReason)
+    {
+        return TryChargeUse(RequireBuildableFacility(facility), out failureReason);
+    }
+
+    void IBuildingPaidFacilityContractPort.SynchronizeFacility(
+        IBuildingWorldEntryPort facility)
+    {
+        SynchronizeFacility(RequireBuildableFacility(facility));
+    }
+
+    void IBuildingPaidFacilityContractPort.RemoveFacility(
+        IBuildingWorldEntryPort facility)
+    {
+        RemoveFacility(RequireBuildableFacility(facility));
+    }
 
     public PaidFacilityContractState GetContract(BuildableObject facility)
     {
@@ -369,12 +399,15 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
         };
     }
 
-    public void Restore(PaidFacilityContractSaveData saveData)
+    internal void PopulateRestoreState(
+        TreasuryEconomyAggregateState target,
+        PaidFacilityContractSaveData saveData)
     {
-        contracts.Clear();
-        chargedOrderKeys.Clear();
-        lastFailureByFacility.Clear();
-        contracts.AddRange((saveData?.contracts
+        target = target ?? throw new ArgumentNullException(nameof(target));
+        target.FacilityContracts.Clear();
+        target.ChargedFacilityOrderKeys.Clear();
+        target.FacilityFailures.Clear();
+        target.FacilityContracts.AddRange((saveData?.contracts
                 ?? new List<PaidFacilityContractState>())
             .Where(contract => contract != null)
             .Select(contract => new PaidFacilityContractState
@@ -392,11 +425,11 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
         {
             if (!string.IsNullOrWhiteSpace(key))
             {
-                chargedOrderKeys.Add(key.Trim());
+                target.ChargedFacilityOrderKeys.Add(key.Trim());
             }
         }
 
-        TrimChargedOrderKeys();
+        TrimChargedOrderKeys(target.ChargedFacilityOrderKeys);
     }
 
     private bool TryCharge(
@@ -454,7 +487,7 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
 
     private int ResolveCurrentDay()
     {
-        return gameDataProvider.TryGetGameData(out GameData gameData)
+        return gameDataProvider.TryGetSessionState(out GameSessionState gameData)
             && gameData?.day != null
             ? Mathf.Max(1, gameData.day.Value)
             : 1;
@@ -476,28 +509,41 @@ public sealed class PaidFacilityContractRuntime : IPaidFacilityContractRuntime
             return string.Empty;
         }
 
-        FacilityEvolutionStateComponent state =
-            facility.GetComponent<FacilityEvolutionStateComponent>();
-        string persistentId = state?.FacilityPersistentId?.Trim()
-            ?? string.Empty;
-        return persistentId.Length > 0
-            ? persistentId
-            : $"building:{facility.GetInstanceID()}";
+        return facility.RequirePersistentInstanceId().Value;
+    }
+
+    private static BuildableObject RequireBuildableFacility(
+        IBuildingWorldEntryPort facility)
+    {
+        if (facility == null)
+        {
+            return null;
+        }
+
+        return facility as BuildableObject
+            ?? throw new ArgumentException(
+                $"{nameof(IBuildingPaidFacilityContractPort)} only accepts {nameof(BuildableObject)} facilities.",
+                nameof(facility));
     }
 
     private void TrimChargedOrderKeys()
     {
-        if (chargedOrderKeys.Count <= MaxChargedOrderKeys)
+        TrimChargedOrderKeys(chargedOrderKeys);
+    }
+
+    private static void TrimChargedOrderKeys(HashSet<string> keys)
+    {
+        if (keys.Count <= MaxChargedOrderKeys)
         {
             return;
         }
 
-        foreach (string key in chargedOrderKeys
+        foreach (string key in keys
                      .OrderBy(value => value, StringComparer.Ordinal)
-                     .Take(chargedOrderKeys.Count - MaxChargedOrderKeys)
+                     .Take(keys.Count - MaxChargedOrderKeys)
                      .ToArray())
         {
-            chargedOrderKeys.Remove(key);
+            keys.Remove(key);
         }
     }
 }
@@ -518,62 +564,98 @@ public interface IAutoProcurementRuntime
         IReadOnlyList<FacilityShopOffer> dailyOffers,
         DailyFacilityShopRuntime shopRuntime);
     AutoProcurementSaveData Capture();
-    void Restore(AutoProcurementSaveData saveData);
+}
+
+public sealed class AutoProcurementFinancialDependencies
+{
+    public AutoProcurementFinancialDependencies(
+        IGameMoneyAccount money,
+        IEmploymentContractRuntime employment,
+        IPaidFacilityContractRuntime paidContracts)
+    {
+        Money = money ?? throw new ArgumentNullException(nameof(money));
+        Employment = employment
+            ?? throw new ArgumentNullException(nameof(employment));
+        PaidContracts = paidContracts
+            ?? throw new ArgumentNullException(nameof(paidContracts));
+    }
+
+    internal IGameMoneyAccount Money { get; }
+    internal IEmploymentContractRuntime Employment { get; }
+    internal IPaidFacilityContractRuntime PaidContracts { get; }
+}
+
+public sealed class AutoProcurementStockDependencies
+{
+    public AutoProcurementStockDependencies(
+        IWorldItemStackRuntime itemStacks,
+        IStockCategoryDefinitionCatalog stockCategoryCatalog)
+    {
+        ItemStacks = itemStacks
+            ?? throw new ArgumentNullException(nameof(itemStacks));
+        StockCategoryCatalog = stockCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
+    }
+
+    internal IWorldItemStackRuntime ItemStacks { get; }
+    internal IStockCategoryDefinitionCatalog StockCategoryCatalog { get; }
 }
 
 public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
 {
     private const int MaxProcessedOfferKeys = 256;
 
-    private readonly IGameDataProvider gameDataProvider;
-    private readonly IGameMoneyRuntime money;
-    private readonly IEconomyTransactionLedger transactionLedger;
-    private readonly IEmploymentContractRuntime employment;
-    private readonly IPaidFacilityContractRuntime paidContracts;
+    private readonly IGameSessionStateProvider gameDataProvider;
+    private readonly AutoProcurementFinancialDependencies finance;
     private readonly IRunVariableRuntimeReader runVariables;
-    private readonly IWorldItemStackRuntime itemStacks;
-    private readonly List<AutoProcurementRule> stockRules =
-        new List<AutoProcurementRule>();
-    private readonly List<ProcurementWishlistRule> wishlistRules =
-        new List<ProcurementWishlistRule>();
-    private readonly List<AutoProcurementResult> lastResults =
-        new List<AutoProcurementResult>();
-    private readonly HashSet<string> processedOfferKeys =
-        new HashSet<string>(StringComparer.Ordinal);
+    private readonly AutoProcurementStockDependencies stock;
+    private readonly TreasuryEconomyAggregateStateStore stateStore;
 
-    private int dailyBudget = 500;
-    private int minimumReserve;
-    private int lastProcessedDay;
+    private List<AutoProcurementRule> stockRules => stateStore.Current.StockRules;
+    private List<ProcurementWishlistRule> wishlistRules => stateStore.Current.WishlistRules;
+    private List<AutoProcurementResult> lastResults => stateStore.Current.ProcurementResults;
+    private HashSet<string> processedOfferKeys => stateStore.Current.ProcessedOfferKeys;
+    private int dailyBudget
+    {
+        get => stateStore.Current.DailyBudget;
+        set => stateStore.Current.DailyBudget = value;
+    }
+    private int minimumReserve
+    {
+        get => stateStore.Current.MinimumReserve;
+        set => stateStore.Current.MinimumReserve = value;
+    }
+    private int lastProcessedDay
+    {
+        get => stateStore.Current.LastProcessedDay;
+        set => stateStore.Current.LastProcessedDay = value;
+    }
 
     public AutoProcurementRuntime(
-        IGameDataProvider gameDataProvider,
-        IGameMoneyRuntime money,
-        IEconomyTransactionLedger transactionLedger,
-        IEmploymentContractRuntime employment,
-        IPaidFacilityContractRuntime paidContracts,
+        IGameSessionStateProvider gameDataProvider,
+        AutoProcurementFinancialDependencies finance,
         IRunVariableRuntimeReader runVariables,
-        IWorldItemStackRuntime itemStacks)
+        AutoProcurementStockDependencies stock,
+        TreasuryEconomyAggregateStateStore stateStore)
     {
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
-        this.money = money ?? throw new ArgumentNullException(nameof(money));
-        this.transactionLedger = transactionLedger
-            ?? throw new ArgumentNullException(nameof(transactionLedger));
-        this.employment = employment
-            ?? throw new ArgumentNullException(nameof(employment));
-        this.paidContracts = paidContracts
-            ?? throw new ArgumentNullException(nameof(paidContracts));
+        this.finance = finance
+            ?? throw new ArgumentNullException(nameof(finance));
         this.runVariables = runVariables
             ?? throw new ArgumentNullException(nameof(runVariables));
-        this.itemStacks = itemStacks
-            ?? throw new ArgumentNullException(nameof(itemStacks));
+        this.stock = stock
+            ?? throw new ArgumentNullException(nameof(stock));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
     public int DailyBudget => dailyBudget;
     public int MinimumReserve => minimumReserve;
     public int ProtectedFunds => Mathf.Max(
         minimumReserve,
-        employment.ForecastCost(3) + paidContracts.ForecastCost(3));
+        finance.Employment.ForecastCost(3)
+            + finance.PaidContracts.ForecastCost(3));
     public IReadOnlyList<AutoProcurementRule> StockRules => stockRules;
     public IReadOnlyList<ProcurementWishlistRule> WishlistRules => wishlistRules;
     public IReadOnlyList<AutoProcurementResult> LastResults => lastResults;
@@ -632,15 +714,15 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         if (refreshDay > 1)
         {
             int settledDay = refreshDay - 1;
-            employment.SettleDay(settledDay);
-            paidContracts.SettleDay(settledDay);
+            finance.Employment.SettleDay(settledDay);
+            finance.PaidContracts.SettleDay(settledDay);
         }
 
         lastProcessedDay = refreshDay;
         lastResults.Clear();
         int availableBudget = Mathf.Min(
             dailyBudget,
-            Mathf.Max(0, money.Balance - ProtectedFunds));
+            Mathf.Max(0, finance.Money.Balance - ProtectedFunds));
         if (availableBudget <= 0)
         {
             AddSkipped(refreshDay, "budget", "자동 구매", "보호 자금을 제외한 구매 가능액이 없습니다.");
@@ -672,25 +754,45 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         };
     }
 
-    public void Restore(AutoProcurementSaveData saveData)
+    internal void PopulateRestoreState(
+        TreasuryEconomyAggregateState target,
+        AutoProcurementSaveData saveData)
     {
-        stockRules.Clear();
-        wishlistRules.Clear();
-        lastResults.Clear();
-        processedOfferKeys.Clear();
-        dailyBudget = Mathf.Max(0, saveData?.dailyBudget ?? 500);
-        minimumReserve = Mathf.Max(0, saveData?.minimumReserve ?? 0);
-        lastProcessedDay = Mathf.Max(0, saveData?.lastProcessedDay ?? 0);
+        target = target ?? throw new ArgumentNullException(nameof(target));
+        target.StockRules.Clear();
+        target.WishlistRules.Clear();
+        target.ProcurementResults.Clear();
+        target.ProcessedOfferKeys.Clear();
+        target.DailyBudget = Mathf.Max(0, saveData?.dailyBudget ?? 500);
+        target.MinimumReserve = Mathf.Max(0, saveData?.minimumReserve ?? 0);
+        target.LastProcessedDay = Mathf.Max(0, saveData?.lastProcessedDay ?? 0);
         foreach (AutoProcurementRule rule in saveData?.stockRules
                      ?? new List<AutoProcurementRule>())
         {
-            UpsertStockRule(rule);
+            if (rule == null)
+                continue;
+            AutoProcurementRule normalized = rule.Clone();
+            normalized.ruleId = NormalizeRuleId(
+                normalized.ruleId,
+                $"stock:{normalized.category}");
+            normalized.targetQuantity = Mathf.Max(0, normalized.targetQuantity);
+            normalized.maximumUnitPrice = Mathf.Max(0, normalized.maximumUnitPrice);
+            normalized.dailyMaximumQuantity = Mathf.Max(0, normalized.dailyMaximumQuantity);
+            ReplaceById(target.StockRules, normalized.ruleId, normalized);
         }
 
         foreach (ProcurementWishlistRule rule in saveData?.wishlistRules
                      ?? new List<ProcurementWishlistRule>())
         {
-            UpsertWishlistRule(rule);
+            if (rule == null)
+                continue;
+            ProcurementWishlistRule normalized = rule.Clone();
+            normalized.ruleId = NormalizeRuleId(
+                normalized.ruleId,
+                $"wishlist:{normalized.offerTypeId}:{normalized.dataId}");
+            normalized.maximumPrice = Mathf.Max(0, normalized.maximumPrice);
+            normalized.maximumOwned = Mathf.Max(0, normalized.maximumOwned);
+            ReplaceById(target.WishlistRules, normalized.ruleId, normalized);
         }
 
         foreach (string key in saveData?.processedOfferKeys
@@ -698,19 +800,22 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         {
             if (!string.IsNullOrWhiteSpace(key))
             {
-                processedOfferKeys.Add(key.Trim());
+                target.ProcessedOfferKeys.Add(key.Trim());
             }
         }
 
-        lastResults.AddRange((saveData?.lastResults
+        target.ProcurementResults.AddRange((saveData?.lastResults
             ?? new List<AutoProcurementResult>()).Select(CloneResult));
-        TrimProcessedKeys();
+        TrimProcessedKeys(target.ProcessedOfferKeys);
     }
 
     private void ProcessStockRules(int day, ref int availableBudget)
     {
         IReadOnlyList<StockDeliveryOffer> offers =
-            StockSupplyService.CreateDailyDeliveryOffers(day, runVariables);
+            StockSupplyService.CreateDailyDeliveryOffers(
+                day,
+                runVariables,
+                stock.StockCategoryCatalog);
         foreach (AutoProcurementRule rule in stockRules
                      .Where(candidate => candidate.enabled)
                      .OrderByDescending(candidate => candidate.priority)
@@ -769,7 +874,7 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
                 continue;
             }
 
-            if (!money.TrySpend(
+            if (!finance.Money.TrySpend(
                     cost,
                     new EconomyTransactionContext(
                         EconomyTransactionKind.AutoProcurement,
@@ -782,14 +887,14 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
                 continue;
             }
 
-            if (!itemStacks.SpawnStockAtDropoff(
+            if (!stock.ItemStacks.SpawnStockAtDropoff(
                     rule.category,
                     quantity,
                     "자동 구매",
                     out int spawned)
                 || spawned != quantity)
             {
-                money.Add(
+                finance.Money.Add(
                     cost,
                     new EconomyTransactionContext(
                         EconomyTransactionKind.LegacyIncome,
@@ -805,7 +910,7 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
             {
                 day = day,
                 ruleId = rule.ruleId,
-                itemLabel = StockCategoryCatalog.GetDisplayName(rule.category),
+                itemLabel = stock.StockCategoryCatalog.GetDisplayName(rule.category),
                 quantity = quantity,
                 cost = cost,
                 purchased = true,
@@ -821,7 +926,7 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         ref int availableBudget)
     {
         if (shopRuntime == null
-            || !gameDataProvider.TryGetGameData(out GameData gameData))
+            || !gameDataProvider.TryGetSessionState(out GameSessionState gameData))
         {
             return;
         }
@@ -896,7 +1001,7 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
 
     private int CountOwned(StockCategory category)
     {
-        return itemStacks.GetAllStacks()
+        return stock.ItemStacks.GetAllStacks()
             .Where(stack => stack != null && stack.StockCategory == category)
             .Sum(stack => Mathf.Max(0, stack.Quantity));
     }
@@ -909,7 +1014,7 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         {
             string itemId = blueprintOffer.Blueprint?.PhysicalItemId
                 ?? string.Empty;
-            return itemStacks.GetAllStacks()
+            return stock.ItemStacks.GetAllStacks()
                 .Where(stack => stack != null
                     && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal))
                 .Sum(stack => Mathf.Max(0, stack.Quantity));
@@ -919,7 +1024,7 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
         {
             string itemId = FacilityInstallationKitItemIds.ForBuilding(
                 buildingOffer.Building);
-            return itemStacks.GetAllStacks()
+            return stock.ItemStacks.GetAllStacks()
                 .Where(stack => stack != null
                     && string.Equals(
                         stack.ItemId,
@@ -977,19 +1082,24 @@ public sealed class AutoProcurementRuntime : IAutoProcurementRuntime
 
     private void TrimProcessedKeys()
     {
-        if (processedOfferKeys.Count <= MaxProcessedOfferKeys)
+        TrimProcessedKeys(processedOfferKeys);
+    }
+
+    private static void TrimProcessedKeys(HashSet<string> keys)
+    {
+        if (keys.Count <= MaxProcessedOfferKeys)
         {
             return;
         }
 
-        string[] keep = processedOfferKeys
+        string[] keep = keys
             .OrderByDescending(key => key, StringComparer.Ordinal)
             .Take(MaxProcessedOfferKeys)
             .ToArray();
-        processedOfferKeys.Clear();
+        keys.Clear();
         foreach (string key in keep)
         {
-            processedOfferKeys.Add(key);
+            keys.Add(key);
         }
     }
 

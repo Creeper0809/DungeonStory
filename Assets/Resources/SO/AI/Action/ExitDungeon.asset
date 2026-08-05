@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f7224f112bc5094cb655ee182a93866, type: 3}
+  m_Script: {fileID: 11500000, guid: a1000000000000000000000000000003, type: 3}
   m_Name: ExitDungeon
   m_EditorClassIdentifier: 
   serializationData:

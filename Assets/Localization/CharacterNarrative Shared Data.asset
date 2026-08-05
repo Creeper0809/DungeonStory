@@ -1,0 +1,424 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: CharacterNarrative Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: CharacterNarrative
+  m_TableCollectionNameGuidString: a95f6af38b4589d4484ce059bdfbae3b
+  m_Entries:
+  - m_Id: 389369856
+    m_Key: Fallback.CompletedThree.0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729984
+    m_Key: Fallback.CompletedThree.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729985
+    m_Key: Fallback.CompletedThree.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729986
+    m_Key: Fallback.CompletedThree.3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729987
+    m_Key: Fallback.CompletedTwo
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729988
+    m_Key: Fallback.OffDuty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729989
+    m_Key: Fallback.Place
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729990
+    m_Key: Fallback.SituationLead.0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729991
+    m_Key: Fallback.SituationLead.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729992
+    m_Key: Fallback.SituationLead.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729993
+    m_Key: Fallback.SituationLead.3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729994
+    m_Key: Fallback.Someone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729995
+    m_Key: Fallback.Started.0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729996
+    m_Key: Fallback.Started.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729997
+    m_Key: Fallback.Started.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729998
+    m_Key: Fallback.Started.3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729999
+    m_Key: Fallback.Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730000
+    m_Key: Prompt.Shape.Completed.0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730001
+    m_Key: Prompt.Shape.Completed.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730002
+    m_Key: Prompt.Shape.Completed.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730003
+    m_Key: Prompt.Shape.Completed.3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730004
+    m_Key: Prompt.Shape.Failed.0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730005
+    m_Key: Prompt.Shape.Failed.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730006
+    m_Key: Prompt.Shape.Failed.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730007
+    m_Key: Prompt.Shape.Failed.3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730008
+    m_Key: Prompt.Shape.OffDuty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730009
+    m_Key: Prompt.Shape.Started.0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730010
+    m_Key: Prompt.Shape.Started.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730011
+    m_Key: Prompt.Shape.Started.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730012
+    m_Key: Prompt.Shape.Started.3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730013
+    m_Key: Prompt.SituationBrief.0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730014
+    m_Key: Prompt.SituationBrief.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730015
+    m_Key: Prompt.SituationBrief.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730016
+    m_Key: Prompt.SituationBrief.3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730017
+    m_Key: Prompt.StyleBrief.0
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730018
+    m_Key: Prompt.StyleBrief.1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730019
+    m_Key: Prompt.StyleBrief.2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730020
+    m_Key: Prompt.StyleBrief.3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730021
+    m_Key: Template.Duty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730022
+    m_Key: Template.Facility
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730023
+    m_Key: Template.GenericBlocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730024
+    m_Key: Template.GenericCompleted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730025
+    m_Key: Template.GenericFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730026
+    m_Key: Template.GenericProgress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730027
+    m_Key: Template.GenericStarted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730028
+    m_Key: Template.Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730029
+    m_Key: Template.Lifecycle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730030
+    m_Key: Template.Shopping
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730031
+    m_Key: Template.Social
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730032
+    m_Key: Template.Stock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730033
+    m_Key: Template.Wait
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730034
+    m_Key: Template.WorkCompleted.work:butcher
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730035
+    m_Key: Template.WorkCompleted.work:clean
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730036
+    m_Key: Template.WorkCompleted.work:cook
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730037
+    m_Key: Template.WorkCompleted.work:craft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730038
+    m_Key: Template.WorkCompleted.work:draw-water
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730039
+    m_Key: Template.WorkCompleted.work:guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730040
+    m_Key: Template.WorkCompleted.work:haul
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730041
+    m_Key: Template.WorkCompleted.work:hunt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730042
+    m_Key: Template.WorkCompleted.work:reception
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730043
+    m_Key: Template.WorkCompleted.work:refuel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730044
+    m_Key: Template.WorkCompleted.work:repair
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730045
+    m_Key: Template.WorkCompleted.work:research
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730046
+    m_Key: Template.WorkCompleted.work:restock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730047
+    m_Key: Template.WorkCompleted.work:treat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730048
+    m_Key: Template.WorkStarted.work:butcher
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730049
+    m_Key: Template.WorkStarted.work:clean
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730050
+    m_Key: Template.WorkStarted.work:cook
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730051
+    m_Key: Template.WorkStarted.work:craft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730052
+    m_Key: Template.WorkStarted.work:draw-water
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730053
+    m_Key: Template.WorkStarted.work:guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730054
+    m_Key: Template.WorkStarted.work:haul
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730055
+    m_Key: Template.WorkStarted.work:hunt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730056
+    m_Key: Template.WorkStarted.work:reception
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730057
+    m_Key: Template.WorkStarted.work:refuel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730058
+    m_Key: Template.WorkStarted.work:repair
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730059
+    m_Key: Template.WorkStarted.work:research
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730060
+    m_Key: Template.WorkStarted.work:restock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730061
+    m_Key: Template.WorkStarted.work:treat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730062
+    m_Key: WorkLabel.work:alchemy-research
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730063
+    m_Key: WorkLabel.work:butcher
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730064
+    m_Key: WorkLabel.work:clean
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730065
+    m_Key: WorkLabel.work:cleaning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730066
+    m_Key: WorkLabel.work:cook
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730067
+    m_Key: WorkLabel.work:craft
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730068
+    m_Key: WorkLabel.work:draw-water
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730069
+    m_Key: WorkLabel.work:guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730070
+    m_Key: WorkLabel.work:haul
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730071
+    m_Key: WorkLabel.work:hunt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730072
+    m_Key: WorkLabel.work:operate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730073
+    m_Key: WorkLabel.work:reception
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730074
+    m_Key: WorkLabel.work:refuel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730075
+    m_Key: WorkLabel.work:repair
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730076
+    m_Key: WorkLabel.work:rescue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730077
+    m_Key: WorkLabel.work:research
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730078
+    m_Key: WorkLabel.work:rest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730079
+    m_Key: WorkLabel.work:restock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730080
+    m_Key: WorkLabel.work:treat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730081
+    m_Key: WorkLabel.work:weapon-sales
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 7737211745717977427
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211745717977427
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1785858633656

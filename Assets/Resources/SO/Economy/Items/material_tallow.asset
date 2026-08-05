@@ -26,21 +26,28 @@ MonoBehaviour:
   displayName: "\uC815\uC81C \uC9C0\uBC29"
   description: "\uBE44\uB204, \uC591\uCD08\uC640 \uC5F0\uACE0\uC758 \uAE30\uCD08."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 64
-  unitPrice: 6
-  marketSaleRate: 0.6
   unitWeight: 0.35
   maxStack: 60
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:livestock
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 6
+  features:
+  - rid: 7737211673962611621
+  - rid: 7737211673962611622
+  - rid: 7737211673962611623
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611621
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:livestock
+    - rid: 7737211673962611622
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 64
+        sharedIntermediate: 1
+    - rid: 7737211673962611623
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

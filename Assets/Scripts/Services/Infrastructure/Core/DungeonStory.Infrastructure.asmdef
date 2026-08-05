@@ -2,7 +2,22 @@
   "name": "DungeonStory.Infrastructure",
   "rootNamespace": "DungeonStory.Infrastructure",
   "references": [
-    "DungeonStory.Foundation"
+    "DungeonStory.Automation",
+    "DungeonStory.Buildings",
+    "DungeonStory.Captivity",
+    "DungeonStory.CoreSession",
+    "DungeonStory.Defense",
+    "DungeonStory.Environment",
+    "DungeonStory.Foundation",
+    "DungeonStory.Grid",
+    "DungeonStory.Economy",
+    "DungeonStory.FacilityShop",
+    "DungeonStory.Recruitment",
+    "DungeonStory.Survival",
+    "DungeonStory.Meta",
+    "DungeonStory.Invasion",
+    "DungeonStory.Operation",
+    "VContainer"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

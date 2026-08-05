@@ -3,11 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public interface ICaptivityFeatureSectionPresenter
-{
-    void Present(IFeatureSurfaceView view);
-}
-
 public sealed class CaptivityFeatureSectionPresenter :
     ICaptivityFeatureSectionPresenter
 {

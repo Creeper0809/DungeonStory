@@ -123,8 +123,11 @@ public static class PriorityCommandDebugScenarios
         CharacterActor actor = CreateCharacter("Owner_Slime");
         AbilityWork work = actor.GetAbility<AbilityWork>();
         BuildableObject shop = world.Place("P1_LowFoodShop", new Vector2Int(2, 0));
-        world.Place("P1_Warehouse", new Vector2Int(8, 0));
+        IWarehouseFacility warehouse =
+            world.Place("P1_Warehouse", new Vector2Int(8, 0))
+                as IWarehouseFacility;
         ClearShopStock(shop);
+        warehouse?.Inventory.SeedPhysicalStockForTest(StockCategory.Food, 5);
         work.SetWorkPriority(BuiltInWorkTypeIds.Restock, WorkPriorityLevel.Off);
 
         GridPathSearchResult search = world.Grid.SearchPath(Vector2Int.zero);
@@ -234,10 +237,9 @@ public static class PriorityCommandDebugScenarios
 
     private static void ClearShopStock(BuildableObject building)
     {
-        FieldInfo field = typeof(Shop).GetField("stocks", BindingFlags.Instance | BindingFlags.NonPublic);
-        if (field != null)
+        if (building is Shop shop)
         {
-            field.SetValue(building, new List<RemainStock>());
+            shop.DebugClearStock();
         }
     }
 

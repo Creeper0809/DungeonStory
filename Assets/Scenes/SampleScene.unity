@@ -13987,7 +13987,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1687591075}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2e989e12e22d7e193b84c5b18f9dbef6, type: 3}
+  m_Script: {fileID: 11500000, guid: 261391cb74bf366458abac716aa73a38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InvasionDirectorRuntime
   intruderData: {fileID: 0}

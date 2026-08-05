@@ -5,27 +5,6 @@ using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer.Unity;
 
-[Serializable]
-public sealed class CharacterSpeciesRuntimeState
-{
-    public string characterPersistentId = string.Empty;
-    public string speciesTag = string.Empty;
-    [Range(0f, 100f)] public float charge = 100f;
-    [Range(0f, 100f)] public float integrity = 100f;
-    public float nextIncidentAt;
-    public string lastIncidentId = string.Empty;
-    public int incidentCount;
-}
-
-[Serializable]
-public sealed class CharacterSpeciesRuntimeSaveData
-{
-    public const int CurrentVersion = 1;
-    public int version = CurrentVersion;
-    public List<CharacterSpeciesRuntimeState> characters =
-        new List<CharacterSpeciesRuntimeState>();
-}
-
 public readonly struct SpeciesIncidentContext
 {
     public SpeciesIncidentContext(
@@ -43,29 +22,6 @@ public readonly struct SpeciesIncidentContext
     public CharacterSpeciesRuntimeState State { get; }
 }
 
-public readonly struct SpeciesIncidentTriggeredEvent
-{
-    public SpeciesIncidentTriggeredEvent(
-        string characterPersistentId,
-        string speciesTag,
-        string incidentId,
-        Vector2Int position,
-        string summary)
-    {
-        CharacterPersistentId = characterPersistentId ?? string.Empty;
-        SpeciesTag = speciesTag ?? string.Empty;
-        IncidentId = incidentId ?? string.Empty;
-        Position = position;
-        Summary = summary ?? string.Empty;
-    }
-
-    public string CharacterPersistentId { get; }
-    public string SpeciesTag { get; }
-    public string IncidentId { get; }
-    public Vector2Int Position { get; }
-    public string Summary { get; }
-}
-
 public interface ISpeciesIncidentHandler
 {
     string IncidentId { get; }
@@ -77,21 +33,116 @@ public interface ISpeciesIncidentHandlerRegistry
     bool TryExecute(SpeciesIncidentContext context, out string summary);
 }
 
-public interface ICharacterSpeciesRuntime
+public interface ICharacterSpeciesPersistence
 {
-    bool TryGet(
-        string characterPersistentId,
-        out CharacterSpeciesRuntimeState state);
-    bool Recharge(
-        string characterPersistentId,
-        float amount,
-        out string message);
-    bool RepairIntegrity(
-        string characterPersistentId,
-        float amount,
-        out string message);
     CharacterSpeciesRuntimeSaveData Capture();
-    void Restore(CharacterSpeciesRuntimeSaveData data);
+    CharacterSpeciesRestoreCandidate BuildRestore(
+        CharacterSpeciesRuntimeSaveData data);
+    void Restore(CharacterSpeciesRestoreCandidate candidate);
+}
+
+internal sealed class CharacterSpeciesAggregateState
+{
+    internal Dictionary<CharacterId, CharacterSpeciesRuntimeState> Characters { get; } =
+        new();
+    internal float NextTickAt { get; set; }
+}
+
+public sealed class CharacterSpeciesRestoreCandidate
+{
+    internal CharacterSpeciesRestoreCandidate(CharacterSpeciesAggregateState state)
+    {
+        State = state ?? throw new ArgumentNullException(nameof(state));
+    }
+
+    internal CharacterSpeciesAggregateState State { get; }
+}
+
+internal static class CharacterSpeciesStateCodec
+{
+    internal static CharacterSpeciesRestoreCandidate BuildRestore(
+        CharacterSpeciesRuntimeSaveData data,
+        float nextTickAt,
+        Func<CharacterSpeciesId, string> getIncidentId)
+    {
+        if (data == null
+            || data.version != CharacterSpeciesRuntimeSaveData.CurrentVersion
+            || data.characters == null)
+        {
+            throw new InvalidOperationException(
+                "Character-species payload is null, incomplete, or has an unsupported version.");
+        }
+        if (getIncidentId == null)
+        {
+            throw new ArgumentNullException(nameof(getIncidentId));
+        }
+        CharacterSpeciesAggregateState restored = new()
+        {
+            NextTickAt = nextTickAt
+        };
+        CharacterId previousCharacterId = default;
+        foreach (CharacterSpeciesRuntimeRecordSaveData source in data.characters)
+        {
+            if (source == null)
+            {
+                throw new InvalidOperationException(
+                    "Character-species payload contains a null record.");
+            }
+            CharacterId characterId = new(source.characterInstanceId);
+            CharacterSpeciesId speciesId = new(source.speciesDefinitionId);
+            if (!characterId.IsValid
+                || !speciesId.IsValid
+                || !string.Equals(characterId.Value, source.characterInstanceId, StringComparison.Ordinal)
+                || !string.Equals(speciesId.Value, source.speciesDefinitionId, StringComparison.Ordinal)
+                || previousCharacterId.IsValid
+                    && string.CompareOrdinal(previousCharacterId.Value, characterId.Value) >= 0)
+            {
+                throw new InvalidOperationException(
+                    "Character-species records require unique, canonical, sorted IDs.");
+            }
+            string incidentId = getIncidentId(speciesId);
+            if (incidentId == null)
+            {
+                throw new InvalidOperationException(
+                    $"Unknown authored character species '{speciesId.Value}'.");
+            }
+            if (!IsFiniteRange(source.charge, 0f, 100f)
+                || !IsFiniteRange(source.integrity, 0f, 100f)
+                || !IsFiniteRange(source.nextIncidentAt, 0f, float.MaxValue)
+                || source.incidentCount < 0
+                || source.lastIncidentId == null
+                || source.lastIncidentId.Length > 0
+                    && !string.Equals(source.lastIncidentId, incidentId, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Character-species record '{characterId.Value}' contains invalid state.");
+            }
+            CharacterSpeciesRuntimeState state = new()
+            {
+                CharacterId = characterId,
+                SpeciesId = speciesId,
+                Charge = source.charge,
+                Integrity = source.integrity,
+                NextIncidentAt = source.nextIncidentAt,
+                LastIncidentId = source.lastIncidentId,
+                IncidentCount = source.incidentCount
+            };
+            if (!restored.Characters.TryAdd(characterId, state))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate character-species record '{characterId.Value}'.");
+            }
+            previousCharacterId = characterId;
+        }
+
+        return new CharacterSpeciesRestoreCandidate(restored);
+    }
+
+    private static bool IsFiniteRange(float value, float minimum, float maximum) =>
+        !float.IsNaN(value)
+        && !float.IsInfinity(value)
+        && value >= minimum
+        && value <= maximum;
 }
 
 public sealed class SpeciesIncidentHandlerRegistry :
@@ -132,7 +183,9 @@ public sealed class SpeciesIncidentHandlerRegistry :
 }
 
 public sealed class CharacterSpeciesRuntime :
-    ICharacterSpeciesRuntime,
+    ICharacterSpeciesQuery,
+    ICharacterSpeciesCommand,
+    ICharacterSpeciesPersistence,
     ITickable
 {
     private const float TickInterval = 1f;
@@ -144,17 +197,25 @@ public sealed class CharacterSpeciesRuntime :
     private readonly ISpeciesIncidentHandlerRegistry incidents;
     private readonly IGameClock clock;
     private readonly IGameEventBus events;
-    private readonly Dictionary<string, CharacterSpeciesRuntimeState> states =
-        new Dictionary<string, CharacterSpeciesRuntimeState>(
-            StringComparer.Ordinal);
-    private float nextTickAt;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+
+    private CharacterSpeciesAggregateState aggregateState
+    {
+        get => aggregateRootStore.GetOrCreate(
+            () => new CharacterSpeciesAggregateState());
+        set => aggregateRootStore.Replace(value);
+    }
+
+    private Dictionary<CharacterId, CharacterSpeciesRuntimeState> states =>
+        aggregateState.Characters;
 
     public CharacterSpeciesRuntime(
         ICharacterAiWorldRegistry world,
         ICharacterSpeciesCatalog speciesCatalog,
         ISpeciesIncidentHandlerRegistry incidents,
         IGameClock clock,
-        IGameEventBus events)
+        IGameEventBus events,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         this.speciesCatalog = speciesCatalog
@@ -163,19 +224,23 @@ public sealed class CharacterSpeciesRuntime :
             ?? throw new ArgumentNullException(nameof(incidents));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
 
     public void Tick()
     {
-        if (clock.IsPaused || clock.Time < nextTickAt)
+        if (clock.IsPaused || clock.Time < aggregateState.NextTickAt)
         {
             return;
         }
 
-        float elapsed = nextTickAt <= 0f
+        float elapsed = aggregateState.NextTickAt <= 0f
             ? TickInterval
-            : Mathf.Max(TickInterval, clock.Time - nextTickAt + TickInterval);
-        nextTickAt = clock.Time + TickInterval;
+            : Mathf.Max(
+                TickInterval,
+                clock.Time - aggregateState.NextTickAt + TickInterval);
+        aggregateState.NextTickAt = clock.Time + TickInterval;
         foreach (CharacterActor actor in world.Characters)
         {
             if (actor == null || actor.IsDead)
@@ -183,9 +248,8 @@ public sealed class CharacterSpeciesRuntime :
                 continue;
             }
 
-            CharacterSpeciesSO species = actor.profile?.Species;
-            if (species == null
-                && !speciesCatalog.TryGet(actor.SpeciesTag, out species))
+            CharacterSpeciesId speciesId = new(actor.SpeciesTag);
+            if (!speciesCatalog.TryGet(speciesId, out CharacterSpeciesSO species))
             {
                 continue;
             }
@@ -197,47 +261,69 @@ public sealed class CharacterSpeciesRuntime :
     }
 
     public bool TryGet(
-        string characterPersistentId,
+        CharacterId characterId,
         out CharacterSpeciesRuntimeState state)
     {
-        return states.TryGetValue(
-            characterPersistentId?.Trim() ?? string.Empty,
-            out state);
+        if (characterId.IsValid
+            && states.TryGetValue(characterId, out CharacterSpeciesRuntimeState found))
+        {
+            state = found.Clone();
+            return true;
+        }
+
+        state = null;
+        return false;
     }
 
     public bool Recharge(
-        string characterPersistentId,
+        CharacterId characterId,
         float amount,
-        out string message)
+        out DomainFailure failure)
     {
-        message = string.Empty;
-        if (!TryGet(characterPersistentId, out CharacterSpeciesRuntimeState state)
-            || !string.Equals(state.speciesTag, "Golem", StringComparison.OrdinalIgnoreCase))
+        failure = DomainFailure.None;
+        if (!characterId.IsValid
+            || !states.TryGetValue(characterId, out CharacterSpeciesRuntimeState state))
         {
-            message = "충전 가능한 골렘 상태를 찾지 못했습니다.";
+            failure = new DomainFailure(
+                FailureCode.CharacterSpeciesStateUnavailable,
+                characterId.Value);
+            return false;
+        }
+        if (!state.SpeciesId.Equals(new CharacterSpeciesId("Golem")))
+        {
+            failure = new DomainFailure(
+                FailureCode.CharacterSpeciesRechargeUnsupported,
+                state.SpeciesId.Value);
             return false;
         }
 
-        state.charge = Mathf.Clamp(state.charge + amount, 0f, 100f);
-        message = $"충전 {state.charge:0}/100";
+        state.Charge = Mathf.Clamp(state.Charge + amount, 0f, 100f);
         return true;
     }
 
     public bool RepairIntegrity(
-        string characterPersistentId,
+        CharacterId characterId,
         float amount,
-        out string message)
+        out DomainFailure failure)
     {
-        message = string.Empty;
-        if (!TryGet(characterPersistentId, out CharacterSpeciesRuntimeState state)
-            || !string.Equals(state.speciesTag, "Golem", StringComparison.OrdinalIgnoreCase))
+        failure = DomainFailure.None;
+        if (!characterId.IsValid
+            || !states.TryGetValue(characterId, out CharacterSpeciesRuntimeState state))
         {
-            message = "정비 가능한 골렘 상태를 찾지 못했습니다.";
+            failure = new DomainFailure(
+                FailureCode.CharacterSpeciesStateUnavailable,
+                characterId.Value);
+            return false;
+        }
+        if (!state.SpeciesId.Equals(new CharacterSpeciesId("Golem")))
+        {
+            failure = new DomainFailure(
+                FailureCode.CharacterSpeciesRepairUnsupported,
+                state.SpeciesId.Value);
             return false;
         }
 
-        state.integrity = Mathf.Clamp(state.integrity + amount, 0f, 100f);
-        message = $"건전도 {state.integrity:0}/100";
+        state.Integrity = Mathf.Clamp(state.Integrity + amount, 0f, 100f);
         return true;
     }
 
@@ -246,31 +332,38 @@ public sealed class CharacterSpeciesRuntime :
         return new CharacterSpeciesRuntimeSaveData
         {
             characters = states.Values
-                .OrderBy(
-                    value => value.characterPersistentId,
-                    StringComparer.Ordinal)
-                .Select(Clone)
+                .OrderBy(value => value.CharacterId.Value, StringComparer.Ordinal)
+                .Select(value => new CharacterSpeciesRuntimeRecordSaveData
+                {
+                    characterInstanceId = value.CharacterId.Value,
+                    speciesDefinitionId = value.SpeciesId.Value,
+                    charge = value.Charge,
+                    integrity = value.Integrity,
+                    nextIncidentAt = value.NextIncidentAt,
+                    lastIncidentId = value.LastIncidentId ?? string.Empty,
+                    incidentCount = value.IncidentCount
+                })
                 .ToList()
         };
     }
 
-    public void Restore(CharacterSpeciesRuntimeSaveData data)
+    public CharacterSpeciesRestoreCandidate BuildRestore(
+        CharacterSpeciesRuntimeSaveData data)
     {
-        states.Clear();
-        foreach (CharacterSpeciesRuntimeState source in data?.characters
-                     ?? Enumerable.Empty<CharacterSpeciesRuntimeState>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.characterPersistentId))
-            {
-                continue;
-            }
+        return CharacterSpeciesStateCodec.BuildRestore(
+            data,
+            clock.Time + TickInterval,
+            speciesId => speciesCatalog.TryGet(
+                speciesId,
+                out CharacterSpeciesSO species)
+                    ? species.IncidentId
+                    : null);
+    }
 
-            CharacterSpeciesRuntimeState clone = Clone(source);
-            clone.charge = Mathf.Clamp(clone.charge, 0f, 100f);
-            clone.integrity = Mathf.Clamp(clone.integrity, 0f, 100f);
-            states[clone.characterPersistentId] = clone;
-        }
+    public void Restore(CharacterSpeciesRestoreCandidate candidate)
+    {
+        aggregateState = (candidate
+            ?? throw new ArgumentNullException(nameof(candidate))).State;
     }
 
     private void TickPhysiology(
@@ -284,21 +377,21 @@ public sealed class CharacterSpeciesRuntime :
             return;
         }
 
-        state.charge = Mathf.Clamp(
-            state.charge
+        state.Charge = Mathf.Clamp(
+            state.Charge
             - 0.035f
             * Mathf.Max(0f, species.needs.chargeRateMultiplier)
             * elapsed,
             0f,
             100f);
-        state.integrity = actor.Stats != null
+        state.Integrity = actor.Stats != null
             ? Mathf.Min(
-                state.integrity,
+                state.Integrity,
                 actor.Stats.CurrentHealth
                 / Mathf.Max(1f, actor.Stats.MaxHealth)
                 * 100f)
-            : state.integrity;
-        if (state.charge < 25f)
+            : state.Integrity;
+        if (state.Charge < 25f)
         {
             actor.ApplyMoodFactor(
                 "species:golem-low-charge",
@@ -308,7 +401,7 @@ public sealed class CharacterSpeciesRuntime :
                 1);
         }
 
-        if (state.charge <= 0f)
+        if (state.Charge <= 0f)
         {
             actor.Stats?.ApplyNonLethalDamage(
                 Mathf.Max(0.1f, actor.Stats.MaxHealth * 0.0025f * elapsed),
@@ -326,29 +419,29 @@ public sealed class CharacterSpeciesRuntime :
             || incidentId is CharacterSpeciesIncidentIds.SlimeContamination
                 or CharacterSpeciesIncidentIds.OrcRampage
                 or CharacterSpeciesIncidentIds.VampireFear
-            || state.nextIncidentAt > clock.Time)
+            || state.NextIncidentAt > clock.Time)
         {
             return;
         }
 
         bool forcedGolemOverload =
             incidentId == CharacterSpeciesIncidentIds.GolemCoreOverload
-            && state.charge <= 5f;
+            && state.Charge <= 5f;
         if (!forcedGolemOverload && actor.Mood.Value > IncidentMoodThreshold)
         {
             return;
         }
 
         int sample = CharacterGrowthRules.StableHash(
-            state.characterPersistentId
+            state.CharacterId.Value
             + "|"
             + incidentId
             + "|"
-            + state.incidentCount);
+            + state.IncidentCount);
         if (!forcedGolemOverload
             && (sample & 0x7fffffff) / (float)int.MaxValue > 0.25f)
         {
-            state.nextIncidentAt = clock.Time + 30f;
+            state.NextIncidentAt = clock.Time + 30f;
             return;
         }
 
@@ -359,9 +452,9 @@ public sealed class CharacterSpeciesRuntime :
             return;
         }
 
-        state.lastIncidentId = incidentId;
-        state.incidentCount++;
-        state.nextIncidentAt = clock.Time + IncidentCooldown;
+        state.LastIncidentId = incidentId;
+        state.IncidentCount++;
+        state.NextIncidentAt = clock.Time + IncidentCooldown;
         actor.AddActivity(CharacterActivityEvent.Facility(
             CharacterActivityKinds.Social,
             CharacterActivityOutcomes.Failed,
@@ -371,8 +464,8 @@ public sealed class CharacterSpeciesRuntime :
             reasonCode: "species-discontent",
             bubbleEligible: true));
         events.Publish(new SpeciesIncidentTriggeredEvent(
-            state.characterPersistentId,
-            species.speciesTag,
+            state.CharacterId,
+            species.DefinitionId,
             incidentId,
             actor.GetNowXY(),
             summary));
@@ -382,44 +475,26 @@ public sealed class CharacterSpeciesRuntime :
         CharacterActor actor,
         CharacterSpeciesSO species)
     {
-        string id = actor.Identity?.PersistentId?.Trim() ?? string.Empty;
-        if (id.Length == 0)
-        {
-            id = $"runtime-character:{actor.GetInstanceID()}";
-        }
+        CharacterId id = CharacterPersistentIdentity.Require(actor);
 
         if (states.TryGetValue(id, out CharacterSpeciesRuntimeState state))
         {
-            state.speciesTag = species.speciesTag;
+            state.SpeciesId = species.DefinitionId;
             return state;
         }
 
         state = new CharacterSpeciesRuntimeState
         {
-            characterPersistentId = id,
-            speciesTag = species.speciesTag,
-            charge = 100f,
-            integrity = 100f,
-            nextIncidentAt = clock.Time + 30f
+            CharacterId = id,
+            SpeciesId = species.DefinitionId,
+            Charge = 100f,
+            Integrity = 100f,
+            NextIncidentAt = clock.Time + 30f
         };
         states.Add(id, state);
         return state;
     }
 
-    private static CharacterSpeciesRuntimeState Clone(
-        CharacterSpeciesRuntimeState source)
-    {
-        return new CharacterSpeciesRuntimeState
-        {
-            characterPersistentId = source.characterPersistentId ?? string.Empty,
-            speciesTag = source.speciesTag ?? string.Empty,
-            charge = source.charge,
-            integrity = source.integrity,
-            nextIncidentAt = source.nextIncidentAt,
-            lastIncidentId = source.lastIncidentId ?? string.Empty,
-            incidentCount = source.incidentCount
-        };
-    }
 }
 
 internal abstract class SpeciesIncidentHandlerBase : ISpeciesIncidentHandler

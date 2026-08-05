@@ -1,0 +1,652 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: CharacterNarrative_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: a95f6af38b4589d4484ce059bdfbae3b, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 389369856
+    m_Localized: finished {1} at {0} and completed {2}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729984
+    m_Localized: completed {3} {4} at {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729985
+    m_Localized: finished {4} at {0}, then completed {5}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729986
+    m_Localized: completed {3} {4} at {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729987
+    m_Localized: finished {1} at {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729988
+    m_Localized: started {1} toward {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729989
+    m_Localized: the spot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729990
+    m_Localized: after returning from a harmless wrong turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729991
+    m_Localized: after a brief fumble, pretending nothing happened
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729992
+    m_Localized: after an awkward hesitation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729993
+    m_Localized: after snapping out of a distraction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729994
+    m_Localized: Someone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729995
+    m_Localized: began {1} at {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729996
+    m_Localized: started {2} at {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729997
+    m_Localized: headed toward {3} and started {2}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729998
+    m_Localized: began {1} at {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418729999
+    m_Localized: work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730000
+    m_Localized: <subject> finished <work> at <place> and completed <result>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730001
+    m_Localized: <subject> completed <work> and <result> at <place>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730002
+    m_Localized: <subject> finished <result> at <place>, then completed <work>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730003
+    m_Localized: <subject> completed <work> and <result> at <place>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730004
+    m_Localized: <subject> tried <action> at <place> but stopped because of <reason>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730005
+    m_Localized: <subject> set out for <action> but met <reason> at <place>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730006
+    m_Localized: <subject> stopped <action> after meeting <reason> at <place>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730007
+    m_Localized: <subject> tried to continue <action> but stopped at <place> because
+      of <reason>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730008
+    m_Localized: <subject> began off-duty time because of <reason>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730009
+    m_Localized: <subject> began <action> at <place>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730010
+    m_Localized: <subject> started <action> at <place>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730011
+    m_Localized: <subject> headed to <place> and started <action>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730012
+    m_Localized: <subject> began <action> at <place>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730013
+    m_Localized: A harmless wrong turn followed by a quick return.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730014
+    m_Localized: A brief fumble followed by pretending nothing happened.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730015
+    m_Localized: A brief hesitation followed by an awkward recovery.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730016
+    m_Localized: Snapping out of a distraction and returning to the action.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730017
+    m_Localized: 'Plain field note: a short, clear sentence moving from place to
+      action.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730018
+    m_Localized: 'Action-led note: lead with the action and express beginning or
+      completion briskly.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730019
+    m_Localized: 'Movement-led note: connect heading, entering, and finishing naturally.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730020
+    m_Localized: 'Result-led note: lead with the change, then close with place and
+      action.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730021
+    m_Localized: '{subject} checked the duty roster and took position.
+
+      {subject}
+      relaxed as off-duty time began.
+
+      {subject} prepared for the next shift.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730022
+    m_Localized: '{subject} entered {place} and looked around.
+
+      {subject} caught
+      their breath at {place}.
+
+      {subject} used {place} with familiar ease.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730023
+    m_Localized: '{subject} postponed {workObject} after being blocked at {place}.
+
+      {subject}
+      prepared {workObject}, but the conditions were not met.
+
+      {subject} stopped
+      at {place} and waited for another chance at {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730024
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.
+
+      {subject} carried {workObject} through to the
+      end.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730025
+    m_Localized: '{subject} tried {workObject} at {place} but had to stop.
+
+      {subject}
+      set out for {workObject} but was blocked.
+
+      {subject} could not finish
+      {workObject} at {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730026
+    m_Localized: '{subject} continued {workObject} at {place}.
+
+      {subject} made
+      steady progress on {workObject}.
+
+      {subject} kept up {workObject} while
+      watching {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730027
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.
+
+      {subject}
+      rolled up their sleeves and began {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730028
+    m_Localized: '{subject} paused to check their condition.
+
+      {subject} checked
+      the injury and moved carefully.
+
+      {subject} rose carefully after treatment.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730029
+    m_Localized: '{subject} brushed off the dust and headed onward.
+
+      {subject}
+      caught their breath and stepped inside.
+
+      {subject} finished preparing
+      to leave and moved on.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730030
+    m_Localized: '{subject} inspected {targetObject} and weighed the price.
+
+      {subject}
+      considered {target} for a while.
+
+      {subject} took {targetObject} and turned
+      away satisfied.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730031
+    m_Localized: '{subject} shared a brief greeting and smiled.
+
+      {subject}
+      talked with a nearby companion for a moment.
+
+      {subject} spoke first after
+      an awkward silence.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730032
+    m_Localized: '{subject} stocked {targetObject} neatly.
+
+      {subject} checked
+      the empty space and moved {targetObject}.
+
+      {subject} counted the {target}
+      stock again.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730033
+    m_Localized: '{subject} waited calmly at the spot.
+
+      {subject} watched the
+      surroundings while waiting their turn.
+
+      {subject} paused and waited for
+      the next task.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730034
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730035
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730036
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730037
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730038
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730039
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730040
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730041
+    m_Localized: '{subject} returned after tracking {target}.
+
+      {subject} concluded
+      the hunt after reviewing signs of {target}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730042
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730043
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730044
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730045
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730046
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730047
+    m_Localized: '{subject} finished {workObject} at {place}.
+
+      {subject} completed
+      {workObject} and caught their breath.
+
+      {subject} wrapped up {workObject}
+      while tidying {place}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730048
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730049
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730050
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730051
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730052
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730053
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730054
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730055
+    m_Localized: '{subject} followed signs of {target} and began the hunt.
+
+      {subject}
+      moved quietly toward {target}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730056
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730057
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730058
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730059
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730060
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730061
+    m_Localized: '{subject} began {workObject} at {place}.
+
+      {subject} took
+      a breath and began {workObject}.
+
+      {subject} headed to {place} for {workObject}.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730062
+    m_Localized: alchemy research
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730063
+    m_Localized: butchering
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730064
+    m_Localized: cleaning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730065
+    m_Localized: cleaning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730066
+    m_Localized: cooking
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730067
+    m_Localized: crafting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730068
+    m_Localized: drawing water
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730069
+    m_Localized: guard duty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730070
+    m_Localized: hauling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730071
+    m_Localized: hunting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730072
+    m_Localized: operation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730073
+    m_Localized: reception
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730074
+    m_Localized: refueling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730075
+    m_Localized: repair
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730076
+    m_Localized: rescue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730077
+    m_Localized: research
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730078
+    m_Localized: rest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730079
+    m_Localized: restocking
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730080
+    m_Localized: treatment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 418730081
+    m_Localized: weapon sales
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

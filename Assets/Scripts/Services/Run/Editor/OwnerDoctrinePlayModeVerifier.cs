@@ -81,6 +81,7 @@ public sealed class OwnerDoctrineVerificationRunner : MonoBehaviour
     private Mouse originalMouse;
     private Mouse verificationMouse;
     private IDungeonGameSaveSlotService slotService;
+    private IOwnerDoctrineDefinitionCatalog doctrineCatalog;
 
     private IEnumerator Start()
     {
@@ -105,11 +106,12 @@ public sealed class OwnerDoctrineVerificationRunner : MonoBehaviour
             }
 
             BackupPersistentFiles(firstScope);
+            doctrineCatalog = firstScope.Container.Resolve<IOwnerDoctrineDefinitionCatalog>();
             OwnerDoctrineDefinition[] doctrines =
             {
-                OwnerDoctrineCatalog.Get(OwnerDoctrineIds.SlimeStewardship),
-                OwnerDoctrineCatalog.Get(OwnerDoctrineIds.OrcWarCamp),
-                OwnerDoctrineCatalog.Get(OwnerDoctrineIds.VampireForbiddenStudy)
+                doctrineCatalog.Get(OwnerDoctrineIds.SlimeStewardship),
+                doctrineCatalog.Get(OwnerDoctrineIds.OrcWarCamp),
+                doctrineCatalog.Get(OwnerDoctrineIds.VampireForbiddenStudy)
             };
 
             for (int index = 0; index < doctrines.Length; index++)
@@ -185,7 +187,7 @@ public sealed class OwnerDoctrineVerificationRunner : MonoBehaviour
     {
         Canvas.ForceUpdateCanvases();
         Button[] ownerButtons = FindOwnerButtons();
-        foreach (OwnerDoctrineDefinition doctrine in OwnerDoctrineCatalog.All)
+        foreach (OwnerDoctrineDefinition doctrine in doctrineCatalog.All)
         {
             Button button = ownerButtons.FirstOrDefault(candidate =>
                 GetButtonText(candidate).Contains(doctrine.title, StringComparison.Ordinal));
@@ -213,9 +215,10 @@ public sealed class OwnerDoctrineVerificationRunner : MonoBehaviour
         while (Time.realtimeSinceStartup < deadline)
         {
             DungeonRuntimeLifetimeScope scope = FindScope();
-            IRunVariableRuntimeProvider provider = scope?.Container.Resolve<IRunVariableRuntimeProvider>();
-            if (provider != null
-                && provider.TryGetRuntime(out RunVariableRuntime runtime)
+            RunVariableRuntime runtime = scope?.Container
+                .Resolve<DungeonSceneRuntimeReferences>()
+                .RunVariables;
+            if (runtime != null
                 && runtime?.State.StartVariables?.ownerDoctrineId == doctrine.id)
             {
                 yield break;
@@ -229,7 +232,9 @@ public sealed class OwnerDoctrineVerificationRunner : MonoBehaviour
     {
         DungeonRuntimeLifetimeScope scope = FindScope();
         IOwnerRunManagerProvider ownerProvider = scope?.Container.Resolve<IOwnerRunManagerProvider>();
-        IRunVariableRuntimeProvider runProvider = scope?.Container.Resolve<IRunVariableRuntimeProvider>();
+        RunVariableRuntime runtime = scope?.Container
+            .Resolve<DungeonSceneRuntimeReferences>()
+            .RunVariables;
         IFacilityShopCatalog catalog = scope?.Container.Resolve<IFacilityShopCatalog>();
 
         bool ownerSelected = ownerProvider != null
@@ -239,10 +244,7 @@ public sealed class OwnerDoctrineVerificationRunner : MonoBehaviour
                 manager.CurrentOwnerActor.SpeciesTag,
                 doctrine.speciesTag,
                 StringComparison.OrdinalIgnoreCase);
-        RunVariableRuntime runtime = null;
-        bool runtimeReady = runProvider != null
-            && runProvider.TryGetRuntime(out runtime)
-            && runtime?.State.StartVariables != null;
+        bool runtimeReady = runtime?.State.StartVariables != null;
         Check(ownerSelected, "OWNER_SELECTED_" + doctrine.speciesTag.ToUpperInvariant(), doctrine.id);
         Check(
             runtimeReady && runtime.State.StartVariables.ownerDoctrineId == doctrine.id,

@@ -58,54 +58,55 @@ public sealed class DungeonDebugCheatCommandProvider : IDungeonDebugCommandProvi
 
 public sealed class DungeonDebugEconomyCommandProvider : IDungeonDebugCommandProvider
 {
-    private readonly IGameDataProvider gameDataProvider;
     private readonly IGameEventBus gameEventBus;
+    private readonly IGameMoneyAccount money;
+    private readonly IGameCalendar calendar;
 
     public DungeonDebugEconomyCommandProvider(
-        IGameDataProvider gameDataProvider,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IGameMoneyAccount money,
+        IGameCalendar calendar)
     {
-        this.gameDataProvider = gameDataProvider ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.money = money ?? throw new ArgumentNullException(nameof(money));
+        this.calendar = calendar ?? throw new ArgumentNullException(nameof(calendar));
     }
 
     public IEnumerable<IDungeonDebugCommand> GetCommands()
     {
         yield return Numeric("economy:add-money", "자금 추가", 1000f, value =>
         {
-            if (!TryGet(out GameData data)) return "GameData 없음";
-            data.holdingMoney.Value = Mathf.Max(0, data.holdingMoney.Value + Mathf.RoundToInt(value));
-            return $"자금 {data.holdingMoney.Value:N0}";
+            money.Add(
+                Mathf.RoundToInt(value),
+                DebugMoneyContext("debug-add-money"));
+            return $"자금 {money.Balance:N0}";
         });
         yield return Numeric("economy:remove-money", "자금 차감", 1000f, value =>
         {
-            if (!TryGet(out GameData data)) return "GameData 없음";
-            data.holdingMoney.Value = Mathf.Max(0, data.holdingMoney.Value - Mathf.RoundToInt(value));
-            return $"자금 {data.holdingMoney.Value:N0}";
+            money.TrySpend(
+                Mathf.RoundToInt(value),
+                DebugMoneyContext("debug-remove-money"),
+                out _);
+            return $"자금 {money.Balance:N0}";
         }, dangerous: true);
         yield return Numeric("economy:set-money", "자금 직접 설정", 5000f, value =>
         {
-            if (!TryGet(out GameData data)) return "GameData 없음";
-            data.holdingMoney.Value = Mathf.Max(0, Mathf.RoundToInt(value));
-            return $"자금 {data.holdingMoney.Value:N0}";
+            money.SetBalance(
+                Mathf.RoundToInt(value),
+                DebugMoneyContext("debug-set-money"));
+            return $"자금 {money.Balance:N0}";
         });
         yield return Numeric("time:set-hour", "시간대 설정", 12f, value =>
         {
-            if (!TryGet(out GameData data)) return "GameData 없음";
             int hour = Mathf.Clamp(Mathf.RoundToInt(value), 0, 23);
-            if (data.hour != null) data.hour.Value = hour;
-            if (data.curTime != null) data.curTime.Value = hour;
+            calendar.SetDateTime(calendar.Day, hour);
             return $"{hour:00}:00로 설정";
         });
         yield return Numeric("time:advance-hours", "시간 진행", 1f, value =>
         {
-            if (!TryGet(out GameData data)) return "GameData 없음";
             int hours = Mathf.Max(1, Mathf.RoundToInt(value));
-            int current = data.hour?.Value ?? Mathf.FloorToInt(data.curTime?.Value ?? 0f);
-            int total = current + hours;
-            if (data.day != null) data.day.Value += total / 24;
-            if (data.hour != null) data.hour.Value = total % 24;
-            if (data.curTime != null) data.curTime.Value = total % 24;
+            int total = calendar.Hour + hours;
+            calendar.SetDateTime(calendar.Day + total / 24, total % 24);
             return $"{hours}시간 진행";
         });
         yield return new DelegateDungeonDebugCommand(
@@ -116,16 +117,19 @@ public sealed class DungeonDebugEconomyCommandProvider : IDungeonDebugCommandPro
             DungeonDebugTargetKind.None,
             _ =>
             {
-                if (!TryGet(out GameData data))
-                {
-                    return DungeonDebugCommandResult.Failed("GameData가 없습니다.");
-                }
-
-                int nextDay = Mathf.Max(1, (data.day?.Value ?? 1) + 1);
-                if (data.day != null) data.day.Value = nextDay;
+                int nextDay = calendar.Day + 1;
+                calendar.SetDateTime(nextDay, calendar.Hour);
                 gameEventBus.Publish(new OperatingDayStartedEvent(nextDay));
                 return DungeonDebugCommandResult.Succeeded($"{nextDay}일차 정산을 실행했습니다.");
             });
+    }
+
+    private static EconomyTransactionContext DebugMoneyContext(string sourceId)
+    {
+        return new EconomyTransactionContext(
+            EconomyTransactionKind.DebugAdjustment,
+            sourceId,
+            description: "디버그 자금 조정");
     }
 
     private IDungeonDebugCommand Numeric(
@@ -152,10 +156,6 @@ public sealed class DungeonDebugEconomyCommandProvider : IDungeonDebugCommandPro
             defaultNumericValue: defaultValue);
     }
 
-    private bool TryGet(out GameData gameData)
-    {
-        return gameDataProvider.TryGetGameData(out gameData) && gameData != null;
-    }
 }
 
 public sealed class DungeonDebugItemCommandProvider : IDungeonDebugCommandProvider
@@ -176,24 +176,8 @@ public sealed class DungeonDebugItemCommandProvider : IDungeonDebugCommandProvid
 
     public IEnumerable<IDungeonDebugCommand> GetCommands()
     {
-        foreach (StockCategory category in Enum.GetValues(typeof(StockCategory)))
-        {
-            StockCategory captured = category;
-            yield return new DelegateDungeonDebugCommand(
-                $"spawn:stock:{Convert.ToInt32(captured)}",
-                $"{StockCategoryCatalog.GetDisplayName(captured)} 소환",
-                "선택한 정확한 칸에 loose 스택을 만듭니다.",
-                DungeonDebugCategory.Spawn,
-                DungeonDebugTargetKind.GridCell,
-                context => SpawnAt(
-                    DungeonItemCatalogSO.StockItemId(captured),
-                    context,
-                    StockCategoryCatalog.GetDisplayName(captured)),
-                defaultNumericValue: 10f);
-        }
-
         foreach (DungeonItemDefinition definition in
-                 catalogProvider.Catalog?.Items ?? Array.Empty<DungeonItemDefinition>())
+                 catalogProvider.All ?? Array.Empty<DungeonItemDefinition>())
         {
             if (definition == null || string.IsNullOrWhiteSpace(definition.ItemId))
             {
@@ -320,256 +304,28 @@ public sealed class DungeonDebugItemCommandProvider : IDungeonDebugCommandProvid
     }
 }
 
-public sealed class DungeonDebugCharacterCommandProvider : IDungeonDebugCommandProvider
-{
-    private readonly ICharacterDeprivationRuntime deprivationRuntime;
-    private readonly ICharacterWorldQuery characterWorld;
-
-    public DungeonDebugCharacterCommandProvider(
-        ICharacterDeprivationRuntime deprivationRuntime,
-        ICharacterWorldQuery characterWorld)
-    {
-        this.deprivationRuntime = deprivationRuntime
-            ?? throw new ArgumentNullException(nameof(deprivationRuntime));
-        this.characterWorld = characterWorld
-            ?? throw new ArgumentNullException(nameof(characterWorld));
-    }
-
-    public IEnumerable<IDungeonDebugCommand> GetCommands()
-    {
-        yield return CharacterCommand("character:heal", "완전 회복", context =>
-        {
-            CharacterActor actor = context.Target.Character;
-            actor.Heal(actor.MaxHealth);
-            actor.SetInjurySeverity(0f);
-            return $"{Name(actor)} 완전 회복";
-        });
-        yield return CharacterCommand("character:fill-needs", "욕구 전체 충족", context =>
-        {
-            CharacterActor actor = context.Target.Character;
-            foreach (CharacterCondition condition in Enum.GetValues(typeof(CharacterCondition)))
-            {
-                if (condition != CharacterCondition.MOOD
-                    && actor.stats.TryGetValue(condition, out float current))
-                {
-                    actor.ChangesStat(condition, 100f - current);
-                }
-            }
-
-            return $"{Name(actor)} 욕구 충족";
-        });
-        foreach (CharacterCondition condition in Enum.GetValues(typeof(CharacterCondition)))
-        {
-            if (condition == CharacterCondition.MOOD) continue;
-            CharacterCondition captured = condition;
-            yield return CharacterCommand(
-                $"character:set-need:{captured}",
-                $"{NeedName(captured)} 설정",
-                context =>
-                {
-                    CharacterActor actor = context.Target.Character;
-                    float current = actor.stats.TryGetValue(captured, out float value) ? value : 0f;
-                    float target = Mathf.Clamp(context.NumericValue, 0f, 100f);
-                    actor.ChangesStat(captured, target - current);
-                    return $"{Name(actor)} {NeedName(captured)} {target:0}";
-                },
-                defaultValue: 100f);
-        }
-
-        yield return CharacterCommand("character:mood", "기분 변경", context =>
-        {
-            CharacterActor actor = context.Target.Character;
-            actor.ApplyMoodFactor(
-                "debug:mood",
-                "디버그 기분 변경",
-                Mathf.Clamp(context.NumericValue, -100f, 100f),
-                600f,
-                1);
-            return $"{Name(actor)} 기분 {context.NumericValue:+0;-0;0}";
-        });
-        yield return CharacterCommand("character:damage", "피해 적용", context =>
-        {
-            CharacterActor actor = context.Target.Character;
-            float amount = Mathf.Max(0f, context.NumericValue);
-            actor.ApplyDamage(amount, "디버그");
-            return $"{Name(actor)} 피해 {amount:0.#}";
-        }, dangerous: true, defaultValue: 10f);
-        yield return CharacterCommand("character:kill", "살해", context =>
-        {
-            CharacterActor actor = context.Target.Character;
-            actor.Die("디버그 살해");
-            return $"{Name(actor)} 사망";
-        }, dangerous: true);
-        yield return CharacterCommand("character:xp", "경험치 지급", context =>
-        {
-            CharacterActor actor = context.Target.Character;
-            int amount = Mathf.Max(1, Mathf.RoundToInt(context.NumericValue));
-            int levels = actor.Progression != null ? actor.Progression.AddExperience(amount) : 0;
-            return $"{Name(actor)} 경험치 +{amount} · 레벨 상승 {levels}";
-        }, defaultValue: 100f);
-        yield return CharacterCommand("character:level", "최소 레벨 설정", context =>
-        {
-            CharacterActor actor = context.Target.Character;
-            int level = Mathf.Clamp(Mathf.RoundToInt(context.NumericValue), 1, CharacterProgression.MaxLevel);
-            bool changed = actor.Progression != null
-                && actor.Progression.EnsureMinimumLevel(level, "디버그 레벨 조정");
-            return changed
-                ? $"{Name(actor)} 레벨 {actor.Progression.Level}"
-                : $"{Name(actor)}은 이미 레벨 {actor.Progression?.Level ?? 1}";
-        }, defaultValue: 10f);
-        foreach (CharacterBreakdownKind kind in Enum.GetValues(typeof(CharacterBreakdownKind)))
-        {
-            if (kind == CharacterBreakdownKind.None) continue;
-            CharacterBreakdownKind captured = kind;
-            yield return CharacterCommand(
-                $"character:breakdown:{captured}",
-                $"{BreakdownName(captured)} 발동",
-                context => deprivationRuntime.DebugForceBreakdown(context.Target.Character, captured)
-                    ? $"{Name(context.Target.Character)}에게 {BreakdownName(captured)} 발동"
-                    : "붕괴를 발동하지 못함",
-                dangerous: true);
-        }
-
-        yield return CharacterCommand("character:clear-breakdown", "붕괴 해제", context =>
-            deprivationRuntime.DebugClearBreakdown(context.Target.Character)
-                ? $"{Name(context.Target.Character)} 붕괴 해제"
-                : "활성 붕괴가 없음");
-        yield return CharacterCommand("character:injure", "부상 적용", context =>
-        {
-            CharacterActor actor = context.Target.Character;
-            float severity = Mathf.Clamp(context.NumericValue, 0f, 100f);
-            actor.SetInjurySeverity(severity);
-            return $"{Name(actor)} 부상 {severity:0}";
-        }, dangerous: true, defaultValue: 35f);
-        yield return CharacterCommand("character:treat", "부상 치료", context =>
-        {
-            CharacterActor actor = context.Target.Character;
-            actor.SetInjurySeverity(0f);
-            actor.Heal(actor.MaxHealth);
-            return $"{Name(actor)} 부상 치료 완료";
-        });
-        yield return GlobalStaffCommand("character:heal-all", "전체 직원 완전 회복", actor =>
-        {
-            actor.Heal(actor.MaxHealth);
-            actor.SetInjurySeverity(0f);
-        });
-        yield return GlobalStaffCommand("character:fill-needs-all", "전체 직원 욕구 충족", actor =>
-        {
-            foreach (CharacterCondition condition in Enum.GetValues(typeof(CharacterCondition)))
-            {
-                if (condition != CharacterCondition.MOOD
-                    && actor.stats.TryGetValue(condition, out float current))
-                {
-                    actor.ChangesStat(condition, 100f - current);
-                }
-            }
-        });
-    }
-
-    private IDungeonDebugCommand GlobalStaffCommand(
-        string id,
-        string label,
-        Action<CharacterActor> execute)
-    {
-        return new DelegateDungeonDebugCommand(
-            id,
-            label,
-            "사장과 현재 직원 전체에 적용합니다.",
-            DungeonDebugCategory.Character,
-            DungeonDebugTargetKind.None,
-            _ =>
-            {
-                int count = 0;
-                foreach (CharacterActor actor in characterWorld.Characters
-                             .Where(IsFriendlyStaff))
-                {
-                    execute(actor);
-                    count++;
-                }
-
-                return count > 0
-                    ? DungeonDebugCommandResult.Succeeded($"{count}명에게 적용했습니다.")
-                    : DungeonDebugCommandResult.Failed("적용할 사장 또는 직원이 없습니다.");
-            });
-    }
-
-    private static IDungeonDebugCommand CharacterCommand(
-        string id,
-        string label,
-        Func<DungeonDebugExecutionContext, string> execute,
-        bool dangerous = false,
-        float defaultValue = 10f)
-    {
-        return new DelegateDungeonDebugCommand(
-            id,
-            label,
-            "정확히 클릭한 캐릭터에 적용합니다.",
-            DungeonDebugCategory.Character,
-            DungeonDebugTargetKind.Character,
-            context =>
-            {
-                string message = execute(context);
-                return message.Contains("못함", StringComparison.Ordinal)
-                       || message.Contains("없음", StringComparison.Ordinal)
-                    ? DungeonDebugCommandResult.Failed(message)
-                    : DungeonDebugCommandResult.Succeeded(message);
-            },
-            isDangerous: dangerous,
-            defaultNumericValue: defaultValue);
-    }
-
-    private static string Name(CharacterActor actor)
-    {
-        return actor?.Identity?.DisplayName ?? "캐릭터";
-    }
-
-    private static bool IsFriendlyStaff(CharacterActor actor)
-    {
-        return actor != null
-            && !actor.IsDead
-            && actor.characterType == CharacterType.NPC;
-    }
-
-    private static string NeedName(CharacterCondition condition)
-    {
-        return CharacterNeedCatalog.TryGet(condition, out CharacterNeedDefinition need)
-            ? need.DisplayName
-            : condition.ToString();
-    }
-
-    private static string BreakdownName(CharacterBreakdownKind kind)
-    {
-        return kind switch
-        {
-            CharacterBreakdownKind.DesperateRelief => "배변 붕괴",
-            CharacterBreakdownKind.DesperateDrink => "갈증 붕괴",
-            CharacterBreakdownKind.DesperateEat => "굶주림 붕괴",
-            CharacterBreakdownKind.Collapse => "탈진",
-            CharacterBreakdownKind.ViolentImpulse => "폭력 충동",
-            _ => kind.ToString()
-        };
-    }
-}
-
 public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvider
 {
     private readonly IWorkOrderRuntime workOrderRuntime;
     private readonly IWorldItemStackRuntime itemRuntime;
-    private readonly IBlueprintResearchRuntimeProvider researchRuntimeProvider;
+    private readonly BlueprintResearchRuntime research;
     private readonly IFacilityShopCatalog facilityCatalog;
     private readonly IFacilityShopUnlockStateService shopUnlockStateService;
 
     public DungeonDebugWorkCommandProvider(
         IWorkOrderRuntime workOrderRuntime,
         IWorldItemStackRuntime itemRuntime,
-        IBlueprintResearchRuntimeProvider researchRuntimeProvider,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
         IFacilityShopCatalog facilityCatalog,
         IFacilityShopUnlockStateService shopUnlockStateService)
     {
         this.workOrderRuntime = workOrderRuntime ?? throw new ArgumentNullException(nameof(workOrderRuntime));
         this.itemRuntime = itemRuntime ?? throw new ArgumentNullException(nameof(itemRuntime));
-        this.researchRuntimeProvider = researchRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(researchRuntimeProvider));
+        research = (progressionRuntimes
+                ?? throw new ArgumentNullException(nameof(progressionRuntimes)))
+            .BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(DungeonDebugWorkCommandProvider)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
         this.facilityCatalog = facilityCatalog ?? throw new ArgumentNullException(nameof(facilityCatalog));
         this.shopUnlockStateService = shopUnlockStateService
             ?? throw new ArgumentNullException(nameof(shopUnlockStateService));
@@ -668,7 +424,8 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
                 }
 
                 int spawned = 0;
-                foreach (KeyValuePair<StockCategory, int> requirement in order.MaterialRequirements)
+                foreach (KeyValuePair<string, int> requirement in
+                         order.ItemMaterialRequirements)
                 {
                     int buffered = itemRuntime.GetAllStacks()
                         .Where(stack => stack != null
@@ -677,7 +434,10 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
                                 stack.DestinationId,
                                 order.MaterialDestinationId,
                                 StringComparison.Ordinal)
-                            && stack.StockCategory == requirement.Key)
+                            && string.Equals(
+                                stack.ItemId,
+                                requirement.Key,
+                                StringComparison.Ordinal))
                         .Sum(stack => stack.Quantity);
                     int missing = Mathf.Max(0, requirement.Value - buffered);
                     if (missing <= 0)
@@ -686,7 +446,7 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
                     }
 
                     itemRuntime.SpawnItemAt(
-                        DungeonItemCatalogSO.StockItemId(requirement.Key),
+                        requirement.Key,
                         missing,
                         building.centerPos,
                         WorldItemStackState.FacilityBuffer,
@@ -729,7 +489,7 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
             DungeonDebugTargetKind.None,
             _ =>
             {
-                if (!researchRuntimeProvider.TryGetRuntime(out BlueprintResearchRuntime research))
+                if (research == null)
                 {
                     return DungeonDebugCommandResult.Failed("연구 런타임이 없습니다.");
                 }
@@ -745,7 +505,7 @@ public sealed class DungeonDebugWorkCommandProvider : IDungeonDebugCommandProvid
             DungeonDebugTargetKind.None,
             _ =>
             {
-                if (!researchRuntimeProvider.TryGetRuntime(out BlueprintResearchRuntime research))
+                if (research == null)
                 {
                     return DungeonDebugCommandResult.Failed("연구 런타임이 없습니다.");
                 }
@@ -812,7 +572,7 @@ public sealed class DungeonDebugSurvivalWildlifeCommandProvider : IDungeonDebugC
     private readonly IWildlifeRuntime wildlifeRuntime;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
     private readonly IWildlifeEcosystemRuntime ecosystemRuntime;
-    private readonly ISurvivalFoodRuntime survivalRuntime;
+    private readonly ISurvivalFoodDebugCommand survivalRuntime;
 
     public DungeonDebugSurvivalWildlifeCommandProvider(
         IWorldFilthQuery filthRuntime,
@@ -820,7 +580,7 @@ public sealed class DungeonDebugSurvivalWildlifeCommandProvider : IDungeonDebugC
         IWildlifeRuntime wildlifeRuntime,
         IWildlifeSpeciesCatalogProvider speciesCatalog,
         IWildlifeEcosystemRuntime ecosystemRuntime,
-        ISurvivalFoodRuntime survivalRuntime)
+        ISurvivalFoodDebugCommand survivalRuntime)
     {
         this.filthRuntime = filthRuntime ?? throw new ArgumentNullException(nameof(filthRuntime));
         this.waterRuntime = waterRuntime ?? throw new ArgumentNullException(nameof(waterRuntime));
@@ -1055,19 +815,24 @@ public sealed class DungeonDebugSurvivalWildlifeCommandProvider : IDungeonDebugC
 
 public sealed class DungeonDebugDefenseCommandProvider : IDungeonDebugCommandProvider
 {
-    private readonly IInvasionThreatRuntimeProvider threatProvider;
-    private readonly IInvasionDirectorRuntimeProvider directorProvider;
+    private readonly InvasionThreatRuntime threat;
+    private readonly InvasionDirectorRuntime director;
     private readonly IExteriorIncidentRuntime incidentRuntime;
     private readonly ICharacterWorldQuery characterWorld;
 
     public DungeonDebugDefenseCommandProvider(
-        IInvasionThreatRuntimeProvider threatProvider,
-        IInvasionDirectorRuntimeProvider directorProvider,
+        InvasionSceneRuntimeReferences invasionRuntimes,
         IExteriorIncidentRuntime incidentRuntime,
         ICharacterWorldQuery characterWorld)
     {
-        this.threatProvider = threatProvider ?? throw new ArgumentNullException(nameof(threatProvider));
-        this.directorProvider = directorProvider ?? throw new ArgumentNullException(nameof(directorProvider));
+        invasionRuntimes = invasionRuntimes
+            ?? throw new ArgumentNullException(nameof(invasionRuntimes));
+        threat = invasionRuntimes.Threat
+            ?? throw new InvalidOperationException(
+                $"{nameof(DungeonDebugDefenseCommandProvider)} requires a loaded {nameof(InvasionThreatRuntime)}.");
+        director = invasionRuntimes.Director
+            ?? throw new InvalidOperationException(
+                $"{nameof(DungeonDebugDefenseCommandProvider)} requires a loaded {nameof(InvasionDirectorRuntime)}.");
         this.incidentRuntime = incidentRuntime ?? throw new ArgumentNullException(nameof(incidentRuntime));
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
@@ -1085,7 +850,7 @@ public sealed class DungeonDebugDefenseCommandProvider : IDungeonDebugCommandPro
             DungeonDebugTargetKind.None,
             context =>
             {
-                if (!threatProvider.TryGetRuntime(out InvasionThreatRuntime threat))
+                if (threat == null)
                 {
                     return DungeonDebugCommandResult.Failed("침공 위협 Runtime이 없습니다.");
                 }
@@ -1118,7 +883,7 @@ public sealed class DungeonDebugDefenseCommandProvider : IDungeonDebugCommandPro
             DungeonDebugTargetKind.None,
             _ =>
             {
-                if (!directorProvider.TryGetRuntime(out InvasionDirectorRuntime director))
+                if (director == null)
                 {
                     return DungeonDebugCommandResult.Failed("침공 Director가 없습니다.");
                 }
@@ -1142,7 +907,7 @@ public sealed class DungeonDebugDefenseCommandProvider : IDungeonDebugCommandPro
             DungeonDebugTargetKind.None,
             _ =>
             {
-                if (!directorProvider.TryGetRuntime(out InvasionDirectorRuntime director))
+                if (director == null)
                 {
                     return DungeonDebugCommandResult.Failed("침공 Director가 없습니다.");
                 }
@@ -1167,7 +932,7 @@ public sealed class DungeonDebugDefenseCommandProvider : IDungeonDebugCommandPro
             DungeonDebugTargetKind.None,
             _ =>
             {
-                if (!directorProvider.TryGetRuntime(out InvasionDirectorRuntime director))
+                if (director == null)
                 {
                     return DungeonDebugCommandResult.Failed("침공 Director가 없습니다.");
                 }
@@ -1196,7 +961,7 @@ public sealed class DungeonDebugDefenseCommandProvider : IDungeonDebugCommandPro
             DungeonDebugTargetKind.None,
             _ =>
             {
-                if (!directorProvider.TryGetRuntime(out InvasionDirectorRuntime director))
+                if (director == null)
                 {
                     return DungeonDebugCommandResult.Failed("침공 Director가 없습니다.");
                 }
@@ -1232,14 +997,14 @@ public sealed class DungeonDebugDefenseCommandProvider : IDungeonDebugCommandPro
             DungeonDebugTargetKind.None,
             _ =>
             {
-                if (!threatProvider.TryGetRuntime(out InvasionThreatRuntime threat))
+                if (threat == null)
                 {
                     return DungeonDebugCommandResult.Failed("침공 위협 Runtime이 없습니다.");
                 }
 
                 if (boss)
                 {
-                    if (!directorProvider.TryGetRuntime(out InvasionDirectorRuntime director))
+                    if (director == null)
                     {
                         return DungeonDebugCommandResult.Failed("침공 Director가 없습니다.");
                     }

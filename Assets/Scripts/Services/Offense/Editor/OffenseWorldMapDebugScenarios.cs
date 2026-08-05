@@ -28,7 +28,7 @@ public static class OffenseWorldMapDebugScenarios
         RunScenario("원정 대상 선택 이벤트", VerifyTargetSelectionEvent, errors);
         RunScenario("오펜스 캠페인 선행 목표 잠금", VerifyCampaignPrerequisiteChain, errors);
         RunScenario("최종 오펜스 진실 공개", VerifyTerminalTruthReveal, errors);
-        RunScenario("V17 진실 귀환 승리 연결", VerifyV17TruthReveal, errors);
+        RunScenario("Strategic 진실 귀환 승리 연결", VerifyStrategicTruthReveal, errors);
         RunScenario("월드맵 읽기 경계", VerifyReadOnlyWorldMapBoundary, errors);
         RunScenario("월드맵 패널 생성", VerifyPanelCreation, errors);
 
@@ -125,7 +125,8 @@ public static class OffenseWorldMapDebugScenarios
 
     private static bool VerifyStrategyBlueprintRoutes()
     {
-        IReadOnlyList<OffenseTargetDefinition> targets = OffenseWorldMapService.CreateDefaultTargets();
+        IReadOnlyList<OffenseTargetDefinition> targets =
+            OffenseEditorTestDependencies.CreateCampaignCatalog().Targets;
         return HasSpecificBlueprint(targets, "merchant_road", OffenseStrategyBlueprintIds.CommerceLogistics)
             && HasSpecificBlueprint(targets, "old_armory", OffenseStrategyBlueprintIds.FortressDefense)
             && HasSpecificBlueprint(targets, "mana_ruins", OffenseStrategyBlueprintIds.ArcaneResearch);
@@ -203,15 +204,15 @@ public static class OffenseWorldMapDebugScenarios
             && truthListener.TruthText.Contains("지상의 왕국");
     }
 
-    private static bool VerifyV17TruthReveal()
+    private static bool VerifyStrategicTruthReveal()
     {
         using ScenarioRuntime scenario = new ScenarioRuntime();
         using CountingTruthListener truthListener =
             new CountingTruthListener(scenario.GameEvents);
-        bool revealed = scenario.Runtime.TryRecordV17TruthReveal(
+        bool revealed = scenario.Runtime.TryRecordStrategicTruthReveal(
             OffenseWorldMapService.TruthTargetId,
             out string message);
-        bool repeated = scenario.Runtime.TryRecordV17TruthReveal(
+        bool repeated = scenario.Runtime.TryRecordStrategicTruthReveal(
             OffenseWorldMapService.TruthTargetId,
             out _);
 
@@ -236,7 +237,6 @@ public static class OffenseWorldMapDebugScenarios
 
     private static bool VerifyReadOnlyWorldMapBoundary()
     {
-        using ScenarioRuntime scenario = new ScenarioRuntime();
         OffenseTargetDefinition source = new OffenseTargetDefinition
         {
             id = "boundary_target",
@@ -248,12 +248,16 @@ public static class OffenseWorldMapDebugScenarios
             durationSeconds = 20f,
             requiredMembers = 1,
             requiredPower = 1f,
+            campaignOrder = 1,
+            revealsTruth = true,
+            truthText = "Boundary truth",
             rewards = new[]
             {
                 new OffenseRewardPreview("원본 보상", 1, new OffenseMoneyRewardSpec())
             }
         };
-        scenario.Runtime.SetTargetsForDebug(new[] { source });
+        using ScenarioRuntime scenario = new ScenarioRuntime(
+            new TestCampaignCatalog(new[] { source }));
         source.title = "외부에서 변경한 제목";
         source.rewards[0] = new OffenseRewardPreview("외부 변경", 99, new OffenseMoneyRewardSpec());
 
@@ -301,12 +305,19 @@ public static class OffenseWorldMapDebugScenarios
         public OffenseWorldMapRuntime Runtime { get; }
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
 
-        public ScenarioRuntime()
+        public ScenarioRuntime(IOffenseCampaignCatalog catalog = null)
         {
             GameEvents = new DungeonStory.Foundation.GameEventBus();
             runtimeObject = new GameObject("Offense World Map Scenario Runtime");
             Runtime = runtimeObject.AddComponent<OffenseWorldMapRuntime>();
-            Runtime.Construct(new TestPanelService(), GameEvents);
+            OffenseCampaignRuntime campaign = new OffenseCampaignRuntime();
+            Runtime.Construct(
+                new TestPanelService(),
+                GameEvents,
+                externalInfluence: null,
+                campaign,
+                campaign,
+                catalog ?? OffenseEditorTestDependencies.CreateCampaignCatalog());
             Runtime.StartWorldMap();
         }
 
@@ -316,9 +327,44 @@ public static class OffenseWorldMapDebugScenarios
         }
     }
 
+    private sealed class TestCampaignCatalog : IOffenseCampaignCatalog
+    {
+        private readonly IReadOnlyList<OffenseTargetDefinition> targets;
+
+        public TestCampaignCatalog(
+            IEnumerable<OffenseTargetDefinition> definitions)
+        {
+            OffenseCampaignCatalogSO asset =
+                ScriptableObject.CreateInstance<OffenseCampaignCatalogSO>();
+            try
+            {
+                asset.SetDefinitionsForMigration(definitions
+                    ?? throw new ArgumentNullException(nameof(definitions)));
+                targets = asset.CreateRuntimeDefinitions();
+            }
+            finally
+            {
+                Object.DestroyImmediate(asset);
+            }
+        }
+
+        public IReadOnlyList<OffenseTargetDefinition> Targets => targets;
+
+        public bool TryGet(
+            string targetId,
+            out OffenseTargetDefinition definition)
+        {
+            OffenseTargetDefinition value = targets.FirstOrDefault(candidate =>
+                string.Equals(candidate.id, targetId,
+                    StringComparison.Ordinal));
+            definition = value;
+            return definition != null;
+        }
+    }
+
     private sealed class TestPanelService : IOffensePanelService
     {
-        public OffenseWorldMapPanel ShowWorldMap(OffenseWorldMapRuntime runtime)
+        public OffenseWorldMapPanel ShowWorldMap()
         {
             GameObject canvasObject = new GameObject("World Map Test Canvas", typeof(Canvas));
             GameObject panelObject = new GameObject("World Map Test Panel");

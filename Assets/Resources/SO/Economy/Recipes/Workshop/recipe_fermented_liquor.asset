@@ -45,7 +45,7 @@ MonoBehaviour:
   allowsManualWaterFallback: 0
   spoilageItemId: waste:plant-rot
   inputs:
-  - itemId: material:wort
+  - itemId: material:malt
     amount: 2
   outputs:
   - itemId: material:fermented-liquor

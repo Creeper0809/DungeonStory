@@ -11,12 +11,19 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
   m_Name: procedure_amputation
-  m_EditorClassIdentifier: Assembly-CSharp::SurgicalProcedureSO
+  m_EditorClassIdentifier: DungeonStory.Medical::SurgicalProcedureSO
   procedureId: procedure:amputation
   displayName: "\uAD34\uC0AC \uBD80\uC704 \uC808\uB2E8"
   description: "\uD68C\uBCF5\uD560 \uC218 \uC5C6\uB294 \uBD80\uC704\uB97C \uC81C\uAC70\uD574
     \uAC10\uC5FC \uD655\uC0B0\uC744 \uB9C9\uB294\uB2E4."
   kind: 4
+  family: 0
+  urgency: 2
+  allowedAnatomyFamilies: []
+  allowedSpeciesIds: []
+  operatorRequirement:
+    stats: []
+    minimumWeightedScore: 3
   targetNodeId: 
   requiredResearchId: research:medical:surgery
   requiredFacilityTags: 28
@@ -30,16 +37,16 @@ MonoBehaviour:
   allowsCorpseSubject: 0
   allowsWildlife: 1
   materials:
-  - itemId: stock-item:5
+  - itemId: medicine:standard
     quantity: 2
     optional: 0
   effects:
-  - rid: 7302563313663345499
+  - rid: 7737211730889015657
   references:
     version: 2
     RefIds:
-    - rid: 7302563313663345499
-      type: {class: RemoveSurgicalNodeEffect, ns: , asm: Assembly-CSharp}
+    - rid: 7737211730889015657
+      type: {class: RemoveSurgicalNodeEffect, ns: , asm: DungeonStory.Medical}
       data:
         effectId: RemoveSurgicalNodeEffect
         createExtractedPart: 0

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Content.CoreSession;
 using UnityEngine;
 using VContainer.Unity;
 
@@ -9,36 +10,47 @@ public sealed class DungeonDebugModeService :
     IStartable,
     IDisposable
 {
-    private const int HistoryLimit = 50;
-
     private readonly IDungeonUserSettingsService settingsService;
-    private readonly IGameDataProvider gameDataProvider;
-    private readonly HashSet<DungeonDebugCheat> enabledCheats = new HashSet<DungeonDebugCheat>();
-    private readonly HashSet<DungeonDebugOverlayKind> enabledOverlays =
-        new HashSet<DungeonDebugOverlayKind>();
-    private readonly List<DungeonDebugCommandHistorySaveData> recentCommands =
-        new List<DungeonDebugCommandHistorySaveData>();
-    private bool debugModified;
-    private DungeonDebugOverlayScope overlayScope = DungeonDebugOverlayScope.SelectedOnly;
+    private readonly IGameSessionStateProvider gameDataProvider;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly CoreSessionRulesDefinition rules;
+
+    private DungeonDebugModeState state
+    {
+        get => aggregateRootStore.GetOrCreate(() => new DungeonDebugModeState());
+        set => aggregateRootStore.Replace(value);
+    }
+
+    private HashSet<DungeonDebugCheat> enabledCheats => state.EnabledCheats;
+    private HashSet<DungeonDebugOverlayKind> enabledOverlays => state.EnabledOverlays;
+    private List<DungeonDebugCommandHistorySaveData> recentCommands => state.RecentCommands;
 
     public DungeonDebugModeService(
         IDungeonUserSettingsService settingsService,
-        IGameDataProvider gameDataProvider)
+        IGameSessionStateProvider gameDataProvider,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        ICoreSessionRulesProvider rulesProvider)
     {
         this.settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         this.gameDataProvider = gameDataProvider ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        rules = (rulesProvider
+                ?? throw new ArgumentNullException(nameof(rulesProvider)))
+            .CoreSessionRules
+            ?? throw new InvalidOperationException(
+                "Core-session rules are not authored.");
     }
 
     public bool IsDeveloperModeEnabled => settingsService.Current.developerMode;
-    public bool IsDebugModified => debugModified;
-    public DungeonDebugOverlayScope OverlayScope => overlayScope;
+    public bool IsDebugModified => state.DebugModified;
+    public DungeonDebugOverlayScope OverlayScope => state.OverlayScope;
     public IReadOnlyList<DungeonDebugCommandHistorySaveData> RecentCommands => recentCommands;
     public event Action StateChanged;
 
     public void Start()
     {
-        DungeonDebugRuntimeRules.Attach(this);
-        DungeonUserSettingsRuntime.Changed += OnSettingsChanged;
+        settingsService.Changed += OnSettingsChanged;
         if (!IsDeveloperModeEnabled)
         {
             ResetTransientState();
@@ -47,9 +59,8 @@ public sealed class DungeonDebugModeService :
 
     public void Dispose()
     {
-        DungeonUserSettingsRuntime.Changed -= OnSettingsChanged;
+        settingsService.Changed -= OnSettingsChanged;
         ResetTransientState();
-        DungeonDebugRuntimeRules.Detach(this);
     }
 
     public bool IsCheatEnabled(DungeonDebugCheat cheat)
@@ -75,7 +86,7 @@ public sealed class DungeonDebugModeService :
             return;
         }
 
-        debugModified = true;
+        state.DebugModified = true;
         AppendHistory(
             $"cheat:{cheat}",
             "전체",
@@ -99,12 +110,12 @@ public sealed class DungeonDebugModeService :
 
     public void SetOverlayScope(DungeonDebugOverlayScope scope)
     {
-        if (overlayScope == scope)
+        if (state.OverlayScope == scope)
         {
             return;
         }
 
-        overlayScope = scope;
+        state.OverlayScope = scope;
         StateChanged?.Invoke();
     }
 
@@ -113,7 +124,7 @@ public sealed class DungeonDebugModeService :
         string target,
         DungeonDebugCommandResult result)
     {
-        debugModified = true;
+        state.DebugModified = true;
         AppendHistory(commandId, target, result.Message);
         StateChanged?.Invoke();
     }
@@ -122,32 +133,45 @@ public sealed class DungeonDebugModeService :
     {
         return new DungeonDebugRunSaveData
         {
-            debugModified = debugModified,
+            debugModified = state.DebugModified,
             recentCommands = recentCommands
-                .TakeLast(HistoryLimit)
+                .TakeLast(rules.DebugHistoryLimit)
                 .Select(CloneHistory)
                 .ToList()
         };
     }
 
-    public void Restore(DungeonDebugRunSaveData data)
+    public DungeonDebugRestoreCandidate PrepareRestoreCandidate(
+        DungeonDebugRunSaveData data)
     {
-        enabledCheats.Clear();
-        enabledOverlays.Clear();
-        overlayScope = DungeonDebugOverlayScope.SelectedOnly;
-        debugModified = data != null && data.debugModified;
-        recentCommands.Clear();
-        foreach (DungeonDebugCommandHistorySaveData entry in
-                 data?.recentCommands?.TakeLast(HistoryLimit)
-                 ?? Enumerable.Empty<DungeonDebugCommandHistorySaveData>())
+        if (data?.recentCommands == null)
         {
-            if (entry != null)
-            {
-                recentCommands.Add(CloneHistory(entry));
-            }
+            throw new InvalidOperationException(
+                "Dungeon-debug restore payload or history is missing.");
         }
 
-        StateChanged?.Invoke();
+        DungeonDebugModeState restored = new()
+        {
+            DebugModified = data.debugModified,
+            OverlayScope = DungeonDebugOverlayScope.SelectedOnly
+        };
+        foreach (DungeonDebugCommandHistorySaveData entry in data.recentCommands)
+        {
+            restored.RecentCommands.Add(CloneHistory(entry));
+        }
+
+        return new DungeonDebugRestoreCandidate(restored, data);
+    }
+
+    public void PublishRestoreCandidate(DungeonDebugRestoreCandidate candidate)
+    {
+        state = (candidate
+                ?? throw new ArgumentNullException(nameof(candidate)))
+            .State;
+        if (!aggregateRootStore.IsRestoreStaging)
+        {
+            StateChanged?.Invoke();
+        }
     }
 
     public void ResetTransientState()
@@ -155,7 +179,7 @@ public sealed class DungeonDebugModeService :
         bool changed = enabledCheats.Count > 0 || enabledOverlays.Count > 0;
         enabledCheats.Clear();
         enabledOverlays.Clear();
-        overlayScope = DungeonDebugOverlayScope.SelectedOnly;
+        state.OverlayScope = DungeonDebugOverlayScope.SelectedOnly;
         if (changed)
         {
             StateChanged?.Invoke();
@@ -181,15 +205,17 @@ public sealed class DungeonDebugModeService :
             target = target ?? string.Empty,
             result = result ?? string.Empty
         });
-        if (recentCommands.Count > HistoryLimit)
+        if (recentCommands.Count > rules.DebugHistoryLimit)
         {
-            recentCommands.RemoveRange(0, recentCommands.Count - HistoryLimit);
+            recentCommands.RemoveRange(
+                0,
+                recentCommands.Count - rules.DebugHistoryLimit);
         }
     }
 
     private string ResolveGameTime()
     {
-        if (!gameDataProvider.TryGetGameData(out GameData gameData))
+        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData))
         {
             return "월드 준비 전";
         }
@@ -255,36 +281,21 @@ public sealed class DelegateDungeonDebugCommand : IDungeonDebugCommand
 public sealed class DungeonDebugCommandRegistry : IDungeonDebugCommandRegistry
 {
     private readonly IDungeonDebugModeService modeService;
+    private readonly IDungeonDebugRuleRuntime ruleRuntime;
     private readonly List<IDungeonDebugCommand> commands;
     private readonly Dictionary<string, IDungeonDebugCommand> byId;
 
     public DungeonDebugCommandRegistry(
         IDungeonDebugModeService modeService,
-        DungeonDebugCheatCommandProvider cheatProvider,
-        DungeonDebugEconomyCommandProvider economyProvider,
-        DungeonDebugItemCommandProvider itemProvider,
-        DungeonDebugCharacterCommandProvider characterProvider,
-        DungeonDebugWorkCommandProvider workProvider,
-        DungeonDebugSurvivalWildlifeCommandProvider survivalProvider,
-        DungeonDebugDefenseCommandProvider defenseProvider,
-        DungeonDebugOverlayCommandProvider overlayProvider,
-        DungeonDebugPerformanceCommandProvider performanceProvider)
+        IDungeonDebugRuleRuntime ruleRuntime,
+        IEnumerable<IDungeonDebugCommandProvider> providers)
     {
         this.modeService = modeService ?? throw new ArgumentNullException(nameof(modeService));
-        IDungeonDebugCommandProvider[] providers =
-        {
-            cheatProvider,
-            economyProvider,
-            itemProvider,
-            characterProvider,
-            workProvider,
-            survivalProvider,
-            defenseProvider,
-            overlayProvider,
-            performanceProvider
-        };
+        this.ruleRuntime = ruleRuntime
+            ?? throw new ArgumentNullException(nameof(ruleRuntime));
 
-        commands = providers
+        commands = (providers ?? throw new ArgumentNullException(nameof(providers)))
+            .Where(provider => provider != null)
             .SelectMany(provider => provider.GetCommands() ?? Enumerable.Empty<IDungeonDebugCommand>())
             .OrderBy(command => command.Category)
             .ThenBy(command => command.DisplayName, StringComparer.CurrentCulture)
@@ -329,7 +340,7 @@ public sealed class DungeonDebugCommandRegistry : IDungeonDebugCommandRegistry
         DungeonDebugCommandResult result;
         try
         {
-            DungeonDebugRuntimeRules.BeginCommandExecution();
+            ruleRuntime.BeginCommandExecution();
             result = command.Execute(context);
         }
         catch (Exception exception)
@@ -338,7 +349,7 @@ public sealed class DungeonDebugCommandRegistry : IDungeonDebugCommandRegistry
         }
         finally
         {
-            DungeonDebugRuntimeRules.EndCommandExecution();
+            ruleRuntime.EndCommandExecution();
         }
 
         if (result.Success && command.MutatesWorld)
@@ -363,28 +374,25 @@ public sealed class DungeonDebugCommandRegistry : IDungeonDebugCommandRegistry
     }
 }
 
-public static class DungeonDebugRuntimeRules
+public sealed class DungeonDebugRuleRuntime : IDungeonDebugRuleRuntime
 {
-    private static readonly DungeonDebugRuntimeRuleState State = new DungeonDebugRuntimeRuleState();
+    private readonly IDungeonDebugModeService modeService;
+    private int commandExecutionDepth;
 
-    public static bool IsExecutingCommand => State.IsExecutingCommand;
-
-    public static bool IsEnabled(DungeonDebugCheat cheat)
+    public DungeonDebugRuleRuntime(IDungeonDebugModeService modeService)
     {
-        return State.IsEnabled(cheat);
+        this.modeService = modeService
+            ?? throw new ArgumentNullException(nameof(modeService));
     }
 
-    public static void Attach(IDungeonDebugModeService service)
+    public bool IsExecutingCommand => commandExecutionDepth > 0;
+
+    public bool IsEnabled(DungeonDebugCheat cheat)
     {
-        State.Attach(service);
+        return modeService.IsCheatEnabled(cheat);
     }
 
-    public static void Detach(IDungeonDebugModeService service)
-    {
-        State.Detach(service);
-    }
-
-    public static bool ShouldFreezeNeed(CharacterCondition condition, float delta)
+    public bool ShouldFreezeNeed(CharacterCondition condition, float delta)
     {
         return !IsExecutingCommand
             && delta < 0f
@@ -392,7 +400,7 @@ public static class DungeonDebugRuntimeRules
             && IsEnabled(DungeonDebugCheat.FreezeNeeds);
     }
 
-    public static bool ShouldBlockFriendlyDamage(CharacterActor actor)
+    public bool ShouldBlockFriendlyDamage(CharacterActor actor)
     {
         return !IsExecutingCommand
             && actor != null
@@ -400,61 +408,25 @@ public static class DungeonDebugRuntimeRules
             && IsEnabled(DungeonDebugCheat.FriendlyInvincible);
     }
 
-    public static bool ShouldBlockFacilityDamage(bool damaged)
+    public bool ShouldBlockFacilityDamage(bool damaged)
     {
         return !IsExecutingCommand
             && damaged
             && IsEnabled(DungeonDebugCheat.FacilityInvincible);
     }
 
-    public static bool ShouldSkipCosts()
+    public bool ShouldSkipCosts()
     {
         return IsEnabled(DungeonDebugCheat.NoMoneyOrItemCost);
     }
 
-    public static void BeginCommandExecution()
+    public void BeginCommandExecution()
     {
-        State.BeginCommandExecution();
+        commandExecutionDepth++;
     }
 
-    public static void EndCommandExecution()
+    public void EndCommandExecution()
     {
-        State.EndCommandExecution();
-    }
-
-    private sealed class DungeonDebugRuntimeRuleState
-    {
-        [ThreadStatic] private static int commandExecutionDepth;
-        private IDungeonDebugModeService modeService;
-
-        public bool IsExecutingCommand => commandExecutionDepth > 0;
-
-        public bool IsEnabled(DungeonDebugCheat cheat)
-        {
-            return modeService?.IsCheatEnabled(cheat) == true;
-        }
-
-        public void Attach(IDungeonDebugModeService service)
-        {
-            modeService = service;
-        }
-
-        public void Detach(IDungeonDebugModeService service)
-        {
-            if (ReferenceEquals(modeService, service))
-            {
-                modeService = null;
-            }
-        }
-
-        public void BeginCommandExecution()
-        {
-            commandExecutionDepth++;
-        }
-
-        public void EndCommandExecution()
-        {
-            commandExecutionDepth = Mathf.Max(0, commandExecutionDepth - 1);
-        }
+        commandExecutionDepth = Mathf.Max(0, commandExecutionDepth - 1);
     }
 }

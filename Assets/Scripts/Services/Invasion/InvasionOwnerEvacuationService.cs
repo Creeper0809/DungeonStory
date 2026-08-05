@@ -13,22 +13,38 @@ public sealed class InvasionOwnerEvacuationService :
     IDisposable
 {
     private readonly IInvasionIntruderContext invasionContext;
-    private readonly IInvasionDirectorRuntimeProvider directorProvider;
+    private readonly InvasionDirectorRuntime director;
     private readonly IRoomLayoutCache roomLayoutCache;
     private readonly IGameEventBus gameEventBus;
     private IDisposable invasionSpawnedSubscription;
     private CharacterActor owner;
     private Coroutine movementRoutine;
     private bool usedAdministrationRoom;
+    private OwnerRestoreCandidate restoreCandidate;
+    private bool restorePublicationPending;
+    private bool previousProjectionRetired;
+
+    private sealed class OwnerRestoreCandidate
+    {
+        internal bool Active;
+        internal CharacterActor Owner;
+        internal Vector2Int Target;
+        internal bool UsedAdministrationRoom;
+        internal string StatusText;
+    }
 
     public InvasionOwnerEvacuationService(
         IInvasionIntruderContext invasionContext,
-        IInvasionDirectorRuntimeProvider directorProvider,
+        InvasionSceneRuntimeReferences invasionRuntimes,
         IRoomLayoutCache roomLayoutCache,
         IGameEventBus gameEventBus)
     {
         this.invasionContext = invasionContext ?? throw new ArgumentNullException(nameof(invasionContext));
-        this.directorProvider = directorProvider ?? throw new ArgumentNullException(nameof(directorProvider));
+        director = (invasionRuntimes
+                ?? throw new ArgumentNullException(nameof(invasionRuntimes)))
+            .Director
+            ?? throw new InvalidOperationException(
+                $"{nameof(InvasionOwnerEvacuationService)} requires a loaded {nameof(InvasionDirectorRuntime)}.");
         this.roomLayoutCache = roomLayoutCache ?? throw new ArgumentNullException(nameof(roomLayoutCache));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
     }
@@ -59,8 +75,7 @@ public sealed class InvasionOwnerEvacuationService :
             return;
         }
 
-        if (!directorProvider.TryGetRuntime(out InvasionDirectorRuntime director)
-            || director.ActiveIntruders.Count == 0)
+        if (director.ActiveIntruders.Count == 0)
         {
             ReleaseOwner();
         }
@@ -83,40 +98,126 @@ public sealed class InvasionOwnerEvacuationService :
         };
     }
 
-    public void Restore(OwnerEvacuationSaveSnapshot snapshot, IList<string> warnings)
+    public void PrepareRestoreCandidate(
+        OwnerEvacuationSaveSnapshot snapshot,
+        DungeonGameRestoreReport report)
     {
-        ReleaseOwner();
-        if (snapshot == null || !snapshot.active)
+        if (report == null)
         {
+            throw new ArgumentNullException(nameof(report));
+        }
+        if (restoreCandidate != null)
+        {
+            report.AddError(
+                "An owner evacuation restore candidate is already prepared.");
+            return;
+        }
+        if (snapshot == null)
+        {
+            report.AddError("Owner evacuation restore payload is null.");
             return;
         }
 
-        if (!invasionContext.TryGetOwner(out owner)
-            || owner == null
-            || owner.IsDead
-            || !invasionContext.TryGetGrid(out Grid grid))
+        OwnerRestoreCandidate candidate = new OwnerRestoreCandidate
         {
-            warnings?.Add("저장된 사장 대피 상태를 복원할 수 없어 해제했습니다.");
-            owner = null;
-            return;
-        }
-
-        Vector2Int restoredTarget = new Vector2Int(snapshot.targetX, snapshot.targetY);
-        if (!grid.IsValidGridPos(restoredTarget) || !grid.IsWalkable(restoredTarget))
+            Active = snapshot.active,
+            UsedAdministrationRoom = snapshot.usedAdministrationRoom,
+            StatusText = snapshot.statusText
+        };
+        if (snapshot.active)
         {
-            warnings?.Add("저장된 사장 대피 칸이 무효여서 안전 칸을 다시 계산했습니다.");
-            if (!TryResolveEvacuationCell(grid, owner, out restoredTarget, out usedAdministrationRoom))
+            if (!invasionContext.TryGetOwner(out CharacterActor resolvedOwner)
+                || resolvedOwner == null
+                || resolvedOwner.IsDead
+                || !invasionContext.TryGetGrid(out Grid grid))
             {
-                owner = null;
+                report.AddError(
+                    "Owner evacuation restore requires a living owner and active grid.");
                 return;
             }
+
+            Vector2Int target = new Vector2Int(snapshot.targetX, snapshot.targetY);
+            if (!grid.IsValidGridPos(target) || !grid.IsWalkable(target))
+            {
+                report.AddError(
+                    "Owner evacuation restore target is not a valid walkable cell.");
+                return;
+            }
+            candidate.Owner = resolvedOwner;
+            candidate.Target = target;
         }
-        else
+        restoreCandidate = candidate;
+    }
+
+    public void PublishRestoreCandidate()
+    {
+        if (restoreCandidate == null || restorePublicationPending)
         {
-            usedAdministrationRoom = snapshot.usedAdministrationRoom;
+            throw new InvalidOperationException(
+                "No owner evacuation restore candidate is ready to publish.");
         }
 
-        StartOwnerMovement(restoredTarget, snapshot.statusText);
+        restorePublicationPending = true;
+        previousProjectionRetired = false;
+    }
+
+    public void RollbackPublishedRestoreCandidate()
+    {
+        restoreCandidate = null;
+        restorePublicationPending = false;
+        previousProjectionRetired = false;
+    }
+
+    public void RetirePreviousRestoreProjection()
+    {
+        if (!restorePublicationPending || previousProjectionRetired)
+        {
+            throw new InvalidOperationException(
+                "No owner evacuation projection is ready to retire.");
+        }
+
+        ReleaseOwner();
+        previousProjectionRetired = true;
+    }
+
+    public void ActivateRestoreProjection()
+    {
+        if (!restorePublicationPending || !previousProjectionRetired)
+        {
+            throw new InvalidOperationException(
+                "The previous owner evacuation projection was not retired.");
+        }
+
+        OwnerRestoreCandidate candidate = restoreCandidate;
+        restoreCandidate = null;
+        restorePublicationPending = false;
+        previousProjectionRetired = false;
+        if (!candidate.Active)
+        {
+            return;
+        }
+
+        owner = candidate.Owner;
+        usedAdministrationRoom = candidate.UsedAdministrationRoom;
+        StartOwnerMovement(candidate.Target, candidate.StatusText);
+    }
+
+    public void CompleteRestoreCandidate()
+    {
+        RetirePreviousRestoreProjection();
+        ActivateRestoreProjection();
+    }
+
+    public void DiscardRestoreCandidate()
+    {
+        if (restorePublicationPending)
+        {
+            RollbackPublishedRestoreCandidate();
+            return;
+        }
+
+        restoreCandidate = null;
+        previousProjectionRetired = false;
     }
 
     private void BeginEvacuation()

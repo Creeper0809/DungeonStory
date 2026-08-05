@@ -33,6 +33,17 @@ public enum GridCellTerrainType
     DeepWater = 2
 }
 
+public enum ExteriorIncidentKind
+{
+    None = 0,
+    MerchantCart = 1,
+    Informant = 2,
+    Thief = 3,
+    InjuredReturnee = 4,
+    PredatorApproach = 5,
+    CargoDamage = 6
+}
+
 public enum GridMoveType
 {
     Walk = 0,

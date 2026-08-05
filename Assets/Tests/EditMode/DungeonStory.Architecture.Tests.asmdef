@@ -1,7 +1,13 @@
 {
   "name": "DungeonStory.Architecture.Tests",
   "rootNamespace": "DungeonStory.Tests.Architecture",
-  "references": [],
+    "references": [
+    "DungeonStory.Automation",
+    "DungeonStory.Captivity",
+    "DungeonStory.Foundation",
+    "DungeonStory.Production",
+    "DungeonStory.Wildlife"
+  ],
   "includePlatforms": [
     "Editor"
   ],

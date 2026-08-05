@@ -16,19 +16,11 @@ public static class TaxonomyCatalogDebugScenarios
         List<string> report = new List<string> { "case\tresult\tdetails" };
         List<string> errors = new List<string>();
 
-        ResetCatalogs();
-        try
-        {
-            Run("work_type_extension", VerifyWorkTypeExtension, report, errors);
-            Run("need_extension", VerifyNeedExtension, report, errors);
-            Run("room_role_unification", VerifyRoomRoleExtension, report, errors);
-            Run("stock_category_extension", VerifyStockCategoryExtension, report, errors);
-            Run("building_category_extension", VerifyBuildingCategoryExtension, report, errors);
-        }
-        finally
-        {
-            ResetCatalogs();
-        }
+        Run("work_type_protocol", VerifyWorkTypeExtension, report, errors);
+        Run("authored_needs", VerifyAuthoredNeeds, report, errors);
+        Run("room_role_protocol", VerifyRoomRoleExtension, report, errors);
+        Run("authored_stock_categories", VerifyStockCategoryExtension, report, errors);
+        Run("authored_building_categories", VerifyBuildingCategoryExtension, report, errors);
 
         File.WriteAllLines(ReportPath, report);
         if (errors.Count == 0)
@@ -44,173 +36,125 @@ public static class TaxonomyCatalogDebugScenarios
 
     private static string VerifyWorkTypeExtension()
     {
-        WorkTypeId customWorkTypeId = new WorkTypeId("work:archive");
-        WorkTypeCatalog.Register(
-            customWorkTypeId,
-            "기록 정리",
-            45,
-            WorkPriorityLevel.Priority2,
-            "building:archive");
-
         WorkPriorityProfile profile = WorkPriorityProfile.CreateDefault();
-        Require(WorkTypeCatalog.TryGet(customWorkTypeId, out _), "registered work type is absent from task enumeration");
-        Require(WorkTaskCatalog.GetDisplayName(customWorkTypeId) == "기록 정리", "work label did not come from definition");
-        Require(CodexTextFormatter.FormatWorkTypes(new[] { customWorkTypeId }) == "기록 정리", "Codex omitted the registered work label");
-        Require(profile.GetPriority(customWorkTypeId) == WorkPriorityLevel.Priority2, "definition default priority was ignored");
+        WorkTypeId guardId = BuiltInWorkTypeIds.Guard;
+        Require(WorkTypeCatalog.TryGet(guardId, out WorkTypeDefinition guard),
+            "fixed guard work protocol is missing");
+        Require(guard.CapabilityId == "building:security",
+            "guard ID no longer maps to its fixed capability");
+        Require(profile.GetPriority(guardId) == guard.DefaultPriority,
+            "definition default priority was ignored");
 
-        profile.SetPriority(customWorkTypeId, WorkPriorityLevel.Priority1);
+        profile.SetPriority(guardId, WorkPriorityLevel.Priority1);
         WorkPriorityProfile clone = profile.Clone();
-        Require(clone.GetPriority(customWorkTypeId) == WorkPriorityLevel.Priority1, "custom priority did not clone");
+        Require(clone.GetPriority(guardId) == WorkPriorityLevel.Priority1,
+            "work priority did not clone");
 
         string json = JsonUtility.ToJson(profile);
         WorkPriorityProfile restored = JsonUtility.FromJson<WorkPriorityProfile>(json);
-        Require(restored.GetPriority(customWorkTypeId) == WorkPriorityLevel.Priority1, "custom priority did not serialize");
-        Require(restored.Entries.Any((entry) => entry.WorkTypeId == "work:archive"), "stable work id was not stored");
-        return $"count={WorkTypeCatalog.All.Count}; id=work:archive; priority={restored.GetPriority(customWorkTypeId)}";
+        Require(restored.GetPriority(guardId) == WorkPriorityLevel.Priority1,
+            "work priority did not serialize");
+        Require(restored.Entries.Any(entry => entry.WorkTypeId == guardId.Value),
+            "stable work id was not stored");
+        return $"count={WorkTypeCatalog.All.Count}; id={guardId.Value}; priority={restored.GetPriority(guardId)}";
     }
 
-    private static string VerifyNeedExtension()
+    private static string VerifyAuthoredNeeds()
     {
-        CharacterCondition customCondition = (CharacterCondition)777;
-        CharacterNeedDefinition definition = new CharacterNeedDefinition(
-            "need:focus",
-            customCondition,
-            "집중",
-            25,
-            100f,
-            65f,
-            FacilityRole.Research,
-            CharacterNeedTag.Leisure | CharacterNeedTag.DirectorRoutine | CharacterNeedTag.MoodInteraction,
-            0f,
-            new CharacterNeedMoodProfile(
-                15f, "집중이 완전히 흐트러짐", -7f,
-                35f, "집중이 필요함", -3f,
-                85f, "또렷하게 집중함", 2f));
-        CharacterNeedCatalog.Register(definition);
+        ICharacterNeedDefinitionCatalog catalog = CharacterAiEditorTestDependencies.AuthoredGameplay;
+        Require(catalog.All.Count == 6, "authored need count changed");
+        Require(!catalog.TryGet(CharacterCondition.MOOD, out _), "mood was incorrectly authored as a need");
+        Require(catalog.TryGet(CharacterCondition.HUNGER, out CharacterNeedDefinition hunger),
+            "authored hunger need is missing");
 
-        Require(!CharacterNeedCatalog.TryGet(CharacterCondition.MOOD, out _), "mood was incorrectly registered as a need");
-        Require(CharacterNeedCatalog.All.Any((entry) => entry.Condition == customCondition), "custom need is absent from enumeration");
-
-        Dictionary<CharacterCondition, float> stats = CharacterNeedCatalog.All
+        Dictionary<CharacterCondition, float> stats = catalog.All
             .ToDictionary((entry) => entry.Condition, (entry) => entry.DefaultValue);
-        stats[customCondition] = 10f;
-        List<CharacterMoodFactorSnapshot> factors = CharacterMoodRules.BuildNeedFactors(stats);
-        CharacterMoodFactorSnapshot factor = factors.FirstOrDefault((entry) => entry.Id == "need:focus");
-        Require(factor != null && Mathf.Approximately(factor.Value, -7f), "custom need mood curve was not evaluated");
-        return $"count={CharacterNeedCatalog.All.Count}; moodSeparate=true; factor={factor.Label}:{factor.Value}";
+        stats[CharacterCondition.HUNGER] = 10f;
+        List<CharacterMoodFactorSnapshot> factors = CharacterMoodRules.BuildNeedFactors(stats, catalog);
+        CharacterMoodFactorSnapshot factor = factors.FirstOrDefault((entry) => entry.Id == "need:hunger");
+        Require(factor != null && Mathf.Approximately(factor.Value, -18f),
+            "authored hunger mood curve was not evaluated");
+        return $"count={catalog.All.Count}; moodSeparate=true; factor={factor.Label}:{factor.Value}";
     }
 
     private static string VerifyRoomRoleExtension()
     {
-        FacilityRole customRole = (FacilityRole)(1 << 20);
-        Color expectedColor = new Color(0.25f, 0.8f, 0.75f, 1f);
-        FacilityRoleCatalog.Register(new FacilityRoleDefinition(
-            "role:archive",
-            customRole,
-            "기록",
-            "기록실",
-            45,
-            expectedColor,
-            "Archive"));
-
-        Require(RoomEnvironmentPresentation.GetRoomName(customRole) == "기록실", "custom single room name was not resolved");
-        string mixedName = RoomEnvironmentPresentation.GetRoomName(FacilityRole.Research | customRole);
-        Require(mixedName.Contains("연구") && mixedName.Contains("기록"), "mixed room name omitted a registered role");
-        Require(FacilityRoleCatalog.GetColor(customRole, Color.black) == expectedColor, "custom role color was not resolved");
-        Require(CodexTextFormatter.FormatFacilityRoles(customRole) == "기록", "Codex omitted the registered role label");
-        BuildingSO building = ScriptableObject.CreateInstance<BuildingSO>();
-        building.Facility = new FacilityData { roles = customRole };
-        Require(building.HasSemanticTag("Archive"), "custom role semantic tag was not emitted");
-        building.width = 1;
-        building.height = 1;
-        building.layer = GridLayer.Building;
-
-        GameObject root = new GameObject("CustomRoleCandidate");
-        try
-        {
-            BuildableObject instance = root.AddComponent<BuildableObject>();
-            Vector2Int position = new Vector2Int(1, 1);
-            Grid grid = new Grid(3, 3);
-            instance.Initialization(building, position);
-            instance.SetGrid(grid);
-            Require(
-                grid.RegisterOccupant(instance, GridLayer.Building, instance.buildPoses, false),
-                "custom role fixture was not registered on the grid");
-
-            IFacilityCandidateCache cache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
-            IReadOnlyList<BuildableObject> candidates = cache.GetCandidates(
-                grid,
-                FacilityRole.Research | customRole);
-            Require(candidates.Count == 1 && candidates[0] == instance, "candidate cache omitted a registered custom role");
-            Require(!(candidates is IList<BuildableObject>), "candidate cache exposed its mutable backing list");
-        }
-        finally
-        {
-            UnityEngine.Object.DestroyImmediate(root);
-            UnityEngine.Object.DestroyImmediate(building);
-        }
-
-        Require(!File.ReadAllText("Assets/Scripts/Models/Rooms/Core/RoomRole.cs").Contains("enum RoomRole"), "duplicate RoomRole enum still exists");
+        Require(FacilityRoleCatalog.TryGet(FacilityRole.Research, out FacilityRoleDefinition research),
+            "fixed research role protocol is missing");
+        Require(research.Id == "role:research" && research.SemanticTag == "Research",
+            "research role ID or semantic tag changed");
+        string mixedName = RoomEnvironmentPresentation.GetRoomName(
+            FacilityRole.Research | FacilityRole.Medical);
+        Require(mixedName.Contains("연구") && mixedName.Contains("의료"),
+            "mixed room name omitted a fixed role");
+        Require(!File.ReadAllText("Assets/Scripts/Models/Rooms/Core/RoomRole.cs").Contains("enum RoomRole"),
+            "duplicate RoomRole enum still exists");
         return $"count={FacilityRoleCatalog.All.Count}; name={mixedName}; duplicateEnum=false";
     }
 
     private static string VerifyStockCategoryExtension()
     {
-        StockCategory customCategory = (StockCategory)777;
-        StockCategoryCatalog.Register(new StockCategoryDefinition(
-            "stock:crystal",
-            customCategory,
-            "결정",
-            "결",
-            25,
-            0.10f,
-            5,
-            12,
-            2));
+        IStockCategoryDefinitionCatalog catalog = CharacterAiEditorTestDependencies.AuthoredGameplay;
+        Require(catalog.All.Count == 11, "authored stock category count changed");
+        Require(catalog.TryGet(StockCategory.General, out StockCategoryDefinition general)
+                && general.Id == "stock:general",
+            "authored general stock category is missing");
 
-        WarehouseInventory inventory = WarehouseInventory.CreateSeeded(100);
-        Require(inventory.GetStock(customCategory) > 0, "custom stock category was omitted from seeded inventory");
-        Require(StockCategoryPersistenceId.ToId(customCategory) == "stock:crystal", "stable category id was not used");
+        WarehouseInventory inventory = new WarehouseInventory(100);
+        inventory.SeedPhysicalStockForTest(StockCategory.General, 10);
+        Require(StockCategoryPersistenceId.ToId(StockCategory.General) == "stock:general",
+            "stable category id was not used");
 
         WarehouseInventory restored = new WarehouseInventory();
         Require(restored.TryApplySnapshot(inventory.CreateSnapshot(), out string restoreError), restoreError);
-        Require(restored.GetStock(customCategory) == inventory.GetStock(customCategory), "custom stock did not round-trip");
+        restored.SeedPhysicalStockForTest(StockCategory.General, 0);
+        Require(restored.GetStock(StockCategory.General) == 0,
+            "derived warehouse stock was persisted outside physical items");
 
-        IReadOnlyList<StockDeliveryOffer> offers = StockSupplyService.CreateDailyDeliveryOffers(6, (_) => 1f);
-        Require(offers.Any((offer) => offer.category == customCategory), "custom category is absent from daily offers");
+        IReadOnlyList<StockDeliveryOffer> offers = StockSupplyService.CreateDailyDeliveryOffers(
+            6,
+            (_) => 1f,
+            catalog);
+        Require(offers.Any((offer) => offer.category == StockCategory.General),
+            "authored general category is absent from daily offers");
 
         WarehouseManagementSummary summary = BuildingManagementSummaryQuery.FromWarehouses(
-            new[] { new TestWarehouse(restored) });
-        Require(summary.GetStock(customCategory) == restored.GetStock(customCategory), "management summary omitted custom stock");
-        Require(StockCategoryCatalog.All.Any((entry) => entry.Category == customCategory), "stock UI catalog enumeration omitted custom category");
-        return $"count={StockCategoryCatalog.All.Count}; id={StockCategoryPersistenceId.ToId(customCategory)}; amount={restored.GetStock(customCategory)}";
+            new[]
+            {
+                new WarehouseManagementSnapshot(
+                    restored.TotalStock,
+                    restored.MaxCapacity,
+                    restored.HasCapacityLimit,
+                    restored.EnumerateStock().ToDictionary(
+                        pair => pair.Key,
+                        pair => pair.Value))
+            });
+        Require(summary.GetStock(StockCategory.General) == 0,
+            "management summary fabricated stock");
+        return $"count={catalog.All.Count}; id={general.Id}; amount={restored.GetStock(StockCategory.General)}";
     }
 
     private static string VerifyBuildingCategoryExtension()
     {
-        BuildingCategory customCategory = (BuildingCategory)777;
-        BuildingCategoryCatalog.Register(new BuildingCategoryDefinition(
-            "category:alchemy",
-            customCategory,
-            "연금",
-            45,
-            175));
+        IBuildingCategoryDefinitionCatalog catalog =
+            CharacterAiEditorTestDependencies.AuthoredGameplay;
+        Require(catalog.All.Count == 8, "authored building category count changed");
 
         Require(
-            BuildingCategoryCatalog.GetDisplayName(customCategory) == "연금",
-            "custom building category display name was not resolved");
+            catalog.GetDisplayName(BuildingCategory.Crafting) == "제작",
+            "authored building category display name was not resolved");
         Require(
-            BuildingCategoryCatalog.GetShopCostWeight(customCategory) == 175,
-            "custom building category shop weight was not resolved");
+            catalog.GetShopCostWeight(BuildingCategory.Crafting) == 120,
+            "authored building category shop weight was not resolved");
         Require(
-            BuildingCategoryCatalog.TryResolve("category:alchemy", out BuildingCategoryDefinition byId)
-                && byId.Category == customCategory,
-            "custom building category stable ID was not resolved");
+            catalog.TryResolve("category:crafting", out BuildingCategoryDefinition byId)
+                && byId.Category == BuildingCategory.Crafting,
+            "authored building category stable ID was not resolved");
         Require(
-            BuildingCategoryCatalog.TryResolve("연금", out BuildingCategoryDefinition byLabel)
-                && byLabel.Category == customCategory,
-            "custom building category display label was not resolved");
-        return $"count={BuildingCategoryCatalog.All.Count}; id={byId.Id}; weight={byId.ShopCostWeight}";
+            catalog.TryResolve("제작", out BuildingCategoryDefinition byLabel)
+                && byLabel.Category == BuildingCategory.Crafting,
+            "authored building category display label was not resolved");
+        return $"count={catalog.All.Count}; id={byId.Id}; weight={byId.ShopCostWeight}";
     }
 
     private static void Run(
@@ -240,15 +184,6 @@ public static class TaxonomyCatalogDebugScenarios
         }
     }
 
-    private static void ResetCatalogs()
-    {
-        WorkTypeCatalog.ResetToBuiltIns();
-        CharacterNeedCatalog.ResetToBuiltIns();
-        FacilityRoleCatalog.ResetToBuiltIns();
-        StockCategoryCatalog.ResetToBuiltIns();
-        BuildingCategoryCatalog.ResetToBuiltIns();
-    }
-
     private sealed class TestWarehouse : IWarehouseFacility
     {
         public TestWarehouse(WarehouseInventory inventory)
@@ -257,6 +192,8 @@ public static class TaxonomyCatalogDebugScenarios
         }
 
         public WarehouseInventory Inventory { get; }
+        public BuildingInstanceId PersistentInstanceId =>
+            (BuildingInstanceId)"building:test-taxonomy-warehouse";
         public bool HasWarehouseInventory => Inventory != null;
     }
 }

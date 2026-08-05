@@ -189,7 +189,7 @@ public static class FacilityCrimeRiskDebugScenarios
     {
         return new FacilityCrimeRiskContext(
             building,
-            actor,
+            actor?.BuildingVisitor,
             hasServingWorker,
             hasWaitingCheckout,
             currentUserCount,
@@ -231,7 +231,7 @@ public static class FacilityCrimeRiskDebugScenarios
             Data.height = 1;
             Data.layer = GridLayer.Building;
             Data.category = BuildingCategory.Shop;
-            Data.type = typeof(BuildableObject);
+            Data.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
             Data.ReplaceAbilities(new BuildingAbilityCollection());
             Data.Facility = new FacilityData
             {
@@ -245,6 +245,7 @@ public static class FacilityCrimeRiskDebugScenarios
 
             Object = new GameObject("Crime Risk Scenario Building");
             Building = Object.AddComponent<BuildableObject>();
+            Building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
             Building.Initialization(Data, Vector2Int.zero);
         }
 

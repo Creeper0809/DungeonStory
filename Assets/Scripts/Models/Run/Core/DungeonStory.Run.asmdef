@@ -1,0 +1,18 @@
+{
+  "name": "DungeonStory.Run",
+  "rootNamespace": "DungeonStory.Run",
+  "references": [
+    "DungeonStory.CoreSession",
+    "DungeonStory.Foundation",
+    "DungeonStory.Invasion"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

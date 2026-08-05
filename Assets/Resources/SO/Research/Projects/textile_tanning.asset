@@ -27,19 +27,28 @@ MonoBehaviour:
   description: "\uAC00\uC8FD\uACFC \uC18C\uAE08\uC11D\uC744 \uB0B4\uAD6C\uC131 \uC788\uB294
     \uC6D0\uB2E8\uC73C\uB85C \uAC00\uACF5\uD55C\uB2E4."
   field: 11
-  requiredWork: 58
+  requiredWork: 60
   prerequisites:
   - {fileID: 11400000, guid: 8f2a5bca31574f1478107e01d22cd5f2, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:textile:fiber
+    prerequisite: {fileID: 11400000, guid: 8f2a5bca31574f1478107e01d22cd5f2, type: 2}
+    kind: 1
+    reason: "\uC12C\uC720 \uAC00\uACF5\uC758 \uC81C\uC791 \uAE30\uBC95\uC774(\uAC00)
+      \uBB34\uB450\uC9C8 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563230216618546
+    - rid: 7737211730927812821
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563230216618546
+    - rid: 7737211730927812821
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1084

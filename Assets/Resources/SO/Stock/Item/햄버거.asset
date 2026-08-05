@@ -23,6 +23,7 @@ MonoBehaviour:
     SerializationNodes: []
   id: 2
   itemName: "\uD584\uBC84\uAC70"
+  itemDefinitionId: food:meat-pie
   category: 0
   cost: 200
   itemSprite: {fileID: 21300000, guid: ca5e703cacd7ac4429c534cdfcbe3e95, type: 3}

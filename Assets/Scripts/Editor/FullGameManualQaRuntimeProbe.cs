@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Operation;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -101,7 +102,10 @@ public static class FullGameManualQaRuntimeProbe
         CharacterSpawner spawner = sceneQuery.First<CharacterSpawner>(includeInactive: true);
         GridSystemManager gridManager = sceneQuery.First<GridSystemManager>(includeInactive: true);
         Grid grid = gridManager != null ? gridManager.grid : null;
-        bool entryResolved = InvasionIntruderEntryResolver.TryResolve(spawner, grid, out InvasionIntruderEntry entry);
+        bool entryResolved = InvasionIntruderEntrySceneAdapter.TryResolve(
+            spawner,
+            grid,
+            out InvasionIntruderEntry entry);
 
         int beforeIntruders = CountRuntimeInActiveScene<InvasionIntruderRuntime>();
         bool spawned = false;
@@ -164,7 +168,7 @@ public static class FullGameManualQaRuntimeProbe
         StartLogCapture();
 
         float originalTimeScale = Time.timeScale;
-        GameData gameData = null;
+        GameSessionState gameData = null;
         int originalMoney = 0;
         bool shouldRestoreMoney = false;
         List<string> lines = new List<string>();
@@ -946,7 +950,7 @@ public static class FullGameManualQaRuntimeProbe
             };
             foreach (DefenseTriggerTiming timing in timings)
             {
-                reports = DefenseFacilityResolver.TriggerAt(grid, intruder, position, timing, defenseStatus);
+                reports = DefenseFacilityResolver.TriggerAt(grid, intruder, position, timing, defenseStatus, treasuryDefenseRuntime: null);
                 if (reports.Count > 0)
                 {
                     break;
@@ -1498,7 +1502,8 @@ public static class FullGameManualQaRuntimeProbe
                 && candidate.IsValid;
             if (workCandidateFound)
             {
-                workTarget = candidate.Building;
+                workTarget = WorkTargetCandidateRuntimeAdapter.ResolveBuilding(
+                    candidate);
                 workType = candidate.WorkTypeId;
                 if (workTarget != null && workTarget.buildPoses != null && workTarget.buildPoses.Count > 0)
                 {
@@ -1616,7 +1621,7 @@ public static class FullGameManualQaRuntimeProbe
 
     private static void RunShopProbe(
         DailyFacilityShopRuntime shop,
-        GameData gameData,
+        GameSessionState gameData,
         List<string> lines,
         out FacilityShopPurchaseResult result)
     {
@@ -1928,7 +1933,7 @@ public static class FullGameManualQaRuntimeProbe
         doorData.height = 1;
         doorData.layer = GridLayer.Building;
         doorData.category = BuildingCategory.None;
-        doorData.type = typeof(Door);
+        doorData.runtimeArchetype = BuildingRuntimeArchetypeKind.Door;
         doorData.unlocked = true;
 
         GameObject doorObject = new GameObject("QA Evolution Fixture");
@@ -2108,7 +2113,7 @@ public static class FullGameManualQaRuntimeProbe
         fixtureData.height = 1;
         fixtureData.layer = layer;
         fixtureData.category = BuildingCategory.None;
-        fixtureData.type = typeof(BuildableObject);
+        fixtureData.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
         fixtureData.unlocked = true;
         fixtureData.Evolution = new FacilityEvolutionContributionData
         {
@@ -2303,8 +2308,12 @@ public static class FullGameManualQaRuntimeProbe
         }
 
         runVariables.StartRun(12345);
-        RunVariableDefinition operation = RunVariableCatalog.GetByCategory(RunVariableCategory.Operation).FirstOrDefault();
-        RunVariableDefinition invasion = RunVariableCatalog.GetByCategory(RunVariableCategory.Invasion).FirstOrDefault();
+        IRunVariableDefinitionCatalog runVariableCatalog = new AuthoredGameplayCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        RunVariableDefinition operation = runVariableCatalog
+            .GetByCategory(RunVariableCategory.Operation).FirstOrDefault();
+        RunVariableDefinition invasion = runVariableCatalog
+            .GetByCategory(RunVariableCategory.Invasion).FirstOrDefault();
         ActiveRunVariable activeOperation = operation != null
             ? runVariables.ActivateOperationVariable(operation.id, 7, true)
             : null;
@@ -2372,13 +2381,15 @@ public static class FullGameManualQaRuntimeProbe
 
         CharacterActor owner = actors.FirstOrDefault((actor) => actor.Identity != null && actor.Identity.IsOwner);
         meta.SetShowRunResultPanel(true);
-        RunResultSnapshot result = meta.EndRun(owner, "QA feature-family probe");
-        bool purchaseAttempted = MetaProgressionCatalog.All.Count > 0;
+        RunResultSnapshot result = meta.EndRun(
+            MetaRuntimeApplicationAdapter.GetOwnerName(owner),
+            "QA feature-family probe");
+        bool purchaseAttempted = meta.State.Catalog.All.Count > 0;
         bool upgradePurchased = false;
         string upgradeMessage = string.Empty;
         if (purchaseAttempted)
         {
-            MetaUpgradeDefinition upgrade = MetaProgressionCatalog.All.First();
+            MetaUpgradeDefinition upgrade = meta.State.Catalog.All.First();
             upgradePurchased = meta.TryPurchaseUpgrade(upgrade.id, out upgradeMessage);
         }
 
@@ -2905,7 +2916,8 @@ public static class FullGameManualQaRuntimeProbe
                 if (work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                     && candidate.IsValid)
                 {
-                    target = candidate.Building;
+                    target = WorkTargetCandidateRuntimeAdapter.ResolveBuilding(
+                        candidate);
                     targetWorkType = candidate.WorkTypeId;
                     prioritySet = work.TrySetPriorityWorkTarget(target, targetWorkType, search, out priorityMessage);
                 }
@@ -2957,7 +2969,8 @@ public static class FullGameManualQaRuntimeProbe
                 if (work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                     && candidate.IsValid)
                 {
-                    target = candidate.Building;
+                    target = WorkTargetCandidateRuntimeAdapter.ResolveBuilding(
+                        candidate);
                     targetWorkType = candidate.WorkTypeId;
                     prioritySet = work.TrySetPriorityWorkTarget(target, targetWorkType, search, out priorityMessage);
                 }
@@ -3163,7 +3176,7 @@ public static class FullGameManualQaRuntimeProbe
                         intruder,
                         defense.buildPoses[0],
                         DefenseTriggerTiming.OnEnter,
-                        defenseStatus);
+                        defenseStatus, treasuryDefenseRuntime: null);
                 }
 
                 directReport = resolverReports.Count > 0 ? resolverReports[0] : null;
@@ -3242,7 +3255,10 @@ public static class FullGameManualQaRuntimeProbe
                     intruder.PathSearchBroker,
                     new DungeonStory.Foundation.RandomStreamProvider(301)
                         .Get("qa-invasion-path"),
-                    out directPath);
+                    ((IInvasionIntruderPatternDefinitionCatalog)new AuthoredGameplayCatalog(
+                        new ResourceGameContentCatalog(new UnityGameContentRootLoader()))).Default,
+                    out directPath,
+                    out _);
                 pathCount = path.Count;
                 while (path.Count > 0)
                 {
@@ -3262,9 +3278,9 @@ public static class FullGameManualQaRuntimeProbe
                     new DungeonStory.Foundation.UnityGameClock(),
                     new DungeonStory.Foundation.RandomStreamProvider(307),
                     ResolveFromLifetimeScope<IGameEventBus>()
-                        ?? CharacterAiEditorTestDependencies.GameEvents);
+                        ?? CharacterAiEditorTestDependencies.GameEvents, treasuryDefenseRuntime: null);
                 runtimeInitialized = true;
-                runtime.Begin(
+                runtime.PrepareBegin(
                     intruderData != null ? intruderData : intruder.Identity.Data,
                     new InvasionThreatSnapshot(
                         125f,
@@ -3280,7 +3296,8 @@ public static class FullGameManualQaRuntimeProbe
                         finalCombatDamage = 10f,
                         finalCombatWindupSeconds = 0f
                     },
-                    intruder.transform.position,
+                    intruder.transform.position);
+                runtime.StartPrepared(
                     intruder.transform.position,
                     grid != null ? grid.GetXY(intruder.transform.position) : Vector2Int.zero);
             }
@@ -3822,11 +3839,11 @@ public static class FullGameManualQaRuntimeProbe
                 new GridPlacementValidator(),
                 () =>
                 {
-                    IGameDataProvider gameDataProvider = ResolveFromLifetimeScope<IGameDataProvider>();
-                    return gameDataProvider != null && gameDataProvider.TryGetGameData(out GameData gameData)
+                    IGameSessionStateProvider gameDataProvider = ResolveFromLifetimeScope<IGameSessionStateProvider>();
+                    return gameDataProvider != null && gameDataProvider.TryGetSessionState(out GameSessionState gameData)
                         ? new BuildingConditionContext(gameData)
                         : BuildingConditionContext.Empty;
-                }));
+                }), workOrderRuntime: null);
     }
 
     private static bool TryFindPlaceablePosition(

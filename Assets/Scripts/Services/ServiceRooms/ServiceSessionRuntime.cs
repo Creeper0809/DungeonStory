@@ -1,22 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Content.CoreSession;
 using DungeonStory.Foundation;
-
-public interface IServiceAvailabilityQuery
-{
-    ServiceAvailabilitySnapshot GetAvailability(ServiceCategory category);
-    bool ShouldAcceptDemand(ServiceCategory category);
-    bool ShouldRecordUnservedDemand(
-        ServiceCategory category,
-        bool demandWasAdvertised);
-}
-
-public interface IServiceDemandPolicyRuntime
-{
-    bool IsAdvertisingEnabled(ServiceCategory category);
-    void SetAdvertisingEnabled(ServiceCategory category, bool enabled);
-}
+using DungeonStory.ServiceRooms;
+using VContainer.Unity;
 
 public interface IServiceSessionRuntime :
     IServiceAvailabilityQuery,
@@ -32,83 +20,163 @@ public interface IServiceSessionRuntime :
     bool TryBeginSession(
         ServiceSessionRequest request,
         out ServiceSessionSnapshot session,
-        out string failureReason);
+        out DomainFailure failure);
     bool TrySetStage(
         string sessionId,
         ServiceSessionStage stage,
-        out string failureReason);
+        out DomainFailure failure);
     bool TryCompleteSession(
         string sessionId,
         out ServiceSessionSnapshot completed,
-        out string failureReason);
+        out DomainFailure failure);
     bool CancelSession(string sessionId, string reason);
     ServiceRoomsSaveData Capture();
-    void Restore(ServiceRoomsSaveData saveData);
+    ServiceRoomsRestoreCandidate PrepareRestoreCandidate(
+        ServiceRoomsSaveData saveData);
+    void PublishRestoreCandidate(ServiceRoomsRestoreCandidate candidate);
 }
 
-public sealed class ServiceSessionRuntime : IServiceSessionRuntime
+public sealed class ServiceRoomsRestoreCandidate
 {
+    public ServiceRoomsRestoreCandidate(ServiceSessionAggregate aggregate)
+    {
+        Aggregate = aggregate ?? throw new ArgumentNullException(nameof(aggregate));
+    }
+
+    public ServiceSessionAggregate Aggregate { get; }
+}
+
+public interface IServiceRoomResearchQuery
+{
+    bool IsCompleted(string researchId);
+}
+
+public sealed class BlueprintServiceRoomResearchQuery :
+    IServiceRoomResearchQuery
+{
+    private readonly BlueprintResearchRuntime research;
+
+    public BlueprintServiceRoomResearchQuery(
+        ProgressionSceneRuntimeReferences progressionRuntimes)
+    {
+        research = (progressionRuntimes
+                ?? throw new ArgumentNullException(nameof(progressionRuntimes)))
+            .BlueprintResearch
+            ?? throw new InvalidOperationException(
+                "Blueprint research runtime is not loaded.");
+    }
+
+    public bool IsCompleted(string researchId) =>
+        !string.IsNullOrWhiteSpace(researchId)
+        && research.State.Projects.IsCompleted(
+            new ResearchProjectId(researchId));
+}
+
+public sealed class ServiceSessionRuntime :
+    IServiceSessionRuntime,
+    ISurvivalServiceSessionCapability,
+    ITickable,
+    IDisposable
+{
+    public sealed class Dependencies
+    {
+        public Dependencies(
+            IGameClock clock,
+            IGameMoneyAccount money,
+            IPowerInfrastructureQuery power,
+            IServiceRoomResearchQuery research,
+            ICoreSessionRulesProvider rulesProvider)
+        {
+            Clock = clock ?? throw new ArgumentNullException(nameof(clock));
+            Money = money ?? throw new ArgumentNullException(nameof(money));
+            Power = power ?? throw new ArgumentNullException(nameof(power));
+            Research = research
+                ?? throw new ArgumentNullException(nameof(research));
+            Rules = (rulesProvider
+                    ?? throw new ArgumentNullException(nameof(rulesProvider)))
+                .CoreSessionRules
+                ?? throw new InvalidOperationException(
+                    "Core-session rules are not authored.");
+        }
+
+        public IGameClock Clock { get; }
+        public IGameMoneyAccount Money { get; }
+        public IPowerInfrastructureQuery Power { get; }
+        public IServiceRoomResearchQuery Research { get; }
+        public CoreSessionRulesDefinition Rules { get; }
+    }
+
     private readonly IBuildingWorldQuery buildings;
-    private readonly ICharacterLifetimeQuery characters;
     private readonly IServiceRoomLinkRuntime links;
     private readonly IServiceProcessCatalog processCatalog;
     private readonly IGameClock clock;
-    private readonly IGameMoneyRuntime money;
-    private readonly IElectricalNetworkRuntime power;
-    private readonly IBlueprintResearchRuntimeProvider researchProvider;
-    private readonly Dictionary<string, ServiceOperationMode> modesByHubId =
-        new Dictionary<string, ServiceOperationMode>(StringComparer.Ordinal);
-    private readonly Dictionary<string, ServiceSessionSnapshot> sessionsById =
-        new Dictionary<string, ServiceSessionSnapshot>(StringComparer.Ordinal);
-    private readonly HashSet<ServiceCategory> advertisedCategories =
-        new HashSet<ServiceCategory>();
-    private readonly HashSet<BuildableObject> subscribedHubs =
-        new HashSet<BuildableObject>();
+    private readonly IGameMoneyAccount money;
+    private readonly IPowerInfrastructureQuery power;
+    private readonly IServiceRoomResearchQuery research;
+    private readonly CoreSessionRulesDefinition rules;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
+    private readonly ServiceHubSubscriptionRegistry<BuildableObject>
+        hubSubscriptions;
+    private int projectedRestoreRevision;
+
+    private ServiceSessionAggregate Aggregate => aggregateRootStore.GetOrCreate(
+        () => new ServiceSessionAggregate());
 
     public ServiceSessionRuntime(
         IBuildingWorldQuery buildings,
-        ICharacterLifetimeQuery characters,
         IServiceRoomLinkRuntime links,
         IServiceProcessCatalog processCatalog,
-        IGameClock clock,
-        IGameMoneyRuntime money,
-        IElectricalNetworkRuntime power,
-        IBlueprintResearchRuntimeProvider researchProvider = null)
+        Dependencies dependencies,
+        DungeonRuntimeAggregateRootStore aggregateRootStore,
+        IRestoreWorldCandidateQuery restoreWorldCandidates)
     {
         this.buildings = buildings
             ?? throw new ArgumentNullException(nameof(buildings));
-        this.characters = characters
-            ?? throw new ArgumentNullException(nameof(characters));
         this.links = links ?? throw new ArgumentNullException(nameof(links));
         this.processCatalog = processCatalog
             ?? throw new ArgumentNullException(nameof(processCatalog));
-        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        this.money = money ?? throw new ArgumentNullException(nameof(money));
-        this.power = power ?? throw new ArgumentNullException(nameof(power));
-        this.researchProvider = researchProvider;
+        dependencies = dependencies
+            ?? throw new ArgumentNullException(nameof(dependencies));
+        clock = dependencies.Clock;
+        money = dependencies.Money;
+        power = dependencies.Power;
+        research = dependencies.Research;
+        rules = dependencies.Rules;
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        this.restoreWorldCandidates = restoreWorldCandidates
+            ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
+        hubSubscriptions = new ServiceHubSubscriptionRegistry<BuildableObject>(
+            (hub, handler) => hub.OnBuildingDestroyed += handler,
+            (hub, handler) => hub.OnBuildingDestroyed -= handler);
     }
 
-    public int Version { get; private set; }
+    public int Version => Aggregate.Version;
 
     public IReadOnlyList<ServiceSessionSnapshot> ActiveSessions =>
-        sessionsById.Values
-            .Where(session => session != null && session.IsActive)
-            .OrderBy(session => session.StartedAt)
-            .ThenBy(session => session.SessionId, StringComparer.Ordinal)
-            .ToArray();
+        Aggregate.ActiveSessions;
+
+    public void Tick()
+    {
+        int publishedRevision = aggregateRootStore.PublishedRestoreRevision;
+        if (projectedRestoreRevision == publishedRevision)
+        {
+            return;
+        }
+
+        projectedRestoreRevision = publishedRevision;
+        SynchronizeHubSubscriptions();
+    }
+
+    public void Dispose() => hubSubscriptions.Clear();
 
     public bool IsAdvertisingEnabled(ServiceCategory category) =>
-        advertisedCategories.Contains(category);
+        Aggregate.IsAdvertisingEnabled(category);
 
     public void SetAdvertisingEnabled(ServiceCategory category, bool enabled)
     {
-        bool changed = enabled
-            ? advertisedCategories.Add(category)
-            : advertisedCategories.Remove(category);
-        if (changed)
-        {
-            IncrementVersion();
-        }
+        Aggregate.SetAdvertisingEnabled(category, enabled);
     }
 
     public ServiceAvailabilitySnapshot GetAvailability(ServiceCategory category)
@@ -133,11 +201,10 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
             Capacity = accepting.Sum(snapshot => snapshot.Capacity),
             ActiveSessions = hubs.Sum(snapshot => snapshot.ActiveSessions),
             AdvertisingEnabled = IsAdvertisingEnabled(category),
-            BlockedReason = accepting.Length == 0 && hubs.Length > 0
-                ? hubs.Select(snapshot => snapshot.BlockedReason)
-                    .FirstOrDefault(reason =>
-                        !string.IsNullOrWhiteSpace(reason)) ?? "일시 중단"
-                : string.Empty
+            BlockedFailure = accepting.Length == 0 && hubs.Length > 0
+                ? hubs.Select(snapshot => snapshot.BlockedFailure)
+                    .FirstOrDefault(failure => failure.IsFailure)
+                : DomainFailure.None
         };
     }
 
@@ -160,14 +227,15 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
                 HubId = GetHubId(hub),
                 Hub = hub,
                 State = ServiceOperatingState.Closed,
-                BlockedReason = "서비스 시설이 없습니다."
+                BlockedFailure = new DomainFailure(
+                    FailureCode.ServiceHubUnavailable)
             };
         }
 
         SubscribeToHub(hub);
         string hubId = GetHubId(hub);
         ServiceOperationMode mode = ResolveMode(hubId);
-        bool valid = ValidateMode(hub, ability, mode, out string reason);
+        bool valid = ValidateMode(hub, ability, mode, out DomainFailure failure);
         IReadOnlyList<ServiceSupportLinkSnapshot> supportLinks =
             links.GetLinks(hub);
         int capacity = ability.BaseCapacity;
@@ -208,7 +276,7 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
                     / Math.Max(0.01f, speedMultiplier),
             ExpectedRevenue = Math.Max(0, revenue),
             ExpectedSatisfaction = satisfaction,
-            BlockedReason = reason,
+            BlockedFailure = failure,
             Supports = supportLinks
         };
     }
@@ -221,29 +289,37 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
         ServiceOperationMode previous = ResolveMode(GetHubId(hub));
         if (!IsOperational(hub) || ability == null)
         {
-            return Failure(previous, mode, "서비스 허브가 아닙니다.");
+            return Failure(
+                previous,
+                mode,
+                new DomainFailure(FailureCode.ServiceHubUnavailable));
         }
 
         if (mode == previous)
         {
-            return Success(previous, mode, "이미 선택한 운영 모드입니다.");
+            return Success(previous, mode);
         }
 
         if (!ability.Allows(mode))
         {
-            return Failure(previous, mode, "이 시설은 해당 운영 모드를 지원하지 않습니다.");
+            return Failure(
+                previous,
+                mode,
+                new DomainFailure(FailureCode.ServiceModeUnsupported));
         }
 
-        if (!ValidateResearch(ability.serviceCategory, mode, out string reason)
-            || !ValidateMode(hub, ability, mode, out reason))
+        if (!ValidateResearch(
+                ability.serviceCategory,
+                mode,
+                out DomainFailure failure)
+            || !ValidateMode(hub, ability, mode, out failure))
         {
-            return Failure(previous, mode, reason);
+            return Failure(previous, mode, failure);
         }
 
-        modesByHubId[GetHubId(hub)] = mode;
+        Aggregate.SetMode(GetHubId(hub), mode, out _);
         SubscribeToHub(hub);
-        IncrementVersion();
-        return Success(previous, mode, "신규 손님부터 새 운영 모드를 적용합니다.");
+        return Success(previous, mode);
     }
 
     public ServiceModeChangeResult SwitchToDirect(BuildableObject hub) =>
@@ -252,24 +328,23 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
     public bool TryBeginSession(
         ServiceSessionRequest request,
         out ServiceSessionSnapshot session,
-        out string failureReason)
+        out DomainFailure failure)
     {
         session = null;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         BuildableObject hub = request?.Hub;
         BuildingServiceHubAbility ability = hub.GetServiceHubAbility();
         if (!IsOperational(hub) || ability == null)
         {
-            failureReason = "서비스가 휴업 중입니다.";
+            failure = new DomainFailure(FailureCode.ServiceClosed);
             return false;
         }
 
         string processId = request?.ProcessId?.Trim() ?? string.Empty;
         if (processId.Length == 0)
         {
-            processId = ability.supportedProcessIds?
-                .FirstOrDefault(id => !string.IsNullOrWhiteSpace(id))?
-                .Trim() ?? string.Empty;
+            failure = new DomainFailure(FailureCode.ServiceProcessIdMissing);
+            return false;
         }
         if (!ability.SupportsProcess(processId)
             || !processCatalog.TryGet(processId, out ServiceProcessSO process)
@@ -279,45 +354,29 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
                 ability.ServiceHubTag,
                 StringComparison.Ordinal))
         {
-            failureReason =
-                $"시설이 지원하는 서비스 공정을 찾을 수 없습니다: {processId}";
+            failure = new DomainFailure(
+                FailureCode.ServiceHubUnavailable);
             return false;
         }
 
         ServiceHubSnapshot hubState = GetHubSnapshot(hub);
         if (hubState.State == ServiceOperatingState.Suspended)
         {
-            failureReason = hubState.BlockedReason;
+            failure = hubState.BlockedFailure;
             return false;
         }
 
-        if (hubState.ActiveSessions >= hubState.Capacity)
-        {
-            failureReason = "서비스 용량이 가득 찼습니다.";
-            return false;
-        }
-
-        string actorId = request.Actor?.Identity?.PersistentId?.Trim()
+        string actorId = request.Actor?.BuildingCharacterId.Value
             ?? string.Empty;
-        if (actorId.Length > 0
-            && sessionsById.Values.Any(candidate =>
-                candidate != null
-                && candidate.IsActive
-                && string.Equals(
-                    candidate.ActorId,
-                    actorId,
-                    StringComparison.Ordinal)))
-        {
-            failureReason = "이미 진행 중인 서비스 세션이 있습니다.";
-            return false;
-        }
 
         if (!process.TryGetContract(
                 hubState.Mode,
                 out ServiceModeProcessContract modeContract))
         {
-            failureReason =
-                $"{process.ProcessId} 공정에 {hubState.Mode} 계약이 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.ServiceProcessContractMissing,
+                process.ProcessId,
+                hubState.Mode.ToString());
             return false;
         }
 
@@ -328,181 +387,154 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
                 process,
                 modeContract,
                 request.IsInternalActor);
-        string sessionId = $"service:{Guid.NewGuid():N}";
-        session = new ServiceSessionSnapshot
-        {
-            SessionId = sessionId,
-            HubId = hubState.HubId,
-            ActorId = actorId,
-            ProcessId = processId,
-            Category = ability.serviceCategory,
-            Stage = FirstStage(contract.activeStages),
-            StartedAt = clock.Time,
-            StageStartedAt = clock.Time,
-            AdvertisedDemand = request.AdvertisedDemand,
-            Contract = contract
-        };
-        sessionsById.Add(sessionId, session);
-        IncrementVersion();
-        return true;
+        return Aggregate.TryBegin(
+            new ServiceSessionBeginCommand
+            {
+                HubId = hubState.HubId,
+                ActorId = actorId,
+                ProcessId = processId,
+                Category = ability.serviceCategory,
+                Capacity = hubState.Capacity,
+                StartedAt = clock.Time,
+                AdvertisedDemand = request.AdvertisedDemand,
+                Contract = contract
+            },
+            out session,
+            out failure);
     }
 
     public bool TrySetStage(
         string sessionId,
         ServiceSessionStage stage,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
-        if (!TryGetActive(sessionId, out ServiceSessionSnapshot session))
-        {
-            failureReason = "활성 서비스 세션을 찾을 수 없습니다.";
-            return false;
-        }
-
-        if (stage == ServiceSessionStage.Completed)
-        {
-            failureReason = "완료는 서비스 완료 명령으로만 확정할 수 있습니다.";
-            return false;
-        }
-
-        session.Stage = stage;
-        session.StageStartedAt = clock.Time;
-        IncrementVersion();
-        return true;
+        return Aggregate.TrySetStage(
+            sessionId,
+            stage,
+            clock.Time,
+            out failure);
     }
 
     public bool TryCompleteSession(
         string sessionId,
         out ServiceSessionSnapshot completed,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        completed = null;
-        failureReason = string.Empty;
-        if (!TryGetActive(sessionId, out ServiceSessionSnapshot session))
+        if (!Aggregate.TryComplete(
+                sessionId,
+                clock.Time,
+                out ServiceSessionCompletionTransition transition,
+                out failure))
         {
-            failureReason = "활성 서비스 세션을 찾을 수 없습니다.";
+            completed = null;
             return false;
         }
 
-        if (session.Stage != ServiceSessionStage.Service
-            && session.Stage != ServiceSessionStage.Payment
-            && session.Stage != ServiceSessionStage.Cleanup)
-        {
-            failureReason = "서비스 이용이 끝나기 전에는 결제를 확정할 수 없습니다.";
-            return false;
-        }
-
-        if (session.Contract.paymentRequired
-            && !session.PaymentCommitted
-            && session.Contract.price > 0)
+        ServiceSessionEconomicCommand command = transition.EconomicCommand;
+        if (command != null)
         {
             money.Add(
-                session.Contract.price,
+                command.Amount,
                 new EconomyTransactionContext(
                     EconomyTransactionKind.GuestServiceIncome,
-                    session.HubId,
-                    session.ActorId,
-                    "서비스 완료 결제"));
-            session.PaymentCommitted = true;
+                    command.HubId,
+                    command.ActorId,
+                    command.CommandId));
         }
-
-        session.Stage = ServiceSessionStage.Completed;
-        session.StageStartedAt = clock.Time;
-        completed = session;
-        IncrementVersion();
+        completed = transition.Completed;
         return true;
     }
 
     public bool CancelSession(string sessionId, string reason)
     {
-        if (!TryGetActive(sessionId, out ServiceSessionSnapshot session))
-        {
-            return false;
-        }
-
-        session.Stage = ServiceSessionStage.Cancelled;
-        session.StageStartedAt = clock.Time;
-        session.CancellationReason = string.IsNullOrWhiteSpace(reason)
-            ? "서비스가 취소되었습니다."
-            : reason.Trim();
-        IncrementVersion();
-        return true;
+        return Aggregate.CancelSession(sessionId, reason, clock.Time);
     }
 
     public ServiceRoomsSaveData Capture()
     {
-        return new ServiceRoomsSaveData
-        {
-            hubs = modesByHubId
-                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
-                .Select(pair => new ServiceHubModeSaveData
-                {
-                    hubId = pair.Key,
-                    mode = pair.Value
-                })
-                .ToList(),
-            advertisedCategories = advertisedCategories
-                .OrderBy(category => category)
-                .ToList(),
-            sessions = ActiveSessions
-                .Select(ServiceRoomsSaveData.FromSnapshot)
-                .ToList()
-        };
+        return Aggregate.Capture();
     }
 
-    public void Restore(ServiceRoomsSaveData saveData)
+    public ServiceRoomsRestoreCandidate PrepareRestoreCandidate(
+        ServiceRoomsSaveData saveData)
     {
-        modesByHubId.Clear();
-        sessionsById.Clear();
-        advertisedCategories.Clear();
-
-        foreach (ServiceHubModeSaveData hub in saveData?.hubs
-                     ?? new List<ServiceHubModeSaveData>())
+        if (saveData == null)
         {
-            string hubId = hub?.hubId?.Trim() ?? string.Empty;
-            if (hubId.Length > 0)
+            throw new ArgumentNullException(nameof(saveData));
+        }
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        if (!restoreWorldCandidates.TryGetBuildings(
+                out IReadOnlyList<BuildableObject> candidateBuildings)
+            || !restoreWorldCandidates.TryGetCharacters(
+                out IReadOnlyList<CharacterActor> candidateCharacters))
+        {
+            throw new InvalidOperationException(
+                "Service-rooms restore requires detached facility and character candidates.");
+        }
+
+        Dictionary<string, BuildableObject> hubsById = candidateBuildings
+            .Where(hub => hub != null && hub.GetServiceHubAbility() != null)
+            .ToDictionary(GetHubId, StringComparer.Ordinal);
+        HashSet<string> actorIds = candidateCharacters
+            .Where(actor => actor != null)
+            .Select(actor => actor.Identity?.PersistentId)
+            .Where(id => !string.IsNullOrEmpty(id))
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (ServiceHubModeSaveData hub in saveData.hubs)
+        {
+            if (!hubsById.TryGetValue(hub.hubId, out BuildableObject building)
+                || !building.GetServiceHubAbility().Allows(hub.mode))
             {
-                modesByHubId[hubId] = hub.mode;
+                report.AddError(
+                    $"Service-rooms restore references missing or incompatible hub '{hub.hubId}'.");
             }
         }
-
-        foreach (ServiceCategory category in saveData?.advertisedCategories
-                     ?? new List<ServiceCategory>())
+        foreach (ServiceSessionSaveData session in saveData.sessions)
         {
-            advertisedCategories.Add(category);
-        }
-
-        HashSet<string> validHubIds = new HashSet<string>(
-            GetOperationalHubs(null).Select(GetHubId),
-            StringComparer.Ordinal);
-        HashSet<string> validActorIds = new HashSet<string>(
-            (characters.AllCharacters ?? Array.Empty<CharacterActor>())
-                .Where(actor => actor != null)
-                .Select(actor => actor.Identity?.PersistentId?.Trim())
-                .Where(id => !string.IsNullOrWhiteSpace(id)),
-            StringComparer.Ordinal);
-        foreach (ServiceSessionSaveData source in saveData?.sessions
-                     ?? new List<ServiceSessionSaveData>())
-        {
-            ServiceSessionSnapshot restored = source?.ToSnapshot();
-            if (restored == null
-                || !restored.IsActive
-                || !validHubIds.Contains(restored.HubId)
-                || restored.ActorId.Length > 0
-                    && !validActorIds.Contains(restored.ActorId))
+            if (!hubsById.TryGetValue(session.hubId, out BuildableObject hub)
+                || session.actorId.Length > 0 && !actorIds.Contains(session.actorId)
+                || !processCatalog.TryGet(
+                    session.processId,
+                    out ServiceProcessSO process)
+                || !hub.GetServiceHubAbility().SupportsProcess(session.processId)
+                || process.ServiceCategory != session.category
+                || !string.Equals(
+                    process.OwnerHubTag,
+                    hub.GetServiceHubAbility().ServiceHubTag,
+                    StringComparison.Ordinal))
             {
-                continue;
+                report.AddError(
+                    $"Service session '{session.sessionId}' references a missing candidate or incompatible process.");
             }
-
-            sessionsById[restored.SessionId] = restored;
         }
-
-        foreach (BuildableObject hub in GetOperationalHubs(null))
+        if (!report.Success)
         {
-            SubscribeToHub(hub);
+            throw new InvalidOperationException(
+                "Service-rooms restore candidate is invalid: "
+                + string.Join(" | ", report.Errors));
         }
 
-        IncrementVersion();
+        ServiceSessionAggregate restored =
+            ServiceSessionAggregate.CreateRestored(
+                saveData,
+                unchecked(Version + 1));
+        return new ServiceRoomsRestoreCandidate(restored);
+    }
+
+    public void PublishRestoreCandidate(ServiceRoomsRestoreCandidate candidate)
+    {
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
+        }
+        aggregateRootStore.Replace(candidate.Aggregate);
+    }
+
+    private void SynchronizeHubSubscriptions()
+    {
+        hubSubscriptions.Synchronize(
+            GetOperationalHubs(null),
+            OnHubDestroyed);
     }
 
     private ServiceSessionContractSnapshot CreateContract(
@@ -561,12 +593,12 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
         BuildableObject hub,
         BuildingServiceHubAbility ability,
         ServiceOperationMode mode,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (!ability.Allows(mode))
         {
-            failureReason = "시설이 선택된 운영 모드를 지원하지 않습니다.";
+            failure = new DomainFailure(FailureCode.ServiceModeUnsupported);
             return false;
         }
 
@@ -581,7 +613,7 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
                 .Concat(ability.automatedRequiredFeatureTags
                     ?? Array.Empty<string>())
                 .ToArray();
-        if (!links.HasFeatures(hub, required, out failureReason))
+        if (!links.HasFeatures(hub, required, out failure))
         {
             return false;
         }
@@ -600,7 +632,9 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
 
             if (supportAbility.requiresPower && !power.IsPowered(support))
             {
-                failureReason = $"{support.BuildingData.objectName}에 전력이 없습니다.";
+                failure = new DomainFailure(
+                    FailureCode.ServiceSupportUnpowered,
+                    support.BuildingData.objectName ?? string.Empty);
                 return false;
             }
         }
@@ -611,35 +645,32 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
     private bool ValidateResearch(
         ServiceCategory category,
         ServiceOperationMode mode,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (mode == ServiceOperationMode.Direct)
         {
             return true;
         }
 
-        string required = mode == ServiceOperationMode.Automated
-            ? ServiceRoomResearchIds.ServiceAutomation
-            : category switch
-            {
-                ServiceCategory.Lodging =>
-                    ServiceRoomResearchIds.HospitalityOperations,
-                ServiceCategory.Bathing =>
-                    ServiceRoomResearchIds.BathBusiness,
-                ServiceCategory.Medical =>
-                    ServiceRoomResearchIds.MedicalReception,
-                _ => ServiceRoomResearchIds.ServiceFlow
-            };
-        if (researchProvider != null
-            && researchProvider.TryGetRuntime(out BlueprintResearchRuntime runtime)
-            && runtime.State.Projects.IsCompleted(
-                new ResearchProjectId(required)))
+        if (!rules.TryGetRequiredServiceResearch(
+                (int)category,
+                (int)mode,
+                out string required))
+        {
+            throw new InvalidOperationException(
+                $"No authored service research rule exists for "
+                + $"{category}/{mode}.");
+        }
+        if (research.IsCompleted(required))
         {
             return true;
         }
 
-        failureReason = $"연구가 필요합니다: {required}";
+        failure = new DomainFailure(
+            FailureCode.RequiredResearchUnavailable,
+            required,
+            string.Empty);
         return false;
     }
 
@@ -660,70 +691,24 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
 
     private void SubscribeToHub(BuildableObject hub)
     {
-        if (hub != null && subscribedHubs.Add(hub))
-        {
-            hub.OnBuildingDestroyed += () => OnHubDestroyed(hub);
-        }
+        hubSubscriptions.Subscribe(hub, OnHubDestroyed);
     }
 
     private void OnHubDestroyed(BuildableObject hub)
     {
         string hubId = GetHubId(hub);
-        foreach (ServiceSessionSnapshot session in sessionsById.Values
-                     .Where(session =>
-                         session != null
-                         && session.IsActive
-                         && string.Equals(
-                             session.HubId,
-                             hubId,
-                             StringComparison.Ordinal))
-                     .ToArray())
-        {
-            CancelSession(
-                session.SessionId,
-                $"{hub?.BuildingData?.objectName ?? "서비스 시설"} 파괴로 영업이 취소되었습니다.");
-        }
-
-        IncrementVersion();
-    }
-
-    private bool TryGetActive(
-        string sessionId,
-        out ServiceSessionSnapshot session)
-    {
-        session = null;
-        string normalized = sessionId?.Trim() ?? string.Empty;
-        return normalized.Length > 0
-            && sessionsById.TryGetValue(normalized, out session)
-            && session != null
-            && session.IsActive;
+        hubSubscriptions.Unsubscribe(hub);
+        Aggregate.CancelHubSessions(
+            hubId,
+            $"{hub?.BuildingData?.objectName ?? "서비스 시설"} 파괴로 영업이 취소되었습니다.",
+            clock.Time);
     }
 
     private int CountActiveSessions(string hubId) =>
-        sessionsById.Values.Count(session =>
-            session != null
-            && session.IsActive
-            && string.Equals(session.HubId, hubId, StringComparison.Ordinal));
+        Aggregate.CountActiveSessions(hubId);
 
     private ServiceOperationMode ResolveMode(string hubId) =>
-        !string.IsNullOrWhiteSpace(hubId)
-        && modesByHubId.TryGetValue(hubId, out ServiceOperationMode mode)
-            ? mode
-            : ServiceOperationMode.Direct;
-
-    private static ServiceSessionStage FirstStage(
-        ServiceProcessStageMask stages)
-    {
-        if ((stages & ServiceProcessStageMask.Reception) != 0)
-        {
-            return ServiceSessionStage.Reception;
-        }
-        if ((stages & ServiceProcessStageMask.Waiting) != 0)
-        {
-            return ServiceSessionStage.Waiting;
-        }
-        return ServiceSessionStage.Service;
-    }
+        Aggregate.ResolveMode(hubId);
 
     private static ServiceOperatingState HighestState(
         IReadOnlyList<ServiceHubSnapshot> hubs)
@@ -754,37 +739,29 @@ public sealed class ServiceSessionRuntime : IServiceSessionRuntime
         && building.BuildingData != null;
 
     internal static string GetHubId(BuildableObject hub) =>
-        IndustrialInfrastructureIdentity.GetNodeId(hub);
+        hub.RequirePersistentInstanceId().Value;
 
     private static ServiceModeChangeResult Success(
         ServiceOperationMode previous,
-        ServiceOperationMode requested,
-        string message) =>
+        ServiceOperationMode requested) =>
         new ServiceModeChangeResult
         {
             Succeeded = true,
             PreviousMode = previous,
             RequestedMode = requested,
-            Message = message
+            Failure = DomainFailure.None
         };
 
     private static ServiceModeChangeResult Failure(
         ServiceOperationMode previous,
         ServiceOperationMode requested,
-        string message) =>
+        DomainFailure failure) =>
         new ServiceModeChangeResult
         {
             Succeeded = false,
             PreviousMode = previous,
             RequestedMode = requested,
-            Message = message ?? string.Empty
+            Failure = failure
         };
 
-    private void IncrementVersion()
-    {
-        unchecked
-        {
-            Version++;
-        }
-    }
 }

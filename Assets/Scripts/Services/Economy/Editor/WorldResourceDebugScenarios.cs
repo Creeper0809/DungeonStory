@@ -30,10 +30,13 @@ public static class WorldResourceDebugScenarios
 
             IWorldResourceRuntime resources =
                 scope.Container.Resolve<IWorldResourceRuntime>();
+            IWorldResourcePersistence persistence =
+                scope.Container.Resolve<IWorldResourcePersistence>();
             IWorldItemStackRuntime items =
                 scope.Container.Resolve<IWorldItemStackRuntime>();
-            IBlueprintResearchRuntimeProvider researchProvider =
-                scope.Container.Resolve<IBlueprintResearchRuntimeProvider>();
+            BlueprintResearchRuntime research = scope.Container
+                .Resolve<ProgressionSceneRuntimeReferences>()
+                .BlueprintResearch;
             Require(resources != null, "World resource runtime is missing.");
             Require(resources.NodeCount > 0, "No natural resource nodes were created.");
 
@@ -46,11 +49,11 @@ public static class WorldResourceDebugScenarios
             int quarryNodes = CountNodes(
                 resources,
                 BuiltInWorkTypeIds.Quarry);
-            WildlifeEcosystemRuntime ecosystem =
-                scope.Container.Resolve<WildlifeEcosystemRuntime>();
+            WildlifeEcosystemApplicationAdapter ecosystem =
+                scope.Container.Resolve<WildlifeEcosystemApplicationAdapter>();
             IResourceEconomyContentCatalog catalog =
                 scope.Container.Resolve<IResourceEconomyContentCatalog>();
-            DungeonWorldResourceSaveData resourceSave = resources.Capture();
+            DungeonWorldResourceSaveData resourceSave = persistence.Capture();
             lines.Add($"nodes={resources.NodeCount}");
             lines.Add($"gather={gatheringNodes}");
             lines.Add($"logging={loggingNodes}");
@@ -106,7 +109,7 @@ public static class WorldResourceDebugScenarios
                 "Deep quarry recipe is not connected to work:quarry.");
 
             Require(
-                researchProvider.TryGetRuntime(out BlueprintResearchRuntime research),
+                research != null,
                 "Research runtime is missing.");
             research.State.Projects.Complete(
                 new ResearchProjectId("research:forestry:logging"));
@@ -142,13 +145,17 @@ public static class WorldResourceDebugScenarios
                 && !after.Available,
                 "Depleted logging node remained available.");
 
-            DungeonWorldResourceSaveData save = resources.Capture();
+            DungeonWorldResourceSaveData save = persistence.Capture();
             Require(
-                save.nodes.Any(node => node.nodeId == loggingNode.NodeId
+                save.nodes.Any(node =>
+                    node.buildingInstanceId == loggingNode.NodeId
                     && node.sources.Any(source =>
                         source.workTypeId == BuiltInWorkTypeIds.Logging.Value
                         && source.remainingCycles == 0)),
                 "Depleted resource state was not captured.");
+            WorldResourceSaveSection saveSection =
+                new WorldResourceSaveSection(persistence);
+            VerifyStrictSaveIsolation(saveSection);
 
             lines.Add($"logsBefore={logsBefore}");
             lines.Add($"logsAfter={logsAfter}");
@@ -191,7 +198,41 @@ public static class WorldResourceDebugScenarios
             ",",
             node.sources.Select(source =>
                 $"{source.workTypeId}->{source.recipeId}"));
-        return $"{node.nodeId}=[{sources}]";
+        return $"{node.buildingInstanceId}@{node.gridX},{node.gridY}=[{sources}]";
+    }
+
+    private static void VerifyStrictSaveIsolation(
+        WorldResourceSaveSection saveSection)
+    {
+        Require(
+            saveSection is IDungeonSaveSectionPreflight
+            && saveSection is IDungeonRollbackFreeSaveSection,
+            "World-resource save section is not strict and rollback-free.");
+        string before = saveSection.Capture();
+        DungeonWorldResourceSaveData invalid =
+            JsonUtility.FromJson<DungeonWorldResourceSaveData>(before);
+        Require(
+            invalid?.nodes?.Count > 0
+            && invalid.nodes[0].sources?.Count > 0,
+            "World-resource isolation fixture is empty.");
+        invalid.nodes[0].sources[0].completedWork = -1f;
+        bool rejected = false;
+        try
+        {
+            ((IDungeonSaveSectionPreflight)saveSection).ValidatePayload(
+                JsonUtility.ToJson(invalid),
+                saveSection.SectionVersion,
+                new DungeonGameRestoreReport());
+        }
+        catch (InvalidOperationException)
+        {
+            rejected = true;
+        }
+
+        Require(rejected, "Negative world-resource progress was accepted.");
+        Require(
+            string.Equals(before, saveSection.Capture(), StringComparison.Ordinal),
+            "Failed world-resource preflight mutated live state.");
     }
 
     private static void Require(bool condition, string message)

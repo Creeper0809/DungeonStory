@@ -253,9 +253,9 @@ public class GridCell
             && isBuildable;
     }
 
-    public bool CanBuildInArea(BuildingSO buildingData)
+    public bool CanBuildInArea(IGridBuildAreaCapability building)
     {
-        return GridCellAreaRules.CanBuildInArea(AreaType, buildingData);
+        return GridCellAreaRules.CanBuildInArea(AreaType, building);
     }
 
     public bool SetAreaType(GridCellAreaType areaType)

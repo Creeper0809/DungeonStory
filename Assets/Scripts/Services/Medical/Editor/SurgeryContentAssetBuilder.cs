@@ -12,7 +12,12 @@ public static class SurgeryContentAssetBuilder
     private const string SpriteRoot = "Assets/Images/MedicalFacilities";
     private const string AnatomyRoot = "Assets/Resources/SO/Medical/Anatomy";
     private const string ProcedureRoot = "Assets/Resources/SO/Medical/Procedures";
+    private const string ConditionLexiconRoot = "Assets/Resources/SO/Medical/ConditionLexicons";
     private const string RecipeRoot = "Assets/Resources/SO/Economy/Recipes";
+    private const string StandardMedicineItemId = "medicine:standard";
+    private const string BloodItemId = "resource:blood";
+    private const string LumberItemId = "material:lumber";
+    private const string ManaCrystalItemId = "resource:mana-crystal";
 
     private sealed class FacilitySpec
     {
@@ -47,6 +52,10 @@ public static class SurgeryContentAssetBuilder
         public bool Living = true;
         public bool Corpse;
         public bool Wildlife;
+        public MedicalProcedureFamily Family = MedicalProcedureFamily.Biological;
+        public MedicalProcedureUrgency Urgency = MedicalProcedureUrgency.Required;
+        public string[] AnatomyFamilies = Array.Empty<string>();
+        public string[] SpeciesIds = Array.Empty<string>();
         public SurgicalMaterialRequirement[] Materials = Array.Empty<SurgicalMaterialRequirement>();
         public SurgicalProcedureEffect[] Effects = Array.Empty<SurgicalProcedureEffect>();
     }
@@ -58,10 +67,12 @@ public static class SurgeryContentAssetBuilder
         EnsureFolder(SpriteRoot);
         EnsureFolder(AnatomyRoot);
         EnsureFolder(ProcedureRoot);
+        EnsureFolder(ConditionLexiconRoot);
         EnsureFolder(RecipeRoot);
 
         BuildFacilities();
         BuildAnatomyProfiles();
+        BuildConditionLexicons();
         BuildProcedures();
         BuildProstheticRecipes();
         AssetDatabase.SaveAssets();
@@ -71,7 +82,77 @@ public static class SurgeryContentAssetBuilder
         ValidateBuiltContent();
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-        Debug.Log("Surgery content rebuilt: 13 facilities, 6 anatomy profiles, 13 procedures, 6 research projects.");
+        Debug.Log("Surgery content rebuilt: 13 facilities, 12 anatomy profiles, 7 condition lexicons, 42 procedures, 12 medical research projects.");
+    }
+
+    private static void BuildConditionLexicons()
+    {
+        CreateConditionLexicon("condition:biological", "humanoid",
+            new[] { "human", "orc", "beastkin", "kobold" },
+            "출혈", "감염", "쇼크", "골절·파열", "장기 정지", "거부 반응", "치료·수술", "치료");
+        CreateConditionLexicon("condition:vampire", "humanoid", new[] { "vampire" },
+            "혈액 고갈", "부패 감염", "혈류 쇼크", "골절·파열", "혈액낭 정지", "혈핵 거부", "혈술 처치 필요", "혈술 처치");
+        CreateConditionLexicon("condition:demon", "humanoid", new[] { "demon" },
+            "마력 누출", "룬 오염", "룬 붕괴", "각질 균열", "마핵 정지", "룬 비호환", "마핵 시술 필요", "룬 봉합");
+        CreateConditionLexicon("condition:slime", "slime", new[] { "slime" },
+            "점액 누출", "점액 오염", "응집 불안정", "외피 찢김", "핵 손상", "이질 점액 거부", "안정화·재성형", "재성형");
+        CreateConditionLexicon("condition:myconid", "fungal", new[] { "myconid" },
+            "수액·포자 누출", "부패·포자 오염", "군체 불안정", "균사 절단", "균핵 괴사", "접목 불화", "균사 처치", "접목");
+        CreateConditionLexicon("condition:harpy", "avian", new[] { "harpy" },
+            "출혈", "기낭 감염", "호흡 쇼크", "기낭·날개 파열", "기낭 정지", "이식 불화", "조류 처치 필요", "날개 고정");
+        CreateConditionLexicon("condition:golem", "construct", new[] { "golem" },
+            "냉각수 누수", "회로 오염·부식", "과부하", "외장 균열", "핵 균열·서보 파손", "부품 비호환", "정비·부품 교체", "정비");
+    }
+
+    private static void CreateConditionLexicon(
+        string id,
+        string family,
+        string[] species,
+        string fluidLoss,
+        string contamination,
+        string overstrain,
+        string fracture,
+        string partFailure,
+        string compatibility,
+        string treatmentRequired,
+        string treatmentVerb)
+    {
+        string path = $"{ConditionLexiconRoot}/{id.Replace(':', '_')}.asset";
+        AnatomyConditionLexiconSO asset =
+            AssetDatabase.LoadAssetAtPath<AnatomyConditionLexiconSO>(path);
+        if (asset == null)
+        {
+            asset = ScriptableObject.CreateInstance<AnatomyConditionLexiconSO>();
+            AssetDatabase.CreateAsset(asset, path);
+        }
+
+        asset.Configure(id, family, species, new[]
+        {
+            ConditionEntry(AnatomyConditionKind.FluidLoss, fluidLoss, treatmentVerb),
+            ConditionEntry(AnatomyConditionKind.Contamination, contamination, treatmentVerb),
+            ConditionEntry(AnatomyConditionKind.Overstrain, overstrain, treatmentVerb),
+            ConditionEntry(AnatomyConditionKind.Fracture, fracture, treatmentVerb),
+            ConditionEntry(AnatomyConditionKind.PartFailure, partFailure, treatmentVerb),
+            ConditionEntry(AnatomyConditionKind.CompatibilityFailure, compatibility, treatmentVerb),
+            ConditionEntry(AnatomyConditionKind.TreatmentRequired, treatmentRequired, treatmentVerb)
+        });
+        EditorUtility.SetDirty(asset);
+    }
+
+    private static AnatomyConditionLexiconEntry ConditionEntry(
+        AnatomyConditionKind condition,
+        string label,
+        string treatmentVerb)
+    {
+        string stable = condition.ToString().ToLowerInvariant();
+        return new AnatomyConditionLexiconEntry
+        {
+            condition = condition,
+            label = label,
+            treatmentVerb = treatmentVerb,
+            iconId = "condition:" + stable,
+            vfxId = "medical:" + stable
+        };
     }
 
     private static void BuildProstheticRecipes()
@@ -176,7 +257,7 @@ public static class SurgeryContentAssetBuilder
             building.category = BuildingCategory.Crafting;
             building.horizontalDraggable = false;
             building.verticalDraggable = false;
-            building.type = typeof(Facility);
+            building.runtimeArchetype = BuildingRuntimeArchetypeKind.Facility;
             building.tiles = null;
             building.movementAnchorOffset = Vector2.zero;
             building.movementTravelTime = 1.2f;
@@ -220,15 +301,20 @@ public static class SurgeryContentAssetBuilder
             capacity = spec.StoresOrgans ? 8 : 12,
             restockRequestThreshold = spec.StoresOrgans ? 2 : 3
         });
-        abilities.Add(new BuildingWorkAmountAbility
+        BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
         {
             constructionWorkRequired = spec.ConstructionWork,
             repairWorkRequired = Mathf.Max(8f, spec.ConstructionWork * 0.2f),
             cleanWorkRequired = 8f,
-            operateWorkRequired = 12f,
-            constructionMaterialCategory = StockCategory.General,
-            constructionMaterialAmount = Mathf.Max(2, spec.Cost / 25)
+            operateWorkRequired = 12f
+        };
+        workAmount.SetConstructionMaterials(new[]
+        {
+            new ItemAmountDefinition(
+                ResolveConstructionMaterialId(spec.Code),
+                Mathf.Max(2, spec.Cost / 25))
         });
+        abilities.Add(workAmount);
         abilities.Add(new BuildingEvolutionAbility
         {
             settings = new FacilityEvolutionContributionData
@@ -271,6 +357,22 @@ public static class SurgeryContentAssetBuilder
 
         abilities.Add(spec.SurgicalAbility);
         return abilities;
+    }
+
+    private static string ResolveConstructionMaterialId(string code)
+    {
+        if (string.Equals(code, "M12", StringComparison.Ordinal)
+            || string.Equals(code, "M13", StringComparison.Ordinal))
+        {
+            return "component:rune-conductor";
+        }
+
+        if (string.CompareOrdinal(code, "M05") >= 0)
+        {
+            return "material:steel-ingot";
+        }
+
+        return "material:lumber";
     }
 
     private static IEnumerable<WorkTypeId> ToWorkTypeIds(FacilityWorkType mask)
@@ -437,6 +539,12 @@ public static class SurgeryContentAssetBuilder
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateFungal());
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateAvian());
         BuildAnatomyAsset(AnatomyProfileDefaults.CreateConstruct());
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateHuman());
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateOrc());
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateVampire());
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateBeastkin());
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateDemon());
+        BuildAnatomyAsset(AnatomyProfileDefaults.CreateKobold());
     }
 
     private static void BuildAnatomyAsset(AnatomyProfileDefinition definition)
@@ -490,17 +598,22 @@ public static class SurgeryContentAssetBuilder
                 spec.Corpse,
                 spec.Wildlife,
                 spec.Materials,
-                spec.Effects);
+                spec.Effects,
+                spec.Family,
+                spec.Urgency,
+                spec.AnatomyFamilies,
+                requirement: null,
+                speciesIds: spec.SpeciesIds);
             EditorUtility.SetDirty(asset);
         }
     }
 
     private static ProcedureSpec[] CreateProcedureSpecs()
     {
-        string medicine = DungeonItemCatalogSO.StockItemId(StockCategory.Medicine);
-        string biological = DungeonItemCatalogSO.StockItemId(StockCategory.Biological);
-        string general = DungeonItemCatalogSO.StockItemId(StockCategory.General);
-        return new[]
+        string medicine = StandardMedicineItemId;
+        string biological = BloodItemId;
+        string general = LumberItemId;
+        ProcedureSpec[] core = new[]
         {
             Procedure("procedure:emergency-suture", "응급 봉합", "열린 상처를 닫고 출혈과 감염 위험을 낮춘다.",
                 SurgicalProcedureKind.Suture, "research:survival:medical", SurgeryFacilityTag.Emergency,
@@ -565,7 +678,7 @@ public static class SurgeryContentAssetBuilder
                 SurgicalProcedureKind.ArcaneModification, "research:medical:aberrant-augmentation",
                 SurgeryFacilityTag.ArcaneSurgery | SurgeryFacilityTag.RuneSuture | SurgeryFacilityTag.Anesthesia,
                 88f, 0.32f, 0.18f, 0.24f, true, true, true, false, false,
-                Materials(Material(DungeonItemCatalogSO.StockItemId(StockCategory.Mana), 3), Material(medicine, 2)),
+                Materials(Material(ManaCrystalItemId, 3), Material(medicine, 2)),
                 Effects(new InstallSurgicalPartEffect { partKind = SurgicalPartKind.ArcaneGraft, efficiency = 1.2f },
                     new ApplySurgicalBurdenEffect { rejection = 12f, infection = 6f, mutation = 18f })),
             Procedure("procedure:rehabilitation", "보철 재활", "보철 적응 훈련과 상처 관리를 통해 움직임과 조작 능력을 회복한다.",
@@ -584,6 +697,150 @@ public static class SurgeryContentAssetBuilder
                         infection = 6f
                     }))
         };
+        return core.Concat(CreateSpeciesProcedureSpecs()).ToArray();
+    }
+
+    private static ProcedureSpec[] CreateSpeciesProcedureSpecs()
+    {
+        string medicine = StandardMedicineItemId;
+        string biological = BloodItemId;
+        string general = LumberItemId;
+
+        return new[]
+        {
+            SpeciesProcedure("slime-replenishment", "점액 보충", MedicalProcedureFamily.Slime,
+                "research:medical:slime-bioengineering", "slime", new[] { "slime" },
+                new HealSurgicalNodeEffect { health = 18f, infectionReduction = 6f }, medicine),
+            SpeciesProcedure("slime-membrane-suture", "외피 봉합", MedicalProcedureFamily.Slime,
+                "research:medical:slime-bioengineering", "slime", new[] { "slime" },
+                new HealSurgicalNodeEffect { health = 26f, infectionReduction = 14f }, biological),
+            SpeciesProcedure("slime-core-stabilization", "응집핵 안정화", MedicalProcedureFamily.Slime,
+                "research:medical:slime-bioengineering", "slime", new[] { "slime" },
+                new HealSurgicalNodeEffect { health = 22f, infectionReduction = 18f },
+                "medical:slime-coagulation-frame"),
+            SpeciesProcedure("slime-pseudopod-reshape", "위족 재성형", MedicalProcedureFamily.Slime,
+                "research:medical:slime-bioengineering", "slime", new[] { "slime" },
+                new HealSurgicalNodeEffect { health = 30f, infectionReduction = 10f }, biological),
+
+            SpeciesProcedure("myconid-hypha-binding", "균사 결속", MedicalProcedureFamily.Myconid,
+                "research:medical:mycelial-grafting", "fungal", new[] { "myconid" },
+                new HealSurgicalNodeEffect { health = 24f, infectionReduction = 8f }, biological),
+            SpeciesProcedure("myconid-spore-cleaning", "포자낭 세정", MedicalProcedureFamily.Myconid,
+                "research:medical:mycelial-grafting", "fungal", new[] { "myconid" },
+                new HealSurgicalNodeEffect { health = 12f, infectionReduction = 28f }, medicine),
+            SpeciesProcedure("myconid-core-graft", "균핵 접목", MedicalProcedureFamily.Myconid,
+                "research:medical:mycelial-grafting", "fungal", new[] { "myconid" },
+                new HealSurgicalNodeEffect { health = 32f, infectionReduction = 12f },
+                "medical:sterile-mycelium-graft"),
+            SpeciesProcedure("myconid-regrowth", "균사 재배양", MedicalProcedureFamily.Myconid,
+                "research:medical:mycelial-grafting", "fungal", new[] { "myconid" },
+                new HealSurgicalNodeEffect { health = 36f, infectionReduction = 14f }, biological),
+
+            SpeciesProcedure("harpy-air-sac-suture", "기낭 봉합", MedicalProcedureFamily.Avian,
+                "research:medical:avian-prosthetics", "avian", new[] { "harpy" },
+                new HealSurgicalNodeEffect { health = 26f, infectionReduction = 16f }, medicine),
+            SpeciesProcedure("harpy-wing-fixation", "날개 고정", MedicalProcedureFamily.Avian,
+                "research:medical:avian-prosthetics", "avian", new[] { "harpy" },
+                new HealSurgicalNodeEffect { health = 32f, infectionReduction = 8f }, general),
+            SpeciesProcedure("harpy-feather-regrowth", "깃축 재생", MedicalProcedureFamily.Avian,
+                "research:medical:avian-prosthetics", "avian", new[] { "harpy" },
+                new HealSurgicalNodeEffect { health = 20f, infectionReduction = 10f }, biological),
+            SpeciesProcedure("harpy-tail-graft", "평형 꼬리깃 이식", MedicalProcedureFamily.Avian,
+                "research:medical:avian-prosthetics", "avian", new[] { "harpy" },
+                new HealSurgicalNodeEffect { health = 28f, infectionReduction = 8f }, biological),
+
+            MaintenanceProcedure("golem-coolant-refill", "냉각수 보충", "research:medical:construct-core-maintenance", 20f),
+            MaintenanceProcedure("golem-body-recast", "외장 재주조", "research:medical:construct-core-maintenance", 34f),
+            MaintenanceProcedure("golem-servo-alignment", "서보 정렬", "research:medical:construct-core-maintenance", 28f),
+            MaintenanceProcedure("golem-sensor-core", "감지핵 정비", "research:medical:construct-core-maintenance", 26f),
+            MaintenanceProcedure("golem-power-core", "동력핵 정비", "research:medical:construct-core-maintenance", 30f),
+
+            HumanoidProcedure("orc-skeletal-reinforcement", "골격 보강", "research:medical:surgery", "orc", 28f),
+            HumanoidProcedure("orc-combat-heart", "전투 심장 강화", "research:medical:surgery", "orc", 30f),
+            HumanoidProcedure("vampire-blood-sac", "혈액낭 처치", "research:medical:bloodcraft-augmentation", "vampire", 30f, MedicalProcedureFamily.Vampiric),
+            HumanoidProcedure("vampire-night-eye", "야간안 이식", "research:medical:bloodcraft-augmentation", "vampire", 24f, MedicalProcedureFamily.Vampiric),
+            HumanoidProcedure("beastkin-tail-reconstruction", "균형 꼬리 재건", "research:medical:prosthetics", "beastkin", 28f),
+            HumanoidProcedure("beastkin-sprint-joint", "질주 관절 보강", "research:medical:prosthetics", "beastkin", 26f),
+            HumanoidProcedure(
+                "demon-mana-core-suture",
+                "마핵 봉합",
+                "research:medical:mana-core-engineering",
+                "demon",
+                30f,
+                MedicalProcedureFamily.Demonic,
+                "medical:mana-core-case"),
+            HumanoidProcedure("demon-heat-sac", "열낭 강화", "research:medical:mana-core-engineering", "demon", 26f, MedicalProcedureFamily.Demonic),
+            HumanoidProcedure("kobold-precision-hand", "정밀 손 보철", "research:medical:prosthetics", "kobold", 24f),
+            HumanoidProcedure("kobold-tail-balance", "꼬리 평형 보강", "research:medical:prosthetics", "kobold", 22f),
+            HumanoidProcedure("human-neural-assist", "범용 신경 보조기", "research:medical:prosthetics", "human", 26f),
+            HumanoidProcedure("human-precision-prosthetic", "정밀 보철 조율", "research:medical:prosthetics", "human", 28f)
+        };
+    }
+
+    private static ProcedureSpec SpeciesProcedure(
+        string suffix,
+        string name,
+        MedicalProcedureFamily family,
+        string researchId,
+        string anatomyFamily,
+        string[] speciesIds,
+        SurgicalProcedureEffect effect,
+        string materialId)
+    {
+        ProcedureSpec spec = Procedure(
+            $"procedure:{suffix}", name, $"{name}을(를) 종족 해부 구조에 맞춰 시행한다.",
+            SurgicalProcedureKind.SpeciesStabilization, researchId,
+            SurgeryFacilityTag.GeneralSurgery | SurgeryFacilityTag.Sterilization,
+            34f, 0.12f, 0.08f, 0.08f, false, false, true, false, false,
+            Materials(Material(materialId, 1)), Effects(effect));
+        spec.Family = family;
+        spec.AnatomyFamilies = new[] { anatomyFamily };
+        spec.SpeciesIds = speciesIds;
+        return spec;
+    }
+
+    private static ProcedureSpec MaintenanceProcedure(
+        string suffix,
+        string name,
+        string researchId,
+        float durability)
+    {
+        ProcedureSpec spec = Procedure(
+            $"procedure:{suffix}", name, $"{name} 후 시험 가동으로 파츠 내구도를 복구한다.",
+            SurgicalProcedureKind.Maintenance, researchId,
+            SurgeryFacilityTag.ProstheticAssembly,
+            26f, 0.04f, 0f, 0f, false, false, true, false, false,
+            Materials(Material(LumberItemId, 1)),
+            Effects(new MaintainSurgicalPartEffect
+            {
+                durability = durability,
+                contaminationReduction = 12f
+            }));
+        spec.Family = MedicalProcedureFamily.Construct;
+        spec.Urgency = MedicalProcedureUrgency.Maintenance;
+        spec.AnatomyFamilies = new[] { "construct" };
+        spec.SpeciesIds = new[] { "golem" };
+        return spec;
+    }
+
+    private static ProcedureSpec HumanoidProcedure(
+        string suffix,
+        string name,
+        string researchId,
+        string speciesId,
+        float health,
+        MedicalProcedureFamily family = MedicalProcedureFamily.Biological,
+        string materialItemId = "")
+    {
+        ProcedureSpec spec = SpeciesProcedure(
+            suffix, name, family, researchId, "humanoid", new[] { speciesId },
+            new HealSurgicalNodeEffect { health = health, infectionReduction = 10f },
+            string.IsNullOrWhiteSpace(materialItemId)
+                ? StandardMedicineItemId
+                : materialItemId);
+        spec.Kind = SurgicalProcedureKind.SpeciesAugmentation;
+        spec.Urgency = MedicalProcedureUrgency.Elective;
+        return spec;
     }
 
     private static ProcedureSpec Procedure(
@@ -643,11 +900,13 @@ public static class SurgeryContentAssetBuilder
     private static SurgicalProcedureEffect[] Effects(
         params SurgicalProcedureEffect[] values) => values;
 
-    private static void ValidateBuiltContent()
+    public static void ValidateBuiltContent()
     {
         BuildingSO[] buildings = LoadAssets<BuildingSO>(BuildingRoot);
         SurgicalProcedureSO[] procedures = LoadAssets<SurgicalProcedureSO>(ProcedureRoot);
         AnatomyProfileSO[] anatomy = LoadAssets<AnatomyProfileSO>(AnatomyRoot);
+        AnatomyConditionLexiconSO[] conditionLexicons =
+            LoadAssets<AnatomyConditionLexiconSO>(ConditionLexiconRoot);
         ResearchProjectSO[] research = LoadAssets<ResearchProjectSO>(
             "Assets/Resources/SO/Research/Projects");
 
@@ -655,27 +914,37 @@ public static class SurgeryContentAssetBuilder
         {
             throw new InvalidOperationException($"Expected 13 surgery facilities, found {buildings.Length}.");
         }
-        if (procedures.Length != 13)
+        if (procedures.Length != 42)
         {
-            throw new InvalidOperationException($"Expected 13 surgical procedures, found {procedures.Length}.");
+            throw new InvalidOperationException($"Expected 42 surgical procedures, found {procedures.Length}.");
         }
-        if (anatomy.Length != 6)
+        if (anatomy.Length != 12)
         {
-            throw new InvalidOperationException($"Expected 6 anatomy profiles, found {anatomy.Length}.");
+            throw new InvalidOperationException($"Expected 12 anatomy profiles, found {anatomy.Length}.");
         }
-        if (research.Length < 78)
+        if (conditionLexicons.Length != 7)
         {
             throw new InvalidOperationException(
-                $"Expected at least 78 research projects, found {research.Length}.");
+                $"Expected 7 anatomy condition lexicons, found {conditionLexicons.Length}.");
+        }
+        if (research.Length != 168)
+        {
+            throw new InvalidOperationException(
+                $"Expected 168 research projects, found {research.Length}.");
         }
 
-        IReadOnlyList<string> anatomyErrors =
-            new ResourceAnatomyProfileCatalog(anatomy).Validate();
+        ResourceAnatomyProfileCatalog anatomyCatalog =
+            new ResourceAnatomyProfileCatalog(anatomy);
+        IReadOnlyList<string> anatomyErrors = anatomyCatalog.Validate();
+        IReadOnlyList<string> lexiconErrors =
+            new ResourceAnatomyConditionLexicon(conditionLexicons)
+                .Validate(anatomyCatalog);
         IReadOnlyList<string> procedureErrors =
             new ResourceSurgicalProcedureCatalog(procedures).Validate();
         IReadOnlyList<string> researchErrors =
             new ResourceResearchProjectCatalog(research).Validate();
         string[] errors = anatomyErrors
+            .Concat(lexiconErrors)
             .Concat(procedureErrors)
             .Concat(researchErrors)
             .ToArray();

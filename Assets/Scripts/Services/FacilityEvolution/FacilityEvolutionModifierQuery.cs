@@ -17,15 +17,11 @@ public interface IFacilityEvolutionModifierQuery
 public sealed class FacilityEvolutionModifierQuery :
     IFacilityEvolutionModifierQuery
 {
-    private readonly IFacilityEvolutionRuntime evolution;
     private readonly IEvolutionModuleRegistry modules;
 
     public FacilityEvolutionModifierQuery(
-        IFacilityEvolutionRuntime evolution,
         IEvolutionModuleRegistry modules)
     {
-        this.evolution = evolution
-            ?? throw new ArgumentNullException(nameof(evolution));
         this.modules = modules
             ?? throw new ArgumentNullException(nameof(modules));
     }
@@ -89,8 +85,20 @@ public sealed class FacilityEvolutionModifierQuery :
             return;
         }
 
-        evolution.RefreshRoomActivation(facility);
-        FacilityEvolutionState state = evolution.GetState(facility);
+        // Modifier evaluation is a read model. Refreshing room activation here
+        // would turn a work-result query into a state-changing command and make
+        // the building ability dispatcher depend back on the full evolution
+        // runtime (room -> filth -> ability dispatcher -> modifier query).
+        // Activation is refreshed by the evolution command/presentation paths;
+        // work execution consumes the last committed component snapshot.
+        FacilityEvolutionStateComponent component =
+            facility.GetComponent<FacilityEvolutionStateComponent>();
+        if (component == null)
+        {
+            return;
+        }
+
+        FacilityEvolutionState state = component.InstanceEvolution;
         HashSet<string> activeBenefits = new HashSet<string>(
             state.activeNodeIds ?? new List<string>(),
             StringComparer.Ordinal);

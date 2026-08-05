@@ -27,20 +27,39 @@ MonoBehaviour:
   description: "\uCE35 \uC0AC\uC774\uC5D0\uC11C\uB3C4 \uACE0\uC720 \uC544\uC774\uD15C\uC758
     \uBA54\uD0C0\uB370\uC774\uD130\uB97C \uC720\uC9C0\uD574 \uC6B4\uC1A1\uD55C\uB2E4."
   field: 15
-  requiredWork: 224
+  requiredWork: 720
   prerequisites:
   - {fileID: 11400000, guid: 0b685fecb52a420498d7ffa1df38e267, type: 2}
   - {fileID: 11400000, guid: 4736dc67de517194bba2ecc8eb663cc3, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:industry:priority-gates
+    prerequisite: {fileID: 11400000, guid: 0b685fecb52a420498d7ffa1df38e267, type: 2}
+    kind: 2
+    reason: "\uC6B0\uC120\uC21C\uC704 \uAC8C\uC774\uD2B8\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uCE35\uAC04 \uBB3C\uB958 \uB9AC\uD504\uD2B8 \uAD6C\uD604\uC5D0 \uC9C1\uC811
+      \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:metallurgy:steel
+    prerequisite: {fileID: 11400000, guid: 4736dc67de517194bba2ecc8eb663cc3, type: 2}
+    kind: 2
+    reason: "\uC81C\uAC15\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uCE35\uAC04
+      \uBB3C\uB958 \uB9AC\uD504\uD2B8 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687347
+    - rid: 7737211730927813356
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687347
+    - rid: 7737211730927813356
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9850

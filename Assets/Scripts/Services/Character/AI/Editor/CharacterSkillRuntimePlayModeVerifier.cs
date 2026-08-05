@@ -144,7 +144,9 @@ public static class CharacterSkillRuntimePlayModeVerifier
             CharacterSkillTarget.Enemy,
             "damage",
             "standard");
-        CharacterCombatAbilityDefinition ability = CharacterSkillRuntimeEffects.ToCombatAbility(skill);
+        CharacterCombatAbilityDefinition ability = CharacterSkillRuntimeEffects.ToCombatAbility(
+            skill,
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults());
         Require(ability != null && ability.CooldownTurns == 999,
             "Offense ultimate was not converted to a once-per-battle command.");
 
@@ -169,7 +171,7 @@ public static class CharacterSkillRuntimePlayModeVerifier
             "qa:target",
             "QA Ultimate Battle",
             DungeonDifficulty.Normal,
-            new[] { ally, enemy });
+            new[] { ally, enemy }, combatResolution: null, combatEquipmentRuntime: null);
         float healthBefore = enemy.CurrentHealth;
         Require(session.TryExecuteCommand(
                 new OffenseBattleCommand(

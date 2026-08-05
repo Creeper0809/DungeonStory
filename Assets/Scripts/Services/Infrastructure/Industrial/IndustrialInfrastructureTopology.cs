@@ -56,17 +56,7 @@ internal static class IndustrialInfrastructureIdentity
         {
             return string.Empty;
         }
-
-        FacilityEvolutionStateComponent evolution =
-            building.GetComponent<FacilityEvolutionStateComponent>();
-        string persistent = evolution?.FacilityPersistentId?.Trim()
-            ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(persistent))
-        {
-            return persistent;
-        }
-
-        return $"facility:{building.id}:{building.centerPos.x}:{building.centerPos.y}";
+        return building.RequirePersistentInstanceId().Value;
     }
 }
 

@@ -36,19 +36,38 @@ public interface IOffenseBattleRuntime
     void ClearCompletedBattle();
 }
 
+public sealed class OffenseBattleRestoreCandidate
+{
+    internal OffenseBattleRestoreCandidate(
+        OffenseBattleSession session,
+        Dictionary<string, CharacterActor> actorsById,
+        bool isBattleViewVisible)
+    {
+        Session = session;
+        ActorsById = actorsById
+            ?? throw new ArgumentNullException(nameof(actorsById));
+        IsBattleViewVisible = isBattleViewVisible;
+    }
+
+    internal OffenseBattleSession Session { get; }
+    internal Dictionary<string, CharacterActor> ActorsById { get; }
+    internal bool IsBattleViewVisible { get; }
+}
+
 public sealed class OffenseBattleRuntime :
     IOffenseBattleRuntime,
     IStartable,
     IDisposable
 {
     private readonly ICharacterWorldSaveService characterSaveService;
-    private readonly IRunVariableRuntimeProvider runVariableRuntimeProvider;
+    private readonly RunVariableRuntime runVariables;
     private readonly ICombatResolutionService combatResolution;
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
-    private readonly ICharacterBodyHealthRuntime bodyHealthRuntime;
+    private readonly ICharacterBodyHealthQuery bodyHealthQuery;
+    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly IOffenseRegionRuntime offenseRegionRuntime;
     private readonly IGameEventBus gameEventBus;
-    private readonly Dictionary<string, CharacterActor> actorsById =
+    private Dictionary<string, CharacterActor> actorsById =
         new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
     private bool started;
     private bool completionRaised;
@@ -56,21 +75,26 @@ public sealed class OffenseBattleRuntime :
 
     public OffenseBattleRuntime(
         ICharacterWorldSaveService characterSaveService,
-        IRunVariableRuntimeProvider runVariableRuntimeProvider,
+        DungeonSceneRuntimeReferences sceneRuntimes,
         IGameEventBus gameEventBus,
-        ICombatResolutionService combatResolution = null,
-        ICombatEquipmentRuntime combatEquipmentRuntime = null,
-        ICharacterBodyHealthRuntime bodyHealthRuntime = null,
-        IOffenseRegionRuntime offenseRegionRuntime = null)
+        ICombatResolutionService combatResolution,
+        ICombatEquipmentRuntime combatEquipmentRuntime,
+        ICharacterBodyHealthQuery bodyHealthQuery,
+        ICharacterBodyHealthCommand bodyHealthCommands,
+        IOffenseRegionRuntime offenseRegionRuntime)
     {
         this.characterSaveService = characterSaveService
             ?? throw new ArgumentNullException(nameof(characterSaveService));
-        this.runVariableRuntimeProvider = runVariableRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(runVariableRuntimeProvider));
+        runVariables = (sceneRuntimes
+                ?? throw new ArgumentNullException(nameof(sceneRuntimes)))
+            .RunVariables
+            ?? throw new InvalidOperationException(
+                $"{nameof(OffenseBattleRuntime)} requires a loaded {nameof(RunVariableRuntime)}.");
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.combatResolution = combatResolution;
         this.combatEquipmentRuntime = combatEquipmentRuntime;
-        this.bodyHealthRuntime = bodyHealthRuntime;
+        this.bodyHealthQuery = bodyHealthQuery;
+        this.bodyHealthCommands = bodyHealthCommands;
         this.offenseRegionRuntime = offenseRegionRuntime;
     }
 
@@ -329,6 +353,100 @@ public sealed class OffenseBattleRuntime :
         return true;
     }
 
+    internal OffenseBattleRestoreCandidate PreparePersistentRestore(
+        OffenseExpeditionRun expedition,
+        OffenseBattlePersistenceState state,
+        OffenseStrategicPressureSnapshot? restoredPressure)
+    {
+        if (expedition == null || expedition.Target == null || state == null
+            || !string.Equals(expedition.ExpeditionId, state.expeditionId,
+                StringComparison.Ordinal)
+            || !string.Equals(expedition.Target.id, state.targetId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Offense battle does not match its restored expedition.");
+        }
+
+        Dictionary<string, CharacterActor> candidateActors =
+            new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
+        List<OffenseBattleCombatant> combatants =
+            new List<OffenseBattleCombatant>();
+        foreach (OffenseExpeditionMemberState member in expedition.MemberStates
+                     .OrderBy(member => member.Formation))
+        {
+            CharacterActor actor = member?.Actor
+                ?? throw new InvalidOperationException(
+                    $"Expedition '{expedition.ExpeditionId}' has a null battle member.");
+            string persistentId = characterSaveService.GetOrAssignPersistentId(actor);
+            if (!candidateActors.TryAdd(persistentId, actor))
+            {
+                throw new InvalidOperationException(
+                    $"Offense battle contains duplicate actor '{persistentId}'.");
+            }
+            OffenseBattleCombatant combatant = OffenseEncounterCatalog.CreateAlly(
+                actor,
+                persistentId,
+                member.Formation,
+                member.Stress);
+            ConfigureCombatEquipment(combatant);
+            ConfigureBodyHealth(actor, combatant);
+            combatants.Add(combatant);
+        }
+
+        combatants.AddRange(OffenseEncounterCatalog.CreateEnemies(
+            expedition.Target,
+            state.difficulty,
+            expedition.Phase == OffenseExpeditionPhase.InBattle
+                ? expedition.CurrentNode
+                : null,
+            restoredPressure
+                ?? offenseRegionRuntime?.GetPressureForTarget(expedition.Target)
+                ?? default));
+        HashSet<string> configuredIds = combatants
+            .Select(combatant => combatant.PersistentId)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> savedIds = state.combatants
+            .Select(value => value.persistentId)
+            .ToHashSet(StringComparer.Ordinal);
+        string missingConfiguredId = savedIds
+            .FirstOrDefault(id => !configuredIds.Contains(id));
+        string missingSavedId = configuredIds
+            .FirstOrDefault(id => !savedIds.Contains(id));
+        if (!string.IsNullOrEmpty(missingConfiguredId)
+            || !string.IsNullOrEmpty(missingSavedId))
+        {
+            throw new InvalidOperationException(
+                $"Offense battle combatants do not match the configured encounter (unconfigured='{missingConfiguredId}', unsaved='{missingSavedId}').");
+        }
+
+        OffenseBattleSession candidateSession = OffenseBattleSession.Restore(
+            state,
+            combatants,
+            combatResolution,
+            combatEquipmentRuntime);
+        return new OffenseBattleRestoreCandidate(
+            candidateSession,
+            candidateActors,
+            isBattleViewVisible: true);
+    }
+
+    internal OffenseBattleRestoreCandidate PrepareEmptyPersistentRestore() =>
+        new OffenseBattleRestoreCandidate(
+            session: null,
+            new Dictionary<string, CharacterActor>(StringComparer.Ordinal),
+            isBattleViewVisible: false);
+
+    internal void PublishPersistentRestore(
+        OffenseBattleRestoreCandidate candidate)
+    {
+        candidate = candidate ?? throw new ArgumentNullException(nameof(candidate));
+        Session = candidate.Session;
+        actorsById = candidate.ActorsById;
+        completionRaised = false;
+        IsBattleViewVisible = candidate.IsBattleViewVisible;
+    }
+
     public void ClearForPersistentRestore()
     {
         Session = null;
@@ -482,17 +600,17 @@ public sealed class OffenseBattleRuntime :
 
     private void ConfigureBodyHealth(CharacterActor actor, OffenseBattleCombatant combatant)
     {
-        if (actor == null || combatant == null || bodyHealthRuntime == null)
+        if (actor == null || combatant == null || bodyHealthQuery == null)
         {
             return;
         }
 
-        combatant.ApplyBodyHealth(bodyHealthRuntime.GetSnapshot(actor));
+        combatant.ApplyBodyHealth(bodyHealthQuery.GetSnapshot(actor));
     }
 
     private void SynchronizeAlliedBodyHealth()
     {
-        if (Session == null || bodyHealthRuntime == null)
+        if (Session == null || bodyHealthCommands == null)
         {
             return;
         }
@@ -502,7 +620,7 @@ public sealed class OffenseBattleRuntime :
         {
             if (TryGetActor(combatant.PersistentId, out CharacterActor actor))
             {
-                bodyHealthRuntime.ApplySnapshot(
+                bodyHealthCommands.ApplySnapshot(
                     actor,
                     combatant.CaptureBodyHealth(),
                     "원정 전투 부상");
@@ -547,10 +665,9 @@ public sealed class OffenseBattleRuntime :
 
     private DungeonDifficulty ResolveDifficulty()
     {
-        if (runVariableRuntimeProvider.TryGetRuntime(out RunVariableRuntime runtime)
-            && runtime.State.StartVariables != null)
+        if (runVariables.State.StartVariables != null)
         {
-            return runtime.State.StartVariables.runDifficulty;
+            return runVariables.State.StartVariables.runDifficulty;
         }
 
         return DungeonDifficulty.Normal;

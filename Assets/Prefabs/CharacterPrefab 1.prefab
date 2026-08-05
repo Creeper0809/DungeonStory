@@ -374,10 +374,12 @@ MonoBehaviour:
     Prefab: {fileID: 0}
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
-    SerializationNodes: []
+    SerializationNodes:
+    - Name: gameData
+      Entry: 6
+      Data: 
   nowSheduleData:
     v: 0
-  gameData: {fileID: 11400000, guid: 599972c5ef69a5b428956bcdae86d44b, type: 2}
 --- !u!114 &7198535206734976458
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -634,53 +636,13 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: failedBuildingCooldowns
-      Entry: 7
-      Data: 0|System.Collections.Generic.Dictionary`2[[BuildableObject, Assembly-CSharp],[System.Single,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 1|System.Collections.Generic.ObjectEqualityComparer`1[[BuildableObject,
-        Assembly-CSharp]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: recentFailureCounts
-      Entry: 7
-      Data: 2|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Int32,
-        mscorlib]], mscorlib
-    - Name: comparer
-      Entry: 7
-      Data: 3|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
-        mscorlib]], mscorlib
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: jobGiverUtilityScores
       Entry: 7
-      Data: 4|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
+      Data: 0|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
         mscorlib]], mscorlib
     - Name: comparer
       Entry: 7
-      Data: 5|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
+      Data: 1|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
         DungeonStory.AI]], mscorlib
     - Name: 
       Entry: 12
@@ -702,11 +664,11 @@ MonoBehaviour:
       Data: 
     - Name: routineGroupPriorityScores
       Entry: 7
-      Data: 6|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
+      Data: 2|System.Collections.Generic.Dictionary`2[[CharacterAiBranch, DungeonStory.AI],[System.Single,
         mscorlib]], mscorlib
     - Name: comparer
       Entry: 7
-      Data: 7|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
+      Data: 3|System.Collections.Generic.EnumEqualityComparer`1[[CharacterAiBranch,
         DungeonStory.AI]], mscorlib
     - Name: 
       Entry: 12

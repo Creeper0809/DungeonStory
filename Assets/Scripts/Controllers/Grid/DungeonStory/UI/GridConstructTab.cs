@@ -31,9 +31,10 @@ public class GridConstructTab : UITab
     private IDataCatalog dataCatalog;
     private IUiPopupService popupService;
     private IDungeonGridBuildingControllerProvider buildingControllerProvider;
-    private IBlueprintResearchRuntimeProvider researchRuntimeProvider;
+    private BlueprintResearchRuntime research;
     private ITmpKoreanFontService tmpKoreanFontService;
     private IGridConstructButtonFactory buttonFactory;
+    private IBuildingCategoryDefinitionCatalog buildingCategoryCatalog;
     private bool preservePlacementOnClose;
 
     [Inject]
@@ -41,19 +42,25 @@ public class GridConstructTab : UITab
         IDataCatalog dataCatalog,
         IUiPopupService popupService,
         IDungeonGridBuildingControllerProvider buildingControllerProvider,
-        IBlueprintResearchRuntimeProvider researchRuntimeProvider,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
         ITmpKoreanFontService tmpKoreanFontService,
-        IGridConstructButtonFactory buttonFactory)
+        IGridConstructButtonFactory buttonFactory,
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog)
     {
         this.dataCatalog = dataCatalog ?? throw new ArgumentNullException(nameof(dataCatalog));
         this.popupService = popupService ?? throw new ArgumentNullException(nameof(popupService));
         this.buildingControllerProvider = buildingControllerProvider
             ?? throw new ArgumentNullException(nameof(buildingControllerProvider));
-        this.researchRuntimeProvider = researchRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(researchRuntimeProvider));
+        research = (progressionRuntimes
+                ?? throw new ArgumentNullException(nameof(progressionRuntimes)))
+            .BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(GridConstructTab)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
         this.tmpKoreanFontService = tmpKoreanFontService
             ?? throw new ArgumentNullException(nameof(tmpKoreanFontService));
         this.buttonFactory = buttonFactory ?? throw new ArgumentNullException(nameof(buttonFactory));
+        this.buildingCategoryCatalog = buildingCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(buildingCategoryCatalog));
     }
 
     private void Start()
@@ -116,7 +123,9 @@ public class GridConstructTab : UITab
             Transform selectPanel = GetCategoryPanelContent(menuCategory);
             if (!HasBuildingSelectButton(selectPanel, building.id))
             {
-                RequireButtonFactory().CreateBuildingSelectButton(selectButtonPrefab, selectPanel, building);
+                UIBuildingSelectButton button = RequireButtonFactory()
+                    .CreateBuildingSelectButton(selectButtonPrefab, selectPanel, building);
+                button.BindPlacementCollapse(CollapseForPlacement);
             }
         }
 
@@ -260,6 +269,7 @@ public class GridConstructTab : UITab
 
             if (button.id == buildingId)
             {
+                button.BindPlacementCollapse(CollapseForPlacement);
                 return true;
             }
         }
@@ -425,12 +435,12 @@ public class GridConstructTab : UITab
         }
     }
 
-    private static string GetCategoryDisplayName(BuildingCategory category)
+    private string GetCategoryDisplayName(BuildingCategory category)
     {
-        return BuildingCategoryCatalog.GetDisplayName(category, "기타");
+        return buildingCategoryCatalog.GetDisplayName(category, "기타");
     }
 
-    private static bool TryGetCategoryDisplayName(string rawText, out string displayName)
+    private bool TryGetCategoryDisplayName(string rawText, out string displayName)
     {
         displayName = string.Empty;
         if (string.IsNullOrWhiteSpace(rawText))
@@ -439,7 +449,7 @@ public class GridConstructTab : UITab
         }
 
         string normalized = rawText.Trim();
-        if (BuildingCategoryCatalog.TryResolve(
+        if (buildingCategoryCatalog.TryResolve(
                 normalized,
                 out BuildingCategoryDefinition definition))
         {
@@ -471,9 +481,7 @@ public class GridConstructTab : UITab
             return true;
         }
 
-        return researchRuntimeProvider != null
-            && researchRuntimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime)
-            && runtime.State.IsBuildingUnlocked(building.id);
+        return research.State.IsBuildingUnlocked(building.id);
     }
 
     private IDataCatalog RequireDataCatalog()

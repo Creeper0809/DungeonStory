@@ -335,7 +335,7 @@ public static class BuildingAbilityAccessors
         int cells = Mathf.Max(1, width * height);
         int constructionValue = building.GetConstructionValue();
         return GetDefaultRequiredWork(
-            definition.Type,
+            FacilityWorkTypeMap.GetRequired(definition),
             cells,
             constructionValue);
     }
@@ -353,24 +353,13 @@ public static class BuildingAbilityAccessors
         };
     }
 
-    public static Dictionary<StockCategory, int> GetConstructionMaterials(this BuildingSO building)
+    public static IReadOnlyList<ItemAmountDefinition> GetConstructionMaterials(
+        this BuildingSO building)
     {
         BuildingWorkAmountAbility ability = building?.GetAbility<BuildingWorkAmountAbility>();
-        if (ability != null)
-        {
-            return ability.GetConstructionMaterials(building);
-        }
-
-        Dictionary<StockCategory, int> result = new Dictionary<StockCategory, int>();
-        if (building != null)
-        {
-            int amount = Mathf.Max(
-                1,
-                Mathf.CeilToInt(building.GetConstructionValue() * 0.05f));
-            result[StockCategory.General] = amount;
-        }
-
-        return result;
+        return ability != null
+            ? ability.GetConstructionMaterials()
+            : Array.Empty<ItemAmountDefinition>();
     }
 
     public static IEnumerable<string> GetSemanticTags(this BuildingSO building)

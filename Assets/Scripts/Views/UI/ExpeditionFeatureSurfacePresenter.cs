@@ -68,31 +68,22 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
 {
     private const int MaxVisibleCards = 6;
 
-    private readonly IOffenseWorldMapRuntimeProvider worldMapProvider;
-    private readonly IOffenseExpeditionRuntimeProvider expeditionProvider;
-    private readonly IOffenseRewardRuntimeProvider rewardProvider;
-    private readonly IRegularCustomerRuntimeProvider regularCustomerProvider;
+    private readonly IOffenseQuery offense;
+    private readonly RegularCustomerRuntime regularCustomers;
     private readonly ICaptivityRuntime captivityRuntime;
     private readonly IOffenseReturnArrivalRuntime returnArrivalRuntime;
     private readonly IOffenseRegionRuntime regionRuntime;
 
     public ExpeditionFeatureQueryService(
-        IOffenseWorldMapRuntimeProvider worldMapProvider,
-        IOffenseExpeditionRuntimeProvider expeditionProvider,
-        IOffenseRewardRuntimeProvider rewardProvider,
-        IRegularCustomerRuntimeProvider regularCustomerProvider,
+        IOffenseQuery offense,
+        RegularCustomerRuntime regularCustomers,
         ICaptivityRuntime captivityRuntime,
         IOffenseReturnArrivalRuntime returnArrivalRuntime,
         IOffenseRegionRuntime regionRuntime)
     {
-        this.worldMapProvider = worldMapProvider
-            ?? throw new ArgumentNullException(nameof(worldMapProvider));
-        this.expeditionProvider = expeditionProvider
-            ?? throw new ArgumentNullException(nameof(expeditionProvider));
-        this.rewardProvider = rewardProvider
-            ?? throw new ArgumentNullException(nameof(rewardProvider));
-        this.regularCustomerProvider = regularCustomerProvider
-            ?? throw new ArgumentNullException(nameof(regularCustomerProvider));
+        this.offense = offense ?? throw new ArgumentNullException(nameof(offense));
+        this.regularCustomers = regularCustomers
+            ?? throw new ArgumentNullException(nameof(regularCustomers));
         this.captivityRuntime = captivityRuntime
             ?? throw new ArgumentNullException(nameof(captivityRuntime));
         this.returnArrivalRuntime = returnArrivalRuntime
@@ -103,8 +94,8 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
 
     public ExpeditionFeatureSurfaceModel Capture()
     {
-        if (!worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap)
-            || !expeditionProvider.TryGetRuntime(out OffenseExpeditionRuntime expeditions))
+        OffenseCampaignSnapshot campaign = offense.Capture();
+        if (!campaign.IsAvailable)
         {
             return new ExpeditionFeatureSurfaceModel
             {
@@ -113,28 +104,26 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
             };
         }
 
-        IOffenseWorldMapStateView state = worldMap.State;
-        IReadOnlyList<OffenseTargetSnapshot> targets = worldMap.VisibleTargets;
+        IReadOnlyList<OffenseTargetSnapshot> targets = campaign.VisibleTargets;
         return new ExpeditionFeatureSurfaceModel
         {
             IsAvailable = true,
-            TruthRevealed = state.TruthRevealed,
-            CampaignSummary = state.TruthRevealed
+            TruthRevealed = campaign.TruthRevealed,
+            CampaignSummary = campaign.TruthRevealed
                 ? "진실이 밝혀졌습니다."
-                : $"진실 추적 {state.CompletedTargetCount}/{worldMap.CampaignTargetCount}"
-                    + $" / 정찰 Lv.{state.ReconLevel}"
-                    + $" / 출정 중 {expeditions.ActiveExpeditions.Count}",
-            CampaignGuidance = state.TruthRevealed
+                : $"진실 추적 {campaign.CompletedTargetCount}/{campaign.CampaignTargetCount}"
+                    + $" / 정찰 Lv.{campaign.ReconLevel}"
+                    + $" / 출정 중 {campaign.ActiveExpeditions.Count}",
+            CampaignGuidance = campaign.TruthRevealed
                 ? OffenseWorldMapService.TruthRevealText
                 : "목표를 순서대로 완료하고 마지막 원정에서 던전의 진실을 밝혀내세요.",
-            SelectedTargetId = state.SelectedTargetId,
-            AvailableMemberCount = expeditions.GetAvailableMemberActors().Count,
+            SelectedTargetId = campaign.SelectedTargetId,
+            AvailableMemberCount = campaign.AvailableMemberCount,
             Targets = CreateTargetRows(
-                worldMap,
                 targets,
-                state.SelectedTargetId),
-            RewardSummary = CreateRewardSummary(),
-            Results = expeditions.ResultHistory
+                campaign.SelectedTargetId),
+            RewardSummary = CreateRewardSummary(campaign),
+            Results = campaign.ResultHistory
                 .Take(MaxVisibleCards)
                 .Select((result, index) => new ExpeditionFeatureResultRow
                 {
@@ -149,7 +138,6 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
     }
 
     private IReadOnlyList<ExpeditionFeatureTargetRow> CreateTargetRows(
-        OffenseWorldMapRuntime worldMap,
         IReadOnlyList<OffenseTargetSnapshot> targets,
         string selectedTargetId)
     {
@@ -169,8 +157,7 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
             {
                 OffenseStrategicPressureSnapshot pressure =
                     regionRuntime.GetPressureForTarget(
-                        worldMap != null
-                        && worldMap.TryGetTargetDefinition(
+                        offense.TryGetTargetDefinition(
                             target.id,
                             out OffenseTargetDefinition definition)
                             ? definition
@@ -205,17 +192,10 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
             .ToArray();
     }
 
-    private string CreateRewardSummary()
+    private string CreateRewardSummary(OffenseCampaignSnapshot campaign)
     {
-        if (!rewardProvider.TryGetRuntime(out OffenseRewardRuntime rewards))
-        {
-            return "보상 기록을 불러오지 못했습니다.";
-        }
-
-        IOffenseRewardStateView state = rewards.State;
-        regularCustomerProvider.TryGetRuntime(out RegularCustomerRuntime regularCustomers);
-        int recruitCandidates = regularCustomers?.State.Records.Count(record =>
-            record != null && record.IsRecruitCandidate && !record.IsRecruited) ?? 0;
+        int recruitCandidates = regularCustomers.State.Records.Count(record =>
+            record != null && record.IsRecruitCandidate && !record.IsRecruited);
         int prisoners = captivityRuntime.Captives.Count(captive =>
             captive != null
             && captive.status is not CaptivityStatus.Released
@@ -228,7 +208,7 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
                 && arrival.stage is not OffenseReturnArrivalStage.Secured
                 and not OffenseReturnArrivalStage.Escaped)
             .Sum(arrival => Mathf.Max(0, arrival.requestedAmount));
-        return $"회수 전리품 추정가 {state.RecoveredLootValue}"
+        return $"회수 전리품 추정가 {campaign.RecoveredLootValue}"
             + $" / 영입 후보 {recruitCandidates}"
             + $" / 수용 포로 {prisoners}"
             + $" / 귀환 동물 {arrivingAnimals}";
@@ -237,64 +217,48 @@ public sealed class ExpeditionFeatureQueryService : IExpeditionFeatureQueryServi
 
 public sealed class ExpeditionFeatureCommandService : IExpeditionFeatureCommandService
 {
-    private readonly IOffenseWorldMapRuntimeProvider worldMapProvider;
-    private readonly IOffenseExpeditionRuntimeProvider expeditionProvider;
+    private readonly IOffenseQuery offenseQuery;
+    private readonly IOffenseApplication offenseApplication;
     private readonly IKnowledgeResidueProcessingRuntime knowledgeProcessing;
 
     public ExpeditionFeatureCommandService(
-        IOffenseWorldMapRuntimeProvider worldMapProvider,
-        IOffenseExpeditionRuntimeProvider expeditionProvider,
+        IOffenseQuery offenseQuery,
+        IOffenseApplication offenseApplication,
         IKnowledgeResidueProcessingRuntime knowledgeProcessing)
     {
-        this.worldMapProvider = worldMapProvider
-            ?? throw new ArgumentNullException(nameof(worldMapProvider));
-        this.expeditionProvider = expeditionProvider
-            ?? throw new ArgumentNullException(nameof(expeditionProvider));
+        this.offenseQuery = offenseQuery
+            ?? throw new ArgumentNullException(nameof(offenseQuery));
+        this.offenseApplication = offenseApplication
+            ?? throw new ArgumentNullException(nameof(offenseApplication));
         this.knowledgeProcessing = knowledgeProcessing
             ?? throw new ArgumentNullException(nameof(knowledgeProcessing));
     }
 
     public ExpeditionFeatureCommandResult OpenWorldMap()
     {
-        if (!worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap))
-        {
-            return MissingRuntime("원정 지도");
-        }
-
-        return new ExpeditionFeatureCommandResult(
-            worldMap.ShowWorldMap() != null,
-            "원정 지도를 열었습니다.");
+        bool succeeded = offenseApplication.TryOpenWorldMap(out string message);
+        return new ExpeditionFeatureCommandResult(succeeded, message);
     }
 
     public ExpeditionFeatureCommandResult OpenExpedition()
     {
-        if (!expeditionProvider.TryGetRuntime(out OffenseExpeditionRuntime expeditions))
-        {
-            return MissingRuntime("원정 편성");
-        }
-
-        return new ExpeditionFeatureCommandResult(
-            expeditions.ShowExpeditionPanel() != null,
-            "원정 편성 화면을 열었습니다.");
+        bool succeeded = offenseApplication.TryOpenExpedition(out string message);
+        return new ExpeditionFeatureCommandResult(succeeded, message);
     }
 
     public ExpeditionFeatureCommandResult UpgradeRecon()
     {
-        if (!worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap))
-        {
-            return MissingRuntime("정찰");
-        }
-
-        bool succeeded = worldMap.TryUpgradeRecon(out string message);
+        bool succeeded = offenseApplication.TryUpgradeRecon(out string message);
         return new ExpeditionFeatureCommandResult(succeeded, message);
     }
 
     public ExpeditionFeatureCommandResult QueueSelectedRegionRecon()
     {
-        if (!worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap)
-            || string.IsNullOrWhiteSpace(worldMap.State.SelectedTargetId)
-            || !worldMap.TryGetTargetDefinition(
-                worldMap.State.SelectedTargetId,
+        OffenseCampaignSnapshot campaign = offenseQuery.Capture();
+        if (!campaign.IsAvailable
+            || string.IsNullOrWhiteSpace(campaign.SelectedTargetId)
+            || !offenseQuery.TryGetTargetDefinition(
+                campaign.SelectedTargetId,
                 out OffenseTargetDefinition target))
         {
             return new ExpeditionFeatureCommandResult(
@@ -310,38 +274,13 @@ public sealed class ExpeditionFeatureCommandService : IExpeditionFeatureCommandS
 
     public ExpeditionFeatureCommandResult SelectTarget(string targetId)
     {
-        if (!worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap))
-        {
-            return MissingRuntime("원정 목표");
-        }
-
-        bool succeeded = worldMap.TrySelectTarget(targetId, out _, out string message);
+        bool succeeded = offenseApplication.TrySelectTarget(targetId, out string message);
         return new ExpeditionFeatureCommandResult(succeeded, message);
     }
 
     public ExpeditionFeatureCommandResult StartSelectedTarget()
     {
-        if (!worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap)
-            || !expeditionProvider.TryGetRuntime(out OffenseExpeditionRuntime expeditions))
-        {
-            return MissingRuntime("원정");
-        }
-
-        OffenseTargetSnapshot selected = worldMap.VisibleTargets.FirstOrDefault(target =>
-            string.Equals(target.id, worldMap.State.SelectedTargetId, StringComparison.Ordinal));
-        if (selected == null || !selected.isAvailable)
-        {
-            return new ExpeditionFeatureCommandResult(false, "출정 가능한 목표를 먼저 선택하세요.");
-        }
-
-        CharacterActor[] party = expeditions.GetAvailableMemberActors()
-            .Take(selected.requiredMembers)
-            .ToArray();
-        bool succeeded = expeditions.TryStartExpedition(
-            selected.id,
-            party,
-            out _,
-            out string message);
+        bool succeeded = offenseApplication.TryStartSelectedTarget(out string message);
         return new ExpeditionFeatureCommandResult(succeeded, message);
     }
 

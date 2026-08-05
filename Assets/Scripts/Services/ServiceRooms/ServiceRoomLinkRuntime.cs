@@ -23,7 +23,7 @@ public interface IServiceRoomLinkRuntime
     bool HasFeatures(
         BuildableObject hub,
         IReadOnlyList<string> requiredFeatureTags,
-        out string failureReason);
+        out DomainFailure failure);
     bool TryResolveFeature(
         BuildableObject hub,
         string featureTag,
@@ -81,9 +81,9 @@ public sealed class ServiceRoomLinkRuntime : IServiceRoomLinkRuntime
     public bool HasFeatures(
         BuildableObject hub,
         IReadOnlyList<string> requiredFeatureTags,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (requiredFeatureTags == null || requiredFeatureTags.Count == 0)
         {
             return true;
@@ -103,7 +103,9 @@ public sealed class ServiceRoomLinkRuntime : IServiceRoomLinkRuntime
                     out _,
                     out _))
             {
-                failureReason = $"같은 방에 연결된 '{featureTag}' 시설이 없습니다.";
+                failure = new DomainFailure(
+                    FailureCode.ServiceFeatureMissing,
+                    featureTag);
                 return false;
             }
         }
@@ -277,12 +279,6 @@ public sealed class ServiceRoomLinkRuntime : IServiceRoomLinkRuntime
             return string.Empty;
         }
 
-        string persistentId =
-            building.GetComponent<FacilityEvolutionStateComponent>()
-                ?.FacilityPersistentId?.Trim() ?? string.Empty;
-        return persistentId.Length > 0
-            ? persistentId
-            : $"{building.id:D6}:{building.centerPos.x:D6}:"
-                + $"{building.centerPos.y:D6}";
+        return building.RequirePersistentInstanceId().Value;
     }
 }

@@ -90,7 +90,8 @@ public static class IndustrialInfrastructureAssetBuilder
         building.category = spec.Category;
         building.horizontalDraggable = false;
         building.verticalDraggable = false;
-        building.type = spec.RuntimeType;
+        building.runtimeArchetype =
+            BuildingRuntimeArchetypeKindExtensions.FromComponentType(spec.RuntimeType);
         building.tiles = null;
         building.unlocked = false;
 
@@ -103,15 +104,20 @@ public static class IndustrialInfrastructureAssetBuilder
             unlockPhase = 3,
             demolitionRefundRate = 0.5f
         });
-        abilities.Add(new BuildingWorkAmountAbility
+        BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
         {
             constructionWorkRequired = 24f + spec.Width * 12f,
             repairWorkRequired = 12f,
             cleanWorkRequired = 8f,
-            operateWorkRequired = 10f,
-            constructionMaterialCategory = StockCategory.General,
-            constructionMaterialAmount = 2 + spec.Width
+            operateWorkRequired = 10f
+        };
+        workAmount.SetConstructionMaterials(new[]
+        {
+            new ItemAmountDefinition(
+                ResolveConstructionMaterialId(spec.Code),
+                2 + spec.Width)
         });
+        abilities.Add(workAmount);
         foreach (BuildingAbility ability in spec.CreateAbilities?.Invoke()
                  ?? Array.Empty<BuildingAbility>())
         {
@@ -146,6 +152,27 @@ public static class IndustrialInfrastructureAssetBuilder
 
         building.ValidateAbilitiesOrThrow();
         EditorUtility.SetDirty(building);
+    }
+
+    private static string ResolveConstructionMaterialId(string code)
+    {
+        if (string.Equals(code, "A01", StringComparison.Ordinal))
+        {
+            return "component:precision-parts";
+        }
+
+        if (code != null && code.StartsWith("U", StringComparison.Ordinal))
+        {
+            return "material:iron-ingot";
+        }
+
+        if (string.Equals(code, "I13", StringComparison.Ordinal)
+            || string.Equals(code, "I17", StringComparison.Ordinal))
+        {
+            return "component:rune-conductor";
+        }
+
+        return "component:machine-parts";
     }
 
     private static void PatchSanitationFixtures()
@@ -492,6 +519,114 @@ public static class IndustrialInfrastructureAssetBuilder
                 mana, water, 10f, 9f, WorldWaterQuality.Clean, true),
             Shower("I14", 9823, "샤워 시설", "research:plumbing:flush-sanitation",
                 water, iron),
+            Machine("I15", 9824, "전기 아크등", 1,
+                "research:industry:electric-lighting", iron, warning,
+                new BuildingUtilityConnectionAbility
+                {
+                    channels = UtilityChannel.Power,
+                    maxThroughput = 4f
+                },
+                new BuildingPowerConsumerAbility
+                {
+                    demandPerSecond = 1.5f,
+                    priority = PowerPriority.Essential
+                },
+                new BuildingLightingAbility
+                {
+                    intensity = 1.2f,
+                    radius = 5.5f
+                }),
+            Machine("I16", 9825, "전기 제련 도가니", 2,
+                "research:industry:electric-smelting", iron, copper,
+                new BuildingUtilityConnectionAbility
+                {
+                    channels = UtilityChannel.Power,
+                    maxThroughput = 16f
+                },
+                new BuildingPowerConsumerAbility
+                {
+                    demandPerSecond = 7f,
+                    priority = PowerPriority.Production
+                },
+                new BuildingProductionAbility
+                {
+                    outputCategory = StockCategory.General,
+                    amount = 1
+                }),
+            Machine("I17", 9826, "룬 조율실", 2,
+                "research:equipment:rune-module-tuning", mana, warning,
+                new BuildingUtilityConnectionAbility
+                {
+                    channels = UtilityChannel.Power,
+                    maxThroughput = 20f
+                },
+                new BuildingPowerConsumerAbility
+                {
+                    demandPerSecond = 9f,
+                    priority = PowerPriority.Production
+                },
+                new BuildingSemanticTagsAbility
+                {
+                    tags = new[]
+                    {
+                        "industrial-infrastructure",
+                        "research:equipment:rune-module-tuning",
+                        "workstation:v3:rune-tuning"
+                    }
+                },
+                new BuildingProductionWorkstationAbility
+                {
+                    workstationTag = "workstation:v3:rune-tuning",
+                    stockSensorInstallationItemId =
+                        "component:stock-sensor-panel"
+                },
+                new BuildingProductionBufferAbility
+                {
+                    defaultBatchCapacity = 4
+                },
+                new BuildingFacilityAbility
+                {
+                    settings = new FacilityData
+                    {
+                        roles = FacilityRole.Research,
+                        capacity = 1,
+                        useDuration = 2f,
+                        requiredWorkers = 1,
+                        disabledWhenDamaged = true
+                    }
+                }),
+            Machine("I18", 9827, "계보 기록실", 2,
+                "research:equipment:lineage-binding", iron, mana,
+                new BuildingSemanticTagsAbility
+                {
+                    tags = new[]
+                    {
+                        "industrial-infrastructure",
+                        "research:equipment:lineage-binding",
+                        "workstation:v3:lineage-archive"
+                    }
+                },
+                new BuildingProductionWorkstationAbility
+                {
+                    workstationTag = "workstation:v3:lineage-archive",
+                    stockSensorInstallationItemId =
+                        "component:stock-sensor-panel"
+                },
+                new BuildingProductionBufferAbility
+                {
+                    defaultBatchCapacity = 4
+                },
+                new BuildingFacilityAbility
+                {
+                    settings = new FacilityData
+                    {
+                        roles = FacilityRole.Research,
+                        capacity = 1,
+                        useDuration = 2f,
+                        requiredWorkers = 1,
+                        disabledWhenDamaged = true
+                    }
+                }),
 
             Belt("C01R", 9840, "컨베이어 우향", "research:industry:conveyor",
                 Vector2Int.right, 1f, belt, warning),

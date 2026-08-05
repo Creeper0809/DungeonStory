@@ -9,16 +9,6 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using VContainer.Unity;
 
-public enum DungeonAudioCue
-{
-    UiClick,
-    Confirm,
-    Warning,
-    Impact,
-    Victory,
-    Defeat
-}
-
 public interface IDungeonAudioService
 {
     bool IsReady { get; }
@@ -32,14 +22,12 @@ public sealed class DungeonAudioController :
     IStartable,
     IDisposable
 {
-    private const string LibraryResourcePath = "Audio/DungeonAudioLibrary";
-    private const string MixerResourcePath = "Audio/DungeonAudioMixer";
     private const int SampleRate = 22050;
 
     private readonly IDungeonUserSettingsService settingsService;
     private readonly IGameEventBus gameEventBus;
     private readonly IUiClock uiClock;
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
+    private readonly GameMediaCatalogSO media;
     private readonly Dictionary<int, ButtonBinding> buttonBindings = new Dictionary<int, ButtonBinding>();
     private readonly Dictionary<DungeonAudioCue, AudioClip> fallbackCues = new Dictionary<DungeonAudioCue, AudioClip>();
     private readonly List<AudioClip> ownedClips = new List<AudioClip>();
@@ -66,13 +54,12 @@ public sealed class DungeonAudioController :
         IDungeonUserSettingsService settingsService,
         IGameEventBus gameEventBus,
         IUiClock uiClock,
-        IResourcesAssetLoader resourcesAssetLoader)
+        IGameContentCatalog content)
     {
         this.settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         this.gameEventBus = gameEventBus ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
-        this.resourcesAssetLoader = resourcesAssetLoader
-            ?? throw new ArgumentNullException(nameof(resourcesAssetLoader));
+        media = (content ?? throw new ArgumentNullException(nameof(content))).Media;
     }
 
     public bool IsReady => started && root != null;
@@ -87,9 +74,9 @@ public sealed class DungeonAudioController :
         }
 
         started = true;
-        library = resourcesAssetLoader.LoadOptional<DungeonAudioLibrarySO>(LibraryResourcePath);
+        library = media.AudioLibrary;
         CreateRuntimeAudio();
-        DungeonUserSettingsRuntime.Changed += ApplyVolumes;
+        settingsService.Changed += ApplyVolumes;
         researchCompletedSubscription =
             gameEventBus.Subscribe<BlueprintResearchCompletedEvent>(OnTriggerEvent);
         invasionStartedSubscription =
@@ -110,7 +97,7 @@ public sealed class DungeonAudioController :
             return;
         }
 
-        DungeonUserSettingsRuntime.Changed -= ApplyVolumes;
+        settingsService.Changed -= ApplyVolumes;
         researchCompletedSubscription?.Dispose();
         researchCompletedSubscription = null;
         invasionStartedSubscription?.Dispose();
@@ -205,7 +192,7 @@ public sealed class DungeonAudioController :
         runtimeBehaviour = root.GetComponent<DungeonAudioRuntimeBehaviour>();
         runtimeBehaviour.Initialize(this);
 
-        AudioMixer mixer = resourcesAssetLoader.LoadOptional<AudioMixer>(MixerResourcePath);
+        AudioMixer mixer = media.AudioMixer;
         musicSource = CreateSource("Music", true, FindGroup(mixer, "Music"));
         ambienceSource = CreateSource("Ambience", true, FindGroup(mixer, "Ambience"));
         effectsSource = CreateSource("Effects", false, FindGroup(mixer, "Effects"));
@@ -366,11 +353,11 @@ public sealed class DungeonAudioController :
         const float duration = 6f;
         int sampleCount = Mathf.RoundToInt(duration * SampleRate);
         float[] data = new float[sampleCount];
-        System.Random random = new System.Random(1407);
+        IRandomStream random = new DeterministicRandomSequence(1407);
         float filtered = 0f;
         for (int index = 0; index < sampleCount; index++)
         {
-            float noise = (float)(random.NextDouble() * 2d - 1d);
+            float noise = random.NextFloat() * 2f - 1f;
             filtered = Mathf.Lerp(filtered, noise, 0.015f);
             float time = index / (float)SampleRate;
             data[index] = filtered * 0.16f + Mathf.Sin(2f * Mathf.PI * 55f * time) * 0.018f;
@@ -414,11 +401,11 @@ public sealed class DungeonAudioController :
     {
         int sampleCount = Mathf.Max(1, Mathf.RoundToInt(duration * SampleRate));
         float[] data = new float[sampleCount];
-        System.Random random = new System.Random(7331);
+        IRandomStream random = new DeterministicRandomSequence(7331);
         for (int index = 0; index < sampleCount; index++)
         {
             float normalized = index / (float)sampleCount;
-            data[index] = (float)(random.NextDouble() * 2d - 1d)
+            data[index] = (random.NextFloat() * 2f - 1f)
                 * Mathf.Pow(1f - normalized, 2.5f)
                 * amplitude;
         }

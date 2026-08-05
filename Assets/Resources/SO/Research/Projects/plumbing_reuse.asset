@@ -27,20 +27,38 @@ MonoBehaviour:
   description: "\uCE68\uC804\uC218\uC640 \uC18C\uB3C5\uC81C\uB97C \uC0AC\uC6A9\uD574
     \uAE68\uB057\uD55C \uBB3C\uB85C \uB418\uB3CC\uB9B0\uB2E4."
   field: 16
-  requiredWork: 242
+  requiredWork: 252
   prerequisites:
   - {fileID: 11400000, guid: fc08c2ecdc5e40b49a2513a1eb3385bf, type: 2}
   - {fileID: 11400000, guid: 62253cad7ff187a459da4c9f470cc23a, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:pharmacology:distillation
+    prerequisite: {fileID: 11400000, guid: fc08c2ecdc5e40b49a2513a1eb3385bf, type: 2}
+    kind: 2
+    reason: "\uC99D\uB958\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC815\uC218\uC640
+      \uC7AC\uC774\uC6A9 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:plumbing:settling
+    prerequisite: {fileID: 11400000, guid: 62253cad7ff187a459da4c9f470cc23a, type: 2}
+    kind: 2
+    reason: "\uC624\uC218 \uCE68\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC815\uC218\uC640 \uC7AC\uC774\uC6A9 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687328
+    - rid: 7737211730927813143
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687328
+    - rid: 7737211730927813143
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9821

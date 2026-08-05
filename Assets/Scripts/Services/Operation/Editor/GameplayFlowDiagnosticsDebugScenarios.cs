@@ -193,11 +193,11 @@ public static class GameplayFlowDiagnosticsDebugScenarios
             requiredWork = 100f,
             materialDestinationId = "construction:test",
             status = status,
-            materials = new List<WorkOrderMaterialSaveData>
+            itemMaterials = new List<WorkOrderItemMaterialSaveData>
             {
-                new WorkOrderMaterialSaveData
+                new WorkOrderItemMaterialSaveData
                 {
-                    category = StockCategory.General,
+                    itemId = "material:lumber",
                     required = 5
                 }
             }
@@ -213,7 +213,7 @@ public static class GameplayFlowDiagnosticsDebugScenarios
             new WorldItemStackSnapshot
             {
                 StackId = "stack:test",
-                ItemId = "stock-item:General",
+                ItemId = "material:lumber",
                 DisplayName = "일반 재료",
                 StockCategory = StockCategory.General,
                 Quantity = 5,

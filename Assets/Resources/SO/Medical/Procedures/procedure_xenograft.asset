@@ -11,12 +11,19 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6727f0b5178ce4d488345d0e7c4299ee, type: 3}
   m_Name: procedure_xenograft
-  m_EditorClassIdentifier: Assembly-CSharp::SurgicalProcedureSO
+  m_EditorClassIdentifier: DungeonStory.Medical::SurgicalProcedureSO
   procedureId: procedure:xenograft
   displayName: "\uC774\uC885 \uC7A5\uAE30 \uC774\uC2DD"
   description: "\uB2E4\uB978 \uC885\uC758 \uC7A5\uAE30\uB97C \uC774\uC2DD\uD558\uACE0
     \uCD08\uAE30 \uAC70\uBD80 \uBC18\uC751\uC744 \uC5B5\uC81C\uD55C\uB2E4."
   kind: 6
+  family: 0
+  urgency: 2
+  allowedAnatomyFamilies: []
+  allowedSpeciesIds: []
+  operatorRequirement:
+    stats: []
+    minimumWeightedScore: 3
   targetNodeId: 
   requiredResearchId: research:medical:xenotransplant
   requiredFacilityTags: 792
@@ -30,26 +37,26 @@ MonoBehaviour:
   allowsCorpseSubject: 0
   allowsWildlife: 0
   materials:
-  - itemId: stock-item:5
+  - itemId: medicine:standard
     quantity: 3
     optional: 0
   - itemId: medicine:immunosuppressant
     quantity: 2
     optional: 0
   effects:
-  - rid: 7302563313663345512
-  - rid: 7302563313663345513
+  - rid: 7737211730889015668
+  - rid: 7737211730889015669
   references:
     version: 2
     RefIds:
-    - rid: 7302563313663345512
-      type: {class: InstallSurgicalPartEffect, ns: , asm: Assembly-CSharp}
+    - rid: 7737211730889015668
+      type: {class: InstallSurgicalPartEffect, ns: , asm: DungeonStory.Medical}
       data:
         effectId: InstallSurgicalPartEffect
         partKind: 0
         efficiency: 1.08
-    - rid: 7302563313663345513
-      type: {class: ApplySurgicalBurdenEffect, ns: , asm: Assembly-CSharp}
+    - rid: 7737211730889015669
+      type: {class: ApplySurgicalBurdenEffect, ns: , asm: DungeonStory.Medical}
       data:
         effectId: ApplySurgicalBurdenEffect
         rejection: 24

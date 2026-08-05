@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 public static class RunStrategyBlueprintIds
@@ -34,30 +35,38 @@ public interface IRunStartVariableSelector
     RunStartVariableSnapshot Create(
         int seed,
         CharacterSO ownerData,
-        DungeonDifficulty difficulty);
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure =
+            DungeonSurvivalPressure.Standard);
 }
 
 public sealed class RunStartVariableSelector : IRunStartVariableSelector
 {
     private readonly IRunStartVariableCatalog catalog;
     private readonly IMetaProgressionRuntimeReader metaProgressionReader;
+    private readonly IOwnerDoctrineDefinitionCatalog ownerDoctrines;
 
     public RunStartVariableSelector(
         IRunStartVariableCatalog catalog,
-        IMetaProgressionRuntimeReader metaProgressionReader)
+        IMetaProgressionRuntimeReader metaProgressionReader,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines)
     {
         this.catalog = catalog
             ?? throw new ArgumentNullException(nameof(catalog));
         this.metaProgressionReader = metaProgressionReader
             ?? throw new ArgumentNullException(nameof(metaProgressionReader));
+        this.ownerDoctrines = ownerDoctrines
+            ?? throw new ArgumentNullException(nameof(ownerDoctrines));
     }
 
     public RunStartVariableSnapshot Create(
         int seed,
         CharacterSO ownerData,
-        DungeonDifficulty difficulty)
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure =
+            DungeonSurvivalPressure.Standard)
     {
-        System.Random startRandom = new System.Random(seed);
+        IRandomStream startRandom = new DeterministicRandomSequence(seed);
         int startingFacilityCount = 3 + metaProgressionReader.GetStartingFacilityCandidateBonus();
         BuildingSO[] buildings = catalog
             .Buildings
@@ -65,13 +74,13 @@ public sealed class RunStartVariableSelector : IRunStartVariableSelector
                 && !building.IsGridMovement
                 && !building.IsWall
                 && FacilityShopService.GetBuildingStar(building) <= 1)
-            .OrderBy((_) => startRandom.NextDouble())
+            .OrderBy((_) => startRandom.NextFloat())
             .Take(Mathf.Max(1, startingFacilityCount))
             .ToArray();
         CharacterSO[] customers = catalog
             .Characters
             .Where((character) => character != null && character.characterType == CharacterType.Customer)
-            .OrderBy((_) => startRandom.NextDouble())
+            .OrderBy((_) => startRandom.NextFloat())
             .Take(3)
             .ToArray();
         FacilityBlueprintSO[] blueprintPool = catalog
@@ -84,7 +93,7 @@ public sealed class RunStartVariableSelector : IRunStartVariableSelector
             .FirstOrDefault((blueprint) => blueprint.id == strategyBlueprintId);
         FacilityBlueprintSO[] randomBlueprints = blueprintPool
             .Where((blueprint) => blueprint != strategyBlueprint)
-            .OrderBy((_) => startRandom.NextDouble())
+            .OrderBy((_) => startRandom.NextFloat())
             .Take(strategyBlueprint != null ? 1 : 2)
             .ToArray();
         FacilityBlueprintSO[] blueprints = strategyBlueprint != null
@@ -106,10 +115,11 @@ public sealed class RunStartVariableSelector : IRunStartVariableSelector
                 DungeonDifficulty.Hard => 1.2f,
                 _ => 1f
             },
-            OwnerDoctrineCatalog.ResolveFor(ownerData)?.id);
+            ownerDoctrines.ResolveFor(ownerData)?.id,
+            survivalPressure);
     }
 
-    private static string ResolveLayoutId(CharacterSO ownerData, System.Random startRandom)
+    private static string ResolveLayoutId(CharacterSO ownerData, IRandomStream startRandom)
     {
         string species = !string.IsNullOrWhiteSpace(ownerData?.SpeciesTag) ? ownerData.SpeciesTag : string.Empty;
         if (species.Equals("Slime", StringComparison.OrdinalIgnoreCase))
@@ -133,6 +143,6 @@ public sealed class RunStartVariableSelector : IRunStartVariableSelector
             "split-hall",
             "stairs-first"
         };
-        return defaultLayouts[startRandom.Next(defaultLayouts.Length)];
+        return defaultLayouts[startRandom.NextInt(0, defaultLayouts.Length)];
     }
 }

@@ -233,6 +233,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
     private InputSettings.EditorInputBehaviorInPlayMode originalInputBehavior;
     private Mouse originalMouse;
     private Mouse verificationMouse;
+    private DungeonAutomationInputTestCapability automationInput;
     private IDungeonGameSaveSlotService slotService;
     private string profilePath;
     private bool verificationCompleted;
@@ -295,15 +296,16 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         bossDefenseTriggerCount = 0;
         bossDefenseDamage = 0f;
 
-        InvasionIntruderRuntime intruderRuntime = eventType.Intruder != null
-            ? eventType.Intruder.GetComponent<InvasionIntruderRuntime>()
+        CharacterActor intruder = eventType.Intruder as CharacterActor;
+        InvasionIntruderRuntime intruderRuntime = intruder != null
+            ? intruder.GetComponent<InvasionIntruderRuntime>()
             : null;
         CharacterActor owner = FindFirstObjectByType<OwnerRunManager>()?.CurrentOwnerActor;
         report.Add(
             $"BOSS_RALLY active={intruderRuntime?.HasFinalDefenseTarget ?? false}; "
             + $"target={(intruderRuntime != null ? intruderRuntime.FinalDefenseTarget : default)}; "
             + $"owner={(owner != null ? owner.GetNowXY() : default)}; "
-            + $"intruder={(eventType.Intruder != null ? eventType.Intruder.GetNowXY() : default)}");
+            + $"intruder={(intruder != null ? intruder.GetNowXY() : default)}");
         string defenseState = string.Join(
             " | ",
             FindObjectsByType<DefenseFacility>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
@@ -364,30 +366,36 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
             yield return StartFreshRun();
 
-            IGameDataProvider gameDataProvider = scope.Container.Resolve<IGameDataProvider>();
+            IGameSessionStateProvider gameDataProvider = scope.Container.Resolve<IGameSessionStateProvider>();
             IDungeonRunFlowRuntime flow = scope.Container.Resolve<IDungeonRunFlowRuntime>();
-            IBlueprintResearchRuntimeProvider researchProvider =
-                scope.Container.Resolve<IBlueprintResearchRuntimeProvider>();
-            IOperatingDaySettlementRuntimeProvider settlementProvider =
-                scope.Container.Resolve<IOperatingDaySettlementRuntimeProvider>();
-            IInvasionDirectorRuntimeProvider invasionProvider =
-                scope.Container.Resolve<IInvasionDirectorRuntimeProvider>();
-            IDailyFacilityShopRuntimeProvider dailyShopProvider =
-                scope.Container.Resolve<IDailyFacilityShopRuntimeProvider>();
-            IRunVariableRuntimeProvider runVariableProvider =
-                scope.Container.Resolve<IRunVariableRuntimeProvider>();
-            IMetaProgressionRuntimeProvider metaProvider =
-                scope.Container.Resolve<IMetaProgressionRuntimeProvider>();
+            BlueprintResearchRuntime research = scope.Container
+                .Resolve<ProgressionSceneRuntimeReferences>()
+                .BlueprintResearch;
+            OperatingDaySettlementRuntime settlement = scope.Container
+                .Resolve<DungeonSceneRuntimeReferences>()
+                .Settlement;
+            InvasionDirectorRuntime invasion = scope.Container
+                .Resolve<InvasionSceneRuntimeReferences>()
+                .Director;
+            DailyFacilityShopRuntime dailyShop = scope.Container
+                .Resolve<ProgressionSceneRuntimeReferences>()
+                .FacilityShop;
+            RunVariableRuntime runVariables = scope.Container
+                .Resolve<DungeonSceneRuntimeReferences>()
+                .RunVariables;
+            MetaProgressionRuntime metaRuntime = scope.Container
+                .Resolve<ProgressionSceneRuntimeReferences>()
+                .MetaProgression;
             IWorldItemStackRuntime itemRuntime =
                 scope.Container.Resolve<IWorldItemStackRuntime>();
-            Check(gameDataProvider.TryGetGameData(out GameData gameData), "GAME_DATA", "runtime data resolved");
+            Check(gameDataProvider.TryGetSessionState(out GameSessionState gameData), "GAME_DATA", "runtime data resolved");
             Check(flow != null, "RUN_FLOW", "run flow resolved");
             if (gameData == null || flow == null)
             {
                 yield break;
             }
 
-            bool hasMetaRuntime = metaProvider.TryGetRuntime(out MetaProgressionRuntime metaRuntime);
+            bool hasMetaRuntime = metaRuntime != null;
             Check(hasMetaRuntime, "META_RUNTIME", "meta progression runtime resolved");
             int legacyCurrencyBefore = hasMetaRuntime
                 ? metaRuntime.State.LifetimeEarnedCurrency
@@ -399,7 +407,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             startingMoney = gameData.holdingMoney.Value;
             if (strategy.IsTargeted)
             {
-                bool hasRunVariables = runVariableProvider.TryGetRuntime(out RunVariableRuntime runVariables);
+                bool hasRunVariables = runVariables != null;
                 RunStartVariableSnapshot startVariables = hasRunVariables
                     ? runVariables.State.StartVariables
                     : null;
@@ -424,8 +432,6 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             Check(gameData.gameSpeed.Value == 5 && Mathf.Approximately(Time.timeScale, 5f),
                 "PUBLIC_SPEED", $"pointerClicks={speedPointerClicks}; speed=x{gameData.gameSpeed.Value}; timeScale={Time.timeScale:0.##}");
 
-            BlueprintResearchRuntime research = null;
-            researchProvider.TryGetRuntime(out research);
             int researchQueueBefore = research != null ? research.State.Projects.Queue.Count : -1;
             int purchasedOffers = 0;
             Button shopTab = FindTopTabButton(TabId.Shop);
@@ -433,7 +439,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             yield return new WaitForSecondsRealtime(0.25f);
             yield return CaptureEvidence(strategy.ShopScreenshotPath);
 
-            int runtimeOfferCount = dailyShopProvider.TryGetRuntime(out DailyFacilityShopRuntime dailyShop)
+            int runtimeOfferCount = dailyShop != null
                 ? dailyShop.CurrentDailyOffers.Count
                 : -1;
             Button[] dailyOffers = FindActiveButtons("P0Action_ShopDaily_")
@@ -526,7 +532,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             bool ownerDiedBeforeFinal = false;
             bool strategyDefensesInstalled = !strategy.IsTargeted;
             bool strategyDefenseAttempted = !strategy.IsTargeted;
-            RecordDaySnapshot(lastDay, gameData, flow, research, settlementProvider, invasionProvider, owner);
+            RecordDaySnapshot(lastDay, gameData, flow, research, settlement, invasion, owner);
 
             while (Time.realtimeSinceStartup - startedAt < MaximumRealtimeSeconds
                 && gameData.day.Value < 10
@@ -570,7 +576,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
                 if (gameData.day.Value != lastDay)
                 {
                     lastDay = gameData.day.Value;
-                    RecordDaySnapshot(lastDay, gameData, flow, research, settlementProvider, invasionProvider, owner);
+                    RecordDaySnapshot(lastDay, gameData, flow, research, settlement, invasion, owner);
                 }
             }
 
@@ -592,8 +598,10 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
                 }
 
                 observedPhases.Add(flow.Phase);
-                bool defenseClearedForOffense = flow.IsFinalInvasionDefended
-                    || (bossFightObserved && bossDefenseTriggerCount > 0 && !flow.IsBossActive);
+                bool defenseClearedForOffense =
+                    bossFightObserved
+                    && bossDefenseTriggerCount > 0
+                    && !flow.IsBossActive;
                 if (defenseClearedForOffense
                     && !strategy.ExpectsDefeat
                     && !offenseCampaignAttempted)
@@ -601,7 +609,6 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
                     offenseCampaignAttempted = true;
                     report.Add(
                         "OFFENSE_TRIGGER "
-                        + $"finalDefense={flow.IsFinalInvasionDefended}; "
                         + $"bossObserved={bossFightObserved}; "
                         + $"bossActive={flow.IsBossActive}; "
                         + $"bossTriggers={bossDefenseTriggerCount}");
@@ -613,9 +620,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             yield return null;
             yield return null;
             observedPhases.Add(flow.Phase);
-            int reportCount = settlementProvider.TryGetRuntime(out OperatingDaySettlementRuntime settlement)
-                ? settlement.ReportHistory.Count
-                : 0;
+            int reportCount = settlement?.ReportHistory.Count ?? 0;
             float researchProgressAfter = GetTotalResearchProgress(research);
             int completedResearchAfter = research != null
                 ? research.State.Projects.CompletedProjectIds.Count
@@ -691,7 +696,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             }
             Check(flow.Outcome != DungeonRunOutcome.None,
                 "NATURAL_RUN_OUTCOME",
-                $"bossActive={flow.IsBossActive}; finalDefense={flow.IsFinalInvasionDefended}; offenseAttempted={offenseCampaignAttempted}; outcome={flow.Outcome}; phase={flow.Phase}");
+                $"bossActive={flow.IsBossActive}; offenseAttempted={offenseCampaignAttempted}; outcome={flow.Outcome}; phase={flow.Phase}");
             RunResultPanel resultPanel = FindFirstObjectByType<RunResultPanel>(FindObjectsInactive.Include);
             Button nextRunButton = FindButton("NextRunButton");
             Check(resultPanel != null
@@ -721,7 +726,10 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             {
                 int currencyAfterResult = metaRuntime.State.LifetimeEarnedCurrency;
                 int completedRunsAfterResult = metaRuntime.State.CompletedRunCount;
-                RunResultSnapshot duplicate = metaRuntime.EndRun(owner, "duplicate completion probe", flow.Outcome);
+                RunResultSnapshot duplicate = metaRuntime.EndRun(
+                    MetaRuntimeApplicationAdapter.GetOwnerName(owner),
+                    "duplicate completion probe",
+                    flow.Outcome);
                 Check(ReferenceEquals(duplicate, latestResult)
                         && metaRuntime.State.LifetimeEarnedCurrency == currencyAfterResult
                         && metaRuntime.State.CompletedRunCount == completedRunsAfterResult,
@@ -802,7 +810,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
                     && button.gameObject.scene.IsValid()
                     && button.gameObject.activeInHierarchy
                     && (desiredOwner != null
-                        ? button.name == $"OwnerOption_{desiredOwner.characterName}"
+                        ? button.name == $"OwnerOption_{desiredOwner.id}"
                         : button.name.StartsWith("OwnerOption_", StringComparison.Ordinal)));
             yield return Click(
                 ownerButton,
@@ -846,7 +854,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         }
     }
 
-    private IEnumerator CompleteOffenseCampaignForVerification(IDungeonRunFlowRuntime flow, GameData gameData)
+    private IEnumerator CompleteOffenseCampaignForVerification(IDungeonRunFlowRuntime flow, GameSessionState gameData)
     {
         OffenseWorldMapRuntime worldMap = FindFirstObjectByType<OffenseWorldMapRuntime>();
         OffenseExpeditionRuntime expeditionRuntime = FindFirstObjectByType<OffenseExpeditionRuntime>();
@@ -1093,7 +1101,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             && research.State.Projects.IsCompleted(project.ProjectId);
     }
 
-    private IEnumerator ReduceGameSpeedToOne(GameData gameData)
+    private IEnumerator ReduceGameSpeedToOne(GameSessionState gameData)
     {
         Button speedButton = FindSpeedButton();
         int pointerClicks = 0;
@@ -1116,7 +1124,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             $"pointerClicks={pointerClicks}; speed=x{gameData?.gameSpeed?.Value ?? -1}; timeScale={Time.timeScale:0.##}");
     }
 
-    private IEnumerator RaiseGameSpeedToFive(GameData gameData, string context)
+    private IEnumerator RaiseGameSpeedToFive(GameSessionState gameData, string context)
     {
         Button speedButton = FindSpeedButton();
         int pointerClicks = 0;
@@ -2048,7 +2056,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
     private IEnumerator InstallStrategyDefenses(
         DungeonRuntimeLifetimeScope scope,
-        GameData gameData,
+        GameSessionState gameData,
         CharacterActor owner)
     {
         if (strategy == null || !strategy.IsTargeted || strategy.DefenseBuildingIds.Count == 0)
@@ -2217,7 +2225,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
         if (!panel.gameObject.activeInHierarchy)
         {
-            string categoryLabel = BuildingCategoryCatalog.GetDisplayName(defenseData.category, "기타");
+            string categoryLabel =
+                ((IBuildingCategoryDefinitionCatalog)CharacterAiEditorTestDependencies.AuthoredGameplay)
+                .GetDisplayName(defenseData.category, "기타");
             Button categoryButton = constructTab.GetComponentsInChildren<Button>(false)
                 .FirstOrDefault(button => button != null
                     && button.interactable
@@ -2248,9 +2258,9 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             .FirstOrDefault(text => text != null && text.name == "Label");
         bool materialLabelVisible = label != null
             && defenseData.GetConstructionMaterials()
-                .Where(pair => pair.Value > 0)
-                .All(pair => label.text.Contains(
-                    pair.Value.ToString(),
+                .Where(material => material.Amount > 0)
+                .All(material => label.text.Contains(
+                    material.Amount.ToString(),
                     StringComparison.Ordinal));
         Check(materialLabelVisible,
             "STRATEGY_DEFENSE_VISIBLE_MATERIALS_" + defenseData.id,
@@ -2309,7 +2319,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         DungeonStoryGridBuildingController controller,
         Grid grid,
         Camera mainCamera,
-        GameData gameData,
+        GameSessionState gameData,
         BuildingSO defenseData,
         Vector2Int position,
         Action<BuildableObject> onPlaced)
@@ -2363,16 +2373,15 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         }
 
         DungeonRuntimeLifetimeScope scope = FindScope();
-        IBlueprintResearchRuntimeProvider researchProvider =
-            scope?.Container?.Resolve<IBlueprintResearchRuntimeProvider>();
+        BlueprintResearchRuntime research = scope?.Container
+            ?.Resolve<ProgressionSceneRuntimeReferences>()
+            ?.BlueprintResearch;
         IResearchBlueprintArchiveQuery archiveQuery =
             scope?.Container?.Resolve<IResearchBlueprintArchiveQuery>();
         IResearchQueueCommandService queueCommands =
             scope?.Container?.Resolve<IResearchQueueCommandService>();
-        BlueprintResearchRuntime research = null;
         ResearchProjectSO project = null;
-        bool hasResearch = researchProvider != null
-            && researchProvider.TryGetRuntime(out research);
+        bool hasResearch = research != null;
         bool hasProject = hasResearch
             && TryGetStrategyProject(research, strategy, out project);
         Check(hasProject,
@@ -2478,7 +2487,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
     private IEnumerator MovePointer(Vector2 screenPoint, float waitSeconds)
     {
-        DungeonAutomationInputState.MovePointer(screenPoint);
+        automationInput.MovePointer(screenPoint);
         QueueVerificationMouseState(new MouseState { position = screenPoint });
         yield return null;
         yield return null;
@@ -2503,10 +2512,10 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             yield break;
         }
 
-        IRegularCustomerRuntimeProvider recruitmentProvider = null;
+        RegularCustomerRuntime runtime = null;
         try
         {
-            recruitmentProvider = scope?.Container?.Resolve<IRegularCustomerRuntimeProvider>();
+            runtime = scope?.Container?.Resolve<RegularCustomerRuntime>();
         }
         catch (Exception exception)
         {
@@ -2516,12 +2525,10 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             yield break;
         }
 
-            Check(recruitmentProvider != null
-                && recruitmentProvider.TryGetRuntime(out RegularCustomerRuntime runtime)
-                && runtime != null,
+        Check(runtime != null,
             $"OFFENSE_STAGE_{stageIndex}_RECRUIT_RUNTIME",
             $"desired={desiredMembers}; available={currentCapacity}; totalMembers={GetDirectPlayMemberPool().Count}");
-        if (recruitmentProvider == null || !recruitmentProvider.TryGetRuntime(out runtime) || runtime == null)
+        if (runtime == null)
         {
             yield break;
         }
@@ -2592,7 +2599,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
     private IEnumerator WaitForDirectPlayRecovery(
         OffenseExpeditionRuntime expeditionRuntime,
-        GameData gameData,
+        GameSessionState gameData,
         int stageIndex,
         int desiredMembers)
     {
@@ -2663,7 +2670,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
     private IEnumerator WaitForDirectPlayLogisticsSettlement(
         DungeonRuntimeLifetimeScope scope,
         OffenseExpeditionRuntime expeditionRuntime,
-        GameData gameData,
+        GameSessionState gameData,
         int stageIndex)
     {
         lastDirectPlayLogisticsSettled = false;
@@ -2679,9 +2686,11 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         OffensePreparationSnapshot beforeSupply = expeditionRuntime?.GetPreparationSnapshot();
         int looseBefore = CountLooseLogisticsStacks(
             itemRuntime,
+            itemRuntime.CatalogProvider,
             out int looseQuantityBefore,
             out string looseSampleBefore);
         int carriedBefore = CountStaffCarriedLogisticsItems(
+            itemRuntime.CatalogProvider,
             out int carriedQuantityBefore,
             out string carriedSampleBefore);
         int pendingQuantityBefore = looseQuantityBefore + carriedQuantityBefore;
@@ -2708,9 +2717,11 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         {
             looseAfter = CountLooseLogisticsStacks(
                 itemRuntime,
+                itemRuntime.CatalogProvider,
                 out looseQuantityAfter,
                 out looseSampleAfter);
             carriedAfter = CountStaffCarriedLogisticsItems(
+                itemRuntime.CatalogProvider,
                 out carriedQuantityAfter,
                 out carriedSampleAfter);
             OffensePreparationSnapshot currentSupply = expeditionRuntime?.GetPreparationSnapshot();
@@ -2731,9 +2742,11 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
         looseAfter = CountLooseLogisticsStacks(
             itemRuntime,
+            itemRuntime.CatalogProvider,
             out looseQuantityAfter,
             out looseSampleAfter);
         carriedAfter = CountStaffCarriedLogisticsItems(
+            itemRuntime.CatalogProvider,
             out carriedQuantityAfter,
             out carriedSampleAfter);
         OffensePreparationSnapshot afterSupply = expeditionRuntime?.GetPreparationSnapshot();
@@ -2755,6 +2768,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
     private static int CountLooseLogisticsStacks(
         IWorldItemStackRuntime itemRuntime,
+        IDungeonItemCatalogProvider itemCatalog,
         out int quantity,
         out string sample)
     {
@@ -2762,7 +2776,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             .Where(stack => stack != null
                 && stack.State == WorldItemStackState.Loose
                 && !stack.Forbidden
-                && IsDirectPlayLogisticsItem(stack.ItemId))
+                && IsDirectPlayLogisticsItem(itemCatalog, stack.ItemId))
             .OrderBy(stack => stack.IsReserved ? 1 : 0)
             .ThenByDescending(stack => stack.TotalValue)
             .ThenBy(stack => stack.DisplayName, StringComparer.Ordinal)
@@ -2775,7 +2789,10 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
         return stacks.Length;
     }
 
-    private static int CountStaffCarriedLogisticsItems(out int quantity, out string sample)
+    private static int CountStaffCarriedLogisticsItems(
+        IDungeonItemCatalogProvider itemCatalog,
+        out int quantity,
+        out string sample)
     {
         CharacterCarryInventory[] inventories = FindObjectsByType<CharacterCarryInventory>(
             FindObjectsInactive.Exclude,
@@ -2800,7 +2817,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             {
                 if (item == null
                     || item.quantity <= 0
-                    || !IsDirectPlayLogisticsItem(item.itemId))
+                    || !IsDirectPlayLogisticsItem(itemCatalog, item.itemId))
                 {
                     continue;
                 }
@@ -2832,10 +2849,15 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             && (identity.IsOwner || identity.CharacterType == CharacterType.NPC);
     }
 
-    private static bool IsDirectPlayLogisticsItem(string itemId)
+    private static bool IsDirectPlayLogisticsItem(
+        IDungeonItemCatalogProvider itemCatalog,
+        string itemId)
     {
-        return DungeonItemCatalogSO.TryGetStockCategoryFromItemId(itemId, out _)
-            || DungeonItemCatalogSO.TryGetEquipmentIdFromItemId(itemId, out _);
+        return itemCatalog != null
+            && itemCatalog.TryGetDefinition(
+                itemId,
+                out DungeonItemDefinition definition)
+            && Enum.IsDefined(typeof(StockCategory), definition.StockCategory);
     }
 
     private static string DescribeDirectPlaySupplyAvailability(OffensePreparationSnapshot snapshot)
@@ -2888,8 +2910,8 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
     private IEnumerator ClickPointer(Vector2 screenPoint)
     {
-        DungeonAutomationInputState.MovePointer(screenPoint);
-        DungeonAutomationInputState.ClickPointer(0);
+        automationInput.MovePointer(screenPoint);
+        automationInput.ClickPointer(0);
         QueueVerificationMouseState(
             new MouseState { position = screenPoint }.WithButton(MouseButton.Left, true));
         yield return null;
@@ -2928,7 +2950,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
             return;
         }
 
-        DungeonAutomationInputState.MovePointer(state.position);
+        automationInput.MovePointer(state.position);
 
         if (!verificationMouse.enabled)
         {
@@ -3158,19 +3180,15 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
     private void RecordDaySnapshot(
         int day,
-        GameData gameData,
+        GameSessionState gameData,
         IDungeonRunFlowRuntime flow,
         BlueprintResearchRuntime research,
-        IOperatingDaySettlementRuntimeProvider settlementProvider,
-        IInvasionDirectorRuntimeProvider invasionProvider,
+        OperatingDaySettlementRuntime settlement,
+        InvasionDirectorRuntime invasion,
         CharacterActor owner)
     {
-        int reports = settlementProvider.TryGetRuntime(out OperatingDaySettlementRuntime settlement)
-            ? settlement.ReportHistory.Count
-            : 0;
-        int intruders = invasionProvider.TryGetRuntime(out InvasionDirectorRuntime invasion)
-            ? invasion.ActiveIntruders.Count
-            : 0;
+        int reports = settlement?.ReportHistory.Count ?? 0;
+        int intruders = invasion != null ? invasion.ActiveIntruders.Count : 0;
         InvasionThreatRuntime threat = FindFirstObjectByType<InvasionThreatRuntime>();
         InvasionThreatSnapshot threatSnapshot = threat != null ? threat.LatestSnapshot : default;
         report.Add(
@@ -3248,7 +3266,7 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
                 .Select(building =>
                     $"{building.BuildingData?.id ?? -1}:{building.BuildingData?.objectName ?? building.name}="
                     + $"{building.FacilityState.completedWorkCycles}"
-                    + $"[{(building.Facility != null ? CodexTextFormatter.FormatWorkTypes(building.Facility.SupportedWorkTypeIds) : string.Empty)}]"));
+                    + $"[{(building.Facility != null ? CodexDomainTextFormatter.FormatWorkTypes(building.Facility.SupportedWorkTypeIds) : string.Empty)}]"));
     }
 
     private static Button FindSpeedButton()
@@ -3381,14 +3399,14 @@ public sealed class NaturalRunVerificationRunner : MonoBehaviour
 
         verificationMouse = InputSystem.AddDevice<Mouse>("NaturalRunVerificationMouse");
         verificationMouse.MakeCurrent();
-        DungeonAutomationInputState.Enable(
-            new DungeonStory.Foundation.UnityGameClock(),
-            new DungeonStory.Foundation.UnityUiClock());
+        automationInput = new DungeonAutomationInputTestCapability();
+        automationInput.Enable();
     }
 
     private void TeardownInput()
     {
-        DungeonAutomationInputState.Disable();
+        automationInput?.Dispose();
+        automationInput = null;
 
         if (verificationMouse != null && verificationMouse.added)
         {

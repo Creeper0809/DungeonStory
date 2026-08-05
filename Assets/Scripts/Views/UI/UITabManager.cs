@@ -29,6 +29,7 @@ public class UITabManager : MonoBehaviour
     private IUITabTopButtonFactory topButtonFactory;
     private IDungeonGridBuildingControllerProvider buildingControllerProvider;
     private IUiClock uiClock;
+    private IDungeonUserSettingsService userSettings;
     private DungeonUiThemeRuntime themeRuntime;
     private bool isConfigured;
 
@@ -48,7 +49,8 @@ public class UITabManager : MonoBehaviour
         IResearchTreeWindowFactory researchTreeWindowFactory,
         IUITabTopButtonFactory topButtonFactory,
         IDungeonGridBuildingControllerProvider buildingControllerProvider,
-        IUiClock uiClock)
+        IUiClock uiClock,
+        IDungeonUserSettingsService userSettings)
     {
         this.contentTextProvider = contentTextProvider
             ?? throw new ArgumentNullException(nameof(contentTextProvider));
@@ -69,6 +71,8 @@ public class UITabManager : MonoBehaviour
         this.buildingControllerProvider = buildingControllerProvider
             ?? throw new ArgumentNullException(nameof(buildingControllerProvider));
         this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        this.userSettings = userSettings
+            ?? throw new ArgumentNullException(nameof(userSettings));
     }
 
     // Compatibility endpoint for existing serialized UnityEvent calls.
@@ -180,7 +184,11 @@ public class UITabManager : MonoBehaviour
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.overrideSorting = true;
         canvas.sortingOrder = Mathf.Max(canvas.sortingOrder, HudCanvasSortingOrder);
-        themeRuntime = DungeonUiThemeRuntime.Ensure(canvas, tmpKoreanFontService, uiClock);
+        themeRuntime = DungeonUiThemeRuntime.Ensure(
+            canvas,
+            tmpKoreanFontService,
+            uiClock,
+            userSettings);
     }
 
     private void RegisterExistingTabs()
@@ -627,7 +635,11 @@ public class UITabManager : MonoBehaviour
             return null;
         }
 
-        themeRuntime = DungeonUiThemeRuntime.Ensure(canvas, tmpKoreanFontService, uiClock);
+        themeRuntime = DungeonUiThemeRuntime.Ensure(
+            canvas,
+            tmpKoreanFontService,
+            uiClock,
+            userSettings);
         return themeRuntime;
     }
 }

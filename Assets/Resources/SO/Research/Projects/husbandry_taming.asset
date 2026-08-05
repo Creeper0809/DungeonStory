@@ -27,14 +27,30 @@ MonoBehaviour:
   description: "\uACF5\uD3EC\uB97C \uB0AE\uCD94\uACE0 \uBC18\uBCF5 \uB3CC\uBD04\uC73C\uB85C
     \uAC00\uCD95\uD654\uD55C\uB2E4."
   field: 9
-  requiredWork: 112
+  requiredWork: 92
   prerequisites:
   - {fileID: 11400000, guid: 4054a9baf1399df40b066cc53cd96b8c, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:husbandry:feed
+    prerequisite: {fileID: 11400000, guid: 4054a9baf1399df40b066cc53cd96b8c, type: 2}
+    kind: 2
+    reason: "\uC0AC\uB8CC\xB7\uAE54\uC9DA\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uAE38\uB4E4\uC774\uAE30 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
-    items: []
+    items:
+    - rid: 7737211730927813147
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211730927813147
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 8820

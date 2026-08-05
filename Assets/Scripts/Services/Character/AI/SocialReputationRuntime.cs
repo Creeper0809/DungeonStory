@@ -1,31 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using DungeonStory.Foundation;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using VContainer;
-
-[Serializable]
-public sealed class GlobalFacilityReputationSnapshot
-{
-    public List<SocialRumorSnapshot> rumors = new List<SocialRumorSnapshot>();
-    public List<SocialMemoryFloat> reputation = new List<SocialMemoryFloat>();
-
-    public GlobalFacilityReputationSnapshot Clone()
-    {
-        return new GlobalFacilityReputationSnapshot
-        {
-            rumors = rumors?.Where(item => item != null).Select(item => item.Clone()).ToList()
-                ?? new List<SocialRumorSnapshot>(),
-            reputation = reputation?.Where(item => item != null)
-                .Select(item => new SocialMemoryFloat(item.key, item.value)).ToList()
-                ?? new List<SocialMemoryFloat>()
-        };
-    }
-}
 
 [DisallowMultipleComponent]
 [DrawWithUnity]
@@ -51,7 +30,6 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
     [SerializeField, ReadOnly] private List<SocialRumor> globalFacilityRumors = new List<SocialRumor>();
     [SerializeField, ReadOnly] private List<SocialMemoryFloat> facilityReputationDebug = new List<SocialMemoryFloat>();
 
-    private readonly Dictionary<string, float> facilityReputationByKey = new Dictionary<string, float>();
     private readonly Dictionary<CharacterActor, Action<CharacterLogEntry>> actorLogHandlers =
         new Dictionary<CharacterActor, Action<CharacterLogEntry>>();
     private readonly Dictionary<CharacterActor, float> nextRequestTimeByActor =
@@ -63,6 +41,8 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
     private ILocalLlmRuntimeProvider llmRuntimeProvider;
     private IRandomStream socialRandom;
     private ICharacterSocialMemoryFactory socialMemoryFactory;
+    private GlobalFacilityReputationLedger globalReputationLedger;
+    private SocialRumorPromptComposer promptComposer;
 
     public int AppliedRumorCount => appliedRumorCount;
     public int HeardRumorCount => heardRumorCount;
@@ -77,42 +57,43 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
 
     public GlobalFacilityReputationSnapshot CaptureSnapshot()
     {
-        PruneExpiredGlobalRumors();
-        float now = RequireGameClock().Time;
-        return new GlobalFacilityReputationSnapshot
-        {
-            rumors = globalFacilityRumors
-                .Where(rumor => rumor != null && !rumor.IsExpiredAt(now))
-                .Select(rumor => SocialRumorSnapshot.Capture(rumor, now))
-                .Where(snapshot => snapshot != null)
-                .ToList(),
-            reputation = facilityReputationByKey
-                .Select(entry => new SocialMemoryFloat(entry.Key, entry.Value))
-                .ToList()
-        };
+        return RequireGlobalReputationLedger().CaptureSnapshot(globalReputationBlend);
     }
 
     public void RestoreSnapshot(GlobalFacilityReputationSnapshot snapshot)
     {
-        float now = RequireGameClock().Time;
-        globalFacilityRumors.Clear();
-        facilityReputationByKey.Clear();
-        if (snapshot != null)
-        {
-            globalFacilityRumors.AddRange(snapshot.rumors?
-                .Where(item => item != null && item.remainingSeconds > 0f)
-                .Select(item => item.Restore(now))
-                .Where(rumor => rumor != null) ?? Enumerable.Empty<SocialRumor>());
-            foreach (SocialMemoryFloat entry in snapshot.reputation ?? new List<SocialMemoryFloat>())
-            {
-                if (entry != null && !string.IsNullOrWhiteSpace(entry.key))
-                {
-                    facilityReputationByKey[entry.key] = Mathf.Clamp(entry.value, -1f, 1f);
-                }
-            }
-        }
+        GlobalFacilityReputationRestoreTransaction transaction =
+            ApplyRestoreCandidate(BuildRestoreCandidate(snapshot));
+        CompleteRestore(transaction);
+    }
 
-        SyncDebugList();
+    public GlobalFacilityReputationRestoreCandidate BuildRestoreCandidate(
+        GlobalFacilityReputationSnapshot snapshot)
+    {
+        return RequireGlobalReputationLedger().BuildRestoreCandidate(snapshot);
+    }
+
+    public GlobalFacilityReputationRestoreTransaction ApplyRestoreCandidate(
+        GlobalFacilityReputationRestoreCandidate candidate)
+    {
+        GlobalFacilityReputationRestoreTransaction transaction =
+            RequireGlobalReputationLedger().ApplyRestoreCandidate(candidate);
+        SynchronizeLedgerProjectionReferences();
+        return transaction;
+    }
+
+    public void RollbackRestore(
+        GlobalFacilityReputationRestoreTransaction transaction)
+    {
+        RequireGlobalReputationLedger().RollbackRestore(transaction);
+        SynchronizeLedgerProjectionReferences();
+    }
+
+    public void CompleteRestore(
+        GlobalFacilityReputationRestoreTransaction transaction)
+    {
+        RequireGlobalReputationLedger().CompleteRestore(transaction);
+        SynchronizeLedgerProjectionReferences();
     }
 
     [Inject]
@@ -123,7 +104,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         ICharacterSocialMemoryFactory socialMemoryFactory,
         IGameClock gameClock,
         IRandomStreamProvider randomStreamProvider,
-        IUiClock uiClock = null)
+        IUiClock uiClock)
     {
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
@@ -212,15 +193,16 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             return false;
         }
 
-        BuildableObject eventFacility = ResolveFacilityFromLog(entry);
+        BuildableObject eventFacility = RequirePromptComposer().ResolveFacility(entry);
         float inferredSentiment = InferSocialEventSentiment(entry);
         bool hasInferredSentiment = Mathf.Abs(inferredSentiment) > 0.01f;
-        string prompt = BuildSocialRumorPrompt(
+        string prompt = RequirePromptComposer().BuildEventPrompt(
             speaker,
             entry,
             eventFacility,
             hasInferredSentiment,
-            inferredSentiment);
+            inferredSentiment,
+            maxPromptCharacters);
         lastRequestDebug = prompt;
         lastRequestSkipDebug = string.Empty;
         if (!queue.GenerateSocialRumorAsync(
@@ -269,12 +251,13 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         }
 
         float expectedSentiment = Mathf.Clamp(sentiment, -1f, 1f);
-        string prompt = BuildFacilityExperienceRumorPrompt(
+        string prompt = RequirePromptComposer().BuildFacilityExperiencePrompt(
             speaker,
             facility,
             eventName,
             expectedSentiment,
-            summary);
+            summary,
+            maxPromptCharacters);
         lastRequestDebug = prompt;
         if (!queue.GenerateSocialRumorAsync(
                 prompt,
@@ -308,7 +291,9 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             rumor.sentiment);
         if (rumor.targetType == SocialRumorTargetType.Facility)
         {
-            ApplyGlobalFacilityReputation(rumor);
+            RequireGlobalReputationLedger().Apply(
+                rumor,
+                globalReputationBlend);
         }
 
         CharacterSocialMemory speakerMemory = EnsureMemory(speaker);
@@ -318,7 +303,7 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         appliedRumorCount++;
         heardRumorCount += spreadCount + (speakerMemory != null ? 1 : 0);
         lastRumorDebug = $"{rumor.type} {rumor.targetType} sentiment={rumor.sentiment:0.00} spread={spreadCount} summary={rumor.summary}";
-        SyncDebugList();
+        RequireGlobalReputationLedger().SyncDebugProjection();
         return true;
     }
 
@@ -359,6 +344,29 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         }
 
         return buildingWorldQuery;
+    }
+
+    private SocialRumorPromptComposer RequirePromptComposer()
+    {
+        return promptComposer ??= new SocialRumorPromptComposer(RequireBuildingWorldQuery());
+    }
+
+    private GlobalFacilityReputationLedger RequireGlobalReputationLedger()
+    {
+        globalFacilityRumors ??= new List<SocialRumor>();
+        facilityReputationDebug ??= new List<SocialMemoryFloat>();
+        return globalReputationLedger ??= new GlobalFacilityReputationLedger(
+            globalFacilityRumors,
+            facilityReputationDebug,
+            RequireGameClock());
+    }
+
+    private void SynchronizeLedgerProjectionReferences()
+    {
+        GlobalFacilityReputationLedger ledger =
+            RequireGlobalReputationLedger();
+        globalFacilityRumors = ledger.Rumors;
+        facilityReputationDebug = ledger.DebugProjection;
     }
 
     private IGameClock RequireGameClock()
@@ -406,27 +414,14 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
             return 0f;
         }
 
-        PruneExpiredGlobalRumors();
-        float sum = 0f;
-        int count = 0;
-        foreach (KeyValuePair<string, float> entry in facilityReputationByKey)
-        {
-            if (!SocialRumorUtility.MatchesFacilityKey(building, entry.Key))
-            {
-                continue;
-            }
-
-            sum += entry.Value;
-            count++;
-        }
-
-        return count > 0 ? Mathf.Clamp(sum / count, -1f, 1f) : 0f;
+        return RequireGlobalReputationLedger().GetSentiment(
+            building,
+            globalReputationBlend);
     }
 
     public void ClearForDebug()
     {
-        globalFacilityRumors.Clear();
-        facilityReputationByKey.Clear();
+        RequireGlobalReputationLedger().Clear();
         nextRequestTimeByActor.Clear();
         appliedRumorCount = 0;
         heardRumorCount = 0;
@@ -438,7 +433,6 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         lastRequestSkipDebug = string.Empty;
         suppressWarningLogsForDebug = false;
         actorLogRequestOnlyForDebug = null;
-        SyncDebugList();
     }
 
     public void SetActorLogRequestsSuppressedForDebug(bool value)
@@ -592,179 +586,6 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         Debug.Log($"{name}: {message}", this);
     }
 
-    private string BuildSocialRumorPrompt(
-        CharacterActor speaker,
-        CharacterLogEntry entry,
-        BuildableObject explicitFacility,
-        bool hasExplicitSentiment,
-        float explicitSentiment)
-    {
-        StringBuilder builder = new StringBuilder();
-        builder.AppendLine("Interpret a DungeonStory NPC event as social rumor/reputation data.");
-        builder.AppendLine("Return exactly one JSON object with rumorType, targetType, targetFacilityId, targetFacilityTag, targetCharacterId, targetCharacterName, sentiment, summary, spreadChance, trustImpact, validSeconds.");
-        builder.AppendLine("Allowed rumorType values: None, Complaint, Recommendation, Warning, Praise.");
-        builder.AppendLine("Allowed targetType values: None, Facility, Character.");
-        builder.AppendLine("All numeric fields must be raw JSON numbers, never strings, words, or null.");
-        builder.AppendLine("targetFacilityId must be an integer. targetCharacterId must be a persistent-ID string. Use -1 and an empty string when not used. Never output null.");
-        builder.AppendLine("sentiment and trustImpact must be numbers between -1 and 1. spreadChance must be a number between 0 and 1.");
-        builder.AppendLine("validSeconds must be a number between 0 and 1800. Use 600 for normal rumors. Never output 3600 or higher.");
-        builder.AppendLine("Actionable Complaint, Recommendation, Warning, and Praise rumors must use spreadChance between 0.35 and 1.0.");
-        builder.AppendLine("For blocked path, no destination, or occupied destination warnings, use spreadChance 1.0.");
-        builder.AppendLine("Use rumorType None only when no NPC should share this event.");
-        builder.AppendLine("Use rumorType None and targetType None when this event should not become a rumor. Do not invent targets outside candidateFacilities.");
-        if (explicitFacility != null)
-        {
-            builder.AppendLine("This request has exactly one allowed facility target.");
-            builder.AppendLine($"The only valid facility target is id={explicitFacility.id}, tag={SocialRumorUtility.GetFacilityTag(explicitFacility)}.");
-            builder.AppendLine("Because this event is a facility experience, output targetType Facility unless rumorType is None.");
-            builder.AppendLine("Do not output targetType Character for facility experiences.");
-            builder.AppendLine("If you output targetType Facility, targetFacilityId must equal that id. Any other facility target is invalid.");
-            builder.AppendLine($"Required target fields for this event: \"targetType\":\"Facility\", \"targetFacilityId\":{explicitFacility.id}, \"targetCharacterId\":\"\", \"targetCharacterName\":\"\".");
-            if (hasExplicitSentiment)
-            {
-                builder.AppendLine($"Reported experience sentiment is {explicitSentiment:0.00}; output sentiment must keep the same sign.");
-                builder.AppendLine(explicitSentiment >= 0f
-                    ? "For positive facility experiences, use Recommendation or Praise and a positive sentiment."
-                    : "For negative facility experiences, use Complaint or Warning and a negative sentiment.");
-            }
-        }
-
-        builder.AppendLine("Speaker:");
-        builder.AppendLine($"name: {SocialRumorUtility.GetActorLabel(speaker)}");
-        builder.AppendLine($"species: {(speaker != null ? speaker.SpeciesTag : string.Empty)}");
-        builder.AppendLine($"role: {(speaker != null ? speaker.Role.ToString() : string.Empty)}");
-        builder.AppendLine("Event:");
-        builder.AppendLine($"tag: {entry.Tag}");
-        builder.AppendLine($"count: {entry.Count}");
-        builder.AppendLine($"message: {entry.OriginalMessage}");
-        builder.AppendLine("candidateFacilities:");
-        AppendCandidateFacilities(builder, speaker, explicitFacility);
-        builder.AppendLine("Example: {\"rumorType\":\"Recommendation\",\"targetType\":\"Facility\",\"targetFacilityId\":12,\"targetFacilityTag\":\"Rest\",\"targetCharacterId\":\"\",\"targetCharacterName\":\"\",\"sentiment\":0.6,\"summary\":\"rest facility visit was good\",\"spreadChance\":0.55,\"trustImpact\":0.05,\"validSeconds\":600}");
-
-        string prompt = builder.ToString();
-        return prompt.Length > maxPromptCharacters
-            ? prompt.Substring(0, maxPromptCharacters)
-            : prompt;
-    }
-
-    private string BuildFacilityExperienceRumorPrompt(
-        CharacterActor speaker,
-        BuildableObject facility,
-        string eventName,
-        float sentiment,
-        string summary)
-    {
-        string rumorTypeHint = sentiment >= 0f ? "Recommendation" : "Complaint";
-        string facilityTag = SocialRumorUtility.GetFacilityTag(facility);
-        StringBuilder builder = new StringBuilder();
-        builder.AppendLine("Create one shareable NPC facility rumor from this facility experience.");
-        builder.AppendLine("Return exactly one compact JSON object and no markdown.");
-        builder.AppendLine("Do not invent another target. Do not output targetType Character.");
-        builder.AppendLine("All numeric fields must be raw JSON numbers, never strings, words, or null.");
-        builder.AppendLine($"The rumorType should be {rumorTypeHint} unless the event clearly fits Praise or Warning.");
-        builder.AppendLine("targetType must be Facility.");
-        builder.AppendLine($"targetFacilityId must be {facility.id}.");
-        builder.AppendLine($"targetFacilityTag must be \"{facilityTag}\".");
-        builder.AppendLine("targetCharacterId and targetCharacterName must both be empty strings.");
-        builder.AppendLine(sentiment >= 0f
-            ? "sentiment must be a positive number between 0.35 and 1."
-            : "sentiment must be a negative number between -1 and -0.35.");
-        builder.AppendLine("spreadChance must be 1.0 so nearby listeners can deterministically hear this facility experience.");
-        builder.AppendLine("trustImpact must be a number between -1 and 1.");
-        builder.AppendLine("validSeconds must be 600.");
-        builder.AppendLine("Required JSON shape:");
-        builder.AppendLine(
-            $"{{\"rumorType\":\"{rumorTypeHint}\",\"targetType\":\"Facility\",\"targetFacilityId\":{facility.id},\"targetFacilityTag\":\"{facilityTag}\",\"targetCharacterId\":\"\",\"targetCharacterName\":\"\",\"sentiment\":{(sentiment >= 0f ? "0.75" : "-0.75")},\"summary\":\"short text\",\"spreadChance\":1.0,\"trustImpact\":0.1,\"validSeconds\":600}}");
-        builder.AppendLine("Speaker:");
-        builder.AppendLine($"name: {SocialRumorUtility.GetActorLabel(speaker)}");
-        builder.AppendLine($"species: {(speaker != null ? speaker.SpeciesTag : string.Empty)}");
-        builder.AppendLine("Facility:");
-        builder.AppendLine($"id: {facility.id}");
-        builder.AppendLine($"name: {SocialRumorUtility.GetFacilityLabel(facility)}");
-        builder.AppendLine($"tag: {facilityTag}");
-        builder.AppendLine("Experience:");
-        builder.AppendLine($"eventName: {eventName}");
-        builder.AppendLine($"reportedSentiment: {sentiment:0.00}");
-        builder.AppendLine($"summary: {summary}");
-
-        string prompt = builder.ToString();
-        return prompt.Length > maxPromptCharacters
-            ? prompt.Substring(0, maxPromptCharacters)
-            : prompt;
-    }
-
-    private void AppendCandidateFacilities(
-        StringBuilder builder,
-        CharacterActor speaker,
-        BuildableObject explicitFacility)
-    {
-        if (explicitFacility != null)
-        {
-            AppendFacilityLine(builder, explicitFacility);
-            return;
-        }
-
-        List<BuildableObject> candidates = FindNearbyFacilities(speaker)
-            .Where((building) => building != null)
-            .Take(8)
-            .ToList();
-
-        foreach (BuildableObject building in candidates)
-        {
-            AppendFacilityLine(builder, building);
-        }
-    }
-
-    private IEnumerable<BuildableObject> FindNearbyFacilities(CharacterActor speaker)
-    {
-        IReadOnlyList<BuildableObject> buildings = RequireBuildingWorldQuery().Buildings;
-        if (speaker == null)
-        {
-            return buildings.Where((building) => building != null);
-        }
-
-        Vector3 speakerPosition = speaker.transform.position;
-        return buildings
-            .Where((building) => building != null)
-            .OrderBy((building) => (building.transform.position - speakerPosition).sqrMagnitude);
-    }
-
-    private static void AppendFacilityLine(StringBuilder builder, BuildableObject building)
-    {
-        string label = SocialRumorUtility.GetFacilityLabel(building);
-        string tag = SocialRumorUtility.GetFacilityTag(building);
-        builder.AppendLine($"- id={building.id}; name={label}; tag={tag}");
-    }
-
-    private BuildableObject ResolveFacilityFromLog(CharacterLogEntry entry)
-    {
-        int facilityId = entry.Activity != null ? entry.Activity.FacilityId : -1;
-        if (facilityId < 0)
-        {
-            return null;
-        }
-
-        IReadOnlyList<BuildableObject> buildings = RequireBuildingWorldQuery().Buildings;
-        return buildings.FirstOrDefault((building) => building != null && building.id == facilityId);
-    }
-
-    private static bool TryExtractFacilityId(string value, out int facilityId)
-    {
-        facilityId = -1;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        Match match = Regex.Match(
-            value,
-            @"\bfacility\s*(?:id|#|=|:)?\s*(-?\d+)\b",
-            RegexOptions.IgnoreCase);
-        return match.Success
-            && int.TryParse(match.Groups[1].Value, out facilityId)
-            && facilityId >= 0;
-    }
-
     private static float InferSocialEventSentiment(CharacterLogEntry entry)
     {
         return entry.Activity != null ? entry.Activity.Sentiment : 0f;
@@ -823,69 +644,6 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
 
         float maxDistanceSquared = rumorSpreadDistance * rumorSpreadDistance;
         return (speaker.transform.position - listener.transform.position).sqrMagnitude <= maxDistanceSquared;
-    }
-
-    private void ApplyGlobalFacilityReputation(SocialRumor rumor)
-    {
-        globalFacilityRumors.Add(rumor.Clone());
-        PruneExpiredGlobalRumors();
-        RebuildGlobalFacilityReputation();
-    }
-
-    private void RebuildGlobalFacilityReputation()
-    {
-        float now = RequireGameClock().Time;
-        facilityReputationByKey.Clear();
-        foreach (SocialRumor rumor in globalFacilityRumors)
-        {
-            if (rumor == null
-                || rumor.IsExpiredAt(now)
-                || rumor.targetType != SocialRumorTargetType.Facility)
-            {
-                continue;
-            }
-
-            ApplyGlobalFacilityReputationEntry(rumor);
-        }
-
-        SyncDebugList();
-    }
-
-    private void ApplyGlobalFacilityReputationEntry(SocialRumor rumor)
-    {
-        foreach (string key in SocialRumorUtility.GetFacilityKeys(rumor))
-        {
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                continue;
-            }
-
-            float current = facilityReputationByKey.TryGetValue(key, out float value) ? value : 0f;
-            facilityReputationByKey[key] = Mathf.Clamp(
-                Mathf.Lerp(current, rumor.sentiment, globalReputationBlend),
-                -1f,
-                1f);
-        }
-    }
-
-    private void PruneExpiredGlobalRumors()
-    {
-        float now = RequireGameClock().Time;
-        bool removed = false;
-        for (int i = globalFacilityRumors.Count - 1; i >= 0; i--)
-        {
-            if (globalFacilityRumors[i] == null
-                || globalFacilityRumors[i].IsExpiredAt(now))
-            {
-                globalFacilityRumors.RemoveAt(i);
-                removed = true;
-            }
-        }
-
-        if (removed)
-        {
-            RebuildGlobalFacilityReputation();
-        }
     }
 
     private CharacterSocialMemory EnsureMemory(CharacterActor actor)
@@ -1030,15 +788,6 @@ public sealed class SocialReputationRuntime : SerializedMonoBehaviour
         }
 
         actorLogHandlers.Clear();
-    }
-
-    private void SyncDebugList()
-    {
-        facilityReputationDebug.Clear();
-        foreach (KeyValuePair<string, float> entry in facilityReputationByKey)
-        {
-            facilityReputationDebug.Add(new SocialMemoryFloat(entry.Key, entry.Value));
-        }
     }
 
 }

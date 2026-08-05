@@ -27,15 +27,38 @@ MonoBehaviour:
   description: "\uB8EC \uC548\uC815\uAE30\uB85C \uACE0\uBC00\uB3C4 \uC804\uB825\uB9DD\uC758
     \uC190\uC2E4\uACFC \uACFC\uBD80\uD558\uB97C \uC904\uC778\uB2E4."
   field: 15
-  requiredWork: 274
+  requiredWork: 960
   prerequisites:
   - {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
   - {fileID: 11400000, guid: 4b3074860ed56d9429b554e903f0d8e7, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:resonance
+    prerequisite: {fileID: 11400000, guid: 56ffa2cea97e51048b951d004cec9b2b, type: 2}
+    kind: 0
+    reason: "\uBE44\uC804 \uACF5\uBA85\uC758 \uC774\uB860\uC774(\uAC00) \uB8EC \uC804\uB825\uB9DD
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:mana-power
+    prerequisite: {fileID: 11400000, guid: 4b3074860ed56d9429b554e903f0d8e7, type: 2}
+    kind: 2
+    reason: "\uB9C8\uB098 \uBC1C\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uB8EC \uC804\uB825\uB9DD \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
-    items: []
+    items:
+    - rid: 7737211730927813136
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211730927813136
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 8823

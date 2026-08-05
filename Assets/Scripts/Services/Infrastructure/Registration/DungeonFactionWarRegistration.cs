@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Factions;
 using VContainer;
 using VContainer.Unity;
 
@@ -11,12 +12,12 @@ public static class DungeonFactionWarRegistration
             throw new ArgumentNullException(nameof(builder));
         }
 
-        builder.Register<ResourceDungeonFactionCatalog>(Lifetime.Singleton);
-        builder.Register<FactionRuntimeProvider>(Lifetime.Singleton)
-            .AsSelf()
-            .As<IFactionRuntimeProvider>();
-        builder.RegisterEntryPoint<FactionRuntime>(Lifetime.Singleton)
-            .As<IFactionRuntime>();
+        builder.Register<ResourceDungeonFactionCatalogApplicationAdapter>(Lifetime.Singleton);
+        builder.Register<FactionItemLogisticsDependencies>(Lifetime.Singleton);
+        builder.Register<FactionCharacterSpawnDependencies>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<FactionRuntimeApplicationAdapter>(Lifetime.Singleton)
+            .As<IFactionRuntime>()
+            .As<IFactionContractQuery>();
         builder.RegisterEntryPoint<InvasionCampaignRuntime>(Lifetime.Singleton)
             .As<IInvasionCampaignRuntime>();
     }

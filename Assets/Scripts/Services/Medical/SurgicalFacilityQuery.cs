@@ -24,7 +24,7 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
             || primaryFacility.isDestroy
             || primaryFacility.IsDamaged)
         {
-            return Blocked(primaryFacility, "집도 시설이 파괴되었거나 고장났습니다.");
+            return Blocked(primaryFacility);
         }
 
         ISurgicalFacilityAbility primaryAbility = primaryFacility.BuildingData?
@@ -33,14 +33,14 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
             .FirstOrDefault(ability => ability.IsPrimaryOperatingFacility);
         if (primaryAbility == null)
         {
-            return Blocked(primaryFacility, "수술 능력이 없는 시설입니다.");
+            return Blocked(primaryFacility);
         }
 
         if (!rooms.TryGetRoom(primaryFacility, out RoomInstance room)
             || room == null
             || !room.IsUsable)
         {
-            return Blocked(primaryFacility, "닫힌 수술실이 필요합니다.");
+            return Blocked(primaryFacility);
         }
 
         List<BuildableObject> supports = room.Furniture
@@ -71,9 +71,11 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
         }
 
         SurgeryFacilityTag missing = requiredTags & ~tags;
-        string blockReason = missing == SurgeryFacilityTag.None
-            ? string.Empty
-            : $"필요한 수술실 설비가 없습니다: {FormatTags(missing)}";
+        DomainFailure blockFailure = missing == SurgeryFacilityTag.None
+            ? DomainFailure.None
+            : new DomainFailure(
+                FailureCode.SurgeryFacilityUnavailable,
+                missing.ToString());
         return new SurgicalFacilitySnapshot(
             primaryFacility,
             tags,
@@ -82,20 +84,20 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
             success,
             anesthesia,
             supports,
-            blockReason);
+            blockFailure);
     }
 
     public bool TryFindBestFacility(
         SurgicalSubjectRef subject,
         SurgicalProcedureSO procedure,
         out SurgicalFacilitySnapshot facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
         facility = default;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (subject == null || !subject.IsValid || procedure == null)
         {
-            failureReason = "수술 대상 또는 절차가 유효하지 않습니다.";
+            failure = new DomainFailure(FailureCode.SurgerySubjectInvalid);
             return false;
         }
 
@@ -104,7 +106,9 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
                 .ToList();
         if (candidates.Count == 0)
         {
-            failureReason = "요구 조건을 충족하는 수술 시설이 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryFacilityUnavailable,
+                procedure.ProcedureId);
             return false;
         }
 
@@ -142,23 +146,11 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
             return string.Empty;
         }
 
-        FacilityEvolutionStateComponent evolution =
-            facility.GetComponent<FacilityEvolutionStateComponent>();
-        if (evolution != null)
-        {
-            evolution.InitializeIfNeeded(facility);
-            if (!string.IsNullOrWhiteSpace(evolution.FacilityPersistentId))
-            {
-                return evolution.FacilityPersistentId;
-            }
-        }
-
-        return $"building:{facility.id}:{facility.centerPos.x}:{facility.centerPos.y}";
+        return facility.RequirePersistentInstanceId().Value;
     }
 
     private static SurgicalFacilitySnapshot Blocked(
-        BuildableObject facility,
-        string reason)
+        BuildableObject facility)
     {
         return new SurgicalFacilitySnapshot(
             facility,
@@ -168,33 +160,11 @@ public sealed class SurgicalFacilityQuery : ISurgicalFacilityQuery
             0f,
             0f,
             Array.Empty<BuildableObject>(),
-            reason);
+            new DomainFailure(
+                FailureCode.SurgeryFacilityUnavailable,
+                facility != null
+                    ? facility.RequirePersistentInstanceId().Value
+                    : string.Empty));
     }
 
-    public static string FormatTags(SurgeryFacilityTag tags)
-    {
-        List<string> labels = new List<string>();
-        Add(SurgeryFacilityTag.Emergency, "응급");
-        Add(SurgeryFacilityTag.Anatomy, "해부");
-        Add(SurgeryFacilityTag.GeneralSurgery, "외과");
-        Add(SurgeryFacilityTag.Sterilization, "세정");
-        Add(SurgeryFacilityTag.Anesthesia, "마취");
-        Add(SurgeryFacilityTag.Transplant, "순환 이식");
-        Add(SurgeryFacilityTag.ImmuneControl, "면역 조절");
-        Add(SurgeryFacilityTag.IsolationRecovery, "격리 회복");
-        Add(SurgeryFacilityTag.ArcaneSurgery, "비전 개조");
-        Add(SurgeryFacilityTag.RuneSuture, "룬 봉합");
-        Add(SurgeryFacilityTag.Rehabilitation, "재활");
-        Add(SurgeryFacilityTag.OrganStorage, "장기 보관");
-        Add(SurgeryFacilityTag.ProstheticAssembly, "보철 조립");
-        return string.Join(", ", labels);
-
-        void Add(SurgeryFacilityTag tag, string label)
-        {
-            if ((tags & tag) != 0)
-            {
-                labels.Add(label);
-            }
-        }
-    }
 }

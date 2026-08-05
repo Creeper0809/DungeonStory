@@ -1,8 +1,10 @@
 #if UNITY_EDITOR
 using System;
+using DungeonStory.Operation;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 using VContainer;
@@ -24,65 +26,65 @@ public static class DungeonGameSaveDebugScenarios
         }
 
         IDungeonGameSaveService saveService = scope.Container.Resolve<IDungeonGameSaveService>();
-        IGameDataProvider gameDataProvider = scope.Container.Resolve<IGameDataProvider>();
-        IBlueprintResearchRuntimeProvider researchProvider = scope.Container.Resolve<IBlueprintResearchRuntimeProvider>();
+        IGameSessionStateProvider gameDataProvider = scope.Container.Resolve<IGameSessionStateProvider>();
         IResearchProjectCatalog researchProjectCatalog =
             scope.Container.Resolve<IResearchProjectCatalog>();
-        IDailyFacilityShopRuntimeProvider shopProvider = scope.Container.Resolve<IDailyFacilityShopRuntimeProvider>();
-        IRunVariableRuntimeProvider runProvider = scope.Container.Resolve<IRunVariableRuntimeProvider>();
-        IMetaProgressionRuntimeProvider metaProvider = scope.Container.Resolve<IMetaProgressionRuntimeProvider>();
-        IRegularCustomerRuntimeProvider customerProvider = scope.Container.Resolve<IRegularCustomerRuntimeProvider>();
-        IStaffDiscontentRuntimeProvider discontentProvider = scope.Container.Resolve<IStaffDiscontentRuntimeProvider>();
-        ICodexRuntimeProvider codexProvider = scope.Container.Resolve<ICodexRuntimeProvider>();
+        ProgressionSceneRuntimeReferences progressionRuntimes =
+            scope.Container.Resolve<ProgressionSceneRuntimeReferences>();
+        RegularCustomerRuntime customers = scope.Container.Resolve<RegularCustomerRuntime>();
+        CharacterSceneRuntimeReferences characterRuntimes =
+            scope.Container.Resolve<CharacterSceneRuntimeReferences>();
+        FacilityFeatureSceneRuntimeReferences facilityRuntimes =
+            scope.Container.Resolve<FacilityFeatureSceneRuntimeReferences>();
         IFacilityShopCatalog catalog = scope.Container.Resolve<IFacilityShopCatalog>();
         IGridSystemProvider gridProvider = scope.Container.Resolve<IGridSystemProvider>();
         IOwnerRunManagerProvider ownerProvider = scope.Container.Resolve<IOwnerRunManagerProvider>();
-        IOperatingDaySettlementRuntimeProvider settlementProvider =
-            scope.Container.Resolve<IOperatingDaySettlementRuntimeProvider>();
-        IEventAlertRuntimeProvider alertProvider = scope.Container.Resolve<IEventAlertRuntimeProvider>();
+        DungeonSceneRuntimeReferences dungeonRuntimes =
+            scope.Container.Resolve<DungeonSceneRuntimeReferences>();
         ICharacterWorldQuery characterWorld =
             scope.Container.Resolve<ICharacterWorldQuery>();
-        IOffenseWorldMapRuntimeProvider offenseWorldMapProvider =
-            scope.Container.Resolve<IOffenseWorldMapRuntimeProvider>();
-        IOffenseRewardRuntimeProvider offenseRewardProvider =
-            scope.Container.Resolve<IOffenseRewardRuntimeProvider>();
-        IOffenseExpeditionRuntimeProvider offenseExpeditionProvider =
-            scope.Container.Resolve<IOffenseExpeditionRuntimeProvider>();
+        OffenseSceneRuntimeReferences offenseRuntimes =
+            scope.Container.Resolve<OffenseSceneRuntimeReferences>();
         IOffenseBattleRuntime offenseBattle = scope.Container.Resolve<IOffenseBattleRuntime>();
-        IInvasionThreatRuntimeProvider invasionThreatProvider =
-            scope.Container.Resolve<IInvasionThreatRuntimeProvider>();
-        IInvasionDirectorRuntimeProvider invasionDirectorProvider =
-            scope.Container.Resolve<IInvasionDirectorRuntimeProvider>();
+        InvasionSceneRuntimeReferences invasionRuntimes =
+            scope.Container.Resolve<InvasionSceneRuntimeReferences>();
         IDefenseStatusRuntimeService defenseStatusRuntimeService =
             scope.Container.Resolve<IDefenseStatusRuntimeService>();
         ICharacterIdRegistry characterIdRegistry = scope.Container.Resolve<ICharacterIdRegistry>();
         ICombatEquipmentRuntime equipmentRuntime = scope.Container.Resolve<ICombatEquipmentRuntime>();
+        IItemInstanceRepository itemInstances = scope.Container.Resolve<IItemInstanceRepository>();
 
-        Require(gameDataProvider.TryGetGameData(out GameData gameData), "GameData runtime is missing.");
-        Require(researchProvider.TryGetRuntime(out BlueprintResearchRuntime research), "Research runtime is missing.");
-        Require(shopProvider.TryGetRuntime(out DailyFacilityShopRuntime shop), "Shop runtime is missing.");
-        Require(runProvider.TryGetRuntime(out RunVariableRuntime run), "Run variable runtime is missing.");
-        Require(metaProvider.TryGetRuntime(out MetaProgressionRuntime meta), "Meta runtime is missing.");
-        Require(customerProvider.TryGetRuntime(out RegularCustomerRuntime customers), "Customer runtime is missing.");
-        Require(discontentProvider.TryGetRuntime(out StaffDiscontentRuntime discontent),
-            "Staff discontent runtime is missing.");
-        Require(codexProvider.TryGetRuntime(out CodexRuntime codex), "Codex runtime is missing.");
+        Require(gameDataProvider.TryGetSessionState(out GameSessionState gameData), "GameSessionState runtime is missing.");
+        BlueprintResearchRuntime research = progressionRuntimes.BlueprintResearch;
+        Require(research != null, "Research runtime is missing.");
+        DailyFacilityShopRuntime shop = progressionRuntimes.FacilityShop;
+        Require(shop != null, "Shop runtime is missing.");
+        RunVariableRuntime run = dungeonRuntimes.RunVariables;
+        Require(run != null, "Run variable runtime is missing.");
+        MetaProgressionRuntime meta = progressionRuntimes.MetaProgression;
+        Require(meta != null, "Meta runtime is missing.");
+        Require(customers != null, "Customer runtime is missing.");
+        StaffDiscontentRuntime discontent = characterRuntimes.StaffDiscontent;
+        Require(discontent != null, "Staff discontent runtime is missing.");
+        CodexRuntime codex = facilityRuntimes.Codex;
+        Require(codex != null, "Codex runtime is missing.");
         Require(gridProvider.TryGetGrid(out Grid grid), "Grid runtime is missing.");
         Require(ownerProvider.TryGetManager(out OwnerRunManager ownerManager)
             && ownerManager.CurrentOwnerActor != null, "Owner runtime is missing.");
-        Require(settlementProvider.TryGetRuntime(out OperatingDaySettlementRuntime settlement),
-            "Settlement runtime is missing.");
-        Require(alertProvider.TryGetRuntime(out EventAlertRuntime alerts), "Event alert runtime is missing.");
-        Require(offenseWorldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime offenseWorldMap),
-            "Offense world map runtime is missing.");
-        Require(offenseRewardProvider.TryGetRuntime(out OffenseRewardRuntime offenseRewards),
-            "Offense reward runtime is missing.");
-        Require(offenseExpeditionProvider.TryGetRuntime(out OffenseExpeditionRuntime expeditions),
-            "Offense expedition runtime is missing.");
-        Require(invasionThreatProvider.TryGetRuntime(out InvasionThreatRuntime invasionThreat),
-            "Invasion threat runtime is missing.");
-        Require(invasionDirectorProvider.TryGetRuntime(out InvasionDirectorRuntime invasionDirector),
-            "Invasion director runtime is missing.");
+        OperatingDaySettlementRuntime settlement = dungeonRuntimes.Settlement;
+        Require(settlement != null, "Settlement runtime is missing.");
+        EventAlertRuntime alerts = dungeonRuntimes.Alerts;
+        Require(alerts != null, "Event alert runtime is missing.");
+        OffenseWorldMapRuntime offenseWorldMap = offenseRuntimes.WorldMap;
+        OffenseRewardRuntime offenseRewards = offenseRuntimes.Rewards;
+        OffenseExpeditionRuntime expeditions = offenseRuntimes.Expedition;
+        Require(offenseWorldMap != null, "Offense world map runtime is missing.");
+        Require(offenseRewards != null, "Offense reward runtime is missing.");
+        Require(expeditions != null, "Offense expedition runtime is missing.");
+        InvasionThreatRuntime invasionThreat = invasionRuntimes.Threat;
+        InvasionDirectorRuntime invasionDirector = invasionRuntimes.Director;
+        Require(invasionThreat != null, "Invasion threat runtime is missing.");
+        Require(invasionDirector != null, "Invasion director runtime is missing.");
 
         CharacterSO temporaryOffenseStaffData = null;
         DungeonGameSaveData baseline = saveService.Capture();
@@ -121,7 +123,7 @@ public static class DungeonGameSaveDebugScenarios
             meta.State.AddCurrency(19);
             meta.State.SetUpgradeLevelForDebug(MetaUpgradeIds.CommerceSupplyNetwork, 2);
             const string CustomerMarker = "world:saveqa:919191";
-            customers.State.Restore(new[]
+            customers.ReplaceStateForDebug(new[]
             {
                 new RegularCustomerRecord(
                     CustomerMarker,
@@ -204,17 +206,28 @@ public static class DungeonGameSaveDebugScenarios
             OffenseTargetDefinition offenseTarget = offenseWorldMap.TargetDefinitions.Skip(1).FirstOrDefault();
             Require(completedOffenseTarget != null && offenseTarget != null,
                 "The offense campaign has too few targets for the save test.");
-            offenseWorldMap.RestorePersistentState(
-                2,
-                offenseTarget.id,
-                new[] { completedOffenseTarget.id, offenseTarget.id },
-                new[] { completedOffenseTarget.id },
-                string.Empty);
-            offenseRewards.RestorePersistentState(
+            offenseWorldMap.Campaign.PublishRestoreCandidate(
+                offenseWorldMap.Campaign.BuildRestoreCandidate(
+                    new DungeonOffenseCampaignSaveData
+                    {
+                        reconLevel = 2,
+                        selectedTargetId = offenseTarget.id,
+                        knownTargetIds = new List<string>
+                        {
+                            completedOffenseTarget.id,
+                            offenseTarget.id
+                        },
+                        completedTargetIds = new List<string>
+                        {
+                            completedOffenseTarget.id
+                        }
+                    }));
+            offenseRewards.PublishRestoreCandidate(
+                OffenseRewardRuntime.BuildRestoreCandidate(
                 411,
                 new Dictionary<StockCategory, int> { [StockCategory.Food] = 13 },
                 new[] { 9191 },
-                new[] { 8181 });
+                new[] { 8181 }));
             CharacterActor expeditionMember = characterWorld.Characters
                 .FirstOrDefault(actor => actor != null
                     && !actor.IsOwner
@@ -245,13 +258,15 @@ public static class DungeonGameSaveDebugScenarios
                 Require(spawnerProvider.TryGetSpawner(out CharacterSpawner spawner)
                     && spawner.characterPrefab != null,
                     "The character prefab is missing for the offense save test.");
-                GameObject staffObject = characterFactory.Create(spawner.characterPrefab);
-                if (staffObject.GetComponent<AbilityWork>() == null)
-                {
-                    staffObject.AddComponent<AbilityWork>();
-                }
-
-                characterFactory.Inject(staffObject);
+                GameObject staffObject = characterFactory.CreateInactive(
+                    spawner.characterPrefab,
+                    candidate =>
+                    {
+                        if (candidate.GetComponent<AbilityWork>() == null)
+                        {
+                            candidate.AddComponent<AbilityWork>();
+                        }
+                    });
                 expeditionMember = staffObject.GetComponent<CharacterActor>();
                 Require(expeditionMember != null, "The character prefab has no CharacterActor.");
                 staffObject.name = "Save QA Expedition Staff";
@@ -259,7 +274,7 @@ public static class DungeonGameSaveDebugScenarios
                 expeditionMember.RefreshAbilityCache();
                 expeditionMember.Initialize(staffData);
                 expeditionMember.transform.position = grid.GetWorldPos(savedOwnerPosition);
-                staffObject.SetActive(true);
+                characterFactory.Publish(staffObject);
             }
 
             if (expeditionMember.IsOnExpedition)
@@ -283,10 +298,10 @@ public static class DungeonGameSaveDebugScenarios
 
             const string EquipmentWeaponMarker = "weapon:dagger";
             const string EquipmentArmorMarker = "armor:gambeson";
-            const string EquipmentCraftMarker = "weapon:mace";
-            const string EquipmentWeaponInstanceMarker = "qa-save-weapon-equipped";
-            const string EquipmentSpareWeaponInstanceMarker = "qa-save-weapon-stored";
-            const string EquipmentArmorInstanceMarker = "qa-save-armor-equipped";
+            const string EquipmentCraftMarker = "weapon:dagger";
+            const string EquipmentWeaponInstanceMarker = "item-instance:qa-save-weapon-equipped";
+            const string EquipmentSpareWeaponInstanceMarker = "item-instance:qa-save-weapon-stored";
+            const string EquipmentArmorInstanceMarker = "item-instance:qa-save-armor-equipped";
             const string EquipmentCraftOrderMarker = "qa-save-craft-order";
             const float ExpeditionStressMarker = 42f;
             string equipmentStaffId = characterIdRegistry.GetOrAssignPersistentId(expeditionMember);
@@ -295,37 +310,39 @@ public static class DungeonGameSaveDebugScenarios
                     && expeditionMember.Progression.Level >= 2
                     && expeditionMember.Progression.GrowthState.allocationRecords.Count > 0,
                 "The save test member did not create a level-growth allocation record.");
-            equipmentRuntime.Restore(new DungeonCombatEquipmentSaveData
-            {
-                instances = new List<CombatEquipmentInstance>
+            itemInstances.EquipmentInstances[EquipmentWeaponInstanceMarker] =
+                new CombatEquipmentInstance
                 {
-                    new CombatEquipmentInstance
-                    {
-                        instanceId = EquipmentWeaponInstanceMarker,
-                        definitionId = EquipmentWeaponMarker,
-                        quality = CombatEquipmentQuality.Good,
-                        durabilityRatio = 1f,
-                        worldState = CombatEquipmentWorldState.Equipped,
-                        ownerCharacterId = equipmentStaffId
-                    },
-                    new CombatEquipmentInstance
-                    {
-                        instanceId = EquipmentSpareWeaponInstanceMarker,
-                        definitionId = EquipmentWeaponMarker,
-                        quality = CombatEquipmentQuality.Normal,
-                        durabilityRatio = 1f,
-                        worldState = CombatEquipmentWorldState.Stored
-                    },
-                    new CombatEquipmentInstance
-                    {
-                        instanceId = EquipmentArmorInstanceMarker,
-                        definitionId = EquipmentArmorMarker,
-                        quality = CombatEquipmentQuality.Normal,
-                        durabilityRatio = 0.8f,
-                        worldState = CombatEquipmentWorldState.Equipped,
-                        ownerCharacterId = equipmentStaffId
-                    }
-                },
+                    instanceId = EquipmentWeaponInstanceMarker,
+                    definitionId = EquipmentWeaponMarker,
+                    quality = CombatEquipmentQuality.Good,
+                    durabilityRatio = 1f,
+                    worldState = CombatEquipmentWorldState.Equipped,
+                    ownerCharacterId = equipmentStaffId
+                };
+            itemInstances.EquipmentInstances[EquipmentSpareWeaponInstanceMarker] =
+                new CombatEquipmentInstance
+                {
+                    instanceId = EquipmentSpareWeaponInstanceMarker,
+                    definitionId = EquipmentWeaponMarker,
+                    quality = CombatEquipmentQuality.Normal,
+                    durabilityRatio = 1f,
+                    worldState = CombatEquipmentWorldState.Stored
+                };
+            itemInstances.EquipmentInstances[EquipmentArmorInstanceMarker] =
+                new CombatEquipmentInstance
+                {
+                    instanceId = EquipmentArmorInstanceMarker,
+                    definitionId = EquipmentArmorMarker,
+                    quality = CombatEquipmentQuality.Normal,
+                    durabilityRatio = 0.8f,
+                    worldState = CombatEquipmentWorldState.Equipped,
+                    ownerCharacterId = equipmentStaffId
+                };
+            equipmentRuntime.PublishRestoreCandidate(
+                equipmentRuntime.BuildRestoreCandidate(
+                    new DungeonCombatEquipmentSaveData
+            {
                 loadouts = new List<CharacterCombatLoadoutState>
                 {
                     new CharacterCombatLoadoutState
@@ -357,12 +374,15 @@ public static class DungeonGameSaveDebugScenarios
                     {
                         orderId = EquipmentCraftOrderMarker,
                         definitionId = EquipmentCraftMarker,
+                        materialId = "material:iron",
                         requiredWork = 10f,
                         completedWork = 6.75f,
-                        materialsReady = true
+                        materialsReady = true,
+                        materialDestinationId =
+                            "facility-input:qa-save-craft-order"
                     }
                 }
-            });
+            }));
             expeditionMember.Lifecycle?.RestoreExpeditionRecovery(new CharacterExpeditionRecoveryState
             {
                 stress = ExpeditionStressMarker
@@ -372,8 +392,9 @@ public static class DungeonGameSaveDebugScenarios
             const string ExpeditionMarker = "qa-save-expedition";
             const string ExpeditionResultMarker = "qa-save-expedition-result";
             offenseBattle.ClearForPersistentRestore();
-            expeditions.RestorePersistentState(
-                new[]
+            expeditions.PublishRestoreCandidate(
+                expeditions.BuildRestoreCandidate(
+                new List<OffenseExpeditionRun>
                 {
                     new OffenseExpeditionRun(
                         ExpeditionMarker,
@@ -382,7 +403,7 @@ public static class DungeonGameSaveDebugScenarios
                         77f,
                         41f)
                 },
-                new[]
+                new List<OffenseExpeditionResult>
                 {
                     new OffenseExpeditionResult(
                         ExpeditionResultMarker,
@@ -403,7 +424,7 @@ public static class DungeonGameSaveDebugScenarios
                                 2f)
                         },
                         new[] { "Save QA reward" })
-                });
+                }));
 
             InvasionThreatSnapshot invasionSpawnSnapshot = new InvasionThreatSnapshot(
                 101f,
@@ -472,14 +493,18 @@ public static class DungeonGameSaveDebugScenarios
                 DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
                     parsed,
                     CharacterWorldSaveSection.Id);
-            DungeonOffenseSaveData parsedOffense =
-                DungeonSaveSectionPayload.ReadOrNew<DungeonOffenseSaveData>(
+            DungeonOffenseAggregateSaveData parsedOffense =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonOffenseAggregateSaveData>(
                     parsed,
-                    OffenseSaveSection.Id);
+                    OffenseAggregateSaveSection.Id);
             DungeonCombatEquipmentSaveData parsedEquipment =
                 DungeonSaveSectionPayload.ReadOrNew<DungeonCombatEquipmentSaveData>(
                     parsed,
                     CombatEquipmentSaveSection.Id);
+            DungeonPhysicalItemSaveData parsedPhysicalItems =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonPhysicalItemSaveData>(
+                    parsed,
+                    PhysicalItemsSaveSection.Id);
             parsedResearch.unlockedRecipeIds.Remove(migratedRecipeId);
             parsedResearch.unlockedRecipeIds.Add("recipe_battlefield_dining_2");
             DungeonSaveSectionPayload.Write(
@@ -490,10 +515,10 @@ public static class DungeonGameSaveDebugScenarios
                 parsedResearch);
             int savedCharacterCount = parsedCharacters.actors?.Count ?? 0;
             Require(savedCharacterCount > 0, "No persistent characters were captured.");
-            DungeonOffenseExpeditionRunSaveData savedExpedition = parsedOffense.activeExpeditions?
+            DungeonOffenseExpeditionRunSaveData savedExpedition = parsedOffense.expedition.activeExpeditions?
                 .FirstOrDefault(active => active != null && active.expeditionId == ExpeditionMarker);
-            Require(parsedOffense.completedTargetIds.Contains(completedOffenseTarget.id)
-                    && string.IsNullOrWhiteSpace(parsedOffense.revealedTruthTargetId),
+            Require(parsedOffense.campaign.completedTargetIds.Contains(completedOffenseTarget.id)
+                    && string.IsNullOrWhiteSpace(parsedOffense.campaign.revealedTruthTargetId),
                 "Offense campaign progress was not captured.");
             Require(savedExpedition != null
                 && savedExpedition.memberPersistentIds.Count == 1
@@ -516,8 +541,9 @@ public static class DungeonGameSaveDebugScenarios
                                 EquipmentWeaponInstanceMarker)
                             && profile.armorInstanceIds.Contains(
                                 EquipmentArmorInstanceMarker)))
-                    && parsedEquipment.instances.Count(entry => entry != null
-                        && entry.definitionId == EquipmentWeaponMarker) == 2
+                    && parsedPhysicalItems.uniqueItems.Count(entry => entry != null
+                        && (entry.itemInstanceId == EquipmentWeaponInstanceMarker
+                            || entry.itemInstanceId == EquipmentSpareWeaponInstanceMarker)) == 2
                     && parsedEquipment.craftOrders.Any(order => order != null
                         && order.orderId == EquipmentCraftOrderMarker
                         && order.definitionId == EquipmentCraftMarker
@@ -525,16 +551,22 @@ public static class DungeonGameSaveDebugScenarios
                 "Combat equipment instances, loadout, or work queue were not captured.");
 
             gameData.holdingMoney.Value = 1;
-            research.State.ClearForRestore();
-            shop.RestoreState(1, Array.Empty<int>(), Array.Empty<int>());
+            research.ReplaceWithEmptyStateForDebug();
+            IFacilityShopPersistence shopPersistence = shop;
+            shopPersistence.PublishRestoreCandidate(
+                shopPersistence.BuildRestoreCandidate(
+                    new FacilityShopStateSnapshot(
+                        1,
+                        Array.Empty<int>(),
+                        Array.Empty<int>())));
             run.StartRun(123456, null, InvasionThreatDifficulty.Normal);
             meta.State.Restore(
                 0,
                 0,
                 Array.Empty<KeyValuePair<string, int>>(),
                 Array.Empty<string>());
-            customers.State.Restore(Array.Empty<RegularCustomerRecord>());
-            codex.State.ClearForRestore();
+            customers.ReplaceWithEmptyStateForDebug();
+            codex.ReplaceWithEmptyStateForDebug();
             alerts.RestoreHistory(Array.Empty<EventAlertRecordSnapshot>());
             settlement.RestorePersistentState(new OperatingDaySettlementPersistenceState(
                 1,
@@ -551,9 +583,10 @@ public static class DungeonGameSaveDebugScenarios
                 null));
             offenseWorldMap.StartWorldMap();
             offenseRewards.ResetState();
-            expeditions.RestorePersistentState(
-                Array.Empty<OffenseExpeditionRun>(),
-                Array.Empty<OffenseExpeditionResult>());
+            expeditions.PublishRestoreCandidate(
+                expeditions.BuildRestoreCandidate(
+                    new List<OffenseExpeditionRun>(),
+                    new List<OffenseExpeditionResult>()));
             offenseBattle.ClearForPersistentRestore();
             expeditionMember.EndExpedition(alive: true);
             invasionDirector.ClearForPersistentRestore();
@@ -591,7 +624,7 @@ public static class DungeonGameSaveDebugScenarios
                 "Owner doctrine did not round-trip.");
             Require(meta.State.LifetimeEarnedCurrency >= 19, "Meta progression currency did not round-trip.");
             Require(meta.State.GetUpgradeLevel(MetaUpgradeIds.CommerceSupplyNetwork) == 2
-                && Mathf.Approximately(meta.GetCommerceStockCostMultiplier(StockCategory.Food), 0.92f),
+                && Mathf.Approximately(meta.GetCommerceStockCostMultiplier(true), 0.92f),
                 "Strategy meta upgrade did not round-trip with its runtime effect.");
             Require(customers.State.TryGetRecord(CustomerMarker, out RegularCustomerRecord restoredCustomer)
                 && restoredCustomer.VisitCount == 4
@@ -751,26 +784,51 @@ public static class DungeonGameSaveDebugScenarios
                 + $"{savedIntruderHealth:0.###}, "
                 + $"statuses={restoredStatusSummary}.");
             Require(report.Warnings.Count == 0,
-                "V16 restore emitted warnings: " + string.Join(" | ", report.Warnings));
+                "V18 restore emitted warnings: " + string.Join(" | ", report.Warnings));
 
-            DungeonGameSaveData legacyWithoutDoctrine = saveService.FromJson(json);
+            DungeonGameSaveData stateBeforeLegacyRejection = saveService.Capture();
+            string canonicalBeforeLegacyRejection = Canonicalize(
+                stateBeforeLegacyRejection);
+            DungeonGameSaveData legacyWithoutDoctrine = saveService.FromJson(
+                saveService.ToJson(stateBeforeLegacyRejection));
             DungeonRunVariableSaveData legacyRunVariables =
                 DungeonSaveSectionPayload.ReadOrNew<DungeonRunVariableSaveData>(
                     legacyWithoutDoctrine,
                     RunVariableSaveSection.Id);
+            legacyRunVariables.version =
+                DungeonRunVariableSaveData.CurrentVersion - 1;
             legacyRunVariables.startVariables.ownerDoctrineId = string.Empty;
             DungeonSaveSectionPayload.Write(
                 legacyWithoutDoctrine,
                 RunVariableSaveSection.Id,
-                1,
+                DungeonRunVariableSaveData.CurrentVersion,
                 DungeonSaveRestorePhase.Foundation,
                 legacyRunVariables);
             Require(
-                saveService.TryRestore(legacyWithoutDoctrine, out DungeonGameRestoreReport legacyReport),
-                "Legacy owner doctrine fallback restore failed: " + string.Join(" | ", legacyReport.Errors));
-            Require(run.State.StartVariables != null
+                !saveService.TryRestore(
+                    legacyWithoutDoctrine,
+                    out DungeonGameRestoreReport legacyReport),
+                "Legacy run-variable payload was accepted by the strict V18 boundary.");
+            Require(
+                legacyReport.Errors.Any(error =>
+                    error?.IndexOf(
+                        "Run-variable payload version",
+                        StringComparison.OrdinalIgnoreCase) >= 0
+                    && error.IndexOf(
+                        "unsupported",
+                        StringComparison.OrdinalIgnoreCase) >= 0),
+                "Legacy rejection did not identify the unsupported run-variable "
+                + "payload version: " + string.Join(" | ", legacyReport.Errors));
+            Require(
+                string.Equals(
+                    canonicalBeforeLegacyRejection,
+                    Canonicalize(saveService.Capture()),
+                    StringComparison.Ordinal),
+                "Rejected legacy restore mutated the live canonical save state.");
+            Require(
+                run.State.StartVariables != null
                     && run.State.StartVariables.ownerDoctrineId == savedOwnerDoctrineId,
-                "Legacy save did not infer the owner doctrine from the owner species.");
+                "Rejected legacy restore mutated the live owner doctrine.");
 
             if (report.Warnings.Count > 0)
             {
@@ -798,6 +856,35 @@ public static class DungeonGameSaveDebugScenarios
         }
     }
 
+    private static string Canonicalize(DungeonGameSaveData save)
+    {
+        StringBuilder builder = new StringBuilder();
+        builder.Append(save?.version ?? 0).Append('\n');
+        AppendCanonicalField(builder, save?.sceneName);
+        foreach (DungeonSaveSectionEnvelope section in
+                 save?.sections?
+                     .Where(candidate => candidate != null)
+                     .OrderBy(candidate => candidate.sectionId, StringComparer.Ordinal)
+                 ?? Enumerable.Empty<DungeonSaveSectionEnvelope>())
+        {
+            AppendCanonicalField(builder, section.sectionId);
+            builder.Append(section.sectionVersion).Append('\n');
+            builder.Append((int)section.restorePhase).Append('\n');
+            builder.Append(section.optional ? '1' : '0').Append('\n');
+            AppendCanonicalField(builder, section.payloadJson);
+        }
+        return builder.ToString();
+    }
+
+    private static void AppendCanonicalField(
+        StringBuilder builder,
+        string value)
+    {
+        string normalized = value ?? string.Empty;
+        builder.Append(normalized.Length).Append(':').Append(normalized)
+            .Append('\n');
+    }
+
     [MenuItem("DungeonStory/Debug/Save/Run File Slot Round Trip")]
     public static void RunFileSlotRoundTrip()
     {
@@ -814,8 +901,8 @@ public static class DungeonGameSaveDebugScenarios
 
         const string SlotId = "qa_round_trip";
         IDungeonGameSaveSlotService slots = scope.Container.Resolve<IDungeonGameSaveSlotService>();
-        IGameDataProvider gameDataProvider = scope.Container.Resolve<IGameDataProvider>();
-        Require(gameDataProvider.TryGetGameData(out GameData gameData), "GameData runtime is missing.");
+        IGameSessionStateProvider gameDataProvider = scope.Container.Resolve<IGameSessionStateProvider>();
+        Require(gameDataProvider.TryGetSessionState(out GameSessionState gameData), "GameSessionState runtime is missing.");
 
         int originalMoney = gameData.holdingMoney.Value;
         try

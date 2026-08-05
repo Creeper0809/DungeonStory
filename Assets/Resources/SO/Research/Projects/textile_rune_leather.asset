@@ -27,14 +27,30 @@ MonoBehaviour:
   description: "\uAC00\uC8FD\uC5D0 \uB9C8\uB098 \uBB38\uC591\uC744 \uC0C8\uACA8 \uBC29\uC5B4\uC640
     \uB9C8\uBC95 \uC800\uD56D\uC744 \uB192\uC778\uB2E4."
   field: 11
-  requiredWork: 154
+  requiredWork: 132
   prerequisites:
   - {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
   - {fileID: 11400000, guid: 94c250e80abfe814a9a2b60a972836f0, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:advanced
+    prerequisite: {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
+    kind: 0
+    reason: "\uBE44\uC804 \uC5F0\uAD6C\uC758 \uC774\uB860\uC774(\uAC00) \uB8EC\uAC00\uC8FD
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:textile:tanning
+    prerequisite: {fileID: 11400000, guid: 94c250e80abfe814a9a2b60a972836f0, type: 2}
+    kind: 1
+    reason: "\uBB34\uB450\uC9C8\uC758 \uC81C\uC791 \uAE30\uBC95\uC774(\uAC00) \uB8EC\uAC00\uC8FD
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items: []
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2

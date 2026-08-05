@@ -7,6 +7,73 @@ using UnityEngine;
 using UnityEngine.UI;
 using VContainer.Unity;
 
+public sealed class TreasuryHudPresentationContext
+{
+    public TreasuryHudPresentationContext(
+        IDungeonUiCanvasProvider canvasProvider,
+        ITmpKoreanFontService fonts,
+        IUiClock uiClock,
+        DungeonSceneRuntimeReferences sceneReferences,
+        IStockCategoryDefinitionCatalog stockCategoryCatalog)
+    {
+        CanvasProvider = canvasProvider
+            ?? throw new ArgumentNullException(nameof(canvasProvider));
+        Fonts = fonts ?? throw new ArgumentNullException(nameof(fonts));
+        UiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        SceneReferences = sceneReferences
+            ?? throw new ArgumentNullException(nameof(sceneReferences));
+        StockCategoryCatalog = stockCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
+    }
+
+    public IDungeonUiCanvasProvider CanvasProvider { get; }
+    public ITmpKoreanFontService Fonts { get; }
+    public IUiClock UiClock { get; }
+    public DungeonSceneRuntimeReferences SceneReferences { get; }
+    public IStockCategoryDefinitionCatalog StockCategoryCatalog { get; }
+}
+
+public sealed class TreasuryHudEconomyContext
+{
+    public TreasuryHudEconomyContext(
+        IGameClock gameClock,
+        IGameSessionStateProvider gameDataProvider,
+        IWorldItemStackRuntime items,
+        IEconomyTransactionLedger ledger)
+    {
+        GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        GameDataProvider = gameDataProvider
+            ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        Items = items ?? throw new ArgumentNullException(nameof(items));
+        Ledger = ledger ?? throw new ArgumentNullException(nameof(ledger));
+    }
+
+    public IGameClock GameClock { get; }
+    public IGameSessionStateProvider GameDataProvider { get; }
+    public IWorldItemStackRuntime Items { get; }
+    public IEconomyTransactionLedger Ledger { get; }
+}
+
+public sealed class TreasuryHudContractContext
+{
+    public TreasuryHudContractContext(
+        IEmploymentContractRuntime employment,
+        IAutoProcurementRuntime procurement,
+        IPaidFacilityContractRuntime paidContracts)
+    {
+        Employment = employment
+            ?? throw new ArgumentNullException(nameof(employment));
+        Procurement = procurement
+            ?? throw new ArgumentNullException(nameof(procurement));
+        PaidContracts = paidContracts
+            ?? throw new ArgumentNullException(nameof(paidContracts));
+    }
+
+    public IEmploymentContractRuntime Employment { get; }
+    public IAutoProcurementRuntime Procurement { get; }
+    public IPaidFacilityContractRuntime PaidContracts { get; }
+}
+
 public sealed class TreasuryResourceHudController :
     IStartable,
     ITickable,
@@ -30,13 +97,14 @@ public sealed class TreasuryResourceHudController :
     private readonly ITmpKoreanFontService fonts;
     private readonly IUiClock uiClock;
     private readonly IGameClock gameClock;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IWorldItemStackRuntime items;
     private readonly IEconomyTransactionLedger ledger;
     private readonly IEmploymentContractRuntime employment;
     private readonly IAutoProcurementRuntime procurement;
     private readonly IPaidFacilityContractRuntime paidContracts;
     private readonly DungeonSceneRuntimeReferences sceneReferences;
+    private readonly IStockCategoryDefinitionCatalog stockCategoryCatalog;
     private readonly Dictionary<StockCategory, TMP_Text> stockLabels =
         new Dictionary<StockCategory, TMP_Text>();
 
@@ -51,36 +119,26 @@ public sealed class TreasuryResourceHudController :
     private int lastDay = -1;
 
     public TreasuryResourceHudController(
-        IDungeonUiCanvasProvider canvasProvider,
-        ITmpKoreanFontService fonts,
-        IUiClock uiClock,
-        IGameClock gameClock,
-        IGameDataProvider gameDataProvider,
-        IWorldItemStackRuntime items,
-        IEconomyTransactionLedger ledger,
-        IEmploymentContractRuntime employment,
-        IAutoProcurementRuntime procurement,
-        IPaidFacilityContractRuntime paidContracts,
-        DungeonSceneRuntimeReferences sceneReferences)
+        TreasuryHudPresentationContext presentation,
+        TreasuryHudEconomyContext economy,
+        TreasuryHudContractContext contracts)
     {
-        this.canvasProvider = canvasProvider
-            ?? throw new ArgumentNullException(nameof(canvasProvider));
-        this.fonts = fonts ?? throw new ArgumentNullException(nameof(fonts));
-        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
-        this.gameClock = gameClock
-            ?? throw new ArgumentNullException(nameof(gameClock));
-        this.gameDataProvider = gameDataProvider
-            ?? throw new ArgumentNullException(nameof(gameDataProvider));
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
-        this.ledger = ledger ?? throw new ArgumentNullException(nameof(ledger));
-        this.employment = employment
-            ?? throw new ArgumentNullException(nameof(employment));
-        this.procurement = procurement
-            ?? throw new ArgumentNullException(nameof(procurement));
-        this.paidContracts = paidContracts
-            ?? throw new ArgumentNullException(nameof(paidContracts));
-        this.sceneReferences = sceneReferences
-            ?? throw new ArgumentNullException(nameof(sceneReferences));
+        presentation = presentation
+            ?? throw new ArgumentNullException(nameof(presentation));
+        economy = economy ?? throw new ArgumentNullException(nameof(economy));
+        contracts = contracts ?? throw new ArgumentNullException(nameof(contracts));
+        canvasProvider = presentation.CanvasProvider;
+        fonts = presentation.Fonts;
+        uiClock = presentation.UiClock;
+        sceneReferences = presentation.SceneReferences;
+        stockCategoryCatalog = presentation.StockCategoryCatalog;
+        gameClock = economy.GameClock;
+        gameDataProvider = economy.GameDataProvider;
+        items = economy.Items;
+        ledger = economy.Ledger;
+        employment = contracts.Employment;
+        procurement = contracts.Procurement;
+        paidContracts = contracts.PaidContracts;
     }
 
     public void Start()
@@ -168,7 +226,7 @@ public sealed class TreasuryResourceHudController :
                 $"Stock_{category}",
                 15f);
             label.alignment = TextAlignmentOptions.MidlineRight;
-            label.text = $"{StockCategoryCatalog.GetShortName(category)}  0";
+            label.text = $"{stockCategoryCatalog.GetShortName(category)}  0";
             SetPreferredHeight(label.gameObject, 21f);
             stockLabels[category] = label;
         }
@@ -285,7 +343,7 @@ public sealed class TreasuryResourceHudController :
 
     private void Refresh(bool force)
     {
-        if (!gameDataProvider.TryGetGameData(out GameData gameData)
+        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData)
             || gameData?.holdingMoney == null)
         {
             return;
@@ -321,7 +379,7 @@ public sealed class TreasuryResourceHudController :
         foreach ((StockCategory category, TMP_Text label) in stockLabels)
         {
             label.text =
-                $"{StockCategoryCatalog.GetShortName(category)}  {amounts[category]:N0}";
+                $"{stockCategoryCatalog.GetShortName(category)}  {amounts[category]:N0}";
         }
 
         if (goldLabel != null)
@@ -341,7 +399,7 @@ public sealed class TreasuryResourceHudController :
     private void RefreshFinance()
     {
         if (financeDetails == null
-            || !gameDataProvider.TryGetGameData(out GameData gameData)
+            || !gameDataProvider.TryGetSessionState(out GameSessionState gameData)
             || gameData?.holdingMoney == null)
         {
             return;

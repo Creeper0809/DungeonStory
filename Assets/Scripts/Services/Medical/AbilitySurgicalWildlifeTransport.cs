@@ -57,9 +57,9 @@ public sealed class AbilitySurgicalWildlifeTransport : MonoBehaviour
                 out WildlifeActor patient,
                 out Vector2Int destination,
                 out bool returning,
-                out string failureReason))
+                out DomainFailure failure))
         {
-            Fail(failureReason);
+            Fail(failure);
             yield break;
         }
 
@@ -68,18 +68,22 @@ public sealed class AbilitySurgicalWildlifeTransport : MonoBehaviour
                 DoorAccessOverrideKind.None,
                 out Queue<GridMoveStep> pickupPath))
         {
-            Fail("동물 환자에게 갈 수 없습니다.");
+            Fail(new DomainFailure(
+                FailureCode.SurgeryTransportUnavailable,
+                orderId));
             yield break;
         }
 
         actor.Brain?.SetActionPhase(
-            returning ? "동물 환자 복귀 준비" : "동물 환자 이송 준비",
+            (returning
+                ? SurgeryStatusCode.WildlifePatientReturning
+                : SurgeryStatusCode.WildlifePatientTransporting).ToString(),
             null,
             patient.DisplayName);
         yield return move.MoveByPath(pickupPath);
-        if (!runtime.TryBeginCarry(orderId, actor, out failureReason))
+        if (!runtime.TryBeginCarry(orderId, actor, out failure))
         {
-            Fail(failureReason);
+            Fail(failure);
             yield break;
         }
 
@@ -90,27 +94,31 @@ public sealed class AbilitySurgicalWildlifeTransport : MonoBehaviour
                 DoorAccessOverrideKind.EscortPass,
                 out Queue<GridMoveStep> destinationPath))
         {
-            Fail(returning
-                ? "우리로 돌아가는 운반 경로가 없습니다."
-                : "수술실까지 이어지는 운반 경로가 없습니다.");
+            Fail(new DomainFailure(
+                FailureCode.SurgeryTransportUnavailable,
+                orderId));
             yield break;
         }
 
         actor.Brain?.SetActionPhase(
-            returning ? "동물 환자를 우리로 운반" : "동물 환자를 수술실로 운반",
+            (returning
+                ? SurgeryStatusCode.WildlifePatientReturning
+                : SurgeryStatusCode.WildlifePatientTransporting).ToString(),
             null,
             patient.DisplayName);
         yield return move.MoveByPath(destinationPath);
-        if (!runtime.TryCompleteCarry(orderId, actor, out failureReason))
+        if (!runtime.TryCompleteCarry(orderId, actor, out failure))
         {
-            Fail(failureReason);
+            Fail(failure);
             yield break;
         }
 
         activeOrderId = string.Empty;
         routine = null;
         actor.Brain?.SetActionPhase(
-            returning ? "동물 환자 복귀 완료" : "동물 환자 입실 완료",
+            (returning
+                ? SurgeryStatusCode.WildlifePatientReturnCompleted
+                : SurgeryStatusCode.WildlifePatientReady).ToString(),
             null,
             patient.DisplayName);
         actor.Brain?.RequestImmediateReplan(clearFailures: true);
@@ -142,13 +150,16 @@ public sealed class AbilitySurgicalWildlifeTransport : MonoBehaviour
         return path != null && path.Count > 0;
     }
 
-    private void Fail(string reason)
+    private void Fail(DomainFailure failure)
     {
         string orderId = activeOrderId;
         activeOrderId = string.Empty;
         routine = null;
-        runtime?.FailCarry(orderId, actor, reason);
-        actor?.Brain?.SetActionPhase("동물 환자 운반 중단", null, reason);
+        runtime?.FailCarry(orderId, actor);
+        actor?.Brain?.SetActionPhase(
+            failure.Code.ToString(),
+            null,
+            failure.Code.ToString());
         actor?.Brain?.RequestImmediateReplan(clearFailures: false);
     }
 

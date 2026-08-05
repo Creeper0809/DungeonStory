@@ -207,7 +207,7 @@ public static class CaptivityFacilityAssetBuilder
         asset.category = source.category;
         asset.horizontalDraggable = false;
         asset.verticalDraggable = false;
-        asset.type = typeof(Facility);
+        asset.runtimeArchetype = BuildingRuntimeArchetypeKind.Facility;
         asset.tiles = null;
         asset.movementAnchorOffset = Vector2.zero;
         asset.movementTravelTime = 2f;
@@ -235,6 +235,31 @@ public static class CaptivityFacilityAssetBuilder
             unlockPhase = 1,
             demolitionRefundRate = 0.5f
         });
+        int constructionValue = id == 1201 ? 180 : 90;
+        BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
+        {
+            constructionWorkRequired = Mathf.Clamp(
+                12f + Mathf.Max(1, asset.width) * 6f + constructionValue * 0.02f,
+                12f,
+                120f),
+            repairWorkRequired = Mathf.Clamp(
+                8f + Mathf.Max(1, asset.width) * 2f,
+                6f,
+                35f),
+            cleanWorkRequired = Mathf.Clamp(
+                5f + Mathf.Max(1, asset.width) * 1.25f,
+                4f,
+                24f),
+            researchWorkRequired = 6f,
+            operateWorkRequired = 10f
+        };
+        workAmount.SetConstructionMaterials(new[]
+        {
+            new ItemAmountDefinition(
+                id == 1201 ? "material:iron-ingot" : "material:lumber",
+                Mathf.Max(1, Mathf.CeilToInt(constructionValue * 0.05f)))
+        });
+        abilities.Add(workAmount);
         abilities.Add(new BuildingFacilityAbility { settings = facility });
         if (requiresRoom)
         {

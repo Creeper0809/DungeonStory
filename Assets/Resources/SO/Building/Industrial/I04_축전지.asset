@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: BuildableObject, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,17 +33,18 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: ab6e8ba1770ca824a9d756f6d45470dc, type: 3}
   abilityModules:
     items:
-    - rid: 7302563313663345663
-    - rid: 7302563313672519680
-    - rid: 7302563313672519681
-    - rid: 7302563313672519682
-    - rid: 7302563313672519683
+    - rid: 7737211730889015849
+    - rid: 7737211730889015850
+    - rid: 7737211730889015851
+    - rid: 7737211730889015852
+    - rid: 7737211730889015853
   width: 2
   height: 1
   layer: 1
   category: 7
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 0
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -61,12 +53,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563313663345663
+    - rid: 7737211730889015849
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I04
-    - rid: 7302563313672519680
+    - rid: 7737211730889015850
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -75,7 +67,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563313672519681
+    - rid: 7737211730889015851
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -84,17 +76,17 @@ MonoBehaviour:
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 10
-        constructionMaterialCategory: 1
-        constructionMaterialAmount: 4
-        materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563313672519682
+        constructionMaterials:
+        - itemId: component:machine-parts
+          amount: 4
+    - rid: 7737211730889015852
       type: {class: BuildingPowerStorageAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerStorageAbility
         capacity: 240
         transferPerSecond: 30
         efficiency: 0.92
-    - rid: 7302563313672519683
+    - rid: 7737211730889015853
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
   m_Name: Species_Orc
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  m_EditorClassIdentifier: DungeonStory.Species::CharacterSpeciesSO
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -26,7 +26,7 @@ MonoBehaviour:
   displayName: "\uC624\uD06C"
   ownerSelectionPolicy: 0
   homeFactionId: 
-  anatomyProfileId: anatomy:humanoid
+  anatomyProfileId: anatomy:orc
   needs:
     hungerRateMultiplier: 1
     thirstRateMultiplier: 1
@@ -75,7 +75,7 @@ MonoBehaviour:
   - "\uB9C8\uB825 \uC2DC\uC124"
   - "\uC881\uC740 \uD734\uC2DD \uAD6C\uC5ED"
   stayDurationMultiplier: 1
-  crimeRiskMultiplier: 1
+  crimeRiskMultiplier: 1.2
   incidentType: 2
   incident:
     incidentId: species-incident:orc-rampage

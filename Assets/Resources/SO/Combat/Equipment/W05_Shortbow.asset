@@ -24,8 +24,20 @@ MonoBehaviour:
   primaryMaterialAmount: 2
   allowedMaterialFamilies: 0000000002000000
   craftMaterials: []
+  requiredComponentInputs:
+  - itemId: material:bowstring
+    amount: 1
+  - itemId: material:rope
+    amount: 1
+  requiredResearchId: research:equipment:bowyery
+  era: 1
+  tier: 1
+  slotProfile: 1
+  lineageKind: 0
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
   verbs:
-  - rid: 7302563288033263631
+  - rid: 7737211765905949101
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.35
@@ -37,16 +49,24 @@ MonoBehaviour:
     accuracyMultiplier: 0.82
     damageMultiplier: 0.85
   maximumRange: 11
-  ammunitionItemId: ammo:arrow
+  compatibleAmmunitionItemIds:
+  - ammo:arrow
+  - ammo:arrow-bone
+  - ammo:arrow-iron
+  - ammo:arrow-steel
+  - ammo:arrow-rune
   magazineCapacity: 1
   reloadSeconds: 0.75
   supportsAimed: 1
   supportsRapid: 1
   supportsSuppressive: 1
+  gunpowderWeapon: 0
+  maximumMisfireChance: 0
+  smokeExposure: 0
   references:
     version: 2
     RefIds:
-    - rid: 7302563288033263631
+    - rid: 7737211765905949101
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 0.9

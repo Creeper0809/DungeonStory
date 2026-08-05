@@ -16,12 +16,12 @@ public interface IFacilityEvolutionRecordEventRecorder
 
 public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRecordEventRecorder
 {
-    private readonly Dictionary<int, HashSet<string>> uniqueVisitorsByFacility =
-        new Dictionary<int, HashSet<string>>();
-    private readonly Dictionary<int, FacilityDayRecord> dayRecords =
-        new Dictionary<int, FacilityDayRecord>();
-    private readonly Dictionary<int, int> stockConsumedByFacility =
-        new Dictionary<int, int>();
+    private readonly Dictionary<BuildingInstanceId, HashSet<string>> uniqueVisitorsByFacility =
+        new Dictionary<BuildingInstanceId, HashSet<string>>();
+    private readonly Dictionary<BuildingInstanceId, FacilityDayRecord> dayRecords =
+        new Dictionary<BuildingInstanceId, FacilityDayRecord>();
+    private readonly Dictionary<BuildingInstanceId, int> stockConsumedByFacility =
+        new Dictionary<BuildingInstanceId, int>();
 
     private readonly IFacilityCandidateCache facilityCandidateCache;
     private readonly IFacilityEvolutionRecordComponentService recordComponentService;
@@ -30,7 +30,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
     public FacilityEvolutionRecordEventRecorder(
         IFacilityCandidateCache facilityCandidateCache,
         IFacilityEvolutionRecordComponentService recordComponentService,
-        IFacilityEvolutionRuntime instanceEvolutionRuntime = null)
+        IFacilityEvolutionRuntime instanceEvolutionRuntime)
     {
         this.facilityCandidateCache = facilityCandidateCache
             ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
@@ -157,7 +157,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         }
 
         FacilityEvolutionRecordComponent record = GetOrAddRecord(facility);
-        int key = GetFacilityKey(facility);
+        BuildingInstanceId key = GetFacilityKey(facility);
         stockConsumedByFacility.TryGetValue(key, out int consumedStock);
         consumedStock += eventType.amount;
         stockConsumedByFacility[key] = consumedStock;
@@ -304,7 +304,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
 
     public void CompleteOperatingDay(int cleanServiceMinVisits)
     {
-        foreach (KeyValuePair<int, FacilityDayRecord> entry in dayRecords)
+        foreach (KeyValuePair<BuildingInstanceId, FacilityDayRecord> entry in dayRecords)
         {
             FacilityDayRecord day = entry.Value;
             if (day.facility == null || day.facility.isDestroy)
@@ -334,7 +334,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
 
     private FacilityDayRecord GetDayRecord(BuildableObject facility)
     {
-        int key = GetFacilityKey(facility);
+        BuildingInstanceId key = GetFacilityKey(facility);
         if (!dayRecords.TryGetValue(key, out FacilityDayRecord record))
         {
             record = new FacilityDayRecord(facility);
@@ -351,7 +351,7 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
 
     private HashSet<string> GetUniqueVisitors(BuildableObject facility)
     {
-        int key = GetFacilityKey(facility);
+        BuildingInstanceId key = GetFacilityKey(facility);
         if (!uniqueVisitorsByFacility.TryGetValue(key, out HashSet<string> visitors))
         {
             visitors = new HashSet<string>(StringComparer.Ordinal);
@@ -429,9 +429,11 @@ public sealed class FacilityEvolutionRecordEventRecorder : IFacilityEvolutionRec
         return facility != null && !facility.isDestroy;
     }
 
-    private static int GetFacilityKey(BuildableObject facility)
+    private static BuildingInstanceId GetFacilityKey(BuildableObject facility)
     {
-        return facility != null ? facility.GetInstanceID() : 0;
+        return facility != null
+            ? facility.RequirePersistentInstanceId()
+            : throw new ArgumentNullException(nameof(facility));
     }
 
     private static string GetVisitorId(CharacterActor actor)

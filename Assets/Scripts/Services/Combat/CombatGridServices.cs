@@ -2,6 +2,25 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Cohesive cover capability for combat executors that both inspect and
+/// damage cover. Character health query and command boundaries remain split.
+/// </summary>
+public sealed class CombatCoverServices
+{
+    public CombatCoverServices(
+        ICombatCoverQuery query,
+        ICombatCoverDurabilityRegistry durability)
+    {
+        Query = query ?? throw new ArgumentNullException(nameof(query));
+        Durability = durability
+            ?? throw new ArgumentNullException(nameof(durability));
+    }
+
+    public ICombatCoverQuery Query { get; }
+    public ICombatCoverDurabilityRegistry Durability { get; }
+}
+
 public readonly struct CombatLineOfSightResult
 {
     public CombatLineOfSightResult(
@@ -53,8 +72,8 @@ public sealed class GridCombatLineOfSightService : ICombatLineOfSightService
     private readonly ICharacterAiWorldRegistry worldRegistry;
 
     public GridCombatLineOfSightService(
-        ICombatAffiliationService affiliation = null,
-        ICharacterAiWorldRegistry worldRegistry = null)
+        ICombatAffiliationService affiliation,
+        ICharacterAiWorldRegistry worldRegistry)
     {
         this.affiliation = affiliation;
         this.worldRegistry = worldRegistry;
@@ -347,7 +366,9 @@ public sealed class GridCombatCoverQuery : ICombatCoverQuery
                 cover.height,
                 cover.blockChance * durabilityMultiplier,
                 angle,
-                durability != null ? durability.SourceId : $"cover:{building.GetInstanceID()}",
+                durability != null
+                    ? durability.SourceId
+                    : $"cover:{building.RequirePersistentInstanceId().Value}",
                 cover.allowsCornerPeek);
         }
 

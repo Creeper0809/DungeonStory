@@ -37,13 +37,6 @@ public static class FacilityInstallationKitItemIds
     }
 }
 
-public enum FacilityShopRarity
-{
-    Common,
-    Rare,
-    Special
-}
-
 [Serializable]
 public sealed class FacilityShopOfferSnapshot
 {
@@ -225,78 +218,36 @@ public readonly struct FacilityShopPurchasedEvent
     }
 }
 
-public class FacilityShopUnlockState
+public static class FacilityShopUnityUnlockAdapter
 {
-    private readonly HashSet<int> basicPurchaseBuildingIds = new HashSet<int>();
-    private readonly HashSet<int> acquiredBlueprintIds = new HashSet<int>();
+    public static bool UnlockBasicPurchase(
+        this FacilityShopUnlockState state,
+        BuildingSO building) =>
+        state != null
+        && building != null
+        && FacilityShopService.CanEnterBasicPurchase(building)
+        && state.UnlockBasicPurchaseById(building.id);
 
-    public IReadOnlyCollection<int> BasicPurchaseBuildingIds =>
-        Array.AsReadOnly(basicPurchaseBuildingIds.OrderBy((id) => id).ToArray());
+    public static bool IsBasicPurchaseUnlocked(
+        this FacilityShopUnlockState state,
+        BuildingSO building) =>
+        state != null
+        && building != null
+        && state.IsBasicPurchaseUnlocked(building.id);
 
-    public IReadOnlyCollection<int> AcquiredBlueprintIds =>
-        Array.AsReadOnly(acquiredBlueprintIds.OrderBy((id) => id).ToArray());
+    public static bool MarkBlueprintAcquired(
+        this FacilityShopUnlockState state,
+        FacilityBlueprintSO blueprint) =>
+        state != null
+        && blueprint != null
+        && state.MarkBlueprintAcquiredById(blueprint.id);
 
-    public bool UnlockBasicPurchase(BuildingSO building)
-    {
-        if (building == null || !FacilityShopService.CanEnterBasicPurchase(building))
-        {
-            return false;
-        }
-
-        return basicPurchaseBuildingIds.Add(building.id);
-    }
-
-    public bool UnlockBasicPurchaseById(int buildingId)
-    {
-        if (buildingId < 0)
-        {
-            return false;
-        }
-
-        return basicPurchaseBuildingIds.Add(buildingId);
-    }
-
-    public bool IsBasicPurchaseUnlocked(BuildingSO building)
-    {
-        return building != null && basicPurchaseBuildingIds.Contains(building.id);
-    }
-
-    public bool MarkBlueprintAcquired(FacilityBlueprintSO blueprint)
-    {
-        if (blueprint == null)
-        {
-            return false;
-        }
-
-        return acquiredBlueprintIds.Add(blueprint.id);
-    }
-
-    public bool IsBlueprintAcquired(FacilityBlueprintSO blueprint)
-    {
-        return blueprint != null && acquiredBlueprintIds.Contains(blueprint.id);
-    }
-
-    public void Restore(IEnumerable<int> basicBuildingIds, IEnumerable<int> blueprintIds)
-    {
-        basicPurchaseBuildingIds.Clear();
-        acquiredBlueprintIds.Clear();
-
-        foreach (int id in basicBuildingIds ?? Array.Empty<int>())
-        {
-            if (id >= 0)
-            {
-                basicPurchaseBuildingIds.Add(id);
-            }
-        }
-
-        foreach (int id in blueprintIds ?? Array.Empty<int>())
-        {
-            if (id >= 0)
-            {
-                acquiredBlueprintIds.Add(id);
-            }
-        }
-    }
+    public static bool IsBlueprintAcquired(
+        this FacilityShopUnlockState state,
+        FacilityBlueprintSO blueprint) =>
+        state != null
+        && blueprint != null
+        && state.IsBlueprintAcquired(blueprint.id);
 }
 
 public static class FacilityShopService
@@ -308,7 +259,8 @@ public static class FacilityShopService
     public static IReadOnlyList<FacilityShopOffer> CreateDailyOffers(
         int day,
         IFacilityShopCatalog catalog,
-        IRunVariableRuntimeReader runVariableReader)
+        IRunVariableRuntimeReader runVariableReader,
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog)
     {
         if (catalog == null)
         {
@@ -327,6 +279,7 @@ public static class FacilityShopService
             runVariableReader.GetInitialShopSeed(),
             runVariableReader.GetFacilityShopCostMultiplier,
             runVariableReader.GetBlueprintCostMultiplier,
+            buildingCategoryCatalog,
             runVariableReader.GetStartingBlueprintCandidateIds());
     }
 
@@ -337,6 +290,7 @@ public static class FacilityShopService
         int runShopSeed,
         Func<BuildingSO, float> buildingCostMultiplier,
         Func<FacilityBlueprintSO, float> blueprintCostMultiplier,
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog,
         IEnumerable<int> prioritizedBlueprintIds = null)
     {
         if (buildingCostMultiplier == null)
@@ -350,18 +304,24 @@ public static class FacilityShopService
         }
 
         int safeDay = Mathf.Max(1, day);
-        System.Random random = new System.Random(7919 + (safeDay * 104729) + runShopSeed);
+        IRandomStream random = new DeterministicRandomSequence(
+            7919 + (safeDay * 104729) + runShopSeed);
         List<FacilityShopOffer> offers = new List<FacilityShopOffer>();
 
         List<BuildingSO> buildingPool = buildings?
             .Where(IsDailyShopBuildingCandidate)
-            .OrderBy((building) => random.NextDouble())
+            .OrderBy((building) => random.NextFloat())
             .ToList()
             ?? new List<BuildingSO>();
 
         foreach (BuildingSO building in buildingPool.Take(RandomBuildingSlots))
         {
-            offers.Add(CreateBuildingOffer(building, false, true, buildingCostMultiplier));
+            offers.Add(CreateBuildingOffer(
+                building,
+                false,
+                true,
+                buildingCostMultiplier,
+                buildingCategoryCatalog));
         }
 
         List<FacilityBlueprintSO> commonBlueprints = blueprints?
@@ -388,7 +348,7 @@ public static class FacilityShopService
         }
 
         guaranteedBlueprints.AddRange(commonBlueprints
-            .OrderBy((blueprint) => random.NextDouble())
+            .OrderBy((blueprint) => random.NextFloat())
             .Take(Mathf.Max(0, GuaranteedBlueprintSlots - guaranteedBlueprints.Count)));
         foreach (FacilityBlueprintSO blueprint in guaranteedBlueprints)
         {
@@ -397,11 +357,11 @@ public static class FacilityShopService
 
         List<FacilityBlueprintSO> rareBlueprints = blueprints?
             .Where((blueprint) => blueprint != null && blueprint.rarity != FacilityShopRarity.Common)
-            .OrderBy((blueprint) => random.NextDouble())
+            .OrderBy((blueprint) => random.NextFloat())
             .ToList()
             ?? new List<FacilityBlueprintSO>();
 
-        if (rareBlueprints.Count > 0 && random.NextDouble() <= RareOfferChance)
+        if (rareBlueprints.Count > 0 && random.NextFloat() <= RareOfferChance)
         {
             offers.Add(CreateBlueprintOffer(rareBlueprints[0], true, blueprintCostMultiplier));
         }
@@ -413,7 +373,8 @@ public static class FacilityShopService
         IFacilityShopCatalog catalog,
         FacilityShopUnlockState unlockState,
         IMetaProgressionRuntimeReader metaProgressionReader,
-        IRunVariableRuntimeReader runVariableReader)
+        IRunVariableRuntimeReader runVariableReader,
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog)
     {
         if (catalog == null)
         {
@@ -434,14 +395,16 @@ public static class FacilityShopService
             catalog.Buildings,
             unlockState,
             metaProgressionReader.GetExpandedBasicPurchaseBuildingIds(catalog.Buildings),
-            runVariableReader.GetFacilityShopCostMultiplier);
+            runVariableReader.GetFacilityShopCostMultiplier,
+            buildingCategoryCatalog);
     }
 
     public static IReadOnlyList<FacilityShopOffer> CreateBasicPurchaseOffers(
         IEnumerable<BuildingSO> buildings,
         FacilityShopUnlockState unlockState,
         IEnumerable<int> expandedBasicPurchaseBuildingIds,
-        Func<BuildingSO, float> buildingCostMultiplier)
+        Func<BuildingSO, float> buildingCostMultiplier,
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog)
     {
         if (buildingCostMultiplier == null)
         {
@@ -464,16 +427,23 @@ public static class FacilityShopService
             .Where((building) => (unlockState.IsBasicPurchaseUnlocked(building) || metaBasicPurchaseIds.Contains(building.id))
                 && CanEnterBasicPurchase(building))
             .OrderBy((building) => building.id)
-            .Select((building) => CreateBuildingOffer(building, true, false, buildingCostMultiplier))
+            .Select((building) => CreateBuildingOffer(
+                building,
+                true,
+                false,
+                buildingCostMultiplier,
+                buildingCategoryCatalog))
             .Where((offer) => offer != null && offer.IsValid)
             .ToList()
             ?? new List<FacilityShopOffer>();
     }
 
     public static bool TryPurchaseOffer(
-        GameData gameData,
+        IGameMoneyAccount money,
         FacilityShopOffer offer,
         FacilityShopUnlockState unlockState,
+        EconomyTransactionContext transactionContext,
+        IDungeonDebugRuleQuery debugRules,
         out FacilityShopPurchaseResult result,
         Action<FacilityShopPurchaseResult> purchaseCompleted = null)
     {
@@ -484,24 +454,33 @@ public static class FacilityShopService
             return false;
         }
 
-        if (gameData == null || gameData.holdingMoney == null)
+        if (money == null)
         {
             result = new FacilityShopPurchaseResult(false, offer, offer.Cost, "게임 자금 데이터가 없습니다");
             purchaseCompleted?.Invoke(result);
             return false;
         }
 
-        if (!DungeonDebugRuntimeRules.ShouldSkipCosts()
-            && gameData.holdingMoney.Value < offer.Cost)
+        if (!(debugRules ?? throw new ArgumentNullException(nameof(debugRules))).ShouldSkipCosts()
+            && !money.CanSpend(offer.Cost))
         {
             result = new FacilityShopPurchaseResult(false, offer, offer.Cost, "자금 부족");
             purchaseCompleted?.Invoke(result);
             return false;
         }
 
-        if (!DungeonDebugRuntimeRules.ShouldSkipCosts())
+        if (!debugRules.ShouldSkipCosts())
         {
-            gameData.holdingMoney.Value -= offer.Cost;
+            if (!money.TrySpend(offer.Cost, transactionContext, out string reason))
+            {
+                result = new FacilityShopPurchaseResult(
+                    false,
+                    offer,
+                    offer.Cost,
+                    reason);
+                purchaseCompleted?.Invoke(result);
+                return false;
+            }
         }
         string message = offer.ApplyPurchase(unlockState);
         result = new FacilityShopPurchaseResult(true, offer, offer.Cost, message);
@@ -563,7 +542,8 @@ public static class FacilityShopService
         BuildingSO building,
         bool basicPurchase,
         bool randomOffer,
-        Func<BuildingSO, float> buildingCostMultiplier)
+        Func<BuildingSO, float> buildingCostMultiplier,
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog)
     {
         if (building == null)
         {
@@ -571,7 +551,12 @@ public static class FacilityShopService
         }
 
         FacilityShopRarity rarity = ResolveBuildingRarity(building);
-        int cost = CalculateBuildingCost(building, basicPurchase, rarity, buildingCostMultiplier);
+        int cost = CalculateBuildingCost(
+            building,
+            basicPurchase,
+            rarity,
+            buildingCostMultiplier,
+            buildingCategoryCatalog);
         return new FacilityBuildingOffer(building, cost, rarity, basicPurchase, randomOffer);
     }
 
@@ -615,10 +600,13 @@ public static class FacilityShopService
         BuildingSO building,
         bool basicPurchase,
         FacilityShopRarity rarity,
-        Func<BuildingSO, float> buildingCostMultiplier)
+        Func<BuildingSO, float> buildingCostMultiplier,
+        IBuildingCategoryDefinitionCatalog buildingCategoryCatalog)
     {
         int star = Mathf.Max(1, GetBuildingStar(building));
-        int categoryWeight = BuildingCategoryCatalog.GetShopCostWeight(building.category);
+        int categoryWeight = (buildingCategoryCatalog
+                ?? throw new ArgumentNullException(nameof(buildingCategoryCatalog)))
+            .GetShopCostWeight(building.category);
 
         int rarityWeight = rarity switch
         {
@@ -643,326 +631,4 @@ public static class FacilityShopService
         return Mathf.Max(0.05f, blueprintCostMultiplier(blueprint));
     }
 
-}
-
-public class DailyFacilityShopRuntime : MonoBehaviour
-{
-    [SerializeField] private bool raiseAlertOnRefresh = true;
-
-    private readonly List<FacilityShopOffer> currentDailyOffers = new List<FacilityShopOffer>();
-    private IReadOnlyList<FacilityShopOffer> currentDailyOffersView;
-    private readonly FacilityShopUnlockState unlockState = new FacilityShopUnlockState();
-    private int currentOfferDay = 1;
-    private IFacilityShopCatalog facilityShopCatalog;
-    private IRunVariableRuntimeReader runVariableReader;
-    private IMetaProgressionRuntimeReader metaProgressionReader;
-    private IGameEventBus gameEventBus;
-    private IAutoProcurementRuntime autoProcurement;
-    private IEconomyTransactionLedger transactionLedger;
-    private IDisposable runStartVariablesSubscription;
-    private IDisposable operatingDayEndedSubscription;
-
-    public event Action<int, IReadOnlyList<FacilityShopOffer>, IReadOnlyList<FacilityShopOffer>> Refreshed;
-
-    public IReadOnlyList<FacilityShopOffer> CurrentDailyOffers =>
-        currentDailyOffersView ??= ReadOnlyView.List(currentDailyOffers);
-    public IReadOnlyList<FacilityShopOffer> CurrentBasicPurchaseOffers =>
-        FacilityShopService.CreateBasicPurchaseOffers(
-            ResolveFacilityShopCatalog(),
-            unlockState,
-            ResolveMetaProgressionReader(),
-            ResolveRunVariableReader());
-    public FacilityShopUnlockState UnlockState => unlockState;
-    public int CurrentOfferDay => currentOfferDay;
-
-    [Inject]
-    public void ConstructDailyFacilityShopRuntime(
-        IFacilityShopCatalog facilityShopCatalog,
-        IRunVariableRuntimeReader runVariableReader,
-        IMetaProgressionRuntimeReader metaProgressionReader,
-        IGameEventBus gameEventBus,
-        IAutoProcurementRuntime autoProcurement = null,
-        IEconomyTransactionLedger transactionLedger = null)
-    {
-        this.facilityShopCatalog = facilityShopCatalog
-            ?? throw new ArgumentNullException(nameof(facilityShopCatalog));
-        this.runVariableReader = runVariableReader
-            ?? throw new ArgumentNullException(nameof(runVariableReader));
-        this.metaProgressionReader = metaProgressionReader
-            ?? throw new ArgumentNullException(nameof(metaProgressionReader));
-        this.gameEventBus = gameEventBus
-            ?? throw new ArgumentNullException(nameof(gameEventBus));
-        this.autoProcurement = autoProcurement;
-        this.transactionLedger = transactionLedger;
-        SubscribeToScopedEvents();
-    }
-
-    private void Start()
-    {
-        if (currentDailyOffers.Count == 0)
-        {
-            Refresh(1, false);
-        }
-    }
-
-    public void OnTriggerEvent(OperatingDayEndedEvent eventType)
-    {
-        Refresh(Mathf.Max(1, eventType.day + 1), raiseAlertOnRefresh);
-    }
-
-    public void OnTriggerEvent(RunStartVariablesSelectedEvent eventType)
-    {
-        if (currentOfferDay <= 1)
-        {
-            Refresh(1, false);
-        }
-    }
-
-    public void Refresh(int day, bool raiseAlert)
-    {
-        currentOfferDay = Mathf.Max(1, day);
-        currentDailyOffers.Clear();
-        currentDailyOffers.AddRange(FacilityShopService.CreateDailyOffers(
-            currentOfferDay,
-            ResolveFacilityShopCatalog(),
-            ResolveRunVariableReader()));
-
-        IReadOnlyList<FacilityShopOffer> basicPurchaseOffers = CurrentBasicPurchaseOffers;
-        Refreshed?.Invoke(
-            currentOfferDay,
-            EventPayloadSnapshot.Copy(currentDailyOffers),
-            EventPayloadSnapshot.Copy(basicPurchaseOffers));
-        autoProcurement?.ProcessShopRefresh(
-            currentOfferDay,
-            CurrentDailyOffers,
-            this);
-
-        if (raiseAlert)
-        {
-            gameEventBus.RaiseAlert(
-                "시설 상점 갱신",
-                FormatOfferList(currentDailyOffers, basicPurchaseOffers),
-                EventAlertImportance.Medium,
-                "상점");
-        }
-    }
-
-    public void RestoreState(
-        int offerDay,
-        IEnumerable<int> basicBuildingIds,
-        IEnumerable<int> acquiredBlueprintIds)
-    {
-        unlockState.Restore(basicBuildingIds, acquiredBlueprintIds);
-        Refresh(Mathf.Max(1, offerDay), false);
-    }
-
-    public bool TryPurchaseDailyOffer(int index, GameData gameData, out FacilityShopPurchaseResult result)
-    {
-        return TryPurchaseDailyOffer(
-            index,
-            gameData,
-            CreatePurchaseContext(
-                currentDailyOffers,
-                index,
-                "daily-shop",
-                "일일 상점 구매"),
-            out result);
-    }
-
-    public bool TryPurchaseDailyOffer(
-        int index,
-        GameData gameData,
-        EconomyTransactionContext transactionContext,
-        out FacilityShopPurchaseResult result)
-    {
-        if (index < 0 || index >= currentDailyOffers.Count)
-        {
-            result = new FacilityShopPurchaseResult(false, null, 0, "선택한 상품이 없습니다");
-            PublishPurchase(result);
-            return false;
-        }
-
-        return ExecutePurchase(
-            gameData,
-            currentDailyOffers[index],
-            transactionContext,
-            out result);
-    }
-
-    public bool TryPurchaseBasicOffer(int index, GameData gameData, out FacilityShopPurchaseResult result)
-    {
-        IReadOnlyList<FacilityShopOffer> offers = CurrentBasicPurchaseOffers;
-        return TryPurchaseBasicOffer(
-            index,
-            gameData,
-            CreatePurchaseContext(
-                offers,
-                index,
-                "basic-shop",
-                "기본 시설 구매"),
-            out result);
-    }
-
-    public bool TryPurchaseBasicOffer(
-        int index,
-        GameData gameData,
-        EconomyTransactionContext transactionContext,
-        out FacilityShopPurchaseResult result)
-    {
-        IReadOnlyList<FacilityShopOffer> offers = CurrentBasicPurchaseOffers;
-        if (index < 0 || index >= offers.Count)
-        {
-            result = new FacilityShopPurchaseResult(false, null, 0, "선택한 기본 구매 상품이 없습니다");
-            PublishPurchase(result);
-            return false;
-        }
-
-        return ExecutePurchase(
-            gameData,
-            offers[index],
-            transactionContext,
-            out result);
-    }
-
-    private bool ExecutePurchase(
-        GameData gameData,
-        FacilityShopOffer offer,
-        EconomyTransactionContext transactionContext,
-        out FacilityShopPurchaseResult result)
-    {
-        if (transactionLedger == null)
-        {
-            return FacilityShopService.TryPurchaseOffer(
-                gameData,
-                offer,
-                unlockState,
-                out result,
-                PublishPurchase);
-        }
-
-        using (transactionLedger.Begin(transactionContext))
-        {
-            return FacilityShopService.TryPurchaseOffer(
-                gameData,
-                offer,
-                unlockState,
-                out result,
-                PublishPurchase);
-        }
-    }
-
-    private static EconomyTransactionContext CreatePurchaseContext(
-        IReadOnlyList<FacilityShopOffer> offers,
-        int index,
-        string sourceId,
-        string description)
-    {
-        FacilityShopOffer offer =
-            index >= 0 && index < (offers?.Count ?? 0)
-                ? offers[index]
-                : null;
-        string targetId = offer == null
-            ? string.Empty
-            : $"{offer.OfferTypeId}:{offer.DataId}";
-        return new EconomyTransactionContext(
-            EconomyTransactionKind.ShopPurchase,
-            sourceId,
-            targetId,
-            description);
-    }
-
-    private void PublishPurchase(FacilityShopPurchaseResult result)
-    {
-        gameEventBus.Publish(new FacilityShopPurchasedEvent(result));
-        if (result.success
-            && string.Equals(
-                result.offerTypeId,
-                FacilityShopOfferTypeIds.Blueprint,
-                StringComparison.Ordinal))
-        {
-            gameEventBus.RaiseBlueprintAcquired(
-                $"{result.offer?.displayName ?? "설계도"} 획득");
-        }
-    }
-
-    private void OnEnable()
-    {
-        SubscribeToScopedEvents();
-    }
-
-    private void OnDisable()
-    {
-        runStartVariablesSubscription?.Dispose();
-        runStartVariablesSubscription = null;
-        operatingDayEndedSubscription?.Dispose();
-        operatingDayEndedSubscription = null;
-    }
-
-    private void SubscribeToScopedEvents()
-    {
-        if (!isActiveAndEnabled || gameEventBus == null)
-        {
-            return;
-        }
-
-        runStartVariablesSubscription ??=
-            gameEventBus.Subscribe<RunStartVariablesSelectedEvent>(OnTriggerEvent);
-        operatingDayEndedSubscription ??=
-            gameEventBus.Subscribe<OperatingDayEndedEvent>(OnTriggerEvent);
-    }
-
-    private static string FormatOfferList(
-        IEnumerable<FacilityShopOffer> dailyOffers,
-        IEnumerable<FacilityShopOffer> basicPurchaseOffers)
-    {
-        List<string> lines = new List<string> { "일일 상품:" };
-        List<string> dailyRows = dailyOffers?
-            .Where((offer) => offer != null && offer.IsValid)
-            .Select((offer) => $"- {offer.ToSnapshot().ToSummaryText()}")
-            .ToList()
-            ?? new List<string>();
-        if (dailyRows.Count > 0)
-        {
-            lines.AddRange(dailyRows);
-        }
-        else
-        {
-            lines.Add("- 없음");
-        }
-
-        List<string> basicRows = basicPurchaseOffers?
-            .Where((offer) => offer != null && offer.IsValid)
-            .Select((offer) => $"- {offer.ToSnapshot().ToSummaryText()}")
-            .ToList()
-            ?? new List<string>();
-        lines.Add(string.Empty);
-        lines.Add("기본 구매:");
-        if (basicRows.Count > 0)
-        {
-            lines.AddRange(basicRows);
-        }
-        else
-        {
-            lines.Add("- 없음");
-        }
-        return string.Join("\n", lines);
-    }
-
-    private IFacilityShopCatalog ResolveFacilityShopCatalog()
-    {
-        return facilityShopCatalog
-            ?? throw new InvalidOperationException($"{nameof(DailyFacilityShopRuntime)} requires {nameof(IFacilityShopCatalog)} injection.");
-    }
-
-    private IRunVariableRuntimeReader ResolveRunVariableReader()
-    {
-        return runVariableReader
-            ?? throw new InvalidOperationException($"{nameof(DailyFacilityShopRuntime)} requires {nameof(IRunVariableRuntimeReader)} injection.");
-    }
-
-    private IMetaProgressionRuntimeReader ResolveMetaProgressionReader()
-    {
-        return metaProgressionReader
-            ?? throw new InvalidOperationException($"{nameof(DailyFacilityShopRuntime)} requires {nameof(IMetaProgressionRuntimeReader)} injection.");
-    }
 }

@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
-using VContainer.Unity;
 
 public sealed class CharacterCombatCommandRuntime :
     ICharacterCombatCommandRuntime,
-    ITickable,
-    IDisposable
+    IDungeonRestoreTransactionParticipant
 {
     private readonly IGridSystemProvider gridProvider;
     private readonly ICombatEquipmentRuntime equipment;
@@ -17,95 +15,107 @@ public sealed class CharacterCombatCommandRuntime :
     private readonly ICombatLineOfSightService lineOfSight;
     private readonly ICombatCoverQuery coverQuery;
     private readonly ICombatAffiliationService affiliation;
-    private readonly ICharacterBodyHealthRuntime bodyHealth;
+    private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly ICombatAmmoResupplyRuntime ammoResupply;
     private readonly IDefenseTacticalCoordinator tacticalCoordinator;
     private readonly IGridPathSearchBroker pathSearchBroker;
-    private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IGameClock gameClock;
-    private readonly Dictionary<string, CharacterCombatCommand> commands =
-        new Dictionary<string, CharacterCombatCommand>(StringComparer.Ordinal);
-    private readonly HashSet<string> combatStance =
-        new HashSet<string>(StringComparer.Ordinal);
+    private readonly ICombatCoverDurabilityRegistry coverDurability;
+    private readonly CombatAttackPositionPlanner attackPositionPlanner;
+    private readonly CombatFallbackWeaponSelector fallbackWeapons;
+    private readonly CombatCommandResultApplier resultApplier;
+    private readonly CombatCommandParticipantQuery participants;
+    private readonly ICharacterCombatUiTextQuery uiText;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly CharacterCombatCommandRestoreCoordinator restoreCoordinator;
+    private readonly IGameEventBus gameEventBus;
+    private readonly IWorldUiHierarchy worldUiHierarchy;
     private readonly Dictionary<string, float> nextMoveRetryAt =
         new Dictionary<string, float>(StringComparer.Ordinal);
-    private readonly Dictionary<string, int> commandRevisions =
-        new Dictionary<string, int>(StringComparer.Ordinal);
     private readonly List<string> tickCommandActorIds = new List<string>();
     private IReadOnlyList<CharacterCombatCommand> commandView = Array.Empty<CharacterCombatCommand>();
     private bool viewDirty = true;
-    private int commandSequence;
-
-    public CharacterCombatCommandRuntime(
-        IGridSystemProvider gridProvider,
-        ICombatEquipmentRuntime equipment,
-        ICombatResolutionService resolution,
-        ICombatFiringSolutionService firingSolutions,
-        ICombatLineOfSightService lineOfSight,
-        ICombatCoverQuery coverQuery,
-        ICombatAffiliationService affiliation,
-        ICharacterBodyHealthRuntime bodyHealth,
-        ICombatAmmoResupplyRuntime ammoResupply,
-        IDefenseTacticalCoordinator tacticalCoordinator,
-        IGridPathSearchBroker pathSearchBroker,
-        ICharacterAiWorldRegistry worldRegistry,
-        IGameClock gameClock)
+    private CharacterCombatCommandAggregateState aggregateState =>
+        aggregateRootStore.GetOrCreate(
+            () => new CharacterCombatCommandAggregateState());
+    private CharacterCombatCommandAggregateState writableAggregateState =>
+        aggregateRootStore.GetOrCreateWritable(
+            () => new CharacterCombatCommandAggregateState(),
+            state => state.Clone());
+    private Dictionary<string, CharacterCombatCommand> commands =>
+        writableAggregateState.Commands;
+    private HashSet<string> combatStance =>
+        writableAggregateState.CombatStance;
+    private Dictionary<string, int> commandRevisions =>
+        writableAggregateState.CommandRevisions;
+    private int commandSequence
     {
-        this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
-        this.equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
-        this.resolution = resolution ?? throw new ArgumentNullException(nameof(resolution));
-        this.firingSolutions = firingSolutions ?? throw new ArgumentNullException(nameof(firingSolutions));
-        this.lineOfSight = lineOfSight ?? throw new ArgumentNullException(nameof(lineOfSight));
-        this.coverQuery = coverQuery ?? throw new ArgumentNullException(nameof(coverQuery));
-        this.affiliation = affiliation ?? throw new ArgumentNullException(nameof(affiliation));
-        this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
-        this.ammoResupply = ammoResupply ?? throw new ArgumentNullException(nameof(ammoResupply));
-        this.tacticalCoordinator = tacticalCoordinator
-            ?? throw new ArgumentNullException(nameof(tacticalCoordinator));
-        this.pathSearchBroker = pathSearchBroker
-            ?? throw new ArgumentNullException(nameof(pathSearchBroker));
-        this.worldRegistry = worldRegistry
-            ?? throw new ArgumentNullException(nameof(worldRegistry));
-        this.gameClock = gameClock
-            ?? throw new ArgumentNullException(nameof(gameClock));
+        get => aggregateState.CommandSequence;
+        set => writableAggregateState.CommandSequence = value;
     }
 
+    public CharacterCombatCommandRuntime(
+        CharacterCombatCommandCombatServices combat,
+        CharacterCombatCommandWorldServices world,
+        CharacterCombatCommandCollaborators collaborators,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
+    {
+        combat = combat ?? throw new ArgumentNullException(nameof(combat));
+        world = world ?? throw new ArgumentNullException(nameof(world));
+        collaborators = collaborators
+            ?? throw new ArgumentNullException(nameof(collaborators));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        gridProvider = world.GridProvider;
+        equipment = combat.Equipment;
+        resolution = combat.Resolution;
+        firingSolutions = combat.FiringSolutions;
+        lineOfSight = combat.LineOfSight;
+        coverQuery = combat.CoverQuery;
+        affiliation = combat.Affiliation;
+        bodyHealth = combat.BodyHealth;
+        ammoResupply = combat.AmmoResupply;
+        tacticalCoordinator = world.TacticalCoordinator;
+        pathSearchBroker = world.PathSearchBroker;
+        gameClock = world.GameClock;
+        coverDurability = world.CoverDurability;
+        gameEventBus = world.GameEventBus;
+        worldUiHierarchy = world.WorldUiHierarchy;
+        attackPositionPlanner = collaborators.AttackPositionPlanner;
+        fallbackWeapons = collaborators.FallbackWeapons;
+        resultApplier = collaborators.ResultApplier;
+        participants = collaborators.Participants;
+        uiText = collaborators.UiText;
+        restoreCoordinator = new CharacterCombatCommandRestoreCoordinator(
+            world, combat, collaborators, this.aggregateRootStore,
+            OnRestorePublished);
+    }
+
+    public string ParticipantId => restoreCoordinator.ParticipantId;
     public IReadOnlyList<CharacterCombatCommand> ActiveCommands
     {
         get
         {
-            if (viewDirty)
-            {
-                commandView = commands.Values
-                    .Where(command => command != null
-                        && command.state is not CharacterCombatCommandState.Completed
-                        and not CharacterCombatCommandState.Cancelled)
-                    .Select(command => command.Clone())
-                    .ToArray();
-                viewDirty = false;
-            }
-
+            if (!viewDirty) return commandView;
+            commandView = CharacterCombatCommandLifecyclePolicy
+                .CreateActiveCommandView(commands.Values);
+            viewDirty = false;
             return commandView;
         }
     }
 
-    public void Dispose()
-    {
-        foreach (CharacterActor actor in worldRegistry.Characters.ToArray())
-        {
-            if (actor != null && combatStance.Contains(GetId(actor)))
-            {
-                ReleaseCombatStance(actor);
-            }
-        }
+    public CharacterCombatCommandRestoreCandidate PrepareRestore(CharacterCombatCommandSaveData saveData) =>
+        restoreCoordinator.PrepareRestore(saveData);
+    public void PublishRestore(CharacterCombatCommandRestoreCandidate candidate) => restoreCoordinator.PublishRestore(candidate);
+    public void BeginRestoreCandidate() => restoreCoordinator.BeginRestoreCandidate();
+    public void PublishRestoreCandidate() => restoreCoordinator.PublishRestoreCandidate();
+    public void RollbackPublishedRestoreCandidate() =>
+        restoreCoordinator.RollbackPublishedRestoreCandidate();
+    public void CompleteRestoreCandidate() =>
+        restoreCoordinator.CompleteRestoreCandidate();
+    public void DiscardRestoreCandidate() => restoreCoordinator.DiscardRestoreCandidate();
 
-        commands.Clear();
-        combatStance.Clear();
-        nextMoveRetryAt.Clear();
-        tickCommandActorIds.Clear();
-    }
-
-    public void Tick()
+    internal void TickFrame()
     {
         float deltaTime = gameClock.DeltaTime;
         if (commands.Count == 0 || deltaTime <= 0f)
@@ -127,7 +137,7 @@ public sealed class CharacterCombatCommandRuntime :
                 continue;
             }
 
-            CharacterActor actor = FindCharacter(actorId);
+            CharacterActor actor = participants.FindCharacter(actorId);
             if (actor == null || actor.IsDead || actor.CurrentLifecycleState != CharacterLifecycleState.Active)
             {
                 CancelCommandById(actorId, "전투 명령 수행 불가");
@@ -376,8 +386,9 @@ public sealed class CharacterCombatCommandRuntime :
             return false;
         }
 
-        CharacterCarryInventory inventory = CharacterCarryInventory.FindByCharacterId(GetId(actor));
-        if (inventory == null || inventory.CountItem(weapon.AmmunitionItemId) <= 0)
+        if (!equipment.HasCompatibleAmmunition(
+                GetId(actor),
+                weapon.InstanceId))
         {
             return ammoResupply.TryRequestAmmoResupply(actor, out message);
         }
@@ -432,7 +443,7 @@ public sealed class CharacterCombatCommandRuntime :
             return false;
         }
 
-        message = $"{GetName(actor)}: {GetFireModeName(mode)}";
+        message = $"{GetName(actor)}: {uiText.GetFireModeName(mode)}";
         return true;
     }
 
@@ -497,69 +508,7 @@ public sealed class CharacterCombatCommandRuntime :
 
     public CharacterCombatCommandSaveData Capture()
     {
-        return new CharacterCombatCommandSaveData
-        {
-            stanceCharacterIds = combatStance.OrderBy(id => id).ToList(),
-            commands = commands.Values
-                .Where(command => command != null
-                    && command.state is not CharacterCombatCommandState.Completed
-                    and not CharacterCombatCommandState.Cancelled)
-                .Select(command => command.Clone())
-                .ToList()
-        };
-    }
-
-    public void Restore(CharacterCombatCommandSaveData saveData, IList<string> warnings)
-    {
-        foreach (string actorId in combatStance.ToArray())
-        {
-            CharacterActor actor = FindCharacter(actorId);
-            if (actor != null)
-            {
-                ReleaseCombatStance(actor);
-            }
-        }
-
-        combatStance.Clear();
-        commands.Clear();
-        if (saveData == null)
-        {
-            MarkDirty();
-            return;
-        }
-
-        foreach (string actorId in saveData.stanceCharacterIds ?? new List<string>())
-        {
-            CharacterActor actor = FindCharacter(actorId);
-            if (actor == null || actor.IsDead
-                || actor.CurrentLifecycleState != CharacterLifecycleState.Active)
-            {
-                warnings?.Add($"전투 태세 복원 대상 '{actorId}'을 찾지 못해 해제했습니다.");
-                continue;
-            }
-
-            combatStance.Add(actorId);
-            actor.SetAiPaused(true);
-        }
-
-        foreach (CharacterCombatCommand source in saveData.commands
-            ?? new List<CharacterCombatCommand>())
-        {
-            CharacterActor actor = FindCharacter(source?.actorId);
-            if (source == null || actor == null || !combatStance.Contains(source.actorId))
-            {
-                warnings?.Add("대상 없는 전투 명령 예약을 해제했습니다.");
-                continue;
-            }
-
-            CharacterCombatCommand restored = source.Clone();
-            restored.attackCooldownRemaining = Mathf.Max(0f, source.attackCooldownRemaining);
-            restored.reloadRemaining = Mathf.Max(0f, source.reloadRemaining);
-            restored.state = CharacterCombatCommandState.Queued;
-            commands[restored.actorId] = restored;
-        }
-
-        MarkDirty();
+        return CharacterCombatCommandPersistence.Capture(aggregateState);
     }
 
     private void TickMove(CharacterActor actor, CharacterCombatCommand command)
@@ -612,7 +561,7 @@ public sealed class CharacterCombatCommandRuntime :
             return;
         }
 
-        CombatParticipantRef intendedTarget = FindParticipant(command.targetId);
+        CombatParticipantRef intendedTarget = participants.Find(command.targetId);
         Vector2Int targetCell = intendedTarget.IsValid
             ? intendedTarget.GridPosition
             : command.TargetCell;
@@ -639,7 +588,9 @@ public sealed class CharacterCombatCommandRuntime :
             return;
         }
 
-        int distance = Manhattan(actor.GetNowXY(), targetCell);
+        int distance = CharacterCombatCommandLifecyclePolicy.Manhattan(
+            actor.GetNowXY(),
+            targetCell);
         bool inRange = weapon.IsRanged
             ? distance <= weapon.MaximumRange
             : distance == 1;
@@ -667,7 +618,10 @@ public sealed class CharacterCombatCommandRuntime :
                 return;
             }
 
-            if (TrySelectFallbackWeapon(actor, preferLoadedRanged: true, out _))
+            if (fallbackWeapons.TrySelect(
+                    GetId(actor),
+                    preferLoadedRanged: true,
+                    out _))
             {
                 command.status = "백업 무기로 교체";
                 MarkDirty();
@@ -730,7 +684,12 @@ public sealed class CharacterCombatCommandRuntime :
                 return;
             }
 
-            LaunchProjectile(actor.transform.position, grid.GetWorldPos(command.TargetCell), weapon);
+            CombatCommandProjectileLauncher.Launch(
+                actor.transform.position,
+                grid.GetWorldPos(command.TargetCell),
+                weapon,
+                gameClock,
+                worldUiHierarchy);
             equipment.TryConsumeLoadedAmmo(weapon.InstanceId);
             command.attackCooldownRemaining = resolution.CalculateAttackInterval(
                 CombatRuntimeStatFactory.Create(actor, bodyHealth.GetSnapshot(actor)),
@@ -767,11 +726,11 @@ public sealed class CharacterCombatCommandRuntime :
             return;
         }
 
-        CombatFireMode mode = ResolveSupportedFireMode(
+        CombatFireMode mode = CharacterCombatCommandLifecyclePolicy.ResolveSupportedFireMode(
             weapon,
             profile?.fireMode ?? CombatFireMode.Aimed);
         CharacterBodyHealthSnapshot attackerBody = bodyHealth.GetSnapshot(actor);
-        CombatStatSnapshot defenderStats = GetCombatStats(impactTarget);
+        CombatStatSnapshot defenderStats = participants.GetCombatStats(impactTarget);
         CharacterBodyHealthSnapshot defenderBody = impactTarget.IsCharacter
             ? bodyHealth.GetSnapshot(impactTarget.Character)
             : default;
@@ -782,7 +741,9 @@ public sealed class CharacterCombatCommandRuntime :
             CombatRuntimeStatFactory.Create(actor, attackerBody),
             defenderStats,
             weapon,
-            Manhattan(actor.GetNowXY(), impactTarget.GridPosition),
+            CharacterCombatCommandLifecyclePolicy.Manhattan(
+                actor.GetNowXY(),
+                impactTarget.GridPosition),
             mode,
             coverQuery.GetCover(grid, actor.GetNowXY(), impactTarget.GridPosition),
             hasLineOfSight: true,
@@ -805,21 +766,27 @@ public sealed class CharacterCombatCommandRuntime :
             return;
         }
 
-        LaunchProjectile(actor.transform.position, impactTarget.IsCharacter
-            ? impactTarget.Character.transform.position
-            : impactTarget.Wildlife.transform.position, weapon);
+        CombatCommandProjectileLauncher.Launch(
+            actor.transform.position,
+            impactTarget.IsCharacter
+                ? impactTarget.Character.transform.position
+                : impactTarget.Wildlife.transform.position,
+            weapon,
+            gameClock,
+            worldUiHierarchy);
         DefenseCombatPresentation.Ensure(actor)?.PlayAttack(
             impactTarget.IsCharacter
                 ? impactTarget.Character.transform.position
                 : impactTarget.Wildlife.transform.position,
             weapon);
         equipment.TryConsumeLoadedAmmo(weapon.InstanceId);
-        ApplyCombatResult(
+        resultApplier.Apply(
             impactTarget,
             result,
             actor,
+            GetName(actor),
             weapon.Verb?.damageType ?? CombatDamageType.Pierce);
-        ApplyArmorDurabilityDamage(result);
+        resultApplier.ApplyArmorDurabilityDamage(result);
         command.attackCooldownRemaining = resolution.CalculateAttackInterval(
             CombatRuntimeStatFactory.Create(actor, attackerBody),
             weapon,
@@ -854,7 +821,7 @@ public sealed class CharacterCombatCommandRuntime :
             GetId(actor),
             target.Id,
             CombatRuntimeStatFactory.Create(actor, attackerBody),
-            GetCombatStats(target),
+            participants.GetCombatStats(target),
             weapon,
             1,
             CombatFireMode.Aimed,
@@ -880,12 +847,13 @@ public sealed class CharacterCombatCommandRuntime :
             ? target.Character.transform.position
             : target.Wildlife.transform.position;
         DefenseCombatPresentation.Ensure(actor)?.PlayAttack(targetWorld, weapon);
-        ApplyCombatResult(
+        resultApplier.Apply(
             target,
             result,
             actor,
+            GetName(actor),
             weapon.Verb?.damageType ?? CombatDamageType.Slash);
-        ApplyArmorDurabilityDamage(result);
+        resultApplier.ApplyArmorDurabilityDamage(result);
         command.attackCooldownRemaining = resolution.CalculateAttackInterval(
             CombatRuntimeStatFactory.Create(actor, attackerBody),
             weapon,
@@ -915,8 +883,9 @@ public sealed class CharacterCombatCommandRuntime :
             return false;
         }
 
-        CharacterCarryInventory inventory = CharacterCarryInventory.FindByCharacterId(actorId);
-        if (inventory == null || inventory.CountItem(weapon.AmmunitionItemId) <= 0)
+        if (!equipment.HasCompatibleAmmunition(
+                actorId,
+                weapon.InstanceId))
         {
             command.state = CharacterCombatCommandState.WaitingForAmmo;
             command.status = "탄약 재보급 필요";
@@ -969,7 +938,7 @@ public sealed class CharacterCombatCommandRuntime :
 
     private void TickRescue(CharacterActor actor, CharacterCombatCommand command)
     {
-        CharacterActor patient = FindCharacter(command.targetId);
+        CharacterActor patient = participants.FindCharacter(command.targetId);
         if (patient == null || patient.IsDead)
         {
             CompleteCommand(command, "구조 대상 소실");
@@ -1016,7 +985,14 @@ public sealed class CharacterCombatCommandRuntime :
         }
 
         Vector2Int destination;
-        if (!TryFindAttackPosition(grid, actor, weapon, targetCell, out destination))
+        if (!attackPositionPlanner.TryFindAndReserve(
+                grid,
+                actor,
+                weapon,
+                targetCell,
+                GetId(actor),
+                participants.FindTargetIdAt(targetCell),
+                out destination))
         {
             return false;
         }
@@ -1041,227 +1017,6 @@ public sealed class CharacterCombatCommandRuntime :
         return true;
     }
 
-    private bool TryFindAttackPosition(
-        Grid grid,
-        CharacterActor actor,
-        CombatWeaponSnapshot weapon,
-        Vector2Int targetCell,
-        out Vector2Int destination)
-    {
-        destination = default;
-        int preferredRange = weapon.IsRanged
-            ? Mathf.Clamp(weapon.MaximumRange * 2 / 3, 2, weapon.MaximumRange)
-            : 1;
-        List<Vector2Int> candidates = new List<Vector2Int>();
-        int radius = weapon.IsRanged ? weapon.MaximumRange : 1;
-        for (int dy = -radius; dy <= radius; dy++)
-        {
-            int remaining = radius - Mathf.Abs(dy);
-            for (int dx = -remaining; dx <= remaining; dx++)
-            {
-                Vector2Int cell = targetCell + new Vector2Int(dx, dy);
-                int distance = Manhattan(cell, targetCell);
-                if (distance <= 0
-                    || (!weapon.IsRanged && distance != 1)
-                    || (weapon.IsRanged && distance > weapon.MaximumRange)
-                    || !grid.IsValidGridPos(cell)
-                    || !grid.IsWalkable(cell))
-                {
-                    continue;
-                }
-
-                if (weapon.IsRanged)
-                {
-                    CombatLineOfSightResult sight = lineOfSight.Evaluate(
-                        grid,
-                        cell,
-                        targetCell,
-                        GetId(actor),
-                        string.Empty);
-                    if (!sight.HasLineOfSight || sight.FriendlyFireRisk)
-                    {
-                        continue;
-                    }
-                }
-
-                candidates.Add(cell);
-            }
-        }
-
-        Vector2Int actorCell = actor.GetNowXY();
-        string actorId = GetId(actor);
-        candidates.RemoveAll(cell =>
-            tacticalCoordinator.IsReservedForOther(actorId, cell));
-        candidates.Sort((left, right) =>
-        {
-            int rangeComparison = Mathf.Abs(
-                    Manhattan(left, targetCell) - preferredRange)
-                .CompareTo(Mathf.Abs(
-                    Manhattan(right, targetCell) - preferredRange));
-            return rangeComparison != 0
-                ? rangeComparison
-                : Manhattan(actorCell, left).CompareTo(
-                    Manhattan(actorCell, right));
-        });
-
-        Vector2Int? selected = null;
-        for (int index = 0; index < candidates.Count; index++)
-        {
-            Vector2Int candidate = candidates[index];
-            if (candidate == actorCell)
-            {
-                selected = candidate;
-                break;
-            }
-
-            Queue<GridMoveStep> path = pathSearchBroker.GetMovePathTo(
-                grid,
-                actorCell,
-                candidate);
-            if (path == null)
-            {
-                // The broker resumes this exact A* search in a later frame.
-                return false;
-            }
-
-            if (path.Count > 0)
-            {
-                selected = candidate;
-                break;
-            }
-        }
-
-        if (!selected.HasValue)
-        {
-            return false;
-        }
-
-        destination = selected.Value;
-        return tacticalCoordinator.TryReserve(
-            actorId,
-            FindTargetIdAt(targetCell),
-            destination,
-            weapon.IsRanged
-                ? CombatPositionReservationKind.Ranged
-                : CombatPositionReservationKind.Melee,
-            weapon.IsRanged ? weapon.MaximumRange : 1f,
-            out _);
-    }
-
-    private bool TrySelectFallbackWeapon(
-        CharacterActor actor,
-        bool preferLoadedRanged,
-        out CombatWeaponSnapshot selected)
-    {
-        selected = null;
-        string actorId = GetId(actor);
-        CharacterCombatLoadoutProfile profile = equipment.GetActiveProfileSnapshot(actorId);
-        if (profile == null)
-        {
-            return false;
-        }
-
-        string original = profile.activeWeaponInstanceId;
-        List<(string id, CombatWeaponSnapshot weapon)> options =
-            new List<(string id, CombatWeaponSnapshot weapon)>();
-        foreach (string instanceId in profile.weaponInstanceIds)
-        {
-            if (string.Equals(instanceId, original, StringComparison.Ordinal)
-                || !equipment.TrySetActiveWeapon(actorId, instanceId, out _)
-                || !equipment.TryGetActiveWeapon(actorId, out CombatWeaponSnapshot weapon)
-                || weapon == null)
-            {
-                continue;
-            }
-
-            options.Add((instanceId, weapon));
-        }
-
-        (string id, CombatWeaponSnapshot weapon) choice = options
-            .OrderBy(option => preferLoadedRanged
-                && option.weapon.IsRanged
-                && (!option.weapon.RequiresAmmo || option.weapon.LoadedAmmo > 0)
-                    ? 0
-                    : !option.weapon.IsRanged ? 1 : 2)
-            .FirstOrDefault();
-        if (choice.weapon != null
-            && equipment.TrySetActiveWeapon(actorId, choice.id, out _))
-        {
-            selected = choice.weapon;
-            return true;
-        }
-
-        if (!string.IsNullOrWhiteSpace(original))
-        {
-            equipment.TrySetActiveWeapon(actorId, original, out _);
-        }
-
-        return false;
-    }
-
-    private void ApplyCombatResult(
-        CombatParticipantRef target,
-        CombatAttackResult result,
-        CharacterActor attacker,
-        CombatDamageType damageType)
-    {
-        if (result.CoverBlocked)
-        {
-            CombatCoverDurability.TryApplyDamage(result.CoverSourceId, result.CoverDamage);
-            CombatImpactPresentation.Play(
-                target.IsCharacter
-                    ? target.Character.transform.position
-                    : target.Wildlife.transform.position,
-                damageType,
-                gameClock,
-                coverHit: true);
-            if (target.IsCharacter)
-            {
-                bodyHealth.AddSuppression(target.Character, result.Suppression);
-            }
-
-            return;
-        }
-
-        if (target.IsCharacter)
-        {
-            if (result.Hit)
-            {
-                bodyHealth.ApplyCombatResult(
-                    target.Character,
-                    result,
-                    $"직접 전투 명령: {GetName(attacker)}");
-                DefenseCombatPresentation.Ensure(target.Character)?.PlayHit(
-                    result.AppliedDamage,
-                    damageType);
-            }
-            else
-            {
-                bodyHealth.AddSuppression(target.Character, result.Suppression);
-            }
-        }
-        else if (target.IsWildlife)
-        {
-            target.Wildlife.ApplyCombatDamage(result, attacker);
-        }
-    }
-
-    private void ApplyArmorDurabilityDamage(CombatAttackResult result)
-    {
-        foreach (CombatArmorDurabilityHit hit in result.ArmorDurabilityHits)
-        {
-            equipment.TryApplyDurabilityDamage(hit.InstanceId, hit.Damage);
-        }
-
-        if (result.ArmorDurabilityHits.Count == 0
-            && !string.IsNullOrWhiteSpace(result.ArmorInstanceId))
-        {
-            equipment.TryApplyDurabilityDamage(
-                result.ArmorInstanceId,
-                result.ArmorDurabilityDamage);
-        }
-    }
-
     private void CancelCommandById(
         string actorId,
         string reason,
@@ -1272,11 +1027,13 @@ public sealed class CharacterCombatCommandRuntime :
             return;
         }
 
-        CharacterActor actor = FindCharacter(actorId);
+        CharacterActor actor = participants.FindCharacter(actorId);
         actor?.GetComponent<AbilityMove>()?.CancelActiveMovement();
-        AbilityRescue.Ensure(actor)?.StopRescue(reason);
+        AbilityRescue.Ensure(actor)?.StopRescue(
+            CharacterMedicalStatusCode.Cancelled);
         command.state = CharacterCombatCommandState.Cancelled;
         command.status = reason ?? string.Empty;
+        PublishTerminalEvent(command);
         commands.Remove(actorId);
         nextMoveRetryAt.Remove(actorId);
         if (releaseReservation)
@@ -1322,7 +1079,8 @@ public sealed class CharacterCombatCommandRuntime :
 
         command.state = CharacterCombatCommandState.Completed;
         command.status = status ?? string.Empty;
-        CharacterActor actor = FindCharacter(command.actorId);
+        PublishTerminalEvent(command);
+        CharacterActor actor = participants.FindCharacter(command.actorId);
         actor?.GetComponent<AbilityMove>()?.CancelActiveMovement();
         DefenseCombatPresentation.Ensure(actor)?.SetStatus(
             IsInCombatStance(actor) ? "전투 태세" : string.Empty,
@@ -1331,6 +1089,21 @@ public sealed class CharacterCombatCommandRuntime :
         nextMoveRetryAt.Remove(command.actorId);
         tacticalCoordinator.Release(command.actorId);
         MarkDirty();
+    }
+
+    private void PublishTerminalEvent(CharacterCombatCommand command)
+    {
+        if (command == null)
+        {
+            return;
+        }
+
+        gameEventBus.Publish(new CharacterCombatCommandTerminatedEvent(
+            command.commandId,
+            command.actorId,
+            command.type,
+            command.state,
+            command.status));
     }
 
     private void BlockCommand(CharacterCombatCommand command, string reason)
@@ -1342,7 +1115,7 @@ public sealed class CharacterCombatCommandRuntime :
 
         command.state = CharacterCombatCommandState.Blocked;
         command.status = string.IsNullOrWhiteSpace(reason) ? "명령 수행 불가" : reason;
-        CharacterActor actor = FindCharacter(command.actorId);
+        CharacterActor actor = participants.FindCharacter(command.actorId);
         DefenseCombatPresentation.Ensure(actor)?.SetStatus(command.status, combatActive: true);
         MarkDirty();
     }
@@ -1383,112 +1156,14 @@ public sealed class CharacterCombatCommandRuntime :
         return true;
     }
 
-    private bool CanRetryMove(string actorId)
-    {
-        return !nextMoveRetryAt.TryGetValue(actorId, out float retryAt)
-            || gameClock.Time >= retryAt;
-    }
+    private bool CanRetryMove(string actorId) =>
+        !nextMoveRetryAt.TryGetValue(actorId, out float retryAt)
+        || gameClock.Time >= retryAt;
 
-    private CombatParticipantRef FindParticipant(string id)
-    {
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            return default;
-        }
-
-        CharacterActor character = FindCharacter(id);
-        if (character != null)
-        {
-            return new CombatParticipantRef(character);
-        }
-
-        WildlifeActor wildlife = worldRegistry.Wildlife.FirstOrDefault(candidate =>
-            candidate != null
-            && string.Equals(candidate.WildlifeId, id, StringComparison.Ordinal));
-        return wildlife != null ? new CombatParticipantRef(wildlife) : default;
-    }
-
-    private CharacterActor FindCharacter(string id)
-    {
-        return worldRegistry.Characters.FirstOrDefault(actor =>
-            actor != null && string.Equals(GetId(actor), id, StringComparison.Ordinal));
-    }
-
-    private string FindTargetIdAt(Vector2Int cell)
-    {
-        CharacterActor character = worldRegistry.Characters.FirstOrDefault(actor =>
-            actor != null && actor.GetNowXY() == cell && !actor.IsDead);
-        if (character != null)
-        {
-            return GetId(character);
-        }
-
-        WildlifeActor wildlife = worldRegistry.Wildlife.FirstOrDefault(actor =>
-            actor != null && actor.IsAlive && actor.GridPosition == cell);
-        return wildlife != null ? wildlife.WildlifeId : string.Empty;
-    }
-
-    private CombatStatSnapshot GetCombatStats(CombatParticipantRef participant)
-    {
-        return participant.IsCharacter
-            ? CombatRuntimeStatFactory.Create(
-                participant.Character,
-                bodyHealth.GetSnapshot(participant.Character))
-            : CombatRuntimeStatFactory.Create(participant.Wildlife);
-    }
-
-    private void LaunchProjectile(
-        Vector3 start,
-        Vector3 end,
-        CombatWeaponSnapshot weapon)
-    {
-        float speed = weapon?.Verb switch
-        {
-            ProjectileVerb projectile => projectile.projectileSpeed,
-            RecoverableThrowVerb recoverable => recoverable.projectileSpeed,
-            _ => 12f
-        };
-        CombatProjectilePresentation.Launch(
-            start,
-            end,
-            speed,
-            weapon?.Verb?.damageType ?? CombatDamageType.Pierce,
-            weapon?.Kind == CombatEquipmentKind.RecoverableThrowingWeapon,
-            gameClock);
-    }
-
-    private static CombatFireMode ResolveSupportedFireMode(
-        CombatWeaponSnapshot weapon,
-        CombatFireMode requested)
-    {
-        if (weapon == null || !weapon.IsRanged)
-        {
-            return CombatFireMode.Aimed;
-        }
-
-        return requested switch
-        {
-            CombatFireMode.Rapid when weapon.SupportsRapid => CombatFireMode.Rapid,
-            CombatFireMode.Suppressive when weapon.SupportsSuppressive => CombatFireMode.Suppressive,
-            _ => CombatFireMode.Aimed
-        };
-    }
-
-    private static string GetFireModeName(CombatFireMode mode)
-    {
-        return mode switch
-        {
-            CombatFireMode.Rapid => "속사",
-            CombatFireMode.Suppressive => "제압",
-            _ => "조준"
-        };
-    }
-
-    private static string GetId(CharacterActor actor)
-    {
-        return actor?.Identity?.PersistentId
-            ?? (actor != null ? $"character:{actor.GetInstanceID()}" : string.Empty);
-    }
+    private static string GetId(CharacterActor actor) =>
+        actor != null
+            ? CharacterPersistentIdentity.Require(actor).Value
+            : string.Empty;
 
     private static string GetName(CharacterActor actor)
     {
@@ -1496,13 +1171,33 @@ public sealed class CharacterCombatCommandRuntime :
             ?? (actor != null ? actor.name : "캐릭터");
     }
 
-    private static int Manhattan(Vector2Int a, Vector2Int b)
+    internal void CompleteRecoveredRescues(string recoveredCharacterId)
     {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+        foreach (CharacterCombatCommand command in
+                 CharacterCombatCommandLifecyclePolicy.FindCompletedRescues(
+                     commands.Values,
+                     recoveredCharacterId))
+        {
+            CompleteCommand(
+                command,
+                uiText.Get(CharacterCombatUiTextId.RescueTargetRecovered));
+        }
     }
 
-    private void MarkDirty()
+    internal void ReleaseCombatStanceForLifecycle(CharacterActor actor) =>
+        ReleaseCombatStance(actor);
+
+    internal void ClearLifecycleState()
     {
+        commands.Clear(); combatStance.Clear();
+        nextMoveRetryAt.Clear(); tickCommandActorIds.Clear();
+        commandView = Array.Empty<CharacterCombatCommand>();
         viewDirty = true;
     }
+    private void OnRestorePublished()
+    {
+        nextMoveRetryAt.Clear(); tickCommandActorIds.Clear();
+        commandView = Array.Empty<CharacterCombatCommand>(); viewDirty = true;
+    }
+    private void MarkDirty() => viewDirty = true;
 }

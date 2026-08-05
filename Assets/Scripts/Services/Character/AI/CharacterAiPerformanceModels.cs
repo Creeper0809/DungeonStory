@@ -81,34 +81,78 @@ public interface ICharacterAiPerfSettingsProvider
     CharacterAiPerfSettingsSO Settings { get; }
 }
 
-public interface ICharacterAiPerformanceRecorder
+public interface ICharacterAiPerformanceRecorder : IGridPathPerformanceRecorder
 {
-    bool DetailedCollectionEnabled { get; }
+    bool SlowTraceEnabled { get; }
     void Record(AiPerformanceCategory category, double elapsedMilliseconds, long gcBytes = 0);
+    void RecordSlowOperation(
+        string stage,
+        CharacterActor actor,
+        AIActionSet actionSet,
+        Consideration consideration,
+        double elapsedMilliseconds);
     void RecordPathCounters(int searches, int cacheHits, int budgetDeferrals);
     CharacterAiPerformanceReport CaptureReport(int actorCount);
     void Reset();
 }
 
-public static class CharacterAiPerformanceCaptureControl
+public interface ICharacterAiPerformanceCaptureScope
 {
-    private static int detailedCaptureCount;
-    private static int slowTraceCount;
+    bool IsDetailedCaptureRequested { get; }
+    bool IsSlowTraceRequested { get; }
+    bool SlowTraceEnabled { get; }
+    void BeginDetailedCapture();
+    void EndDetailedCapture();
+    void BeginSlowTrace();
+    void EndSlowTrace();
+    void ResetSlowTrace();
+    void RecordSlowOperation(
+        string stage,
+        CharacterActor actor,
+        AIActionSet actionSet,
+        Consideration consideration,
+        double elapsedMilliseconds);
+}
 
-    public static bool IsDetailedCaptureRequested =>
+public sealed class CharacterAiPerformanceCaptureScope :
+    ICharacterAiPerformanceCaptureScope
+{
+    private const string DetailedProfileArgument = "-ai-detailed-performance";
+    private const double SlowThresholdMilliseconds = 4d;
+    private const int MaximumEntries = 64;
+
+    private readonly bool commandLineSlowTraceEnabled;
+    private int detailedCaptureCount;
+    private int slowTraceCount;
+    private int entryCount;
+
+    public CharacterAiPerformanceCaptureScope()
+    {
+        commandLineSlowTraceEnabled = Array.Exists(
+            Environment.GetCommandLineArgs(),
+            argument => string.Equals(
+                argument,
+                DetailedProfileArgument,
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    public bool IsDetailedCaptureRequested =>
         Volatile.Read(ref detailedCaptureCount) > 0;
-    public static bool IsSlowTraceRequested =>
+    public bool IsSlowTraceRequested =>
         Volatile.Read(ref slowTraceCount) > 0;
+    public bool SlowTraceEnabled =>
+        (commandLineSlowTraceEnabled || IsSlowTraceRequested)
+        && Volatile.Read(ref entryCount) < MaximumEntries;
 
-    public static void BeginDetailedCapture()
+    public void BeginDetailedCapture()
     {
         if (Interlocked.Increment(ref detailedCaptureCount) == 1)
         {
-            CharacterAiSlowOperationTrace.Reset();
+            ResetSlowTrace();
         }
     }
 
-    public static void EndDetailedCapture()
+    public void EndDetailedCapture()
     {
         int current;
         do
@@ -125,15 +169,15 @@ public static class CharacterAiPerformanceCaptureControl
                    current) != current);
     }
 
-    public static void BeginSlowTrace()
+    public void BeginSlowTrace()
     {
         if (Interlocked.Increment(ref slowTraceCount) == 1)
         {
-            CharacterAiSlowOperationTrace.Reset();
+            ResetSlowTrace();
         }
     }
 
-    public static void EndSlowTrace()
+    public void EndSlowTrace()
     {
         int current;
         do
@@ -149,40 +193,20 @@ public static class CharacterAiPerformanceCaptureControl
                    current - 1,
                    current) != current);
     }
-}
 
-internal static class CharacterAiSlowOperationTrace
-{
-    private const string DetailedProfileArgument = "-ai-detailed-performance";
-    private const double SlowThresholdMilliseconds = 4d;
-    private const int MaximumEntries = 64;
-
-    private static readonly bool enabled = Array.Exists(
-        Environment.GetCommandLineArgs(),
-        argument => string.Equals(
-            argument,
-            DetailedProfileArgument,
-            StringComparison.OrdinalIgnoreCase));
-    private static int entryCount;
-
-    public static bool Enabled => (enabled
-            || CharacterAiPerformanceCaptureControl.IsSlowTraceRequested)
-        && Volatile.Read(ref entryCount) < MaximumEntries;
-
-    public static void Reset()
+    public void ResetSlowTrace()
     {
         Interlocked.Exchange(ref entryCount, 0);
     }
 
-    public static void Record(
+    public void RecordSlowOperation(
         string stage,
         CharacterActor actor,
         AIActionSet actionSet,
         Consideration consideration,
         double elapsedMilliseconds)
     {
-        if ((!enabled
-                && !CharacterAiPerformanceCaptureControl.IsSlowTraceRequested)
+        if ((!commandLineSlowTraceEnabled && !IsSlowTraceRequested)
             || elapsedMilliseconds < SlowThresholdMilliseconds)
         {
             return;
@@ -194,12 +218,23 @@ internal static class CharacterAiSlowOperationTrace
             return;
         }
 
-        string actorId = actor?.Identity?.PersistentId;
+        string actorLabel = "none";
+        if (actor != null)
+        {
+            string actorId = actor.Identity?.PersistentId;
+            string actorName = actor.name;
+            actorLabel = !string.IsNullOrWhiteSpace(actorId)
+                ? actorId
+                : !string.IsNullOrWhiteSpace(actorName)
+                    ? actorName
+                    : "none";
+        }
+
         Debug.Log(
             $"AI_SLOW_OPERATION #{sequence} "
             + $"stage={stage ?? "unknown"} "
             + $"elapsedMs={elapsedMilliseconds:0.000} "
-            + $"actor={actorId ?? actor?.name ?? "none"} "
+            + $"actor={actorLabel} "
             + $"action={actionSet?.GetType().Name ?? "none"} "
             + $"actionLabel={actionSet?.GetDisplayLabel() ?? "none"} "
             + $"consideration={consideration?.GetType().Name ?? "none"}");

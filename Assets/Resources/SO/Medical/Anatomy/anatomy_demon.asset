@@ -1,0 +1,189 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eca03f3b76dbff642938e073fdc5188b, type: 3}
+  m_Name: anatomy_demon
+  m_EditorClassIdentifier: DungeonStory.Medical::AnatomyProfileSO
+  profileId: anatomy:demon
+  displayName: "\uB370\uBAAC \uD574\uBD80 \uAD6C\uC870"
+  anatomyFamily: humanoid
+  speciesIds:
+  - Demon
+  nodes:
+  - nodeId: head
+    displayName: "\uBA38\uB9AC"
+    parentNodeId: 
+    kind: 0
+    functions: 6
+    maxHealth: 21
+    capacityWeight: 0.3
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: brain
+    displayName: "\uB1CC"
+    parentNodeId: head
+    kind: 1
+    functions: 2
+    maxHealth: 13
+    capacityWeight: 0.7
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: eyes
+    displayName: "\uB450 \uB208"
+    parentNodeId: head
+    kind: 2
+    functions: 4
+    maxHealth: 11
+    capacityWeight: 1
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: horn:left
+    displayName: "\uC67C\uCABD \uBFD4"
+    parentNodeId: head
+    kind: 0
+    functions: 1
+    maxHealth: 17
+    capacityWeight: 0.1
+    vital: 0
+    removable: 1
+    pairedGroupId: horns
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: horn:right
+    displayName: "\uC624\uB978\uCABD \uBFD4"
+    parentNodeId: head
+    kind: 0
+    functions: 1
+    maxHealth: 17
+    capacityWeight: 0.1
+    vital: 0
+    removable: 1
+    pairedGroupId: horns
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: torso
+    displayName: "\uBAB8\uD1B5"
+    parentNodeId: 
+    kind: 4
+    functions: 1
+    maxHealth: 50
+    capacityWeight: 0.35
+    vital: 1
+    removable: 0
+    pairedGroupId: 
+    legacyBodyPart: 1
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: mana-core
+    displayName: "\uB9C8\uD575"
+    parentNodeId: torso
+    kind: 4
+    functions: 3
+    maxHealth: 24
+    capacityWeight: 0.45
+    vital: 1
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: heat-sac
+    displayName: "\uC5F4\uB0AD"
+    parentNodeId: torso
+    kind: 1
+    functions: 40
+    maxHealth: 21
+    capacityWeight: 0.2
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []
+  - nodeId: arm:left
+    displayName: "\uC67C\uD314"
+    parentNodeId: torso
+    kind: 3
+    functions: 64
+    maxHealth: 27
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: arms
+    legacyBodyPart: 2
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: arm:right
+    displayName: "\uC624\uB978\uD314"
+    parentNodeId: torso
+    kind: 3
+    functions: 64
+    maxHealth: 27
+    capacityWeight: 0.5
+    vital: 0
+    removable: 1
+    pairedGroupId: arms
+    legacyBodyPart: 3
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: leg:left
+    displayName: "\uC67C\uB2E4\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 29
+    capacityWeight: 0.45
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 4
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: leg:right
+    displayName: "\uC624\uB978\uB2E4\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 29
+    capacityWeight: 0.45
+    vital: 0
+    removable: 1
+    pairedGroupId: legs
+    legacyBodyPart: 5
+    mapsToLegacyBodyPart: 1
+    axisContributions: []
+  - nodeId: tail
+    displayName: "\uAF2C\uB9AC"
+    parentNodeId: torso
+    kind: 3
+    functions: 128
+    maxHealth: 24
+    capacityWeight: 0.1
+    vital: 0
+    removable: 1
+    pairedGroupId: 
+    legacyBodyPart: 0
+    mapsToLegacyBodyPart: 0
+    axisContributions: []

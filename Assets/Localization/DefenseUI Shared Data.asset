@@ -1,0 +1,780 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: DefenseUI Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: DefenseUI
+  m_TableCollectionNameGuidString: 08de28fcb12537e409afdaebf897ac17
+  m_Entries:
+  - m_Id: 372592640
+    m_Key: Action.AssignPolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952768
+    m_Key: Action.Assigned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952769
+    m_Key: Action.ClearJam
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952770
+    m_Key: Action.ConfirmDelete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952771
+    m_Key: Action.CycleArming
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952772
+    m_Key: Action.DeletePolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952773
+    m_Key: Action.Detail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952774
+    m_Key: Action.DisableAutoResponse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952775
+    m_Key: Action.DuplicatePolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952776
+    m_Key: Action.EnableAutoResponse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952777
+    m_Key: Action.Execute
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952778
+    m_Key: Action.HoldWithoutReplacement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952779
+    m_Key: Action.MinimumDispatchHealth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952780
+    m_Key: Action.NewPolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952781
+    m_Key: Action.RejoinHealth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952782
+    m_Key: Action.RequestReload
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952783
+    m_Key: Action.RetreatHealth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952784
+    m_Key: Action.RetreatWithoutReplacement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952785
+    m_Key: Action.Select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952786
+    m_Key: Action.Selected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952787
+    m_Key: Action.Track
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952788
+    m_Key: ActiveFacilityCount
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952789
+    m_Key: ActiveIntruderCount
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952790
+    m_Key: ArmingPolicy.Aggressive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952791
+    m_Key: ArmingPolicy.Alert
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952792
+    m_Key: ArmingPolicy.Manual
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952793
+    m_Key: ArmingPolicy.Safe
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952794
+    m_Key: AttackConcept.Fire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952795
+    m_Key: AttackConcept.Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952796
+    m_Key: AttackConcept.Ice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952797
+    m_Key: AttackConcept.Lightning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952798
+    m_Key: AttackConcept.None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952799
+    m_Key: AttackConcept.Physical
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952800
+    m_Key: AttackConcept.Poison
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952801
+    m_Key: BuildingFallback
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952802
+    m_Key: CampaignBranch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952803
+    m_Key: CampaignBranchNone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952804
+    m_Key: CampaignBranchRecovery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952805
+    m_Key: CampaignOperation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952806
+    m_Key: CampaignOperationNone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952807
+    m_Key: CampaignSummary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952808
+    m_Key: CompletedReportCount
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952809
+    m_Key: DefenseHudActive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952810
+    m_Key: DefenseHudBreach
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952811
+    m_Key: DefenseHudIdle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952812
+    m_Key: DungeonSafe
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952813
+    m_Key: DutyOff
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952814
+    m_Key: DutyOn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952815
+    m_Key: EngagementPhase
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952816
+    m_Key: EngagementState.Completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952817
+    m_Key: EngagementState.Dispatching
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952818
+    m_Key: EngagementState.Engaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952819
+    m_Key: EngagementState.FrontCollapsed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952820
+    m_Key: EngagementState.InterceptPlanned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952821
+    m_Key: EngagementState.ReserveWaiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952822
+    m_Key: EngagementState.Retreating
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952823
+    m_Key: EngagementState.Switching
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952824
+    m_Key: EnragedBreachSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952825
+    m_Key: ExpectedRoute
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952826
+    m_Key: ExpectedRouteUnknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952827
+    m_Key: FacilityArmingPolicyChangeFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952828
+    m_Key: FacilityArmingPolicyChanged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952829
+    m_Key: FacilityBlocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952830
+    m_Key: FacilityDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952831
+    m_Key: FacilityMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952832
+    m_Key: FacilityServiceRequested
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952833
+    m_Key: FactionRouteStatus.Arrived
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952834
+    m_Key: FactionRouteStatus.Delayed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952835
+    m_Key: FactionRouteStatus.Lost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952836
+    m_Key: FactionRouteStatus.Returning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952837
+    m_Key: FactionRouteStatus.Traveling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952838
+    m_Key: GuardAssignmentTargetMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952839
+    m_Key: GuardDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952840
+    m_Key: GuardPolicyAssigned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952841
+    m_Key: GuardPolicyAssignmentFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952842
+    m_Key: GuardPolicyAssignmentSummary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952843
+    m_Key: Help.AutoResponse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952844
+    m_Key: Help.DeletePolicyConfirm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952845
+    m_Key: Help.DeletePolicyReassign
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952846
+    m_Key: Help.DuplicatePolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952847
+    m_Key: Help.HoldWithoutReplacement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952848
+    m_Key: Help.NewPolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952849
+    m_Key: Help.NoAutomaticRetreat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952850
+    m_Key: Help.RejoinHealth
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952851
+    m_Key: Help.StepFivePercent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952852
+    m_Key: Identification.Full
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952853
+    m_Key: Identification.None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952854
+    m_Key: Identification.Sign
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952855
+    m_Key: Identification.Target
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952856
+    m_Key: IntruderAdvanceEntrance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952857
+    m_Key: IntruderAdvanceInterior
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952858
+    m_Key: IntruderAdvanceNone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952859
+    m_Key: IntruderAdvanceRallying
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952860
+    m_Key: IntruderDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952861
+    m_Key: IntruderFallback
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952862
+    m_Key: IntruderFront
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952863
+    m_Key: IntruderState.Breaching
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952864
+    m_Key: IntruderState.DamagingFacility
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952865
+    m_Key: IntruderState.Engaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952866
+    m_Key: IntruderState.Entering
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952867
+    m_Key: IntruderState.FinalCombat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952868
+    m_Key: IntruderState.Finished
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952869
+    m_Key: IntruderState.FrontBroken
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952870
+    m_Key: IntruderState.InterceptPlanned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952871
+    m_Key: IntruderState.MovingToFacility
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952872
+    m_Key: IntruderState.MovingToOwner
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952873
+    m_Key: IntruderState.None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952874
+    m_Key: IntruderState.Rallying
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952875
+    m_Key: IntruderState.Searching
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952876
+    m_Key: IntruderStateUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952877
+    m_Key: IntruderTitle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952878
+    m_Key: LinkConnected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952879
+    m_Key: LinkDisconnected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952880
+    m_Key: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952881
+    m_Key: Operation.CaptiveRescue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952882
+    m_Key: Operation.FacilitySabotage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952883
+    m_Key: Operation.FrontalAssault
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952884
+    m_Key: Operation.Loot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952885
+    m_Key: Operation.OwnerAssassination
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952886
+    m_Key: Operation.Siege
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952887
+    m_Key: OperationalState.Cooldown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952888
+    m_Key: OperationalState.Damaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952889
+    m_Key: OperationalState.Destroyed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952890
+    m_Key: OperationalState.Detecting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952891
+    m_Key: OperationalState.Disarmed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952892
+    m_Key: OperationalState.Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952893
+    m_Key: OperationalState.Faulted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952894
+    m_Key: OperationalState.Jammed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952895
+    m_Key: OperationalState.Preparing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952896
+    m_Key: OperationalState.Ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952897
+    m_Key: OperationalState.Reloading
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952898
+    m_Key: OperationalState.Triggered
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952899
+    m_Key: OperationalState.Unpowered
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952900
+    m_Key: OwnerEvacuationActive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952901
+    m_Key: OwnerEvacuationCompleteSuffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952902
+    m_Key: OwnerEvacuationIdle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952903
+    m_Key: PolicyCopyName
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952904
+    m_Key: PolicyCreateFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952905
+    m_Key: PolicyCreated
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952906
+    m_Key: PolicyDefaultName
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952907
+    m_Key: PolicyDeleteConfirmFeedback
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952908
+    m_Key: PolicyDeleteFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952909
+    m_Key: PolicyDeleted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952910
+    m_Key: PolicyDetail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952911
+    m_Key: PolicyDuplicateFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952912
+    m_Key: PolicyDuplicated
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952913
+    m_Key: PolicyHold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952914
+    m_Key: PolicyMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952915
+    m_Key: PolicyRetreat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952916
+    m_Key: PolicySelected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952917
+    m_Key: PolicySelectionSummary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952918
+    m_Key: PolicyStandard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952919
+    m_Key: PolicyUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952920
+    m_Key: PolicyUpdateFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952921
+    m_Key: PolicyUpdated
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952922
+    m_Key: PowerNormal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952923
+    m_Key: PowerOutage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952924
+    m_Key: PrimaryTargetFallback
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952925
+    m_Key: RallyPhase
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952926
+    m_Key: ReinforcementNone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952927
+    m_Key: ReinforcementRoute
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952928
+    m_Key: ReportDefended
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952929
+    m_Key: ReportFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952930
+    m_Key: ReportSummary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952931
+    m_Key: ReportTitle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952932
+    m_Key: RouteChangeNone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952933
+    m_Key: Section.Campaign
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952934
+    m_Key: Section.CombatReports
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952935
+    m_Key: Section.DefenseFacilities
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952936
+    m_Key: Section.DefenseHud
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952937
+    m_Key: Section.GuardPolicyAssignment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952938
+    m_Key: Section.GuardResponsePolicy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952939
+    m_Key: Section.IntruderTracking
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952940
+    m_Key: Section.InvasionThreat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952941
+    m_Key: Section.OwnerEvacuation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952942
+    m_Key: Section.Reinforcements
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952943
+    m_Key: SupplyNotRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952944
+    m_Key: ThreatFactors
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952945
+    m_Key: ThreatForecastNone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952946
+    m_Key: ThreatForecastPending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952947
+    m_Key: ThreatInformationNone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952948
+    m_Key: ThreatStage.Candidate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952949
+    m_Key: ThreatStage.Peaceful
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952950
+    m_Key: ThreatStage.Safety
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952951
+    m_Key: ThreatStage.Warning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952952
+    m_Key: ThreatSummary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952953
+    m_Key: ThreatUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952954
+    m_Key: UnknownIntruder
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 7737211745717977424
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211745717977424
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1785858632741

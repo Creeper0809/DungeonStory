@@ -21,8 +21,8 @@ public static class BuildingStatePersistenceDebugScenarios
         Run("component_module_round_trip", VerifyComponentModuleRoundTrip, lines, errors);
         Run("unlisted_ability_dispatch", VerifyUnlistedAbilityDispatch, lines, errors);
         Run("module_restore_diagnostics", VerifyModuleRestoreDiagnostics, lines, errors);
-        Run("world_v1_migration", VerifyWorldV1Migration, lines, errors);
-        Run("legacy_shared_state_split", VerifyLegacySharedStateSplit, lines, errors);
+        Run("world_v1_rejected", VerifyWorldV1Rejection, lines, errors);
+        Run("legacy_module_version_rejected", VerifyLegacyModuleVersionRejected, lines, errors);
         Run("v2_writer_schema", VerifyV2WriterSchema, lines, errors);
 
         File.WriteAllLines(ReportPath, lines);
@@ -40,25 +40,24 @@ public static class BuildingStatePersistenceDebugScenarios
 
     private static string VerifyGenericStockCategories()
     {
-        StockCategory customCategory = (StockCategory)777;
         WarehouseInventory source = new WarehouseInventory(200);
-        source.AddStock(StockCategory.Food, 11);
-        source.AddStock(customCategory, 37);
+        source.SeedPhysicalStockForTest(StockCategory.Food, 11);
 
         string json = JsonUtility.ToJson(source.CreateSnapshot());
         WarehouseInventorySnapshot parsed = JsonUtility.FromJson<WarehouseInventorySnapshot>(json);
         WarehouseInventory restored = new WarehouseInventory();
         Require(restored.TryApplySnapshot(parsed, out string restoreError), restoreError);
-        Require(restored.GetStock(StockCategory.Food) == 11, "known stock category did not round-trip");
-        Require(restored.GetStock(customCategory) == 37, "custom stock category did not round-trip");
-        Require(parsed.stocks.Count == 2, $"expected 2 stock entries, got {parsed.stocks.Count}");
+        Require(restored.TotalStock == 0,
+            "warehouse configuration snapshot illegally restored aggregate stock");
+        Require(!json.Contains("stocks", StringComparison.Ordinal),
+            "warehouse configuration snapshot still serializes stock quantities");
 
         WarehouseInventorySnapshot invalid = source.CreateSnapshot();
-        invalid.stocks.Add(new StockAmountSnapshot { categoryId = "not-a-stock-id", amount = 9 });
+        invalid.acceptedCategoryId = "not-a-stock-id";
         Require(!restored.TryApplySnapshot(invalid, out string invalidError), "invalid category id was accepted");
         Require(invalidError.Contains("not-a-stock-id"), "invalid category diagnostic omitted the id");
-        Require(restored.GetStock(customCategory) == 37, "failed restore mutated existing inventory");
-        return $"entries={parsed.stocks.Count}; customId={StockCategoryPersistenceId.ToId(customCategory)}; amount=37";
+        Require(restored.TotalStock == 0, "failed restore mutated derived stock");
+        return "savedStock=0; unknownProtocolRejected=true; physicalAuthority=true";
     }
 
     private static string VerifyComponentModuleRoundTrip()
@@ -103,8 +102,10 @@ public static class BuildingStatePersistenceDebugScenarios
             BuildingStateModuleRestoreResult missing = BuildingStateModulePersistence.Restore(
                 target,
                 Array.Empty<BuildingStateModuleSaveData>());
-            Require(missing.Success, "missing current module should retain defaults with a warning");
-            Require(missing.warnings.Any(message => message.Contains(PersistenceContractStateModule.Id)), "missing-module warning omitted module id");
+            Require(!missing.Success, "missing current module was accepted with defaults");
+            Require(
+                missing.errors.Any(message => message.Contains(PersistenceContractStateModule.Id)),
+                "missing-module error omitted module id");
 
             BuildingStateModuleSaveData unknown = new BuildingStateModuleSaveData
             {
@@ -127,7 +128,7 @@ public static class BuildingStatePersistenceDebugScenarios
                 new[] { duplicate, duplicate });
             Require(!duplicateResult.Success, "duplicate saved module was accepted");
             Require(duplicateResult.errors.Any(message => message.Contains("duplicate")), "duplicate-module error was not explicit");
-            return $"missingWarnings={missing.warnings.Count}; unknownErrors={unknownResult.errors.Count}; duplicateErrors={duplicateResult.errors.Count}";
+            return $"missingErrors={missing.errors.Count}; unknownErrors={unknownResult.errors.Count}; duplicateErrors={duplicateResult.errors.Count}";
         }
         finally
         {
@@ -146,12 +147,13 @@ public static class BuildingStatePersistenceDebugScenarios
             data.height = 1;
             data.layer = GridLayer.Building;
             data.category = BuildingCategory.Shop;
-            data.type = typeof(BuildableObject);
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
             data.ReplaceAbilities(new BuildingAbilityCollection());
             UnlistedWorkAbility ability = UnlistedWorkAbility.Create();
             data.AbilityModules.Add(ability);
 
             BuildableObject building = gameObject.AddComponent<BuildableObject>();
+            building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
             CharacterAiEditorTestDependencies.Inject(building);
             SetAbilityDispatcher(
                 building,
@@ -183,86 +185,31 @@ public static class BuildingStatePersistenceDebugScenarios
         }
     }
 
-    private static string VerifyWorldV1Migration()
+    private static string VerifyWorldV1Rejection()
     {
         LegacyWorldV1 legacy = new LegacyWorldV1
         {
             version = 1,
             gridWidth = 12,
-            gridHeight = 3,
-            buildings = new List<LegacyBuildingV1>
-            {
-                new LegacyBuildingV1
-                {
-                    buildingId = 42,
-                    objectName = "Legacy Facility",
-                    layer = GridLayer.Building,
-                    centerX = 4,
-                    centerY = 1,
-                    facilityLevel = 2,
-                    operationalState = new LegacyFacilityOperationalStateV1
-                    {
-                        completedUses = 8,
-                        completedWorkCycles = 3,
-                        producedStock = 6,
-                        alarmCharges = 2,
-                        cleanliness = 44f
-                    },
-                    hasWarehouseSnapshot = true,
-                    warehouseSnapshot = new WarehouseInventorySnapshotV1
-                    {
-                        maxCapacity = 50,
-                        restrictCategory = false,
-                        acceptedCategory = StockCategory.General,
-                        food = 4,
-                        general = 5,
-                        weapon = 6,
-                        mana = 7
-                    },
-                    hasShopStockSnapshot = true,
-                    shopStockSnapshot = new ShopStockStateSnapshot
-                    {
-                        items = new List<ShopStockItemSnapshot>
-                        {
-                            new ShopStockItemSnapshot { saleItemId = 9, amount = 3 }
-                        }
-                    }
-                }
-            }
+            gridHeight = 3
         };
 
-        ModularFacilityWorldSaveService service = new ModularFacilityWorldSaveService(
-            _ => null,
-            new GridBuildingFactory(_ => { }));
-        ModularFacilityWorldSaveData migrated = service.FromJson(JsonUtility.ToJson(legacy));
-        Require(migrated.version == ModularFacilityWorldSaveService.CurrentVersion, $"migrated version={migrated.version}");
-        Require(migrated.migratedFromVersion == 1, $"migratedFrom={migrated.migratedFromVersion}");
-        Require(migrated.migrationWarnings.Count > 0, "migration did not report itself");
-        Require(migrated.buildings.Count == 1, $"migrated buildings={migrated.buildings.Count}");
+        try
+        {
+            ModularFacilityWorldSaveCodec.Deserialize(JsonUtility.ToJson(legacy));
+        }
+        catch (InvalidOperationException exception)
+        {
+            Require(exception.Message.Contains("V4", StringComparison.Ordinal),
+                "rejection did not identify the required facility save version");
+            return "V1 rejected; no migration or partial state projection";
+        }
 
-        Dictionary<string, BuildingStateModuleSaveData> modules = migrated.buildings[0].stateModules
-            .ToDictionary(module => module.moduleId, StringComparer.Ordinal);
-        Require(modules.Count == 3, $"migrated modules={modules.Count}");
-        Require(modules.ContainsKey(BuildingStateModuleIds.FacilityOperation), "operational module missing");
-        Require(modules.ContainsKey(BuildingStateModuleIds.WarehouseInventory), "warehouse module missing");
-        Require(modules.ContainsKey(BuildingStateModuleIds.ShopStock), "shop module missing");
-
-        WarehouseInventorySnapshot warehouse = JsonUtility.FromJson<WarehouseInventorySnapshot>(
-            modules[BuildingStateModuleIds.WarehouseInventory].payload);
-        WarehouseInventory restored = new WarehouseInventory();
-        Require(restored.TryApplySnapshot(warehouse, out string error), error);
-        Require(restored.GetStock(StockCategory.Food) == 4, "legacy food stock migration failed");
-        Require(restored.GetStock(StockCategory.General) == 5, "legacy general stock migration failed");
-        Require(restored.GetStock(StockCategory.Weapon) == 6, "legacy weapon stock migration failed");
-        Require(restored.GetStock(StockCategory.Mana) == 7, "legacy mana stock migration failed");
-        return $"v1->v{migrated.version}; modules={modules.Count}; warnings={migrated.migrationWarnings.Count}";
+        throw new InvalidOperationException("V1 modular facility payload was accepted.");
     }
 
     private static string VerifyV2WriterSchema()
     {
-        ModularFacilityWorldSaveService service = new ModularFacilityWorldSaveService(
-            _ => null,
-            new GridBuildingFactory(_ => { }));
         ModularFacilityWorldSaveData snapshot = new ModularFacilityWorldSaveData
         {
             buildings = new List<ModularFacilityBuildingSaveData>
@@ -282,7 +229,7 @@ public static class BuildingStatePersistenceDebugScenarios
                 }
             }
         };
-        string json = service.ToJson(snapshot);
+        string json = ModularFacilityWorldSaveCodec.Serialize(snapshot);
         Require(json.Contains("\"stateModules\""), "v2 writer omitted stateModules");
         Require(!json.Contains("operationalState"), "v2 writer still emitted fixed operationalState");
         Require(!json.Contains("hasWarehouseSnapshot"), "v2 writer still emitted fixed warehouse flag");
@@ -290,7 +237,7 @@ public static class BuildingStatePersistenceDebugScenarios
         return $"jsonLength={json.Length}; fixedFields=0";
     }
 
-    private static string VerifyLegacySharedStateSplit()
+    private static string VerifyLegacyModuleVersionRejected()
     {
         BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
         GameObject gameObject = new GameObject("LegacySharedStateSplit");
@@ -301,7 +248,7 @@ public static class BuildingStatePersistenceDebugScenarios
             data.height = 1;
             data.layer = GridLayer.Building;
             data.category = BuildingCategory.Shop;
-            data.type = typeof(BuildableObject);
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
             data.ReplaceAbilities(new BuildingAbilityCollection());
             BuildingProductionAbility productionAbility = new BuildingProductionAbility
             {
@@ -317,17 +264,10 @@ public static class BuildingStatePersistenceDebugScenarios
             data.AbilityModules.Add(securityAbility);
 
             BuildableObject building = gameObject.AddComponent<BuildableObject>();
+            building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
             CharacterAiEditorTestDependencies.Inject(building);
             building.Initialization(data, Vector2Int.zero);
 
-            LegacyFacilityOperationalStateV1 legacy = new LegacyFacilityOperationalStateV1
-            {
-                completedUses = 9,
-                completedWorkCycles = 4,
-                producedStock = 12,
-                alarmCharges = 2,
-                cleanliness = 38f
-            };
             BuildingStateModuleRestoreResult result = BuildingStateModulePersistence.Restore(
                 building,
                 new[]
@@ -336,22 +276,15 @@ public static class BuildingStatePersistenceDebugScenarios
                     {
                         moduleId = BuildingStateModuleIds.FacilityOperation,
                         version = 1,
-                        payload = JsonUtility.ToJson(legacy)
+                        payload = "{}"
                     }
                 });
 
-            Require(result.Success, string.Join(" | ", result.errors));
-            Require(building.FacilityState.completedUses == 9, "legacy completed uses were not restored");
-            Require(building.FacilityState.completedWorkCycles == 4, "legacy work cycles were not restored");
-            Require(Mathf.Approximately(building.FacilityState.cleanliness, 38f), "legacy cleanliness was not restored");
-
-            BuildingProductionStateModule production = building.RequireStateModule<BuildingProductionStateModule>(
-                BuildingStateModuleIds.ForAbility("production", productionAbility.AbilityId));
-            BuildingSecurityStateModule security = building.RequireStateModule<BuildingSecurityStateModule>(
-                BuildingStateModuleIds.ForAbility("security", securityAbility.AbilityId));
-            Require(production.ProducedStock == 12, $"legacy produced stock={production.ProducedStock}");
-            Require(security.AlarmCharges == 2, $"legacy alarm charges={security.AlarmCharges}");
-            return $"core=9/4/38; production={production.ProducedStock}; security={security.AlarmCharges}; warnings={result.warnings.Count}";
+            Require(!result.Success, "legacy facility module version was accepted");
+            Require(
+                result.errors.Any(error => error.Contains("unsupported version 1")),
+                "legacy module rejection omitted the version");
+            return $"legacyV1Rejected=true; errors={result.errors.Count}";
         }
         finally
         {
@@ -416,112 +349,104 @@ public static class BuildingStatePersistenceDebugScenarios
         public int gridWidth;
         public int gridHeight;
         public ModularFacilityGameDataSaveData gameData = new ModularFacilityGameDataSaveData();
-        public List<LegacyBuildingV1> buildings = new List<LegacyBuildingV1>();
+        public List<object> buildings = new List<object>();
     }
 
+}
+
+[Serializable]
+internal sealed class UnlistedWorkAbility : BuildingAbility,
+    IBuildingWorkCompletionAbility,
+    IBuildingRuntimeStateAbility
+{
+    private UnlistedWorkAbility()
+    {
+    }
+
+    public static UnlistedWorkAbility Create()
+    {
+        return new UnlistedWorkAbility();
+    }
+
+    public IBuildingStateModule CreateStateModule(BuildableObject building)
+    {
+        return new UnlistedWorkStateModule(AbilityId);
+    }
+}
+
+internal sealed class UnlistedWorkAbilityHandler :
+    IBuildingAbilityWorkCompletedHandler
+{
+    private static readonly Type[] Types = { typeof(UnlistedWorkAbility) };
+
+    public IReadOnlyCollection<Type> AbilityTypes => Types;
+
+    public int Apply(
+        BuildingAbility ability,
+        BuildingAbilityWorkContext context)
+    {
+        if (ability is not UnlistedWorkAbility typedAbility)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(UnlistedWorkAbilityHandler)} cannot handle '{ability?.GetType().FullName ?? "null"}'.");
+        }
+
+        if (context.WorkTypeId != BuiltInWorkTypeIds.Operate)
+        {
+            return 0;
+        }
+
+        UnlistedWorkStateModule state =
+            context.Building.RequireStateModule<UnlistedWorkStateModule>(
+                BuildingStateModuleIds.ForAbility(
+                    "contract",
+                    typedAbility.AbilityId));
+        state.Increment();
+        return 7;
+    }
+}
+
+internal sealed class UnlistedWorkStateModule : IBuildingStateModule
+{
     [Serializable]
-    private sealed class UnlistedWorkAbility : BuildingAbility,
-        IBuildingWorkCompletionAbility,
-        IBuildingRuntimeStateAbility
+    private sealed class State
     {
-        private UnlistedWorkAbility()
-        {
-        }
-
-        public static UnlistedWorkAbility Create()
-        {
-            return new UnlistedWorkAbility();
-        }
-
-        public IBuildingStateModule CreateStateModule(BuildableObject building)
-        {
-            return new UnlistedWorkStateModule(AbilityId);
-        }
-
+        public int executionCount;
     }
 
-    private sealed class UnlistedWorkAbilityHandler :
-        BuildingAbilityWorkCompletedHandler<UnlistedWorkAbility>
-    {
-        protected override int Apply(
-            UnlistedWorkAbility ability,
-            BuildingAbilityWorkContext context)
-        {
-            if (context.WorkTypeId != BuiltInWorkTypeIds.Operate)
-            {
-                return 0;
-            }
+    private readonly State state = new State();
 
-            UnlistedWorkStateModule state =
-                context.Building.RequireStateModule<UnlistedWorkStateModule>(
-                    BuildingStateModuleIds.ForAbility("contract", ability.AbilityId));
-            state.Increment();
-            return 7;
-        }
+    public UnlistedWorkStateModule(string abilityId)
+    {
+        ModuleId = BuildingStateModuleIds.ForAbility("contract", abilityId);
     }
 
-    private sealed class UnlistedWorkStateModule : IBuildingStateModule
+    public string ModuleId { get; }
+    public int CurrentVersion => 1;
+    public int ExecutionCount => state.executionCount;
+
+    public void Increment()
     {
-        [Serializable]
-        private sealed class State
-        {
-            public int executionCount;
-        }
-
-        private readonly State state = new State();
-
-        public UnlistedWorkStateModule(string abilityId)
-        {
-            ModuleId = BuildingStateModuleIds.ForAbility("contract", abilityId);
-        }
-
-        public string ModuleId { get; }
-        public int CurrentVersion => 1;
-        public int ExecutionCount => state.executionCount;
-
-        public void Increment()
-        {
-            state.executionCount++;
-        }
-
-        public string CaptureState()
-        {
-            return JsonUtility.ToJson(state);
-        }
-
-        public bool TryRestoreState(int version, string payload, out string error)
-        {
-            if (version != CurrentVersion)
-            {
-                error = $"unsupported version {version}";
-                return false;
-            }
-
-            State restored = JsonUtility.FromJson<State>(payload);
-            state.executionCount = Mathf.Max(0, restored?.executionCount ?? 0);
-            error = string.Empty;
-            return true;
-        }
+        state.executionCount++;
     }
 
-    [Serializable]
-    private sealed class LegacyBuildingV1
+    public string CaptureState()
     {
-        public int buildingId;
-        public string code;
-        public string objectName;
-        public GridLayer layer;
-        public int centerX;
-        public int centerY;
-        public int width;
-        public int height;
-        public bool isDamaged;
-        public int facilityLevel = 1;
-        public LegacyFacilityOperationalStateV1 operationalState = new LegacyFacilityOperationalStateV1();
-        public bool hasWarehouseSnapshot;
-        public WarehouseInventorySnapshotV1 warehouseSnapshot;
-        public bool hasShopStockSnapshot;
-        public ShopStockStateSnapshot shopStockSnapshot;
+        return JsonUtility.ToJson(state);
+    }
+
+    public bool TryRestoreState(int version, string payload, out string error)
+    {
+        if (version != CurrentVersion)
+        {
+            error = $"unsupported version {version}";
+            return false;
+        }
+
+        State restored = JsonUtility.FromJson<State>(payload);
+        state.executionCount = Mathf.Max(0, restored?.executionCount ?? 0);
+        error = string.Empty;
+        return true;
     }
 }
 

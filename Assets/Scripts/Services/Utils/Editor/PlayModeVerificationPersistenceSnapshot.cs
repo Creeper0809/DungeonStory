@@ -34,10 +34,15 @@ public static class PlayModeVerificationPersistenceSnapshot
     public static void CaptureCurrent(string snapshotId)
     {
         string id = ValidateId(snapshotId);
-        Restore(id);
+        string snapshotPath = GetSnapshotPath(id);
+        if (Directory.Exists(snapshotPath))
+        {
+            throw new InvalidOperationException(
+                $"Persistence snapshot '{id}' already exists. "
+                + "Restore it explicitly before capturing a new snapshot with the same id.");
+        }
 
         string persistentRoot = ValidatePersistentRoot(Application.persistentDataPath);
-        string snapshotPath = GetSnapshotPath(id);
         string filesPath = Path.Combine(snapshotPath, "files");
         Directory.CreateDirectory(filesPath);
 

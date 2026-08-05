@@ -1,5 +1,6 @@
 using System;
 using VContainer;
+using VContainer.Unity;
 
 public static class DungeonFacilityRegistration
 {
@@ -14,10 +15,6 @@ public static class DungeonFacilityRegistration
 
         builder.RegisterInstance(runtimeReferences
             ?? throw new ArgumentNullException(nameof(runtimeReferences)));
-        builder.Register<FacilityEvolutionRuntimeProvider>(Lifetime.Singleton)
-            .As<IFacilityEvolutionRuntimeProvider>();
-        builder.Register<FacilitySynthesisRuntimeProvider>(Lifetime.Singleton)
-            .As<IFacilitySynthesisRuntimeProvider>();
         builder.Register<DataCatalogFacilitySynthesisRecipeCatalog>(Lifetime.Singleton)
             .As<IFacilitySynthesisRecipeCatalog>();
         builder.Register<FacilitySynthesisRecipeQuery>(Lifetime.Singleton)
@@ -36,15 +33,31 @@ public static class DungeonFacilityRegistration
             .As<IFacilityEvolutionRecordTokenConsumer>();
         builder.Register<GridFacilityEvolutionBuildingReplacerFactory>(Lifetime.Singleton)
             .As<IFacilityEvolutionBuildingReplacerFactory>();
+        builder.Register<FacilityEvolutionEngineFactory>(Lifetime.Singleton)
+            .As<IFacilityEvolutionEngineFactory>();
         builder.Register<FacilityEvolutionRecordComponentFactory>(Lifetime.Singleton)
             .As<IFacilityEvolutionRecordComponentFactory>();
         builder.Register<FacilityEvolutionRecordComponentService>(Lifetime.Singleton)
             .As<IFacilityEvolutionRecordComponentService>()
             .As<IFacilityEvolutionRecordProvider>();
+        builder.Register<RoomProfileBuilder>(Lifetime.Singleton)
+            .As<IRoomProfileProvider>();
+        builder.Register<RuleBasedFacilityEvolutionProposalProvider>(Lifetime.Singleton)
+            .As<IFacilityEvolutionProposalProvider>();
+        builder.Register<DefaultFacilityEvolutionValidator>(Lifetime.Singleton)
+            .As<IFacilityEvolutionValidator>();
+        builder.Register<DefaultFacilityEvolutionCandidateBuilder>(Lifetime.Singleton)
+            .As<IFacilityEvolutionCandidateBuilder>();
+        builder.Register<DefaultFacilityEvolutionMutationResolver>(Lifetime.Singleton)
+            .As<IFacilityEvolutionMutationResolver>();
+        builder.Register<FacilityEvolutionDefinitionContext>(Lifetime.Singleton);
+        builder.Register<FacilityEvolutionExecutionContextFactory>(Lifetime.Singleton)
+            .As<IFacilityEvolutionExecutionContextFactory>();
         builder.Register<FacilityEvolutionRecordEventRecorder>(Lifetime.Singleton)
             .As<IFacilityEvolutionRecordEventRecorder>();
         builder.Register<FacilityEvolutionStateComponentFactory>(Lifetime.Singleton)
-            .As<IFacilityEvolutionStateComponentFactory>();
+            .As<IFacilityEvolutionStateComponentFactory>()
+            .As<IBuildingEvolutionStatePort>();
         builder.Register<UsageLedgerCompactor>(Lifetime.Singleton)
             .As<IUsageLedgerCompactor>();
         builder.Register<EvolutionModuleRegistry>(Lifetime.Singleton)
@@ -53,13 +66,16 @@ public static class DungeonFacilityRegistration
             .As<IFacilityRelocationWorldService>();
         builder.Register<FacilityInstanceEvolutionRuntime>(Lifetime.Singleton)
             .As<IFacilityEvolutionRuntime>();
+        builder.RegisterEntryPoint<FacilityEvolutionActivationProjection>(
+            Lifetime.Singleton);
         builder.Register<FacilityEvolutionModifierQuery>(Lifetime.Singleton)
             .As<IFacilityEvolutionModifierQuery>();
         builder.Register<DataCatalogCodexReferenceCatalog>(Lifetime.Singleton)
             .As<ICodexReferenceCatalog>();
+        builder.Register<CodexRuntimeApplicationAdapter>(Lifetime.Singleton)
+            .As<ICodexRuntimeApplicationPort>()
+            .As<ICodexReferenceSnapshotQueryPort>();
         builder.Register<CodexReferenceImporter>(Lifetime.Singleton)
             .As<ICodexReferenceImporter>();
-        builder.Register<CodexRuntimeProvider>(Lifetime.Singleton)
-            .As<ICodexRuntimeProvider>();
     }
 }

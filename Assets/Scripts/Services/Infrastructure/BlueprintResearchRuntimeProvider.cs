@@ -1,11 +1,6 @@
 using System;
 using VContainer;
 
-public interface IBlueprintResearchRuntimeProvider
-{
-    bool TryGetRuntime(out BlueprintResearchRuntime runtime);
-}
-
 public interface IBlueprintResearchWorkService
 {
     bool HasResearchWorkFor(BuildableObject facility);
@@ -20,53 +15,33 @@ public interface IBlueprintResearchStateService
     BlueprintResearchState GetState();
 }
 
-public sealed class BlueprintResearchRuntimeProvider :
-    IBlueprintResearchRuntimeProvider
-{
-    private readonly ProgressionSceneRuntimeReferences runtimeReferences;
-
-    public BlueprintResearchRuntimeProvider(
-        ProgressionSceneRuntimeReferences runtimeReferences)
-    {
-        this.runtimeReferences = runtimeReferences
-            ?? throw new ArgumentNullException(nameof(runtimeReferences));
-    }
-
-    public bool TryGetRuntime(out BlueprintResearchRuntime runtime)
-    {
-        runtime = runtimeReferences.BlueprintResearch;
-        return runtime != null;
-    }
-}
-
 public sealed class BlueprintResearchWorkService : IBlueprintResearchWorkService
 {
-    private readonly IBlueprintResearchRuntimeProvider runtimeProvider;
+    private readonly BlueprintResearchRuntime runtime;
     private readonly IMetaProgressionRuntimeReader metaProgressionReader;
     private readonly IKnowledgeResidueProcessingRuntime knowledgeProcessing;
 
-    public BlueprintResearchWorkService(IBlueprintResearchRuntimeProvider runtimeProvider)
-        : this(runtimeProvider, null)
-    {
-    }
-
     [Inject]
     public BlueprintResearchWorkService(
-        IBlueprintResearchRuntimeProvider runtimeProvider,
+        ProgressionSceneRuntimeReferences runtimeReferences,
         IMetaProgressionRuntimeReader metaProgressionReader,
-        IKnowledgeResidueProcessingRuntime knowledgeProcessing = null)
+        IKnowledgeResidueProcessingRuntime knowledgeProcessing)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new ArgumentNullException(nameof(runtimeProvider));
-        this.metaProgressionReader = metaProgressionReader;
-        this.knowledgeProcessing = knowledgeProcessing;
+        runtime = (runtimeReferences
+                ?? throw new ArgumentNullException(nameof(runtimeReferences)))
+            .BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(BlueprintResearchWorkService)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
+        this.metaProgressionReader = metaProgressionReader
+            ?? throw new ArgumentNullException(nameof(metaProgressionReader));
+        this.knowledgeProcessing = knowledgeProcessing
+            ?? throw new ArgumentNullException(nameof(knowledgeProcessing));
     }
 
     public bool HasResearchWorkFor(BuildableObject facility)
     {
         if (facility == null
-            || !facility.SupportsWork(BuiltInWorkTypeIds.Research)
-            || !runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime))
+            || !facility.SupportsWork(BuiltInWorkTypeIds.Research))
         {
             return false;
         }
@@ -80,21 +55,9 @@ public sealed class BlueprintResearchWorkService : IBlueprintResearchWorkService
         BuildableObject researchFacility,
         float seconds)
     {
-        if (!runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime))
-        {
-            return new BlueprintResearchWorkResult(
-                false,
-                null,
-                0f,
-                0f,
-                1f,
-                false,
-                "Research runtime is not available.");
-        }
-
-        float multiplier = metaProgressionReader?.GetArcaneResearchWorkMultiplier() ?? 1f;
+        float multiplier = metaProgressionReader.GetArcaneResearchWorkMultiplier();
         if (!runtime.HasActiveResearch
-            && knowledgeProcessing != null)
+            && knowledgeProcessing.HasProcessingWorkFor(researchFacility))
         {
             return knowledgeProcessing.ApplyWork(
                 researcher,
@@ -106,23 +69,48 @@ public sealed class BlueprintResearchWorkService : IBlueprintResearchWorkService
     }
 }
 
+public sealed class BuildingResearchWorkPortAdapter : IBuildingResearchWorkPort
+{
+    private readonly IBlueprintResearchWorkService researchWork;
+
+    public BuildingResearchWorkPortAdapter(
+        IBlueprintResearchWorkService researchWork)
+    {
+        this.researchWork = researchWork
+            ?? throw new ArgumentNullException(nameof(researchWork));
+    }
+
+    public bool HasResearchWorkFor(IBuildingWorldEntryPort facility)
+    {
+        if (facility == null)
+        {
+            return false;
+        }
+
+        return researchWork.HasResearchWorkFor(
+            facility as BuildableObject
+            ?? throw new ArgumentException(
+                $"{nameof(IBuildingResearchWorkPort)} only accepts {nameof(BuildableObject)} facilities.",
+                nameof(facility)));
+    }
+}
+
 public sealed class BlueprintResearchStateService : IBlueprintResearchStateService
 {
-    private readonly IBlueprintResearchRuntimeProvider runtimeProvider;
+    private readonly BlueprintResearchRuntime runtime;
 
-    public BlueprintResearchStateService(IBlueprintResearchRuntimeProvider runtimeProvider)
+    public BlueprintResearchStateService(
+        ProgressionSceneRuntimeReferences runtimeReferences)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new ArgumentNullException(nameof(runtimeProvider));
+        runtime = (runtimeReferences
+                ?? throw new ArgumentNullException(nameof(runtimeReferences)))
+            .BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(BlueprintResearchStateService)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
     }
 
     public BlueprintResearchState GetState()
     {
-        if (!runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime))
-        {
-            throw new InvalidOperationException($"{nameof(BlueprintResearchStateService)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
-        }
-
         return runtime.State;
     }
 }

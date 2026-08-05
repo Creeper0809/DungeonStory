@@ -5,6 +5,8 @@ using UnityEngine;
 
 public static class CharacterFeedbackDebugScenarios
 {
+    private static readonly ICharacterNarrativeTextQuery NarrativeText =
+        new CharacterNarrativeTextQuery();
     [MenuItem("DungeonStory/Debug/Character/Run P1 Character Feedback Scenarios")]
     public static void RunFromMenu()
     {
@@ -353,7 +355,7 @@ public static class CharacterFeedbackDebugScenarios
             reasonCode: "fatigue-protection",
             bubbleEligible: true));
 
-        string text = CharacterSummeryInfo.FormatLogText(CharacterActor.From(character), 2);
+        string text = CharacterSummaryTextFormatter.FormatLogText(CharacterActor.From(character), 2);
         bool valid = !text.Contains("최근 기록")
             && text.StartsWith("- 피로", System.StringComparison.Ordinal)
             && text.Contains("재고 부족")
@@ -581,7 +583,8 @@ public static class CharacterFeedbackDebugScenarios
                 "작업 종료 · 연금 연구 · 지하 연구실 · 새 제조법 정리 완료"),
             "테스트 캐릭터가",
             "{\"line\":\"재료를 정리했다.\"}",
-            "missing anchors");
+            "missing anchors",
+            NarrativeText);
         CharacterLogEntry eligible = new CharacterLogEntry(
             7,
             "작업 시작 · 연구 · 연구실",
@@ -615,7 +618,8 @@ public static class CharacterFeedbackDebugScenarios
                 "비번 시작: 근무 피로 누적"),
             "김철이",
             "{\"line\":\"비번에서 피로를 시작했다.\"}",
-            "awkward transition");
+            "awkward transition",
+            NarrativeText);
         string variedCompletionPrompt = CharacterLogNarrativeService.BuildCorrectionPrompt(
             new CharacterLogEntry(
                 11,
@@ -625,7 +629,8 @@ public static class CharacterFeedbackDebugScenarios
                 "작업 종료 · 연금 연구 · 지하 연구실 · 새 제조법 정리 완료"),
             "테스트 캐릭터가",
             "{\"line\":\"새 제조법 정리까지 정리했다.\"}",
-            "repeated result wording");
+            "repeated result wording",
+            NarrativeText);
         string[] variedStartPrompts = Enumerable.Range(20, 4)
             .Select(entryId => CharacterLogNarrativeService.BuildPrompt(
                 null,
@@ -635,7 +640,8 @@ public static class CharacterFeedbackDebugScenarios
                     "작업 시작 · 연구 · 연구실",
                     "작업 시작 · 연구 · 연구실",
                     1,
-                    "작업 시작 · 연구 · 연구실")))
+                    "작업 시작 · 연구 · 연구실"),
+                NarrativeText))
             .ToArray();
         CharacterLogEntry fallbackEntry = new CharacterLogEntry(
             11,
@@ -645,7 +651,8 @@ public static class CharacterFeedbackDebugScenarios
             "작업 종료 · 연금 연구 · 지하 연구실 · 새 제조법 정리 완료");
         string controlledFallback = CharacterLogNarrativeService.BuildControlledFallbackLine(
             fallbackEntry,
-            "테스트 캐릭터가");
+            "테스트 캐릭터가",
+            NarrativeText);
         bool controlledFallbackValid = CharacterLogNarrativeService.TryParseNarrativeLine(
             JsonUtility.ToJson(new CharacterRecordJsonDto { line = controlledFallback }),
             fallbackEntry.OriginalMessage,

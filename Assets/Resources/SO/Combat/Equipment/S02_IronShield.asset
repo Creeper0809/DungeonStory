@@ -24,6 +24,16 @@ MonoBehaviour:
   primaryMaterialAmount: 5
   allowedMaterialFamilies: 000000000200000003000000
   craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:growth-frame
+    amount: 1
+  requiredResearchId: research:metallurgy:iron
+  era: 1
+  tier: 1
+  slotProfile: 3
+  lineageKind: 2
+  growthEquipment: 1
+  growthBaseStatMultiplier: 0.88
   frontalBlockChance: 0.38
   slashDefense: 18
   pierceDefense: 15

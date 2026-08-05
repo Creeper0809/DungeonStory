@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: DefenseFacility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -38,10 +29,11 @@ MonoBehaviour:
       Data: 
   id: 57
   objectName: "3\uC131 \uBD80\uC2DD \uB0C9\uAC01 \uD568\uC815"
-  sprite: {fileID: 21300000, guid: 77172e8390d7d0127c6072537c23aa22, type: 3}
-  icon: {fileID: 21300000, guid: 77172e8390d7d0127c6072537c23aa22, type: 3}
+  sprite: {fileID: 21300000, guid: 45c10551019307744835c1c79d4066de, type: 3}
+  icon: {fileID: 21300000, guid: 45c10551019307744835c1c79d4066de, type: 3}
   abilityModules:
     items:
+    - rid: 8800000000000000057
     - rid: 7302562978982527545
     - rid: 7302562987322638786
     - rid: 7302562987322638787
@@ -51,6 +43,7 @@ MonoBehaviour:
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 7
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -60,7 +53,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7302562978982527545
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -120,3 +113,15 @@ MonoBehaviour:
             detectionRangeLevel: 0
             identificationLevel: 0
             outageResistanceLevel: 0
+    - rid: 8800000000000000057
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 30
+        repairWorkRequired: 14
+        cleanWorkRequired: 9
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 1

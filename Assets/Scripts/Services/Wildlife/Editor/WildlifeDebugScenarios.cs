@@ -55,6 +55,7 @@ public static class WildlifeDebugScenarios
         Run("hunt_and_butcher_work_types", VerifyWorkTypes, lines, errors);
         Run("save_v10_wildlife_contract", VerifySaveV10WildlifeContract, lines, errors);
         Run("runtime_state_not_so", VerifyRuntimeStateIsNotScriptableObject, lines, errors);
+        Run("actor_collaborator_ownership", VerifyActorCollaboratorOwnership, lines, errors);
         Run("initial_spawn_exterior_path_only", VerifyInitialSpawnExteriorPathOnly, lines, errors);
         Run("default_physical_world_blocks_air_spawn", VerifyDefaultPhysicalWorldBlocksAirSpawn, lines, errors);
         Run("visual_grounding_and_wounded_healthbar", VerifyVisualGroundingAndWoundedHealthbar, lines, errors);
@@ -93,6 +94,18 @@ public static class WildlifeDebugScenarios
         RunScenario("playmode wildlife spawn area", VerifyPlayModeWildlifeSpawnArea, errors);
         RunScenario("playmode info panel", VerifyPlayModeInfoPanel, errors);
         RunScenario("playmode save capture", VerifyPlayModeSaveCapture, errors);
+        RunScenario(
+            "playmode invalid wildlife preflight preserves live actors",
+            VerifyInvalidWildlifePreflightPreservesLiveActors,
+            errors);
+        RunScenario(
+            "playmode wildlife roundtrip publishes detached actors",
+            VerifyWildlifeRoundtripPublishesDetachedActors,
+            errors);
+        RunScenario(
+            "playmode later failure discards wildlife candidate",
+            VerifyLaterFailureDiscardsWildlifeCandidate,
+            errors);
 
         if (errors.Count > 0)
         {
@@ -166,7 +179,12 @@ public static class WildlifeDebugScenarios
 
     private static string VerifySpeciesCatalog()
     {
-        ResourceWildlifeSpeciesCatalogProvider catalog = new ResourceWildlifeSpeciesCatalogProvider();
+        ResourceGameContentCatalog content =
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader());
+        ResourceWildlifeSpeciesCatalogProvider catalog =
+            new ResourceWildlifeSpeciesCatalogProvider(
+                content,
+                new ResourceItemDefinitionCatalog(content));
         IReadOnlyList<WildlifeSpeciesDefinition> species = catalog.All;
         Require(species.Count >= 5, $"expected at least 5 species, got {species.Count}");
         Require(catalog.TryGetSpecies("shadow_wolf", out WildlifeSpeciesDefinition wolf), "shadow wolf missing");
@@ -179,7 +197,7 @@ public static class WildlifeDebugScenarios
 
     private static string VerifyWildlifeItemDefinitions()
     {
-        ResourceDungeonItemCatalogProvider catalog = new ResourceDungeonItemCatalogProvider();
+        ResourceDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
         DungeonItemDefinition carcass = catalog.GetDefinition("wild:carcass:cave_rat");
         DungeonItemDefinition hide = catalog.GetDefinition(WildlifeItemDefinitions.HideItemId);
         DungeonItemDefinition rot = catalog.GetDefinition(WildlifeItemDefinitions.RotItemId);
@@ -259,6 +277,90 @@ public static class WildlifeDebugScenarios
         Require(typeof(WildlifeSpeciesSO).IsSubclassOf(typeof(ScriptableObject)),
             "WildlifeSpeciesSO should be static species data");
         return "runtime/state separated from species SO";
+    }
+
+    private static string VerifyActorCollaboratorOwnership()
+    {
+        Type actorType = typeof(WildlifeActor);
+        Type visualType = typeof(WildlifeVisualPresentation);
+        Type conditionType = typeof(WildlifeNaturalCondition);
+        BindingFlags instanceFields = BindingFlags.Instance
+            | BindingFlags.Public
+            | BindingFlags.NonPublic;
+
+        Require(!typeof(MonoBehaviour).IsAssignableFrom(visualType),
+            "wildlife visual presentation must remain a plain C# object");
+        Require(!typeof(MonoBehaviour).IsAssignableFrom(conditionType),
+            "wildlife natural condition must remain a plain C# object");
+        Require(actorType.GetField("visualPresentation", instanceFields)?.FieldType == visualType,
+            "actor must own one visual presentation collaborator");
+        Require(actorType.GetField("naturalCondition", instanceFields)?.FieldType == conditionType,
+            "actor must own one natural condition collaborator");
+
+        string[] removedActorFields =
+        {
+            "visualRoot",
+            "visualRenderer",
+            "markerRenderer",
+            "healthRoot",
+            "hunger",
+            "thirst",
+            "intent",
+            "territoryCenter",
+            "lastThreatPosition"
+        };
+        foreach (string fieldName in removedActorFields)
+        {
+            Require(actorType.GetField(fieldName, instanceFields) == null,
+                $"actor still owns extracted state '{fieldName}'");
+        }
+
+        Require(visualType.GetField("visualRoot", instanceFields) != null,
+            "visual collaborator does not own its visual root");
+        Require(conditionType.GetField("hunger", instanceFields) != null,
+            "natural condition does not own hunger");
+        Require(conditionType.GetField("lastThreatPosition", instanceFields) != null,
+            "natural condition does not own threat memory");
+        Require(actorType.GetMethod("Initialize", BindingFlags.Instance | BindingFlags.Public) != null,
+            "actor initialization API changed");
+        Require(actorType.GetMethod("Tick", BindingFlags.Instance | BindingFlags.Public) != null,
+            "actor tick API changed");
+        Require(actorType.GetMethod("OnDestroy", BindingFlags.Instance | BindingFlags.NonPublic) != null,
+            "actor Unity destruction hook changed");
+
+        WildlifeSaveData source = new WildlifeSaveData
+        {
+            fear = 2.5f,
+            hunger = 0.42f,
+            thirst = 0.63f,
+            intent = WildlifeIntent.Drink,
+            intentReason = "condition ownership regression",
+            hasTerritory = true,
+            territoryX = 11,
+            territoryY = 4,
+            hasHerdAnchor = true,
+            herdAnchorX = 9,
+            herdAnchorY = 4,
+            hasLastThreat = true,
+            lastThreatX = 14,
+            lastThreatY = 5
+        };
+        WildlifeNaturalCondition condition = new WildlifeNaturalCondition();
+        condition.Initialize(source, Vector2Int.zero, 20f, 0f, 0f);
+        WildlifeSaveData captured = new WildlifeSaveData();
+        condition.CaptureInto(captured);
+        Require(Mathf.Approximately(captured.fear, source.fear)
+            && Mathf.Approximately(captured.hunger, source.hunger)
+            && Mathf.Approximately(captured.thirst, source.thirst),
+            "natural condition numeric state failed save roundtrip");
+        Require(captured.intent == source.intent
+            && captured.intentReason == source.intentReason
+            && captured.territoryX == source.territoryX
+            && captured.herdAnchorX == source.herdAnchorX
+            && captured.lastThreatX == source.lastThreatX,
+            "natural condition identity state failed save roundtrip");
+
+        return "visual and natural state owned by plain C# collaborators";
     }
 
     private static string VerifyInitialSpawnExteriorPathOnly()
@@ -347,7 +449,16 @@ public static class WildlifeDebugScenarios
             herdSize: 1,
             canEnterDungeon: true,
             carcassWeight: 1f,
-            butcherYields: Array.Empty<WildlifeButcherYield>());
+            butcherYields: Array.Empty<WildlifeButcherYield>(),
+            husbandry: new WildlifeHusbandryProfile(
+                true,
+                0.5f,
+                2f,
+                20f,
+                3f,
+                false,
+                1f,
+                2f));
         Grid grid = new Grid(4, 1);
         for (int x = 0; x < grid.width; x++)
         {
@@ -359,6 +470,7 @@ public static class WildlifeDebugScenarios
         try
         {
             WildlifeActor actor = actorObject.AddComponent<WildlifeActor>();
+            ConfigureActor(actor, 36117);
             actor.Initialize(grid, species, "visual-test", Vector2Int.zero);
             SpriteRenderer renderer = actor.VisualRenderer;
             Require(renderer != null, "wildlife visual renderer missing");
@@ -389,8 +501,11 @@ public static class WildlifeDebugScenarios
             WildlifeActor actor = actorObject.AddComponent<WildlifeActor>();
             actor.ConfigureRuntimeServices(
                 CreatePathSearchBroker(),
-                CharacterAiEditorTestDependencies.WorldRegistry);
-            actor.Initialize(grid, WildlifeBuiltIns.CaveRat, "natural-motion", new Vector2Int(3, 0));
+                CharacterAiEditorTestDependencies.WorldRegistry,
+                new UnityGameClock(),
+                new RandomStreamProvider(39017),
+                OpenDoorAccessQuery.Instance);
+            actor.Initialize(grid, WildlifeTestFixtures.CaveRat, "natural-motion", new Vector2Int(3, 0));
             float now = Time.time;
             Require(actor.TrySetPath(new Vector2Int(8, 0), now), "wildlife did not begin a valid route");
             float outboundWorldDelta = grid.GetWorldPos(new Vector2Int(8, 0)).x
@@ -434,7 +549,8 @@ public static class WildlifeDebugScenarios
         try
         {
             WildlifeActor actor = actorObject.AddComponent<WildlifeActor>();
-            actor.Initialize(grid, WildlifeBuiltIns.MossBoar, "combat-body", new Vector2Int(1, 0));
+            ConfigureActor(actor, 43917);
+            actor.Initialize(grid, WildlifeTestFixtures.MossBoar, "combat-body", new Vector2Int(1, 0));
             float mobilityBefore = actor.CombatMobility;
             int healthBefore = actor.CurrentHealth;
             CombatAttackResult legHit = new CombatAttackResult(
@@ -464,9 +580,10 @@ public static class WildlifeDebugScenarios
             Grid restoredGrid = CreateExteriorGrid(4);
             restoredObject = new GameObject("WildlifeCombatBodyRestored");
             WildlifeActor restored = restoredObject.AddComponent<WildlifeActor>();
+            ConfigureActor(restored, 46917);
             restored.Initialize(
                 restoredGrid,
-                WildlifeBuiltIns.MossBoar,
+                WildlifeTestFixtures.MossBoar,
                 save.wildlifeId,
                 new Vector2Int(save.gridX, save.gridY),
                 save);
@@ -493,7 +610,7 @@ public static class WildlifeDebugScenarios
     private static string VerifyEcosystemPatchResourceLoop()
     {
         WildlifeHabitatPatch patch = new WildlifeHabitatPatch(
-            "test:grass",
+            "wildlife-habitat:test:grass",
             WildlifeHabitatType.Grass,
             Vector2Int.zero,
             radius: 2,
@@ -530,7 +647,7 @@ public static class WildlifeDebugScenarios
     {
         Grid grid = CreateExteriorGrid(32);
         WildlifeHabitatPatch grass = new WildlifeHabitatPatch(
-            "test:decor:grass",
+            "wildlife-habitat:test:decor:grass",
             WildlifeHabitatType.Grass,
             new Vector2Int(5, 0),
             radius: 3,
@@ -539,7 +656,7 @@ public static class WildlifeDebugScenarios
             regenPerSecond: 0.5f,
             danger: 0f);
         WildlifeHabitatPatch brush = new WildlifeHabitatPatch(
-            "test:decor:brush",
+            "wildlife-habitat:test:decor:brush",
             WildlifeHabitatType.Brush,
             new Vector2Int(14, 0),
             radius: 3,
@@ -548,7 +665,7 @@ public static class WildlifeDebugScenarios
             regenPerSecond: 0.25f,
             danger: 0f);
         WildlifeHabitatPatch burrow = new WildlifeHabitatPatch(
-            "test:decor:burrow",
+            "wildlife-habitat:test:decor:burrow",
             WildlifeHabitatType.Burrow,
             new Vector2Int(24, 0),
             radius: 2,
@@ -562,7 +679,8 @@ public static class WildlifeDebugScenarios
                 WildlifeHabitatDecorationPaletteSO.ResourcePath);
         Require(palette != null && palette.IsComplete, "decoration palette unavailable for runtime contract");
 
-        WildlifeHabitatDecorationRuntime decorations = new WildlifeHabitatDecorationRuntime();
+        WildlifeHabitatDecorationRuntime decorations = new WildlifeHabitatDecorationRuntime(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         try
         {
             decorations.Rebuild(grid, patches, palette);
@@ -596,19 +714,15 @@ public static class WildlifeDebugScenarios
     private static string VerifyEcosystemTargetSelection()
     {
         Grid grid = CreateExteriorGrid(24);
-        WildlifeEcosystemRuntime ecosystem = new WildlifeEcosystemRuntime(
-            gridSystemProvider: null,
-            worldWaterQuery: null,
-            habitatMarkerQuery: new WildlifeHabitatMarkerRegistry(
-                new WorldSimulationSceneReferences()),
-            gameClock: new DungeonStory.Foundation.UnityGameClock(),
-            randomStreamProvider: new DungeonStory.Foundation.RandomStreamProvider(17));
+        WildlifeEcosystemApplicationAdapter ecosystem =
+            CreateEcosystemForTest(17);
         ecosystem.EnsureInitialized(grid);
         GameObject actorObject = new GameObject("WildlifeEcosystemTargetContract");
         try
         {
             WildlifeActor actor = actorObject.AddComponent<WildlifeActor>();
-            actor.Initialize(grid, WildlifeBuiltIns.RuneDeer, "eco-target", new Vector2Int(2, 0));
+            ConfigureActor(actor, 61517);
+            actor.Initialize(grid, WildlifeTestFixtures.RuneDeer, "eco-target", new Vector2Int(2, 0));
             actor.ChangeThirst(1f);
             bool selected = ecosystem.TryChooseEcologyTarget(
                 actor,
@@ -633,19 +747,14 @@ public static class WildlifeDebugScenarios
     private static string VerifyEcosystemRespawnPressure()
     {
         Grid grid = CreateExteriorGrid(28);
-        WildlifeEcosystemRuntime ecosystem = new WildlifeEcosystemRuntime(
-            gridSystemProvider: null,
-            worldWaterQuery: null,
-            habitatMarkerQuery: new WildlifeHabitatMarkerRegistry(
-                new WorldSimulationSceneReferences()),
-            gameClock: new DungeonStory.Foundation.UnityGameClock(),
-            randomStreamProvider: new DungeonStory.Foundation.RandomStreamProvider(29));
+        WildlifeEcosystemApplicationAdapter ecosystem =
+            CreateEcosystemForTest(29);
         ecosystem.EnsureInitialized(grid);
         float now = Time.time + 10f;
         bool first = ecosystem.TryConsumeRespawnOpportunity(
             now,
             aliveCount: 0,
-            WildlifeBuiltIns.All,
+            WildlifeTestFixtures.All,
             out WildlifeSpeciesDefinition selected);
         Require(first && selected != null, "ecosystem should allow slow refill when habitat is healthy");
 
@@ -653,12 +762,13 @@ public static class WildlifeDebugScenarios
         try
         {
             WildlifeActor actor = actorObject.AddComponent<WildlifeActor>();
+            ConfigureActor(actor, 66117);
             actor.Initialize(grid, selected, "eco-pressure", new Vector2Int(1, 0));
             ecosystem.NotifyWildlifeKilled(actor, byHunt: true);
             bool immediate = ecosystem.TryConsumeRespawnOpportunity(
                 Time.time + 11f,
                 aliveCount: 0,
-                WildlifeBuiltIns.All,
+                WildlifeTestFixtures.All,
                 out _);
             Require(!immediate, "hunt pressure should prevent immediate refill");
             return $"selected={selected.SpeciesId}; respawnBlocked={!immediate}";
@@ -685,13 +795,35 @@ public static class WildlifeDebugScenarios
         return scope.Container.Resolve<IWildlifeSpeciesCatalogProvider>() != null
             && scope.Container.Resolve<IWildlifeEcosystemRuntime>() != null
             && scope.Container.Resolve<IWildlifeRuntime>() != null
-            && scope.Container.Resolve<ISurvivalFoodRuntime>() != null;
+            && scope.Container.Resolve<ISurvivalFoodQuery>() != null;
+    }
+
+    private static WildlifeEcosystemApplicationAdapter CreateEcosystemForTest(
+        int seed)
+    {
+        WildlifeEcosystemApplicationPorts ports =
+            new WildlifeEcosystemApplicationPorts(
+                gridSystemProvider: null,
+                worldWaterQuery: null,
+                habitatMarkerQuery: new WildlifeHabitatMarkerRegistry(
+                    new WorldSimulationSceneReferences()),
+                content: new ResourceGameContentCatalog(
+                    new UnityGameContentRootLoader()),
+                overlayRoot: new WildlifeOverlayRootPort());
+        WildlifeEcosystemRuntime core = new WildlifeEcosystemRuntime(
+            ports,
+            ports,
+            new DungeonStory.Foundation.UnityGameClock(),
+            new DungeonStory.Foundation.RandomStreamProvider(seed),
+            new GuidPersistentIdGenerator());
+        return new WildlifeEcosystemApplicationAdapter(core, ports);
     }
 
     private static bool VerifyPlayModeHabitatDecorations()
     {
         if (!Application.isPlaying
-            || !TryResolvePlayModeService(out WildlifeEcosystemRuntime ecosystem)
+            || !TryResolvePlayModeService(
+                out WildlifeEcosystemApplicationAdapter ecosystem)
             || !ecosystem.DecorationRuntime.IsReady)
         {
             return false;
@@ -823,6 +955,264 @@ public static class WildlifeDebugScenarios
             && survival != null;
     }
 
+    private static bool VerifyInvalidWildlifePreflightPreservesLiveActors()
+    {
+        if (!TryResolveSaveScenario(
+                out WildlifeRuntime wildlifeRuntime,
+                out IDungeonGameSaveService saveService,
+                out DungeonRuntimeLifetimeScope scope))
+        {
+            return false;
+        }
+
+        WildlifeActor[] before = wildlifeRuntime.Wildlife
+            .Where(actor => actor != null)
+            .ToArray();
+        if (before.Length == 0)
+        {
+            return false;
+        }
+
+        DungeonGameSaveData invalid = saveService.Capture();
+        if (!DungeonSaveSectionPayload.TryRead(
+                invalid,
+                WildlifeSaveSection.Id,
+                out DungeonWildlifeSaveData payload)
+            || payload.wildlife.Count == 0)
+        {
+            return false;
+        }
+
+        payload.wildlife[0].speciesId = "wildlife:missing-preflight-species";
+        DungeonSaveSectionPayload.Write(
+            invalid,
+            WildlifeSaveSection.Id,
+            DungeonWildlifeSaveData.CurrentVersion,
+            DungeonSaveRestorePhase.RuntimeState,
+            payload);
+        invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+
+        bool restored = saveService.TryRestore(invalid, out DungeonGameRestoreReport report);
+        WildlifeActor[] after = wildlifeRuntime.Wildlife
+            .Where(actor => actor != null)
+            .ToArray();
+        return !restored
+            && !report.Success
+            && before.SequenceEqual(after)
+            && after.All(actor => actor.gameObject.activeSelf
+                && !actor.IsDetachedRestoreCandidate);
+    }
+
+    private static bool VerifyWildlifeRoundtripPublishesDetachedActors()
+    {
+        if (!TryResolveSaveScenario(
+                out WildlifeRuntime wildlifeRuntime,
+                out IDungeonGameSaveService saveService,
+                out DungeonRuntimeLifetimeScope scope))
+        {
+            return false;
+        }
+
+        WildlifeActor[] before = wildlifeRuntime.Wildlife
+            .Where(actor => actor != null && actor.IsAlive)
+            .ToArray();
+        if (before.Length == 0)
+        {
+            return false;
+        }
+
+        string[] expectedIds = before
+            .Select(actor => actor.WildlifeId)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        DungeonGameSaveData snapshot = saveService.Capture();
+        if (!DungeonSaveSectionPayload.TryRead(
+                snapshot,
+                WildlifeSaveSection.Id,
+                out DungeonWildlifeSaveData capturedWildlife))
+        {
+            return false;
+        }
+
+        string expectedPatches = CapturePatchJson(
+            capturedWildlife.ecosystem.patches);
+        if (!saveService.TryRestore(snapshot, out DungeonGameRestoreReport report)
+            || !report.Success)
+        {
+            return false;
+        }
+
+        WildlifeActor[] after = wildlifeRuntime.Wildlife
+            .Where(actor => actor != null && actor.IsAlive)
+            .ToArray();
+        string[] restoredIds = after
+            .Select(actor => actor.WildlifeId)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        string restoredPatches = CapturePatchJson(
+            wildlifeRuntime.Capture().ecosystem.patches);
+        IRestoreWorldCandidateQuery candidates =
+            scope.Container.Resolve<IRestoreWorldCandidateQuery>();
+        return expectedIds.SequenceEqual(restoredIds)
+            && string.Equals(
+                expectedPatches,
+                restoredPatches,
+                StringComparison.Ordinal)
+            && before.All(previous => after.All(current =>
+                !ReferenceEquals(previous, current)))
+            && after.All(actor => actor.gameObject.activeSelf
+                && !actor.IsDetachedRestoreCandidate)
+            && !candidates.TryGetWildlife(out _)
+            && report.Warnings.Count == 0;
+    }
+
+    private static bool VerifyLaterFailureDiscardsWildlifeCandidate()
+    {
+        if (!TryResolveSaveScenario(
+                out WildlifeRuntime wildlifeRuntime,
+                out _,
+                out DungeonRuntimeLifetimeScope scope))
+        {
+            return false;
+        }
+
+        WildlifeActor[] before = wildlifeRuntime.Wildlife
+            .Where(actor => actor != null && actor.IsAlive)
+            .ToArray();
+        string[] expectedIds = before
+            .Select(actor => actor.WildlifeId)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        if (expectedIds.Length == 0)
+        {
+            return false;
+        }
+
+        IDungeonSaveSectionRegistry liveRegistry =
+            scope.Container.Resolve<IDungeonSaveSectionRegistry>();
+        IDungeonSaveSection facilitySection = liveRegistry.OrderedSections
+            .Single(section => section.SectionId == ModularFacilityWorldSaveSection.Id);
+        IDungeonSaveSection wildlifeSection = liveRegistry.OrderedSections
+            .Single(section => section.SectionId == WildlifeSaveSection.Id);
+        MarkerDependencySection runDependency =
+            new MarkerDependencySection(RunVariableSaveSection.Id);
+        MarkerDependencySection metaDependency =
+            new MarkerDependencySection(MetaProgressionSaveSection.Id);
+        MarkerDependencySection itemDependency =
+            new MarkerDependencySection(PhysicalItemsSaveSection.Id);
+        FailOnceAfterWildlifeSaveSection failSection =
+            new FailOnceAfterWildlifeSaveSection();
+        DungeonRuntimeAggregateRootStore isolatedRoot =
+            new DungeonRuntimeAggregateRootStore();
+        IDungeonRestoreTransactionParticipant facilityParticipant =
+            scope.Container.Resolve<IModularFacilityWorldSaveService>()
+                as IDungeonRestoreTransactionParticipant;
+        if (facilityParticipant == null)
+        {
+            return false;
+        }
+
+        DungeonSaveSectionRegistry testRegistry = new DungeonSaveSectionRegistry(
+            new IDungeonSaveSection[]
+            {
+                runDependency,
+                metaDependency,
+                itemDependency,
+                facilitySection,
+                wildlifeSection,
+                failSection
+            },
+            isolatedRoot,
+            new IDungeonRestoreTransactionParticipant[]
+            {
+                facilityParticipant,
+                wildlifeRuntime
+            });
+
+        List<DungeonSaveSectionEnvelope> snapshot = testRegistry.CaptureAll();
+        IRestoreWorldCandidateQuery candidateIndex =
+            scope.Container.Resolve<IRestoreWorldCandidateQuery>();
+        IGridSystemProvider gridProvider =
+            scope.Container.Resolve<IGridSystemProvider>();
+        if (!gridProvider.TryGetGrid(out Grid liveGrid))
+        {
+            return false;
+        }
+
+        int detachedBefore = CountDetachedWildlifeCandidates();
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        bool restored = testRegistry.RestoreAll(snapshot, report);
+        WildlifeActor[] after = wildlifeRuntime.Wildlife
+            .Where(actor => actor != null && actor.IsAlive)
+            .ToArray();
+        string[] restoredIds = after
+            .Select(actor => actor.WildlifeId)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        bool sameGrid = gridProvider.TryGetGrid(out Grid afterGrid)
+            && ReferenceEquals(liveGrid, afterGrid);
+        bool candidateIndexClear = !candidateIndex.TryGetGrid(out _)
+            && !candidateIndex.TryGetBuildings(out _)
+            && !candidateIndex.TryGetWildlife(out _);
+        int detachedAfter = CountDetachedWildlifeCandidates();
+
+        return !restored
+            && !report.Success
+            && report.Errors.Any(error => error.Contains(
+                "Intentional failure after wildlife candidate staging.",
+                StringComparison.Ordinal))
+            && failSection.CommitCount == 1
+            && expectedIds.SequenceEqual(restoredIds)
+            && sameGrid
+            && candidateIndexClear
+            && !isolatedRoot.IsRestoreStaging
+            && isolatedRoot.PublishedRestoreRevision == 0
+            && detachedAfter == detachedBefore
+            && after.All(actor => actor.gameObject.activeSelf
+                && !actor.IsDetachedRestoreCandidate);
+    }
+
+    private static string CapturePatchJson(
+        IEnumerable<WildlifeHabitatPatchSaveData> patches)
+    {
+        return string.Join(
+            "\n",
+            (patches ?? Enumerable.Empty<WildlifeHabitatPatchSaveData>())
+                .Select(JsonUtility.ToJson));
+    }
+
+    private static int CountDetachedWildlifeCandidates()
+    {
+        return Resources.FindObjectsOfTypeAll<WildlifeActor>()
+            .Count(actor => actor != null && actor.IsDetachedRestoreCandidate);
+    }
+
+    private static bool TryResolveSaveScenario(
+        out WildlifeRuntime wildlifeRuntime,
+        out IDungeonGameSaveService saveService,
+        out DungeonRuntimeLifetimeScope scope)
+    {
+        wildlifeRuntime = null;
+        saveService = null;
+        scope = null;
+        if (!Application.isPlaying)
+        {
+            return false;
+        }
+
+        scope = FindScope();
+        if (scope == null || scope.Container == null)
+        {
+            return false;
+        }
+
+        wildlifeRuntime = scope.Container.Resolve<WildlifeRuntime>();
+        saveService = scope.Container.Resolve<IDungeonGameSaveService>();
+        wildlifeRuntime.Tick();
+        return wildlifeRuntime.Wildlife.Any(actor =>
+            actor != null && actor.IsAlive);
+    }
+
     private static Grid CreateExteriorGrid(int width)
     {
         Grid grid = new Grid(width, 1);
@@ -836,7 +1226,7 @@ public static class WildlifeDebugScenarios
 
     private static IGridPathSearchBroker CreatePathSearchBroker()
     {
-        GridPathSearchBroker broker = new GridPathSearchBroker(new UnityGameClock());
+        GridPathSearchBroker broker = new GridPathSearchBroker(new UnityGameClock(), doorAccessQuery: null, performanceRecorder: null, costPolicy: null);
         broker.BeginFrame(64, enforceBudget: false);
         return broker;
     }
@@ -982,11 +1372,15 @@ public static class WildlifeDebugScenarios
 
     private static int CountFoodStacks(IWorldItemStackRuntime itemRuntime)
     {
-        return itemRuntime == null
+        IDungeonItemCatalogProvider catalog = itemRuntime?.CatalogProvider;
+        return itemRuntime == null || catalog == null
             ? 0
             : itemRuntime.GetAllStacks()
                 .Where(stack => stack != null
-                    && string.Equals(stack.ItemId, DungeonItemCatalogSO.StockItemId(StockCategory.Food), StringComparison.Ordinal))
+                    && catalog.TryGetDefinition(
+                        stack.ItemId,
+                        out DungeonItemDefinition definition)
+                    && definition.StockCategory == StockCategory.Food)
                 .Sum(stack => stack.Quantity);
     }
 
@@ -1028,6 +1422,16 @@ public static class WildlifeDebugScenarios
         }
     }
 
+    private static void ConfigureActor(WildlifeActor actor, int seed)
+    {
+        actor.ConfigureRuntimeServices(
+            CreatePathSearchBroker(),
+            CharacterAiEditorTestDependencies.WorldRegistry,
+            new UnityGameClock(),
+            new RandomStreamProvider(seed),
+            OpenDoorAccessQuery.Instance);
+    }
+
     private static void RunScenario(string name, Func<bool> scenario, List<string> errors)
     {
         bool passed;
@@ -1055,6 +1459,77 @@ public static class WildlifeDebugScenarios
         }
     }
 
+    private sealed class MarkerDependencySection :
+        DungeonDebugStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        private readonly string id;
+
+        public MarkerDependencySection(string id)
+        {
+            this.id = id ?? throw new ArgumentNullException(nameof(id));
+        }
+
+        public override string SectionId => id;
+        public override DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.Foundation;
+
+        protected override void CommitMarker(
+            DungeonGameRestoreReport report)
+        {
+        }
+    }
+
+    private sealed class FailOnceAfterWildlifeSaveSection :
+        IDungeonSaveSection,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        public const string Id = "wildlife.debug.fail-after-candidate";
+
+        public int CommitCount { get; private set; }
+        public string SectionId => Id;
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.LateRuntimeState;
+        public IReadOnlyList<string> DependsOn =>
+            new[] { WildlifeSaveSection.Id };
+
+        public string Capture() => "{}";
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+        }
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            if (sectionVersion != SectionVersion)
+            {
+                throw new InvalidOperationException(
+                    $"Unexpected debug section version {sectionVersion}.");
+            }
+
+            return new DungeonDelegateSaveRestoreStage(
+                SectionId,
+                _ =>
+                {
+                    CommitCount++;
+                    if (CommitCount == 1)
+                    {
+                        throw new InvalidOperationException(
+                            "Intentional failure after wildlife candidate staging.");
+                    }
+                });
+        }
+    }
+
     private sealed class TestOccupant : IGridOccupant
     {
         private static int nextId;
@@ -1063,6 +1538,45 @@ public static class WildlifeDebugScenarios
         public bool IsGridDestroyed => false;
         public bool IsGridVisitable => true;
         public bool IsGridMovement => true;
+    }
+
+    private sealed class OpenDoorAccessQuery : IDoorAccessQuery
+    {
+        public static readonly OpenDoorAccessQuery Instance = new OpenDoorAccessQuery();
+
+        public int DoorAccessVersion => 0;
+
+        public DoorAccessSubjectRef ResolveSubject(GridTraversalContext context)
+        {
+            if (context.Subject is WildlifeActor wildlife)
+            {
+                return new DoorAccessSubjectRef(
+                    wildlife.WildlifeId,
+                    DoorAccessGroup.Wildlife,
+                    wildlife: wildlife);
+            }
+
+            return default;
+        }
+
+        public bool CanUse(
+            Door door,
+            GridTraversalContext context,
+            out string denialReason)
+        {
+            denialReason = string.Empty;
+            return true;
+        }
+
+        public bool CanTraverse(
+            Grid grid,
+            Vector2Int position,
+            GridTraversalContext context,
+            out string denialReason)
+        {
+            denialReason = string.Empty;
+            return true;
+        }
     }
 }
 #endif

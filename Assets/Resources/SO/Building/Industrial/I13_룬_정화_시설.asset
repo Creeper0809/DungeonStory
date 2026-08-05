@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: BuildableObject, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,19 +33,20 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 0a825f541da8578479c170fb055e3c37, type: 3}
   abilityModules:
     items:
-    - rid: 7302563313663345634
-    - rid: 7302563313663345635
-    - rid: 7302563313663345636
-    - rid: 7302563313663345637
-    - rid: 7302563313663345638
-    - rid: 7302563313663345639
-    - rid: 7302563313663345640
+    - rid: 7737211730889015774
+    - rid: 7737211730889015775
+    - rid: 7737211730889015776
+    - rid: 7737211730889015777
+    - rid: 7737211730889015778
+    - rid: 7737211730889015779
+    - rid: 7737211730889015780
   width: 3
   height: 1
   layer: 1
   category: 7
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 0
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -63,12 +55,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563313663345634
+    - rid: 7737211730889015774
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: I13
-    - rid: 7302563313663345635
+    - rid: 7737211730889015775
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -77,7 +69,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 3
         demolitionRefundRate: 0.5
-    - rid: 7302563313663345636
+    - rid: 7737211730889015776
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -86,17 +78,17 @@ MonoBehaviour:
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 10
-        constructionMaterialCategory: 1
-        constructionMaterialAmount: 5
-        materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563313663345637
+        constructionMaterials:
+        - itemId: component:rune-conductor
+          amount: 5
+    - rid: 7737211730889015777
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 7
         maxThroughput: 100
         normallyOpen: 1
-    - rid: 7302563313663345638
+    - rid: 7737211730889015778
       type: {class: BuildingWastewaterProcessorAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWastewaterProcessorAbility
@@ -107,14 +99,14 @@ MonoBehaviour:
         sludgeItemId: industrial:sludge
         sludgeAmount: 1
         secondsPerBatch: 8
-    - rid: 7302563313663345639
+    - rid: 7737211730889015779
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 4
         priority: 3
         minimumSupplyFraction: 1
-    - rid: 7302563313663345640
+    - rid: 7737211730889015780
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility

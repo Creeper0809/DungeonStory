@@ -26,21 +26,33 @@ MonoBehaviour:
   displayName: "\uCCA0\uCD09 \uD654\uC0B4"
   description: "\uD45C\uC900 \uD53C\uD574\uC640 \uAD00\uD1B5\uC744 \uAC00\uC9C4 \uD654\uC0B4."
   stockCategory: 7
-  kind: 7
-  ingredientTags: 768
-  unitPrice: 3
-  marketSaleRate: 0.6
   unitWeight: 0.09
   maxStack: 100
   sprite: {fileID: 0}
-  requiredResearchId: research:metallurgy:iron
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 3
+  features:
+  - rid: 7737211674039681163
+  - rid: 7737211674039681164
+  - rid: 7737211674039681165
+  - rid: 7737211674039681166
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681163
+      type: {class: AmmunitionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        ammunitionKindId: ammo:arrow-iron
+    - rid: 7737211674039681164
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:metallurgy:iron
+    - rid: 7737211674039681165
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 7
+        ingredientTags: 768
+        sharedIntermediate: 0
+    - rid: 7737211674039681166
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,18 +33,20 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: d2f322e464c2de84c8916d3a2314907b, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239038812848
-    - rid: 7302563239038812849
-    - rid: 7302563239038812850
-    - rid: 7302563239038812851
-    - rid: 7302563239038812852
-    - rid: 7302563239038812853
+    - rid: 7737211730538791669
+    - rid: 7737211730538791670
+    - rid: 7737211730538791671
+    - rid: 7737211730538791672
+    - rid: 7737211730538791673
+    - rid: 7737211730538791674
+    - rid: 7737211730538791675
   width: 1
   height: 1
   layer: 3
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -62,20 +55,33 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239038812848
+    - rid: 7737211730538791669
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: G02
-    - rid: 7302563239038812849
+    - rid: 7737211730538791670
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
-        constructionCost: 95
+        constructionValue: 95
+        constructionCost: 0
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563239038812850
+    - rid: 7737211730538791671
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 19.9
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:lumber
+          amount: 5
+    - rid: 7737211730538791672
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -86,11 +92,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 36
           disabledWhenDamaged: 1
-    - rid: 7302563239038812851
+    - rid: 7737211730538791673
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563239038812852
+    - rid: 7737211730538791674
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -105,7 +111,7 @@ MonoBehaviour:
           - key: Security
             value: 2.5
           metrics: []
-    - rid: 7302563239038812853
+    - rid: 7737211730538791675
       type: {class: BuildingSecurityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSecurityAbility

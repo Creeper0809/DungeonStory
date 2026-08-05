@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
-
-public interface IMetaProgressionRuntimeProvider
-{
-    bool TryGetRuntime(out MetaProgressionRuntime runtime);
-}
+using System.Linq;
 
 public interface IMetaProgressionRuntimeReader
 {
@@ -19,94 +15,70 @@ public interface IMetaProgressionRuntimeReader
     IReadOnlyCollection<int> GetExpandedBasicPurchaseBuildingIds(IEnumerable<BuildingSO> buildings);
 }
 
-public sealed class MetaProgressionRuntimeProvider :
-    IMetaProgressionRuntimeProvider
-{
-    private readonly ProgressionSceneRuntimeReferences runtimeReferences;
-
-    public MetaProgressionRuntimeProvider(
-        ProgressionSceneRuntimeReferences runtimeReferences)
-    {
-        this.runtimeReferences = runtimeReferences
-            ?? throw new ArgumentNullException(nameof(runtimeReferences));
-    }
-
-    public bool TryGetRuntime(out MetaProgressionRuntime runtime)
-    {
-        runtime = runtimeReferences.MetaProgression;
-        return runtime != null;
-    }
-}
-
 public sealed class MetaProgressionRuntimeReader : IMetaProgressionRuntimeReader
 {
-    private readonly IMetaProgressionRuntimeProvider provider;
+    private readonly MetaProgressionRuntime runtime;
 
-    public MetaProgressionRuntimeReader(IMetaProgressionRuntimeProvider provider)
+    public MetaProgressionRuntimeReader(
+        ProgressionSceneRuntimeReferences runtimeReferences)
     {
-        this.provider = provider
-            ?? throw new ArgumentNullException(nameof(provider));
+        runtime = (runtimeReferences
+                ?? throw new ArgumentNullException(nameof(runtimeReferences)))
+            .MetaProgression
+            ?? throw new InvalidOperationException(
+                $"{nameof(MetaProgressionRuntimeReader)} requires a loaded {nameof(MetaProgressionRuntime)}.");
     }
 
     public int GetStartingFacilityCandidateBonus()
     {
-        return provider.TryGetRuntime(out MetaProgressionRuntime runtime)
-            ? runtime.GetStartingFacilityCandidateBonus()
-            : 0;
+        return runtime.GetStartingFacilityCandidateBonus();
     }
 
     public int GetStartingOwnerTraitCandidateBonus()
     {
-        return provider.TryGetRuntime(out MetaProgressionRuntime runtime)
-            ? runtime.GetStartingOwnerTraitCandidateBonus()
-            : 0;
+        return runtime.GetStartingOwnerTraitCandidateBonus();
     }
 
     public float GetOwnerMaxHealthMultiplier()
     {
-        return provider.TryGetRuntime(out MetaProgressionRuntime runtime)
-            ? runtime.GetOwnerMaxHealthMultiplier()
-            : 1f;
+        return runtime.GetOwnerMaxHealthMultiplier();
     }
 
     public float GetInvasionWarningThresholdMultiplier()
     {
-        return provider.TryGetRuntime(out MetaProgressionRuntime runtime)
-            ? runtime.GetInvasionWarningThresholdMultiplier()
-            : 1f;
+        return runtime.GetInvasionWarningThresholdMultiplier();
     }
 
     public float GetCommerceStockCostMultiplier(StockCategory category)
     {
-        return provider.TryGetRuntime(out MetaProgressionRuntime runtime)
-            ? runtime.GetCommerceStockCostMultiplier(category)
-            : 1f;
+        return runtime.GetCommerceStockCostMultiplier(
+            category == StockCategory.Food || category == StockCategory.General);
     }
 
     public float GetFortressFacilityCostMultiplier(BuildingSO building)
     {
-        return provider.TryGetRuntime(out MetaProgressionRuntime runtime)
-            ? runtime.GetFortressFacilityCostMultiplier(building)
-            : 1f;
+        return runtime.GetFortressFacilityCostMultiplier(
+            building?.Defense != null && building.Defense.IsDefenseFacility);
     }
 
     public float GetArcaneResearchWorkMultiplier()
     {
-        return provider.TryGetRuntime(out MetaProgressionRuntime runtime)
-            ? runtime.GetArcaneResearchWorkMultiplier()
-            : 1f;
+        return runtime.GetArcaneResearchWorkMultiplier();
     }
 
     public bool IsRecipePreserved(string recipeId)
     {
-        return provider.TryGetRuntime(out MetaProgressionRuntime runtime)
-            && runtime.IsRecipePreserved(recipeId);
+        return runtime.IsRecipePreserved(recipeId);
     }
 
     public IReadOnlyCollection<int> GetExpandedBasicPurchaseBuildingIds(IEnumerable<BuildingSO> buildings)
     {
-        return provider.TryGetRuntime(out MetaProgressionRuntime runtime)
-            ? runtime.GetExpandedBasicPurchaseBuildingIds(buildings)
-            : Array.Empty<int>();
+        return runtime.GetExpandedBasicPurchaseBuildingIds((buildings ?? Array.Empty<BuildingSO>())
+            .Where(building => building != null)
+            .Select(building => new MetaFacilityCandidateSnapshot(
+                building.id,
+                !building.IsGridMovement
+                && !building.IsWall
+                && FacilityShopService.GetBuildingStar(building) <= 1)));
     }
 }

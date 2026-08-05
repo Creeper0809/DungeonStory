@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67516c73757a05d42a5444875307a773, type: 3}
+  m_Name: equipment_precision_fitting
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchProjectSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 7237
+  projectId: research:equipment:precision-fitting
+  displayName: "\uC815\uBC00 \uBD80\uD488 \uC7A5\uCC29"
+  description: "\uBCF5\uC6D0 \uBD80\uD488\uC744 \uACC4\uCE21\uD558\uACE0 \uC804\uB3D9
+    \uACF5\uAD6C\uB85C \uC7A5\uBE44 \uC2AC\uB86F\uC5D0 \uC815\uBC00 \uC7A5\uCC29\uD55C\uB2E4."
+  field: 15
+  requiredWork: 720
+  prerequisites:
+  - {fileID: 11400000, guid: 8977def00211a7544a442835d7cfaf58, type: 2}
+  - {fileID: 11400000, guid: 0f8da76844e9c434f8735f35c189cc8d, type: 2}
+  - {fileID: 11400000, guid: 267e6f558200e604ba61f34e665242b2, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:equipment:material-testing
+    prerequisite: {fileID: 11400000, guid: 8977def00211a7544a442835d7cfaf58, type: 2}
+    kind: 0
+    reason: "\uC7AC\uB8CC \uC2DC\uD5D8\uD559\uC758 \uC774\uB860\uC774(\uAC00) \uC815\uBC00
+      \uBD80\uD488 \uC7A5\uCC29 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:equipment:relic-restoration
+    prerequisite: {fileID: 11400000, guid: 0f8da76844e9c434f8735f35c189cc8d, type: 2}
+    kind: 2
+    reason: "\uC720\uBB3C \uBD80\uD488 \uBCF5\uC6D0\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC815\uBC00 \uBD80\uD488 \uC7A5\uCC29 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:powered-tools
+    prerequisite: {fileID: 11400000, guid: 267e6f558200e604ba61f34e665242b2, type: 2}
+    kind: 2
+    reason: "\uC804\uB3D9 \uACF5\uAD6C\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC815\uBC00 \uBD80\uD488 \uC7A5\uCC29 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  blueprintRule: 0
+  blueprint: {fileID: 0}
+  unlocks:
+    items:
+    - rid: 7737211730927812851
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
+  icon: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730927812851
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 8844

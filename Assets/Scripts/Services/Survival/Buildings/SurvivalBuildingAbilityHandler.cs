@@ -12,9 +12,9 @@ public sealed class SurvivalBuildingAbilityHandler :
         typeof(BuildingFuelConsumerAbility)
     };
 
-    private readonly ISurvivalFoodRuntime survivalRuntime;
+    private readonly ISurvivalFoodCommand survivalRuntime;
 
-    public SurvivalBuildingAbilityHandler(ISurvivalFoodRuntime survivalRuntime)
+    public SurvivalBuildingAbilityHandler(ISurvivalFoodCommand survivalRuntime)
     {
         this.survivalRuntime = survivalRuntime
             ?? throw new ArgumentNullException(nameof(survivalRuntime));

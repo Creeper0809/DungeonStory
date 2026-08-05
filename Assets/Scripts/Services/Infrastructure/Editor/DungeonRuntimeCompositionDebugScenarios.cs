@@ -102,7 +102,7 @@ public static class DungeonRuntimeCompositionDebugScenarios
             return exception.Message.Contains(nameof(BuildableObject), StringComparison.Ordinal)
                 && exception.Message.Contains(probeScene.name, StringComparison.Ordinal)
                 && exception.Message.Contains(buildingObject.name, StringComparison.Ordinal)
-                && exception.Message.Contains(nameof(IRoomFacilityPolicy), StringComparison.Ordinal);
+                && exception.Message.Contains(nameof(IBuildingRoomPolicyPort), StringComparison.Ordinal);
         }
         finally
         {
@@ -118,17 +118,16 @@ public static class DungeonRuntimeCompositionDebugScenarios
         SceneManager.MoveGameObjectToScene(firstObject, probeScene);
         Camera firstCamera = firstObject.GetComponent<Camera>();
         DungeonSceneRuntimeReferences references = new DungeonSceneRuntimeReferences(
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            firstCamera,
-            null);
+            new DungeonSceneServiceReferences(null, null, null, null),
+            new DungeonSceneViewReferences(
+                null,
+                null,
+                null,
+                null,
+                null,
+                firstCamera,
+                null,
+                null));
         SceneMainCameraProvider provider = new SceneMainCameraProvider(
             references);
 

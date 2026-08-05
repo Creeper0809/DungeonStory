@@ -1,14 +1,5 @@
 using System;
 
-public interface IUiPopupService
-{
-    void CloseAll();
-    void Open(UIPopUp popup);
-    void ClosePeek(UIPopUp popup);
-    void BlockTouch();
-    void ReleaseTouch();
-}
-
 public sealed class UiPopupService : IUiPopupService
 {
     private readonly DungeonSceneRuntimeReferences sceneReferences;

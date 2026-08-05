@@ -76,12 +76,14 @@ public sealed class SurgicalPatientTransportRuntime :
         SurgeryOrder order,
         WildlifeActor patient,
         Vector2Int destination,
-        out string status)
+        out SurgeryStatusData status)
     {
-        status = string.Empty;
+        status = new SurgeryStatusData();
         if (order == null || patient == null || !patient.IsAlive)
         {
-            status = "살아 있는 동물 환자를 찾을 수 없습니다.";
+            status.Set(
+                SurgeryStatusCode.WildlifePatientMissing,
+                patient?.WildlifeId ?? string.Empty);
             return false;
         }
 
@@ -90,23 +92,27 @@ public sealed class SurgicalPatientTransportRuntime :
             order.patientAdmitted = true;
             order.patientTransportInProgress = false;
             order.patientTransporterId = string.Empty;
-            status = "동물 환자 입실 완료";
+            status.Set(
+                SurgeryStatusCode.WildlifePatientReady,
+                patient.WildlifeId);
             return true;
         }
 
         if (!order.subject.willing && !capture.IsCaptured(patient.WildlifeId))
         {
-            status = "비동의 동물은 먼저 제압하고 포획해야 합니다.";
+            status.Set(
+                SurgeryStatusCode.WildlifeRestraintRequired,
+                patient.WildlifeId);
             return false;
         }
 
         if (active.TryGetValue(order.orderId, out TransportState current))
         {
-            status = current.Returning
-                ? "동물 환자를 우리로 돌려보내는 중"
-                : current.Started
-                    ? "직원이 동물 환자를 수술실로 운반 중"
-                    : "동물 환자 운반자를 기다리는 중";
+            status.Set(
+                current.Returning
+                    ? SurgeryStatusCode.WildlifePatientReturning
+                    : SurgeryStatusCode.WildlifePatientTransporting,
+                patient.WildlifeId);
             return false;
         }
 
@@ -127,15 +133,21 @@ public sealed class SurgicalPatientTransportRuntime :
             Returning = false
         };
         active.Add(order.orderId, state);
-        if (!TryStart(state, out status))
+        if (!TryStart(state, out DomainFailure failure))
         {
             active.Remove(order.orderId);
             order.patientTransportInProgress = false;
             order.patientTransporterId = string.Empty;
+            status.Set(
+                SurgeryStatusCode.WildlifePatientTransporting,
+                patient.WildlifeId,
+                failure.Code.ToString());
             return false;
         }
 
-        status = "직원이 동물 환자를 수술실로 운반 중";
+        status.Set(
+            SurgeryStatusCode.WildlifePatientTransporting,
+            patient.WildlifeId);
         return false;
     }
 
@@ -180,7 +192,7 @@ public sealed class SurgicalPatientTransportRuntime :
         }
     }
 
-    public void CancelTransport(SurgeryOrder order, string reason)
+    public void CancelTransport(SurgeryOrder order)
     {
         if (order == null)
         {
@@ -203,9 +215,9 @@ public sealed class SurgicalPatientTransportRuntime :
         pendingReturns.Remove(order.orderId);
         order.patientTransportInProgress = false;
         order.patientTransporterId = string.Empty;
-        order.status = string.IsNullOrWhiteSpace(reason)
-            ? order.status
-            : reason;
+        order.statusData.Set(
+            SurgeryStatusCode.ProcedurePaused,
+            order.orderId);
     }
 
     public bool TryGetTransport(
@@ -214,30 +226,37 @@ public sealed class SurgicalPatientTransportRuntime :
         out WildlifeActor patient,
         out Vector2Int destination,
         out bool returning,
-        out string failureReason)
+        out DomainFailure failure)
     {
         patient = null;
         destination = default;
         returning = false;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (!active.TryGetValue(orderId?.Trim() ?? string.Empty, out TransportState state)
             || state?.Order == null)
         {
-            failureReason = "동물 환자 운반 주문이 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryTransportOrderMissing,
+                orderId ?? string.Empty);
             return false;
         }
 
         string carrierId = GetCharacterId(carrier);
         if (!string.Equals(state.CarrierId, carrierId, StringComparison.Ordinal))
         {
-            failureReason = "예약된 동물 환자 운반자가 아닙니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryTransportCarrierMismatch,
+                state.CarrierId,
+                carrierId);
             return false;
         }
 
         patient = FindWildlife(state.Order.subject?.subjectId);
         if (patient == null || !patient.IsAlive)
         {
-            failureReason = "운반할 동물 환자를 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryWildlifeSubjectUnavailable,
+                state.Order.subject?.subjectId ?? string.Empty);
             return false;
         }
 
@@ -265,7 +284,7 @@ public sealed class SurgicalPatientTransportRuntime :
     public bool TryBeginCarry(
         string orderId,
         CharacterActor carrier,
-        out string failureReason)
+        out DomainFailure failure)
     {
         if (!TryGetTransport(
                 orderId,
@@ -273,14 +292,16 @@ public sealed class SurgicalPatientTransportRuntime :
                 out WildlifeActor patient,
                 out _,
                 out _,
-                out failureReason))
+                out failure))
         {
             return false;
         }
 
         if (Manhattan(carrier.GetNowXY(), patient.GridPosition) > 1)
         {
-            failureReason = "동물 환자와 너무 멀리 떨어져 있습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryTransportUnavailable,
+                orderId ?? string.Empty);
             return false;
         }
 
@@ -294,7 +315,7 @@ public sealed class SurgicalPatientTransportRuntime :
     public bool TryCompleteCarry(
         string orderId,
         CharacterActor carrier,
-        out string failureReason)
+        out DomainFailure failure)
     {
         if (!TryGetTransport(
                 orderId,
@@ -302,14 +323,16 @@ public sealed class SurgicalPatientTransportRuntime :
                 out WildlifeActor patient,
                 out Vector2Int destination,
                 out bool returning,
-                out failureReason))
+                out failure))
         {
             return false;
         }
 
         if (carrier.GetNowXY() != destination)
         {
-            failureReason = "동물 환자 운반 목적지에 도착하지 못했습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryTransportUnavailable,
+                orderId ?? string.Empty);
             return false;
         }
 
@@ -324,12 +347,16 @@ public sealed class SurgicalPatientTransportRuntime :
         {
             order.patientAdmitted = false;
             order.patientReturnRequested = false;
-            order.status = "동물 환자 우리 복귀 완료";
+            order.statusData.Set(
+                SurgeryStatusCode.WildlifePatientReturnCompleted,
+                order.subject.subjectId);
         }
         else
         {
             order.patientAdmitted = true;
-            order.status = "동물 환자 입실 완료";
+            order.statusData.Set(
+                SurgeryStatusCode.WildlifePatientReady,
+                order.subject.subjectId);
             if (order.patientReturnRequested)
             {
                 RequestWildlifeReturn(order);
@@ -341,8 +368,7 @@ public sealed class SurgicalPatientTransportRuntime :
 
     public void FailCarry(
         string orderId,
-        CharacterActor carrier,
-        string reason)
+        CharacterActor carrier)
     {
         if (!active.Remove(orderId?.Trim() ?? string.Empty, out TransportState state)
             || state?.Order == null)
@@ -361,9 +387,9 @@ public sealed class SurgicalPatientTransportRuntime :
 
         state.Order.patientTransportInProgress = false;
         state.Order.patientTransporterId = string.Empty;
-        state.Order.status = string.IsNullOrWhiteSpace(reason)
-            ? "동물 환자 운반 중단"
-            : reason;
+        state.Order.statusData.Set(
+            SurgeryStatusCode.ProcedurePaused,
+            state.Order.orderId);
         if (state.Returning && !pendingReturns.Contains(state.Order.orderId))
         {
             state.Started = false;
@@ -373,9 +399,9 @@ public sealed class SurgicalPatientTransportRuntime :
         }
     }
 
-    private bool TryStart(TransportState state, out string failureReason)
+    private bool TryStart(TransportState state, out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         WildlifeActor patient = FindWildlife(state.Order.subject?.subjectId);
         CharacterActor carrier = characters.Characters
             .Where(candidate =>
@@ -396,13 +422,17 @@ public sealed class SurgicalPatientTransportRuntime :
             .FirstOrDefault();
         if (patient == null || !patient.IsAlive)
         {
-            failureReason = "운반할 동물 환자를 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryWildlifeSubjectUnavailable,
+                state.Order.subject?.subjectId ?? string.Empty);
             return false;
         }
 
         if (carrier == null)
         {
-            failureReason = "동물 환자를 운반할 직원이 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryTransportUnavailable,
+                state.Order.orderId);
             return false;
         }
 
@@ -410,11 +440,14 @@ public sealed class SurgicalPatientTransportRuntime :
             AbilitySurgicalWildlifeTransport.Ensure(carrier);
         if (ability == null)
         {
-            failureReason = "동물 환자 운반 행동을 시작할 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryTransportUnavailable,
+                state.Order.orderId);
             return false;
         }
 
-        carrier.Brain?.StopCurrentActionForReplan("동물 환자 긴급 이송");
+        carrier.Brain?.StopCurrentActionForReplan(
+            SurgeryStatusCode.WildlifePatientTransporting.ToString());
         state.CarrierId = GetCharacterId(carrier);
         state.Started = true;
         state.Order.patientTransporterId = state.CarrierId;

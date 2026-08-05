@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Characters;
 using UnityEngine;
 
 public enum CharacterPotentialGrade
@@ -500,7 +501,7 @@ public sealed class CharacterNarrativeLedger
 }
 
 [Serializable]
-public sealed class WorldCharacterProfile
+public sealed class WorldCharacterProfile : ICharacterPopulationProfileState
 {
     public string persistentId = string.Empty;
     public int characterDataId = -1;
@@ -522,6 +523,29 @@ public sealed class WorldCharacterProfile
         && growth.activeSkills.Count > 0
         && growth.passiveSkills != null
         && growth.passiveSkills.Count > 0;
+
+    string ICharacterPopulationProfileState.PersistentId => persistentId;
+    int ICharacterPopulationProfileState.CharacterDataId => characterDataId;
+    bool ICharacterPopulationProfileState.IsAlive
+    {
+        get => isAlive;
+        set => isAlive = value;
+    }
+    bool ICharacterPopulationProfileState.IsStaff
+    {
+        get => isStaff;
+        set => isStaff = value;
+    }
+    bool ICharacterPopulationProfileState.IsVisiting
+    {
+        get => isVisiting;
+        set => isVisiting = value;
+    }
+    int ICharacterPopulationProfileState.VisitCount
+    {
+        get => visitCount;
+        set => visitCount = value;
+    }
 
     public WorldCharacterProfile Clone()
     {

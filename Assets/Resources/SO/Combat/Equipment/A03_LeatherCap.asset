@@ -24,6 +24,14 @@ MonoBehaviour:
   primaryMaterialAmount: 1
   allowedMaterialFamilies: 05000000
   craftMaterials: []
+  requiredComponentInputs: []
+  requiredResearchId: 
+  era: 0
+  tier: 0
+  slotProfile: 0
+  lineageKind: 1
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
   layer: 1
   collisionTag: headwear
   bodyPartDefense:

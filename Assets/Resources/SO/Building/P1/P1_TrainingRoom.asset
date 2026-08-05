@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,6 +33,7 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 75f5092174f592e289308154c616436c, type: 3}
   abilityModules:
     items:
+    - rid: 8800000000000000015
     - rid: 7302562978982527558
     - rid: 7302562985835495548
     - rid: 7302562985835495549
@@ -53,6 +45,7 @@ MonoBehaviour:
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -61,6 +54,18 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 8800000000000000015
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 36
+        repairWorkRequired: 16
+        cleanWorkRequired: 10
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 1
     - rid: 7302562978982527558
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:

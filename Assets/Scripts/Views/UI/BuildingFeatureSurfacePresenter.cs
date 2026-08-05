@@ -84,8 +84,8 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
     private readonly IRoomLayoutCache roomLayoutCache;
     private readonly IRoomEnvironmentEvaluator roomEnvironmentEvaluator;
     private readonly IRoomInspectionService roomInspectionService;
-    private readonly IFacilitySynthesisRuntimeProvider synthesisProvider;
-    private readonly IFacilityEvolutionRuntimeProvider evolutionProvider;
+    private readonly FacilitySynthesisRuntime synthesis;
+    private readonly FacilityEvolutionRuntime evolution;
 
     public BuildingFeatureQueryService(
         IGridSystemProvider gridSystemProvider,
@@ -93,8 +93,7 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
         IRoomLayoutCache roomLayoutCache,
         IRoomEnvironmentEvaluator roomEnvironmentEvaluator,
         IRoomInspectionService roomInspectionService,
-        IFacilitySynthesisRuntimeProvider synthesisProvider,
-        IFacilityEvolutionRuntimeProvider evolutionProvider)
+        FacilityFeatureSceneRuntimeReferences facilityRuntimes)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
@@ -106,10 +105,14 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
             ?? throw new ArgumentNullException(nameof(roomEnvironmentEvaluator));
         this.roomInspectionService = roomInspectionService
             ?? throw new ArgumentNullException(nameof(roomInspectionService));
-        this.synthesisProvider = synthesisProvider
-            ?? throw new ArgumentNullException(nameof(synthesisProvider));
-        this.evolutionProvider = evolutionProvider
-            ?? throw new ArgumentNullException(nameof(evolutionProvider));
+        facilityRuntimes = facilityRuntimes
+            ?? throw new ArgumentNullException(nameof(facilityRuntimes));
+        synthesis = facilityRuntimes.Synthesis
+            ?? throw new InvalidOperationException(
+                $"{nameof(BuildingFeatureQueryService)} requires a loaded {nameof(FacilitySynthesisRuntime)}.");
+        evolution = facilityRuntimes.Evolution
+            ?? throw new InvalidOperationException(
+                $"{nameof(BuildingFeatureQueryService)} requires a loaded {nameof(FacilityEvolutionRuntime)}.");
     }
 
     public BuildingFeatureSurfaceModel Capture()
@@ -120,23 +123,14 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
             .ThenBy((facility) => facility.GetInstanceID())
             .ToArray();
 
-        bool hasSynthesis = synthesisProvider.TryGetRuntime(out FacilitySynthesisRuntime synthesis);
-        bool hasEvolution = evolutionProvider.TryGetRuntime(out FacilityEvolutionRuntime evolution);
-
         return new BuildingFeatureSurfaceModel
         {
             Rooms = CaptureRooms(facilities),
-            SynthesisMaterials = hasSynthesis
-                ? CaptureSynthesisMaterials(facilities, synthesis)
-                : Array.Empty<BuildingFeatureSynthesisMaterialRow>(),
-            SynthesisRecipes = hasSynthesis
-                ? CaptureSynthesisRecipes(synthesis)
-                : Array.Empty<BuildingFeatureSynthesisRecipeRow>(),
-            EvolutionCandidates = hasEvolution
-                ? CaptureEvolutionCandidates(facilities, evolution)
-                : Array.Empty<BuildingFeatureEvolutionRow>(),
-            HasSynthesisRuntime = hasSynthesis,
-            HasEvolutionRuntime = hasEvolution
+            SynthesisMaterials = CaptureSynthesisMaterials(facilities, synthesis),
+            SynthesisRecipes = CaptureSynthesisRecipes(synthesis),
+            EvolutionCandidates = CaptureEvolutionCandidates(facilities, evolution),
+            HasSynthesisRuntime = true,
+            HasEvolutionRuntime = true
         };
     }
 
@@ -319,20 +313,23 @@ public sealed class BuildingFeatureQueryService : IBuildingFeatureQueryService
 public sealed class BuildingFeatureCommandService : IBuildingFeatureCommandService
 {
     private readonly IRoomInspectionService roomInspectionService;
-    private readonly IFacilitySynthesisRuntimeProvider synthesisProvider;
-    private readonly IFacilityEvolutionRuntimeProvider evolutionProvider;
+    private readonly FacilitySynthesisRuntime synthesis;
+    private readonly FacilityEvolutionRuntime evolution;
 
     public BuildingFeatureCommandService(
         IRoomInspectionService roomInspectionService,
-        IFacilitySynthesisRuntimeProvider synthesisProvider,
-        IFacilityEvolutionRuntimeProvider evolutionProvider)
+        FacilityFeatureSceneRuntimeReferences facilityRuntimes)
     {
         this.roomInspectionService = roomInspectionService
             ?? throw new ArgumentNullException(nameof(roomInspectionService));
-        this.synthesisProvider = synthesisProvider
-            ?? throw new ArgumentNullException(nameof(synthesisProvider));
-        this.evolutionProvider = evolutionProvider
-            ?? throw new ArgumentNullException(nameof(evolutionProvider));
+        facilityRuntimes = facilityRuntimes
+            ?? throw new ArgumentNullException(nameof(facilityRuntimes));
+        synthesis = facilityRuntimes.Synthesis
+            ?? throw new InvalidOperationException(
+                $"{nameof(BuildingFeatureCommandService)} requires a loaded {nameof(FacilitySynthesisRuntime)}.");
+        evolution = facilityRuntimes.Evolution
+            ?? throw new InvalidOperationException(
+                $"{nameof(BuildingFeatureCommandService)} requires a loaded {nameof(FacilityEvolutionRuntime)}.");
     }
 
     public BuildingFeatureCommandResult InspectRoom(
@@ -351,8 +348,8 @@ public sealed class BuildingFeatureCommandService : IBuildingFeatureCommandServi
     public BuildingFeatureCommandResult ToggleSynthesisMaterial(
         BuildableObject facility)
     {
-        if (!synthesisProvider.TryGetRuntime(out FacilitySynthesisRuntime runtime)
-            || facility == null
+        FacilitySynthesisRuntime runtime = synthesis;
+        if (facility == null
             || facility.isDestroy)
         {
             return new BuildingFeatureCommandResult(
@@ -370,7 +367,8 @@ public sealed class BuildingFeatureCommandService : IBuildingFeatureCommandServi
     public BuildingFeatureCommandResult ExecuteSynthesis(
         FacilitySynthesisRecipeSO recipe)
     {
-        if (!synthesisProvider.TryGetRuntime(out FacilitySynthesisRuntime runtime))
+        FacilitySynthesisRuntime runtime = synthesis;
+        if (runtime == null)
         {
             return new BuildingFeatureCommandResult(
                 false,
@@ -389,7 +387,8 @@ public sealed class BuildingFeatureCommandService : IBuildingFeatureCommandServi
         BuildableObject facility,
         FacilityEvolutionRecipeSO recipe)
     {
-        if (!evolutionProvider.TryGetRuntime(out FacilityEvolutionRuntime runtime))
+        FacilityEvolutionRuntime runtime = evolution;
+        if (runtime == null)
         {
             return new BuildingFeatureCommandResult(
                 false,

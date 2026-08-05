@@ -86,9 +86,11 @@ public interface IOffenseReturnArrivalRuntime
         OffenseReturnArrivalKind kind,
         int amount);
     DungeonOffenseReturnArrivalSaveData Capture();
-    void Restore(
+    OffenseReturnArrivalRestoreCandidate BuildRestoreCandidate(
         DungeonOffenseReturnArrivalSaveData saveData,
-        DungeonGameRestoreReport report = null);
+        DungeonGameRestoreReport report);
+    void PublishRestoreCandidate(
+        OffenseReturnArrivalRestoreCandidate candidate);
 }
 
 public sealed class OffenseReturnArrivalRuntime :
@@ -97,12 +99,6 @@ public sealed class OffenseReturnArrivalRuntime :
 {
     private static readonly ProfilerMarker TickProfilerMarker =
         new ProfilerMarker("OffenseReturnArrivalRuntime.Tick");
-
-    private sealed class ReturnBarrier
-    {
-        public int ReturningMembers;
-        public bool Sealed;
-    }
 
     private const float RetryIntervalSeconds = 2f;
     private const float EscapeRiskPerSecond = 0.75f;
@@ -113,7 +109,8 @@ public sealed class OffenseReturnArrivalRuntime :
     private readonly ICharacterSpawnerProvider spawnerProvider;
     private readonly ICharacterSpawnObjectFactory characterFactory;
     private readonly IInvasionIntruderDataProvider intruderDataProvider;
-    private readonly ICharacterBodyHealthRuntime bodyHealth;
+    private readonly ICharacterBodyHealthQuery bodyHealthQuery;
+    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly ICaptivityRuntime captivity;
     private readonly ICaptivityCommandService captivityCommands;
@@ -122,43 +119,54 @@ public sealed class OffenseReturnArrivalRuntime :
     private readonly IBuildingWorldQuery buildingWorld;
     private readonly IGameClock clock;
     private readonly IGameEventBus eventBus;
-    private readonly List<OffenseReturnArrivalState> arrivals =
-        new List<OffenseReturnArrivalState>();
-    private readonly Dictionary<string, ReturnBarrier> barriers =
-        new Dictionary<string, ReturnBarrier>(StringComparer.Ordinal);
-    private int nextArrivalSequence = 1;
-    private float nextRetryAt;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+
+    private OffenseReturnArrivalAggregateState aggregateState =>
+        aggregateRootStore.GetOrCreate(
+            () => new OffenseReturnArrivalAggregateState());
+    private OffenseReturnArrivalAggregateState writableAggregateState =>
+        aggregateRootStore.GetOrCreateWritable(
+            () => new OffenseReturnArrivalAggregateState(),
+            state => state.Clone());
+    private List<OffenseReturnArrivalState> arrivals =>
+        writableAggregateState.Arrivals;
+    private Dictionary<string, OffenseReturnBarrier> barriers =>
+        writableAggregateState.Barriers;
+    private int nextArrivalSequence
+    {
+        get => aggregateState.NextArrivalSequence;
+        set => writableAggregateState.NextArrivalSequence = value;
+    }
+    private float nextRetryAt
+    {
+        get => aggregateState.NextRetryAt;
+        set => writableAggregateState.NextRetryAt = value;
+    }
 
     public OffenseReturnArrivalRuntime(
-        IGridSystemProvider gridProvider,
-        IWorldDropZoneQuery dropZoneQuery,
-        ICharacterSpawnerProvider spawnerProvider,
-        ICharacterSpawnObjectFactory characterFactory,
-        IInvasionIntruderDataProvider intruderDataProvider,
-        ICharacterBodyHealthRuntime bodyHealth,
-        ICharacterAiWorldRegistry worldRegistry,
-        ICaptivityRuntime captivity,
-        ICaptivityCommandService captivityCommands,
-        IWildlifeRuntime wildlife,
-        IWildlifeCaptureRuntime wildlifeCapture,
-        IBuildingWorldQuery buildingWorld,
-        IGameClock clock,
-        IGameEventBus eventBus)
+        OffenseReturnArrivalWorldServices world,
+        OffenseReturnArrivalDomainServices domain)
     {
-        this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
-        this.dropZoneQuery = dropZoneQuery ?? throw new ArgumentNullException(nameof(dropZoneQuery));
-        this.spawnerProvider = spawnerProvider ?? throw new ArgumentNullException(nameof(spawnerProvider));
-        this.characterFactory = characterFactory ?? throw new ArgumentNullException(nameof(characterFactory));
-        this.intruderDataProvider = intruderDataProvider ?? throw new ArgumentNullException(nameof(intruderDataProvider));
-        this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
-        this.worldRegistry = worldRegistry ?? throw new ArgumentNullException(nameof(worldRegistry));
-        this.captivity = captivity ?? throw new ArgumentNullException(nameof(captivity));
-        this.captivityCommands = captivityCommands ?? throw new ArgumentNullException(nameof(captivityCommands));
-        this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
-        this.wildlifeCapture = wildlifeCapture ?? throw new ArgumentNullException(nameof(wildlifeCapture));
-        this.buildingWorld = buildingWorld ?? throw new ArgumentNullException(nameof(buildingWorld));
-        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        this.eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
+        OffenseReturnArrivalWorldServices requiredWorld = world
+            ?? throw new ArgumentNullException(nameof(world));
+        OffenseReturnArrivalDomainServices requiredDomain = domain
+            ?? throw new ArgumentNullException(nameof(domain));
+        gridProvider = requiredWorld.Grid;
+        dropZoneQuery = requiredWorld.DropZones;
+        spawnerProvider = requiredWorld.Spawners;
+        characterFactory = requiredWorld.CharacterFactory;
+        intruderDataProvider = requiredWorld.IntruderData;
+        worldRegistry = requiredWorld.WorldRegistry;
+        buildingWorld = requiredWorld.Buildings;
+        aggregateRootStore = requiredWorld.AggregateRoots;
+        bodyHealthQuery = requiredDomain.BodyHealthQuery;
+        bodyHealthCommands = requiredDomain.BodyHealthCommands;
+        captivity = requiredDomain.Captivity;
+        captivityCommands = requiredDomain.CaptivityCommands;
+        wildlife = requiredDomain.Wildlife;
+        wildlifeCapture = requiredDomain.WildlifeCapture;
+        clock = requiredDomain.Clock;
+        eventBus = requiredDomain.EventBus;
     }
 
     public IReadOnlyList<OffenseReturnArrivalState> Arrivals => arrivals;
@@ -219,7 +227,7 @@ public sealed class OffenseReturnArrivalRuntime :
             return;
         }
 
-        barriers[normalized] = new ReturnBarrier();
+        barriers[normalized] = new OffenseReturnBarrier();
         ForEachWaiting(normalized, state =>
         {
             state.returnSealed = false;
@@ -235,7 +243,7 @@ public sealed class OffenseReturnArrivalRuntime :
             return;
         }
 
-        ReturnBarrier barrier = GetOrCreateBarrier(normalized);
+        OffenseReturnBarrier barrier = GetOrCreateBarrier(normalized);
         barrier.ReturningMembers++;
         ForEachWaiting(normalized, state => state.returningMembers++);
     }
@@ -248,7 +256,7 @@ public sealed class OffenseReturnArrivalRuntime :
             return;
         }
 
-        ReturnBarrier barrier = GetOrCreateBarrier(normalized);
+        OffenseReturnBarrier barrier = GetOrCreateBarrier(normalized);
         barrier.ReturningMembers = Mathf.Max(0, barrier.ReturningMembers - 1);
         ForEachWaiting(
             normalized,
@@ -264,7 +272,7 @@ public sealed class OffenseReturnArrivalRuntime :
             return;
         }
 
-        ReturnBarrier barrier = GetOrCreateBarrier(normalized);
+        OffenseReturnBarrier barrier = GetOrCreateBarrier(normalized);
         barrier.Sealed = true;
         ForEachWaiting(normalized, state => state.returnSealed = true);
         MaterializeReadyArrivals();
@@ -276,19 +284,27 @@ public sealed class OffenseReturnArrivalRuntime :
         OffenseReturnArrivalKind kind,
         int amount)
     {
-        int safeAmount = Mathf.Max(0, amount);
-        if (safeAmount <= 0)
+        int safeAmount = Mathf.Clamp(
+            amount,
+            0,
+            OffenseReturnArrivalSaveValidation.MaximumArrivalSize);
+        string normalizedTargetId = Normalize(targetId);
+        if (safeAmount <= 0
+            || normalizedTargetId.Length == 0
+            || !Enum.IsDefined(typeof(OffenseReturnArrivalKind), kind))
         {
             return 0;
         }
 
         string normalizedExpeditionId = Normalize(expeditionId);
-        barriers.TryGetValue(normalizedExpeditionId, out ReturnBarrier barrier);
+        barriers.TryGetValue(
+            normalizedExpeditionId,
+            out OffenseReturnBarrier barrier);
         OffenseReturnArrivalState state = new OffenseReturnArrivalState
         {
             arrivalId = $"return:{nextArrivalSequence++}",
             expeditionId = normalizedExpeditionId,
-            targetId = Normalize(targetId),
+            targetId = normalizedTargetId,
             kind = kind,
             requestedAmount = safeAmount,
             returnSealed = normalizedExpeditionId.Length == 0
@@ -312,51 +328,25 @@ public sealed class OffenseReturnArrivalRuntime :
         };
     }
 
-    public void Restore(
+    public OffenseReturnArrivalRestoreCandidate BuildRestoreCandidate(
         DungeonOffenseReturnArrivalSaveData saveData,
-        DungeonGameRestoreReport report = null)
+        DungeonGameRestoreReport report)
     {
-        arrivals.Clear();
-        barriers.Clear();
-        if (saveData == null
-            || saveData.version != DungeonOffenseReturnArrivalSaveData.CurrentVersion)
-        {
-            if (saveData != null)
-            {
-                report?.AddWarning(
-                    $"지원하지 않는 귀환 대상 저장 버전 {saveData.version}입니다.");
-            }
-            nextArrivalSequence = 1;
-            return;
-        }
+        OffenseReturnArrivalSaveValidation.Validate(saveData, report);
+        return report.Success
+            ? new OffenseReturnArrivalRestoreCandidate(
+                OffenseReturnArrivalSaveValidation.CreateStrictState(
+                    saveData,
+                    clock.Time + RetryIntervalSeconds))
+            : null;
+    }
 
-        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (OffenseReturnArrivalState source in saveData.arrivals
-                     ?? new List<OffenseReturnArrivalState>())
-        {
-            if (source == null || string.IsNullOrWhiteSpace(source.arrivalId))
-            {
-                continue;
-            }
-
-            OffenseReturnArrivalState restored = source.Clone();
-            if (!ids.Add(restored.arrivalId))
-            {
-                report?.AddWarning($"중복 귀환 대상 ID를 건너뛰었습니다: {restored.arrivalId}");
-                continue;
-            }
-
-            if (restored.stage == OffenseReturnArrivalStage.WaitingForParty)
-            {
-                restored.returnSealed = true;
-                restored.returningMembers = 0;
-                restored.lastStatus = "불러오기 후 하차장 도착을 재개합니다.";
-            }
-            arrivals.Add(restored);
-        }
-
-        nextArrivalSequence = Mathf.Max(1, saveData.nextArrivalSequence);
-        MaterializeReadyArrivals();
+    public void PublishRestoreCandidate(
+        OffenseReturnArrivalRestoreCandidate candidate)
+    {
+        aggregateRootStore.Replace(
+            (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+            .State);
     }
 
     private void MaterializeReadyArrivals()
@@ -458,8 +448,8 @@ public sealed class OffenseReturnArrivalRuntime :
             return false;
         }
 
-        GameObject characterObject = characterFactory.Create(spawner.characterPrefab);
-        characterFactory.Inject(characterObject);
+        GameObject characterObject = characterFactory.CreateInactive(
+            spawner.characterPrefab);
         CharacterActor actor = characterObject.GetComponent<CharacterActor>();
         if (actor == null)
         {
@@ -474,16 +464,15 @@ public sealed class OffenseReturnArrivalRuntime :
         actor.characterType = CharacterType.Intruder;
         actor.Identity?.SetCharacterType(CharacterType.Intruder);
         actor.Identity?.SetPersistentId(actorId);
-        worldRegistry.RegisterCharacter(actor);
-        worldRegistry.RegisterCharacterLifetime(actor);
         ApplyDownedArrivalHealth(actor);
         actor.SetLifecycleState(CharacterLifecycleState.Downed);
+        characterFactory.Publish(characterObject);
         return true;
     }
 
     private void ApplyDownedArrivalHealth(CharacterActor actor)
     {
-        CharacterBodyHealthSnapshot baseline = bodyHealth.GetSnapshot(actor);
+        CharacterBodyHealthSnapshot baseline = bodyHealthQuery.GetSnapshot(actor);
         List<CharacterBodyPartHealthState> parts = baseline.Parts
             .Select(part => new CharacterBodyPartHealthState
             {
@@ -499,7 +488,7 @@ public sealed class OffenseReturnArrivalRuntime :
                 bleedingPerSecond = 0f
             })
             .ToList();
-        bodyHealth.ApplySnapshot(
+        bodyHealthCommands.ApplySnapshot(
             actor,
             new CharacterBodyHealthSnapshot(
                 parts,
@@ -732,11 +721,13 @@ public sealed class OffenseReturnArrivalRuntime :
         }
     }
 
-    private ReturnBarrier GetOrCreateBarrier(string expeditionId)
+    private OffenseReturnBarrier GetOrCreateBarrier(string expeditionId)
     {
-        if (!barriers.TryGetValue(expeditionId, out ReturnBarrier barrier))
+        if (!barriers.TryGetValue(
+                expeditionId,
+                out OffenseReturnBarrier barrier))
         {
-            barrier = new ReturnBarrier();
+            barrier = new OffenseReturnBarrier();
             barriers.Add(expeditionId, barrier);
         }
 
@@ -754,48 +745,13 @@ public sealed class OffenseReturnArrivalRuntime :
     }
 }
 
-public sealed class OffenseReturnArrivalSaveSection : IDungeonSaveSection
+public sealed class OffenseReturnArrivalRestoreCandidate
 {
-    public const string Id = "offense.return-arrivals";
-    private readonly IOffenseReturnArrivalRuntime runtime;
-
-    public OffenseReturnArrivalSaveSection(IOffenseReturnArrivalRuntime runtime)
+    internal OffenseReturnArrivalRestoreCandidate(
+        OffenseReturnArrivalAggregateState state)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        State = state ?? throw new ArgumentNullException(nameof(state));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => 1;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
-    {
-        PhysicalItemsSaveSection.Id,
-        CharacterWorldSaveSection.Id,
-        WildlifeSaveSection.Id,
-        CaptivitySaveSection.Id,
-        OffenseSaveSection.Id
-    };
-
-    public string Capture()
-    {
-        return JsonUtility.ToJson(runtime.Capture());
-    }
-
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        if (sectionVersion != SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {sectionVersion}.");
-        }
-
-        runtime.Restore(
-            JsonUtility.FromJson<DungeonOffenseReturnArrivalSaveData>(
-                payloadJson ?? string.Empty)
-            ?? new DungeonOffenseReturnArrivalSaveData(),
-            report);
-    }
+    internal OffenseReturnArrivalAggregateState State { get; }
 }

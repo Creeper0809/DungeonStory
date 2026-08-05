@@ -1,54 +1,65 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
+using DungeonStory.Factions;
+
+namespace DungeonStory.Infrastructure
+{
 
 public sealed class FactionSaveSection :
-    IDungeonSaveSection,
-    IOptionalDungeonSaveSection
+    DungeonStrictJsonSaveSection<
+        DungeonFactionSaveData,
+        FactionRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "world.factions";
 
     private readonly IFactionRuntime runtime;
+    private readonly IDungeonItemCatalogProvider itemCatalog;
 
-    public FactionSaveSection(IFactionRuntime runtime)
+    public FactionSaveSection(
+        IFactionRuntime runtime,
+        IDungeonItemCatalogProvider itemCatalog)
     {
         this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.itemCatalog = itemCatalog
+            ?? throw new ArgumentNullException(nameof(itemCatalog));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => DungeonFactionSaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase =>
+    public override string SectionId => Id;
+    public override int SectionVersion => DungeonFactionSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
+    public override IReadOnlyList<string> DependsOn => new[]
     {
-        OffenseV17SaveSection.Id,
+        OffenseAggregateSaveSection.Id,
         PhysicalItemsSaveSection.Id
     };
 
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
-
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
+    protected override DungeonFactionSaveData CapturePayload()
     {
-        if (sectionVersion != SectionVersion)
+        return runtime.Capture();
+    }
+
+    protected override FactionRestoreCandidate BuildRestoreCandidate(
+        DungeonFactionSaveData payload)
+    {
+        IReadOnlyList<string> errors = FactionPayloadValidation.Validate(
+            payload,
+            runtime.Definitions,
+            itemId => itemCatalog.TryGetDefinition(itemId, out _));
+        if (errors.Count > 0)
         {
-            report?.AddError(
-                $"Unsupported {Id} section version {sectionVersion}.");
-            return;
+            throw new InvalidOperationException(
+                "Faction restore candidate is invalid: "
+                + string.Join(" | ", errors));
         }
-
-        runtime.Restore(
-            JsonUtility.FromJson<DungeonFactionSaveData>(
-                payloadJson ?? string.Empty)
-            ?? new DungeonFactionSaveData());
+        return runtime.PrepareRestoreCandidate(payload);
     }
 
-    public void RestoreMissing(DungeonGameRestoreReport report)
+    protected override void PublishRestoreCandidate(
+        FactionRestoreCandidate candidate)
     {
-        runtime.Reset();
-        report?.AddWarning(
-            "Faction section was absent; six neutral dungeon factions were generated deterministically.");
+        runtime.PublishRestoreCandidate(candidate);
     }
+}
 }

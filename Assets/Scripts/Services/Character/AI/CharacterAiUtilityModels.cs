@@ -27,9 +27,17 @@ public readonly struct CharacterAiUtilityFactor
     public override string ToString()
     {
         string label = CharacterAiUtilityText.GetFactorLabel(Kind);
-        return string.IsNullOrWhiteSpace(Reason)
-            ? $"{label} {Score:0.##}"
-            : $"{label} {Score:0.##}({Reason})";
+        string reason = CharacterAiUtilityText.ResolveDisplayToken(Reason);
+        return string.IsNullOrWhiteSpace(reason)
+            ? CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Factor.Format.Score",
+                label,
+                Score)
+            : CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Factor.Format.ScoreWithReason",
+                label,
+                Score,
+                reason);
     }
 }
 
@@ -108,10 +116,13 @@ public sealed class CharacterAiUtilityBreakdown
     {
         string candidate = string.IsNullOrWhiteSpace(CandidateLabel)
             ? CharacterAiUtilityText.GetIntentionLabel(Intention)
-            : CandidateLabel;
+            : CharacterAiUtilityText.ResolveDisplayToken(CandidateLabel);
         if (!string.IsNullOrWhiteSpace(RejectionReason))
         {
-            return $"{candidate} 탈락: {RejectionReason}";
+            return CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Breakdown.Rejected",
+                candidate,
+                RejectionReason);
         }
 
         IEnumerable<CharacterAiUtilityFactor> factorSource =
@@ -123,8 +134,15 @@ public sealed class CharacterAiUtilityBreakdown
             .Select(factor => factor.ToString());
         string factorText = string.Join(", ", factorRows);
         return string.IsNullOrWhiteSpace(factorText)
-            ? $"{candidate} {FinalScore01 * 100f:0.#}%"
-            : $"{candidate} {FinalScore01 * 100f:0.#}% · {factorText}";
+            ? CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Breakdown.Score",
+                candidate,
+                FinalScore01 * 100f)
+            : CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Breakdown.ScoreWithFactors",
+                candidate,
+                FinalScore01 * 100f,
+                factorText);
     }
 
     public string ToMultilineString(int maxFactors = 8)
@@ -142,7 +160,10 @@ public sealed class CharacterAiUtilityBreakdown
             .ThenByDescending(factor => factor.Score)
             .Take(Mathf.Max(1, maxFactors))
             .Select(factor => $" - {factor}");
-        return $"{firstLine}\n{string.Join("\n", rows)}";
+        return CharacterAiDiagnosticsTextQuery.Get(
+            "CharacterAI.Breakdown.Multiline",
+            firstLine,
+            string.Join("\n", rows));
     }
 }
 
@@ -347,7 +368,10 @@ public readonly struct CharacterAiDecisionContext
         NeedsCaptureMarker.Begin();
         CharacterCondition strongest = CharacterCondition.HUNGER;
         float strongestUrgency = 0f;
-        if (CharacterNeedCatalog.TryGetStrongestUrgency(
+        ICharacterNeedDefinitionCatalog needCatalog = actor != null && actor.Stats != null
+            ? actor.Stats.NeedDefinitionCatalog
+            : null;
+        if (needCatalog != null && needCatalog.TryGetStrongestUrgency(
                 actor,
                 CharacterNeedTag.Survival,
                 out CharacterNeedDefinition strongestDefinition,
@@ -357,13 +381,13 @@ public readonly struct CharacterAiDecisionContext
             strongestUrgency = weightedUrgency;
         }
 
-        float moodUrgency = CharacterNeedCatalog.GetUrgency(actor, CharacterCondition.MOOD);
-        float hungerUrgency = CharacterNeedCatalog.GetUrgency(actor, CharacterCondition.HUNGER);
-        float sleepUrgency = CharacterNeedCatalog.GetUrgency(actor, CharacterCondition.SLEEP);
-        float excretionUrgency = CharacterNeedCatalog.GetUrgency(actor, CharacterCondition.EXCRETION);
-        float hygieneUrgency = CharacterNeedCatalog.GetUrgency(actor, CharacterCondition.HYGIENE);
-        float funUrgency = CharacterNeedCatalog.GetUrgency(actor, CharacterCondition.FUN);
-        float thirstUrgency = CharacterNeedCatalog.GetUrgency(actor, CharacterCondition.THIRST);
+        float moodUrgency = needCatalog?.GetUrgency(actor, CharacterCondition.MOOD) ?? 0.5f;
+        float hungerUrgency = needCatalog?.GetUrgency(actor, CharacterCondition.HUNGER) ?? 0.5f;
+        float sleepUrgency = needCatalog?.GetUrgency(actor, CharacterCondition.SLEEP) ?? 0.5f;
+        float excretionUrgency = needCatalog?.GetUrgency(actor, CharacterCondition.EXCRETION) ?? 0.5f;
+        float hygieneUrgency = needCatalog?.GetUrgency(actor, CharacterCondition.HYGIENE) ?? 0.5f;
+        float funUrgency = needCatalog?.GetUrgency(actor, CharacterCondition.FUN) ?? 0.5f;
+        float thirstUrgency = needCatalog?.GetUrgency(actor, CharacterCondition.THIRST) ?? 0.5f;
         float healthUrgency = 0f;
         float injuryUrgency = 0f;
         float expeditionStressUrgency = 0f;
@@ -536,46 +560,46 @@ public readonly struct CharacterAiDecisionContext
         CharacterAiIntentionType intention = CharacterAiUtilityText.GetIntention(branch);
         CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
             intention,
-            CharacterAiUtilityText.GetBranchLabel(branch),
+            CharacterAiUtilityText.GetBranchDisplayToken(branch),
             Actor == null || Actor.ShouldCollectDetailedAiDiagnostics);
         switch (branch)
         {
             case CharacterAiBranch.SurvivalNeeds:
                 breakdown.Add(CharacterAiUtilityFactorKind.Need, EmergencyScore, 0.45f, GetNeedLabel());
-                breakdown.Add(CharacterAiUtilityFactorKind.Stock, Mathf.Max(FoodStockPressure, WaterStockPressure), 0.2f, "생존 재고");
-                breakdown.Add(CharacterAiUtilityFactorKind.Risk, Mathf.Max(HealthUrgency, InjuryUrgency), 0.15f, "건강");
-                breakdown.Add(CharacterAiUtilityFactorKind.Weather, Mathf.Clamp01(1f - WeatherPressure), 0.06f, "날씨 부담");
-                breakdown.Add(CharacterAiUtilityFactorKind.Risk, Mathf.Clamp01(1f - NearbyWildlifeThreat), 0.06f, "동물 위협");
+                breakdown.Add(CharacterAiUtilityFactorKind.Stock, Mathf.Max(FoodStockPressure, WaterStockPressure), 0.2f, "CharacterAI.Reason.SurvivalStock");
+                breakdown.Add(CharacterAiUtilityFactorKind.Risk, Mathf.Max(HealthUrgency, InjuryUrgency), 0.15f, "CharacterAI.Reason.Health");
+                breakdown.Add(CharacterAiUtilityFactorKind.Weather, Mathf.Clamp01(1f - WeatherPressure), 0.06f, "CharacterAI.Reason.WeatherBurden");
+                breakdown.Add(CharacterAiUtilityFactorKind.Risk, Mathf.Clamp01(1f - NearbyWildlifeThreat), 0.06f, "CharacterAI.Reason.WildlifeThreat");
                 break;
             case CharacterAiBranch.DutyWork:
-                breakdown.Add(CharacterAiUtilityFactorKind.Priority, WorkPriority, 0.35f, "작업 우선순위");
-                breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Clamp01(1f - EmergencyScore), 0.25f, "일할 여유");
-                breakdown.Add(CharacterAiUtilityFactorKind.Personality, GetPersonalityScore(branch), 0.2f, "성실함");
-                breakdown.Add(CharacterAiUtilityFactorKind.Schedule, ScheduleScore, 0.08f, "근무 시간");
-                breakdown.Add(CharacterAiUtilityFactorKind.PathConfidence, PathConfidence, 0.06f, "경로 신뢰");
-                breakdown.Add(CharacterAiUtilityFactorKind.Fatigue, Mathf.Clamp01(1f - RecentFailurePressure), 0.06f, "최근 실패");
+                breakdown.Add(CharacterAiUtilityFactorKind.Priority, WorkPriority, 0.35f, "CharacterAI.Reason.WorkPriority");
+                breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Clamp01(1f - EmergencyScore), 0.25f, "CharacterAI.Reason.WorkCapacity");
+                breakdown.Add(CharacterAiUtilityFactorKind.Personality, GetPersonalityScore(branch), 0.2f, "CharacterAI.Reason.Diligence");
+                breakdown.Add(CharacterAiUtilityFactorKind.Schedule, ScheduleScore, 0.08f, "CharacterAI.Reason.WorkHours");
+                breakdown.Add(CharacterAiUtilityFactorKind.PathConfidence, PathConfidence, 0.06f, "CharacterAI.Reason.PathConfidence");
+                breakdown.Add(CharacterAiUtilityFactorKind.Fatigue, Mathf.Clamp01(1f - RecentFailurePressure), 0.06f, "CharacterAI.Reason.RecentFailure");
                 break;
             case CharacterAiBranch.LeisureVisit:
-                breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Max(MoodUrgency, FunUrgency), 0.35f, "기분/재미");
-                breakdown.Add(CharacterAiUtilityFactorKind.Risk, Mathf.Clamp01(1f - EmergencyScore), 0.2f, "위험 여유");
-                breakdown.Add(CharacterAiUtilityFactorKind.Personality, GetPersonalityScore(branch), 0.2f, "즐김 성향");
-                breakdown.Add(CharacterAiUtilityFactorKind.Social, SocialOpportunity, 0.06f, "주변 사람");
-                breakdown.Add(CharacterAiUtilityFactorKind.Queue, Mathf.Clamp01(1f - QueuePressure), 0.05f, "대기열");
-                breakdown.Add(CharacterAiUtilityFactorKind.Weather, Mathf.Clamp01(1f - WeatherPressure), 0.04f, "날씨");
+                breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Max(MoodUrgency, FunUrgency), 0.35f, "CharacterAI.Reason.MoodAndFun");
+                breakdown.Add(CharacterAiUtilityFactorKind.Risk, Mathf.Clamp01(1f - EmergencyScore), 0.2f, "CharacterAI.Reason.RiskCapacity");
+                breakdown.Add(CharacterAiUtilityFactorKind.Personality, GetPersonalityScore(branch), 0.2f, "CharacterAI.Reason.Enjoyment");
+                breakdown.Add(CharacterAiUtilityFactorKind.Social, SocialOpportunity, 0.06f, "CharacterAI.Reason.NearbyPeople");
+                breakdown.Add(CharacterAiUtilityFactorKind.Queue, Mathf.Clamp01(1f - QueuePressure), 0.05f, "CharacterAI.Reason.Queue");
+                breakdown.Add(CharacterAiUtilityFactorKind.Weather, Mathf.Clamp01(1f - WeatherPressure), 0.04f, "CharacterAI.Reason.Weather");
                 break;
             case CharacterAiBranch.Idle:
-                breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Clamp01(1f - Mathf.Max(basePriority01, EmergencyScore)), 0.45f, "급한 일 없음");
-                breakdown.Add(CharacterAiUtilityFactorKind.Momentum, Mathf.Clamp01(0.5f + MemoryMomentum), 0.2f, "자연스러운 유지");
-                breakdown.Add(CharacterAiUtilityFactorKind.Social, SocialOpportunity, 0.08f, "가벼운 상호작용");
-                breakdown.Add(CharacterAiUtilityFactorKind.Queue, QueuePressure, 0.04f, "줄 서기");
-                breakdown.Add(CharacterAiUtilityFactorKind.Weather, Mathf.Clamp01(1f - WeatherPressure), 0.04f, "걸을 만한 날씨");
+                breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Clamp01(1f - Mathf.Max(basePriority01, EmergencyScore)), 0.45f, "CharacterAI.Reason.NoUrgentTask");
+                breakdown.Add(CharacterAiUtilityFactorKind.Momentum, Mathf.Clamp01(0.5f + MemoryMomentum), 0.2f, "CharacterAI.Reason.NaturalMomentum");
+                breakdown.Add(CharacterAiUtilityFactorKind.Social, SocialOpportunity, 0.08f, "CharacterAI.Reason.LightInteraction");
+                breakdown.Add(CharacterAiUtilityFactorKind.Queue, QueuePressure, 0.04f, "CharacterAI.Reason.Queueing");
+                breakdown.Add(CharacterAiUtilityFactorKind.Weather, Mathf.Clamp01(1f - WeatherPressure), 0.04f, "CharacterAI.Reason.WalkableWeather");
                 break;
             default:
-                breakdown.Add(CharacterAiUtilityFactorKind.Priority, basePriority01, 0.5f, "기본 점수");
+                breakdown.Add(CharacterAiUtilityFactorKind.Priority, basePriority01, 0.5f, "CharacterAI.Reason.BaseScore");
                 break;
         }
 
-        breakdown.Add(CharacterAiUtilityFactorKind.Momentum, Mathf.Clamp01(0.5f + MemoryMomentum), 0.1f, "최근 흐름");
+        breakdown.Add(CharacterAiUtilityFactorKind.Momentum, Mathf.Clamp01(0.5f + MemoryMomentum), 0.1f, "CharacterAI.Reason.RecentFlow");
         breakdown.SetFinalScore(Mathf.Lerp(basePriority01, breakdown.CalculateWeighted01(), 0.35f));
         return breakdown;
     }
@@ -773,7 +797,11 @@ public readonly struct CharacterAiDecisionContext
 
     public string GetNeedLabel()
     {
-        return CharacterNeedCatalog.TryGet(StrongestNeed, out CharacterNeedDefinition definition)
+        ICharacterNeedDefinitionCatalog needCatalog = Actor != null && Actor.Stats != null
+            ? Actor.Stats.NeedDefinitionCatalog
+            : null;
+        return needCatalog != null
+            && needCatalog.TryGet(StrongestNeed, out CharacterNeedDefinition definition)
             ? definition.DisplayName
             : StrongestNeed.ToString();
     }
@@ -819,52 +847,55 @@ public static class CharacterAiUtilityText
         };
     }
 
-    public static string GetBranchLabel(CharacterAiBranch branch)
+    public static string GetBranchDisplayToken(CharacterAiBranch branch)
     {
         return branch switch
         {
-            CharacterAiBranch.Critical => "중단 상태",
-            CharacterAiBranch.LockedAction => "진행 중 행동",
-            CharacterAiBranch.SoftLock => "의도 유지",
-            CharacterAiBranch.InterruptCheck => "행동 중단 검사",
-            CharacterAiBranch.MacroGoal => "장기 의도",
-            CharacterAiBranch.Emergency => "긴급 대응",
-            CharacterAiBranch.RoutineUtility => "일상 선택",
-            CharacterAiBranch.SurvivalNeeds => "생존",
-            CharacterAiBranch.DutyWork => "업무",
-            CharacterAiBranch.LeisureVisit => "여가",
-            CharacterAiBranch.ExitDungeon => "퇴장",
-            CharacterAiBranch.Eat => "식사",
-            CharacterAiBranch.Rest => "휴식",
-            CharacterAiBranch.Work => "작업",
-            CharacterAiBranch.Shopping => "소비",
-            CharacterAiBranch.LookAround => "둘러보기",
-            CharacterAiBranch.Wait => "대기",
-            CharacterAiBranch.Idle => "잠깐 멈춤",
-            CharacterAiBranch.Toilet => "화장실",
-            CharacterAiBranch.Hygiene => "위생",
-            CharacterAiBranch.StopCurrent => "이전 중단",
-            CharacterAiBranch.ContinueCurrent => "이전 유지",
+            CharacterAiBranch.Critical => "CharacterAI.Branch.Critical",
+            CharacterAiBranch.LockedAction => "CharacterAI.Branch.LockedAction",
+            CharacterAiBranch.SoftLock => "CharacterAI.Branch.SoftLock",
+            CharacterAiBranch.InterruptCheck => "CharacterAI.Branch.InterruptCheck",
+            CharacterAiBranch.MacroGoal => "CharacterAI.Branch.MacroGoal",
+            CharacterAiBranch.Emergency => "CharacterAI.Branch.Emergency",
+            CharacterAiBranch.RoutineUtility => "CharacterAI.Branch.RoutineUtility",
+            CharacterAiBranch.SurvivalNeeds => "CharacterAI.Branch.SurvivalNeeds",
+            CharacterAiBranch.DutyWork => "CharacterAI.Branch.DutyWork",
+            CharacterAiBranch.LeisureVisit => "CharacterAI.Branch.LeisureVisit",
+            CharacterAiBranch.ExitDungeon => "CharacterAI.Branch.ExitDungeon",
+            CharacterAiBranch.Eat => "CharacterAI.Branch.Eat",
+            CharacterAiBranch.Rest => "CharacterAI.Branch.Rest",
+            CharacterAiBranch.Work => "CharacterAI.Branch.Work",
+            CharacterAiBranch.Shopping => "CharacterAI.Branch.Shopping",
+            CharacterAiBranch.LookAround => "CharacterAI.Branch.LookAround",
+            CharacterAiBranch.Wait => "CharacterAI.Branch.Wait",
+            CharacterAiBranch.Idle => "CharacterAI.Branch.Idle",
+            CharacterAiBranch.Toilet => "CharacterAI.Branch.Toilet",
+            CharacterAiBranch.Hygiene => "CharacterAI.Branch.Hygiene",
+            CharacterAiBranch.StopCurrent => "CharacterAI.Branch.StopCurrent",
+            CharacterAiBranch.ContinueCurrent => "CharacterAI.Branch.ContinueCurrent",
             _ => branch.ToString()
         };
     }
+
+    public static string GetBranchLabel(CharacterAiBranch branch) =>
+        ResolveDisplayToken(GetBranchDisplayToken(branch));
 
     public static string GetIntentionLabel(CharacterAiIntentionType intention)
     {
         return intention switch
         {
-            CharacterAiIntentionType.Survive => "생존",
-            CharacterAiIntentionType.Recover => "회복",
-            CharacterAiIntentionType.Work => "업무",
-            CharacterAiIntentionType.Logistics => "물류",
-            CharacterAiIntentionType.Guard => "경비",
-            CharacterAiIntentionType.Hunt => "사냥",
-            CharacterAiIntentionType.Leisure => "여가",
-            CharacterAiIntentionType.Social => "사회",
-            CharacterAiIntentionType.Shop => "구매",
-            CharacterAiIntentionType.Exit => "퇴장",
-            CharacterAiIntentionType.Idle => "대기",
-            _ => "없음"
+            CharacterAiIntentionType.Survive => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Survive"),
+            CharacterAiIntentionType.Recover => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Recover"),
+            CharacterAiIntentionType.Work => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Work"),
+            CharacterAiIntentionType.Logistics => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Logistics"),
+            CharacterAiIntentionType.Guard => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Guard"),
+            CharacterAiIntentionType.Hunt => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Hunt"),
+            CharacterAiIntentionType.Leisure => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Leisure"),
+            CharacterAiIntentionType.Social => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Social"),
+            CharacterAiIntentionType.Shop => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Shop"),
+            CharacterAiIntentionType.Exit => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Exit"),
+            CharacterAiIntentionType.Idle => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.Idle"),
+            _ => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Intention.None")
         };
     }
 
@@ -872,25 +903,36 @@ public static class CharacterAiUtilityText
     {
         return kind switch
         {
-            CharacterAiUtilityFactorKind.Need => "욕구",
-            CharacterAiUtilityFactorKind.Priority => "우선순위",
-            CharacterAiUtilityFactorKind.Personality => "성격",
-            CharacterAiUtilityFactorKind.Memory => "기억",
-            CharacterAiUtilityFactorKind.Distance => "거리",
-            CharacterAiUtilityFactorKind.Risk => "위험",
-            CharacterAiUtilityFactorKind.Room => "방",
-            CharacterAiUtilityFactorKind.Stock => "재고",
-            CharacterAiUtilityFactorKind.Crowd => "혼잡",
-            CharacterAiUtilityFactorKind.Reservation => "예약",
-            CharacterAiUtilityFactorKind.Momentum => "흐름",
-            CharacterAiUtilityFactorKind.Queue => "대기열",
-            CharacterAiUtilityFactorKind.Social => "사회",
-            CharacterAiUtilityFactorKind.Weather => "날씨",
-            CharacterAiUtilityFactorKind.PathConfidence => "경로",
-            CharacterAiUtilityFactorKind.Fatigue => "피로",
-            CharacterAiUtilityFactorKind.Novelty => "새로움",
-            CharacterAiUtilityFactorKind.Schedule => "일정",
+            CharacterAiUtilityFactorKind.Need => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Need"),
+            CharacterAiUtilityFactorKind.Priority => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Priority"),
+            CharacterAiUtilityFactorKind.Personality => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Personality"),
+            CharacterAiUtilityFactorKind.Memory => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Memory"),
+            CharacterAiUtilityFactorKind.Distance => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Distance"),
+            CharacterAiUtilityFactorKind.Risk => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Risk"),
+            CharacterAiUtilityFactorKind.Room => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Room"),
+            CharacterAiUtilityFactorKind.Stock => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Stock"),
+            CharacterAiUtilityFactorKind.Crowd => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Crowd"),
+            CharacterAiUtilityFactorKind.Reservation => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Reservation"),
+            CharacterAiUtilityFactorKind.Momentum => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Momentum"),
+            CharacterAiUtilityFactorKind.Queue => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Queue"),
+            CharacterAiUtilityFactorKind.Social => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Social"),
+            CharacterAiUtilityFactorKind.Weather => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Weather"),
+            CharacterAiUtilityFactorKind.PathConfidence => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.PathConfidence"),
+            CharacterAiUtilityFactorKind.Fatigue => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Fatigue"),
+            CharacterAiUtilityFactorKind.Novelty => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Novelty"),
+            CharacterAiUtilityFactorKind.Schedule => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Factor.Schedule"),
             _ => kind.ToString()
         };
+    }
+
+    public static string ResolveDisplayToken(string value)
+    {
+        if (string.IsNullOrEmpty(value)
+            || !value.StartsWith("CharacterAI.", StringComparison.Ordinal))
+        {
+            return value ?? string.Empty;
+        }
+
+        return CharacterAiDiagnosticsTextQuery.Get(value);
     }
 }

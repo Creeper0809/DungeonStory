@@ -15,6 +15,109 @@ internal interface IWorldFilthWorkTargetRuntime
     void NotifyWorkTargetDestroyed(Vector2Int position, WorldFilthWorkTarget target);
 }
 
+internal sealed class WorldFilthAggregateState
+{
+    internal readonly List<WorldFilthSaveData> Filth = new();
+    internal readonly Dictionary<string, WorldFilthSaveData> ById =
+        new(StringComparer.Ordinal);
+    internal int NextSequence = 1;
+    internal int StateVersion;
+}
+
+public sealed class WorldFilthRestoreCandidate
+{
+    internal WorldFilthRestoreCandidate(WorldFilthAggregateState state) =>
+        State = state ?? throw new ArgumentNullException(nameof(state));
+
+    internal WorldFilthAggregateState State { get; }
+}
+
+internal interface IWorldFilthRestoreCandidatePort
+{
+    WorldFilthRestoreCandidate BuildRestoreCandidate(
+        IEnumerable<WorldFilthSaveData> saveData,
+        int nextSequence);
+    void PublishRestoreCandidate(WorldFilthRestoreCandidate candidate);
+}
+
+public sealed class WorldFilthSpatialDependencies
+{
+    public WorldFilthSpatialDependencies(
+        IGridSystemProvider gridSystemProvider,
+        IExteriorZoneQuery exteriorZoneQuery,
+        IBuildingFacilityStateChangePort facilityCandidateCache,
+        IRoomFacilityPolicy roomFacilityPolicy)
+    {
+        GridSystemProvider = gridSystemProvider
+            ?? throw new ArgumentNullException(nameof(gridSystemProvider));
+        ExteriorZoneQuery = exteriorZoneQuery
+            ?? throw new ArgumentNullException(nameof(exteriorZoneQuery));
+        FacilityCandidateCache = facilityCandidateCache
+            ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
+        RoomFacilityPolicy = roomFacilityPolicy
+            ?? throw new ArgumentNullException(nameof(roomFacilityPolicy));
+    }
+
+    public IGridSystemProvider GridSystemProvider { get; }
+    public IExteriorZoneQuery ExteriorZoneQuery { get; }
+    public IBuildingFacilityStateChangePort FacilityCandidateCache { get; }
+    public IRoomFacilityPolicy RoomFacilityPolicy { get; }
+}
+
+public sealed class WorldFilthGameplayDependencies
+{
+    public WorldFilthGameplayDependencies(
+        IBuildingResearchWorkPort blueprintResearchWorkService,
+        ICombatEquipmentRuntime combatEquipmentRuntime,
+        IBuildingWorldRegistryPort worldRegistry,
+        IBuildingItemStackPort worldItems,
+        IBuildingAbilityRuntimeDispatcher abilityDispatcher,
+        IBuildingEvolutionStatePort evolutionState)
+    {
+        BlueprintResearchWorkService = blueprintResearchWorkService
+            ?? throw new ArgumentNullException(nameof(blueprintResearchWorkService));
+        CombatEquipmentRuntime = combatEquipmentRuntime
+            ?? throw new ArgumentNullException(nameof(combatEquipmentRuntime));
+        WorldRegistry = worldRegistry
+            ?? throw new ArgumentNullException(nameof(worldRegistry));
+        WorldItems = worldItems ?? throw new ArgumentNullException(nameof(worldItems));
+        AbilityDispatcher = abilityDispatcher
+            ?? throw new ArgumentNullException(nameof(abilityDispatcher));
+        EvolutionState = evolutionState
+            ?? throw new ArgumentNullException(nameof(evolutionState));
+    }
+
+    public IBuildingResearchWorkPort BlueprintResearchWorkService { get; }
+    public ICombatEquipmentRuntime CombatEquipmentRuntime { get; }
+    public IBuildingWorldRegistryPort WorldRegistry { get; }
+    public IBuildingItemStackPort WorldItems { get; }
+    public IBuildingAbilityRuntimeDispatcher AbilityDispatcher { get; }
+    public IBuildingEvolutionStatePort EvolutionState { get; }
+}
+
+public sealed class WorldFilthRuntimeDependencies
+{
+    public WorldFilthRuntimeDependencies(
+        IPaidFacilityContractRuntime paidFacilityContracts,
+        IGameClock gameClock,
+        IRuntimeBuildingArchetypeCatalog buildingArchetypes,
+        IGameContentCatalog contentCatalog)
+    {
+        PaidFacilityContracts = paidFacilityContracts
+            ?? throw new ArgumentNullException(nameof(paidFacilityContracts));
+        GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        BuildingArchetypes = buildingArchetypes
+            ?? throw new ArgumentNullException(nameof(buildingArchetypes));
+        ContentCatalog = contentCatalog
+            ?? throw new ArgumentNullException(nameof(contentCatalog));
+    }
+
+    public IPaidFacilityContractRuntime PaidFacilityContracts { get; }
+    public IGameClock GameClock { get; }
+    public IRuntimeBuildingArchetypeCatalog BuildingArchetypes { get; }
+    public IGameContentCatalog ContentCatalog { get; }
+}
+
 public sealed class WorldFilthWorkTarget : Facility
 {
     private bool registeredOnGrid;
@@ -30,30 +133,13 @@ public sealed class WorldFilthWorkTarget : Facility
     internal void InitializeRuntime(
         IWorldFilthWorkTargetRuntime filthRuntime,
         Grid grid,
-        Vector2Int position)
+        Vector2Int position,
+        BuildingSO definition)
     {
         this.filthRuntime = filthRuntime
             ?? throw new ArgumentNullException(nameof(filthRuntime));
-        BuildingSO data = ScriptableObject.CreateInstance<BuildingSO>();
-        data.name = $"filth-work:{position.x}:{position.y}";
-        data.id = CreateStableId(position);
-        data.objectName = "오염";
-        data.width = 1;
-        data.height = 1;
-        data.layer = GridLayer.Filth;
-        data.category = BuildingCategory.Special;
-        data.type = typeof(WorldFilthWorkTarget);
-        data.unlocked = true;
-        data.Facility = new FacilityData
-        {
-            roles = FacilityRole.None,
-            capacity = 0,
-            useDuration = 1f,
-            requiredWorkers = 1,
-            disabledWhenDamaged = false
-        };
-        data.Facility.SetSupportedWorkTypeIds(new[] { BuiltInWorkTypeIds.Clean });
-        data.FacilityAnchors.Add(FacilityAnchorPurposeIds.Work, Vector2.zero);
+        BuildingSO data = definition
+            ?? throw new ArgumentNullException(nameof(definition));
 
         SetGrid(grid);
         Initialization(data, position);
@@ -81,13 +167,7 @@ public sealed class WorldFilthWorkTarget : Facility
     public void SetPriorityCleaning(bool priority)
     {
         priorityCleaning = priority;
-        foreach (CharacterActor actor in WorldRegistry?.Characters ?? Array.Empty<CharacterActor>())
-        {
-            if (actor != null && actor.TryGetAbility(out AbilityWork _))
-            {
-                actor.Brain?.RequestImmediateReplan(clearFailures: true);
-            }
-        }
+        MarkFacilityDynamicStateDirty();
     }
 
     public void CompleteCleaning(float workAmount)
@@ -117,86 +197,90 @@ public sealed class WorldFilthWorkTarget : Facility
         }
 
         filthRuntime?.NotifyWorkTargetDestroyed(centerPos, this);
-        BuildingSO runtimeData = BuildingData;
         base.OnDestroy();
-        if (runtimeData != null)
-        {
-            Destroy(runtimeData);
-        }
-    }
-
-    private static int CreateStableId(Vector2Int position)
-    {
-        unchecked
-        {
-            int hash = -1700000000 + position.x * 397 ^ position.y;
-            return hash == 0 ? -1700000001 : hash;
-        }
     }
 }
 
 public sealed class WorldFilthRuntime :
     IWorldFilthQuery,
     IWorldFilthWorkTargetRuntime,
+    IWorldFilthRestoreCandidatePort,
     IStartable,
     IDisposable
 {
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IExteriorZoneQuery exteriorZoneQuery;
-    private readonly IBlueprintResearchWorkService blueprintResearchWorkService;
-    private readonly IWorldInfoClickSelector worldInfoClickSelector;
-    private readonly IFacilityCandidateCache facilityCandidateCache;
+    private readonly IBuildingResearchWorkPort blueprintResearchWorkService;
+    private readonly IBuildingFacilityStateChangePort facilityCandidateCache;
     private readonly IRoomFacilityPolicy roomFacilityPolicy;
     private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
-    private readonly ICharacterAiWorldRegistry worldRegistry;
+    private readonly IBuildingWorldRegistryPort worldRegistry;
+    private readonly IBuildingItemStackPort worldItems;
+    private readonly IBuildingAbilityRuntimeDispatcher abilityDispatcher;
+    private readonly IBuildingEvolutionStatePort evolutionState;
+    private readonly IPaidFacilityContractRuntime paidFacilityContracts;
     private readonly IGameClock gameClock;
-    private readonly List<WorldFilthSaveData> filth = new List<WorldFilthSaveData>();
-    private readonly Dictionary<string, WorldFilthSaveData> byId =
-        new Dictionary<string, WorldFilthSaveData>(StringComparer.Ordinal);
+    private readonly IRuntimeBuildingArchetypeCatalog buildingArchetypes;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly Tile filthTile;
     private readonly Dictionary<Vector2Int, WorldFilthWorkTarget> workTargets =
         new Dictionary<Vector2Int, WorldFilthWorkTarget>();
     private GameObject visualRoot;
     private Tilemap floorTilemap;
     private Tilemap wallTilemap;
-    private Tile filthTile;
-    private int nextSequence = 1;
+    private WorldFilthAggregateState projectedState;
+    private bool projectionDirty = true;
+
+    private WorldFilthAggregateState State =>
+        aggregateRootStore.GetOrCreate(() => new WorldFilthAggregateState());
+    private List<WorldFilthSaveData> filth => State.Filth;
+    private Dictionary<string, WorldFilthSaveData> byId => State.ById;
+    private int nextSequence
+    {
+        get => State.NextSequence;
+        set => State.NextSequence = value;
+    }
 
     public WorldFilthRuntime(
-        IGridSystemProvider gridSystemProvider,
-        IExteriorZoneQuery exteriorZoneQuery,
-        IBlueprintResearchWorkService blueprintResearchWorkService,
-        IWorldInfoClickSelector worldInfoClickSelector,
-        IFacilityCandidateCache facilityCandidateCache,
-        IRoomFacilityPolicy roomFacilityPolicy,
-        ICombatEquipmentRuntime combatEquipmentRuntime,
-        ICharacterAiWorldRegistry worldRegistry,
-        IGameClock gameClock)
+        WorldFilthSpatialDependencies spatial,
+        WorldFilthGameplayDependencies gameplay,
+        WorldFilthRuntimeDependencies runtime,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
-        this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
-        this.exteriorZoneQuery = exteriorZoneQuery ?? throw new ArgumentNullException(nameof(exteriorZoneQuery));
-        this.blueprintResearchWorkService = blueprintResearchWorkService
-            ?? throw new ArgumentNullException(nameof(blueprintResearchWorkService));
-        this.worldInfoClickSelector = worldInfoClickSelector
-            ?? throw new ArgumentNullException(nameof(worldInfoClickSelector));
-        this.facilityCandidateCache = facilityCandidateCache
-            ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
-        this.roomFacilityPolicy = roomFacilityPolicy
-            ?? throw new ArgumentNullException(nameof(roomFacilityPolicy));
-        this.combatEquipmentRuntime = combatEquipmentRuntime
-            ?? throw new ArgumentNullException(nameof(combatEquipmentRuntime));
-        this.worldRegistry = worldRegistry
-            ?? throw new ArgumentNullException(nameof(worldRegistry));
-        this.gameClock = gameClock
-            ?? throw new ArgumentNullException(nameof(gameClock));
+        spatial = spatial ?? throw new ArgumentNullException(nameof(spatial));
+        gameplay = gameplay ?? throw new ArgumentNullException(nameof(gameplay));
+        runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        gridSystemProvider = spatial.GridSystemProvider;
+        exteriorZoneQuery = spatial.ExteriorZoneQuery;
+        facilityCandidateCache = spatial.FacilityCandidateCache;
+        roomFacilityPolicy = spatial.RoomFacilityPolicy;
+        blueprintResearchWorkService = gameplay.BlueprintResearchWorkService;
+        combatEquipmentRuntime = gameplay.CombatEquipmentRuntime;
+        worldRegistry = gameplay.WorldRegistry;
+        worldItems = gameplay.WorldItems;
+        abilityDispatcher = gameplay.AbilityDispatcher;
+        evolutionState = gameplay.EvolutionState;
+        paidFacilityContracts = runtime.PaidFacilityContracts;
+        gameClock = runtime.GameClock;
+        buildingArchetypes = runtime.BuildingArchetypes;
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        filthTile = runtime.ContentCatalog.WorldPresentation.WorldFilthTile != null
+            ? runtime.ContentCatalog.WorldPresentation.WorldFilthTile
+            : throw new InvalidOperationException(
+                "World presentation catalog has no authored filth tile.");
     }
 
     public int NextFilthSequence => nextSequence;
-    public int StateVersion { get; private set; }
+    public int StateVersion
+    {
+        get => State.StateVersion;
+        private set => State.StateVersion = value;
+    }
 
     public void Start()
     {
-        EnsureVisuals();
-        RefreshVisuals();
+        EnsureProjectionCurrent();
     }
 
     public void Dispose()
@@ -212,14 +296,11 @@ public sealed class WorldFilthRuntime :
         }
         workTargets.Clear();
 
-        if (filthTile != null)
-        {
-            UnityEngine.Object.Destroy(filthTile);
-        }
     }
 
     public IReadOnlyList<WorldFilthSnapshot> GetAll()
     {
+        EnsureProjectionCurrent();
         return filth.Where(entry => entry != null && entry.amount > 0f)
             .Select(ToSnapshot)
             .ToArray();
@@ -227,6 +308,7 @@ public sealed class WorldFilthRuntime :
 
     public IReadOnlyList<WorldFilthSnapshot> GetAt(Vector2Int position)
     {
+        EnsureProjectionCurrent();
         return filth.Where(entry => entry != null
                 && entry.amount > 0f
                 && entry.gridX == position.x
@@ -243,6 +325,7 @@ public sealed class WorldFilthRuntime :
         float infectionRisk,
         bool wallStain = false)
     {
+        EnsureProjectionCurrent();
         float safeAmount = Mathf.Max(0.1f, amount);
         WorldFilthSaveData existing = filth.FirstOrDefault(entry => entry != null
             && entry.type == type
@@ -281,6 +364,7 @@ public sealed class WorldFilthRuntime :
 
     public bool Clean(string filthId, float workAmount, out float remainingAmount)
     {
+        EnsureProjectionCurrent();
         remainingAmount = 0f;
         if (string.IsNullOrWhiteSpace(filthId)
             || !byId.TryGetValue(filthId, out WorldFilthSaveData entry)
@@ -339,6 +423,7 @@ public sealed class WorldFilthRuntime :
 
     public float GetCleanlinessPenalty(Vector2Int position, int radius = 0)
     {
+        EnsureProjectionCurrent();
         int safeRadius = Mathf.Max(0, radius);
         float total = 0f;
         foreach (WorldFilthSaveData entry in filth)
@@ -367,24 +452,45 @@ public sealed class WorldFilthRuntime :
 
     public void RestoreFilth(IEnumerable<WorldFilthSaveData> saveData, int nextSequence)
     {
-        filth.Clear();
-        byId.Clear();
-        this.nextSequence = Mathf.Max(1, nextSequence);
-        foreach (WorldFilthSaveData source in saveData ?? Array.Empty<WorldFilthSaveData>())
-        {
-            if (source == null || source.amount <= 0f || string.IsNullOrWhiteSpace(source.filthId))
-            {
-                continue;
-            }
+        PublishRestoreCandidate(BuildRestoreCandidate(saveData, nextSequence));
+    }
 
+    public WorldFilthRestoreCandidate BuildRestoreCandidate(
+        IEnumerable<WorldFilthSaveData> saveData,
+        int nextSequence)
+    {
+        if (nextSequence < 1)
+        {
+            throw new InvalidOperationException(
+                "World-filth restore sequence must be positive.");
+        }
+        WorldFilthAggregateState restored = new WorldFilthAggregateState
+        {
+            NextSequence = nextSequence,
+            StateVersion = StateVersion + 1
+        };
+        foreach (WorldFilthSaveData source in saveData
+                     ?? throw new ArgumentNullException(nameof(saveData)))
+        {
+            if (source == null)
+            {
+                throw new InvalidOperationException(
+                    "World-filth restore candidate contains a null entry.");
+            }
             WorldFilthSaveData copy = Clone(source);
-            filth.Add(copy);
-            byId[copy.filthId] = copy;
+            restored.Filth.Add(copy);
+            restored.ById.Add(copy.filthId, copy);
         }
 
-        StateVersion++;
-        RefreshVisuals();
-        RebuildWorkTargets();
+        return new WorldFilthRestoreCandidate(restored);
+    }
+
+    public void PublishRestoreCandidate(WorldFilthRestoreCandidate candidate)
+    {
+        aggregateRootStore.Replace(
+            (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+            .State);
+        projectionDirty = true;
     }
 
     private void RebuildWorkTargets()
@@ -417,15 +523,24 @@ public sealed class WorldFilthRuntime :
 
         GameObject targetObject = new GameObject($"Filth Work ({position.x}, {position.y})");
         WorldFilthWorkTarget target = targetObject.AddComponent<WorldFilthWorkTarget>();
+        target.RestorePersistentIdentity(new BuildingInstanceId(
+            $"building:world-filth:{position.x}:{position.y}"));
         target.ConstructBuildableObject(
             blueprintResearchWorkService,
-            worldInfoClickSelector,
             facilityCandidateCache,
             roomFacilityPolicy,
             combatEquipmentRuntime,
             worldRegistry,
-            gameClock: gameClock);
-        target.InitializeRuntime(this, grid, position);
+            worldItems,
+            abilityDispatcher,
+            gameClock,
+            paidFacilityContracts,
+            evolutionState);
+        target.InitializeRuntime(
+            this,
+            grid,
+            position,
+            buildingArchetypes.WorldFilthWorkTarget);
         workTargets[position] = target;
     }
 
@@ -443,7 +558,6 @@ public sealed class WorldFilthRuntime :
         visualRoot.transform.position = grid.OriginPosition;
         floorTilemap = CreateTilemap("Floor Filth", visualRoot.transform, -2);
         wallTilemap = CreateTilemap("Wall Stains", visualRoot.transform, 1);
-        filthTile = CreateRuntimeTile();
     }
 
     private static Tilemap CreateTilemap(string name, Transform parent, int order)
@@ -457,25 +571,6 @@ public sealed class WorldFilthRuntime :
         return tilemap;
     }
 
-    private static Tile CreateRuntimeTile()
-    {
-        Texture2D texture = new Texture2D(1, 1, TextureFormat.RGBA32, false)
-        {
-            filterMode = FilterMode.Point,
-            wrapMode = TextureWrapMode.Clamp,
-            hideFlags = HideFlags.HideAndDontSave
-        };
-        texture.SetPixel(0, 0, Color.white);
-        texture.Apply();
-        Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, 1f, 1f), new Vector2(0.5f, 0.5f), 1f);
-        sprite.hideFlags = HideFlags.HideAndDontSave;
-        Tile tile = ScriptableObject.CreateInstance<Tile>();
-        tile.hideFlags = HideFlags.HideAndDontSave;
-        tile.sprite = sprite;
-        tile.color = Color.white;
-        return tile;
-    }
-
     private void RefreshVisuals()
     {
         EnsureVisuals();
@@ -486,6 +581,20 @@ public sealed class WorldFilthRuntime :
         {
             RefreshCell(position);
         }
+    }
+
+    private void EnsureProjectionCurrent()
+    {
+        WorldFilthAggregateState current = State;
+        if (!projectionDirty && ReferenceEquals(projectedState, current))
+        {
+            return;
+        }
+
+        projectedState = current;
+        RefreshVisuals();
+        RebuildWorkTargets();
+        projectionDirty = false;
     }
 
     private void RefreshCell(Vector2Int position)

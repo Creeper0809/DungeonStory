@@ -45,7 +45,7 @@ MonoBehaviour:
   inputs:
   - itemId: waste:animal-rot
     amount: 4
-  - itemId: stock-item:4
+  - itemId: resource:grass-straw
     amount: 1
   outputs:
   - itemId: material:low-fuel

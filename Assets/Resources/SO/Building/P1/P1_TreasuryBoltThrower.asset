@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: DefenseFacility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -38,8 +29,8 @@ MonoBehaviour:
       Data: 
   id: 9961
   objectName: "\uAE08\uACE0\uAC01\uC778 \uC1E0\uB1CC\uB300"
-  sprite: {fileID: 21300000, guid: c957472a2987036e7a0aff8fa49118db, type: 3}
-  icon: {fileID: 21300000, guid: c957472a2987036e7a0aff8fa49118db, type: 3}
+  sprite: {fileID: 21300000, guid: 4477e5fd6b436c24f8a933b126f52513, type: 3}
+  icon: {fileID: 21300000, guid: 4477e5fd6b436c24f8a933b126f52513, type: 3}
   abilityModules:
     items:
     - rid: 7302563299610000001
@@ -57,6 +48,7 @@ MonoBehaviour:
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 7
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -66,19 +58,19 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7302563299610000001
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: T01
     - rid: 7302563299610000002
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - defense
         - treasury-defense
     - rid: 7302563299610000003
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -106,9 +98,9 @@ MonoBehaviour:
         cleanWorkRequired: 12
         researchWorkRequired: 6
         operateWorkRequired: 10
-        constructionMaterialCategory: 1
-        constructionMaterialAmount: 18
-        materialUnitsPerConstructionCost: 0.05
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 18
     - rid: 7302563299610000006
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
@@ -150,7 +142,7 @@ MonoBehaviour:
             identificationLevel: 0
             outageResistanceLevel: 0
     - rid: 7302563299610000007
-      type: {class: BuildingTreasuryPoweredDefenseAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingTreasuryPoweredDefenseAbility, ns: , asm: DungeonStory.Economy}
       data:
         abilityId: BuildingTreasuryPoweredDefenseAbility
         shotCost: 30
@@ -158,7 +150,7 @@ MonoBehaviour:
         defaultInvasionBudget: 300
         defaultBossOnly: 0
     - rid: 7302563299610000008
-      type: {class: BuildingOverclockableAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingOverclockableAbility, ns: , asm: DungeonStory.Economy}
       data:
         abilityId: BuildingOverclockableAbility
         allowControlled: 1

@@ -7,8 +7,33 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using VContainer.Unity;
 
+internal sealed class WorldWaterAggregateState
+{
+    internal readonly List<WorldWaterSourceSaveData> Sources = new();
+    internal readonly Dictionary<string, WorldWaterSourceSaveData> ById =
+        new(StringComparer.Ordinal);
+    internal int NextSequence = 1;
+}
+
+public sealed class WorldWaterRestoreCandidate
+{
+    internal WorldWaterRestoreCandidate(WorldWaterAggregateState state) =>
+        State = state ?? throw new ArgumentNullException(nameof(state));
+
+    internal WorldWaterAggregateState State { get; }
+}
+
+internal interface IWorldWaterRestoreCandidatePort
+{
+    WorldWaterRestoreCandidate BuildRestoreCandidate(
+        IEnumerable<WorldWaterSourceSaveData> saveData,
+        int nextSequence);
+    void PublishRestoreCandidate(WorldWaterRestoreCandidate candidate);
+}
+
 public sealed class WorldWaterRuntime :
     IWorldWaterQuery,
+    IWorldWaterRestoreCandidatePort,
     IStartable,
     ITickable,
     IDisposable
@@ -18,22 +43,42 @@ public sealed class WorldWaterRuntime :
 
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IGameClock gameClock;
-    private readonly List<WorldWaterSourceSaveData> sources = new List<WorldWaterSourceSaveData>();
-    private readonly Dictionary<string, WorldWaterSourceSaveData> byId =
-        new Dictionary<string, WorldWaterSourceSaveData>(StringComparer.Ordinal);
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly Tile waterTile;
     private GameObject visualRoot;
     private Tilemap waterTilemap;
-    private Tile waterTile;
-    private Texture2D waterTexture;
-    private Sprite waterSprite;
-    private int nextSequence = 1;
+    private WorldWaterAggregateState projectedState;
+    private bool projectionDirty = true;
+
+    private WorldWaterAggregateState State =>
+        aggregateRootStore.GetOrCreate(() => new WorldWaterAggregateState());
+    private List<WorldWaterSourceSaveData> sources => State.Sources;
+    private Dictionary<string, WorldWaterSourceSaveData> byId => State.ById;
+    private int nextSequence
+    {
+        get => State.NextSequence;
+        set => State.NextSequence = value;
+    }
 
     public WorldWaterRuntime(
         IGridSystemProvider gridSystemProvider,
-        IGameClock gameClock)
+        IGameClock gameClock,
+        IGameContentCatalog contentCatalog,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
+        if (contentCatalog == null)
+        {
+            throw new ArgumentNullException(nameof(contentCatalog));
+        }
+
+        waterTile = contentCatalog.WorldPresentation.WorldWaterTile != null
+            ? contentCatalog.WorldPresentation.WorldWaterTile
+            : throw new InvalidOperationException(
+                "World presentation catalog has no authored water tile.");
     }
 
     public int NextWaterSequence => nextSequence;
@@ -41,8 +86,7 @@ public sealed class WorldWaterRuntime :
     public void Start()
     {
         EnsureDefaultSources();
-        EnsureVisuals();
-        RefreshVisuals();
+        EnsureProjectionCurrent();
     }
 
     public void Tick()
@@ -55,6 +99,7 @@ public sealed class WorldWaterRuntime :
 
     private void TickRuntime()
     {
+        EnsureProjectionCurrent();
         float delta = gameClock.DeltaTime;
         if (delta <= 0f)
         {
@@ -77,26 +122,12 @@ public sealed class WorldWaterRuntime :
 
     public void Dispose()
     {
-        ClearTerrain();
+        ClearTerrain(projectedState?.Sources);
         if (visualRoot != null)
         {
             UnityEngine.Object.Destroy(visualRoot);
         }
 
-        if (waterTile != null)
-        {
-            UnityEngine.Object.Destroy(waterTile);
-        }
-
-        if (waterSprite != null)
-        {
-            UnityEngine.Object.Destroy(waterSprite);
-        }
-
-        if (waterTexture != null)
-        {
-            UnityEngine.Object.Destroy(waterTexture);
-        }
     }
 
     public IReadOnlyList<WorldWaterSourceSnapshot> GetAllSources()
@@ -138,6 +169,7 @@ public sealed class WorldWaterRuntime :
 
     public bool TryDrink(string sourceId, float amount, out WorldWaterQuality quality, out float consumed)
     {
+        EnsureProjectionCurrent();
         quality = WorldWaterQuality.Foul;
         consumed = 0f;
         if (string.IsNullOrWhiteSpace(sourceId)
@@ -161,6 +193,7 @@ public sealed class WorldWaterRuntime :
         GridCellTerrainType terrainType,
         out string sourceId)
     {
+        EnsureProjectionCurrent();
         sourceId = string.Empty;
         if (!gridSystemProvider.TryGetGrid(out Grid grid)
             || !grid.IsValidGridPos(position))
@@ -197,6 +230,7 @@ public sealed class WorldWaterRuntime :
         float capacity,
         float remaining)
     {
+        EnsureProjectionCurrent();
         if (string.IsNullOrWhiteSpace(sourceId)
             || !byId.TryGetValue(sourceId, out WorldWaterSourceSaveData source)
             || source == null)
@@ -218,30 +252,47 @@ public sealed class WorldWaterRuntime :
 
     public void RestoreWaterSources(IEnumerable<WorldWaterSourceSaveData> saveData, int nextSequence)
     {
-        ClearTerrain();
-        sources.Clear();
-        byId.Clear();
-        this.nextSequence = Mathf.Max(1, nextSequence);
-        foreach (WorldWaterSourceSaveData source in saveData ?? Array.Empty<WorldWaterSourceSaveData>())
-        {
-            if (source == null || string.IsNullOrWhiteSpace(source.sourceId))
-            {
-                continue;
-            }
-
-            AddSource(Clone(source));
-        }
-
-        if (sources.Count == 0)
-        {
-            EnsureDefaultSources();
-        }
-
-        ApplyTerrain();
-        RefreshVisuals();
+        PublishRestoreCandidate(BuildRestoreCandidate(saveData, nextSequence));
     }
 
-    private void EnsureDefaultSources()
+    public WorldWaterRestoreCandidate BuildRestoreCandidate(
+        IEnumerable<WorldWaterSourceSaveData> saveData,
+        int nextSequence)
+    {
+        if (nextSequence < 1)
+        {
+            throw new InvalidOperationException(
+                "World-water restore sequence must be positive.");
+        }
+        WorldWaterAggregateState restored = new WorldWaterAggregateState
+        {
+            NextSequence = nextSequence
+        };
+        foreach (WorldWaterSourceSaveData source in saveData
+                     ?? throw new ArgumentNullException(nameof(saveData)))
+        {
+            if (source == null)
+            {
+                throw new InvalidOperationException(
+                    "World-water restore candidate contains a null entry.");
+            }
+            WorldWaterSourceSaveData copy = Clone(source);
+            restored.Sources.Add(copy);
+            restored.ById.Add(copy.sourceId, copy);
+        }
+
+        return new WorldWaterRestoreCandidate(restored);
+    }
+
+    public void PublishRestoreCandidate(WorldWaterRestoreCandidate candidate)
+    {
+        aggregateRootStore.Replace(
+            (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+            .State);
+        projectionDirty = true;
+    }
+
+    private void EnsureDefaultSources(bool applyTerrain = true)
     {
         if (sources.Count > 0 || !gridSystemProvider.TryGetGrid(out Grid grid))
         {
@@ -272,7 +323,10 @@ public sealed class WorldWaterRuntime :
                 deepestBoundaryCell ? 0.035f : 0.06f));
         }
 
-        ApplyTerrain();
+        if (applyTerrain)
+        {
+            ApplyTerrain();
+        }
     }
 
     private static List<GridCell> SelectPondCells(Grid grid, IReadOnlyList<GridCell> exterior, int desiredCount)
@@ -349,10 +403,17 @@ public sealed class WorldWaterRuntime :
 
     private void AddSource(WorldWaterSourceSaveData source)
     {
+        AddSource(State, source);
+    }
+
+    private static void AddSource(
+        WorldWaterAggregateState state,
+        WorldWaterSourceSaveData source)
+    {
         source.capacity = Mathf.Max(0.1f, source.capacity);
         source.remaining = Mathf.Clamp(source.remaining, 0f, source.capacity);
-        sources.Add(source);
-        byId[source.sourceId] = source;
+        state.Sources.Add(source);
+        state.ById[source.sourceId] = source;
     }
 
     private void ApplyTerrain()
@@ -370,14 +431,14 @@ public sealed class WorldWaterRuntime :
         }
     }
 
-    private void ClearTerrain()
+    private void ClearTerrain(IEnumerable<WorldWaterSourceSaveData> stateSources)
     {
         if (!gridSystemProvider.TryGetGrid(out Grid grid))
         {
             return;
         }
 
-        foreach (WorldWaterSourceSaveData source in sources)
+        foreach (WorldWaterSourceSaveData source in stateSources ?? Array.Empty<WorldWaterSourceSaveData>())
         {
             grid.SetTerrainType(
                 new Vector2Int(source.gridX, source.gridY),
@@ -407,58 +468,6 @@ public sealed class WorldWaterRuntime :
         TilemapRenderer renderer = tileObject.AddComponent<TilemapRenderer>();
         renderer.sortingLayerName = "Wall";
         renderer.sortingOrder = 2;
-        waterTile = CreateRuntimeTile();
-    }
-
-    private Tile CreateRuntimeTile()
-    {
-        const int width = 16;
-        const int height = 8;
-        waterTexture = new Texture2D(width, height, TextureFormat.RGBA32, false)
-        {
-            filterMode = FilterMode.Point,
-            wrapMode = TextureWrapMode.Clamp,
-            hideFlags = HideFlags.HideAndDontSave
-        };
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                Color pixel;
-                if (y == height - 1)
-                {
-                    pixel = new Color(1f, 1f, 1f, (x + 1) % 4 < 2 ? 0.42f : 0f);
-                }
-                else if (y == height - 2)
-                {
-                    pixel = new Color(1f, 1f, 1f, 1f);
-                }
-                else if (y == height - 3 && (x + 2) % 5 < 2)
-                {
-                    pixel = new Color(1f, 1f, 1f, 0.82f);
-                }
-                else
-                {
-                    float depthShade = Mathf.Lerp(0.68f, 0.96f, y / (float)(height - 1));
-                    pixel = new Color(depthShade, depthShade, depthShade, 1f);
-                }
-
-                waterTexture.SetPixel(x, y, pixel);
-            }
-        }
-
-        waterTexture.Apply();
-        waterSprite = Sprite.Create(
-            waterTexture,
-            new Rect(0f, 0f, width, height),
-            new Vector2(0.5f, 0.5f),
-            width);
-        waterSprite.hideFlags = HideFlags.HideAndDontSave;
-        Tile tile = ScriptableObject.CreateInstance<Tile>();
-        tile.hideFlags = HideFlags.HideAndDontSave;
-        tile.sprite = waterSprite;
-        tile.flags = TileFlags.None;
-        return tile;
     }
 
     private void RefreshVisuals()
@@ -469,6 +478,21 @@ public sealed class WorldWaterRuntime :
         {
             RefreshCell(source);
         }
+    }
+
+    private void EnsureProjectionCurrent()
+    {
+        WorldWaterAggregateState current = State;
+        if (!projectionDirty && ReferenceEquals(projectedState, current))
+        {
+            return;
+        }
+
+        ClearTerrain(projectedState?.Sources);
+        projectedState = current;
+        ApplyTerrain();
+        RefreshVisuals();
+        projectionDirty = false;
     }
 
     private void RefreshCell(WorldWaterSourceSaveData source)

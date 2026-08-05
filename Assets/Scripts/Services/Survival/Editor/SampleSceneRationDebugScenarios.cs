@@ -65,6 +65,8 @@ public static class SampleSceneRationDebugScenarios
                 scope.Container.Resolve<SampleSceneRationRuntime>();
             IWorldItemStackRuntime itemRuntime =
                 scope.Container.Resolve<IWorldItemStackRuntime>();
+            IItemDefinitionCatalog itemCatalog =
+                scope.Container.Resolve<IItemDefinitionCatalog>();
             CharacterActor actor = UnityEngine.Object
                 .FindObjectsByType<CharacterActor>(
                     FindObjectsInactive.Exclude,
@@ -104,8 +106,14 @@ public static class SampleSceneRationDebugScenarios
 
             float hunger = actor.Stats.Stats[CharacterCondition.HUNGER];
             float thirst = actor.Stats.Stats[CharacterCondition.THIRST];
-            int foodStock = CountRationStock(itemRuntime, StockCategory.Food);
-            int waterStock = CountRationStock(itemRuntime, StockCategory.Water);
+            int foodStock = CountRationStock(
+                itemRuntime,
+                itemCatalog,
+                StockCategory.Food);
+            int waterStock = CountRationStock(
+                itemRuntime,
+                itemCatalog,
+                StockCategory.Water);
 
             Require(hunger >= SampleSceneRationRuntime.FoodRecovery,
                 $"Food ration did not recover hunger: {hunger:0.0}.");
@@ -143,12 +151,15 @@ public static class SampleSceneRationDebugScenarios
 
     private static int CountRationStock(
         IWorldItemStackRuntime itemRuntime,
+        IItemDefinitionCatalog itemCatalog,
         StockCategory category)
     {
-        string itemId = DungeonItemCatalogSO.StockItemId(category);
         return itemRuntime.GetAllStacks()
             .Where(stack => stack != null
-                && stack.ItemId == itemId
+                && itemCatalog.TryGet(
+                    (ItemDefinitionId)stack.ItemId,
+                    out ItemDefinitionSO definition)
+                && definition.StockCategory == category
                 && stack.DestinationId == SampleSceneRationRuntime.RationDestinationId)
             .Sum(stack => stack.Quantity);
     }

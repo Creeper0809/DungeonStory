@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
   m_Name: Species_Slime
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  m_EditorClassIdentifier: DungeonStory.Species::CharacterSpeciesSO
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -75,7 +75,7 @@ MonoBehaviour:
   - "\uAC74\uC870\uD55C \uAD6C\uC5ED"
   - "\uD6C8\uB828\uC7A5 \uC911\uC2EC \uAD6C\uC5ED"
   stayDurationMultiplier: 1
-  crimeRiskMultiplier: 1
+  crimeRiskMultiplier: 1.05
   incidentType: 1
   incident:
     incidentId: species-incident:slime-contamination

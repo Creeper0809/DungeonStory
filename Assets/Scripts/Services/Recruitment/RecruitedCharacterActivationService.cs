@@ -16,14 +16,14 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
     private readonly ICharacterSpawnerProvider spawnerProvider;
     private readonly ICharacterSpawnObjectFactory characterObjectFactory;
     private readonly ICharacterPopulationService characterPopulationService;
-    private readonly IOffenseWorldMapRuntimeProvider worldMapProvider;
+    private readonly IOffenseQuery offense;
 
     public RecruitedCharacterActivationService(
         ICharacterWorldQuery characterWorld,
         ICharacterSpawnerProvider spawnerProvider,
         ICharacterSpawnObjectFactory characterObjectFactory,
         ICharacterPopulationService characterPopulationService,
-        IOffenseWorldMapRuntimeProvider worldMapProvider = null)
+        IOffenseQuery offense)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));
@@ -32,7 +32,7 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
             ?? throw new ArgumentNullException(nameof(characterObjectFactory));
         this.characterPopulationService = characterPopulationService
             ?? throw new ArgumentNullException(nameof(characterPopulationService));
-        this.worldMapProvider = worldMapProvider;
+        this.offense = offense ?? throw new ArgumentNullException(nameof(offense));
     }
 
     public bool TryActivate(
@@ -64,7 +64,9 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
                 return false;
             }
 
-            GameObject createdObject = characterObjectFactory.Create(spawner.characterPrefab);
+            GameObject createdObject = characterObjectFactory.CreateInactive(
+                spawner.characterPrefab,
+                EnsureWorkAbility);
             actor = createdObject != null
                 ? CharacterActorCollection.GetCanonical(createdObject.GetComponent<CharacterActor>())
                 : null;
@@ -76,12 +78,6 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
             }
         }
 
-        bool startMayRunAfterActivation = created || !actor.gameObject.activeInHierarchy;
-        if (startMayRunAfterActivation)
-        {
-            actor.PrepareForPersistentRestore();
-        }
-
         AIBrain brain = actor.Brain;
         brain?.StopCurrentActionForReplan("Recruited as dungeon staff.");
         actor.GetAbility<AbilityMove>()?.CancelActiveMovement();
@@ -90,10 +86,10 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
 
         if (actor.GetComponent<AbilityWork>() == null)
         {
-            actor.gameObject.AddComponent<AbilityWork>();
+            AbilityWork work = actor.gameObject.AddComponent<AbilityWork>();
+            characterObjectFactory.InjectAddedAbility(work);
         }
 
-        characterObjectFactory.Inject(actor.gameObject);
         if (created)
         {
             actor.gameObject.name = record.DisplayName;
@@ -110,7 +106,14 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
         }
 
         PromoteActorToStaff(actor);
-        actor.gameObject.SetActive(true);
+        if (created)
+        {
+            characterObjectFactory.Publish(actor.gameObject);
+        }
+        else
+        {
+            actor.gameObject.SetActive(true);
+        }
         PromoteActorToStaff(actor);
         ApplyCampaignRecruitCatchUp(actor, record);
 
@@ -136,6 +139,15 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
         return true;
     }
 
+    private static void EnsureWorkAbility(GameObject characterObject)
+    {
+        if (characterObject != null
+            && characterObject.GetComponent<AbilityWork>() == null)
+        {
+            characterObject.AddComponent<AbilityWork>();
+        }
+    }
+
     private void ApplyCampaignRecruitCatchUp(CharacterActor actor, RegularCustomerRecord record)
     {
         CharacterProgression progression = actor != null ? actor.Progression : null;
@@ -145,13 +157,7 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
         }
 
         progression.SetAutoChooseSkillDrafts(true);
-        int completedTargets = 0;
-        if (worldMapProvider != null
-            && worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap)
-            && worldMap?.State != null)
-        {
-            completedTargets = worldMap.State.CompletedTargetCount;
-        }
+        int completedTargets = offense.Capture().CompletedTargetCount;
 
         int minimumLevel = EstimateCampaignRecruitLevel(
             record,
@@ -182,17 +188,12 @@ public sealed class RecruitedCharacterActivationService : IRecruitedCharacterAct
 
     public static int EstimateCampaignRecruitLevel(
         RegularCustomerRecord record,
-        IOffenseWorldMapRuntimeProvider worldMapProvider)
+        IOffenseQuery offense)
     {
-        int completedTargets = 0;
-        if (worldMapProvider != null
-            && worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap)
-            && worldMap?.State != null)
-        {
-            completedTargets = worldMap.State.CompletedTargetCount;
-        }
-
-        return EstimateCampaignRecruitLevel(record, completedTargets);
+        if (offense == null) throw new ArgumentNullException(nameof(offense));
+        return EstimateCampaignRecruitLevel(
+            record,
+            offense.Capture().CompletedTargetCount);
     }
 
     private static int EstimateCampaignRecruitLevel(

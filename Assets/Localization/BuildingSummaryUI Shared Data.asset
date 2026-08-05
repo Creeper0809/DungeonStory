@@ -1,0 +1,256 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: BuildingSummaryUI Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: BuildingSummaryUI
+  m_TableCollectionNameGuidString: 873f4fcf510db81469f0d0d07d1c8aac
+  m_Entries:
+  - m_Id: 351621120
+    m_Key: BuildingSummary.Action.ClearCleaningPriority
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786944
+    m_Key: BuildingSummary.Action.Close
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786945
+    m_Key: BuildingSummary.Action.Details
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786946
+    m_Key: BuildingSummary.Action.PrioritizeCleaning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786947
+    m_Key: BuildingSummary.Common.None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786948
+    m_Key: BuildingSummary.Common.Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786949
+    m_Key: BuildingSummary.Construction.InstallationKit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786950
+    m_Key: BuildingSummary.Construction.Location
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786951
+    m_Key: BuildingSummary.Construction.Material
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786952
+    m_Key: BuildingSummary.Construction.NoMaterials
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786953
+    m_Key: BuildingSummary.Construction.NoOrder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786954
+    m_Key: BuildingSummary.Construction.Progress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786955
+    m_Key: BuildingSummary.Construction.ReservedWorker
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786956
+    m_Key: BuildingSummary.Construction.Safety
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786957
+    m_Key: BuildingSummary.Construction.Status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786958
+    m_Key: BuildingSummary.Construction.Target
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786959
+    m_Key: BuildingSummary.Construction.UnnamedFacility
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786960
+    m_Key: BuildingSummary.Crafting.AvailableNoQueue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786961
+    m_Key: BuildingSummary.Crafting.MaterialsMoving
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786962
+    m_Key: BuildingSummary.Crafting.Order
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786963
+    m_Key: BuildingSummary.Crafting.Queue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786964
+    m_Key: BuildingSummary.Crafting.RuntimeUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786965
+    m_Key: BuildingSummary.Facility.NoVisitUsage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786966
+    m_Key: BuildingSummary.Facility.Roles
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786967
+    m_Key: BuildingSummary.Facility.Usage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786968
+    m_Key: BuildingSummary.Facility.Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786969
+    m_Key: BuildingSummary.Filth.Amount
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786970
+    m_Key: BuildingSummary.Filth.CleaningAutomatic
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786971
+    m_Key: BuildingSummary.Filth.CleaningPriority
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786972
+    m_Key: BuildingSummary.Filth.Cleanliness
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786973
+    m_Key: BuildingSummary.Filth.Location
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786974
+    m_Key: BuildingSummary.Filth.Removed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786975
+    m_Key: BuildingSummary.Filth.Source
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786976
+    m_Key: BuildingSummary.Filth.SurfaceFloor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786977
+    m_Key: BuildingSummary.Filth.SurfaceFloorAndWall
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786978
+    m_Key: BuildingSummary.Filth.Type
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786979
+    m_Key: BuildingSummary.Filth.Type.Blood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786980
+    m_Key: BuildingSummary.Filth.Type.Rot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786981
+    m_Key: BuildingSummary.Filth.Type.Stain
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786982
+    m_Key: BuildingSummary.Filth.Type.Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786983
+    m_Key: BuildingSummary.Filth.Type.Waste
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786984
+    m_Key: BuildingSummary.LocationCategory
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786985
+    m_Key: BuildingSummary.State.Damaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786986
+    m_Key: BuildingSummary.State.Normal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786987
+    m_Key: BuildingSummary.Status
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786988
+    m_Key: BuildingSummary.Stock.Amount
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786989
+    m_Key: BuildingSummary.Stock.Capacity
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786990
+    m_Key: BuildingSummary.Stock.RestockNeeded
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786991
+    m_Key: BuildingSummary.Warehouse.Amount
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786992
+    m_Key: BuildingSummary.Warehouse.Capacity
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786993
+    m_Key: BuildingSummary.WorkOrder.Blocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786994
+    m_Key: BuildingSummary.WorkOrder.Cancelled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786995
+    m_Key: BuildingSummary.WorkOrder.Completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786996
+    m_Key: BuildingSummary.WorkOrder.InProgress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786997
+    m_Key: BuildingSummary.WorkOrder.Ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786998
+    m_Key: BuildingSummary.WorkOrder.Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 376786999
+    m_Key: BuildingSummary.WorkOrder.WaitingForMaterials
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 7737211745717977429
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211745717977429
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1785858634286

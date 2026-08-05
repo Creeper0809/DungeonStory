@@ -149,10 +149,15 @@ public sealed class ShopTabContentPresenter : IUITabContentPresenter
 public sealed class WarehouseTabContentPresenter : IUITabContentPresenter
 {
     private readonly IBuildingManagementSummaryService summaryService;
+    private readonly IStockCategoryDefinitionCatalog stockCategoryCatalog;
 
-    public WarehouseTabContentPresenter(IBuildingManagementSummaryService summaryService)
+    public WarehouseTabContentPresenter(
+        IBuildingManagementSummaryService summaryService,
+        IStockCategoryDefinitionCatalog stockCategoryCatalog)
     {
         this.summaryService = summaryService ?? throw new ArgumentNullException(nameof(summaryService));
+        this.stockCategoryCatalog = stockCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
     }
 
     public TabId Id => TabId.Warehouse;
@@ -165,7 +170,7 @@ public sealed class WarehouseTabContentPresenter : IUITabContentPresenter
         builder.AppendLine(summary.HasCapacityLimit
             ? $"총 재고: {summary.TotalStock} / {summary.TotalCapacity}"
             : $"총 재고: {summary.TotalStock}");
-        foreach (StockCategoryDefinition definition in StockCategoryCatalog.All)
+        foreach (StockCategoryDefinition definition in stockCategoryCatalog.All)
         {
             builder.AppendLine($"{definition.DisplayName}: {summary.GetStock(definition.Category)}");
         }

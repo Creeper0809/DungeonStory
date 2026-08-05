@@ -19,15 +19,20 @@ public sealed class EquipmentCraftingPanelPresenter :
     IEquipmentCraftingPanelPresenter
 {
     private readonly ICombatEquipmentRuntime equipment;
+    private readonly EquipmentProgressionCommandPanel progressionCommands;
     private readonly Dictionary<string, string> expandedDefinitionByFacility =
         new Dictionary<string, string>(StringComparer.Ordinal);
     private readonly Dictionary<string, string> feedbackByFacility =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
-    public EquipmentCraftingPanelPresenter(ICombatEquipmentRuntime equipment)
+    public EquipmentCraftingPanelPresenter(
+        ICombatEquipmentRuntime equipment,
+        EquipmentProgressionCommandPanel progressionCommands)
     {
         this.equipment = equipment
             ?? throw new ArgumentNullException(nameof(equipment));
+        this.progressionCommands = progressionCommands
+            ?? throw new ArgumentNullException(nameof(progressionCommands));
     }
 
     public IReadOnlyList<GameObject> Render(
@@ -38,10 +43,24 @@ public sealed class EquipmentCraftingPanelPresenter :
         Action refresh)
     {
         List<GameObject> created = new List<GameObject>();
-        BuildingEquipmentCraftingAbility ability = building?
-            .BuildingData?
+        if (parent == null || building == null)
+        {
+            return created;
+        }
+        if (EquipmentProgressionFacilityContract.IsProgressionFacility(building))
+        {
+            created.AddRange(progressionCommands.Render(
+                parent,
+                building,
+                font,
+                showFeedback,
+                refresh));
+            return created;
+        }
+
+        BuildingEquipmentCraftingAbility ability = building.BuildingData?
             .GetAbility<BuildingEquipmentCraftingAbility>();
-        if (parent == null || building == null || ability == null)
+        if (ability == null)
         {
             return created;
         }
@@ -65,6 +84,12 @@ public sealed class EquipmentCraftingPanelPresenter :
             .ToArray();
         if (definitions.Length == 0 && queue.Length == 0)
         {
+            created.AddRange(progressionCommands.Render(
+                parent,
+                building,
+                font,
+                showFeedback,
+                refresh));
             return created;
         }
 
@@ -100,6 +125,9 @@ public sealed class EquipmentCraftingPanelPresenter :
             out string expandedDefinitionId);
         foreach (CombatEquipmentDefinitionSO definition in definitions)
         {
+            bool unlocked = equipment.IsDefinitionUnlocked(
+                definition.EquipmentId,
+                out string lockReason);
             IReadOnlyList<CraftMaterialDefinitionSO> materials =
                 equipment.GetAllowedMaterials(definition.EquipmentId);
             if (materials.Count == 0)
@@ -123,7 +151,12 @@ public sealed class EquipmentCraftingPanelPresenter :
                 row.transform,
                 preferred != null
                     ? $"{preferred.DisplayName} {definition.DisplayName}"
-                    : definition.DisplayName,
+                        + $"\n{definition.Era} T{definition.Tier} · "
+                        + $"{(definition.GrowthEquipment ? "성장형" : "일반형")} · "
+                        + $"슬롯 {definition.ModuleSlotCount}"
+                        + (unlocked ? string.Empty : $" · {lockReason}")
+                    : definition.DisplayName
+                        + (unlocked ? string.Empty : $"\n{lockReason}"),
                 font,
                 238f);
             AddButton(
@@ -168,7 +201,8 @@ public sealed class EquipmentCraftingPanelPresenter :
                     feedbackByFacility[facilityKey] = feedbackMessage;
                     showFeedback?.Invoke(feedbackMessage);
                     refresh?.Invoke();
-                });
+                },
+                interactable: unlocked);
 
             if (string.Equals(
                     expandedDefinitionId,
@@ -187,6 +221,13 @@ public sealed class EquipmentCraftingPanelPresenter :
                     created);
             }
         }
+
+        created.AddRange(progressionCommands.Render(
+            parent,
+            building,
+            font,
+            showFeedback,
+            refresh));
 
         return created;
     }
@@ -379,7 +420,7 @@ public sealed class EquipmentCraftingPanelPresenter :
         return row;
     }
 
-    private static GameObject CreateRow(
+    internal static GameObject CreateRow(
         Transform parent,
         string name,
         float height)
@@ -401,7 +442,7 @@ public sealed class EquipmentCraftingPanelPresenter :
         return row;
     }
 
-    private static void AddLabel(
+    internal static void AddLabel(
         Transform parent,
         string value,
         TMP_FontAsset font,
@@ -427,16 +468,18 @@ public sealed class EquipmentCraftingPanelPresenter :
         text.raycastTarget = false;
     }
 
-    private static void AddButton(
+    internal static void AddButton(
         Transform parent,
         string label,
         TMP_FontAsset font,
         bool selected,
         Action action,
-        float width = 82f)
+        float width = 82f,
+        bool interactable = true,
+        string objectName = "Button")
     {
         GameObject buttonObject = new GameObject(
-            "Button",
+            objectName,
             typeof(RectTransform),
             typeof(Image),
             typeof(Button),
@@ -445,6 +488,7 @@ public sealed class EquipmentCraftingPanelPresenter :
         buttonObject.GetComponent<LayoutElement>().preferredWidth = width;
         Button button = buttonObject.GetComponent<Button>();
         DungeonUiTheme.StyleButton(button, selected);
+        button.interactable = interactable;
         button.onClick.AddListener(() => action?.Invoke());
 
         GameObject textObject = new GameObject(
@@ -466,7 +510,7 @@ public sealed class EquipmentCraftingPanelPresenter :
         text.raycastTarget = false;
     }
 
-    private static void AddText(
+    internal static void AddText(
         Transform parent,
         string value,
         TMP_FontAsset font,
@@ -495,10 +539,10 @@ public sealed class EquipmentCraftingPanelPresenter :
 
     private static string GetFacilityKey(BuildableObject building)
     {
-        return $"{building.id}:{building.centerPos.x}:{building.centerPos.y}";
+        return building.RequirePersistentInstanceId().Value;
     }
 
-    private static string Sanitize(string value)
+    internal static string Sanitize(string value)
     {
         return string.IsNullOrWhiteSpace(value)
             ? "Unknown"

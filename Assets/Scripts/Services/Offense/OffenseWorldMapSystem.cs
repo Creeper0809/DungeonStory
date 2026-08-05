@@ -6,21 +6,28 @@ using TMPro;
 using UnityEngine;
 using VContainer;
 
-public class OffenseWorldMapRuntime : MonoBehaviour
+public class OffenseWorldMapRuntime : MonoBehaviour,
+    IOffenseCampaignQuery,
+    IOffenseCampaignCommands
 {
-    [SerializeField] private List<OffenseTargetDefinition> configuredTargets = new List<OffenseTargetDefinition>();
     [SerializeField] private bool preciseIntel;
 
-    private readonly OffenseWorldMapState state = new OffenseWorldMapState();
+    private IOffenseCampaignStateAuthority campaign;
+    private IOffenseCampaignRuntime campaignPersistence;
     private List<OffenseTargetDefinition> targets;
     private IOffensePanelService panelService;
     private IGameEventBus gameEventBus;
     private IExternalInfluenceRuntime externalInfluence;
+    private IOffenseCampaignCatalog targetCatalog;
 
     public event Action Changed;
     public event Action<OffenseTargetSnapshot> TargetSelected;
 
-    public IOffenseWorldMapStateView State => state;
+    public IOffenseWorldMapStateView State => campaign.State;
+    public IOffenseCampaignRuntime Campaign => campaignPersistence
+        ?? throw new InvalidOperationException(
+            $"{nameof(OffenseWorldMapRuntime)} has no campaign persistence authority.");
+    private OffenseWorldMapState MutableState => campaign.MutableState;
     public IReadOnlyList<OffenseTargetDefinition> TargetDefinitions
     {
         get
@@ -37,15 +44,15 @@ public class OffenseWorldMapRuntime : MonoBehaviour
             EnsureInitialized();
             return targets
                 .Where(target => target != null
-                    && state.KnowTarget(target.id))
+                    && MutableState.KnowTarget(target.id))
                 .Select(target => target.ToSnapshot(
                     HasPreciseIntel(target.id),
-                    state))
+                    MutableState))
                 .ToList();
         }
     }
 
-    public float CurrentScanRange => OffenseWorldMapService.GetScanRange(state.ReconLevel);
+    public float CurrentScanRange => OffenseWorldMapService.GetScanRange(MutableState.ReconLevel);
     public int CampaignTargetCount
     {
         get
@@ -59,83 +66,55 @@ public class OffenseWorldMapRuntime : MonoBehaviour
     public void Construct(
         IOffensePanelService panelService,
         IGameEventBus gameEventBus,
-        IExternalInfluenceRuntime externalInfluence = null)
+        IExternalInfluenceRuntime externalInfluence,
+        IOffenseCampaignStateAuthority campaign,
+        IOffenseCampaignRuntime campaignPersistence,
+        IOffenseCampaignCatalog targetCatalog)
     {
         this.panelService = panelService
             ?? throw new ArgumentNullException(nameof(panelService));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.externalInfluence = externalInfluence;
-    }
-
-    private void Awake()
-    {
+        this.campaign = campaign
+            ?? throw new ArgumentNullException(nameof(campaign));
+        this.campaignPersistence = campaignPersistence
+            ?? throw new ArgumentNullException(nameof(campaignPersistence));
+        if (!ReferenceEquals(campaign, campaignPersistence))
+        {
+            throw new InvalidOperationException(
+                "Offense campaign query/command and persistence boundaries must share one authority instance.");
+        }
+        this.targetCatalog = targetCatalog
+            ?? throw new ArgumentNullException(nameof(targetCatalog));
         StartWorldMap();
     }
 
     public void StartWorldMap(int reconLevel = 0)
     {
-        state.Reset(reconLevel);
-        targets = OffenseWorldMapService.NormalizeTargets(configuredTargets).ToList();
-        OffenseWorldMapService.RevealTargetsInRange(state, targets);
-        RaiseChanged();
-    }
-
-    public void RestorePersistentState(
-        int reconLevel,
-        string selectedTargetId,
-        IEnumerable<string> knownTargetIds)
-    {
-        RestorePersistentState(
-            reconLevel,
-            selectedTargetId,
-            knownTargetIds,
-            Array.Empty<string>(),
-            string.Empty);
-    }
-
-    public void RestorePersistentState(
-        int reconLevel,
-        string selectedTargetId,
-        IEnumerable<string> knownTargetIds,
-        IEnumerable<string> completedTargetIds,
-        string revealedTruthTargetId)
-    {
-        EnsureInitialized();
-        Dictionary<string, OffenseTargetDefinition> validTargets = targets
-            .Where(target => target != null)
-            .GroupBy(target => target.id, StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        HashSet<string> validTargetIds = new HashSet<string>(
-            validTargets.Keys,
-            StringComparer.Ordinal);
-        string validTruthTargetId = validTargets.TryGetValue(
-                revealedTruthTargetId ?? string.Empty,
-                out OffenseTargetDefinition truthTarget)
-            && truthTarget.revealsTruth
-                ? truthTarget.id
-                : string.Empty;
-        state.Restore(
-            reconLevel,
-            selectedTargetId,
-            (knownTargetIds ?? Array.Empty<string>()).Where(validTargetIds.Contains),
-            (completedTargetIds ?? Array.Empty<string>()).Where(validTargetIds.Contains),
-            validTruthTargetId);
+        targets = targetCatalog.Targets
+            .Select(value => value?.CreateRuntimeCopy()
+                ?? throw new InvalidOperationException(
+                    "Offense campaign catalog contains a null target."))
+            .ToList();
+        campaign.ConfigureTargets(targets);
+        campaign.Reset(reconLevel);
+        OffenseWorldMapService.RevealTargetsInRange(MutableState, targets);
         RaiseChanged();
     }
 
     public bool TryUpgradeRecon(out string message)
     {
         EnsureInitialized();
-        if (!state.TryUpgradeRecon(OffenseWorldMapService.MaxReconLevel))
+        if (!MutableState.TryUpgradeRecon(OffenseWorldMapService.MaxReconLevel))
         {
             message = "정찰 범위가 이미 최대입니다";
             return false;
         }
 
-        int newlyRevealed = OffenseWorldMapService.RevealTargetsInRange(state, targets);
+        int newlyRevealed = OffenseWorldMapService.RevealTargetsInRange(MutableState, targets);
         externalInfluence?.AddScoutingLabor(60f);
-        message = $"정찰 Lv.{state.ReconLevel}: 새 원정 대상 {newlyRevealed}개 발견";
+        message = $"정찰 Lv.{MutableState.ReconLevel}: 새 원정 대상 {newlyRevealed}개 발견";
         gameEventBus.RaiseAlert("정찰 강화", message, EventAlertImportance.Medium, "오펜스");
         RaiseChanged();
         return true;
@@ -144,7 +123,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour
     public bool TrySelectTarget(string targetId, out OffenseTargetSnapshot snapshot, out string message)
     {
         EnsureInitialized();
-        OffenseTargetDefinition target = OffenseWorldMapService.FindKnownTarget(state, targets, targetId);
+        OffenseTargetDefinition target = OffenseWorldMapService.FindKnownTarget(MutableState, targets, targetId);
         if (target == null)
         {
             snapshot = null;
@@ -152,14 +131,14 @@ public class OffenseWorldMapRuntime : MonoBehaviour
             return false;
         }
 
-        if (!OffenseWorldMapService.CanAttemptTarget(state, target, out message))
+        if (!OffenseWorldMapService.CanAttemptTarget(MutableState, target, out message))
         {
-            snapshot = target.ToSnapshot(HasPreciseIntel(target.id), state);
+            snapshot = target.ToSnapshot(HasPreciseIntel(target.id), MutableState);
             return false;
         }
 
-        state.SetSelectedTarget(target.id);
-        snapshot = target.ToSnapshot(HasPreciseIntel(target.id), state);
+        MutableState.SetSelectedTarget(target.id);
+        snapshot = target.ToSnapshot(HasPreciseIntel(target.id), MutableState);
         message = $"{snapshot.title} 선택";
         TargetSelected?.Invoke(snapshot);
         RaiseChanged();
@@ -169,14 +148,14 @@ public class OffenseWorldMapRuntime : MonoBehaviour
     public bool TryGetKnownTargetSnapshot(string targetId, out OffenseTargetSnapshot snapshot)
     {
         EnsureInitialized();
-        OffenseTargetDefinition target = OffenseWorldMapService.FindKnownTarget(state, targets, targetId);
+        OffenseTargetDefinition target = OffenseWorldMapService.FindKnownTarget(MutableState, targets, targetId);
         if (target == null)
         {
             snapshot = null;
             return false;
         }
 
-        snapshot = target.ToSnapshot(HasPreciseIntel(target.id), state);
+        snapshot = target.ToSnapshot(HasPreciseIntel(target.id), MutableState);
         return true;
     }
 
@@ -203,33 +182,33 @@ public class OffenseWorldMapRuntime : MonoBehaviour
         OffenseTargetDefinition target = targets.FirstOrDefault(candidate =>
             candidate != null
             && string.Equals(candidate.id, targetId, StringComparison.Ordinal));
-        if (target == null || !state.KnowTarget(targetId))
+        if (target == null || !MutableState.KnowTarget(targetId))
         {
             completedTarget = null;
             message = "알 수 없는 오펜스 목표입니다.";
             return false;
         }
 
-        if (!OffenseWorldMapService.CanAttemptTarget(state, target, out message)
-            || !state.MarkTargetCompleted(target.id))
+        if (!OffenseWorldMapService.CanAttemptTarget(MutableState, target, out message)
+            || !MutableState.MarkTargetCompleted(target.id))
         {
             completedTarget = target.ToSnapshot(
                 HasPreciseIntel(target.id),
-                state);
+                MutableState);
             return false;
         }
 
         if (target.revealsTruth)
         {
-            state.RevealTruth(target.id);
+            MutableState.RevealTruth(target.id);
         }
 
         completedTarget = target.ToSnapshot(
             HasPreciseIntel(target.id),
-            state);
+            MutableState);
         message = target.revealsTruth
             ? "최종 오펜스를 마치고 던전의 진실을 밝혔습니다."
-            : $"오펜스 목표 완료 {state.CompletedTargetCount}/{targets.Count}";
+            : $"오펜스 목표 완료 {MutableState.CompletedTargetCount}/{targets.Count}";
         RaiseChanged();
 
         if (target.revealsTruth)
@@ -256,7 +235,7 @@ public class OffenseWorldMapRuntime : MonoBehaviour
         return true;
     }
 
-    public bool TryRecordV17TruthReveal(
+    public bool TryRecordStrategicTruthReveal(
         string targetId,
         out string message)
     {
@@ -270,19 +249,19 @@ public class OffenseWorldMapRuntime : MonoBehaviour
                 StringComparison.Ordinal));
         if (target == null)
         {
-            message = "V17 최종 목표와 연결된 진실 목표가 없습니다.";
+            message = "Strategic 최종 목표와 연결된 진실 목표가 없습니다.";
             return false;
         }
 
-        if (state.TruthRevealed)
+        if (MutableState.TruthRevealed)
         {
             message = "이미 던전의 진실을 밝혔습니다.";
             return true;
         }
 
-        state.AddKnownTarget(target.id);
-        state.MarkTargetCompleted(target.id);
-        state.RevealTruth(target.id);
+        MutableState.AddKnownTarget(target.id);
+        MutableState.MarkTargetCompleted(target.id);
+        MutableState.RevealTruth(target.id);
         RaiseChanged();
         gameEventBus.RaiseAlert(
             OffenseWorldMapService.TruthTitle,
@@ -300,8 +279,10 @@ public class OffenseWorldMapRuntime : MonoBehaviour
     public OffenseWorldMapPanel ShowWorldMap()
     {
         EnsureInitialized();
-        return ResolvePanelService().ShowWorldMap(this);
+        return ResolvePanelService().ShowWorldMap();
     }
+
+    public bool TryOpenWorldMap() => ShowWorldMap() != null;
 
     public void SetPreciseIntelForDebug(bool value)
     {
@@ -312,31 +293,33 @@ public class OffenseWorldMapRuntime : MonoBehaviour
     public bool TryUnlockTargetIntel(
         string targetId,
         ExpeditionIntelPaymentMethod payment,
-        out string message)
+        out DomainFailure failure)
     {
         EnsureInitialized();
         if (OffenseWorldMapService.FindKnownTarget(
-            state,
+            MutableState,
             targets,
             targetId) == null)
         {
-            message = "발견되지 않은 원정 대상입니다.";
+            failure = new DomainFailure(
+                FailureCode.OffenseTargetUnknown,
+                targetId ?? string.Empty);
             return false;
         }
 
         if (externalInfluence == null)
         {
-            message = "원정 정보 교환 런타임이 연결되지 않았습니다.";
+            failure = new DomainFailure(
+                FailureCode.ExternalInfluenceUnavailable);
             return false;
         }
 
         bool unlocked = externalInfluence.TryUnlockIntel(
             targetId,
             payment,
-            out message);
+            out failure);
         if (unlocked)
         {
-            message = "위험, 방어구, 약점과 특수 조건 정보를 확보했습니다.";
             RaiseChanged();
         }
 
@@ -349,22 +332,11 @@ public class OffenseWorldMapRuntime : MonoBehaviour
             || externalInfluence?.IsIntelUnlocked(targetId) == true;
     }
 
-    public void SetTargetsForDebug(IEnumerable<OffenseTargetDefinition> debugTargets)
-    {
-        configuredTargets = debugTargets?.Where((target) => target != null).ToList()
-            ?? new List<OffenseTargetDefinition>();
-        StartWorldMap(state.ReconLevel);
-    }
-
     private void EnsureInitialized()
     {
-        if (targets != null) return;
-
-        targets = OffenseWorldMapService.NormalizeTargets(configuredTargets).ToList();
-        if (state.KnownTargetIds.Count == 0)
-        {
-            OffenseWorldMapService.RevealTargetsInRange(state, targets);
-        }
+        if (targets != null && campaign != null) return;
+        throw new InvalidOperationException(
+            $"{nameof(OffenseWorldMapRuntime)} has not received the authored campaign catalog.");
     }
 
     private void RaiseChanged()
@@ -386,17 +358,23 @@ public class OffenseWorldMapRuntime : MonoBehaviour
 
 public partial class OffenseWorldMapPanel : MonoBehaviour
 {
-    private OffenseWorldMapRuntime runtime;
+    private IOffenseCampaignQuery campaign;
+    private IOffenseCampaignCommands commands;
     private TMP_Text headerText;
     private TMP_Text detailText;
     private RectTransform targetButtonRoot;
     private readonly List<GameObject> spawnedButtons = new List<GameObject>();
     private IOffensePanelButtonFactory buttonFactory;
 
-    public void Bind(OffenseWorldMapRuntime source, IOffensePanelButtonFactory buttonFactory)
+    public void Bind(
+        IOffenseCampaignQuery source,
+        IOffenseCampaignCommands commands,
+        IOffensePanelButtonFactory buttonFactory)
     {
-        runtime = source
+        campaign = source
             ?? throw new ArgumentNullException(nameof(source));
+        this.commands = commands
+            ?? throw new ArgumentNullException(nameof(commands));
         this.buttonFactory = buttonFactory
             ?? throw new ArgumentNullException(nameof(buttonFactory));
         EnsureView();
@@ -406,21 +384,21 @@ public partial class OffenseWorldMapPanel : MonoBehaviour
 
     public void Render()
     {
-        if (runtime == null)
+        if (campaign == null)
         {
             return;
         }
 
         EnsureView();
-        if (CanRenderV17())
+        if (CanRenderStrategic())
         {
-            RenderV17();
+            RenderStrategic();
             return;
         }
-        headerText.text = $"월드맵 / 정찰 Lv.{runtime.State.ReconLevel} / 범위 {runtime.CurrentScanRange:0.#}";
+        headerText.text = $"월드맵 / 정찰 Lv.{campaign.State.ReconLevel} / 범위 {campaign.CurrentScanRange:0.#}";
         ClearButtons();
 
-        foreach (OffenseTargetSnapshot target in runtime.VisibleTargets)
+        foreach (OffenseTargetSnapshot target in campaign.VisibleTargets)
         {
             GameObject buttonObject = RequireButtonFactory().CreateButton(
                 targetButtonRoot,
@@ -428,7 +406,7 @@ public partial class OffenseWorldMapPanel : MonoBehaviour
                 17f,
                 () =>
                 {
-                    if (runtime.TrySelectTarget(target.id, out OffenseTargetSnapshot selected, out _))
+                    if (commands.TrySelectTarget(target.id, out OffenseTargetSnapshot selected, out _))
                     {
                         detailText.text = selected.ToDetailText();
                     }
@@ -444,7 +422,7 @@ public partial class OffenseWorldMapPanel : MonoBehaviour
             17f,
             () =>
             {
-                runtime.TryUpgradeRecon(out string message);
+                commands.TryUpgradeRecon(out string message);
                 detailText.text = message;
                 Render();
             });
@@ -457,18 +435,18 @@ public partial class OffenseWorldMapPanel : MonoBehaviour
             Hide);
         spawnedButtons.Add(closeButton);
 
-        if (runtime.VisibleTargets.Count == 0)
+        if (campaign.VisibleTargets.Count == 0)
         {
             detailText.text = "발견된 원정 대상이 없습니다.";
         }
-        else if (!string.IsNullOrWhiteSpace(runtime.State.SelectedTargetId)
-            && runtime.TryGetKnownTargetSnapshot(runtime.State.SelectedTargetId, out OffenseTargetSnapshot selected))
+        else if (!string.IsNullOrWhiteSpace(campaign.State.SelectedTargetId)
+            && campaign.TryGetKnownTargetSnapshot(campaign.State.SelectedTargetId, out OffenseTargetSnapshot selected))
         {
             detailText.text = selected.ToDetailText();
         }
         else
         {
-            detailText.text = runtime.VisibleTargets[0].ToDetailText();
+            detailText.text = campaign.VisibleTargets[0].ToDetailText();
         }
     }
 

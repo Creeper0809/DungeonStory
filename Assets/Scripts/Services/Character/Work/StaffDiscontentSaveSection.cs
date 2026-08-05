@@ -3,32 +3,38 @@ using System.Collections.Generic;
 using System.Linq;
 
 public sealed class StaffDiscontentSaveSection :
-    DungeonJsonSaveSection<DungeonStaffDiscontentSaveData>
+    DungeonStrictJsonSaveSection<
+        DungeonStaffDiscontentSaveData,
+        StaffDiscontentRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "characters.staff-discontent";
 
-    private readonly IStaffDiscontentRuntimeProvider runtimeProvider;
+    private readonly StaffDiscontentRuntime runtime;
 
     public StaffDiscontentSaveSection(
-        IStaffDiscontentRuntimeProvider runtimeProvider)
+        CharacterSceneRuntimeReferences runtimeReferences)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new ArgumentNullException(nameof(runtimeProvider));
+        runtime = (runtimeReferences
+                ?? throw new ArgumentNullException(nameof(runtimeReferences)))
+            .StaffDiscontent
+            ?? throw new InvalidOperationException(
+                $"{nameof(StaffDiscontentSaveSection)} requires a loaded {nameof(StaffDiscontentRuntime)}.");
     }
 
     public override string SectionId => Id;
+    public override int SectionVersion =>
+        DungeonStaffDiscontentSaveData.CurrentVersion;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
+
+    protected override void ValidateRawPayload(string payloadJson) =>
+        RequireTopLevelArrayFields(payloadJson, "records");
 
     protected override DungeonStaffDiscontentSaveData CapturePayload()
     {
         DungeonStaffDiscontentSaveData destination =
             new DungeonStaffDiscontentSaveData();
-        if (!runtimeProvider.TryGetRuntime(out StaffDiscontentRuntime runtime))
-        {
-            return destination;
-        }
-
         destination.records = runtime.CaptureSnapshots()
             .OrderBy(snapshot => snapshot.staffId, StringComparer.Ordinal)
             .Select(snapshot => new DungeonStaffDiscontentRecordSaveData
@@ -50,37 +56,92 @@ public sealed class StaffDiscontentSaveSection :
         return destination;
     }
 
-    protected override void RestorePayload(
-        DungeonStaffDiscontentSaveData source,
+    private static void ValidatePayload(
+        DungeonStaffDiscontentSaveData payload,
         DungeonGameRestoreReport report)
     {
-        if (!runtimeProvider.TryGetRuntime(out StaffDiscontentRuntime runtime))
+        if (payload == null || payload.records == null)
         {
-            report.AddWarning(
-                "Staff discontent runtime was not present; staff discontent was skipped.");
+            report.AddError(
+                "Staff-discontent payload or record list is null.");
             return;
         }
-
-        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
-        List<StaffDiscontentSnapshot> records =
-            new List<StaffDiscontentSnapshot>();
-        foreach (DungeonStaffDiscontentRecordSaveData saved in source.records
-                     ?? new List<DungeonStaffDiscontentRecordSaveData>())
+        if (payload.version != DungeonStaffDiscontentSaveData.CurrentVersion)
         {
-            if (saved == null || string.IsNullOrWhiteSpace(saved.staffId))
+            report.AddError(
+                $"Staff-discontent payload version {payload.version} is unsupported.");
+        }
+
+        HashSet<string> staffIds = new HashSet<string>(StringComparer.Ordinal);
+        string previousStaffId = null;
+        foreach (DungeonStaffDiscontentRecordSaveData saved in payload.records)
+        {
+            string staffId = saved?.staffId ?? string.Empty;
+            CharacterId typedStaffId = new CharacterId(staffId);
+            if (saved == null
+                || !typedStaffId.IsValid
+                || !string.Equals(
+                    typedStaffId.Value,
+                    staffId,
+                    StringComparison.Ordinal)
+                || (previousStaffId != null
+                    && string.CompareOrdinal(previousStaffId, staffId) >= 0))
             {
+                report.AddError(
+                    "Staff-discontent payload contains a null, non-canonical, duplicate, or unordered staff ID.");
                 continue;
             }
+            previousStaffId = staffId;
 
-            string staffId = saved.staffId.Trim();
-            if (!ids.Add(staffId))
+            if (!staffIds.Add(staffId))
             {
-                report.AddError($"Duplicate staff discontent ID '{staffId}'.");
-                return;
+                report.AddError(
+                    $"Staff-discontent payload contains duplicate ID '{staffId}'.");
             }
 
-            records.Add(new StaffDiscontentSnapshot(
-                staffId,
+            if (!IsCanonicalRequired(saved.displayName))
+            {
+                report.AddError(
+                    $"Staff-discontent record '{staffId}' has non-canonical display data.");
+            }
+            if (!Enum.IsDefined(typeof(StaffDiscontentStage), saved.stage)
+                || saved.outcome != StaffDiscontentOutcome.None)
+            {
+                report.AddError(
+                    $"Staff-discontent record '{staffId}' has an invalid stage or persisted event outcome.");
+            }
+            if (float.IsNaN(saved.mood)
+                || float.IsInfinity(saved.mood)
+                || saved.mood < 0f
+                || saved.mood > 100f
+                || saved.lowMoodDays < 0)
+            {
+                report.AddError(
+                    $"Staff-discontent record '{staffId}' has invalid mood history.");
+            }
+            if (!HasCanonicalTerminalStatus(saved))
+            {
+                report.AddError(
+                    $"Staff-discontent record '{staffId}' has an invalid terminal-status hierarchy.");
+            }
+        }
+    }
+
+    protected override StaffDiscontentRestoreCandidate BuildRestoreCandidate(
+        DungeonStaffDiscontentSaveData source)
+    {
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        ValidatePayload(source, report);
+        if (!report.Success)
+        {
+            throw new InvalidOperationException(
+                "Staff-discontent restore candidate is invalid: "
+                + string.Join(" | ", report.Errors));
+        }
+
+        List<StaffDiscontentSnapshot> records = source.records
+            .Select(saved => new StaffDiscontentSnapshot(
+                saved.staffId,
                 saved.displayName,
                 saved.stage,
                 saved.outcome,
@@ -91,9 +152,52 @@ public sealed class StaffDiscontentSaveSection :
                 saved.localRebellion,
                 saved.ownerThreat,
                 saved.isolated,
-                saved.suppressed));
-        }
+                saved.suppressed))
+            .ToList();
 
-        runtime.RestoreSnapshots(records);
+        return runtime.PrepareRestoreCandidate(records);
+    }
+
+    protected override void PublishRestoreCandidate(
+        StaffDiscontentRestoreCandidate candidate)
+    {
+        runtime.PublishRestoreCandidate(candidate);
+    }
+
+    private static bool IsCanonicalRequired(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && string.Equals(value, value.Trim(), StringComparison.Ordinal);
+
+    private static bool HasCanonicalTerminalStatus(
+        DungeonStaffDiscontentRecordSaveData saved)
+    {
+        switch (saved.stage)
+        {
+            case StaffDiscontentStage.Departure:
+                return saved.permanentLoss
+                    && saved.departed
+                    && !saved.localRebellion
+                    && !saved.ownerThreat
+                    && !saved.isolated
+                    && !saved.suppressed;
+            case StaffDiscontentStage.LocalRebellion:
+                if (!saved.permanentLoss || saved.departed)
+                {
+                    return false;
+                }
+                if (saved.suppressed)
+                {
+                    return !saved.localRebellion && !saved.ownerThreat;
+                }
+                return saved.localRebellion
+                    && (!saved.isolated || !saved.ownerThreat);
+            default:
+                return !saved.permanentLoss
+                    && !saved.departed
+                    && !saved.localRebellion
+                    && !saved.ownerThreat
+                    && !saved.isolated
+                    && !saved.suppressed;
+        }
     }
 }

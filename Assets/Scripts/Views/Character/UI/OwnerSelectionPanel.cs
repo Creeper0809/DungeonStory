@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using static OwnerSelectionViewRules;
 using VContainer;
 
 public class OwnerSelectionPanel : MonoBehaviour
@@ -30,12 +31,12 @@ public class OwnerSelectionPanel : MonoBehaviour
     private ITmpKoreanFontService tmpKoreanFontService;
     private IOwnerSelectionOptionButtonFactory optionButtonFactory;
     private DungeonSceneRuntimeReferences runtimeReferences;
-    private IGameTimeScaleController timeScaleController;
-    private IGameDataProvider gameDataProvider;
+    private IGameSpeedController gameSpeedController;
+    private IGameSessionStateProvider gameDataProvider;
     private IStartPartyPreparationService preparationService;
     private IPreparedStartPartyCommitService preparedPartyCommitService;
     private IGameEventBus gameEventBus;
-    private GameManager gameManager;
+    private IOwnerDoctrineDefinitionCatalog ownerDoctrines;
     private RectTransform surfaceRect;
     private GameObject preparationRoot;
     private GameObject preparationActionsRoot;
@@ -47,11 +48,12 @@ public class OwnerSelectionPanel : MonoBehaviour
         ITmpKoreanFontService tmpKoreanFontService,
         IOwnerSelectionOptionButtonFactory optionButtonFactory,
         DungeonSceneRuntimeReferences runtimeReferences,
-        IGameTimeScaleController timeScaleController,
-        IGameDataProvider gameDataProvider,
+        IGameSpeedController gameSpeedController,
+        IGameSessionStateProvider gameDataProvider,
         IStartPartyPreparationService preparationService,
         IPreparedStartPartyCommitService preparedPartyCommitService,
-        IGameEventBus gameEventBus)
+        IGameEventBus gameEventBus,
+        IOwnerDoctrineDefinitionCatalog ownerDoctrines)
     {
         this.ownerRunManagerProvider = ownerRunManagerProvider
             ?? throw new ArgumentNullException(nameof(ownerRunManagerProvider));
@@ -61,8 +63,8 @@ public class OwnerSelectionPanel : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(optionButtonFactory));
         this.runtimeReferences = runtimeReferences
             ?? throw new ArgumentNullException(nameof(runtimeReferences));
-        this.timeScaleController = timeScaleController
-            ?? throw new ArgumentNullException(nameof(timeScaleController));
+        this.gameSpeedController = gameSpeedController
+            ?? throw new ArgumentNullException(nameof(gameSpeedController));
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.preparationService = preparationService
@@ -71,6 +73,8 @@ public class OwnerSelectionPanel : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(preparedPartyCommitService));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.ownerDoctrines = ownerDoctrines
+            ?? throw new ArgumentNullException(nameof(ownerDoctrines));
     }
 
     private void Start()
@@ -125,8 +129,8 @@ public class OwnerSelectionPanel : MonoBehaviour
             CharacterSO candidate = candidates[i];
             Button button = CreateButton(
                 optionRoot,
-                $"OwnerOption_{candidate.characterName}",
-                MakeButtonLabel(candidate),
+                $"OwnerOption_{candidate.id}",
+                MakeButtonLabel(candidate, ownerDoctrines),
                 () => BeginPreparation(candidate),
                 240f,
                 300f);
@@ -586,22 +590,6 @@ public class OwnerSelectionPanel : MonoBehaviour
             ?? throw new InvalidOperationException($"{nameof(OwnerSelectionPanel)} requires {nameof(IOwnerSelectionOptionButtonFactory)} injection.");
     }
 
-    private static string MakeButtonLabel(CharacterSO candidate)
-    {
-        if (candidate == null)
-        {
-            return "없음";
-        }
-
-        OwnerDoctrineDefinition doctrine = OwnerDoctrineCatalog.ResolveFor(candidate);
-        string summary = string.IsNullOrWhiteSpace(candidate.ownerSummary)
-            ? "균형 잡힌 운영을 지향하는 사장"
-            : candidate.ownerSummary.Trim();
-        return doctrine == null
-            ? $"{candidate.characterName}\n{candidate.SpeciesTag}\n\n{summary}"
-            : $"{candidate.characterName}\n{candidate.SpeciesTag} · {doctrine.title}\n\n{summary}\n\n이점  {doctrine.benefit}\n대가  {doctrine.tradeoff}";
-    }
-
     private void ConfigureLayout()
     {
         if (!(transform is RectTransform rootRect))
@@ -712,16 +700,6 @@ public class OwnerSelectionPanel : MonoBehaviour
         return button;
     }
 
-    private static Image CreatePanel(string name, Transform parent, Color color)
-    {
-        GameObject panel = new GameObject(name, typeof(RectTransform), typeof(Image));
-        panel.transform.SetParent(parent, false);
-        Image image = panel.GetComponent<Image>();
-        image.color = color;
-        image.raycastTarget = true;
-        return image;
-    }
-
     private TMP_Text CreateText(
         Transform parent,
         string value,
@@ -739,36 +717,6 @@ public class OwnerSelectionPanel : MonoBehaviour
         text.alignment = alignment;
         text.raycastTarget = false;
         return text;
-    }
-
-    private static GameObject CreateHorizontalRow(
-        Transform parent,
-        string name,
-        float height,
-        float spacing)
-    {
-        GameObject row = new GameObject(name, typeof(RectTransform), typeof(LayoutElement), typeof(HorizontalLayoutGroup));
-        row.transform.SetParent(parent, false);
-        row.GetComponent<LayoutElement>().preferredHeight = height;
-        HorizontalLayoutGroup layout = row.GetComponent<HorizontalLayoutGroup>();
-        layout.spacing = spacing;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = true;
-        return row;
-    }
-
-    private static void SetLayout(GameObject target, float preferredHeight, float flexibleHeight = 0f)
-    {
-        LayoutElement layout = target.GetComponent<LayoutElement>();
-        if (layout == null)
-        {
-            layout = target.AddComponent<LayoutElement>();
-        }
-
-        layout.preferredHeight = preferredHeight;
-        layout.flexibleHeight = flexibleHeight;
     }
 
     private void ClearChildren(Transform root)
@@ -798,101 +746,12 @@ public class OwnerSelectionPanel : MonoBehaviour
 
     private void PauseForSelection()
     {
-        gameManager = runtimeReferences.GameManager;
-        if (gameManager != null)
-        {
-            gameManager.isPause = true;
-        }
-
-        timeScaleController.Scale = 0f;
+        gameSpeedController.SetPaused(true);
     }
 
     private void ResumeAfterSelection()
     {
-        gameManager = gameManager != null
-            ? gameManager
-            : runtimeReferences.GameManager;
-        if (gameManager != null)
-        {
-            gameManager.isPause = false;
-        }
-
-        timeScaleController.Scale = gameDataProvider != null
-            && gameDataProvider.TryGetGameData(out GameData data)
-            && data?.gameSpeed != null
-                ? Mathf.Max(0.01f, data.gameSpeed.Value)
-                : 1f;
-    }
-
-    private static string PotentialLabel(CharacterPotentialGrade grade)
-    {
-        return grade switch
-        {
-            CharacterPotentialGrade.Promising => "유망",
-            CharacterPotentialGrade.Excellent => "우수",
-            CharacterPotentialGrade.Exceptional => "탁월",
-            CharacterPotentialGrade.Genius => "천재",
-            _ => "평범"
-        };
-    }
-
-    private static string RarityLabel(CharacterSkillRarity rarity)
-    {
-        return rarity switch
-        {
-            CharacterSkillRarity.Advanced => "고급",
-            CharacterSkillRarity.Rare => "희귀",
-            CharacterSkillRarity.Heroic => "영웅",
-            CharacterSkillRarity.Legendary => "전설",
-            _ => "일반"
-        };
-    }
-
-    private static bool IsSaveModalOpen()
-    {
-        for (int sceneIndex = 0; sceneIndex < SceneManager.sceneCount; sceneIndex++)
-        {
-            Scene scene = SceneManager.GetSceneAt(sceneIndex);
-            if (!scene.IsValid() || !scene.isLoaded)
-            {
-                continue;
-            }
-
-            foreach (GameObject rootObject in scene.GetRootGameObjects())
-            {
-                Transform modal = FindDescendantByName(rootObject != null ? rootObject.transform : null, "SaveModal");
-                if (modal != null && modal.gameObject.activeInHierarchy)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private static Transform FindDescendantByName(Transform root, string targetName)
-    {
-        if (root == null)
-        {
-            return null;
-        }
-
-        if (root.name == targetName)
-        {
-            return root;
-        }
-
-        for (int i = 0; i < root.childCount; i++)
-        {
-            Transform found = FindDescendantByName(root.GetChild(i), targetName);
-            if (found != null)
-            {
-                return found;
-            }
-        }
-
-        return null;
+        gameSpeedController.SetPaused(false);
     }
 
     private void OnDestroy()

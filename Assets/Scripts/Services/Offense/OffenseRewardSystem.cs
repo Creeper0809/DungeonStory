@@ -8,20 +8,99 @@ using VContainer;
 public static class OffenseRewardGrantHandlers
 {
     public static IReadOnlyList<IOffenseRewardGrantHandler> CreateDefaults(
-        IWorldItemStackRuntime itemStackRuntime = null,
-        IWorldDropZoneQuery dropZoneQuery = null)
+        IWorldItemStackRuntime itemStackRuntime,
+        IWorldDropZoneQuery dropZoneQuery)
+    {
+        IExpeditionRewardItemSink rewardItems =
+            itemStackRuntime != null && dropZoneQuery != null
+                ? new WorldExpeditionRewardItemSink(itemStackRuntime, dropZoneQuery)
+                : MissingExpeditionRewardItemSink.Instance;
+        return CreateDefaults(rewardItems);
+    }
+
+    public static IReadOnlyList<IOffenseRewardGrantHandler> CreateDefaults(
+        IExpeditionRewardItemSink rewardItems)
     {
         return Array.AsReadOnly<IOffenseRewardGrantHandler>(new IOffenseRewardGrantHandler[]
         {
-            new OffenseMoneyRewardGrantHandler(itemStackRuntime, dropZoneQuery),
-            new OffenseStockRewardGrantHandler(),
+            new OffenseMoneyRewardGrantHandler(rewardItems),
+            new OffenseStockRewardGrantHandler(rewardItems, null),
             new OffenseRareFacilityRewardGrantHandler(),
-            new OffenseBlueprintRewardGrantHandler(),
+            new OffenseBlueprintRewardGrantHandler(null, null, null),
             new OffenseRegionalPressureRewardGrantHandler(),
             new OffenseRecruitCandidateRewardGrantHandler(),
             new OffensePrisonerRewardGrantHandler(),
             new OffenseSpecialMonsterRewardGrantHandler()
         });
+    }
+}
+
+public interface IExpeditionRewardItemSink
+{
+    bool SpawnLoot(string itemId, int amount, out int spawned);
+    bool SpawnStock(StockCategory category, int amount, string sourceLabel, out int spawned);
+}
+
+public sealed class WorldExpeditionRewardItemSink : IExpeditionRewardItemSink
+{
+    private readonly IWorldItemStackRuntime items;
+    private readonly IWorldDropZoneQuery dropZones;
+
+    public WorldExpeditionRewardItemSink(
+        IWorldItemStackRuntime items,
+        IWorldDropZoneQuery dropZones)
+    {
+        this.items = items ?? throw new ArgumentNullException(nameof(items));
+        this.dropZones = dropZones
+            ?? throw new ArgumentNullException(nameof(dropZones));
+    }
+
+    public bool SpawnLoot(string itemId, int amount, out int spawned)
+    {
+        spawned = 0;
+        return dropZones.TryGetExpeditionLootDropoff(out Vector2Int dropoff)
+            && items.SpawnItemAt(
+                itemId,
+                amount,
+                dropoff,
+                WorldItemStackState.Loose,
+                string.Empty,
+                out spawned);
+    }
+
+    public bool SpawnStock(
+        StockCategory category,
+        int amount,
+        string sourceLabel,
+        out int spawned)
+    {
+        return items.SpawnStockAtDropoff(
+            category,
+            amount,
+            sourceLabel,
+            out spawned);
+    }
+}
+
+public sealed class MissingExpeditionRewardItemSink : IExpeditionRewardItemSink
+{
+    public static readonly MissingExpeditionRewardItemSink Instance = new();
+    private MissingExpeditionRewardItemSink() { }
+
+    public bool SpawnLoot(string itemId, int amount, out int spawned)
+    {
+        spawned = 0;
+        return false;
+    }
+
+    public bool SpawnStock(
+        StockCategory category,
+        int amount,
+        string sourceLabel,
+        out int spawned)
+    {
+        spawned = 0;
+        return false;
     }
 }
 
@@ -131,15 +210,12 @@ public static class OffenseLootItemIds
 
 public sealed class OffenseMoneyRewardGrantHandler : OffenseRewardGrantHandler<OffenseMoneyRewardSpec>
 {
-    private readonly IWorldItemStackRuntime itemStackRuntime;
-    private readonly IWorldDropZoneQuery dropZoneQuery;
+    private readonly IExpeditionRewardItemSink rewardItems;
 
-    public OffenseMoneyRewardGrantHandler(
-        IWorldItemStackRuntime itemStackRuntime = null,
-        IWorldDropZoneQuery dropZoneQuery = null)
+    public OffenseMoneyRewardGrantHandler(IExpeditionRewardItemSink rewardItems)
     {
-        this.itemStackRuntime = itemStackRuntime;
-        this.dropZoneQuery = dropZoneQuery;
+        this.rewardItems = rewardItems
+            ?? throw new ArgumentNullException(nameof(rewardItems));
     }
 
     public override string RewardTypeId => OffenseRewardTypeIds.Money;
@@ -156,32 +232,15 @@ public sealed class OffenseMoneyRewardGrantHandler : OffenseRewardGrantHandler<O
             return OffenseRewardGrantResultFactory.Fail(reward, "보상 금액이 없습니다");
         }
 
-        if (itemStackRuntime == null || dropZoneQuery == null)
-        {
-            return OffenseRewardGrantResultFactory.Fail(
-                reward,
-                "전리품 하차 시스템을 사용할 수 없습니다");
-        }
-
-        if (!dropZoneQuery.TryGetExpeditionLootDropoff(out Vector2Int dropoff))
-        {
-            return OffenseRewardGrantResultFactory.Fail(
-                reward,
-                "전리품을 내릴 하차장이 없습니다");
-        }
-
-        if (!itemStackRuntime.SpawnItemAt(
+        if (!rewardItems.SpawnLoot(
                 OffenseLootItemIds.UnappraisedLoot,
                 amount,
-                dropoff,
-                WorldItemStackState.Loose,
-                string.Empty,
                 out int spawned)
             || spawned != amount)
         {
             return OffenseRewardGrantResultFactory.Fail(
                 reward,
-                "미감정 전리품 하차에 실패했습니다");
+                "physical expedition loot spawn failed");
         }
 
         context.rewardState?.RecordMoney(amount);
@@ -194,14 +253,15 @@ public sealed class OffenseMoneyRewardGrantHandler : OffenseRewardGrantHandler<O
 
 public sealed class OffenseStockRewardGrantHandler : OffenseRewardGrantHandler<OffenseStockRewardSpec>
 {
-    private readonly IWorldItemStackRuntime itemStackRuntime;
+    private readonly IExpeditionRewardItemSink rewardItems;
     private readonly IGameEventBus gameEventBus;
 
     public OffenseStockRewardGrantHandler(
-        IWorldItemStackRuntime itemStackRuntime = null,
-        IGameEventBus gameEventBus = null)
+        IExpeditionRewardItemSink rewardItems,
+        IGameEventBus gameEventBus)
     {
-        this.itemStackRuntime = itemStackRuntime;
+        this.rewardItems = rewardItems
+            ?? throw new ArgumentNullException(nameof(rewardItems));
         this.gameEventBus = gameEventBus;
     }
 
@@ -219,14 +279,25 @@ public sealed class OffenseStockRewardGrantHandler : OffenseRewardGrantHandler<O
             return OffenseRewardGrantResultFactory.Fail(reward, "보상 수량이 없습니다");
         }
 
-        bool success = StockSupplyService.GrantReward(
-            context.warehouses,
-            itemStackRuntime,
+        string sourceLabel = string.IsNullOrWhiteSpace(reward.label)
+            ? "offense reward"
+            : reward.label;
+        bool success = rewardItems.SpawnStock(
             spec.StockCategory,
             amount,
-            string.IsNullOrWhiteSpace(reward.label) ? "오펜스 보상" : reward.label,
-            out StockSupplyResult result,
-            PublishSupplyResult);
+            sourceLabel,
+            out int delivered);
+        StockSupplyResult result = new StockSupplyResult(
+            success && delivered == amount,
+            spec.StockCategory,
+            amount,
+            delivered,
+            0,
+            sourceLabel,
+            success && delivered == amount
+                ? string.Empty
+                : "physical reward spawn failed");
+        PublishSupplyResult(result);
         if (!success || !result.success)
         {
             return OffenseRewardGrantResultFactory.Fail(
@@ -298,9 +369,9 @@ public sealed class OffenseBlueprintRewardGrantHandler :
     private readonly IGameEventBus gameEventBus;
 
     public OffenseBlueprintRewardGrantHandler(
-        IWorldItemStackRuntime itemStackRuntime = null,
-        IWorldDropZoneQuery dropZoneQuery = null,
-        IGameEventBus gameEventBus = null)
+        IWorldItemStackRuntime itemStackRuntime,
+        IWorldDropZoneQuery dropZoneQuery,
+        IGameEventBus gameEventBus)
     {
         this.itemStackRuntime = itemStackRuntime;
         this.dropZoneQuery = dropZoneQuery;
@@ -517,99 +588,5 @@ public static class OffenseRewardGrantResultFactory
             grantedAmount,
             success,
             detail);
-    }
-}
-
-public class OffenseRewardRuntime : MonoBehaviour
-{
-    private readonly OffenseRewardState state = new OffenseRewardState();
-    private readonly OffenseRewardDebugContext debugContext = new OffenseRewardDebugContext();
-    private IOffenseRewardContextBuilder contextBuilder;
-    private IOffenseRewardGrantService grantService;
-
-    public IOffenseRewardStateView State => state;
-
-    [Inject]
-    public void Construct(
-        IOffenseRewardContextBuilder contextBuilder,
-        IOffenseRewardGrantService grantService)
-    {
-        this.contextBuilder = contextBuilder
-            ?? throw new ArgumentNullException(nameof(contextBuilder));
-        this.grantService = grantService
-            ?? throw new ArgumentNullException(nameof(grantService));
-    }
-
-    public IReadOnlyList<OffenseRewardGrantResult> ApplyExpeditionRewards(
-        OffenseExpeditionRun expedition,
-        OffenseExpeditionResult result)
-    {
-        if (expedition == null || expedition.Target == null || result == null || !result.success)
-        {
-            return Array.Empty<OffenseRewardGrantResult>();
-        }
-
-        OffenseRewardContext context = CreateContext(
-            expedition.Target,
-            expedition.ExpeditionId);
-        return ResolveGrantService().GrantRewards(expedition.Target.rewards, context);
-    }
-
-    public void SetDebugContext(
-        GameData gameData,
-        IEnumerable<IWarehouseFacility> warehouses,
-        FacilityShopUnlockState shopUnlockState,
-        BlueprintResearchState researchState)
-    {
-        debugContext.gameData = gameData;
-        debugContext.warehouses = warehouses?.Where((warehouse) => warehouse != null).ToList();
-        debugContext.shopUnlockState = shopUnlockState;
-        debugContext.researchState = researchState;
-    }
-
-    public void ClearDebugContext()
-    {
-        debugContext.Clear();
-    }
-
-    public void ResetState()
-    {
-        state.Reset();
-    }
-
-    public void RestorePersistentState(
-        int moneyEarned,
-        IReadOnlyDictionary<StockCategory, int> restoredStock,
-        IEnumerable<int> restoredRareFacilityIds,
-        IEnumerable<int> restoredBlueprintIds)
-    {
-        state.Restore(
-            moneyEarned,
-            restoredStock,
-            restoredRareFacilityIds,
-            restoredBlueprintIds);
-    }
-
-    private OffenseRewardContext CreateContext(
-        OffenseTargetDefinition target,
-        string expeditionId)
-    {
-        return ResolveContextBuilder().Create(
-            target,
-            state,
-            debugContext,
-            expeditionId);
-    }
-
-    private IOffenseRewardContextBuilder ResolveContextBuilder()
-    {
-        return contextBuilder
-            ?? throw new InvalidOperationException($"{nameof(OffenseRewardRuntime)} requires {nameof(IOffenseRewardContextBuilder)} injection.");
-    }
-
-    private IOffenseRewardGrantService ResolveGrantService()
-    {
-        return grantService
-            ?? throw new InvalidOperationException($"{nameof(OffenseRewardRuntime)} requires {nameof(IOffenseRewardGrantService)} injection.");
     }
 }

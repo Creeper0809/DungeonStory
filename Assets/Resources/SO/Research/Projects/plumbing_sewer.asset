@@ -27,24 +27,35 @@ MonoBehaviour:
   description: "\uD3D0\uC218 \uC800\uC7A5\uACFC \uC5ED\uB958 \uBC29\uC9C0\uB97C \uC704\uD55C
     \uBCC4\uB3C4 \uD558\uC218\uB9DD\uC744 \uAD6C\uCD95\uD55C\uB2E4."
   field: 16
-  requiredWork: 174
+  requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: d4e36e9f373046a49a2f87700bef9551, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:plumbing:flush-sanitation
+    prerequisite: {fileID: 11400000, guid: d4e36e9f373046a49a2f87700bef9551, type: 2}
+    kind: 2
+    reason: "\uC218\uC138 \uC704\uC0DD\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uD558\uC218 \uBC30\uAD00 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687338
-    - rid: 7302563278452687339
+    - rid: 7737211730927813190
+    - rid: 7737211730927813191
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687338
+    - rid: 7737211730927813190
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9818
-    - rid: 7302563278452687339
+    - rid: 7737211730927813191
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9803

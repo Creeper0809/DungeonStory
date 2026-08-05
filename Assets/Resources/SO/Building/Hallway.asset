@@ -22,15 +22,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Hallway, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 7
       Data: 1|System.Collections.Generic.Dictionary`2[[GridTexture+TilemapLayer,
@@ -88,13 +79,15 @@ MonoBehaviour:
   sprite: {fileID: 1878171585, guid: 2fb3ab25e50d145418738cd340acb8a2, type: 3}
   icon: {fileID: 1878171585, guid: 2fb3ab25e50d145418738cd340acb8a2, type: 3}
   abilityModules:
-    items: []
+    items:
+    - rid: 8800000000000000000
   width: 1
   height: 1
   layer: 0
   category: 1
   horizontalDraggable: 1
   verticalDraggable: 1
+  runtimeArchetype: 5
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -102,4 +95,16 @@ MonoBehaviour:
   unlocked: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 8800000000000000000
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 18
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 1

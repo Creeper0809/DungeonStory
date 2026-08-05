@@ -1,53 +1,49 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
-public sealed class WildlifeSaveSection : IDungeonSaveSection
+public sealed class WildlifeSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonWildlifeSaveData,
+        WildlifeRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "wildlife.population";
 
-    private static readonly string[] Dependencies = { PhysicalItemsSaveSection.Id };
+    private static readonly string[] Dependencies =
+    {
+        ModularFacilityWorldSaveSection.Id,
+        PhysicalItemsSaveSection.Id
+    };
+
     private readonly IWildlifeRuntime runtime;
 
     public WildlifeSaveSection(IWildlifeRuntime runtime)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.runtime = runtime
+            ?? throw new ArgumentNullException(nameof(runtime));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => DungeonWildlifeSaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.RuntimeState;
-    public IReadOnlyList<string> DependsOn => Dependencies;
+    public override string SectionId => Id;
+    public override int SectionVersion =>
+        DungeonWildlifeSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
+        DungeonSaveRestorePhase.RuntimeState;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
+    protected override DungeonWildlifeSaveData CapturePayload()
     {
-        return JsonUtility.ToJson(runtime.Capture());
+        return runtime.Capture();
     }
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        if (sectionVersion < 2 || sectionVersion > SectionVersion)
-        {
-            report.AddError(
-                $"Unsupported wildlife section version {sectionVersion}; expected 2-{SectionVersion}.");
-            return;
-        }
+    protected override void ValidateParsedPayload(
+        DungeonWildlifeSaveData payload) =>
+        runtime.ValidateRestorePayload(payload);
 
-        DungeonWildlifeSaveData saveData =
-            JsonUtility.FromJson<DungeonWildlifeSaveData>(payloadJson)
-            ?? new DungeonWildlifeSaveData();
-        if (sectionVersion == 2)
-        {
-            saveData.version = DungeonWildlifeSaveData.CurrentVersion;
-            saveData.foodRaidOrders =
-                new List<WildlifeFoodRaidOrderSaveData>();
-            report?.AddWarning(
-                "Wildlife section V2 migrated to V3 with no active food raid orders.");
-        }
+    protected override WildlifeRestoreCandidate BuildRestoreCandidate(
+        DungeonWildlifeSaveData payload) =>
+        runtime.BuildRestoreCandidate(payload);
 
-        runtime.Restore(saveData, report);
-    }
+    protected override void PublishRestoreCandidate(
+        WildlifeRestoreCandidate candidate) =>
+        runtime.PublishRestoreCandidate(candidate);
 }

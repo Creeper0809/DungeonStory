@@ -52,3 +52,17 @@ public struct InvasionFinalCombatStartedEvent
     }
 
 }
+
+public readonly struct DefenseFrontCollapsedEvent
+{
+    public DefenseEngagement Engagement { get; }
+    public string Reason { get; }
+
+    public DefenseFrontCollapsedEvent(
+        DefenseEngagement engagement,
+        string reason)
+    {
+        Engagement = engagement;
+        Reason = reason ?? string.Empty;
+    }
+}

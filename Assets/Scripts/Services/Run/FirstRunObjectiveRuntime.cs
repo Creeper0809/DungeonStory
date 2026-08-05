@@ -205,6 +205,69 @@ public interface IFirstRunObjectiveRuntime
     void RefreshNow();
 }
 
+public sealed class FirstRunObjectiveProgressContext
+{
+    public FirstRunObjectiveProgressContext(
+        IOwnerRunManagerProvider ownerProvider,
+        IGridSystemProvider gridProvider,
+        IRoomLayoutCache roomLayoutCache,
+        DungeonSceneRuntimeReferences sceneRuntimes,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
+        IOffenseQuery offense,
+        IDungeonRunFlowRuntime runFlow)
+    {
+        OwnerProvider = ownerProvider
+            ?? throw new ArgumentNullException(nameof(ownerProvider));
+        GridProvider = gridProvider
+            ?? throw new ArgumentNullException(nameof(gridProvider));
+        RoomLayoutCache = roomLayoutCache
+            ?? throw new ArgumentNullException(nameof(roomLayoutCache));
+        Settlement = (sceneRuntimes
+                ?? throw new ArgumentNullException(nameof(sceneRuntimes)))
+            .Settlement
+            ?? throw new InvalidOperationException(
+                $"{nameof(FirstRunObjectiveRuntime)} requires a loaded {nameof(OperatingDaySettlementRuntime)}.");
+        progressionRuntimes = progressionRuntimes
+            ?? throw new ArgumentNullException(nameof(progressionRuntimes));
+        MetaProgression = progressionRuntimes.MetaProgression
+            ?? throw new InvalidOperationException(
+                $"{nameof(FirstRunObjectiveRuntime)} requires a loaded {nameof(MetaProgressionRuntime)}.");
+        Research = progressionRuntimes.BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(FirstRunObjectiveRuntime)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
+        Offense = offense ?? throw new ArgumentNullException(nameof(offense));
+        RunFlow = runFlow ?? throw new ArgumentNullException(nameof(runFlow));
+    }
+
+    public IOwnerRunManagerProvider OwnerProvider { get; }
+    public IGridSystemProvider GridProvider { get; }
+    public IRoomLayoutCache RoomLayoutCache { get; }
+    public BlueprintResearchRuntime Research { get; }
+    public OperatingDaySettlementRuntime Settlement { get; }
+    public MetaProgressionRuntime MetaProgression { get; }
+    public IOffenseQuery Offense { get; }
+    public IDungeonRunFlowRuntime RunFlow { get; }
+}
+
+public sealed class FirstRunObjectivePresentationContext
+{
+    public FirstRunObjectivePresentationContext(
+        IDungeonUiCanvasProvider canvasProvider,
+        ITmpKoreanFontService fontService,
+        IUiClock uiClock)
+    {
+        CanvasProvider = canvasProvider
+            ?? throw new ArgumentNullException(nameof(canvasProvider));
+        FontService = fontService
+            ?? throw new ArgumentNullException(nameof(fontService));
+        UiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+    }
+
+    public IDungeonUiCanvasProvider CanvasProvider { get; }
+    public ITmpKoreanFontService FontService { get; }
+    public IUiClock UiClock { get; }
+}
+
 public sealed class FirstRunObjectiveRuntime :
     IFirstRunObjectiveRuntime,
     IStartable,
@@ -219,10 +282,10 @@ public sealed class FirstRunObjectiveRuntime :
     private readonly IOwnerRunManagerProvider ownerProvider;
     private readonly IGridSystemProvider gridProvider;
     private readonly IRoomLayoutCache roomLayoutCache;
-    private readonly IBlueprintResearchRuntimeProvider researchProvider;
-    private readonly IOperatingDaySettlementRuntimeProvider settlementProvider;
-    private readonly IMetaProgressionRuntimeProvider metaProvider;
-    private readonly IOffenseWorldMapRuntimeProvider offenseWorldMapProvider;
+    private readonly BlueprintResearchRuntime research;
+    private readonly OperatingDaySettlementRuntime settlement;
+    private readonly MetaProgressionRuntime metaProgression;
+    private readonly IOffenseQuery offense;
     private readonly IDungeonRunFlowRuntime runFlow;
     private readonly IDungeonUiCanvasProvider canvasProvider;
     private readonly ITmpKoreanFontService fontService;
@@ -235,39 +298,31 @@ public sealed class FirstRunObjectiveRuntime :
     private float nextRefreshAt;
 
     public FirstRunObjectiveRuntime(
-        IOwnerRunManagerProvider ownerProvider,
-        IGridSystemProvider gridProvider,
-        IRoomLayoutCache roomLayoutCache,
-        IBlueprintResearchRuntimeProvider researchProvider,
-        IOperatingDaySettlementRuntimeProvider settlementProvider,
-        IMetaProgressionRuntimeProvider metaProvider,
-        IOffenseWorldMapRuntimeProvider offenseWorldMapProvider,
-        IDungeonRunFlowRuntime runFlow,
-        IDungeonUiCanvasProvider canvasProvider,
-        ITmpKoreanFontService fontService,
-        IUiClock uiClock)
+        FirstRunObjectiveProgressContext progress,
+        FirstRunObjectivePresentationContext presentation)
     {
-        this.ownerProvider = ownerProvider ?? throw new ArgumentNullException(nameof(ownerProvider));
-        this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
-        this.roomLayoutCache = roomLayoutCache ?? throw new ArgumentNullException(nameof(roomLayoutCache));
-        this.researchProvider = researchProvider ?? throw new ArgumentNullException(nameof(researchProvider));
-        this.settlementProvider = settlementProvider ?? throw new ArgumentNullException(nameof(settlementProvider));
-        this.metaProvider = metaProvider ?? throw new ArgumentNullException(nameof(metaProvider));
-        this.offenseWorldMapProvider = offenseWorldMapProvider
-            ?? throw new ArgumentNullException(nameof(offenseWorldMapProvider));
-        this.runFlow = runFlow ?? throw new ArgumentNullException(nameof(runFlow));
-        this.canvasProvider = canvasProvider ?? throw new ArgumentNullException(nameof(canvasProvider));
-        this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
-        this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        progress = progress ?? throw new ArgumentNullException(nameof(progress));
+        presentation = presentation
+            ?? throw new ArgumentNullException(nameof(presentation));
+        ownerProvider = progress.OwnerProvider;
+        gridProvider = progress.GridProvider;
+        roomLayoutCache = progress.RoomLayoutCache;
+        research = progress.Research;
+        settlement = progress.Settlement;
+        metaProgression = progress.MetaProgression;
+        offense = progress.Offense;
+        runFlow = progress.RunFlow;
+        canvasProvider = presentation.CanvasProvider;
+        fontService = presentation.FontService;
+        uiClock = presentation.UiClock;
     }
 
     public FirstRunObjectiveId CurrentObjective { get; private set; }
-    public bool IsVisible => root != null && root.activeInHierarchy;
+    public bool IsVisible => false;
     public RectTransform PanelRect => root != null ? root.GetComponent<RectTransform>() : null;
 
     public void Start()
     {
-        EnsureView();
         RefreshNow();
     }
 
@@ -301,24 +356,13 @@ public sealed class FirstRunObjectiveRuntime :
 
     public void RefreshNow()
     {
-        EnsureView();
         FirstRunObjectivePresentation presentation = FirstRunObjectiveResolver.Resolve(CaptureSnapshot());
         CurrentObjective = presentation.Id;
 
-        if (root == null)
+        if (root != null)
         {
-            return;
+            root.SetActive(false);
         }
-
-        root.SetActive(presentation.IsVisible);
-        if (!presentation.IsVisible)
-        {
-            return;
-        }
-
-        progressLabel.text = $"첫 런 목표  {presentation.Step}/{FirstRunObjectiveResolver.TotalSteps}";
-        titleLabel.text = presentation.Title;
-        detailLabel.text = presentation.Detail;
     }
 
     private FirstRunObjectiveSnapshot CaptureSnapshot()
@@ -344,7 +388,7 @@ public sealed class FirstRunObjectiveRuntime :
         int completedResearchCount = 0;
         float activeResearchRatio = 0f;
         bool hasResearchBlueprint = false;
-        if (researchProvider.TryGetRuntime(out BlueprintResearchRuntime research) && research != null)
+        if (research != null)
         {
             taskCount = research.State.Projects.Queue.Count;
             completedResearchCount = research.State.Projects.CompletedProjectIds.Count;
@@ -368,31 +412,22 @@ public sealed class FirstRunObjectiveRuntime :
             }
         }
 
-        int settlementCount = 0;
-        if (settlementProvider.TryGetRuntime(out OperatingDaySettlementRuntime settlement) && settlement != null)
-        {
-            settlementCount = settlement.ReportHistory.Count;
-        }
+        int settlementCount = settlement.ReportHistory.Count;
 
         int defendedInvasionCount = 0;
         int completedRunCount = 0;
-        if (metaProvider.TryGetRuntime(out MetaProgressionRuntime meta) && meta != null)
+        MetaProgressionRuntime meta = metaProgression;
+        if (meta != null)
         {
             settlementCount = Mathf.Max(settlementCount, meta.RunProgress.SettlementCount);
             defendedInvasionCount = meta.RunProgress.DefendedInvasionCount;
             completedRunCount = meta.State.CompletedRunCount;
         }
 
-        int completedOffenseTargetCount = 0;
-        int totalOffenseTargetCount = 0;
-        bool truthRevealed = false;
-        if (offenseWorldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap)
-            && worldMap != null)
-        {
-            completedOffenseTargetCount = worldMap.State.CompletedTargetCount;
-            totalOffenseTargetCount = worldMap.CampaignTargetCount;
-            truthRevealed = worldMap.State.TruthRevealed;
-        }
+        OffenseCampaignSnapshot campaign = offense.Capture();
+        int completedOffenseTargetCount = campaign.CompletedTargetCount;
+        int totalOffenseTargetCount = campaign.CampaignTargetCount;
+        bool truthRevealed = campaign.TruthRevealed;
 
         return new FirstRunObjectiveSnapshot(
             hasOwner,

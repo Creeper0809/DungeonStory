@@ -158,7 +158,7 @@ public sealed class ShelterFromWeatherIdleBehavior : IIdleBehavior
                 CharacterAiBranch.Idle)
             ?? CharacterAiWorldSignalSnapshot.Neutral;
         return actor != null
-            && signals.WeatherPressure >= CharacterAiNaturalnessSettingsSO.Defaults.ShelterWeatherThreshold
+            && signals.WeatherPressure >= CharacterAiNaturalnessSettingsResolver.Require(actor).ShelterWeatherThreshold
             && actor.TryGetAbility(out AbilityMove _);
     }
 
@@ -335,7 +335,8 @@ public static class IdleBehaviorRunner
                 actor,
                 CharacterAiBranch.Idle)
             ?? CharacterAiWorldSignalSnapshot.Neutral;
-        CharacterAiNaturalnessSettingsSO settings = CharacterAiNaturalnessSettingsSO.Defaults;
+        CharacterAiNaturalnessSettingsSO settings =
+            CharacterAiNaturalnessSettingsResolver.Require(actor);
         if (CharacterMoodImpulseUtility.ShouldPreferAutonomousIdle(actor, out _))
         {
             return MoodDrivenWander;

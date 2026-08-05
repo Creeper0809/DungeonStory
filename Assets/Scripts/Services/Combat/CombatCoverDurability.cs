@@ -8,17 +8,58 @@ public sealed class CombatCoverDurabilitySaveData
     public float currentHitPoints;
 }
 
-public sealed class CombatCoverDurability : MonoBehaviour, IBuildingStateModule
+public interface ICombatCoverDurabilityRegistry : IBuildingCoverDurabilityPort
 {
-    private static readonly Dictionary<string, CombatCoverDurability> BySourceId =
+    void Register(CombatCoverDurability durability);
+    void Unregister(CombatCoverDurability durability);
+}
+
+public sealed class CombatCoverDurabilityRegistry :
+    ICombatCoverDurabilityRegistry
+{
+    private readonly Dictionary<string, CombatCoverDurability> bySourceId =
         new Dictionary<string, CombatCoverDurability>(StringComparer.Ordinal);
 
+    public void Register(CombatCoverDurability durability)
+    {
+        if (durability == null || string.IsNullOrWhiteSpace(durability.SourceId)) return;
+        bySourceId[durability.SourceId] = durability;
+    }
+
+    public void Unregister(CombatCoverDurability durability)
+    {
+        if (durability == null || string.IsNullOrWhiteSpace(durability.SourceId)) return;
+        if (bySourceId.TryGetValue(durability.SourceId, out CombatCoverDurability current)
+            && ReferenceEquals(current, durability))
+        {
+            bySourceId.Remove(durability.SourceId);
+        }
+    }
+
+    public bool TryApplyDamage(string sourceId, float damage)
+    {
+        if (string.IsNullOrWhiteSpace(sourceId)
+            || !bySourceId.TryGetValue(sourceId, out CombatCoverDurability durability)
+            || durability == null)
+        {
+            return false;
+        }
+
+        return durability.ApplyDamage(damage);
+    }
+}
+
+public sealed class CombatCoverDurability : MonoBehaviour, IBuildingStateModule
+{
     private BuildableObject building;
     private BuildingCoverAbility ability;
+    private ICombatCoverDurabilityRegistry registry;
     private float currentHitPoints;
     private bool initialized;
 
-    public string SourceId => $"cover:{GetInstanceID()}";
+    public string SourceId => building == null
+        ? string.Empty
+        : $"cover:{building.RequirePersistentInstanceId().Value}";
     public float MaxHitPoints => Mathf.Max(1f, ability?.coverHitPoints ?? 1f);
     public float CurrentHitPoints => Mathf.Clamp(currentHitPoints, 0f, MaxHitPoints);
     public float DurabilityRatio => CurrentHitPoints / MaxHitPoints;
@@ -29,46 +70,27 @@ public sealed class CombatCoverDurability : MonoBehaviour, IBuildingStateModule
 
     public static CombatCoverDurability Ensure(
         BuildableObject building,
-        BuildingCoverAbility ability)
+        BuildingCoverAbility ability,
+        ICombatCoverDurabilityRegistry registry)
     {
-        if (building == null)
-        {
-            throw new ArgumentNullException(nameof(building));
-        }
-
-        CombatCoverDurability runtime = building.GetComponent<CombatCoverDurability>();
-        if (runtime == null)
-        {
-            runtime = building.gameObject.AddComponent<CombatCoverDurability>();
-        }
-
-        runtime.Configure(building, ability);
+        if (building == null) throw new ArgumentNullException(nameof(building));
+        CombatCoverDurability runtime =
+            building.GetComponent<CombatCoverDurability>()
+            ?? building.gameObject.AddComponent<CombatCoverDurability>();
+        runtime.Configure(building, ability, registry);
         return runtime;
-    }
-
-    public static bool TryApplyDamage(string sourceId, float damage)
-    {
-        return !string.IsNullOrWhiteSpace(sourceId)
-            && BySourceId.TryGetValue(sourceId, out CombatCoverDurability runtime)
-            && runtime != null
-            && runtime.ApplyDamage(damage);
     }
 
     public bool ApplyDamage(float damage)
     {
-        if (damage <= 0f || building == null || building.isDestroy)
-        {
-            return false;
-        }
-
+        if (damage <= 0f || building == null || building.isDestroy) return false;
         currentHitPoints = Mathf.Max(0f, currentHitPoints - damage);
         building.SetDamaged(DurabilityRatio <= 0.5f);
         if (currentHitPoints <= 0f)
         {
-            BySourceId.Remove(SourceId);
+            registry.Unregister(this);
             building.DestroySelf();
         }
-
         return true;
     }
 
@@ -84,17 +106,16 @@ public sealed class CombatCoverDurability : MonoBehaviour, IBuildingStateModule
     {
         if (version != CurrentVersion)
         {
-            error = $"지원하지 않는 엄폐 상태 버전 {version}";
+            error = $"Unsupported cover state version {version}.";
             return false;
         }
-
-        CombatCoverDurabilitySaveData save = JsonUtility.FromJson<CombatCoverDurabilitySaveData>(payload);
+        CombatCoverDurabilitySaveData save =
+            JsonUtility.FromJson<CombatCoverDurabilitySaveData>(payload);
         if (save == null)
         {
-            error = "엄폐 내구 데이터가 없습니다.";
+            error = "Cover restore data is missing.";
             return false;
         }
-
         currentHitPoints = Mathf.Clamp(save.currentHitPoints, 0f, MaxHitPoints);
         initialized = true;
         building?.SetDamaged(DurabilityRatio <= 0.5f);
@@ -102,30 +123,30 @@ public sealed class CombatCoverDurability : MonoBehaviour, IBuildingStateModule
         return true;
     }
 
-    private void Configure(BuildableObject owner, BuildingCoverAbility sourceAbility)
+    private void Configure(
+        BuildableObject owner,
+        BuildingCoverAbility sourceAbility,
+        ICombatCoverDurabilityRegistry registry)
     {
+        this.registry?.Unregister(this);
         building = owner;
         ability = sourceAbility ?? throw new ArgumentNullException(nameof(sourceAbility));
+        this.registry = registry ?? throw new ArgumentNullException(nameof(registry));
         if (!initialized)
         {
             currentHitPoints = MaxHitPoints;
             initialized = true;
         }
-
-        BySourceId[SourceId] = this;
+        registry.Register(this);
     }
 
     private void OnEnable()
     {
-        BySourceId[SourceId] = this;
+        if (building != null && building.PersistentInstanceId.IsValid) registry?.Register(this);
     }
 
     private void OnDisable()
     {
-        if (BySourceId.TryGetValue(SourceId, out CombatCoverDurability current)
-            && ReferenceEquals(current, this))
-        {
-            BySourceId.Remove(SourceId);
-        }
+        registry?.Unregister(this);
     }
 }

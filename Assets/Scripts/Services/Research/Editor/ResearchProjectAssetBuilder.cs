@@ -30,6 +30,7 @@ public static class ResearchProjectAssetBuilder
         ProductionWorkshopContentAssetBuilder.EnsureAssets();
         ServiceRoomContentAssetBuilder.EnsureAssets();
         P1DefenseFacilityAssetBuilder.EnsureP1DefenseAssets();
+        ResearchOverhaulContentAssetBuilder.EnsureAssets();
         Dictionary<int, FacilityBlueprintSO> blueprints = AssetDatabase
             .FindAssets("t:FacilityBlueprintSO", new[] { "Assets/Resources/SO/Blueprint" })
             .Select(AssetDatabase.GUIDToAssetPath)
@@ -67,6 +68,8 @@ public static class ResearchProjectAssetBuilder
             projects[spec.Id] = project;
         }
 
+        IReadOnlyDictionary<int, string> canonicalBuildingOwners =
+            BuildCanonicalBuildingOwners();
         foreach (Spec spec in CreateSpecs())
         {
             ResearchProjectSO project = projects[spec.Id];
@@ -77,19 +80,24 @@ public static class ResearchProjectAssetBuilder
                 EditorUtility.SetDirty(blueprint);
             }
 
-            BlueprintUnlockCollection unlocks = project.UnlockCollection;
+            IEnumerable<BlueprintUnlock> sourceUnlocks = project.Unlocks;
             if (blueprint != null && blueprint.unlocks != null && blueprint.unlocks.Count > 0)
             {
-                if (unlocks.Count == 0)
+                if (!sourceUnlocks.Any())
                 {
-                    unlocks = CloneUnlocks(blueprint.Unlocks);
+                    sourceUnlocks = blueprint.Unlocks;
                 }
                 blueprint.unlocks = new BlueprintUnlockCollection();
                 EditorUtility.SetDirty(blueprint);
             }
+            BlueprintUnlockCollection unlocks = CloneUnlocks(sourceUnlocks.Where(unlock =>
+                unlock is not BlueprintBuildingUnlock building
+                || !canonicalBuildingOwners.TryGetValue(building.buildingId, out string owner)
+                || string.Equals(owner, spec.Id, StringComparison.Ordinal)));
 
             AppendProductionStationUnlocks(spec.Id, unlocks);
             AppendServiceRoomUnlocks(spec.Id, unlocks);
+            AppendResearchOverhaulUnlocks(spec.Id, unlocks);
             project.Configure(
                 spec.Id,
                 spec.Name,
@@ -99,7 +107,9 @@ public static class ResearchProjectAssetBuilder
                 spec.Rule,
                 blueprint,
                 spec.Prerequisites.Select(id => projects[id]),
-                unlocks);
+                unlocks,
+                requiredFacilityCapacity: ResolveFacilityRequirements(spec),
+                causalPrerequisites: BuildCausalPrerequisites(spec, projects));
             EditorUtility.SetDirty(project);
         }
 
@@ -115,7 +125,153 @@ public static class ResearchProjectAssetBuilder
             throw new InvalidOperationException(string.Join("\n", errors));
         }
 
+        IReadOnlyList<string> productionErrors =
+            BranchedProductionNetworkDebugScenarios.Validate();
+        if (productionErrors.Count > 0)
+        {
+            throw new InvalidOperationException(string.Join("\n", productionErrors));
+        }
+
         Debug.Log($"Research tree assets rebuilt: {projects.Count} projects.");
+    }
+
+    private static IReadOnlyDictionary<int, string> BuildCanonicalBuildingOwners()
+    {
+        Dictionary<int, string> owners = new Dictionary<int, string>();
+        foreach ((string researchId, int[] ids) in
+                 ResearchOverhaulContentAssetBuilder.GetFacilityUnlockIds())
+        {
+            foreach (int id in ids)
+            {
+                owners[id] = researchId;
+            }
+        }
+
+        BuildingSO[] buildings = AssetDatabase.FindAssets(
+                "t:BuildingSO", new[] { "Assets/Resources/SO/Building" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
+            .Where(building => building != null)
+            .ToArray();
+        foreach ((string researchId, string code) in
+                 ResearchOverhaulContentAssetBuilder.GetExistingFacilityCodes())
+        {
+            BuildingSO building = buildings.FirstOrDefault(candidate => string.Equals(
+                candidate.GetAbility<BuildingFacilityPartAbility>()?.code,
+                code,
+                StringComparison.Ordinal));
+            if (building == null)
+            {
+                throw new InvalidOperationException(
+                    $"Canonical reward facility '{code}' for '{researchId}' does not exist.");
+            }
+            owners[building.id] = researchId;
+        }
+        return owners;
+    }
+
+    private static IEnumerable<ResearchPrerequisiteLink> BuildCausalPrerequisites(
+        Spec spec,
+        IReadOnlyDictionary<string, ResearchProjectSO> projects)
+    {
+        foreach (string prerequisiteId in spec.Prerequisites)
+        {
+            ResearchProjectSO prerequisite = projects[prerequisiteId];
+            ResearchPrerequisiteKind kind = InferPrerequisiteKind(
+                spec.Id,
+                prerequisiteId);
+            yield return new ResearchPrerequisiteLink(
+                prerequisite,
+                kind,
+                $"{prerequisite.DisplayName}의 {GetCausalKnowledgeLabel(kind)}이(가) {spec.Name} 구현에 직접 필요하다.");
+        }
+    }
+
+    private static ResearchPrerequisiteKind InferPrerequisiteKind(
+        string projectId,
+        string prerequisiteId)
+    {
+        string combined = $"{projectId}|{prerequisiteId}";
+        if (combined.Contains("safety", StringComparison.Ordinal)
+            || combined.Contains("protection", StringComparison.Ordinal)
+            || combined.Contains("cold-work", StringComparison.Ordinal))
+        {
+            return ResearchPrerequisiteKind.Safety;
+        }
+        if (prerequisiteId.Contains("logistics", StringComparison.Ordinal)
+            || prerequisiteId.Contains("layout", StringComparison.Ordinal)
+            || prerequisiteId.Contains("maintenance", StringComparison.Ordinal)
+            || prerequisiteId.Contains("service", StringComparison.Ordinal))
+        {
+            return ResearchPrerequisiteKind.Operations;
+        }
+        if (prerequisiteId.Contains("records", StringComparison.Ordinal)
+            || prerequisiteId.Contains("arcane", StringComparison.Ordinal)
+            || prerequisiteId.Contains("resonance", StringComparison.Ordinal)
+            || prerequisiteId.Contains("testing", StringComparison.Ordinal)
+            || prerequisiteId.Contains("ballistics", StringComparison.Ordinal))
+        {
+            return ResearchPrerequisiteKind.Theory;
+        }
+        if (prerequisiteId.Contains("textile", StringComparison.Ordinal)
+            || prerequisiteId.Contains("tailoring", StringComparison.Ordinal)
+            || prerequisiteId.Contains("forge", StringComparison.Ordinal)
+            || prerequisiteId.Contains("cuisine", StringComparison.Ordinal))
+        {
+            return ResearchPrerequisiteKind.Technique;
+        }
+        return ResearchPrerequisiteKind.Engineering;
+    }
+
+    private static string GetCausalKnowledgeLabel(ResearchPrerequisiteKind kind) =>
+        kind switch
+        {
+            ResearchPrerequisiteKind.Theory => "이론",
+            ResearchPrerequisiteKind.Technique => "제작 기법",
+            ResearchPrerequisiteKind.Safety => "안전 기준",
+            ResearchPrerequisiteKind.Operations => "운용 절차",
+            _ => "공학 원리"
+        };
+
+    private static void AppendResearchOverhaulUnlocks(
+        string researchId,
+        BlueprintUnlockCollection unlocks)
+    {
+        List<int> buildingIds = new List<int>();
+        if (ResearchOverhaulContentAssetBuilder.GetFacilityUnlockIds()
+            .TryGetValue(researchId, out int[] createdIds))
+        {
+            buildingIds.AddRange(createdIds);
+        }
+
+        if (ResearchOverhaulContentAssetBuilder.GetExistingFacilityCodes()
+            .TryGetValue(researchId, out string existingCode))
+        {
+            BuildingSO existing = AssetDatabase.FindAssets(
+                    "t:BuildingSO",
+                    new[] { "Assets/Resources/SO/Building" })
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Select(AssetDatabase.LoadAssetAtPath<BuildingSO>)
+                .FirstOrDefault(building => string.Equals(
+                    building?.GetAbility<BuildingFacilityPartAbility>()?.code,
+                    existingCode,
+                    StringComparison.Ordinal));
+            if (existing == null)
+            {
+                throw new InvalidOperationException(
+                    $"Research '{researchId}' cannot find existing facility '{existingCode}'.");
+            }
+            buildingIds.Add(existing.id);
+        }
+
+        foreach (int buildingId in buildingIds.Distinct())
+        {
+            if (!unlocks.Items.OfType<BlueprintBuildingUnlock>()
+                .Any(unlock => unlock.buildingId == buildingId))
+            {
+                unlocks.Add(new BlueprintBuildingUnlock { buildingId = buildingId });
+            }
+        }
     }
 
     private static void AppendProductionStationUnlocks(
@@ -324,9 +480,190 @@ public static class ResearchProjectAssetBuilder
             desk.unlocked = true;
             EditorUtility.SetDirty(desk);
         }
+
+        AttachResearchCapacity(
+            "Q01",
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Basic, 1));
+        AttachResearchCapacity(
+            "Q02",
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Basic, 1),
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Arcane, 1));
+        AttachResearchCapacity(
+            "Q03",
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Archive, 1));
+        AttachResearchCapacity(
+            "Q04",
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Reagent, 1));
+        AttachResearchCapacity(
+            "Q05",
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Specimen, 1));
+        AttachResearchCapacity(
+            "Q06",
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Design, 1));
+        AttachResearchCapacity(
+            "P19",
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Basic, 1),
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Reagent, 1),
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Arcane, 1));
+        AttachResearchCapacity(
+            "P1_ResearchLab",
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Basic, 2),
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Archive, 1),
+            new ResearchFacilityContribution(ResearchFacilityCapabilityId.Advanced, 1));
     }
 
-    private static IReadOnlyList<Spec> CreateSpecs()
+    private static void AttachResearchCapacity(
+        string codeOrAssetName,
+        params ResearchFacilityContribution[] contributions)
+    {
+        BuildingSO building = AssetDatabase
+            .FindAssets("t:BuildingSO", new[] { "Assets/Resources/SO/Building" })
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(path => new
+            {
+                Path = path,
+                Asset = AssetDatabase.LoadAssetAtPath<BuildingSO>(path)
+            })
+            .Where(entry => entry.Asset != null)
+            .FirstOrDefault(entry =>
+                string.Equals(
+                    entry.Asset.GetAbility<BuildingFacilityPartAbility>()?.code,
+                    codeOrAssetName,
+                    StringComparison.Ordinal)
+                || string.Equals(
+                    System.IO.Path.GetFileNameWithoutExtension(entry.Path),
+                    codeOrAssetName,
+                    StringComparison.Ordinal))
+            ?.Asset;
+        if (building == null)
+        {
+            throw new InvalidOperationException(
+                $"연구 수용력을 연결할 시설을 찾지 못했습니다: {codeOrAssetName}");
+        }
+
+        building.AbilityModules.Remove<BuildingResearchCapacityAbility>();
+        BuildingResearchCapacityAbility ability =
+            new BuildingResearchCapacityAbility();
+        ability.Configure(contributions);
+        building.AbilityModules.Add(ability);
+        building.AbilityModules.EnsureStableIds();
+        building.ValidateAbilitiesOrThrow();
+        EditorUtility.SetDirty(building);
+    }
+
+    private static IReadOnlyList<ResearchFacilityRequirement>
+        ResolveFacilityRequirements(Spec spec)
+    {
+        List<ResearchFacilityRequirement> requirements =
+            new List<ResearchFacilityRequirement>();
+        void Add(ResearchFacilityCapabilityId capability, int count = 1) =>
+            requirements.Add(new ResearchFacilityRequirement(capability, count));
+
+        switch (spec.Field)
+        {
+            case ResearchField.SurgeryAndTransplant:
+                Add(ResearchFacilityCapabilityId.Basic);
+                Add(ResearchFacilityCapabilityId.Specimen);
+                if (spec.Work >= 200f)
+                {
+                    Add(ResearchFacilityCapabilityId.Advanced);
+                }
+                break;
+            case ResearchField.Pharmacology:
+                Add(ResearchFacilityCapabilityId.Basic);
+                Add(ResearchFacilityCapabilityId.Reagent);
+                if (spec.Work >= 120f)
+                {
+                    Add(ResearchFacilityCapabilityId.Arcane);
+                }
+                if (spec.Work >= 220f)
+                {
+                    Add(ResearchFacilityCapabilityId.Advanced);
+                }
+                break;
+            case ResearchField.RecordsAndArcane:
+                Add(ResearchFacilityCapabilityId.Basic);
+                Add(ResearchFacilityCapabilityId.Archive);
+                if (spec.Work >= 55f)
+                {
+                    Add(ResearchFacilityCapabilityId.Arcane);
+                }
+                if (spec.Work >= 180f)
+                {
+                    Add(ResearchFacilityCapabilityId.Advanced);
+                }
+                break;
+            case ResearchField.IndustryAndAutomation:
+                Add(ResearchFacilityCapabilityId.Basic, 2);
+                Add(ResearchFacilityCapabilityId.Design);
+                if (spec.Work >= 190f)
+                {
+                    Add(ResearchFacilityCapabilityId.Advanced);
+                }
+                break;
+            case ResearchField.WaterAndSanitation:
+            case ResearchField.DefenseAndTactics:
+                Add(
+                    ResearchFacilityCapabilityId.Basic,
+                    spec.Work >= 130f ? 2 : 1);
+                Add(ResearchFacilityCapabilityId.Design);
+                if (spec.Work >= 220f)
+                {
+                    Add(ResearchFacilityCapabilityId.Advanced);
+                }
+                break;
+            case ResearchField.CommerceAndCraft:
+            case ResearchField.Agriculture:
+            case ResearchField.Forestry:
+            case ResearchField.Mining:
+            case ResearchField.Husbandry:
+            case ResearchField.Metallurgy:
+            case ResearchField.Textiles:
+            case ResearchField.Cuisine:
+                Add(ResearchFacilityCapabilityId.Basic);
+                if (spec.Work >= 90f)
+                {
+                    Add(ResearchFacilityCapabilityId.Design);
+                }
+                if (spec.Work >= 210f)
+                {
+                    Add(ResearchFacilityCapabilityId.Advanced);
+                }
+                break;
+            case ResearchField.AuthorityAndHousing:
+            case ResearchField.CaptivityAndEntertainment:
+                Add(ResearchFacilityCapabilityId.Basic);
+                if (spec.Work >= 90f)
+                {
+                    Add(ResearchFacilityCapabilityId.Archive);
+                }
+                break;
+            case ResearchField.LifeAndSurvival:
+                Add(ResearchFacilityCapabilityId.Basic);
+                if (spec.Id.Contains(":medical", StringComparison.Ordinal))
+                {
+                    Add(ResearchFacilityCapabilityId.Specimen);
+                }
+                else if (spec.Id.Contains(":environment", StringComparison.Ordinal))
+                {
+                    Add(ResearchFacilityCapabilityId.Design);
+                }
+                break;
+            default:
+                Add(ResearchFacilityCapabilityId.Basic);
+                break;
+        }
+
+        return requirements
+            .GroupBy(requirement => requirement.capability)
+            .Select(group => new ResearchFacilityRequirement(
+                group.Key,
+                group.Sum(requirement => requirement.requiredCount)))
+            .OrderBy(requirement => requirement.capability)
+            .ToArray();
+    }
+
+    private static IReadOnlyList<Spec> CreateBaseSpecs()
     {
         return new[]
         {
@@ -484,8 +821,96 @@ public static class ResearchProjectAssetBuilder
             S("research:defense:rune-identification", 7203, "룬 식별", "감지 장치가 허용 대상과 적대 대상을 더 정확하게 구분하도록 룬 식별 규칙을 새긴다.", ResearchField.DefenseAndTactics, 176, prerequisites: new[] { "research:defense:corridor-mechanisms", "research:arcane:advanced" }),
             S("research:defense:remote-control", 7204, "원격 통제", "방어 통제대에서 무장 정책과 발동 구역을 원격으로 전환한다.", ResearchField.DefenseAndTactics, 214, prerequisites: new[] { "research:defense:rune-identification", "research:industry:distribution" }),
             S("research:defense:siege-fortification", 7205, "공성 요새화", "강화 낙하문과 벽면 발사구를 공성 장비와 중장갑 침입자에 맞게 보강한다.", ResearchField.DefenseAndTactics, 258, prerequisites: new[] { "research:defense:remote-control", "research:defense:ranged-positions", "research:metallurgy:steel" }),
-            S("research:defense:alliance-signals", 7206, "동맹 신호학", "동맹 지원군의 접근 경로와 방어시설 허용 목록을 공유하는 신호 체계를 만든다.", ResearchField.DefenseAndTactics, 296, prerequisites: new[] { "research:defense:siege-fortification", "research:commerce:secure-trade" })
+            S("research:defense:alliance-signals", 7206, "동맹 신호학", "동맹 지원군의 접근 경로와 방어시설 허용 목록을 공유하는 신호 체계를 만든다.", ResearchField.DefenseAndTactics, 296, prerequisites: new[] { "research:defense:siege-fortification", "research:commerce:secure-trade" }),
+            S("research:medical:slime-bioengineering", 7211, "점액 생체공학", "점액 외피와 응집핵을 안정화하고 재성형한다.", ResearchField.SurgeryAndTransplant, 184, prerequisites: new[] { "research:medical:anatomy", "research:arcane:alchemy" }),
+            S("research:medical:mycelial-grafting", 7212, "균사 접목학", "균사 군체와 포자낭을 세정하고 재배양한다.", ResearchField.SurgeryAndTransplant, 196, prerequisites: new[] { "research:medical:anatomy", "research:forestry:fungal" }),
+            S("research:medical:avian-prosthetics", 7213, "조류 보철학", "기낭과 날개의 하중을 보존하는 경량 고정술을 개발한다.", ResearchField.SurgeryAndTransplant, 206, prerequisites: new[] { "research:medical:prosthetics", "research:textile:layered" }),
+            S("research:medical:construct-core-maintenance", 7214, "구성체 핵 정비", "냉각관·서보·감지핵과 동력핵을 시술 주문으로 정비한다.", ResearchField.SurgeryAndTransplant, 218, prerequisites: new[] { "research:medical:prosthetics", "research:industry:distribution" }),
+            S("research:medical:bloodcraft-augmentation", 7215, "혈술 개조", "혈액낭과 야간안을 혈술로 강화하고 거부 부담을 통제한다.", ResearchField.SurgeryAndTransplant, 252, prerequisites: new[] { "research:medical:xenotransplant", "research:pharmacology:advanced" }),
+            S("research:medical:mana-core-engineering", 7216, "마핵 공학", "마핵과 열낭에 룬 구속을 적용해 비전 개조를 안정화한다.", ResearchField.SurgeryAndTransplant, 286, prerequisites: new[] { "research:medical:aberrant-augmentation", "research:arcane:resonance" })
         };
+    }
+
+    private static IReadOnlyList<Spec> CreateSpecs()
+    {
+        return CreateBaseSpecs()
+            .Concat(CreateExpansionSpecs())
+            .Select(ApplyApprovedWorkBand)
+            .ToArray();
+    }
+
+    private static IReadOnlyList<Spec> CreateExpansionSpecs()
+    {
+        return new[]
+        {
+            S("research:service:dining-operations", 7221, "식당 운영학", "배식과 좌석 회전, 위생 점검을 하나의 서비스 작업으로 표준화한다.", ResearchField.CommerceAndCraft, 184, prerequisites: new[] { ServiceRoomResearchIds.ServiceFlow, "research:cuisine:livestock" }),
+            S("research:survival:field-rations", 7222, "야전 식량학", "원정 중에도 운반과 섭취가 쉬운 보존 식량 규격을 확립한다.", ResearchField.LifeAndSurvival, 132, prerequisites: new[] { "research:survival:preservation", "research:commerce:logistics" }),
+            S("research:medical:construct-core-engineering", 7223, "구성체 핵 공학", "구성체 핵의 냉각과 동력 접속을 수술 가능한 공학 규격으로 정리한다.", ResearchField.SurgeryAndTransplant, 252, prerequisites: new[] { "research:medical:construct-core-maintenance", "research:industry:distribution", "research:arcane:records" }),
+            S("research:equipment:weapon-patterns", 7224, "무기 형식학", "목재와 단조 부품을 반복 제작 가능한 무기 형식으로 규격화한다.", ResearchField.CommerceAndCraft, 92, prerequisites: new[] { "research:forestry:tools", "research:metallurgy:primitive" }),
+            S("research:equipment:armor-tailoring", 7225, "방어구 재단", "직물과 가죽의 하중선을 맞추는 방어구 재단법을 확립한다.", ResearchField.Textiles, 132, prerequisites: new[] { "research:textile:tailoring", "research:textile:tanning" }),
+            S("research:equipment:bowyery", 7226, "궁시 제작학", "처리 목재와 섬유의 탄성을 조율해 복합 활대를 제작한다.", ResearchField.CommerceAndCraft, 132, prerequisites: new[] { "research:forestry:treated", "research:textile:fiber" }),
+            S("research:equipment:mechanical-projectiles", 7227, "기계식 투사", "권양 장치와 철제 걸쇠로 높은 장력의 투사 장비를 안전하게 작동시킨다.", ResearchField.DefenseAndTactics, 184, prerequisites: new[] { "research:equipment:bowyery", "research:metallurgy:iron" }),
+            S("research:equipment:mail-weaving", 7228, "사슬 편조", "철 고리와 층상 충전재를 결속해 유연한 방호 외피를 만든다.", ResearchField.Metallurgy, 184, prerequisites: new[] { "research:metallurgy:iron", "research:textile:layered" }),
+            S("research:equipment:articulated-plate", 7229, "관절식 판금", "제강 판재와 사슬 연결부를 관절 구조로 조립한다.", ResearchField.Metallurgy, 252, prerequisites: new[] { "research:metallurgy:steel", "research:metallurgy:advanced", "research:equipment:mail-weaving" }),
+            S("research:equipment:black-powder", 7230, "흑색화약 배합", "숯과 증류 약재를 기록된 비율로 분쇄해 추진용 화약을 만든다.", ResearchField.IndustryAndAutomation, 420, prerequisites: new[] { "research:forestry:charcoal", "research:pharmacology:distillation", "research:arcane:records" }),
+            S("research:equipment:ignition-mechanisms", 7231, "점화 기구학", "강철 격발부와 제도 규격으로 휴대 화기의 점화를 제어한다.", ResearchField.IndustryAndAutomation, 560, prerequisites: new[] { "research:equipment:black-powder", "research:metallurgy:steel", "research:equipment:engineering-drawing" }),
+            S("research:equipment:ballistics", 7232, "탄도학", "점화 압력과 사격 진지의 관측 기록으로 탄도 편차를 계산한다.", ResearchField.DefenseAndTactics, 560, prerequisites: new[] { "research:equipment:ignition-mechanisms", "research:defense:ranged-positions" }),
+            S("research:equipment:pressure-barrels", 7233, "내압 총열", "탄도 압력과 고급 단조 검사를 결합해 파열을 견디는 총열을 만든다.", ResearchField.IndustryAndAutomation, 720, prerequisites: new[] { "research:equipment:ballistics", "research:metallurgy:advanced" }),
+            S("research:equipment:blast-protection", 7234, "폭발 작업 보호", "화약 폭압과 연기, 저온 작업 위험을 함께 차단하는 보호 장비를 만든다.", ResearchField.LifeAndSurvival, 720, prerequisites: new[] { "research:equipment:black-powder", "research:textile:layered", "research:environment:cold-work" }),
+            S("research:equipment:relic-appraisal", 7235, "유물 부품 감정", "회수된 부품의 계보와 기능을 기록하고 위험한 결함을 식별한다.", ResearchField.RecordsAndArcane, 252, prerequisites: new[] { "research:commerce:logistics", "research:arcane:records" }),
+            S("research:equipment:relic-restoration", 7236, "유물 부품 복원", "감정된 부품의 금속 골격과 직물 결속부를 원형에 가깝게 복원한다.", ResearchField.CommerceAndCraft, 420, prerequisites: new[] { "research:equipment:relic-appraisal", "research:metallurgy:advanced", "research:textile:tailoring" }),
+            S("research:equipment:precision-fitting", 7237, "정밀 부품 장착", "복원 부품을 계측하고 전동 공구로 장비 슬롯에 정밀 장착한다.", ResearchField.IndustryAndAutomation, 720, prerequisites: new[] { "research:equipment:relic-restoration", "research:industry:powered-tools", "research:equipment:material-testing" }),
+            S("research:equipment:rune-module-tuning", 7238, "룬 부품 조율", "정밀 장착 부품을 비전 공명과 룬 전력망에 동조시킨다.", ResearchField.IndustryAndAutomation, 1200, prerequisites: new[] { "research:equipment:precision-fitting", "research:arcane:resonance", "research:industry:rune-grid" }),
+            S("research:equipment:modular-frames", 7239, "모듈식 장비 골격", "정밀 장착 치수와 강철 시험값을 공유하는 성장형 장비 골격을 제작한다.", ResearchField.IndustryAndAutomation, 960, prerequisites: new[] { "research:equipment:precision-fitting", "research:metallurgy:steel", "research:equipment:material-testing" }),
+            S("research:equipment:lineage-binding", 7240, "장비 계보 결속", "룬 조율 장비의 사용 기록과 상징을 새 장비에 결속한다.", ResearchField.RecordsAndArcane, 1200, prerequisites: new[] { "research:equipment:rune-module-tuning", "research:arcane:records", "research:authority:prestige" }),
+            S("research:equipment:engineering-drawing", 7241, "공학 제도", "기록 체계와 강철 규격을 재현 가능한 공학 도면으로 바꾼다.", ResearchField.IndustryAndAutomation, 420, prerequisites: new[] { "research:arcane:records", "research:metallurgy:steel" }),
+            S("research:equipment:material-testing", 7242, "재료 시험학", "공학 도면의 허용 오차를 고급 단조 시편으로 검증한다.", ResearchField.IndustryAndAutomation, 560, prerequisites: new[] { "research:equipment:engineering-drawing", "research:metallurgy:advanced" }),
+            S("research:equipment:prototype-engineering", 7243, "시제품 공학", "재료 시험 결과를 공장 배치 안에서 반복 가능한 시제품 공정으로 만든다.", ResearchField.IndustryAndAutomation, 720, prerequisites: new[] { "research:equipment:material-testing", "research:industry:factory-layout" }),
+            S("research:equipment:industrial-metrology", 7244, "산업 계측학", "시제품 공정과 정밀 자동화의 편차를 공장 규모에서 계측한다.", ResearchField.IndustryAndAutomation, 960, prerequisites: new[] { "research:equipment:prototype-engineering", "research:industry:precision" }),
+            S("research:equipment:field-maintenance", 7245, "야전 정비학", "방어 보급 절차와 재봉 수선법을 휴대 가능한 수리 규격으로 묶는다.", ResearchField.DefenseAndTactics, 184, prerequisites: new[] { "research:defense:supply", "research:textile:tailoring" }),
+            S("research:equipment:standard-ammunition", 7246, "탄약 규격화", "화약과 물류, 전동 공구 규격을 종이 탄약통 생산에 통합한다.", ResearchField.IndustryAndAutomation, 720, prerequisites: new[] { "research:equipment:black-powder", "research:commerce:logistics", "research:industry:powered-tools" }),
+            S("research:equipment:powered-armor", 7247, "동력 보조 갑주", "관절식 판금에 배전과 정밀 부품 구동계를 결합한다.", ResearchField.IndustryAndAutomation, 1200, prerequisites: new[] { "research:equipment:articulated-plate", "research:industry:distribution", "research:equipment:precision-fitting" })
+        };
+    }
+
+    private static Spec ApplyApprovedWorkBand(Spec spec)
+    {
+        if (spec.NumericId >= 7221)
+        {
+            return spec;
+        }
+
+        if (spec.Field == ResearchField.IndustryAndAutomation)
+        {
+            spec.Work = spec.Id switch
+            {
+                "research:industry:steam-power" => 420f,
+                "research:industry:distribution" or
+                "research:industry:powered-tools" or
+                "research:industry:factory-layout" or
+                "research:industry:breakers" => 560f,
+                "research:industry:conveyor" or
+                "research:industry:assisted-processing" or
+                "research:industry:electric-smelting" or
+                "research:industry:industrial-cooling" or
+                "research:industry:electric-lighting" => 720f,
+                "research:industry:precision" or
+                "research:industry:line-balancing" or
+                "research:industry:automatic-bills" or
+                "research:industry:stock-sensors" => 960f,
+                "research:industry:rune-automation" or
+                "research:industry:dark-foundry" => 1200f,
+                _ => spec.Work <= 160f ? 560f
+                    : spec.Work <= 240f ? 720f
+                    : spec.Work <= 320f ? 960f
+                    : 1200f
+            };
+            return spec;
+        }
+
+        float[] bands = { 36f, 60f, 92f, 132f, 184f, 252f, 336f };
+        spec.Work = bands.OrderBy(value => Mathf.Abs(value - spec.Work)).First();
+        return spec;
     }
 
     private static Spec S(

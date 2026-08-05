@@ -1,0 +1,890 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public interface IDungeonSavePreflightValidator
+{
+    void Validate(DungeonGameSaveData saveData, DungeonGameRestoreReport report);
+}
+
+/// <summary>
+/// Validates identities and authored-content references across aggregate payloads before
+/// any save section is allowed to mutate the live world.
+/// </summary>
+public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightValidator
+{
+    private readonly IItemDefinitionCatalog itemDefinitions;
+    private readonly IBuildingDefinitionLookup buildingDefinitions;
+    private readonly ICombatEquipmentCatalog combatEquipmentDefinitions;
+    private readonly IResourceEconomyContentCatalog economyContent;
+
+    public DungeonAggregateReferencePreflight(
+        IItemDefinitionCatalog itemDefinitions,
+        IBuildingDefinitionLookup buildingDefinitions,
+        ICombatEquipmentCatalog combatEquipmentDefinitions,
+        IResourceEconomyContentCatalog economyContent)
+    {
+        this.itemDefinitions = itemDefinitions
+            ?? throw new ArgumentNullException(nameof(itemDefinitions));
+        this.buildingDefinitions = buildingDefinitions
+            ?? throw new ArgumentNullException(nameof(buildingDefinitions));
+        this.combatEquipmentDefinitions = combatEquipmentDefinitions
+            ?? throw new ArgumentNullException(nameof(combatEquipmentDefinitions));
+        this.economyContent = economyContent
+            ?? throw new ArgumentNullException(nameof(economyContent));
+    }
+
+    public void Validate(
+        DungeonGameSaveData saveData,
+        DungeonGameRestoreReport report)
+    {
+        if (saveData == null) throw new ArgumentNullException(nameof(saveData));
+        if (report == null) throw new ArgumentNullException(nameof(report));
+
+        DungeonPhysicalItemSaveData items =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonPhysicalItemSaveData>(
+                saveData,
+                PhysicalItemsSaveSection.Id);
+        DungeonCharacterWorldSaveData characters =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
+                saveData,
+                CharacterWorldSaveSection.Id);
+        ModularFacilityWorldSaveData buildings =
+            DungeonSaveSectionPayload.ReadOrNew<ModularFacilityWorldSaveData>(
+                saveData,
+                ModularFacilityWorldSaveSection.Id);
+        DungeonOffenseAggregateSaveData offense =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonOffenseAggregateSaveData>(
+                saveData,
+                OffenseAggregateSaveSection.Id);
+        DungeonCombatEquipmentSaveData combat =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonCombatEquipmentSaveData>(
+                saveData,
+                CombatEquipmentSaveSection.Id);
+        EquipmentEvolutionSaveData evolution =
+            DungeonSaveSectionPayload.ReadOrNew<EquipmentEvolutionSaveData>(
+                saveData,
+                EquipmentEvolutionSaveSection.Id);
+        DungeonMetaProgressionSaveData meta =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonMetaProgressionSaveData>(
+                saveData,
+                MetaProgressionSaveSection.Id);
+        DungeonResearchSaveData research =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonResearchSaveData>(
+                saveData,
+                BlueprintResearchSaveSection.Id);
+        DungeonCropPlotSaveData cropPlots =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonCropPlotSaveData>(
+                saveData,
+                CropPlotSaveSection.Id);
+        TreasuryEconomySaveData treasury =
+            DungeonSaveSectionPayload.ReadOrNew<TreasuryEconomySaveData>(
+                saveData,
+                TreasuryEconomySaveSection.Id);
+
+        PhysicalReferenceIndex physical = ValidatePhysicalItems(items, report);
+        HashSet<string> characterIds = ValidateCharacters(characters, report);
+        BuildingReferenceIndex buildingIds = ValidateBuildings(buildings, report);
+        ValidateOffenseMembers(offense, characterIds, report);
+        ValidateOffenseReferences(
+            offense,
+            characterIds,
+            physical,
+            buildingIds.InstanceIds,
+            report);
+        ValidateCombat(
+            combat,
+            characterIds,
+            physical,
+            buildingIds.InstanceIds,
+            research,
+            report);
+        ValidateEvolution(
+            evolution,
+            physical.EquipmentInstanceIds,
+            buildingIds.InstanceIds,
+            report);
+        ValidateMeta(meta, report);
+        ValidateResearch(research, buildings, offense, report);
+        ValidateCropPlots(cropPlots, buildingIds, report);
+        ValidateTreasury(
+            treasury,
+            characterIds,
+            buildingIds.InstanceIds,
+            physical.EquipmentInstanceIds,
+            report);
+    }
+
+    private PhysicalReferenceIndex ValidatePhysicalItems(
+        DungeonPhysicalItemSaveData source,
+        DungeonGameRestoreReport report)
+    {
+        PhysicalReferenceIndex result = new PhysicalReferenceIndex();
+        foreach (WorldItemStackSaveData stack in source?.stacks
+                     ?? new List<WorldItemStackSaveData>())
+        {
+            if (stack == null)
+            {
+                report.AddError("Physical item aggregate contains a null stack.");
+                continue;
+            }
+
+            RequireUniqueId(stack.stackId, "item stack", result.StackIds, report);
+            RequireItemDefinition(stack.itemId, report);
+            if (!string.IsNullOrWhiteSpace(stack.itemInstanceId))
+            {
+                RequireUniqueId(
+                    stack.itemInstanceId,
+                    "item instance",
+                    result.ItemInstanceIds,
+                    report);
+            }
+
+            if (stack.quantity <= 0)
+            {
+                report.AddError($"Item stack '{stack.stackId}' has non-positive quantity {stack.quantity}.");
+            }
+        }
+
+        foreach (UniqueItemInstanceSaveData unique in source?.uniqueItems
+                     ?? new List<UniqueItemInstanceSaveData>())
+        {
+            if (unique == null)
+            {
+                report.AddError("Physical item aggregate contains a null unique item.");
+                continue;
+            }
+
+            RequireUniqueId(
+                unique.itemInstanceId,
+                "item instance",
+                result.ItemInstanceIds,
+                report);
+            RequireItemDefinition(unique.definitionId, report);
+            ItemInstanceComponentSaveData equipmentComponent = unique.components?
+                .FirstOrDefault(component => component != null
+                    && string.Equals(
+                        component.componentTypeId,
+                        ItemInstanceComponentIds.Equipment,
+                        StringComparison.Ordinal));
+            if (equipmentComponent != null
+                && EquipmentItemStateCodec.TryDecode(
+                    equipmentComponent,
+                    out CombatEquipmentInstance equipment,
+                    out _))
+            {
+                if (string.IsNullOrEmpty(equipment.instanceId)
+                    || !string.Equals(
+                        equipment.instanceId,
+                        unique.itemInstanceId,
+                        StringComparison.Ordinal)
+                    || !result.EquipmentInstanceIds.Add(equipment.instanceId)
+                    || !result.EquipmentDefinitionIds.TryAdd(
+                        equipment.instanceId,
+                        equipment.definitionId))
+                {
+                    report.AddError(
+                        $"Physical equipment component '{equipment.instanceId}' does not uniquely match owning item instance '{unique.itemInstanceId}'.");
+                }
+                else if (!combatEquipmentDefinitions.TryGet(
+                             equipment.definitionId,
+                             out _))
+                {
+                    report.AddError(
+                        $"Physical equipment '{equipment.instanceId}' references unknown equipment definition '{equipment.definitionId}'.");
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private HashSet<string> ValidateCharacters(
+        DungeonCharacterWorldSaveData source,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (DungeonCharacterSaveData actor in source?.actors
+                     ?? new List<DungeonCharacterSaveData>())
+        {
+            if (actor == null)
+            {
+                report.AddError("Character aggregate contains a null actor.");
+                continue;
+            }
+
+            RequireUniqueId(actor.persistentId, "character", ids, report);
+            foreach (CharacterCarriedItemSaveData carried in actor.carryInventory?.items
+                         ?? new List<CharacterCarriedItemSaveData>())
+            {
+                if (carried != null)
+                {
+                    RequireItemDefinition(carried.itemId, report);
+                }
+            }
+        }
+
+        foreach (WorldCharacterProfile profile in source?.populationProfiles
+                     ?? new List<WorldCharacterProfile>())
+        {
+            string id = profile?.persistentId?.Trim() ?? string.Empty;
+            if (id.Length == 0)
+            {
+                report.AddError("Character population aggregate contains a profile without an ID.");
+            }
+            else
+            {
+                ids.Add(id);
+            }
+        }
+
+        return ids;
+    }
+
+    private BuildingReferenceIndex ValidateBuildings(
+        ModularFacilityWorldSaveData source,
+        DungeonGameRestoreReport report)
+    {
+        BuildingReferenceIndex result = new BuildingReferenceIndex();
+        foreach (ModularFacilityBuildingSaveData building in source?.buildings
+                     ?? new List<ModularFacilityBuildingSaveData>())
+        {
+            if (building == null)
+            {
+                report.AddError("Building aggregate contains a null building.");
+                continue;
+            }
+
+            RequireUniqueId(
+                building.persistentInstanceId,
+                "building",
+                result.InstanceIds,
+                report);
+            try
+            {
+                BuildingSO definition =
+                    buildingDefinitions.GetBuilding(building.buildingId);
+                result.InstanceDefinitions[building.persistentInstanceId] =
+                    definition;
+            }
+            catch (Exception)
+            {
+                report.AddError(
+                    $"Building '{building.persistentInstanceId}' references unknown definition {building.buildingId}.");
+            }
+        }
+
+        return result;
+    }
+
+    private static void ValidateOffenseMembers(
+        DungeonOffenseAggregateSaveData source,
+        ISet<string> characterIds,
+        DungeonGameRestoreReport report)
+    {
+        foreach (DungeonOffenseExpeditionRunSaveData run in source?.expedition?.activeExpeditions
+                     ?? new List<DungeonOffenseExpeditionRunSaveData>())
+        {
+            if (run == null || string.IsNullOrWhiteSpace(run.expeditionId))
+            {
+                report.AddError("Offense aggregate contains an expedition without an ID.");
+                continue;
+            }
+
+            foreach (string memberId in (run.memberPersistentIds ?? new List<string>())
+                         .Concat(run.protectedRescueMemberPersistentIds ?? new List<string>())
+                         .Concat((run.memberStates ?? new List<DungeonOffenseExpeditionMemberStateSaveData>())
+                             .Where(state => state != null)
+                             .Select(state => state.persistentId)))
+            {
+                string id = memberId?.Trim() ?? string.Empty;
+                if (id.Length == 0 || !characterIds.Contains(id))
+                {
+                    report.AddError(
+                        $"Expedition '{run.expeditionId}' references missing character '{id}'.");
+                }
+            }
+        }
+    }
+
+    private void ValidateOffenseReferences(
+        DungeonOffenseAggregateSaveData source,
+        ISet<string> characterIds,
+        PhysicalReferenceIndex physical,
+        ISet<string> buildingIds,
+        DungeonGameRestoreReport report)
+    {
+        OffenseWorldSaveData world = source?.world;
+        foreach (FieldStabilizationState stabilization in
+                 world?.fieldStabilizations
+                 ?? new List<FieldStabilizationState>())
+        {
+            if (stabilization == null)
+            {
+                continue;
+            }
+            RequireReference(
+                stabilization.characterId,
+                characterIds,
+                $"Field stabilization '{stabilization.expeditionId}' character",
+                report);
+            string kitId = stabilization.consumedKitInstanceId ?? string.Empty;
+            if (!kitId.StartsWith("packed:", StringComparison.Ordinal)
+                && !physical.ItemInstanceIds.Contains(kitId)
+                && !physical.StackIds.Contains(kitId))
+            {
+                report.AddError(
+                    $"Field stabilization '{stabilization.expeditionId}' references missing consumed kit '{kitId}'.");
+            }
+        }
+
+        foreach (OffenseCasualtyCarryState carry in world?.casualtyCarries
+                     ?? new List<OffenseCasualtyCarryState>())
+        {
+            if (carry == null)
+            {
+                continue;
+            }
+            RequireReference(
+                carry.casualtyCharacterId,
+                characterIds,
+                $"Casualty carry '{carry.expeditionId}' casualty",
+                report);
+            RequireReference(
+                carry.carrierCharacterId,
+                characterIds,
+                $"Casualty carry '{carry.expeditionId}' carrier",
+                report);
+        }
+
+        foreach (RescueConvoyState convoy in world?.rescueConvoys
+                     ?? new List<RescueConvoyState>())
+        {
+            if (convoy == null)
+            {
+                continue;
+            }
+            foreach (string characterId in
+                     (convoy.rescuerCharacterIds ?? new List<string>())
+                     .Concat(convoy.protectedCasualtyIds ?? new List<string>()))
+            {
+                RequireReference(
+                    characterId,
+                    characterIds,
+                    $"Rescue convoy '{convoy.rescueExpeditionId}' character",
+                    report);
+            }
+        }
+
+        foreach (OffenseUrgentMitigationOrderStateData order in
+                 world?.mitigationOrders
+                 ?? new List<OffenseUrgentMitigationOrderStateData>())
+        {
+            if (order != null
+                && !string.IsNullOrEmpty(order.facilityPersistentId))
+            {
+                RequireReference(
+                    order.facilityPersistentId,
+                    buildingIds,
+                    $"Offense mitigation order '{order.orderId}' facility",
+                    report);
+            }
+        }
+
+        foreach (OffenseSupplyPackingItemStateData cost in
+                 (world?.supplyPackages
+                     ?? new List<OffenseSupplyPackingStateData>())
+                 .Where(package => package != null)
+                 .SelectMany(package => package.costs
+                     ?? new List<OffenseSupplyPackingItemStateData>()))
+        {
+            if (cost != null)
+            {
+                RequireItemDefinition(cost.itemId, report);
+            }
+        }
+
+        foreach (OffenseThrownEquipmentPersistenceState thrown in
+                 source?.expedition?.activeBattle?.thrownEquipment
+                 ?? new List<OffenseThrownEquipmentPersistenceState>())
+        {
+            if (thrown == null)
+            {
+                continue;
+            }
+            RequireReference(
+                thrown.instanceId,
+                physical.EquipmentInstanceIds,
+                "Thrown equipment",
+                report);
+            RequireReference(
+                thrown.ownerCharacterId,
+                characterIds,
+                $"Thrown equipment '{thrown.instanceId}' owner",
+                report);
+        }
+    }
+
+    private void ValidateCombat(
+        DungeonCombatEquipmentSaveData source,
+        ISet<string> characterIds,
+        PhysicalReferenceIndex physical,
+        ISet<string> buildingIds,
+        DungeonResearchSaveData research,
+        DungeonGameRestoreReport report)
+    {
+        foreach (CharacterCombatLoadoutState loadout in source?.loadouts
+                     ?? new List<CharacterCombatLoadoutState>())
+        {
+            string characterId = loadout?.characterId ?? string.Empty;
+            if (loadout == null || !characterIds.Contains(characterId))
+            {
+                report.AddError(
+                    $"Combat loadout references missing character '{characterId}'.");
+                continue;
+            }
+
+            foreach (CharacterCombatLoadoutProfile profile in loadout.profiles
+                         ?? new List<CharacterCombatLoadoutProfile>())
+            {
+                if (profile == null)
+                {
+                    continue;
+                }
+                foreach (string equipmentId in profile.weaponInstanceIds
+                             ?? new List<string>())
+                {
+                    RequireEquipmentReference<CombatWeaponSO>(
+                        equipmentId,
+                        physical,
+                        $"Combat loadout '{characterId}' weapon",
+                        report);
+                }
+                foreach (string equipmentId in profile.armorInstanceIds
+                             ?? new List<string>())
+                {
+                    RequireEquipmentReference<CombatArmorSO>(
+                        equipmentId,
+                        physical,
+                        $"Combat loadout '{characterId}' armor",
+                        report);
+                }
+                if (!string.IsNullOrEmpty(profile.shieldInstanceId))
+                {
+                    RequireEquipmentReference<CombatShieldSO>(
+                        profile.shieldInstanceId,
+                        physical,
+                        $"Combat loadout '{characterId}' shield",
+                        report);
+                }
+            }
+        }
+
+        foreach (CombatEquipmentCraftMaterialPolicySaveData policy in
+                 source?.craftMaterialPolicies
+                 ?? new List<CombatEquipmentCraftMaterialPolicySaveData>())
+        {
+            if (policy != null)
+            {
+                RequireReference(
+                    policy.facilityKey,
+                    buildingIds,
+                    "Combat material-policy facility",
+                    report);
+            }
+        }
+
+        HashSet<string> completedResearch = new HashSet<string>(
+            research?.completedProjectIds ?? new List<string>(),
+            StringComparer.Ordinal);
+        foreach (CombatEquipmentCraftOrderSaveData order in source?.craftOrders
+                     ?? new List<CombatEquipmentCraftOrderSaveData>())
+        {
+            if (order == null
+                || CombatEquipmentCraftingRuntime.IsAmmunitionRecipe(
+                    order.definitionId))
+            {
+                continue;
+            }
+            if (!combatEquipmentDefinitions.TryGet(
+                    order.definitionId,
+                    out CombatEquipmentDefinitionSO definition))
+            {
+                report.AddError(
+                    $"Combat craft order '{order.orderId}' references unknown equipment definition '{order.definitionId}'.");
+                continue;
+            }
+            if (!string.IsNullOrEmpty(definition.RequiredResearchId)
+                && !completedResearch.Contains(definition.RequiredResearchId))
+            {
+                report.AddError(
+                    $"Combat craft order '{order.orderId}' bypasses required research '{definition.RequiredResearchId}'.");
+            }
+        }
+
+        foreach (EquipmentHistoryTransferOrder order in
+                 source?.historyTransferOrders
+                 ?? new List<EquipmentHistoryTransferOrder>())
+        {
+            if (order == null)
+            {
+                continue;
+            }
+            RequireReference(
+                order.sourceEquipmentInstanceId,
+                physical.EquipmentInstanceIds,
+                $"History transfer '{order.orderId}' source equipment",
+                report);
+            RequireReference(
+                order.targetEquipmentInstanceId,
+                physical.EquipmentInstanceIds,
+                $"History transfer '{order.orderId}' target equipment",
+                report);
+            RequireReference(
+                order.lineageSealStackId,
+                physical.StackIds,
+                $"History transfer '{order.orderId}' lineage-seal stack",
+                report);
+            if (TryGetEquipmentDefinition(
+                    order.sourceEquipmentInstanceId,
+                    physical,
+                    out CombatEquipmentDefinitionSO sourceDefinition)
+                && TryGetEquipmentDefinition(
+                    order.targetEquipmentInstanceId,
+                    physical,
+                    out CombatEquipmentDefinitionSO targetDefinition)
+                && sourceDefinition.LineageKind != targetDefinition.LineageKind)
+            {
+                report.AddError(
+                    $"History transfer '{order.orderId}' crosses equipment lineage kinds.");
+            }
+        }
+    }
+
+    private void RequireEquipmentReference<TDefinition>(
+        string equipmentId,
+        PhysicalReferenceIndex physical,
+        string label,
+        DungeonGameRestoreReport report)
+        where TDefinition : CombatEquipmentDefinitionSO
+    {
+        if (!TryGetEquipmentDefinition(
+                equipmentId,
+                physical,
+                out CombatEquipmentDefinitionSO definition)
+            || definition is not TDefinition)
+        {
+            report.AddError(
+                $"{label} references missing equipment '{equipmentId ?? string.Empty}' or the wrong equipment kind.");
+        }
+    }
+
+    private bool TryGetEquipmentDefinition(
+        string equipmentId,
+        PhysicalReferenceIndex physical,
+        out CombatEquipmentDefinitionSO definition)
+    {
+        definition = null;
+        return !string.IsNullOrEmpty(equipmentId)
+            && physical.EquipmentDefinitionIds.TryGetValue(
+                equipmentId,
+                out string definitionId)
+            && combatEquipmentDefinitions.TryGet(definitionId, out definition);
+    }
+
+    private static void ValidateEvolution(
+        EquipmentEvolutionSaveData source,
+        ISet<string> equipmentIds,
+        ISet<string> buildingIds,
+        DungeonGameRestoreReport report)
+    {
+        foreach ((string orderId, string equipmentId, string buildingId) in
+                 (source?.reforgeOrders ?? new List<EvolutionReforgeOrder>())
+                 .Where(order => order != null)
+                 .Select(order => (
+                     order.orderId,
+                     order.equipmentInstanceId,
+                     order.facilityPersistentId))
+                 .Concat((source?.reattunementOrders
+                         ?? new List<EquipmentReattunementOrder>())
+                     .Where(order => order != null)
+                     .Select(order => (
+                         order.orderId,
+                         order.equipmentInstanceId,
+                         order.facilityPersistentId))))
+        {
+            RequireReference(
+                equipmentId,
+                equipmentIds,
+                $"Equipment evolution '{orderId}' equipment",
+                report);
+            RequireReference(
+                buildingId,
+                buildingIds,
+                $"Equipment evolution '{orderId}' facility",
+                report);
+        }
+    }
+
+    private void ValidateMeta(
+        DungeonMetaProgressionSaveData source,
+        DungeonGameRestoreReport report)
+    {
+        foreach (int buildingId in source?.runProgress?.discoveredFacilityIds
+                     ?? new List<int>())
+        {
+            try
+            {
+                buildingDefinitions.GetBuilding(buildingId);
+            }
+            catch (Exception)
+            {
+                report.AddError(
+                    $"Meta progression references unknown discovered facility definition {buildingId}.");
+            }
+        }
+    }
+
+    private static void ValidateResearch(
+        DungeonResearchSaveData source,
+        ModularFacilityWorldSaveData buildings,
+        DungeonOffenseAggregateSaveData offense,
+        DungeonGameRestoreReport report)
+    {
+        HashSet<string> regionIds = (offense?.regions?.regions
+                ?? new List<OffenseRegionState>())
+            .Where(region => region != null)
+            .Select(region => region.regionId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (KnowledgeResidueTaskSaveData task in source?.knowledgeTasks
+                     ?? new List<KnowledgeResidueTaskSaveData>())
+        {
+            if (task == null)
+            {
+                continue;
+            }
+            if (task.facilityId != 0
+                && !(buildings?.buildings
+                    ?? new List<ModularFacilityBuildingSaveData>()).Any(building =>
+                        building != null
+                        && building.buildingId == task.facilityId
+                        && building.centerX == task.facilityX
+                        && building.centerY == task.facilityY))
+            {
+                report.AddError(
+                    $"Knowledge task '{task.taskId}' references missing facility {task.facilityId} at ({task.facilityX},{task.facilityY}).");
+            }
+            if (task.use == KnowledgeResidueUse.RegionReconnaissance
+                && !regionIds.Contains(task.regionId))
+            {
+                report.AddError(
+                    $"Knowledge task '{task.taskId}' references missing offense region '{task.regionId}'.");
+            }
+        }
+    }
+
+    private void ValidateCropPlots(
+        DungeonCropPlotSaveData source,
+        BuildingReferenceIndex buildings,
+        DungeonGameRestoreReport report)
+    {
+        foreach (CropPlotSaveData plot in source?.plots
+                     ?? new List<CropPlotSaveData>())
+        {
+            if (plot == null)
+            {
+                report.AddError("Crop-plot aggregate contains a null plot.");
+                continue;
+            }
+            RequireReference(
+                plot.buildingInstanceId,
+                buildings.InstanceIds,
+                "Crop plot building",
+                report);
+            if (!buildings.InstanceDefinitions.TryGetValue(
+                    plot.buildingInstanceId,
+                    out BuildingSO building)
+                || building?.GetAbility<BuildingCropPlotAbility>()
+                    is not BuildingCropPlotAbility ability)
+            {
+                report.AddError(
+                    $"Crop plot '{plot.buildingInstanceId}' is not backed by a crop-plot building definition.");
+                continue;
+            }
+            if (!economyContent.TryGetCrop(
+                    plot.cropId,
+                    out CropDefinitionSO crop))
+            {
+                report.AddError(
+                    $"Crop plot '{plot.buildingInstanceId}' references unknown crop '{plot.cropId}'.");
+            }
+            else if (ability.Indoor && !crop.IndoorAllowed)
+            {
+                report.AddError(
+                    $"Crop '{plot.cropId}' is not allowed in indoor plot '{plot.buildingInstanceId}'.");
+            }
+        }
+    }
+
+    private static void ValidateTreasury(
+        TreasuryEconomySaveData source,
+        ISet<string> characterIds,
+        ISet<string> buildingIds,
+        ISet<string> equipmentIds,
+        DungeonGameRestoreReport report)
+    {
+        foreach (EmployeeWageState wage in
+                 source?.employment?.wageStates
+                 ?? new List<EmployeeWageState>())
+        {
+            if (wage == null)
+            {
+                report.AddError("Treasury aggregate contains a null wage state.");
+                continue;
+            }
+            RequireReference(
+                wage.characterId,
+                characterIds,
+                "Treasury wage character",
+                report);
+        }
+        foreach (MercenaryContract contract in
+                 source?.employment?.mercenaryContracts
+                 ?? new List<MercenaryContract>())
+        {
+            if (contract == null)
+            {
+                report.AddError(
+                    "Treasury aggregate contains a null mercenary contract.");
+                continue;
+            }
+            RequireReference(
+                contract.characterId,
+                characterIds,
+                "Treasury mercenary character",
+                report);
+        }
+        foreach (PaidFacilityContractState contract in
+                 source?.facilityContracts?.contracts
+                 ?? new List<PaidFacilityContractState>())
+        {
+            if (contract == null)
+            {
+                report.AddError(
+                    "Treasury aggregate contains a null facility contract.");
+                continue;
+            }
+            RequireReference(
+                contract.facilityPersistentId,
+                buildingIds,
+                "Treasury facility contract",
+                report);
+        }
+        foreach (OverclockState state in source?.overclock?.states
+                     ?? new List<OverclockState>())
+        {
+            if (state == null)
+            {
+                report.AddError("Treasury aggregate contains a null overclock state.");
+                continue;
+            }
+            RequireReference(
+                state.targetId,
+                state.targetKind == OverclockTargetKind.Equipment
+                    ? equipmentIds
+                    : buildingIds,
+                $"Treasury {state.targetKind} overclock target",
+                report);
+        }
+        foreach (TreasuryDefensePolicy policy in
+                 source?.treasuryDefense?.policies
+                 ?? new List<TreasuryDefensePolicy>())
+        {
+            if (policy == null)
+            {
+                report.AddError("Treasury aggregate contains a null defense policy.");
+                continue;
+            }
+            RequireReference(
+                policy.facilityPersistentId,
+                buildingIds,
+                "Treasury defense policy facility",
+                report);
+        }
+        foreach (TreasuryDefenseInvasionSpendState spending in
+                 source?.treasuryDefense?.invasionSpending
+                 ?? new List<TreasuryDefenseInvasionSpendState>())
+        {
+            if (spending == null)
+            {
+                report.AddError("Treasury aggregate contains null defense spending.");
+                continue;
+            }
+            RequireReference(
+                spending.facilityPersistentId,
+                buildingIds,
+                "Treasury defense spending facility",
+                report);
+        }
+    }
+
+    private static void RequireReference(
+        string id,
+        ISet<string> existing,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (string.IsNullOrEmpty(id) || !existing.Contains(id))
+        {
+            report.AddError($"{label} references missing ID '{id ?? string.Empty}'.");
+        }
+    }
+
+    private void RequireItemDefinition(
+        string rawId,
+        DungeonGameRestoreReport report)
+    {
+        ItemDefinitionId id = (ItemDefinitionId)(rawId?.Trim() ?? string.Empty);
+        if (!id.IsValid || !itemDefinitions.TryGet(id, out _))
+        {
+            report.AddError($"Save references unknown item definition '{rawId ?? string.Empty}'.");
+        }
+    }
+
+    private static void RequireUniqueId(
+        string rawId,
+        string kind,
+        ISet<string> ids,
+        DungeonGameRestoreReport report)
+    {
+        string id = rawId?.Trim() ?? string.Empty;
+        if (id.Length == 0)
+        {
+            report.AddError($"Save contains a {kind} without a persistent ID.");
+        }
+        else if (!ids.Add(id))
+        {
+            report.AddError($"Save contains duplicate {kind} ID '{id}'.");
+        }
+    }
+
+    private sealed class PhysicalReferenceIndex
+    {
+        internal HashSet<string> StackIds { get; } =
+            new HashSet<string>(StringComparer.Ordinal);
+        internal HashSet<string> ItemInstanceIds { get; } =
+            new HashSet<string>(StringComparer.Ordinal);
+        internal HashSet<string> EquipmentInstanceIds { get; } =
+            new HashSet<string>(StringComparer.Ordinal);
+        internal Dictionary<string, string> EquipmentDefinitionIds { get; } =
+            new Dictionary<string, string>(StringComparer.Ordinal);
+    }
+
+    private sealed class BuildingReferenceIndex
+    {
+        internal HashSet<string> InstanceIds { get; } =
+            new HashSet<string>(StringComparer.Ordinal);
+        internal Dictionary<string, BuildingSO> InstanceDefinitions { get; } =
+            new Dictionary<string, BuildingSO>(StringComparer.Ordinal);
+    }
+}

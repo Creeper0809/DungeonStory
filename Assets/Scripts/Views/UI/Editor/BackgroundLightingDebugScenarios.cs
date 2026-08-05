@@ -80,30 +80,21 @@ public static class BackgroundLightingDebugScenarios
 
     private static void CheckUiPalette(List<string> errors)
     {
-        DungeonUserSettingsData previousSettings = DungeonUserSettingsRuntime.Current.Clone();
-        try
-        {
-            DungeonUserSettingsRuntime.Publish(new DungeonUserSettingsData { highContrast = false });
-            float panel = Luminance(DungeonUiTheme.Panel);
-            float surface = Luminance(DungeonUiTheme.Surface);
-            float raised = Luminance(DungeonUiTheme.SurfaceRaised);
-            float text = Luminance(DungeonUiTheme.TextPrimary);
+        float panel = Luminance(DungeonUiTheme.Panel);
+        float surface = Luminance(DungeonUiTheme.Surface);
+        float raised = Luminance(DungeonUiTheme.SurfaceRaised);
+        float text = Luminance(DungeonUiTheme.TextPrimary);
 
-            Require(panel >= 0.34f, "Standard UI panel is too close to black.", errors);
-            Require(surface > panel + 0.07f, "Standard UI surface does not separate from panel.", errors);
-            Require(raised > surface + 0.09f, "Standard UI raised controls are too flat or too dark.", errors);
-            Require(text > panel + 0.55f, "Standard UI text does not contrast enough against panels.", errors);
-            Require(DungeonUiTheme.ModalScrimAlpha <= 0.36f,
-                "Standard modal scrim is dark enough to look like a gamma drop.", errors);
-            Require(DungeonUiTheme.OwnerSelectionScrimAlpha <= 0.44f,
-                "Standard owner-selection scrim is dark enough to crush the scene.", errors);
-            Require(DungeonUiTheme.ResultScrimAlpha <= 0.42f,
-                "Standard result scrim is dark enough to crush the scene.", errors);
-        }
-        finally
-        {
-            DungeonUserSettingsRuntime.Publish(previousSettings);
-        }
+        Require(panel >= 0.34f, "Standard UI panel is too close to black.", errors);
+        Require(surface > panel + 0.07f, "Standard UI surface does not separate from panel.", errors);
+        Require(raised > surface + 0.09f, "Standard UI raised controls are too flat or too dark.", errors);
+        Require(text > panel + 0.55f, "Standard UI text does not contrast enough against panels.", errors);
+        Require(DungeonUiTheme.ModalScrimAlpha <= 0.36f,
+            "Standard modal scrim is dark enough to look like a gamma drop.", errors);
+        Require(DungeonUiTheme.OwnerSelectionScrimAlpha <= 0.44f,
+            "Standard owner-selection scrim is dark enough to crush the scene.", errors);
+        Require(DungeonUiTheme.ResultScrimAlpha <= 0.42f,
+            "Standard result scrim is dark enough to crush the scene.", errors);
     }
 
     private static void CheckCameraCoverage(List<string> errors)

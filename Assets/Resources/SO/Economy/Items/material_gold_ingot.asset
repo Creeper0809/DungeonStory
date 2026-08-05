@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uAD8C\uC704 \uC2DC\uC124, \uC7A5\uC2DD\uACFC \uACE0\uAC00 \uC7A5\uBE44\uC758
     \uC7AC\uB8CC."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 512
-  unitPrice: 60
-  marketSaleRate: 0.6
   unitWeight: 1.35
   maxStack: 30
   sprite: {fileID: 0}
-  requiredResearchId: research:metallurgy:precious
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 60
+  features:
+  - rid: 7737211674039681237
+  - rid: 7737211674039681238
+  - rid: 7737211674039681239
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681237
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:metallurgy:precious
+    - rid: 7737211674039681238
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 512
+        sharedIntermediate: 1
+    - rid: 7737211674039681239
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

@@ -27,21 +27,42 @@ MonoBehaviour:
   description: "\uAC15\uD55C \uD658\uAC01\uACFC \uC624\uB77D \uD6A8\uACFC\uB97C \uC8FC\uB294
     \uC720\uD765 \uC57D\uBB3C."
   stockCategory: 5
-  kind: 4
-  ingredientTags: 2
-  unitPrice: 22
-  marketSaleRate: 0.6
   unitWeight: 0.15
   maxStack: 25
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:distillation
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 22
+  features:
+  - rid: 7737211674039681041
+  - rid: 7737211674039681042
+  - rid: 7737211674039681043
+  - rid: 7737211674039681044
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681041
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:distillation
+    - rid: 7737211674039681042
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 4
+        ingredientTags: 2
+        sharedIntermediate: 0
+    - rid: 7737211674039681043
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211674039681044
+      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        substanceId: substance:hallucinogenic
+        useClass: 3
+        addictionChance: 0.09
+        overdoseChance: 0.04
+        toleranceGain: 0.13
+        withdrawalPerHour: 0.025
+        moodEffect: 10
+        workSpeedEffect: -0.12
+        combatEffect: -0.08
+        durationSeconds: 210

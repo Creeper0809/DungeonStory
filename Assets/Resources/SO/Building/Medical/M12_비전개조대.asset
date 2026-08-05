@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,25 +33,26 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 034f97084dd01dc4e94f3654fad09dc7, type: 3}
   abilityModules:
     items:
-    - rid: 7302563313663345553
-    - rid: 7302563313663345554
-    - rid: 7302563313663345555
-    - rid: 7302563313663345556
-    - rid: 7302563313663345557
-    - rid: 7302563313663345558
-    - rid: 7302563313663345559
-    - rid: 7302563313663345560
-    - rid: 7302563313663345561
-    - rid: 7302563313663345562
-    - rid: 7302563313663345563
-    - rid: 7302563313672519748
-    - rid: 7302563313672519749
+    - rid: 7737211730889015566
+    - rid: 7737211730889015567
+    - rid: 7737211730889015568
+    - rid: 7737211730889015569
+    - rid: 7737211730889015570
+    - rid: 7737211730889015571
+    - rid: 7737211730889015572
+    - rid: 7737211730889015573
+    - rid: 7737211730889015574
+    - rid: 7737211730889015575
+    - rid: 7737211730889015576
+    - rid: 7737211730889015878
+    - rid: 7737211730889015879
   width: 3
   height: 1
   layer: 1
   category: 6
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 1.2
   facilityAnchors:
@@ -69,12 +61,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563313663345553
+    - rid: 7737211730889015566
       type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityPartAbility
         code: M12
-    - rid: 7302563313663345554
+    - rid: 7737211730889015567
       type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingSemanticTagsAbility
@@ -82,7 +74,7 @@ MonoBehaviour:
         - medical
         - surgery
         - m12
-    - rid: 7302563313663345555
+    - rid: 7737211730889015568
       type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEconomyAbility
@@ -91,7 +83,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563313663345556
+    - rid: 7737211730889015569
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -102,17 +94,17 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 671121408
           disabledWhenDamaged: 1
-    - rid: 7302563313663345557
+    - rid: 7737211730889015570
       type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563313663345558
+    - rid: 7737211730889015571
       type: {class: BuildingInternalStockAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingInternalStockAbility
         capacity: 12
         restockRequestThreshold: 3
-    - rid: 7302563313663345559
+    - rid: 7737211730889015572
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -121,10 +113,10 @@ MonoBehaviour:
         cleanWorkRequired: 8
         researchWorkRequired: 6
         operateWorkRequired: 12
-        constructionMaterialCategory: 1
-        constructionMaterialAmount: 16
-        materialUnitsPerConstructionCost: 0.05
-    - rid: 7302563313663345560
+        constructionMaterials:
+        - itemId: component:rune-conductor
+          amount: 16
+    - rid: 7737211730889015573
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -136,14 +128,14 @@ MonoBehaviour:
           - m12
           scores: []
           metrics: []
-    - rid: 7302563313663345561
+    - rid: 7737211730889015574
       type: {class: BuildingMedicalAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingMedicalAbility
         workSeconds: 1.8
         severityReduction: 0.4
         requiresMedicine: 1
-    - rid: 7302563313663345562
+    - rid: 7737211730889015575
       type: {class: BuildingFuelConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFuelConsumerAbility
@@ -151,21 +143,21 @@ MonoBehaviour:
         workSeconds: 1
         warmth: 0
         lightSafety: 2
-    - rid: 7302563313663345563
+    - rid: 7737211730889015576
       type: {class: BuildingArcaneSurgeryAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingArcaneSurgeryAbility
         successBonus: 0.12
         minimumMutationRisk: 0.08
         manaCrystalCost: 2
-    - rid: 7302563313672519748
+    - rid: 7737211730889015878
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 6
         maxThroughput: 20
         normallyOpen: 1
-    - rid: 7302563313672519749
+    - rid: 7737211730889015879
       type: {class: BuildingProcessFluidAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProcessFluidAbility

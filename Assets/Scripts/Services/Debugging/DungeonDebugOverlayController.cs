@@ -25,6 +25,70 @@ public sealed class DungeonDebugDelegateOverlayProvider : IDungeonDebugOverlayPr
     }
 }
 
+public sealed class DungeonDebugOverlayPresentationDependencies
+{
+    public DungeonDebugOverlayPresentationDependencies(
+        IDungeonDebugModeService modeService,
+        DungeonDebugPaletteUiController palette,
+        IGridSystemProvider gridProvider,
+        IMainCameraProvider cameraProvider,
+        ITmpKoreanFontService fontService)
+    {
+        ModeService = modeService ?? throw new ArgumentNullException(nameof(modeService));
+        Palette = palette ?? throw new ArgumentNullException(nameof(palette));
+        GridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
+        CameraProvider = cameraProvider ?? throw new ArgumentNullException(nameof(cameraProvider));
+        FontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
+    }
+
+    public IDungeonDebugModeService ModeService { get; }
+    public DungeonDebugPaletteUiController Palette { get; }
+    public IGridSystemProvider GridProvider { get; }
+    public IMainCameraProvider CameraProvider { get; }
+    public ITmpKoreanFontService FontService { get; }
+}
+
+public sealed class DungeonDebugOverlayWorldDependencies
+{
+    public DungeonDebugOverlayWorldDependencies(
+        IRoomLayoutCache roomLayoutCache,
+        IWorldItemStackRuntime itemRuntime,
+        IWildlifeRuntime wildlifeRuntime,
+        IWildlifeEcosystemRuntime ecosystemRuntime)
+    {
+        RoomLayoutCache = roomLayoutCache
+            ?? throw new ArgumentNullException(nameof(roomLayoutCache));
+        ItemRuntime = itemRuntime ?? throw new ArgumentNullException(nameof(itemRuntime));
+        WildlifeRuntime = wildlifeRuntime
+            ?? throw new ArgumentNullException(nameof(wildlifeRuntime));
+        EcosystemRuntime = ecosystemRuntime
+            ?? throw new ArgumentNullException(nameof(ecosystemRuntime));
+    }
+
+    public IRoomLayoutCache RoomLayoutCache { get; }
+    public IWorldItemStackRuntime ItemRuntime { get; }
+    public IWildlifeRuntime WildlifeRuntime { get; }
+    public IWildlifeEcosystemRuntime EcosystemRuntime { get; }
+}
+
+public sealed class DungeonDebugOverlayHazardDependencies
+{
+    public DungeonDebugOverlayHazardDependencies(
+        IWorldWaterQuery waterQuery,
+        IWorldFilthQuery filthQuery,
+        IDefenseEngagementRuntime defenseRuntime)
+    {
+        WaterQuery = waterQuery ?? throw new ArgumentNullException(nameof(waterQuery));
+        FilthQuery = filthQuery ?? throw new ArgumentNullException(nameof(filthQuery));
+        DefenseRuntime = defenseRuntime
+            ?? throw new ArgumentNullException(nameof(defenseRuntime));
+    }
+
+    public IWorldWaterQuery WaterQuery { get; }
+    public IWorldFilthQuery FilthQuery { get; }
+    public IDefenseEngagementRuntime DefenseRuntime { get; }
+}
+
 public sealed class DungeonDebugWorldOverlayController :
     IStartable,
     ITickable,
@@ -47,31 +111,26 @@ public sealed class DungeonDebugWorldOverlayController :
     private DungeonDebugOverlayRenderer renderer;
 
     public DungeonDebugWorldOverlayController(
-        IDungeonDebugModeService modeService,
-        DungeonDebugPaletteUiController palette,
-        IGridSystemProvider gridProvider,
-        IMainCameraProvider cameraProvider,
-        ITmpKoreanFontService fontService,
-        IRoomLayoutCache roomLayoutCache,
-        IWorldItemStackRuntime itemRuntime,
-        IWildlifeRuntime wildlifeRuntime,
-        IWildlifeEcosystemRuntime ecosystemRuntime,
-        IWorldWaterQuery waterQuery,
-        IWorldFilthQuery filthQuery,
-        IDefenseEngagementRuntime defenseRuntime)
+        DungeonDebugOverlayPresentationDependencies presentation,
+        DungeonDebugOverlayWorldDependencies world,
+        DungeonDebugOverlayHazardDependencies hazards)
     {
-        this.modeService = modeService ?? throw new ArgumentNullException(nameof(modeService));
-        this.palette = palette ?? throw new ArgumentNullException(nameof(palette));
-        this.gridProvider = gridProvider ?? throw new ArgumentNullException(nameof(gridProvider));
-        this.cameraProvider = cameraProvider ?? throw new ArgumentNullException(nameof(cameraProvider));
-        this.fontService = fontService ?? throw new ArgumentNullException(nameof(fontService));
-        this.roomLayoutCache = roomLayoutCache ?? throw new ArgumentNullException(nameof(roomLayoutCache));
-        this.itemRuntime = itemRuntime ?? throw new ArgumentNullException(nameof(itemRuntime));
-        this.wildlifeRuntime = wildlifeRuntime ?? throw new ArgumentNullException(nameof(wildlifeRuntime));
-        this.ecosystemRuntime = ecosystemRuntime ?? throw new ArgumentNullException(nameof(ecosystemRuntime));
-        this.waterQuery = waterQuery ?? throw new ArgumentNullException(nameof(waterQuery));
-        this.filthQuery = filthQuery ?? throw new ArgumentNullException(nameof(filthQuery));
-        this.defenseRuntime = defenseRuntime ?? throw new ArgumentNullException(nameof(defenseRuntime));
+        presentation = presentation
+            ?? throw new ArgumentNullException(nameof(presentation));
+        world = world ?? throw new ArgumentNullException(nameof(world));
+        hazards = hazards ?? throw new ArgumentNullException(nameof(hazards));
+        modeService = presentation.ModeService;
+        palette = presentation.Palette;
+        gridProvider = presentation.GridProvider;
+        cameraProvider = presentation.CameraProvider;
+        fontService = presentation.FontService;
+        roomLayoutCache = world.RoomLayoutCache;
+        itemRuntime = world.ItemRuntime;
+        wildlifeRuntime = world.WildlifeRuntime;
+        ecosystemRuntime = world.EcosystemRuntime;
+        waterQuery = hazards.WaterQuery;
+        filthQuery = hazards.FilthQuery;
+        defenseRuntime = hazards.DefenseRuntime;
     }
 
     public void Start()

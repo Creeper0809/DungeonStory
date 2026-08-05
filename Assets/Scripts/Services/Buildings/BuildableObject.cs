@@ -1,14 +1,17 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
 
-public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupant
+public class BuildableObject : MonoBehaviour,
+    IGridOccupant,
+    IGridMovementOccupant,
+    IGridBuildingOccupantCapability,
+    IBuildingWorldEntryPort
 {
     private const float DefaultAiReservationSeconds = 12f;
-    private const float CleaningWorkThreshold = 75f;
     private readonly List<Vector2Int> mutableBuildPoses = new List<Vector2Int>();
     private IReadOnlyList<Vector2Int> buildPosesView;
     public int id { get; private set; }
@@ -25,91 +28,185 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
     public bool isDestroy;
     [SerializeField] private bool isDamaged;
     [SerializeField] private int facilityLevel = 1;
+    [SerializeField] private string persistentInstanceId = string.Empty;
     [SerializeField] private FacilityRuntimeState facilityState = new FacilityRuntimeState();
-    private readonly List<IBuildingStateModule> runtimeStateModules = new List<IBuildingStateModule>();
-    private int currentUserCount;
-    private readonly Dictionary<CharacterActor, float> visitReservations = new Dictionary<CharacterActor, float>();
-    private readonly List<CharacterActor> expiredVisitReservations =
-        new List<CharacterActor>();
-    private float nextVisitReservationExpiry = float.PositiveInfinity;
-    private CharacterActor workerReservation;
-    private float workerReservationUntil;
-    private IBlueprintResearchWorkService blueprintResearchWorkService;
-    private IWorldInfoClickSelector worldInfoClickSelector;
-    private IFacilityCandidateCache facilityCandidateCache;
-    private IRoomFacilityPolicy roomFacilityPolicy;
-    private ICombatEquipmentRuntime combatEquipmentRuntime;
-    private ICharacterAiWorldRegistry worldRegistry;
-    private IWorldItemStackRuntime worldItemStackRuntime;
+    private BuildingOccupancy occupancy;
+    private BuildingAssignment assignment;
+    private BuildableObjectStateAndCapabilityController stateAndCapabilities;
+    private BuildableObjectSpatialQuery spatialQuery;
+    private IBuildingResearchWorkPort blueprintResearchWorkService;
+    private IBuildingFacilityStateChangePort facilityCandidateCache;
+    private IBuildingRoomPolicyPort roomFacilityPolicy;
+    private IBuildingEquipmentCraftingRuntimePort combatEquipmentRuntime;
+    private IBuildingWorldRegistryPort worldRegistry;
+    private IBuildingItemStackPort worldItemStackRuntime;
     private IBuildingAbilityRuntimeDispatcher abilityRuntimeDispatcher;
-    private IPaidFacilityContractRuntime paidFacilityContracts;
+    private IBuildingPaidFacilityContractPort paidFacilityContracts;
+    private IBuildingCoverDurabilityPort coverDurabilityRegistry;
+    private IBuildingEvolutionStatePort evolutionState;
+    private IBuildingPresentationSettingsPort userSettings;
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
+    private IBuildingVisitEventPort visitEvents;
+    private IBuildingInfoPresentationPort infoPresentation;
+    private IBuildingDamageRulePort debugRules;
     private bool registeredWithWorldRegistry;
+    private bool detachedRestoreCandidate;
+    private bool synchronizedWithPaidContracts;
 
     public int GridId => id;
     public bool IsGridDestroyed => isDestroy;
     public bool IsGridVisitable => isVisitable();
     public bool IsGridMovement => category == BuildingCategory.Movement;
     public virtual GridMoveType GridMoveType => IsGridMovement ? GridMoveType.Instant : GridMoveType.Walk;
+    public bool BlocksGridMovement
+    {
+        get
+        {
+            if (isDestroy)
+            {
+                return false;
+            }
+
+            bool isDoor = this is Door || BuildingData?.IsDoor == true;
+            bool isStructuralWall = BuildingData != null
+                ? BuildingData.IsStructuralWall
+                : category == BuildingCategory.Wall;
+            return isStructuralWall && !isDoor;
+        }
+    }
+    public bool AllowsInteriorWalkability =>
+        !isDestroy && Facility?.IsVisitorFacility == true;
     public Grid Grid => grid;
     public FacilityData Facility => BuildingData != null ? BuildingData.Facility : null;
     public bool IsDamaged => isDamaged;
     public int FacilityLevel => facilityLevel;
-    public int CurrentUserCount => currentUserCount;
+    public bool IsDetachedRestoreCandidate => detachedRestoreCandidate;
+    public BuildingInstanceId PersistentInstanceId =>
+        (BuildingInstanceId)persistentInstanceId;
+    public BuildingInstanceId BuildingInstanceId => PersistentInstanceId;
+    public bool IsBuildingDestroyed => isDestroy;
+
+    public BuildingInstanceId RequirePersistentInstanceId()
+    {
+        BuildingInstanceId value = PersistentInstanceId;
+        return value.IsValid
+            ? value
+            : throw new InvalidOperationException(
+                $"Building '{name}' has no persistent BuildingInstanceId.");
+    }
+    private BuildingOccupancy Occupancy =>
+        occupancy ??= new BuildingOccupancy(this);
+    private BuildingAssignment Assignment =>
+        assignment ??= new BuildingAssignment(this);
+    private BuildableObjectStateAndCapabilityController StateAndCapabilities =>
+        stateAndCapabilities ??= new BuildableObjectStateAndCapabilityController(
+            this,
+            MarkFacilityDynamicStateDirty);
+    private BuildableObjectSpatialQuery SpatialQuery =>
+        spatialQuery ??= new BuildableObjectSpatialQuery(transform, this);
+    public int CurrentUserCount => Occupancy.CurrentUserCount;
     public FacilityRuntimeState FacilityState => facilityState ??= new FacilityRuntimeState();
-    internal ICharacterAiWorldRegistry WorldRegistry => worldRegistry;
-    internal IWorldItemStackRuntime WorldItemStackRuntime => worldItemStackRuntime;
+    internal IBuildingWorldRegistryPort WorldRegistry => worldRegistry;
+    internal IBuildingItemStackPort WorldItemStackRuntime => worldItemStackRuntime;
     internal IBuildingAbilityRuntimeDispatcher AbilityRuntimeDispatcher =>
         abilityRuntimeDispatcher;
     public int EffectiveCapacity => ResolveRoomFacilityPolicy().GetEffectiveCapacity(this);
 
-    public int ActiveVisitReservationCount
-    {
-        get
-        {
-            PruneExpiredVisitReservations();
-            return visitReservations.Count;
-        }
-    }
-
-    public CharacterActor WorkerReservation
-    {
-        get
-        {
-            PruneExpiredWorkerReservation();
-            return workerReservation;
-        }
-    }
+    public int ActiveVisitReservationCount =>
+        Occupancy.ActiveVisitReservationCount;
+    public IBuildingCharacterPort WorkerReservation => Assignment.WorkerReservation;
 
     public virtual void Start()
     {
     }
 
+    [Inject]
+    public void ConstructPersistentIdentity(IPersistentIdGenerator persistentIds)
+    {
+        if (PersistentInstanceId.IsValid)
+        {
+            return;
+        }
+
+        persistentInstanceId = (persistentIds
+            ?? throw new ArgumentNullException(nameof(persistentIds)))
+            .NewBuildingInstanceId()
+            .Value;
+    }
+
+    public void RestorePersistentIdentity(BuildingInstanceId value)
+    {
+        if (!value.IsValid)
+        {
+            throw new ArgumentException(
+                "A valid BuildingInstanceId is required.",
+                nameof(value));
+        }
+
+        persistentInstanceId = value.Value;
+    }
+
     protected virtual void OnDestroy()
     {
-        paidFacilityContracts?.RemoveFacility(this);
+        RemovePaidFacilityContractIfNeeded();
         UnregisterFromWorldRegistry();
         DetachFromGridIfStillRegistered();
     }
 
+    public void PrepareForDetachedRestore()
+    {
+        if (BuildingData != null || registeredWithWorldRegistry)
+        {
+            throw new InvalidOperationException(
+                "Detached restore mode must be selected before building initialization.");
+        }
+
+        detachedRestoreCandidate = true;
+    }
+
+    public void PublishDetachedRestore()
+    {
+        if (!detachedRestoreCandidate)
+        {
+            throw new InvalidOperationException(
+                "Only a detached restore candidate can be published.");
+        }
+
+        detachedRestoreCandidate = false;
+        RegisterWithWorldRegistryIfReady();
+        SynchronizePaidFacilityContractIfReady();
+    }
+
+    public void DiscardDetachedRestore()
+    {
+        if (!detachedRestoreCandidate)
+        {
+            throw new InvalidOperationException(
+                "Only a detached restore candidate can be discarded.");
+        }
+
+        isDestroy = true;
+        DetachFromGridIfStillRegistered();
+        grid = null;
+        DestroyImmediate(gameObject);
+    }
+
     [Inject]
     public void ConstructBuildableObject(
-        IBlueprintResearchWorkService blueprintResearchWorkService,
-        IWorldInfoClickSelector worldInfoClickSelector,
-        IFacilityCandidateCache facilityCandidateCache,
-        IRoomFacilityPolicy roomFacilityPolicy,
-        ICombatEquipmentRuntime combatEquipmentRuntime = null,
-        ICharacterAiWorldRegistry worldRegistry = null,
-        IWorldItemStackRuntime worldItemStackRuntime = null,
-        IBuildingAbilityRuntimeDispatcher abilityRuntimeDispatcher = null,
-        IGameClock gameClock = null,
-        IPaidFacilityContractRuntime paidFacilityContracts = null)
+        IBuildingResearchWorkPort blueprintResearchWorkService,
+        IBuildingFacilityStateChangePort facilityCandidateCache,
+        IBuildingRoomPolicyPort roomFacilityPolicy,
+        IBuildingEquipmentCraftingRuntimePort combatEquipmentRuntime,
+        IBuildingWorldRegistryPort worldRegistry,
+        IBuildingItemStackPort worldItemStackRuntime,
+        IBuildingAbilityRuntimeDispatcher abilityRuntimeDispatcher,
+        IGameClock gameClock,
+        IBuildingPaidFacilityContractPort paidFacilityContracts,
+        IBuildingEvolutionStatePort evolutionState)
     {
         this.blueprintResearchWorkService = blueprintResearchWorkService
             ?? throw new ArgumentNullException(nameof(blueprintResearchWorkService));
-        this.worldInfoClickSelector = worldInfoClickSelector
-            ?? throw new ArgumentNullException(nameof(worldInfoClickSelector));
         this.facilityCandidateCache = facilityCandidateCache
             ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
         this.roomFacilityPolicy = roomFacilityPolicy
@@ -120,15 +217,51 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         this.abilityRuntimeDispatcher = abilityRuntimeDispatcher;
         this.gameClock = gameClock;
         this.paidFacilityContracts = paidFacilityContracts;
+        this.evolutionState = evolutionState
+            ?? throw new ArgumentNullException(nameof(evolutionState));
         RegisterWithWorldRegistryIfReady();
+        SynchronizePaidFacilityContractIfReady();
     }
 
     [Inject]
-    public void ConstructBuildableObjectEventBus(IGameEventBus gameEventBus)
+    public void ConstructBuildableObjectEventBus(
+        IGameEventBus gameEventBus,
+        IBuildingVisitEventPort visitEvents,
+        IBuildingInfoPresentationPort infoPresentation)
     {
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.visitEvents = visitEvents
+            ?? throw new ArgumentNullException(nameof(visitEvents));
+        this.infoPresentation = infoPresentation
+            ?? throw new ArgumentNullException(nameof(infoPresentation));
     }
+
+    [Inject]
+    public void ConstructDebugRules(IBuildingDamageRulePort debugRules)
+    {
+        this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
+    }
+
+    [Inject]
+    public void ConstructCoverDurabilityRegistry(
+        IBuildingCoverDurabilityPort coverDurabilityRegistry,
+        IBuildingPresentationSettingsPort userSettings)
+    {
+        this.coverDurabilityRegistry = coverDurabilityRegistry
+            ?? throw new ArgumentNullException(nameof(coverDurabilityRegistry));
+        this.userSettings = userSettings
+            ?? throw new ArgumentNullException(nameof(userSettings));
+    }
+
+    internal IBuildingCoverDurabilityPort RequireCoverDurabilityRegistry()
+    {
+        return coverDurabilityRegistry
+            ?? throw new InvalidOperationException(
+                $"{nameof(BuildableObject)} requires {nameof(IBuildingCoverDurabilityPort)} injection.");
+    }
+
+    internal bool ReducedMotion => userSettings?.ReducedMotion == true;
 
     public virtual void SetGrid(Grid grid)
     {
@@ -174,23 +307,15 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         isDestroy = false;
         isDamaged = false;
         facilityLevel = 1;
-        currentUserCount = 0;
-        visitReservations.Clear();
-        expiredVisitReservations.Clear();
-        nextVisitReservationExpiry = float.PositiveInfinity;
-        workerReservation = null;
-        workerReservationUntil = 0f;
+        Occupancy.Reset();
+        Assignment.Reset();
         facilityState ??= new FacilityRuntimeState();
         facilityState.CopyFrom(null);
-        runtimeStateModules.Clear();
+        StateAndCapabilities.ResetStateModules();
         RegisterStateModule(new FacilityRuntimeStateModule(this));
-        FacilityEvolutionStateComponent evolutionState =
-            GetComponent<FacilityEvolutionStateComponent>();
-        if (evolutionState == null)
-        {
-            evolutionState = gameObject.AddComponent<FacilityEvolutionStateComponent>();
-        }
-        evolutionState.InitializeIfNeeded(this);
+        (evolutionState ?? throw new InvalidOperationException(
+                $"{nameof(BuildableObject)} requires {nameof(IBuildingEvolutionStatePort)} injection."))
+            .EnsureInitialized(this);
         foreach (BuildingAbility ability in buildingSO.Abilities)
         {
             if (ability is IBuildingRuntimeStateAbility stateAbility)
@@ -198,13 +323,21 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
                 RegisterStateModule(stateAbility.CreateStateModule(this));
             }
         }
+        if (buildingSO.GetAbility<BuildingStructuralIntegrityAbility>() == null
+            && BuildingStructuralIntegrityDefaults.TryCreate(
+                buildingSO,
+                out BuildingStructuralIntegrityAbility structuralAbility))
+        {
+            RegisterStateModule(
+                BuildingStructuralIntegrity.Ensure(this, structuralAbility));
+        }
         centerPos = buildPos;
         category = placement.Category;
         mutableBuildPoses.Clear();
         mutableBuildPoses.AddRange(placement.GetGridPosList(buildPos));
         ModularFacilityRuntimeEffects.ConfigureVisual(this);
         RegisterWithWorldRegistryIfReady();
-        paidFacilityContracts?.SynchronizeFacility(this);
+        SynchronizePaidFacilityContractIfReady();
     }
 
     public virtual Vector3 GetMovementWorldPosition(Vector2Int gridPosition)
@@ -278,8 +411,84 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
             || TryGetHorizontalFootprintAnchorWorldPosition(0.5f, out worldPosition);
     }
 
+    private bool TryFindNearestFacilityCell(
+        Vector3 fromWorld,
+        bool requireRegisteredOccupant,
+        out Vector2Int result)
+    {
+        return SpatialQuery.TryFindNearestFacilityCell(
+            grid,
+            buildPoses,
+            centerPos,
+            fromWorld,
+            requireRegisteredOccupant,
+            out result);
+    }
+
+    private bool TryGetConfiguredFacilityAnchorWorldPosition(
+        string purposeId,
+        Vector3 fromWorld,
+        out Vector3 worldPosition)
+    {
+        return SpatialQuery.TryGetConfiguredFacilityAnchorWorldPosition(
+            grid,
+            BuildingData,
+            centerPos,
+            purposeId,
+            fromWorld,
+            out worldPosition);
+    }
+
+    public bool TryGetHorizontalFootprintAnchorWorldPosition(
+        float normalizedX,
+        out Vector3 worldPosition)
+    {
+        return SpatialQuery.TryGetHorizontalFootprintAnchorWorldPosition(
+            grid,
+            buildPoses,
+            centerPos,
+            normalizedX,
+            out worldPosition);
+    }
+
+    public float GetWorkUrgency(WorkTypeId workTypeId)
+    {
+        return workTypeId.IsValid
+            && WorkTypeCatalog.TryGet(
+                workTypeId,
+                out WorkTypeDefinition definition)
+            ? GetLegacyWorkUrgency(
+                FacilityWorkTypeMap.GetRequired(definition))
+            : 0f;
+    }
+
+    internal virtual float GetLegacyWorkUrgency(FacilityWorkType workType)
+    {
+        return Assignment.GetLegacyWorkUrgency(workType);
+    }
+
+    public virtual bool isVisitable()
+    {
+        return CanVisit((IBuildingCharacterPort)null, out _);
+    }
+
+    public void TriggerWorldInfoClick()
+    {
+        if (OnBuildingClicked != null)
+        {
+            OnBuildingClicked.Invoke(this);
+            return;
+        }
+
+        (infoPresentation
+            ?? throw new InvalidOperationException(
+                $"{nameof(BuildableObject)} requires {nameof(IBuildingInfoPresentationPort)} injection."))
+            .ShowBuildingInfo(this);
+    }
+
     public void DestroySelf()
     {
+        RemovePaidFacilityContractIfNeeded();
         OnBuildingDestroyed?.Invoke();
         isDestroy = true;
         UnregisterFromWorldRegistry();
@@ -295,9 +504,46 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         }
     }
 
+    internal void RetireForWorldReplacement()
+    {
+        RemovePaidFacilityContractIfNeeded();
+        isDestroy = true;
+        UnregisterFromWorldRegistry();
+        DetachFromGridIfStillRegistered();
+        MarkFacilityDynamicStateDirty();
+        DestroyImmediate(gameObject);
+    }
+
+    private void RemovePaidFacilityContractIfNeeded()
+    {
+        if (!synchronizedWithPaidContracts)
+        {
+            return;
+        }
+
+        paidFacilityContracts?.RemoveFacility(this);
+        synchronizedWithPaidContracts = false;
+    }
+
+    private void SynchronizePaidFacilityContractIfReady()
+    {
+        if (synchronizedWithPaidContracts
+            || detachedRestoreCandidate
+            || paidFacilityContracts == null
+            || BuildingData == null
+            || isDestroy)
+        {
+            return;
+        }
+
+        paidFacilityContracts.SynchronizeFacility(this);
+        synchronizedWithPaidContracts = true;
+    }
+
     private void RegisterWithWorldRegistryIfReady()
     {
         if (registeredWithWorldRegistry
+            || detachedRestoreCandidate
             || worldRegistry == null
             || BuildingData == null
             || isDestroy)
@@ -344,9 +590,65 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         grid.RemoveOccupant(this, registeredLayer, buildPoses, disconnectPositions);
     }
 
+    protected void MarkFacilityDynamicStateDirty() =>
+        ResolveFacilityCandidateCache().MarkDynamicStateDirty();
+
+    public void NotifyStructuralStateChanged() =>
+        MarkFacilityDynamicStateDirty();
+
+    public BuildingRoomOperationalSnapshot GetRoomOperationalProfile() =>
+        ResolveRoomFacilityPolicy().GetOperationalProfile(this);
+
+    public void RestoreFacilityState(FacilityRuntimeState state) =>
+        StateAndCapabilities.RestoreFacilityState(FacilityState, state);
+
+    public void RecordCompletedWorkCycle() =>
+        StateAndCapabilities.RecordCompletedWorkCycle(FacilityState);
+
+    public void SetCleanliness(float value) =>
+        StateAndCapabilities.SetCleanliness(FacilityState, value);
+
+    public IReadOnlyList<IBuildingStateModule> GetStateModules() =>
+        StateAndCapabilities.GetStateModules();
+
+    protected void RegisterStateModule(IBuildingStateModule module) =>
+        StateAndCapabilities.RegisterStateModule(module);
+
+    public bool TryGetStateModule<TModule>(
+        string moduleId,
+        out TModule module)
+        where TModule : class, IBuildingStateModule
+        => StateAndCapabilities.TryGetStateModule(moduleId, out module);
+
+    public TModule RequireStateModule<TModule>(string moduleId)
+        where TModule : class, IBuildingStateModule
+        => StateAndCapabilities.RequireStateModule<TModule>(moduleId);
+
+    private IBuildingFacilityStateChangePort ResolveFacilityCandidateCache()
+        => StateAndCapabilities.RequireDependency(facilityCandidateCache);
+
+    internal IBuildingRoomPolicyPort ResolveRoomFacilityPolicy()
+        => StateAndCapabilities.RequireDependency(roomFacilityPolicy);
+
+    internal IBuildingResearchWorkPort ResolveBlueprintResearchWorkService()
+        => StateAndCapabilities.RequireDependency(blueprintResearchWorkService);
+
+    public bool TryGetCombatEquipmentRuntime(
+        out IBuildingEquipmentCraftingRuntimePort runtime)
+    {
+        return (runtime = combatEquipmentRuntime) != null;
+    }
+
+    public bool HasPendingEquipmentCraftWork() =>
+        BuildableObjectStateAndCapabilityController.HasPendingEquipmentCraftWork(
+            BuildingData,
+            combatEquipmentRuntime);
+
     public void SetDamaged(bool value)
     {
-        if (DungeonDebugRuntimeRules.ShouldBlockFacilityDamage(value))
+        if ((debugRules ?? throw new InvalidOperationException(
+                $"{nameof(BuildableObject)} requires {nameof(IBuildingDamageRulePort)} injection."))
+            .ShouldBlockFacilityDamage(value))
         {
             return;
         }
@@ -372,105 +674,20 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         MarkFacilityDynamicStateDirty();
     }
 
-    public bool SupportsFacilityRole(FacilityRole role)
-    {
-        return Facility != null && Facility.SupportsRole(role);
-    }
+    public bool SupportsFacilityRole(FacilityRole role) =>
+        Facility != null && Facility.SupportsRole(role);
 
-    public bool SupportsWork(WorkTypeId workTypeId)
-    {
-        return Facility != null && Facility.SupportsWork(workTypeId);
-    }
+    public bool SupportsWork(WorkTypeId workTypeId) =>
+        Facility != null && Facility.SupportsWork(workTypeId);
 
-    internal bool SupportsWork(FacilityWorkType workType)
-    {
-        return Facility != null && Facility.SupportsWork(workType);
-    }
+    internal bool SupportsWork(FacilityWorkType workType) =>
+        Facility != null && Facility.SupportsWork(workType);
 
-    public bool CanVisit(CharacterActor visitor, out string failureReason)
-    {
-        PruneExpiredVisitReservations();
-        failureReason = string.Empty;
-        if (isDestroy)
-        {
-            failureReason = "시설 파괴됨";
-            return false;
-        }
+    public bool CanVisit(IBuildingCharacterPort visitor, out string failureReason) =>
+        Occupancy.CanVisit(visitor, out failureReason);
 
-        if (FacilityEvolutionWorkUtility.IsRelocating(this))
-        {
-            failureReason = "이전 작업 중";
-            return false;
-        }
-
-        FacilityData facilityData = Facility;
-        if (facilityData == null || !facilityData.IsVisitorFacility)
-        {
-            failureReason = "방문용 시설 아님";
-            return false;
-        }
-
-        if (!ResolveRoomFacilityPolicy().IsFacilityRoleAvailable(this, facilityData.roles, out failureReason))
-        {
-            return false;
-        }
-
-        if (isDamaged && facilityData.disabledWhenDamaged)
-        {
-            failureReason = "시설 파손";
-            return false;
-        }
-
-        int effectiveCapacity = EffectiveCapacity;
-        if (effectiveCapacity > 0
-            && currentUserCount + GetActiveVisitReservationCountExcept(visitor) >= effectiveCapacity)
-        {
-            failureReason = "수용 인원 초과";
-            return false;
-        }
-
-        if (BuildingData.RequiresStockForUse()
-            && this is IStockedFacility stockedFacility
-            && !stockedFacility.HasAvailableStock)
-        {
-            failureReason = "재고 없음";
-            return false;
-        }
-
-        if (paidFacilityContracts != null
-            && !paidFacilityContracts.CanBeginUse(
-                this,
-                out failureReason))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    public bool TryBeginUse(CharacterActor visitor, out string failureReason)
-    {
-        if (!CanVisit(visitor, out failureReason))
-        {
-            return false;
-        }
-
-        if (paidFacilityContracts != null
-            && !paidFacilityContracts.TryChargeUse(
-                this,
-                out failureReason))
-        {
-            return false;
-        }
-
-        ReleaseVisitReservation(visitor);
-        currentUserCount++;
-        FacilityState.completedUses++;
-        FacilityState.cleanliness = Mathf.Clamp(FacilityState.cleanliness - 1.5f, 0f, 100f);
-        MarkFacilityDynamicStateDirty();
-        PublishGameEvent(new FacilityVisitEvent(visitor, this));
-        return true;
-    }
+    public bool TryBeginUse(IBuildingCharacterPort visitor, out string failureReason) =>
+        Occupancy.TryBeginUse(visitor, out failureReason);
 
     protected void PublishGameEvent<TEvent>(TEvent gameEvent)
     {
@@ -482,647 +699,101 @@ public class BuildableObject : MonoBehaviour, IGridOccupant, IGridMovementOccupa
         ?? throw new InvalidOperationException(
             $"{GetType().Name} requires {nameof(IGameEventBus)} injection.");
 
-    public void EndUse(CharacterActor visitor)
+    public void EndUse(IBuildingCharacterPort visitor) => Occupancy.EndUse(visitor);
+
+    public bool TryReserveVisit(
+        IBuildingCharacterPort visitor,
+        out string failureReason,
+        float seconds = DefaultAiReservationSeconds)
     {
-        if (currentUserCount > 0)
-        {
-            currentUserCount--;
-            MarkFacilityDynamicStateDirty();
-        }
+        return Occupancy.TryReserveVisit(visitor, out failureReason, seconds);
     }
 
-    public bool TryReserveVisit(CharacterActor visitor, out string failureReason, float seconds = DefaultAiReservationSeconds)
+    public void RefreshVisitReservation(
+        IBuildingCharacterPort visitor,
+        float seconds = DefaultAiReservationSeconds)
     {
-        failureReason = string.Empty;
-        if (visitor == null)
-        {
-            failureReason = "방문 예약 대상 없음";
-            return false;
-        }
-
-        if (!CanVisit(visitor, out failureReason))
-        {
-            return false;
-        }
-
-        float expiry = Now + Mathf.Max(0.1f, seconds);
-        if (visitReservations.TryGetValue(visitor, out float previousExpiry)
-            && previousExpiry <= nextVisitReservationExpiry
-            && expiry > previousExpiry)
-        {
-            nextVisitReservationExpiry = 0f;
-        }
-
-        visitReservations[visitor] = expiry;
-        nextVisitReservationExpiry = Mathf.Min(
-            nextVisitReservationExpiry,
-            expiry);
-        MarkFacilityDynamicStateDirty();
-        return true;
+        Occupancy.RefreshVisitReservation(visitor, seconds);
     }
 
-    public void RefreshVisitReservation(CharacterActor visitor, float seconds = DefaultAiReservationSeconds)
-    {
-        if (visitor == null || !visitReservations.ContainsKey(visitor))
-        {
-            return;
-        }
-
-        float previousExpiry = visitReservations[visitor];
-        float expiry = Now + Mathf.Max(0.1f, seconds);
-        visitReservations[visitor] = expiry;
-        if (previousExpiry <= nextVisitReservationExpiry
-            && expiry > previousExpiry)
-        {
-            nextVisitReservationExpiry = 0f;
-        }
-        else
-        {
-            nextVisitReservationExpiry = Mathf.Min(
-                nextVisitReservationExpiry,
-                expiry);
-        }
-    }
-
-    public void ReleaseVisitReservation(CharacterActor visitor)
-    {
-        if (visitor == null)
-        {
-            return;
-        }
-
-        if (visitReservations.TryGetValue(visitor, out float expiry)
-            && visitReservations.Remove(visitor))
-        {
-            if (expiry <= nextVisitReservationExpiry)
-            {
-                nextVisitReservationExpiry = 0f;
-            }
-
-            MarkFacilityDynamicStateDirty();
-        }
-    }
+    public void ReleaseVisitReservation(IBuildingCharacterPort visitor) =>
+        Occupancy.ReleaseVisitReservation(visitor);
 
     public bool TryReserveWorker(
-        CharacterActor worker,
+        IBuildingCharacterPort worker,
         out FacilityAssignmentStatus status,
         float seconds = DefaultAiReservationSeconds)
     {
-        if (worker == null)
-        {
-            status = FacilityAssignmentStatus.Rejected(
-                FacilityAssignmentFailureKind.MissingWorker,
-                "작업 예약 대상 없음");
-            return false;
-        }
-
-        PruneExpiredWorkerReservation();
-        if (HasWorkerReservationForOther(worker))
-        {
-            status = FacilityAssignmentStatus.Rejected(
-                FacilityAssignmentFailureKind.Reserved,
-                "이미 작업 예약됨");
-            return false;
-        }
-
-        workerReservation = worker;
-        workerReservationUntil = Now + Mathf.Max(0.1f, seconds);
-        MarkFacilityDynamicStateDirty();
-        status = FacilityAssignmentStatus.Allowed();
-        return true;
+        return Assignment.TryReserveWorker(worker, out status, seconds);
     }
 
-    public void RefreshWorkerReservation(CharacterActor worker, float seconds = DefaultAiReservationSeconds)
+    public void RefreshWorkerReservation(
+        IBuildingCharacterPort worker,
+        float seconds = DefaultAiReservationSeconds)
     {
-        PruneExpiredWorkerReservation();
-        if (worker == null || workerReservation != worker)
-        {
-            return;
-        }
-
-        workerReservationUntil = Now + Mathf.Max(0.1f, seconds);
+        Assignment.RefreshWorkerReservation(worker, seconds);
     }
 
-    public bool HasWorkerReservationForOther(CharacterActor worker)
-    {
-        PruneExpiredWorkerReservation();
-        return workerReservation != null && workerReservation != worker;
-    }
+    public bool HasWorkerReservationForOther(IBuildingCharacterPort worker) =>
+        Assignment.HasWorkerReservationForOther(worker);
 
-    public void ReleaseWorkerReservation(CharacterActor worker)
-    {
-        if (worker == null || workerReservation != worker)
-        {
-            return;
-        }
+    public void ReleaseWorkerReservation(IBuildingCharacterPort worker) =>
+        Assignment.ReleaseWorkerReservation(worker);
 
-        workerReservation = null;
-        workerReservationUntil = 0f;
-        MarkFacilityDynamicStateDirty();
-    }
-
-    public bool CanAssignWork(WorkTypeId workTypeId, out string failureReason)
+    public bool CanAssignWork(
+        WorkTypeId workTypeId,
+        out string failureReason)
     {
-        FacilityAssignmentStatus status = GetWorkAssignmentStatus(workTypeId);
+        FacilityAssignmentStatus status =
+            Assignment.GetWorkAssignmentStatus(workTypeId);
         failureReason = status.Reason;
         return status.IsAllowed;
     }
 
-    internal bool CanAssignWork(FacilityWorkType workType, out string failureReason)
+    internal bool CanAssignWork(
+        FacilityWorkType workType,
+        out string failureReason)
     {
-        FacilityAssignmentStatus status = GetWorkAssignmentStatus(workType);
+        FacilityAssignmentStatus status =
+            Assignment.GetWorkAssignmentStatus(workType);
         failureReason = status.Reason;
         return status.IsAllowed;
     }
 
-    public FacilityAssignmentStatus GetWorkAssignmentStatus(WorkTypeId workTypeId)
+    public FacilityAssignmentStatus GetWorkAssignmentStatus(
+        WorkTypeId workTypeId) => Assignment.GetWorkAssignmentStatus(workTypeId);
+
+    internal FacilityAssignmentStatus GetWorkAssignmentStatus(
+        FacilityWorkType workType) => Assignment.GetWorkAssignmentStatus(workType);
+
+    internal IBuildingPaidFacilityContractPort PaidFacilityContracts =>
+        paidFacilityContracts;
+    internal float OccupancyAndAssignmentTime => GameTime;
+
+    internal void NotifyOccupancyOrAssignmentChanged()
     {
-        if (!workTypeId.IsValid
-            || !WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition))
-        {
-            return FacilityAssignmentStatus.Rejected(
-                FacilityAssignmentFailureKind.UnsupportedWork,
-                "알 수 없는 작업");
-        }
-
-        return GetWorkAssignmentStatus(definition.Type);
-    }
-
-    internal FacilityAssignmentStatus GetWorkAssignmentStatus(FacilityWorkType workType)
-    {
-        PruneExpiredWorkerReservation();
-        if (isDestroy)
-        {
-            return FacilityAssignmentStatus.Rejected(
-                FacilityAssignmentFailureKind.Destroyed,
-                "시설 파괴됨");
-        }
-
-        FacilityData facilityData = Facility;
-        bool supportsButcherFallback = workType == FacilityWorkType.Butcher
-            && WildlifeButcherFacilityUtility.IsButcherFacility(this);
-        bool supportsSurvivalFallback = SurvivalFacilityUtility.IsSurvivalWork(workType)
-            && (SurvivalFacilityUtility.AddFallbackWorkTypes(this, FacilityWorkType.None) & workType) != 0;
-        bool supportsEquipmentMaintenance = workType == FacilityWorkType.Repair
-            && CombatEquipmentMaintenanceFacilityUtility.IsMaintenanceFacility(this);
-        bool supportsFacilityEvolution = workType == FacilityWorkType.Craft
-            && FacilityEvolutionWorkUtility.HasPendingWork(this);
-        bool supportsRuntimeCapability =
-            WorkTypeCatalog.TryGet(workType, out WorkTypeDefinition runtimeWork)
-            && RuntimeWorkCapabilityUtility.Supports(
-                this,
-                runtimeWork.WorkTypeId);
-        if (facilityData == null
-            || (!facilityData.SupportsWork(workType)
-                && !supportsButcherFallback
-                && !supportsSurvivalFallback
-                && !supportsEquipmentMaintenance
-                && !supportsFacilityEvolution
-                && !supportsRuntimeCapability))
-        {
-            return FacilityAssignmentStatus.Rejected(
-                FacilityAssignmentFailureKind.UnsupportedWork,
-                "지원하지 않는 작업");
-        }
-
-        if (workType == FacilityWorkType.Clean
-            && FacilityState.cleanliness >= CleaningWorkThreshold)
-        {
-            return FacilityAssignmentStatus.Rejected(
-                FacilityAssignmentFailureKind.WorkNotNeeded,
-                "청소할 필요가 없음");
-        }
-
-        if (isDamaged && facilityData.disabledWhenDamaged && workType != FacilityWorkType.Repair)
-        {
-            return FacilityAssignmentStatus.Rejected(
-                FacilityAssignmentFailureKind.Damaged,
-                "시설 파손");
-        }
-
-        return FacilityAssignmentStatus.Allowed();
-    }
-    private int GetActiveVisitReservationCountExcept(CharacterActor visitor)
-    {
-        PruneExpiredVisitReservations();
-        return Mathf.Max(
-            0,
-            visitReservations.Count
-            - (visitor != null && visitReservations.ContainsKey(visitor) ? 1 : 0));
-    }
-
-    private void PruneExpiredVisitReservations()
-    {
-        if (visitReservations.Count == 0)
-        {
-            nextVisitReservationExpiry = float.PositiveInfinity;
-            return;
-        }
-
-        float now = Now;
-        if (now < nextVisitReservationExpiry)
-        {
-            return;
-        }
-
-        bool changed = false;
-        float nextExpiry = float.PositiveInfinity;
-        expiredVisitReservations.Clear();
-        foreach (KeyValuePair<CharacterActor, float> pair in visitReservations)
-        {
-            if (pair.Key != null && now < pair.Value)
-            {
-                nextExpiry = Mathf.Min(nextExpiry, pair.Value);
-                continue;
-            }
-
-            expiredVisitReservations.Add(pair.Key);
-        }
-
-        for (int index = 0; index < expiredVisitReservations.Count; index++)
-        {
-            visitReservations.Remove(expiredVisitReservations[index]);
-            changed = true;
-        }
-
-        expiredVisitReservations.Clear();
-        nextVisitReservationExpiry = nextExpiry;
-        if (changed)
-        {
-            MarkFacilityDynamicStateDirty();
-        }
-    }
-
-    private void PruneExpiredWorkerReservation()
-    {
-        if (workerReservation == null)
-        {
-            return;
-        }
-
-        if (Now < workerReservationUntil)
-        {
-            return;
-        }
-
-        workerReservation = null;
-        workerReservationUntil = 0f;
         MarkFacilityDynamicStateDirty();
+    }
+
+    internal void RecordFacilityUse(IBuildingCharacterPort visitor)
+    {
+        FacilityState.completedUses++;
+        FacilityState.cleanliness = Mathf.Clamp(
+            FacilityState.cleanliness - 1.5f,
+            0f,
+            100f);
+        MarkFacilityDynamicStateDirty();
+        (visitEvents ?? throw new InvalidOperationException(
+                $"{nameof(BuildableObject)} requires {nameof(IBuildingVisitEventPort)} injection."))
+            .PublishVisit(visitor, this);
     }
 
     protected IGameClock GameClock => gameClock
         ?? throw new InvalidOperationException(
             $"{nameof(BuildableObject)} requires {nameof(IGameClock)} injection.");
+    public bool HasInjectedGameClock => gameClock != null;
     protected float GameTime => GameClock.Time;
     protected float GameDeltaTime => GameClock.DeltaTime;
     protected int GameFrameCount => GameClock.FrameCount;
-    private float Now => GameTime;
-
-    private bool TryFindNearestFacilityCell(
-        Vector3 fromWorld,
-        bool requireRegisteredOccupant,
-        out Vector2Int result)
-    {
-        result = default;
-        if (grid == null || buildPoses == null || buildPoses.Count == 0)
-        {
-            return false;
-        }
-
-        int floor = centerPos.y;
-        Vector2Int origin = grid.GetXY(fromWorld);
-        origin.y = floor;
-        bool found = false;
-        Vector2Int best = default;
-        int bestDistance = int.MaxValue;
-        foreach (Vector2Int position in buildPoses)
-        {
-            if (position.y != floor || !grid.IsValidGridPos(position))
-            {
-                continue;
-            }
-
-            GridCell cell = grid.GetGridCell(position);
-            if (requireRegisteredOccupant
-                && (cell == null || !cell.ContainsOccupant(this)))
-            {
-                continue;
-            }
-
-            int distance = Mathf.Abs(position.x - origin.x);
-            if (found && distance >= bestDistance)
-            {
-                continue;
-            }
-
-            found = true;
-            best = position;
-            bestDistance = distance;
-        }
-
-        result = best;
-        return found;
-    }
-
-    private bool TryGetConfiguredFacilityAnchorWorldPosition(
-        string purposeId,
-        Vector3 fromWorld,
-        out Vector3 worldPosition)
-    {
-        worldPosition = transform.position;
-        if (BuildingData == null
-            || BuildingData.FacilityAnchors == null
-            || string.IsNullOrWhiteSpace(purposeId))
-        {
-            return false;
-        }
-
-        bool found = false;
-        float bestDistance = float.MaxValue;
-        foreach (FacilityAnchorSlot slot in BuildingData.FacilityAnchors.Enumerate(purposeId))
-        {
-            Vector3 candidate = grid.GetWorldPos(new Vector2(
-                centerPos.x + slot.offset.x,
-                centerPos.y + slot.offset.y));
-            float distance = (candidate - fromWorld).sqrMagnitude;
-            if (found && distance >= bestDistance)
-            {
-                continue;
-            }
-
-            found = true;
-            bestDistance = distance;
-            worldPosition = candidate;
-        }
-
-        return found;
-    }
-
-    public bool TryGetHorizontalFootprintAnchorWorldPosition(
-        float normalizedX,
-        out Vector3 worldPosition)
-    {
-        worldPosition = transform.position;
-        if (grid == null || buildPoses == null || buildPoses.Count == 0)
-        {
-            return false;
-        }
-
-        int minX = int.MaxValue;
-        int maxX = int.MinValue;
-        foreach (Vector2Int position in buildPoses)
-        {
-            if (position.y != centerPos.y)
-            {
-                continue;
-            }
-
-            minX = Mathf.Min(minX, position.x);
-            maxX = Mathf.Max(maxX, position.x);
-        }
-
-        if (minX == int.MaxValue || maxX == int.MinValue)
-        {
-            return false;
-        }
-
-        float clamped = Mathf.Clamp01(normalizedX);
-        float x = Mathf.Lerp(minX, maxX, clamped);
-        worldPosition = grid.GetWorldPos(new Vector2(x, centerPos.y));
-        return true;
-    }
-
-    public float GetWorkUrgency(WorkTypeId workTypeId)
-    {
-        return workTypeId.IsValid
-            && WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
-            ? GetLegacyWorkUrgency(definition.Type)
-            : 0f;
-    }
-
-    internal virtual float GetLegacyWorkUrgency(FacilityWorkType workType)
-    {
-        float urgency = 0f;
-        FacilityData facilityData = Facility;
-        if (facilityData == null)
-        {
-            return urgency;
-        }
-
-        if (isDamaged && workType == FacilityWorkType.Repair)
-        {
-            urgency += 80f;
-        }
-
-        int internalStockCapacity = BuildingData.GetInternalStockCapacity();
-        if (workType == FacilityWorkType.Restock
-            && internalStockCapacity > 0
-            && this is IStockedFacility stockedFacility)
-        {
-            float stockRatio = Mathf.Clamp01((float)stockedFacility.CurrentStock / internalStockCapacity);
-            urgency += Mathf.Lerp(70f, 0f, stockRatio);
-            if (stockedFacility.CurrentStock <= BuildingData.GetRestockRequestThreshold())
-            {
-                urgency += 20f;
-            }
-        }
-
-        if (workType == FacilityWorkType.Research && ResolveBlueprintResearchWorkService().HasResearchWorkFor(this))
-        {
-            urgency += 45f;
-        }
-
-        if (workType == FacilityWorkType.Craft && HasPendingEquipmentCraftWork())
-        {
-            urgency += 55f;
-        }
-
-        if (workType == FacilityWorkType.Craft
-            && FacilityEvolutionWorkUtility.HasPendingWork(this))
-        {
-            urgency += 85f;
-        }
-
-        if (workType == FacilityWorkType.Clean && FacilityState.cleanliness < CleaningWorkThreshold)
-        {
-            urgency += Mathf.Lerp(15f, 70f, 1f - (FacilityState.cleanliness / CleaningWorkThreshold));
-        }
-
-        return urgency;
-    }
-
-    public virtual bool isVisitable()
-    {
-        return CanVisit((CharacterActor)null, out _);
-    }
-
-    public void TriggerWorldInfoClick()
-    {
-        if (OnBuildingClicked != null)
-        {
-            OnBuildingClicked.Invoke(this);
-            return;
-        }
-
-        GameEventBus.ShowInfo(new BuildingInfoTarget(this));
-    }
-
-    protected void MarkFacilityDynamicStateDirty()
-    {
-        ResolveFacilityCandidateCache().MarkDynamicStateDirty();
-    }
-
-    public FacilityRoomOperationalProfile GetRoomOperationalProfile()
-    {
-        return ResolveRoomFacilityPolicy().GetOperationalProfile(this);
-    }
-
-    public void RestoreFacilityState(FacilityRuntimeState state)
-    {
-        facilityState ??= new FacilityRuntimeState();
-        facilityState.CopyFrom(state);
-        MarkFacilityDynamicStateDirty();
-    }
-
-    public void RestoreLegacyFacilityStateV1(LegacyFacilityOperationalStateV1 state)
-    {
-        state ??= new LegacyFacilityOperationalStateV1();
-        RestoreFacilityState(new FacilityRuntimeState
-        {
-            completedUses = state.completedUses,
-            completedWorkCycles = state.completedWorkCycles,
-            cleanliness = state.cleanliness
-        });
-
-        BuildingProductionStateModule production = runtimeStateModules
-            .OfType<BuildingProductionStateModule>()
-            .FirstOrDefault();
-        production?.SetProducedStock(state.producedStock);
-
-        BuildingSecurityStateModule security = runtimeStateModules
-            .OfType<BuildingSecurityStateModule>()
-            .FirstOrDefault();
-        security?.SetAlarmCharges(state.alarmCharges);
-    }
-
-    public void RecordCompletedWorkCycle()
-    {
-        FacilityState.completedWorkCycles++;
-        MarkFacilityDynamicStateDirty();
-    }
-
-    public void SetCleanliness(float value)
-    {
-        FacilityState.cleanliness = Mathf.Clamp(value, 0f, 100f);
-        MarkFacilityDynamicStateDirty();
-    }
-
-    public IReadOnlyList<IBuildingStateModule> GetStateModules()
-    {
-        List<IBuildingStateModule> modules = new List<IBuildingStateModule>(runtimeStateModules);
-        MonoBehaviour[] components = GetComponents<MonoBehaviour>();
-        foreach (MonoBehaviour component in components)
-        {
-            if (component is IBuildingStateModule module && !modules.Contains(module))
-            {
-                modules.Add(module);
-            }
-        }
-
-        return modules;
-    }
-
-    protected void RegisterStateModule(IBuildingStateModule module)
-    {
-        if (module == null)
-        {
-            throw new ArgumentNullException(nameof(module));
-        }
-
-        string moduleId = module.ModuleId?.Trim();
-        if (string.IsNullOrWhiteSpace(moduleId))
-        {
-            throw new InvalidOperationException(
-                $"{GetType().Name} '{name}' cannot register a state module without an ID.");
-        }
-
-        if (module.CurrentVersion <= 0)
-        {
-            throw new InvalidOperationException(
-                $"{GetType().Name} '{name}' state module '{moduleId}' has invalid version {module.CurrentVersion}.");
-        }
-
-        if (runtimeStateModules.Any(candidate => candidate != null
-                && string.Equals(candidate.ModuleId?.Trim(), moduleId, StringComparison.Ordinal)))
-        {
-            throw new InvalidOperationException(
-                $"{GetType().Name} '{name}' already registered state module '{moduleId}'.");
-        }
-
-        runtimeStateModules.Add(module);
-    }
-
-    public bool TryGetStateModule<TModule>(string moduleId, out TModule module)
-        where TModule : class, IBuildingStateModule
-    {
-        foreach (IBuildingStateModule candidate in runtimeStateModules)
-        {
-            if (candidate is TModule typed
-                && string.Equals(candidate.ModuleId, moduleId, StringComparison.Ordinal))
-            {
-                module = typed;
-                return true;
-            }
-        }
-
-        module = null;
-        return false;
-    }
-
-    public TModule RequireStateModule<TModule>(string moduleId)
-        where TModule : class, IBuildingStateModule
-    {
-        if (TryGetStateModule(moduleId, out TModule module))
-        {
-            return module;
-        }
-
-        throw new InvalidOperationException(
-            $"{GetType().Name} '{name}' is missing runtime state module '{moduleId}'.");
-    }
-
-    private IFacilityCandidateCache ResolveFacilityCandidateCache()
-    {
-        return RuntimeDependency.Require(facilityCandidateCache, this);
-    }
-
-    private IRoomFacilityPolicy ResolveRoomFacilityPolicy()
-    {
-        return RuntimeDependency.Require(roomFacilityPolicy, this);
-    }
-
-    private IBlueprintResearchWorkService ResolveBlueprintResearchWorkService()
-    {
-        return RuntimeDependency.Require(blueprintResearchWorkService, this);
-    }
-
-    public bool TryGetCombatEquipmentRuntime(out ICombatEquipmentRuntime runtime)
-    {
-        runtime = combatEquipmentRuntime;
-        return runtime != null;
-    }
-
-    public bool HasPendingEquipmentCraftWork()
-    {
-        BuildingEquipmentCraftingAbility crafting = BuildingData?.GetAbility<BuildingEquipmentCraftingAbility>();
-        return crafting != null
-            && combatEquipmentRuntime != null
-            && combatEquipmentRuntime.HasPendingCraftWork(crafting.CraftableEquipmentIds);
-    }
-
-    private IWorldInfoClickSelector RequireWorldInfoClickSelector()
-    {
-        return RuntimeDependency.Require(worldInfoClickSelector, this);
-    }
 
 }

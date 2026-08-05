@@ -16,11 +16,39 @@ public enum CharacterMedicalOrderState
     Cancelled = 8
 }
 
-public enum CharacterMedicalSupplyKind
+public enum CharacterMedicalStatusCode
 {
-    None = 0,
-    Medicine = 1,
-    ExtractedBlood = 2
+    Unknown = 0,
+    AwaitingStabilization,
+    PreparingStabilization,
+    Stabilizing,
+    StabilizedWithInfectionRisk,
+    AwaitingRescue,
+    PreparingTransfer,
+    Carrying,
+    AwaitingBed,
+    Treating,
+    TreatingWithExtractedBlood,
+    AdditionalTreatmentRequired,
+    TreatmentCompleted,
+    TreatmentRequested,
+    SupplyUnavailable,
+    AwaitingMedicineDelivery,
+    AwaitingExtractedBloodDelivery,
+    MedicineReady,
+    ReservationReleased,
+    Cancelled,
+    PatientMissing,
+    RescuerMissing,
+    PatientDied,
+    RescuerDied,
+    RescueInterrupted,
+    StabilizationInterrupted,
+    TreatmentInterrupted,
+    PatientPathUnavailable,
+    TreatmentPathUnavailable,
+    Restarted,
+    ManualRescueAssigned
 }
 
 [Serializable]
@@ -49,7 +77,25 @@ public sealed class CharacterMedicalOrder
     public int patientY;
     public int bedX;
     public int bedY;
-    public string status = string.Empty;
+    public CharacterMedicalStatusCode statusCode;
+    public List<string> statusParameters = new List<string>();
+
+    public void SetStatus(
+        CharacterMedicalStatusCode code,
+        params string[] parameters)
+    {
+        statusCode = code;
+        statusParameters.Clear();
+        if (parameters == null)
+        {
+            return;
+        }
+
+        foreach (string parameter in parameters)
+        {
+            statusParameters.Add(parameter ?? string.Empty);
+        }
+    }
 
     public Vector2Int PatientPosition
     {
@@ -78,6 +124,9 @@ public sealed class CharacterMedicalOrder
 [Serializable]
 public sealed class DungeonCharacterMedicalSaveData
 {
+    public const int CurrentVersion = 3;
+
+    public int version;
     public List<CharacterMedicalOrder> orders = new List<CharacterMedicalOrder>();
     public int orderSequence;
 }
@@ -106,42 +155,56 @@ public interface ICharacterPhysicalCapacityQuery
     float GetWorkMultiplier(CharacterActor actor, WorkTypeId workTypeId);
 }
 
-public interface ICharacterMedicalRuntime
+public interface ICharacterMedicalQuery
 {
     IReadOnlyList<CharacterMedicalOrder> ActiveOrders { get; }
     bool HasAvailableRescueOrder(CharacterActor rescuer);
+    bool TryGetOrder(string orderId, out CharacterMedicalOrder order);
+    bool TryGetPatient(CharacterMedicalOrder order, out CharacterActor patient);
+    bool TryGetTreatmentFacility(CharacterMedicalOrder order, out BuildableObject facility);
+}
+
+public interface ICharacterMedicalCommand
+{
     bool TryReserveBestOrder(
         CharacterActor rescuer,
         out CharacterMedicalOrder order,
-        out string failureReason);
+        out DomainFailure failure);
     bool TryReserveOrderForPatient(
         CharacterActor rescuer,
         CharacterActor patient,
         out CharacterMedicalOrder order,
-        out string failureReason);
+        out DomainFailure failure);
     bool TryRequestTreatment(
         CharacterActor patient,
         out CharacterMedicalOrder order,
-        out string failureReason);
-    bool TryGetOrder(string orderId, out CharacterMedicalOrder order);
-    bool TryGetPatient(CharacterMedicalOrder order, out CharacterActor patient);
-    bool TryGetTreatmentFacility(CharacterMedicalOrder order, out BuildableObject facility);
+        out DomainFailure failure);
     bool TryAssignSpecificTreatmentFacility(
         string orderId,
         BuildableObject facility,
-        out string failureReason);
+        out DomainFailure failure);
     float AdvanceStabilization(string orderId, CharacterActor rescuer, float work);
-    bool TryBeginCarrying(string orderId, CharacterActor rescuer, out string failureReason);
+    bool TryBeginCarrying(string orderId, CharacterActor rescuer, out DomainFailure failure);
     bool TryPlaceAtTreatmentDestination(
         string orderId,
         CharacterActor rescuer,
-        out string failureReason);
+        out DomainFailure failure);
     float AdvanceTreatment(string orderId, CharacterActor rescuer, float work);
-    void ReleaseReservation(string orderId, CharacterActor rescuer, string reason);
+    bool TryReleaseReservation(
+        string orderId,
+        CharacterActor rescuer,
+        CharacterMedicalStatusCode releaseStatus,
+        out DomainFailure failure);
     void NotifyCharacterDowned(CharacterActor actor);
     void NotifyCharacterRecovered(CharacterActor actor);
+}
+
+public interface ICharacterMedicalPersistence
+{
     DungeonCharacterMedicalSaveData Capture();
-    void Restore(DungeonCharacterMedicalSaveData saveData, IList<string> warnings);
+    CharacterMedicalRestoreCandidate PrepareRestore(
+        DungeonCharacterMedicalSaveData saveData);
+    void PublishRestore(CharacterMedicalRestoreCandidate candidate);
 }
 
 public interface ICharacterCarePriorityQuery
@@ -153,16 +216,22 @@ public interface ICharacterCarePriorityQuery
 public sealed class CharacterPhysicalCapacityQuery :
     ICharacterPhysicalCapacityQuery
 {
-    private readonly ICharacterBodyHealthRuntime bodyHealth;
+    private readonly ICharacterBodyHealthQuery bodyHealthQuery;
+    private readonly IAnatomyEffectRuntime anatomyEffects;
 
-    public CharacterPhysicalCapacityQuery(ICharacterBodyHealthRuntime bodyHealth)
+    public CharacterPhysicalCapacityQuery(
+        ICharacterBodyHealthQuery bodyHealthQuery,
+        IAnatomyEffectRuntime anatomyEffects)
     {
-        this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
+        this.bodyHealthQuery = bodyHealthQuery
+            ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
+        this.anatomyEffects = anatomyEffects
+            ?? throw new ArgumentNullException(nameof(anatomyEffects));
     }
 
     public CharacterPhysicalCapacitySnapshot GetSnapshot(CharacterActor actor)
     {
-        CharacterBodyHealthSnapshot snapshot = bodyHealth.GetSnapshot(actor);
+        CharacterBodyHealthSnapshot snapshot = bodyHealthQuery.GetSnapshot(actor);
         return new CharacterPhysicalCapacitySnapshot(
             snapshot.Consciousness,
             snapshot.Manipulation,
@@ -171,33 +240,21 @@ public sealed class CharacterPhysicalCapacityQuery :
 
     public float GetMoveMultiplier(CharacterActor actor)
     {
-        CharacterPhysicalCapacitySnapshot snapshot = GetSnapshot(actor);
-        return Mathf.Clamp01(Mathf.Min(snapshot.Consciousness, snapshot.Mobility));
+        return anatomyEffects
+            .GetActivityFactor(actor, AnatomyActivityId.Movement)
+            .AppliedFactor;
     }
 
     public float GetWorkMultiplier(CharacterActor actor, WorkTypeId workTypeId)
     {
-        CharacterPhysicalCapacitySnapshot snapshot = GetSnapshot(actor);
-        float relevantCapacity;
-        if (workTypeId == BuiltInWorkTypeIds.Haul
+        AnatomyActivityId activity = workTypeId == BuiltInWorkTypeIds.Haul
             || workTypeId == BuiltInWorkTypeIds.Rescue
-            || workTypeId == BuiltInWorkTypeIds.Guard
-            || workTypeId == BuiltInWorkTypeIds.Hunt)
-        {
-            relevantCapacity = Mathf.Min(snapshot.Manipulation, snapshot.Mobility);
-        }
-        else if (workTypeId == BuiltInWorkTypeIds.Research
-            || workTypeId == BuiltInWorkTypeIds.Treat
-            || workTypeId == BuiltInWorkTypeIds.Surgery)
-        {
-            relevantCapacity = Mathf.Min(snapshot.Consciousness, snapshot.Manipulation);
-        }
-        else
-        {
-            relevantCapacity = snapshot.Manipulation;
-        }
-
-        return Mathf.Clamp01(Mathf.Min(snapshot.Consciousness, relevantCapacity));
+                ? AnatomyActivityId.Carry
+                : workTypeId == BuiltInWorkTypeIds.Treat
+                    || workTypeId == BuiltInWorkTypeIds.Surgery
+                        ? AnatomyActivityId.Treatment
+                        : AnatomyActivityId.Work;
+        return anatomyEffects.GetActivityFactor(actor, activity).AppliedFactor;
     }
 }
 

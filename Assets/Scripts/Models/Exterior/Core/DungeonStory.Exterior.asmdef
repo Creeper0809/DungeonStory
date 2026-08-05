@@ -1,0 +1,18 @@
+{
+  "name": "DungeonStory.Exterior",
+  "rootNamespace": "DungeonStory.Exterior",
+  "references": [
+    "DungeonStory.Foundation",
+    "DungeonStory.Environment",
+    "DungeonStory.Rooms"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

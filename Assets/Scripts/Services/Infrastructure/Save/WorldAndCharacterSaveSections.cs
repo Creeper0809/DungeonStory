@@ -2,25 +2,24 @@ using System;
 using System.Collections.Generic;
 
 public sealed class ModularFacilityWorldSaveSection :
-    DungeonJsonSaveSection<ModularFacilityWorldSaveData>
+    DungeonStrictJsonSaveSection<
+        ModularFacilityWorldSaveData,
+        ModularFacilityWorldRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "world.facilities";
 
     private readonly IModularFacilityWorldSaveService worldSaveService;
-    private readonly ICharacterWorldSaveService characterWorldSaveService;
     private readonly IGridSystemProvider gridSystemProvider;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameSessionStateProvider gameDataProvider;
 
     public ModularFacilityWorldSaveSection(
         IModularFacilityWorldSaveService worldSaveService,
-        ICharacterWorldSaveService characterWorldSaveService,
         IGridSystemProvider gridSystemProvider,
-        IGameDataProvider gameDataProvider)
+        IGameSessionStateProvider gameDataProvider)
     {
         this.worldSaveService = worldSaveService
             ?? throw new ArgumentNullException(nameof(worldSaveService));
-        this.characterWorldSaveService = characterWorldSaveService
-            ?? throw new ArgumentNullException(nameof(characterWorldSaveService));
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.gameDataProvider = gameDataProvider
@@ -28,6 +27,7 @@ public sealed class ModularFacilityWorldSaveSection :
     }
 
     public override string SectionId => Id;
+    public override int SectionVersion => 1;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.World;
     public override IReadOnlyList<string> DependsOn => new[]
@@ -38,36 +38,41 @@ public sealed class ModularFacilityWorldSaveSection :
 
     protected override ModularFacilityWorldSaveData CapturePayload()
     {
-        ResolveWorld(out Grid grid, out GameData gameData);
+        ResolveWorld(out Grid grid, out GameSessionState gameData);
         return worldSaveService.CreateSnapshot(grid, gameData);
     }
 
-    protected override void RestorePayload(
-        ModularFacilityWorldSaveData source,
-        DungeonGameRestoreReport report)
+    protected override void ValidateParsedPayload(
+        ModularFacilityWorldSaveData payload)
     {
-        ResolveWorld(out Grid grid, out GameData gameData);
-        characterWorldSaveService.PrepareForWorldRestore();
-        if (!worldSaveService.TryRestoreSnapshot(
-                grid,
-                gameData,
-                source,
-                out ModularFacilityWorldRestoreReport worldReport))
+        ResolveWorld(out Grid grid, out _);
+        ModularFacilityWorldRestoreReport validation =
+            worldSaveService.ValidateRestore(grid, payload);
+        if (!validation.Success)
         {
-            foreach (string error in worldReport.errors)
-            {
-                report.AddError(error);
-            }
-        }
-
-        report.RecordRestoredBuildings(worldReport.restoredCount);
-        foreach (string warning in worldReport.warnings)
-        {
-            report.AddWarning(warning);
+            throw new InvalidOperationException(
+                "Facility-world restore payload is invalid: "
+                + string.Join(" | ", validation.errors));
         }
     }
 
-    private void ResolveWorld(out Grid grid, out GameData gameData)
+    protected override ModularFacilityWorldRestoreCandidate
+        BuildRestoreCandidate(ModularFacilityWorldSaveData source)
+    {
+        ResolveWorld(out Grid grid, out GameSessionState gameData);
+        return worldSaveService.PrepareRestoreCandidate(
+            grid,
+            gameData,
+            source);
+    }
+
+    protected override void PublishRestoreCandidate(
+        ModularFacilityWorldRestoreCandidate candidate)
+    {
+        worldSaveService.StageRestoreCandidate(candidate);
+    }
+
+    private void ResolveWorld(out Grid grid, out GameSessionState gameData)
     {
         if (!gridSystemProvider.TryGetGrid(out grid))
         {
@@ -75,33 +80,41 @@ public sealed class ModularFacilityWorldSaveSection :
                 "Cannot save or restore before the dungeon grid is initialized.");
         }
 
-        if (!gameDataProvider.TryGetGameData(out gameData))
+        if (!gameDataProvider.TryGetSessionState(out gameData))
         {
             throw new InvalidOperationException(
-                "Cannot save or restore without active GameData.");
+                "Cannot save or restore without active GameSessionState.");
         }
     }
 }
 
 public sealed class CharacterWorldSaveSection :
-    DungeonJsonSaveSection<DungeonCharacterWorldSaveData>
+    DungeonStrictJsonSaveSection<
+        DungeonCharacterWorldSaveData,
+        CharacterWorldRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "characters.world";
 
     private readonly ICharacterWorldSaveService saveService;
     private readonly IGridSystemProvider gridSystemProvider;
+    private readonly IRestoreWorldCandidateQuery restoreWorldCandidates;
 
     public CharacterWorldSaveSection(
         ICharacterWorldSaveService saveService,
-        IGridSystemProvider gridSystemProvider)
+        IGridSystemProvider gridSystemProvider,
+        IRestoreWorldCandidateQuery restoreWorldCandidates)
     {
         this.saveService = saveService
             ?? throw new ArgumentNullException(nameof(saveService));
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
+        this.restoreWorldCandidates = restoreWorldCandidates
+            ?? throw new ArgumentNullException(nameof(restoreWorldCandidates));
     }
 
     public override string SectionId => Id;
+    public override int SectionVersion => 1;
     public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.Characters;
     public override IReadOnlyList<string> DependsOn =>
@@ -112,12 +125,35 @@ public sealed class CharacterWorldSaveSection :
         return saveService.Capture(ResolveGrid());
     }
 
-    protected override void RestorePayload(
-        DungeonCharacterWorldSaveData source,
-        DungeonGameRestoreReport report)
+    protected override void ValidateParsedPayload(
+        DungeonCharacterWorldSaveData payload)
     {
-        report.RecordRestoredCharacters(
-            saveService.Restore(ResolveGrid(), source, report));
+        saveService.ValidateRestorePayload(ResolveGrid(), payload);
+    }
+
+    protected override CharacterWorldRestoreCandidate BuildRestoreCandidate(
+        DungeonCharacterWorldSaveData source)
+    {
+        return saveService.PrepareRestoreCandidate(
+            ResolveRestoreGrid(),
+            source);
+    }
+
+    protected override void PublishRestoreCandidate(
+        CharacterWorldRestoreCandidate candidate)
+    {
+        saveService.StageRestoreCandidate(candidate);
+    }
+
+    private Grid ResolveRestoreGrid()
+    {
+        if (!restoreWorldCandidates.TryGetGrid(out Grid candidateGrid))
+        {
+            throw new InvalidOperationException(
+                "Character restore requires the detached facility-world candidate grid.");
+        }
+
+        return candidateGrid;
     }
 
     private Grid ResolveGrid()

@@ -33,13 +33,12 @@ public static class CropPlotDebugScenarios
             CropPlotRuntime runtime = scope.Container.Resolve<CropPlotRuntime>();
             IWorldItemStackRuntime items =
                 scope.Container.Resolve<IWorldItemStackRuntime>();
-            IBlueprintResearchRuntimeProvider researchProvider =
-                scope.Container.Resolve<IBlueprintResearchRuntimeProvider>();
+            BlueprintResearchRuntime research = scope.Container
+                .Resolve<ProgressionSceneRuntimeReferences>()
+                .BlueprintResearch;
             IGridSystemProvider gridProvider =
                 scope.Container.Resolve<IGridSystemProvider>();
-            Require(
-                researchProvider.TryGetRuntime(out BlueprintResearchRuntime research),
-                "Research runtime is missing.");
+            Require(research != null, "Research runtime is missing.");
             research.State.Projects.Complete(
                 new ResearchProjectId("research:agriculture:field"));
             research.State.Projects.Complete(
@@ -73,7 +72,7 @@ public static class CropPlotDebugScenarios
             scope.Container.Inject(plot);
             plot.SetGrid(grid);
             plot.Initialization(outdoorPlot, new Vector2Int(4, 0));
-            runtime.Restore(runtime.Capture());
+            runtime.Restore(runtime.BuildRestore(runtime.Capture()));
             Require(
                 runtime.TrySetCrop(
                     plot,
@@ -83,7 +82,7 @@ public static class CropPlotDebugScenarios
             runtime.Tick();
 
             CropPlotSnapshot waiting = runtime.Plots.Single(entry =>
-                entry.PlotId == $"crop-plot:{plot.id}:4:0");
+                entry.PlotId == plot.RequirePersistentInstanceId().Value);
             Require(
                 waiting.Phase == CropPlotPhase.WaitingForMaterials,
                 $"unexpected initial phase={waiting.Phase}");
@@ -123,12 +122,12 @@ public static class CropPlotDebugScenarios
 
             DungeonCropPlotSaveData growingSave = runtime.Capture();
             CropPlotSaveData growing = growingSave.plots.Single(entry =>
-                entry.plotId == waiting.PlotId);
+                entry.buildingInstanceId == waiting.PlotId);
             Require(
                 growing.phase == CropPlotPhase.Growing,
                 $"crop did not enter growing phase: {growing.phase}");
             growing.growthHours = 999f;
-            runtime.Restore(growingSave);
+            runtime.Restore(runtime.BuildRestore(growingSave));
             runtime.Tick();
 
             Require(
@@ -169,13 +168,14 @@ public static class CropPlotDebugScenarios
             Require(
                 report.Success,
                 string.Join(" / ", report.Errors));
+            VerifyStrictSaveIsolation(saveSection);
 
             indoorPlotObject = new GameObject("IndoorCropPlot_Runtime_Verifier");
             Facility indoor = indoorPlotObject.AddComponent<Facility>();
             scope.Container.Inject(indoor);
             indoor.SetGrid(grid);
             indoor.Initialization(indoorPlot, new Vector2Int(8, 0));
-            runtime.Restore(runtime.Capture());
+            runtime.Restore(runtime.BuildRestore(runtime.Capture()));
             Require(
                 runtime.TrySetCrop(
                     indoor,
@@ -185,11 +185,9 @@ public static class CropPlotDebugScenarios
             runtime.Tick();
 
             CropPlotSnapshot indoorWaiting = runtime.Plots.Single(entry =>
-                entry.PlotId == $"crop-plot:{indoor.id}:8:0");
-            string waterItemId =
-                DungeonItemCatalogSO.StockItemId(StockCategory.Water);
-            string fuelItemId =
-                DungeonItemCatalogSO.StockItemId(StockCategory.Fuel);
+                entry.PlotId == indoor.RequirePersistentInstanceId().Value);
+            const string waterItemId = "resource:clean-water";
+            const string fuelItemId = "material:low-fuel";
             Require(
                 indoorWaiting.RequiredMaterials.ContainsKey(waterItemId)
                 && indoorWaiting.RequiredMaterials.ContainsKey("material:compost")
@@ -319,6 +317,37 @@ public static class CropPlotDebugScenarios
                     itemId,
                     StringComparison.Ordinal))
             .Sum(stack => stack.Quantity);
+    }
+
+    private static void VerifyStrictSaveIsolation(
+        CropPlotSaveSection saveSection)
+    {
+        Require(
+            saveSection is IDungeonSaveSectionPreflight
+            && saveSection is IDungeonRollbackFreeSaveSection,
+            "Crop-plot save section is not strict and rollback-free.");
+        string before = saveSection.Capture();
+        DungeonCropPlotSaveData invalid =
+            JsonUtility.FromJson<DungeonCropPlotSaveData>(before);
+        Require(invalid?.plots?.Count > 0, "Crop-plot isolation fixture is empty.");
+        invalid.plots[0].sowWork = -1f;
+        bool rejected = false;
+        try
+        {
+            ((IDungeonSaveSectionPreflight)saveSection).ValidatePayload(
+                JsonUtility.ToJson(invalid),
+                saveSection.SectionVersion,
+                new DungeonGameRestoreReport());
+        }
+        catch (InvalidOperationException)
+        {
+            rejected = true;
+        }
+
+        Require(rejected, "Negative crop-plot progress was accepted.");
+        Require(
+            string.Equals(before, saveSection.Capture(), StringComparison.Ordinal),
+            "Failed crop-plot preflight mutated live state.");
     }
 
     private static void Require(bool condition, string message)

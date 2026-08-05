@@ -68,7 +68,7 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
     private float originalTimeScale = 1f;
     private int originalGameSpeed = 1;
     private bool originalPause;
-    private GameData gameData;
+    private GameSessionState gameData;
     private GameManager gameManager;
     private IDungeonGameSaveSlotService slotService;
     private IGameplayFlowDiagnosticsQuery flowDiagnostics;
@@ -114,8 +114,8 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
         if (scope != null)
         {
             slotService = scope.Container.Resolve<IDungeonGameSaveSlotService>();
-            IGameDataProvider dataProvider = scope.Container.Resolve<IGameDataProvider>();
-            dataProvider.TryGetGameData(out gameData);
+            IGameSessionStateProvider dataProvider = scope.Container.Resolve<IGameSessionStateProvider>();
+            dataProvider.TryGetSessionState(out gameData);
             flowDiagnostics = scope.Container.Resolve<IGameplayFlowDiagnosticsQuery>();
             workOrders = scope.Container.Resolve<IWorkOrderRuntime>();
             itemStacks = scope.Container.Resolve<IWorldItemStackRuntime>();
@@ -439,8 +439,13 @@ public sealed class DungeonReleaseSoakVerificationRunner : MonoBehaviour
                 }
             }
 
-            CharacterActor worker = building.WorkerReservation;
-            if (worker != null)
+            IBuildingCharacterPort workerReservation = building.WorkerReservation;
+            CharacterActor worker = workerReservation as CharacterActor;
+            if (workerReservation != null && worker == null)
+            {
+                invalidReservationSamples++;
+            }
+            else if (worker != null)
             {
                 AIAction action = worker.Brain != null ? worker.Brain.bestAction : null;
                 if (worker.IsDead

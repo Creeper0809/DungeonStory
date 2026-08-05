@@ -30,6 +30,7 @@ public static class CombatSystemDebugScenarios
         Verify("방패와 방어구", VerifyShieldAndArmor, failures);
         Verify("중간 치명도", VerifyTargetLethality, failures);
         Verify("장비 개체와 탄약 저장", VerifyEquipmentRuntime, failures);
+        Verify("탄약 소비 권위", VerifyAmmunitionConsumerAuthority, failures);
         Verify("사망 이벤트 장비 소실", VerifyEquipmentDeathEventBridge, failures);
         Verify("쓰러짐 회복 히스테리시스", VerifyDownedHysteresis, failures);
         Verify("대장작업대 제작 연결", VerifyForgeRecipeBridge, failures);
@@ -38,8 +39,18 @@ public static class CombatSystemDebugScenarios
         Verify("12종 초기 스탯", VerifyInitialStats, failures);
         Verify("V14 생활 전투 저장", VerifyV14CombatLifecycleSave, failures);
         Verify("V14 저장 계약", VerifySaveContract, failures);
+        Verify("V18 체력 strict 저장", VerifyBodyHealthStrictSave, failures);
+        Verify("V18 의료 strict 저장", VerifyCharacterMedicalStrictSave, failures);
+        Verify(
+            "V18 의료 게시 단계별 오류 롤백",
+            CharacterMedicalRestoreFaultScenarios.Run,
+            failures);
 
         Verify("부위 피해가 총체력 즉사를 선행하지 않음", VerifyBodyDamageOwnsDeath, failures);
+
+        Verify("gunpowder smoke misfire and ranged roles",
+            VerifyGunpowderSmokeMisfireAndRangedRoles,
+            failures);
 
         foreach (string failure in failures)
         {
@@ -100,7 +111,7 @@ public static class CombatSystemDebugScenarios
         CombatStatSnapshot attacker = new CombatStatSnapshot(5f, 10f, 4f, 5f, 5f, 5f, 8f);
         CombatStatSnapshot defender = new CombatStatSnapshot(5f, 5f, 5f, 5f, 5f, 5f, 5f);
 
-        CombatResolutionService blocked = new CombatResolutionService(new SequenceRandom(0f));
+        CombatResolutionService blocked = new CombatResolutionService(new SequenceRandom(0f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
         CombatAttackResult friendlyRisk = blocked.Resolve(new CombatAttackRequest(
             "friendly-risk",
             "a",
@@ -117,7 +128,7 @@ public static class CombatSystemDebugScenarios
             return false;
         }
 
-        CombatResolutionService coverService = new CombatResolutionService(new SequenceRandom(0f, 0f));
+        CombatResolutionService coverService = new CombatResolutionService(new SequenceRandom(0f, 0f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
         CombatAttackResult cover = coverService.Resolve(new CombatAttackRequest(
             "cover",
             "a",
@@ -134,7 +145,7 @@ public static class CombatSystemDebugScenarios
     private static bool VerifyAttackPreview()
     {
         CombatWeaponSnapshot bow = CreateRangedWeapon(loadedAmmo: 1);
-        CombatResolutionService service = new CombatResolutionService(new SequenceRandom(0.5f));
+        CombatResolutionService service = new CombatResolutionService(new SequenceRandom(0.5f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
         CombatAttackRequest request = new CombatAttackRequest(
             "preview",
             "a",
@@ -181,7 +192,7 @@ public static class CombatSystemDebugScenarios
             10f,
             8f,
             5f);
-        CombatResolutionService shieldService = new CombatResolutionService(new SequenceRandom(0f, 0f));
+        CombatResolutionService shieldService = new CombatResolutionService(new SequenceRandom(0f, 0f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
         CombatAttackResult blocked = shieldService.Resolve(new CombatAttackRequest(
             "shield",
             "a",
@@ -216,7 +227,7 @@ public static class CombatSystemDebugScenarios
             12f,
             9f,
             8f);
-        CombatResolutionService armorService = new CombatResolutionService(new SequenceRandom(0f, 0.99f, 0.2f));
+        CombatResolutionService armorService = new CombatResolutionService(new SequenceRandom(0f, 0.99f, 0.2f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
         CombatAttackResult armored = armorService.Resolve(new CombatAttackRequest(
             "armor",
             "a",
@@ -271,7 +282,7 @@ public static class CombatSystemDebugScenarios
             true,
             false,
             false);
-        CombatResolutionService service = new CombatResolutionService(new SequenceRandom(0f, 0.99f, 0.2f));
+        CombatResolutionService service = new CombatResolutionService(new SequenceRandom(0f, 0.99f, 0.2f), evolution: null, overclock: null, environmentStatus: null, environmentalField: NoEnvironmentalFieldQuery.Instance, characters: null, environmentExposure: NoOpCharacterEnvironmentExposureCommand.Instance);
         CombatAttackResult result = service.Resolve(new CombatAttackRequest(
             "lethality",
             "a",
@@ -287,9 +298,277 @@ public static class CombatSystemDebugScenarios
         return result.Hit && hitsToDown >= 4 && hitsToDown <= 7;
     }
 
+    private static bool VerifyGunpowderSmokeMisfireAndRangedRoles()
+    {
+        CombatWeaponSnapshot bow = CreateAuthoredWeaponSnapshot(
+            "weapon:composite-bow",
+            "combat-role:bow",
+            1f);
+        CombatWeaponSnapshot crossbow = CreateAuthoredWeaponSnapshot(
+            "weapon:windlass-crossbow",
+            "combat-role:crossbow",
+            1f);
+        CombatWeaponSnapshot reliableGun = CreateAuthoredWeaponSnapshot(
+            "weapon:handgonne",
+            "combat-role:gun-reliable",
+            0.8f);
+        CombatWeaponSnapshot wornGun = CreateAuthoredWeaponSnapshot(
+            "weapon:handgonne",
+            "combat-role:gun-worn",
+            0.1f);
+        CombatStatSnapshot attacker = new CombatStatSnapshot(
+            8f, 10f, 6f, 10f, 8f, 5f, 8f);
+        CombatStatSnapshot defender = new CombatStatSnapshot(
+            5f, 5f, 5f, 5f, 5f, 8f, 5f);
+        CombatArmorSnapshot plate = new CombatArmorSnapshot(
+            "armor:role-test",
+            CombatBodyPart.Torso,
+            CombatArmorLayer.Plate,
+            CombatEquipmentQuality.Normal,
+            1f,
+            24f,
+            22f,
+            14f);
+
+        RecordingEnvironmentExposureCommand misfireExposure = new();
+        CombatAttackResult misfire = new CombatResolutionService(
+            new SequenceRandom(0f),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure: misfireExposure).Resolve(new CombatAttackRequest(
+                "gunpowder:worn",
+                "combat-role:gunner",
+                "combat-role:target",
+                attacker,
+                defender,
+                wornGun,
+                7,
+                CombatFireMode.Aimed,
+                default,
+                defenderArmor: new[] { plate }));
+        if (!wornGun.GunpowderWeapon
+            || wornGun.MisfireChance <= 0f
+            || wornGun.SmokeExposure <= 0f
+            || !misfire.Executed
+            || misfire.Hit
+            || string.IsNullOrWhiteSpace(misfire.FailureReason)
+            || misfire.Suppression > 0f
+            || !Mathf.Approximately(
+                misfire.SmokeExposure,
+                wornGun.SmokeExposure)
+            || misfireExposure.CallCount != 1
+            || !misfireExposure.CharacterId.Equals(
+                new CharacterId("combat-role:gunner"))
+            || !Mathf.Approximately(
+                misfireExposure.Amount,
+                wornGun.SmokeExposure))
+        {
+            return false;
+        }
+
+        RecordingEnvironmentExposureCommand hitExposure = new();
+        CombatResolutionService resolution = new CombatResolutionService(
+            new SequenceRandom(0f, 0.99f, 0.2f),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure: hitExposure);
+        CombatAttackResult gunHit = resolution.Resolve(new CombatAttackRequest(
+            "gunpowder:hit",
+            "combat-role:gunner",
+            "combat-role:target",
+            attacker,
+            defender,
+            reliableGun,
+            7,
+            CombatFireMode.Aimed,
+            default,
+            defenderArmor: new[] { plate }));
+        if (!gunHit.Executed
+            || !gunHit.Hit
+            || gunHit.AppliedDamage <= 0f
+            || !Mathf.Approximately(
+                gunHit.SmokeExposure,
+                reliableGun.SmokeExposure)
+            || hitExposure.CallCount != 1
+            || !hitExposure.CharacterId.Equals(
+                new CharacterId("combat-role:gunner"))
+            || !Mathf.Approximately(
+                hitExposure.Amount,
+                reliableGun.SmokeExposure)
+            || !reliableGun.RequiresAmmo
+            || string.IsNullOrWhiteSpace(reliableGun.AmmunitionItemId)
+            || reliableGun.LoadedAmmo != 1)
+        {
+            return false;
+        }
+
+        RecordingEnvironmentExposureCommand missExposure = new();
+        CombatAttackResult gunMiss = new CombatResolutionService(
+            new SequenceRandom(1f),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure: missExposure).Resolve(new CombatAttackRequest(
+                "gunpowder:miss",
+                "combat-role:gunner",
+                "combat-role:target",
+                attacker,
+                defender,
+                reliableGun,
+                7,
+                CombatFireMode.Aimed,
+                default));
+        if (!gunMiss.Executed
+            || gunMiss.Hit
+            || !Mathf.Approximately(
+                gunMiss.SmokeExposure,
+                reliableGun.SmokeExposure)
+            || missExposure.CallCount != 1
+            || !missExposure.CharacterId.Equals(
+                new CharacterId("combat-role:gunner"))
+            || !Mathf.Approximately(
+                missExposure.Amount,
+                reliableGun.SmokeExposure))
+        {
+            return false;
+        }
+
+        CombatAttackPreview bowPreview = PreviewAgainstPlate(
+            bow,
+            attacker,
+            defender,
+            plate);
+        CombatAttackPreview crossbowPreview = PreviewAgainstPlate(
+            crossbow,
+            attacker,
+            defender,
+            plate);
+        CombatAttackPreview gunPreview = PreviewAgainstPlate(
+            reliableGun,
+            attacker,
+            defender,
+            plate);
+        float bowReload = resolution.CalculateReloadTime(attacker, bow);
+        float crossbowReload = resolution.CalculateReloadTime(attacker, crossbow);
+        float gunReload = resolution.CalculateReloadTime(attacker, reliableGun);
+        float bowInterval = resolution.CalculateAttackInterval(
+            attacker,
+            bow,
+            CombatFireMode.Aimed);
+        float crossbowInterval = resolution.CalculateAttackInterval(
+            attacker,
+            crossbow,
+            CombatFireMode.Aimed);
+        float gunInterval = resolution.CalculateAttackInterval(
+            attacker,
+            reliableGun,
+            CombatFireMode.Aimed);
+
+        return bowPreview.Valid
+            && crossbowPreview.Valid
+            && gunPreview.Valid
+            && bowReload < crossbowReload
+            && crossbowReload < gunReload
+            && bowInterval < crossbowInterval
+            && crossbowInterval < gunInterval
+            && bowPreview.HitChance > gunPreview.HitChance
+            && crossbowPreview.HitChance > gunPreview.HitChance
+            && crossbowPreview.DamageOnHit > bowPreview.DamageOnHit
+            && gunPreview.DamageOnHit > crossbowPreview.DamageOnHit
+            && reliableGun.Verb.penetration > crossbow.Verb.penetration
+            && crossbow.Verb.penetration > bow.Verb.penetration
+            && !bow.GunpowderWeapon
+            && !crossbow.GunpowderWeapon
+            && bow.MisfireChance <= 0f
+            && crossbow.MisfireChance <= 0f;
+    }
+
+    private static CombatAttackPreview PreviewAgainstPlate(
+        CombatWeaponSnapshot weapon,
+        CombatStatSnapshot attacker,
+        CombatStatSnapshot defender,
+        CombatArmorSnapshot plate)
+    {
+        CombatResolutionService resolution = new CombatResolutionService(
+            new SequenceRandom(0.5f),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure:
+                NoOpCharacterEnvironmentExposureCommand.Instance);
+        return resolution.Preview(new CombatAttackRequest(
+            $"role-preview:{weapon.DefinitionId}",
+            "combat-role:attacker",
+            "combat-role:defender",
+            attacker,
+            defender,
+            weapon,
+            7,
+            CombatFireMode.Aimed,
+            default,
+            defenderArmor: new[] { plate }));
+    }
+
+    private static CombatWeaponSnapshot CreateAuthoredWeaponSnapshot(
+        string definitionId,
+        string characterId,
+        float durabilityRatio)
+    {
+        IGameContentCatalog gameContent = new ResourceGameContentCatalog(
+            new UnityGameContentRootLoader());
+        WorldItemRepository repository = new WorldItemRepository(
+            new GuidPersistentIdGenerator(),
+            new DungeonRuntimeAggregateRootStore());
+        CombatEquipmentRuntime equipment = CombatEquipmentEditorTestFactory.Create(
+            new ResourceCombatEquipmentCatalog(gameContent),
+            repository,
+            new CharacterCarryInventoryRegistry(),
+            researchProvider: EditorAllResearchRuntimeProvider.Instance,
+            moduleCatalog: new ResourceEquipmentModuleCatalog(gameContent),
+            materialCatalog: new ResourceEconomyContentCatalog(gameContent),
+            evolutionModules: EmptyEvolutionModuleRegistry.Instance,
+            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+        CombatEquipmentInstance instance = equipment.CreateInstance(
+            definitionId,
+            CombatEquipmentQuality.Normal);
+        repository.EquipmentInstances[instance.instanceId].loadedAmmo = 1;
+        repository.EquipmentInstances[instance.instanceId].durabilityRatio =
+            Mathf.Clamp01(durabilityRatio);
+        string assignFailure = string.Empty;
+        string activeFailure = string.Empty;
+        if (!equipment.TryAssignToCharacter(
+                characterId,
+                instance.instanceId,
+                out assignFailure)
+            || !equipment.TrySetActiveWeapon(
+                characterId,
+                instance.instanceId,
+                out activeFailure)
+            || !equipment.TryGetActiveWeapon(
+                characterId,
+                out CombatWeaponSnapshot weapon))
+        {
+            throw new InvalidOperationException(
+                $"Could not project authored weapon '{definitionId}': "
+                + $"assign={assignFailure}; active={activeFailure}");
+        }
+
+        return weapon;
+    }
+
     private static bool VerifyEquipmentRuntime()
     {
-        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog();
+        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         if (!catalog.TryGet("weapon:shortbow", out _)
             || !catalog.TryGet("armor:cloth-hood", out _)
             || !catalog.TryGet("shield:wood", out _))
@@ -297,17 +576,21 @@ public static class CombatSystemDebugScenarios
             return false;
         }
 
-        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(catalog);
+        WorldItemRepository itemRepository =
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore());
+        CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
+            catalog,
+            itemRepository,
+            new CharacterCarryInventoryRegistry(),
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
         CombatEquipmentInstance bow = runtime.CreateInstance("weapon:shortbow", CombatEquipmentQuality.Good);
         CombatEquipmentInstance hood = runtime.CreateInstance("armor:cloth-hood", CombatEquipmentQuality.Normal);
         CombatEquipmentInstance cap = runtime.CreateInstance("armor:leather-cap", CombatEquipmentQuality.Normal);
         CombatEquipmentInstance shield = runtime.CreateInstance("shield:wood", CombatEquipmentQuality.Normal);
         CombatEquipmentInstance sword = runtime.CreateInstance("weapon:longsword", CombatEquipmentQuality.Normal);
-        if (!runtime.TryLinkToWorldStack(
-                bow.instanceId,
-                "stack:test-bow",
-                CombatEquipmentWorldState.Stored)
-            || !runtime.TryAssignToCharacter("worker:1", bow.instanceId, out _)
+        if (!runtime.TryAssignToCharacter("worker:1", bow.instanceId, out _)
             || !runtime.TryAssignToCharacter("worker:1", hood.instanceId, out _)
             || runtime.TryAssignToCharacter("worker:1", cap.instanceId, out _)
             || runtime.TryAssignToCharacter("worker:1", shield.instanceId, out _)
@@ -315,9 +598,7 @@ public static class CombatSystemDebugScenarios
             || !runtime.TrySetActiveWeapon("worker:1", sword.instanceId, out _)
             || !runtime.TryAssignToCharacter("worker:1", shield.instanceId, out _)
             || runtime.TrySetActiveWeapon("worker:1", bow.instanceId, out _)
-            || !runtime.TryReload(bow.instanceId, 10, out int consumed)
-            || consumed != 1
-            || !runtime.TryConsumeLoadedAmmo(bow.instanceId)
+            || !VerifyPhysicalAmmunitionReload(runtime, bow)
             || !runtime.GetShield("worker:1").IsValid)
         {
             return false;
@@ -345,8 +626,13 @@ public static class CombatSystemDebugScenarios
         }
 
         DungeonCombatEquipmentSaveData save = runtime.Capture();
-        CombatEquipmentRuntime restored = new CombatEquipmentRuntime(catalog);
-        restored.Restore(save);
+        CombatEquipmentRuntime restored = CombatEquipmentEditorTestFactory.Create(
+            catalog,
+            itemRepository,
+            new CharacterCarryInventoryRegistry(),
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+        restored.PublishRestoreCandidate(
+            restored.BuildRestoreCandidate(save));
         if (!restored.TryGetInstance(bow.instanceId, out CombatEquipmentInstance restoredBow)
             || restoredBow.quality != CombatEquipmentQuality.Good
             || restoredBow.loadedAmmo != 0
@@ -356,20 +642,203 @@ public static class CombatSystemDebugScenarios
             return false;
         }
 
-        return restored.TryLinkToWorldStack(
+        return restored.TryGetInstance(
                 bow.instanceId,
-                "stack:dropped-bow",
-                CombatEquipmentWorldState.Loose)
-            && restored.TryGetInstance(bow.instanceId, out CombatEquipmentInstance droppedBow)
-            && droppedBow.quality == CombatEquipmentQuality.Good
-            && droppedBow.worldState == CombatEquipmentWorldState.Loose
-            && string.Equals(droppedBow.sourceStackId, "stack:dropped-bow", StringComparison.Ordinal);
+                out CombatEquipmentInstance savedBow)
+            && savedBow.quality == CombatEquipmentQuality.Good;
+    }
+
+    private static bool VerifyAmmunitionConsumerAuthority()
+    {
+        ResourceGameContentCatalog content = new ResourceGameContentCatalog(
+            new UnityGameContentRootLoader());
+        ResourceCombatEquipmentCatalog equipmentCatalog =
+            new ResourceCombatEquipmentCatalog(content);
+        HashSet<ItemDefinitionId> consumedAmmunitionIds =
+            new HashSet<ItemDefinitionId>();
+
+        foreach (CombatWeaponSO weapon in equipmentCatalog.All.OfType<CombatWeaponSO>())
+        {
+            IReadOnlyList<ItemDefinitionId> compatibleIds =
+                weapon.CompatibleAmmunitionItemIds;
+            if (weapon.Verbs.Any(verb => verb?.ConsumesAmmo == true)
+                && compatibleIds.Count == 0)
+            {
+                return false;
+            }
+
+            if (compatibleIds.Any(itemId => !itemId.IsValid)
+                || compatibleIds.Distinct().Count() != compatibleIds.Count)
+            {
+                return false;
+            }
+
+            foreach (ItemDefinitionId itemId in compatibleIds)
+            {
+                consumedAmmunitionIds.Add(itemId);
+            }
+        }
+
+        foreach (BuildingSO building in LoadAuthoredAssets<BuildingSO>())
+        {
+            DefenseFacilityData defense =
+                building?.GetAbility<BuildingDefenseAbility>()?.settings;
+            if (defense?.supplyKind != DefenseSupplyKind.Ammunition)
+            {
+                continue;
+            }
+
+            ItemDefinitionId supplyItemId =
+                (ItemDefinitionId)defense.supplyItemId;
+            if (!supplyItemId.IsValid
+                || defense.supplyCapacity <= 0
+                || defense.supplyPerActivation <= 0)
+            {
+                return false;
+            }
+
+            consumedAmmunitionIds.Add(supplyItemId);
+        }
+
+        ResourceItemDefinitionSO[] resourceAmmunition =
+            LoadAuthoredAssets<ResourceItemDefinitionSO>()
+            .Where(item => item != null
+                && item.Kind == ResourceItemKind.Ammunition)
+            .ToArray();
+        if (resourceAmmunition.Length != 11
+            || resourceAmmunition.Any(item =>
+                !consumedAmmunitionIds.Contains(
+                    (ItemDefinitionId)item.ItemId)))
+        {
+            return false;
+        }
+
+        string[] bows =
+        {
+            "weapon:shortbow",
+            "weapon:longbow",
+            "weapon:composite-bow"
+        };
+        string[] crossbows =
+        {
+            "weapon:crossbow",
+            "weapon:windlass-crossbow",
+            "weapon:siege-arbalest"
+        };
+        string[] guns =
+        {
+            "weapon:handgonne",
+            "weapon:matchlock-pistol",
+            "weapon:arquebus"
+        };
+        string[] expectedArrows =
+        {
+            "ammo:arrow",
+            "ammo:arrow-bone",
+            "ammo:arrow-iron",
+            "ammo:arrow-steel",
+            "ammo:arrow-rune"
+        };
+        string[] expectedBolts =
+        {
+            "ammo:bolt",
+            "ammo:bolt-bone",
+            "ammo:bolt-iron",
+            "ammo:bolt-steel",
+            "ammo:bolt-rune"
+        };
+        string[] expectedCartridges = { "ammo:paper-cartridge" };
+
+        return bows.All(id => HasExactAmmunition(
+                equipmentCatalog,
+                id,
+                expectedArrows))
+            && crossbows.All(id => HasExactAmmunition(
+                equipmentCatalog,
+                id,
+                expectedBolts))
+            && guns.All(id => HasExactAmmunition(
+                equipmentCatalog,
+                id,
+                expectedCartridges))
+            && consumedAmmunitionIds.Contains(
+                (ItemDefinitionId)"ammo:blasting-charge")
+            && consumedAmmunitionIds.Contains(
+                (ItemDefinitionId)"ammo:trap-canister");
+    }
+
+    private static bool HasExactAmmunition(
+        ICombatEquipmentCatalog catalog,
+        string weaponId,
+        IReadOnlyList<string> expectedItemIds)
+    {
+        return catalog.TryGet(weaponId, out CombatEquipmentDefinitionSO definition)
+            && definition is CombatWeaponSO weapon
+            && weapon.CompatibleAmmunitionItemIds
+                .Select(itemId => itemId.Value)
+                .SequenceEqual(expectedItemIds);
+    }
+
+    private static IReadOnlyList<T> LoadAuthoredAssets<T>()
+        where T : UnityEngine.Object
+    {
+        return AssetDatabase.FindAssets($"t:{typeof(T).Name}")
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(AssetDatabase.LoadAssetAtPath<T>)
+            .Where(asset => asset != null)
+            .ToArray();
+    }
+
+    private static bool VerifyPhysicalAmmunitionReload(
+        CombatEquipmentRuntime runtime,
+        CombatEquipmentInstance weapon)
+    {
+        GameObject inventoryObject = new GameObject(
+            "CombatEquipment_PhysicalAmmoInventory");
+        try
+        {
+            CharacterCarryInventory inventory =
+                inventoryObject.AddComponent<CharacterCarryInventory>();
+            inventory.Restore(new CharacterCarryInventorySaveData
+            {
+                items = new List<CharacterCarriedItemSaveData>
+                {
+                    new CharacterCarriedItemSaveData
+                    {
+                        sourceStackId = "test:ammo:arrow-steel",
+                        itemId = "ammo:arrow-steel",
+                        quantity = 1
+                    }
+                }
+            });
+
+            return runtime.TryReloadFromInventory(
+                    weapon.instanceId,
+                    inventory,
+                    out ItemDefinitionId consumedItemId,
+                    out int consumed)
+                && consumedItemId.Equals(
+                    (ItemDefinitionId)"ammo:arrow-steel")
+                && consumed == 1
+                && inventory.CountItem("ammo:arrow-steel") == 0
+                && runtime.TryConsumeLoadedAmmo(weapon.instanceId);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(inventoryObject);
+        }
     }
 
     private static bool VerifyEquipmentDeathEventBridge()
     {
-        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog();
-        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(catalog);
+        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
+            catalog,
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
         GameEventBus events = new GameEventBus();
         CombatEquipmentCharacterDeathConnector connector =
             new CombatEquipmentCharacterDeathConnector(runtime, events);
@@ -439,6 +908,9 @@ public static class CombatSystemDebugScenarios
         try
         {
             CharacterActor actor = gameObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(gameObject);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId("character:combat-downed-hysteresis");
             CharacterBodyHealthRuntime bodyHealth =
                 new CharacterBodyHealthRuntime(
                     CharacterAiEditorTestDependencies.WorldRegistry,
@@ -448,7 +920,10 @@ public static class CombatSystemDebugScenarios
                         new UnityGameClock(),
                         new UnityUiClock()),
                     new ResourceAnatomyProfileCatalog(
-                        Array.Empty<AnatomyProfileSO>()));
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader())),
+                    new DefaultAnatomyActivityProfileCatalog(),
+                    new DungeonRuntimeAggregateRootStore());
             CharacterBodyHealthSnapshot critical = new CharacterBodyHealthSnapshot(
                 CreateBodyParts(headAndTorsoRatio: 0.2f, legRatio: 1f),
                 bloodLoss: 0f,
@@ -501,6 +976,27 @@ public static class CombatSystemDebugScenarios
         {
             CharacterActor actor = gameObject.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(gameObject);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId("character:combat-body-damage-owner");
+            CharacterBodyHealthRuntime bodyHealth =
+                new CharacterBodyHealthRuntime(
+                    CharacterAiEditorTestDependencies.WorldRegistry,
+                    new UnityGameClock(),
+                    new GameEventBus(),
+                    new DynamicFrameWorkBudget(
+                        new UnityGameClock(),
+                        new UnityUiClock()),
+                    new ResourceAnatomyProfileCatalog(
+                        new ResourceGameContentCatalog(
+                            new UnityGameContentRootLoader())),
+                    new DefaultAnatomyActivityProfileCatalog(),
+                    new DungeonRuntimeAggregateRootStore());
+            actor.Stats.ConstructCharacterVitals(
+                new CharacterStatsVitalsService(
+                    bodyHealth,
+                    bodyHealth,
+                    new GameEventBus(),
+                    new NoopOwnerRunLifecycleService()));
             actor.ApplyBodyDamage(actor.MaxHealth * 2f, "body-system-test");
             return !actor.IsDead
                 && actor.CurrentHealth >= 1f
@@ -554,7 +1050,7 @@ public static class CombatSystemDebugScenarios
         HashSet<string> recipes = new HashSet<string>(
             crafting.CraftableEquipmentIds,
             StringComparer.Ordinal);
-        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog();
+        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
         return catalog.All.All(definition => recipes.Contains(definition.EquipmentId))
             && recipes.Contains(CombatItemDefinitions.ArrowBundleRecipeId)
             && recipes.Contains(CombatItemDefinitions.BoltBundleRecipeId);
@@ -563,7 +1059,7 @@ public static class CombatSystemDebugScenarios
     private static bool VerifyLineOfSight()
     {
         Grid grid = new Grid(3, 2);
-        GridCombatLineOfSightService service = new GridCombatLineOfSightService();
+        GridCombatLineOfSightService service = new GridCombatLineOfSightService(affiliation: null, worldRegistry: null);
         CombatLineOfSightResult closed = service.Evaluate(grid, new Vector2Int(0, 0), new Vector2Int(0, 1));
         grid.SetAreaType(new Vector2Int(0, 0), GridCellAreaType.Entrance);
         grid.SetAreaType(new Vector2Int(0, 1), GridCellAreaType.Entrance);
@@ -590,17 +1086,21 @@ public static class CombatSystemDebugScenarios
             BuildingSO building = AssetDatabase.LoadAssetAtPath<BuildingSO>(
                 $"Assets/Resources/SO/Building/Combat/{file}.asset");
             BuildingCoverAbility cover = building?.GetCoverAbility();
-            Dictionary<StockCategory, int> requirements = building?.GetConstructionMaterials();
+            IReadOnlyList<ItemAmountDefinition> requirements =
+                building?.GetConstructionMaterials();
             if (building == null
-                || building.type != typeof(BuildableObject)
+                || building.runtimeArchetype != BuildingRuntimeArchetypeKind.Generic
                 || building.layer != GridLayer.Building
                 || cover == null
                 || !Mathf.Approximately(cover.blockChance, chance)
                 || !Mathf.Approximately(cover.coverHitPoints, hitPoints)
                 || building.GetRequiredWork(BuiltInWorkTypeIds.Construct) <= 0f
                 || requirements == null
-                || !requirements.TryGetValue(StockCategory.General, out int amount)
-                || amount != materials
+                || requirements.Count != 1
+                || requirements[0].Amount != materials
+                || requirements[0].ItemId.StartsWith(
+                    "stock-item:",
+                    StringComparison.Ordinal)
                 || building.sprite == null)
             {
                 return false;
@@ -635,11 +1135,203 @@ public static class CombatSystemDebugScenarios
 
     private static bool VerifySaveContract()
     {
+        ResourceDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
         return DungeonGameSaveData.CurrentVersion >= 16
-            && CombatItemDefinitions.TryGetDefinition(CombatItemDefinitions.ArrowItemId, out DungeonItemDefinition arrow)
-            && CombatItemDefinitions.TryGetDefinition(CombatItemDefinitions.BoltItemId, out DungeonItemDefinition bolt)
+            && catalog.TryGetDefinition(CombatItemDefinitions.ArrowItemId, out DungeonItemDefinition arrow)
+            && catalog.TryGetDefinition(CombatItemDefinitions.BoltItemId, out DungeonItemDefinition bolt)
             && arrow.StockCategory == StockCategory.Ammunition
             && bolt.StockCategory == StockCategory.Ammunition;
+    }
+
+    private static bool VerifyBodyHealthStrictSave()
+    {
+        GameObject gameObject = new GameObject("V18 Body Health Strict Save Test");
+        try
+        {
+            CharacterActor actor = gameObject.AddComponent<CharacterActor>();
+            CharacterAiEditorTestDependencies.Inject(gameObject);
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId("character:body-health-strict-save");
+            DungeonRuntimeAggregateRootStore root = new DungeonRuntimeAggregateRootStore();
+            CharacterBodyHealthRuntime runtime = new CharacterBodyHealthRuntime(
+                CharacterAiEditorTestDependencies.WorldRegistry,
+                new UnityGameClock(),
+                new GameEventBus(),
+                new DynamicFrameWorkBudget(new UnityGameClock(), new UnityUiClock()),
+                new ResourceAnatomyProfileCatalog(
+                    new ResourceGameContentCatalog(new UnityGameContentRootLoader())),
+                new DefaultAnatomyActivityProfileCatalog(),
+                root);
+            runtime.ConfigureVitals(actor, 123f, resetCurrentHealth: true);
+            CharacterBodyHealthSaveSection section = new CharacterBodyHealthSaveSection(runtime);
+            if (section is not IDungeonRollbackFreeSaveSection
+                || section.SectionVersion != DungeonCharacterBodyHealthSaveData.CurrentVersion)
+            {
+                return false;
+            }
+
+            string validJson = section.Capture();
+            DungeonGameRestoreReport validReport = new DungeonGameRestoreReport();
+            section.Restore(validJson, section.SectionVersion, validReport);
+            if (!validReport.Success || section.Capture() != validJson)
+            {
+                return false;
+            }
+
+            DungeonCharacterBodyHealthSaveData invalid = JsonUtility.FromJson<
+                DungeonCharacterBodyHealthSaveData>(validJson);
+            invalid.version--;
+            invalid.characters[0].parts.Clear();
+            string before = section.Capture();
+            bool invalidRejected = false;
+            try
+            {
+                section.StageRestore(
+                    JsonUtility.ToJson(invalid),
+                    section.SectionVersion,
+                    new DungeonGameRestoreReport());
+            }
+            catch (InvalidOperationException)
+            {
+                invalidRejected = true;
+            }
+
+            bool directRejected = false;
+            try
+            {
+                runtime.PrepareRestore(invalid);
+            }
+            catch (InvalidOperationException)
+            {
+                directRejected = true;
+            }
+            bool legacySectionRejected = false;
+            try
+            {
+                section.ValidatePayload(
+                    validJson,
+                    section.SectionVersion - 1,
+                    new DungeonGameRestoreReport());
+            }
+            catch (InvalidOperationException)
+            {
+                legacySectionRejected = true;
+            }
+            return invalidRejected
+                && directRejected
+                && legacySectionRejected
+                && section.Capture() == before
+                && root.PublishedRestoreRevision == 0;
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(gameObject);
+        }
+    }
+
+    public static bool VerifyCharacterMedicalStrictSave()
+    {
+        DungeonCharacterMedicalSaveData canonical = new()
+        {
+            version = DungeonCharacterMedicalSaveData.CurrentVersion,
+            orderSequence = 1,
+            orders = new List<CharacterMedicalOrder>
+            {
+                new CharacterMedicalOrder
+                {
+                    orderId = "medical:1",
+                    patientId = "worker:downed",
+                    state = CharacterMedicalOrderState.AwaitingRescue,
+                    stabilized = true,
+                    statusCode = CharacterMedicalStatusCode.AwaitingRescue
+                }
+            }
+        };
+        DungeonGameRestoreReport canonicalReport = new();
+        ValidateCharacterMedicalSave(
+            canonical,
+            canonicalReport);
+        DungeonCharacterMedicalSaveData roundTrip =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+
+        DungeonCharacterMedicalSaveData legacy =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        legacy.version = DungeonCharacterMedicalSaveData.CurrentVersion - 1;
+        string legacyBefore = JsonUtility.ToJson(legacy);
+        DungeonGameRestoreReport legacyReport = new();
+        ValidateCharacterMedicalSave(
+            legacy,
+            legacyReport);
+
+        DungeonCharacterMedicalSaveData unknownStatus =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        unknownStatus.orders[0].statusCode =
+            (CharacterMedicalStatusCode)int.MaxValue;
+        string unknownBefore = JsonUtility.ToJson(unknownStatus);
+        DungeonGameRestoreReport unknownReport = new();
+        ValidateCharacterMedicalSave(
+            unknownStatus,
+            unknownReport);
+
+        DungeonCharacterMedicalSaveData missingOrders =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        missingOrders.orders = null;
+        string missingBefore = JsonUtility.ToJson(missingOrders);
+        DungeonGameRestoreReport missingReport = new();
+        ValidateCharacterMedicalSave(missingOrders, missingReport);
+
+        DungeonCharacterMedicalSaveData duplicateOrder =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        duplicateOrder.orders.Add(
+            JsonUtility.FromJson<CharacterMedicalOrder>(
+                JsonUtility.ToJson(duplicateOrder.orders[0])));
+        string duplicateBefore = JsonUtility.ToJson(duplicateOrder);
+        DungeonGameRestoreReport duplicateReport = new();
+        ValidateCharacterMedicalSave(duplicateOrder, duplicateReport);
+
+        return canonicalReport.Success
+            && roundTrip.version == DungeonCharacterMedicalSaveData.CurrentVersion
+            && roundTrip.orders.Single().statusCode
+                == CharacterMedicalStatusCode.AwaitingRescue
+            && !legacyReport.Success
+            && string.Equals(
+                legacyBefore,
+                JsonUtility.ToJson(legacy),
+                StringComparison.Ordinal)
+            && !unknownReport.Success
+            && string.Equals(
+                unknownBefore,
+                JsonUtility.ToJson(unknownStatus),
+                StringComparison.Ordinal)
+            && !missingReport.Success
+            && string.Equals(
+                missingBefore,
+                JsonUtility.ToJson(missingOrders),
+                StringComparison.Ordinal)
+            && !duplicateReport.Success
+            && string.Equals(
+                duplicateBefore,
+                JsonUtility.ToJson(duplicateOrder),
+                StringComparison.Ordinal);
+    }
+
+    private static void ValidateCharacterMedicalSave(
+        DungeonCharacterMedicalSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        Type validator = typeof(CharacterMedicalRuntime).Assembly.GetType(
+            "CharacterMedicalSaveValidation",
+            throwOnError: true);
+        System.Reflection.MethodInfo validate = validator.GetMethod(
+            "Validate",
+            System.Reflection.BindingFlags.Public
+            | System.Reflection.BindingFlags.Static);
+        validate.Invoke(null, new object[] { payload, report, null });
     }
 
     private static bool VerifyV14CombatLifecycleSave()
@@ -648,10 +1340,11 @@ public static class CombatSystemDebugScenarios
         DungeonSaveSectionPayload.Write(
             source,
             CharacterMedicalSaveSection.Id,
-            1,
+            DungeonCharacterMedicalSaveData.CurrentVersion,
             DungeonSaveRestorePhase.RuntimeState,
             new DungeonCharacterMedicalSaveData
         {
+            version = DungeonCharacterMedicalSaveData.CurrentVersion,
             orderSequence = 3,
             orders = new List<CharacterMedicalOrder>
             {
@@ -663,6 +1356,7 @@ public static class CombatSystemDebugScenarios
                     stabilized = true,
                     carried = true,
                     state = CharacterMedicalOrderState.Carrying,
+                    statusCode = CharacterMedicalStatusCode.Carrying,
                     requiredTreatmentWork = 36f,
                     completedTreatmentWork = 12f
                 }
@@ -671,11 +1365,20 @@ public static class CombatSystemDebugScenarios
         DungeonSaveSectionPayload.Write(
             source,
             CharacterCombatCommandSaveSection.Id,
-            1,
+            2,
             DungeonSaveRestorePhase.LateRuntimeState,
             new CharacterCombatCommandSaveData
         {
+            commandSequence = 1,
             stanceCharacterIds = new List<string> { "worker:rescuer" },
+            revisions = new List<CharacterCombatCommandRevisionSaveData>
+            {
+                new CharacterCombatCommandRevisionSaveData
+                {
+                    actorId = "worker:rescuer",
+                    revision = 1
+                }
+            },
             commands = new List<CharacterCombatCommand>
             {
                 new CharacterCombatCommand
@@ -684,17 +1387,19 @@ public static class CombatSystemDebugScenarios
                     actorId = "worker:rescuer",
                     type = CombatCommandType.Rescue,
                     targetId = "worker:downed",
-                    state = CharacterCombatCommandState.Executing
+                    state = CharacterCombatCommandState.Executing,
+                    revision = 1
                 }
             }
         });
         DungeonSaveSectionPayload.Write(
             source,
             DefenseTacticalSaveSection.Id,
-            1,
+            2,
             DungeonSaveRestorePhase.RuntimeState,
             new DefenseTacticalCoordinatorSaveData
         {
+            sequence = 1,
             reservations = new List<CombatPositionReservation>
             {
                 new CombatPositionReservation
@@ -711,10 +1416,12 @@ public static class CombatSystemDebugScenarios
         DungeonSaveSectionPayload.Write(
             source,
             EquipmentMaintenanceSaveSection.Id,
-            1,
+            2,
             DungeonSaveRestorePhase.RuntimeState,
             new CombatEquipmentMaintenanceSaveData
         {
+            policySequence = 0,
+            orderSequence = 1,
             policies = new List<EquipmentMaintenancePolicyData>
             {
                 new EquipmentMaintenancePolicyData
@@ -724,6 +1431,22 @@ public static class CombatSystemDebugScenarios
                     automaticRepair = true,
                     sendAtDurability = 0.35f,
                     returnAtDurability = 0.9f
+                },
+                new EquipmentMaintenancePolicyData
+                {
+                    id = EquipmentMaintenancePolicyRuntime.PreventivePolicyId,
+                    displayName = "예방 정비",
+                    automaticRepair = true,
+                    sendAtDurability = 0.6f,
+                    returnAtDurability = 1f
+                },
+                new EquipmentMaintenancePolicyData
+                {
+                    id = EquipmentMaintenancePolicyRuntime.ManualPolicyId,
+                    displayName = "수동",
+                    automaticRepair = false,
+                    sendAtDurability = 0f,
+                    returnAtDurability = 1f
                 }
             },
             orders = new List<CombatEquipmentRepairOrder>
@@ -731,7 +1454,10 @@ public static class CombatSystemDebugScenarios
                 new CombatEquipmentRepairOrder
                 {
                     orderId = "equipment-repair:1",
-                    equipmentInstanceId = "armor:instance:1",
+                    equipmentInstanceId = "item-instance:test-armor",
+                    facilityBuildingId = "building:test-maintenance",
+                    materialItemId = "material:test-metal",
+                    requiredMaterialAmount = 1,
                     requiredWork = 24f,
                     completedWork = 8f,
                     state = CombatEquipmentRepairOrderState.InProgress
@@ -758,7 +1484,11 @@ public static class CombatSystemDebugScenarios
                 EquipmentMaintenanceSaveSection.Id);
         return restored != null
             && restored.version == DungeonGameSaveData.CurrentVersion
+            && medical.version == DungeonCharacterMedicalSaveData.CurrentVersion
             && medical.orders.Single().carried
+            && medical.orders.Single().statusCode
+                == CharacterMedicalStatusCode.Carrying
+            && medical.orders.Single().statusParameters.Count == 0
             && commands.commands.Single().type == CombatCommandType.Rescue
             && tactics.reservations.Single().kind
                 == CombatPositionReservationKind.Rescue
@@ -828,6 +1558,30 @@ public static class CombatSystemDebugScenarios
         public float Next01()
         {
             return values.Count > 0 ? Mathf.Clamp01(values.Dequeue()) : Mathf.Clamp01(fallback);
+        }
+    }
+
+    private sealed class RecordingEnvironmentExposureCommand :
+        ICharacterEnvironmentExposureCommand
+    {
+        public CharacterId CharacterId { get; private set; }
+        public float Amount { get; private set; }
+        public int CallCount { get; private set; }
+
+        public bool AddAirborneExposure(CharacterId characterId, float amount)
+        {
+            CallCount++;
+            CharacterId = characterId;
+            Amount += Mathf.Max(0f, amount);
+            return characterId.IsValid && amount > 0f;
+        }
+    }
+
+    private sealed class NoopOwnerRunLifecycleService :
+        IOwnerRunLifecycleService
+    {
+        public void HandleOwnerDeath(CharacterActor owner, string reason)
+        {
         }
     }
 }

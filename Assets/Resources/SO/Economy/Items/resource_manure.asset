@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uD1F4\uBE44, \uC2E4\uB0B4 \uC7AC\uBC30 \uC601\uC591\uC81C\uC640
     \uC800\uAE09 \uC5F0\uB8CC\uC758 \uC6D0\uB8CC."
   stockCategory: 8
-  kind: 5
-  ingredientTags: 2048
-  unitPrice: 0
-  marketSaleRate: 0.6
   unitWeight: 0.5
   maxStack: 75
   sprite: {fileID: 0}
-  requiredResearchId: research:husbandry:feed
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 0
+  features:
+  - rid: 7737211674039681310
+  - rid: 7737211674039681311
+  - rid: 7737211674039681312
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681310
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:husbandry:feed
+    - rid: 7737211674039681311
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 5
+        ingredientTags: 2048
+        sharedIntermediate: 0
+    - rid: 7737211674039681312
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

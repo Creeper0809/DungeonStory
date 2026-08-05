@@ -62,37 +62,64 @@ public interface IDefenseCombatExecutor
         int distance);
 }
 
+public sealed class DefenseCombatSupportServices
+{
+    public DefenseCombatSupportServices(
+        IWorldThreatModifierQuery worldThreatModifiers,
+        IExternalCombatInfluenceQuery externalCombatInfluence,
+        IWorldUiHierarchy worldUiHierarchy)
+    {
+        WorldThreatModifiers = worldThreatModifiers
+            ?? throw new ArgumentNullException(nameof(worldThreatModifiers));
+        ExternalCombatInfluence = externalCombatInfluence
+            ?? throw new ArgumentNullException(nameof(externalCombatInfluence));
+        WorldUiHierarchy = worldUiHierarchy
+            ?? throw new ArgumentNullException(nameof(worldUiHierarchy));
+    }
+
+    public IWorldThreatModifierQuery WorldThreatModifiers { get; }
+    public IExternalCombatInfluenceQuery ExternalCombatInfluence { get; }
+    public IWorldUiHierarchy WorldUiHierarchy { get; }
+}
+
 public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
 {
     private readonly ICombatResolutionService combatResolution;
     private readonly ICombatEquipmentRuntime combatEquipment;
-    private readonly ICharacterBodyHealthRuntime bodyHealth;
-    private readonly ICombatCoverQuery coverQuery;
+    private readonly ICharacterBodyHealthQuery bodyHealthQuery;
+    private readonly ICharacterBodyHealthCommand bodyHealthCommands;
+    private readonly CombatCoverServices coverServices;
     private readonly IWorldItemStackRuntime itemStackRuntime;
     private readonly IWorldThreatModifierQuery worldThreatModifiers;
     private readonly IExternalCombatInfluenceQuery externalCombatInfluence;
+    private readonly IWorldUiHierarchy worldUiHierarchy;
 
     public DefenseCombatExecutor(
         ICombatResolutionService combatResolution,
         ICombatEquipmentRuntime combatEquipment,
-        ICharacterBodyHealthRuntime bodyHealth,
-        ICombatCoverQuery coverQuery,
+        ICharacterBodyHealthQuery bodyHealthQuery,
+        ICharacterBodyHealthCommand bodyHealthCommands,
+        CombatCoverServices coverServices,
         IWorldItemStackRuntime itemStackRuntime,
-        IWorldThreatModifierQuery worldThreatModifiers = null,
-        IExternalCombatInfluenceQuery externalCombatInfluence = null)
+        DefenseCombatSupportServices supportServices)
     {
         this.combatResolution = combatResolution
             ?? throw new ArgumentNullException(nameof(combatResolution));
         this.combatEquipment = combatEquipment
             ?? throw new ArgumentNullException(nameof(combatEquipment));
-        this.bodyHealth = bodyHealth
-            ?? throw new ArgumentNullException(nameof(bodyHealth));
-        this.coverQuery = coverQuery
-            ?? throw new ArgumentNullException(nameof(coverQuery));
+        this.bodyHealthQuery = bodyHealthQuery
+            ?? throw new ArgumentNullException(nameof(bodyHealthQuery));
+        this.bodyHealthCommands = bodyHealthCommands
+            ?? throw new ArgumentNullException(nameof(bodyHealthCommands));
+        this.coverServices = coverServices
+            ?? throw new ArgumentNullException(nameof(coverServices));
         this.itemStackRuntime = itemStackRuntime
             ?? throw new ArgumentNullException(nameof(itemStackRuntime));
-        this.worldThreatModifiers = worldThreatModifiers;
-        this.externalCombatInfluence = externalCombatInfluence;
+        DefenseCombatSupportServices requiredSupport = supportServices
+            ?? throw new ArgumentNullException(nameof(supportServices));
+        worldThreatModifiers = requiredSupport.WorldThreatModifiers;
+        externalCombatInfluence = requiredSupport.ExternalCombatInfluence;
+        worldUiHierarchy = requiredSupport.WorldUiHierarchy;
     }
 
     public CharacterCombatLoadoutProfile GetActiveProfile(CharacterActor actor)
@@ -199,7 +226,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         }
 
         reloadDuration = combatResolution.CalculateReloadTime(
-            CreateCombatStats(actor, bodyHealth.GetSnapshot(actor)),
+            CreateCombatStats(actor, bodyHealthQuery.GetSnapshot(actor)),
             weapon);
         return true;
     }
@@ -231,7 +258,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             GetPersistentId(actor),
             out CombatWeaponSnapshot weapon);
         float interval = combatResolution.CalculateAttackInterval(
-            CreateCombatStats(actor, bodyHealth.GetSnapshot(actor)),
+            CreateCombatStats(actor, bodyHealthQuery.GetSnapshot(actor)),
             weapon,
             CombatFireMode.Aimed);
         return Mathf.Clamp(
@@ -250,7 +277,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         CombatFireMode mode)
     {
         float interval = combatResolution.CalculateAttackInterval(
-            CreateCombatStats(actor, bodyHealth.GetSnapshot(actor)),
+            CreateCombatStats(actor, bodyHealthQuery.GetSnapshot(actor)),
             weapon,
             mode);
         float multiplier =
@@ -276,8 +303,8 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         combatEquipment.TryGetActiveWeapon(
             attackerId,
             out CombatWeaponSnapshot weapon);
-        CharacterBodyHealthSnapshot attackerBody = bodyHealth.GetSnapshot(attacker);
-        CharacterBodyHealthSnapshot defenderBody = bodyHealth.GetSnapshot(defender);
+        CharacterBodyHealthSnapshot attackerBody = bodyHealthQuery.GetSnapshot(attacker);
+        CharacterBodyHealthSnapshot defenderBody = bodyHealthQuery.GetSnapshot(defender);
         CombatAttackResult result = combatResolution.Resolve(new CombatAttackRequest(
             engagement.Id + ":exchange:" + (engagement.ExchangeCount + 1),
             attackerId,
@@ -342,8 +369,8 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
 
         string attackerId = GetPersistentId(attacker);
         string defenderId = GetPersistentId(defender);
-        CharacterBodyHealthSnapshot attackerBody = bodyHealth.GetSnapshot(attacker);
-        CharacterBodyHealthSnapshot defenderBody = bodyHealth.GetSnapshot(defender);
+        CharacterBodyHealthSnapshot attackerBody = bodyHealthQuery.GetSnapshot(attacker);
+        CharacterBodyHealthSnapshot defenderBody = bodyHealthQuery.GetSnapshot(defender);
         CombatAttackResult result = combatResolution.Resolve(new CombatAttackRequest(
             engagement.Id + ":ranged:" + (engagement.ExchangeCount + 1),
             attackerId,
@@ -353,7 +380,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             weapon,
             distance,
             mode,
-            coverQuery.GetCover(
+            coverServices.Query.GetCover(
                 grid,
                 attacker.GetNowXY(),
                 defender.GetNowXY()),
@@ -387,15 +414,16 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
         string status;
         if (result.CoverBlocked)
         {
-            CombatCoverDurability.TryApplyDamage(
+            coverServices.Durability.TryApplyDamage(
                 result.CoverSourceId,
                 result.CoverDamage);
             CombatImpactPresentation.Play(
                 defender.transform.position,
                 weapon.Verb?.damageType ?? CombatDamageType.Pierce,
                 defender.GameClock ?? attacker.GameClock,
+                worldUiHierarchy,
                 coverHit: true);
-            bodyHealth.AddSuppression(defender, result.Suppression);
+            bodyHealthCommands.AddSuppression(defender, result.Suppression);
             status = "엄폐물에 막힘";
         }
         else
@@ -442,18 +470,19 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
     {
         if (result.Hit)
         {
-            bodyHealth.ApplyCombatResult(
+            bodyHealthCommands.ApplyCombatResult(
                 defender,
                 result,
                 $"{source}: {attacker.Identity?.DisplayName ?? attacker.name}");
             DefenseCombatPresentation.Ensure(defender)?.PlayHit(
                 result.AppliedDamage,
-                weapon?.Verb?.damageType ?? CombatDamageType.Slash);
+                weapon?.Verb?.damageType ?? CombatDamageType.Slash,
+                worldUiHierarchy);
             ApplyArmorDurabilityDamage(result);
             return;
         }
 
-        bodyHealth.AddSuppression(defender, result.Suppression);
+        bodyHealthCommands.AddSuppression(defender, result.Suppression);
     }
 
     private static void PresentAttack(
@@ -466,7 +495,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             .PlayAttack(defender.transform.position, weapon);
     }
 
-    private static void PresentProjectile(
+    private void PresentProjectile(
         CharacterActor attacker,
         CharacterActor defender,
         CombatWeaponSnapshot weapon)
@@ -484,7 +513,8 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             projectileSpeed,
             verb?.damageType ?? CombatDamageType.Pierce,
             weapon.Kind == CombatEquipmentKind.RecoverableThrowingWeapon,
-            attacker.GameClock);
+            attacker.GameClock,
+            worldUiHierarchy);
     }
 
     private void ConsumeAttackResource(
@@ -514,7 +544,7 @@ public sealed class DefenseCombatExecutor : IDefenseCombatExecutor
             || string.IsNullOrWhiteSpace(weapon.InstanceId)
             || string.IsNullOrWhiteSpace(weapon.DefinitionId)
             || !itemStackRuntime.SpawnUniqueItemAt(
-                DungeonItemCatalogSO.EquipmentItemId(weapon.DefinitionId),
+                PhysicalItemIds.ForEquipment(weapon.DefinitionId),
                 impactPosition,
                 WorldItemStackState.Loose,
                 string.Empty,

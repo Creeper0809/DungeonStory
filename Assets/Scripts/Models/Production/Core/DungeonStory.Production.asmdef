@@ -1,0 +1,17 @@
+{
+  "name": "DungeonStory.Production",
+  "rootNamespace": "DungeonStory.Production",
+  "references": [
+    "DungeonStory.Foundation",
+    "DungeonStory.Work"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

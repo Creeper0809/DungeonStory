@@ -27,20 +27,36 @@ MonoBehaviour:
   description: "\uBC29\uC5B4 \uD1B5\uC81C\uB300\uC5D0\uC11C \uBB34\uC7A5 \uC815\uCC45\uACFC
     \uBC1C\uB3D9 \uAD6C\uC5ED\uC744 \uC6D0\uACA9\uC73C\uB85C \uC804\uD658\uD55C\uB2E4."
   field: 2
-  requiredWork: 214
+  requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: b2f0323893ce05646a3073bc1da33d95, type: 2}
   - {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:defense:rune-identification
+    prerequisite: {fileID: 11400000, guid: b2f0323893ce05646a3073bc1da33d95, type: 2}
+    kind: 2
+    reason: "\uB8EC \uC2DD\uBCC4\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC6D0\uACA9
+      \uD1B5\uC81C \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:distribution
+    prerequisite: {fileID: 11400000, guid: 8f63d37343e549b4a945b0f75f4558de, type: 2}
+    kind: 2
+    reason: "\uBC30\uC804\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uC6D0\uACA9
+      \uD1B5\uC81C \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563312817144291
+    - rid: 7737211730927813096
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563312817144291
+    - rid: 7737211730927813096
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1801

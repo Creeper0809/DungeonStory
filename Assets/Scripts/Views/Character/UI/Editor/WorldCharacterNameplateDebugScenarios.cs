@@ -45,11 +45,13 @@ public static class WorldCharacterNameplateDebugScenarios
             actorObject = CreateActorObject();
             CharacterActor actor = actorObject.GetComponent<CharacterActor>();
             actor.EnsureRuntimeState();
-            actorObject.GetComponent<CharacterStats>().ConstructCharacterStats(
+            CharacterAiEditorTestDependencies.InjectCharacterStats(
+                actorObject.GetComponent<CharacterStats>(),
                 new NoopStaffDiscontentRuntimeService(),
-                new NoopOwnerRunLifecycleService(),
                 new NeutralMetaProgressionRuntimeReader(),
-                new UnityGameClock());
+                new UnityGameClock(),
+                CharacterAiEditorTestDependencies.AuthoredGameplay,
+                DisabledDungeonDebugRuleQuery.Instance);
             actor.SetLifecycleState(CharacterLifecycleState.Active);
             actor.InitializeStats(resetCurrentHealth: true);
 

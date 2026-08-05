@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
-public sealed class ResourceStockPolicySaveSection : IDungeonSaveSection
+// V18 required section: validation succeeds before the candidate Aggregate root is replaced.
+public sealed class ResourceStockPolicySaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonResourceStockPolicySaveData,
+        ResourceStockPolicyRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "economy.stock-policies";
 
@@ -13,43 +17,45 @@ public sealed class ResourceStockPolicySaveSection : IDungeonSaveSection
     };
 
     private readonly IResourceStockPolicyRuntime runtime;
+    private readonly IResourceEconomyContentCatalog catalog;
 
     public ResourceStockPolicySaveSection(
-        IResourceStockPolicyRuntime runtime)
+        IResourceStockPolicyRuntime runtime,
+        IResourceEconomyContentCatalog catalog)
     {
         this.runtime = runtime
             ?? throw new ArgumentNullException(nameof(runtime));
+        this.catalog = catalog
+            ?? throw new ArgumentNullException(nameof(catalog));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion =>
+    public override string SectionId => Id;
+    public override int SectionVersion =>
         DungeonResourceStockPolicySaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase =>
+    public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => Dependencies;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
+    protected override DungeonResourceStockPolicySaveData CapturePayload()
     {
-        return JsonUtility.ToJson(runtime.Capture());
+        return runtime.Capture();
     }
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
+    protected override ResourceStockPolicyRestoreCandidate
+        BuildRestoreCandidate(DungeonResourceStockPolicySaveData payload)
     {
-        if (sectionVersion != SectionVersion)
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        ResourceStockPolicySaveValidation.Validate(payload, catalog, report);
+        if (!report.Success)
         {
-            report.AddError(
-                $"{SectionId}: 지원하지 않는 섹션 버전 {sectionVersion}입니다.");
-            return;
+            throw new InvalidOperationException(
+                "Stock-policy restore candidate is invalid: "
+                + string.Join(" | ", report.Errors));
         }
-
-        runtime.Restore(
-            string.IsNullOrWhiteSpace(payloadJson)
-                ? new DungeonResourceStockPolicySaveData()
-                : JsonUtility.FromJson<DungeonResourceStockPolicySaveData>(
-                    payloadJson)
-                    ?? new DungeonResourceStockPolicySaveData());
+        return runtime.PrepareRestoreCandidate(payload);
     }
+
+    protected override void PublishRestoreCandidate(
+        ResourceStockPolicyRestoreCandidate candidate) =>
+        runtime.PublishRestoreCandidate(candidate);
 }

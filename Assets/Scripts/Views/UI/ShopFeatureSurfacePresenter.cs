@@ -104,21 +104,26 @@ public interface IShopFeatureCommandService
 
 public sealed class ShopFeatureQueryService : IShopFeatureQueryService
 {
-    private readonly IDailyFacilityShopRuntimeProvider runtimeProvider;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly DailyFacilityShopRuntime runtime;
+    private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IShopFeatureCommandService commandService;
     private readonly IRetailWorldQuery retailWorld;
     private readonly IAutoProcurementRuntime autoProcurement;
+    private readonly IStockCategoryDefinitionCatalog stockCategoryCatalog;
 
     public ShopFeatureQueryService(
-        IDailyFacilityShopRuntimeProvider runtimeProvider,
-        IGameDataProvider gameDataProvider,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
+        IGameSessionStateProvider gameDataProvider,
         IShopFeatureCommandService commandService,
         IRetailWorldQuery retailWorld,
-        IAutoProcurementRuntime autoProcurement)
+        IAutoProcurementRuntime autoProcurement,
+        IStockCategoryDefinitionCatalog stockCategoryCatalog)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new ArgumentNullException(nameof(runtimeProvider));
+        runtime = (progressionRuntimes
+                ?? throw new ArgumentNullException(nameof(progressionRuntimes)))
+            .FacilityShop
+            ?? throw new InvalidOperationException(
+                $"{nameof(ShopFeatureQueryService)} requires a loaded {nameof(DailyFacilityShopRuntime)}.");
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.commandService = commandService
@@ -127,11 +132,13 @@ public sealed class ShopFeatureQueryService : IShopFeatureQueryService
             ?? throw new ArgumentNullException(nameof(retailWorld));
         this.autoProcurement = autoProcurement
             ?? throw new ArgumentNullException(nameof(autoProcurement));
+        this.stockCategoryCatalog = stockCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
     }
 
     public ShopFeatureSurfaceModel Capture()
     {
-        if (!runtimeProvider.TryGetRuntime(out DailyFacilityShopRuntime runtime))
+        if (runtime == null)
         {
             return new ShopFeatureSurfaceModel
             {
@@ -257,9 +264,9 @@ public sealed class ShopFeatureQueryService : IShopFeatureQueryService
         }).ToArray();
     }
 
-    private static int ResolveDefaultMaximumPrice(StockCategory category)
+    private int ResolveDefaultMaximumPrice(StockCategory category)
     {
-        return StockCategoryCatalog.TryGet(
+        return stockCategoryCatalog.TryGet(
             category,
             out StockCategoryDefinition definition)
             ? Mathf.Max(1, definition.DailyUnitCost * 2)
@@ -268,7 +275,7 @@ public sealed class ShopFeatureQueryService : IShopFeatureQueryService
 
     private int ResolveMoney()
     {
-        return gameDataProvider.TryGetGameData(out GameData gameData)
+        return gameDataProvider.TryGetSessionState(out GameSessionState gameData)
             && gameData != null
             && gameData.holdingMoney != null
             ? gameData.holdingMoney.Value
@@ -315,21 +322,28 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
 {
     private readonly HashSet<string> purchasedKeys =
         new HashSet<string>(StringComparer.Ordinal);
-    private readonly IDailyFacilityShopRuntimeProvider runtimeProvider;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly DailyFacilityShopRuntime runtime;
+    private readonly IGameSessionStateProvider gameDataProvider;
     private readonly IAutoProcurementRuntime autoProcurement;
+    private readonly IStockCategoryDefinitionCatalog stockCategoryCatalog;
 
     public ShopFeatureCommandService(
-        IDailyFacilityShopRuntimeProvider runtimeProvider,
-        IGameDataProvider gameDataProvider,
-        IAutoProcurementRuntime autoProcurement)
+        ProgressionSceneRuntimeReferences progressionRuntimes,
+        IGameSessionStateProvider gameDataProvider,
+        IAutoProcurementRuntime autoProcurement,
+        IStockCategoryDefinitionCatalog stockCategoryCatalog)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new ArgumentNullException(nameof(runtimeProvider));
+        runtime = (progressionRuntimes
+                ?? throw new ArgumentNullException(nameof(progressionRuntimes)))
+            .FacilityShop
+            ?? throw new InvalidOperationException(
+                $"{nameof(ShopFeatureCommandService)} requires a loaded {nameof(DailyFacilityShopRuntime)}.");
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
         this.autoProcurement = autoProcurement
             ?? throw new ArgumentNullException(nameof(autoProcurement));
+        this.stockCategoryCatalog = stockCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
     }
 
     public bool WasPurchased(string purchaseKey)
@@ -342,7 +356,7 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
     {
         return Purchase(
             purchaseKey,
-            (DailyFacilityShopRuntime runtime, GameData gameData, out FacilityShopPurchaseResult result) =>
+            (DailyFacilityShopRuntime runtime, GameSessionState gameData, out FacilityShopPurchaseResult result) =>
                 runtime.TryPurchaseDailyOffer(index, gameData, out result),
             "구매");
     }
@@ -351,7 +365,7 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
     {
         return Purchase(
             purchaseKey,
-            (DailyFacilityShopRuntime runtime, GameData gameData, out FacilityShopPurchaseResult result) =>
+            (DailyFacilityShopRuntime runtime, GameSessionState gameData, out FacilityShopPurchaseResult result) =>
                 runtime.TryPurchaseBasicOffer(index, gameData, out result),
             "기본 구매");
     }
@@ -385,7 +399,7 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
             nextTarget = 0;
         }
 
-        int defaultPrice = StockCategoryCatalog.TryGet(
+        int defaultPrice = stockCategoryCatalog.TryGet(
             category,
             out StockCategoryDefinition definition)
             ? Mathf.Max(1, definition.DailyUnitCost * 2)
@@ -406,7 +420,7 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
         });
         return new ShopFeatureCommandResult(
             true,
-            $"{StockCategoryCatalog.GetDisplayName(category)} 목표 재고 "
+            $"{stockCategoryCatalog.GetDisplayName(category)} 목표 재고 "
             + (nextTarget > 0 ? $"{nextTarget}개" : "사용 안 함"));
     }
 
@@ -457,12 +471,12 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
             return new ShopFeatureCommandResult(false, "이미 구매한 상품입니다.");
         }
 
-        if (!runtimeProvider.TryGetRuntime(out DailyFacilityShopRuntime runtime))
+        if (runtime == null)
         {
             return new ShopFeatureCommandResult(false, $"{label} 실패: 시설 상점이 준비되지 않았습니다.");
         }
 
-        if (!gameDataProvider.TryGetGameData(out GameData gameData) || gameData == null)
+        if (!gameDataProvider.TryGetSessionState(out GameSessionState gameData) || gameData == null)
         {
             return new ShopFeatureCommandResult(false, $"{label} 실패: 게임 자금 데이터가 없습니다.");
         }
@@ -492,7 +506,7 @@ public sealed class ShopFeatureCommandService : IShopFeatureCommandService
 
     private delegate bool PurchaseOperation(
         DailyFacilityShopRuntime runtime,
-        GameData gameData,
+        GameSessionState gameData,
         out FacilityShopPurchaseResult result);
 }
 
@@ -503,16 +517,20 @@ public sealed class ShopFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
 
     private readonly IShopFeatureQueryService queryService;
     private readonly IShopFeatureCommandService commandService;
+    private readonly IStockCategoryDefinitionCatalog stockCategoryCatalog;
     private int selectedShopId;
 
     public ShopFeatureSurfacePresenter(
         IShopFeatureQueryService queryService,
-        IShopFeatureCommandService commandService)
+        IShopFeatureCommandService commandService,
+        IStockCategoryDefinitionCatalog stockCategoryCatalog)
     {
         this.queryService = queryService
             ?? throw new ArgumentNullException(nameof(queryService));
         this.commandService = commandService
             ?? throw new ArgumentNullException(nameof(commandService));
+        this.stockCategoryCatalog = stockCategoryCatalog
+            ?? throw new ArgumentNullException(nameof(stockCategoryCatalog));
     }
 
     public TabId Id => TabId.Shop;
@@ -578,7 +596,7 @@ public sealed class ShopFeatureSurfacePresenter : IFeatureSurfaceTabPresenter
             ShopProcurementRuleRow capturedRule = rule;
             view.AddDataCard(
                 $"P3Action_Procurement_{capturedRule.Category}",
-                StockCategoryCatalog.GetDisplayName(capturedRule.Category),
+                stockCategoryCatalog.GetDisplayName(capturedRule.Category),
                 capturedRule.Enabled
                     ? $"목표 {capturedRule.TargetQuantity} / 최대 단가 "
                       + $"{capturedRule.MaximumUnitPrice} / 하루 최대 "

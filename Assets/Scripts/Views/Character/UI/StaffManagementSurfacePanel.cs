@@ -4,9 +4,72 @@ using System.Linq;
 using DungeonStory.Foundation;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.UI;
 
-public partial class StaffWorkPriorityPanel
+internal sealed class StaffManagementDomainContext
+{
+    private StaffManagementDomainContext(
+        bool isAvailable,
+        StaffDiscontentRuntime staffDiscontent,
+        ICharacterWorldQuery characterWorld,
+        IBuildingWorldQuery buildingWorld,
+        IPlayerStaffCommandSource playerCommands,
+        ICharacterMoodImpulseQuery moodImpulse,
+        IGameEventBus eventBus)
+    {
+        IsAvailable = isAvailable;
+        StaffDiscontent = staffDiscontent;
+        CharacterWorld = characterWorld;
+        BuildingWorld = buildingWorld;
+        PlayerCommands = playerCommands;
+        MoodImpulse = moodImpulse;
+        EventBus = eventBus;
+    }
+
+    internal bool IsAvailable { get; }
+    internal StaffDiscontentRuntime StaffDiscontent { get; }
+    internal ICharacterWorldQuery CharacterWorld { get; }
+    internal IBuildingWorldQuery BuildingWorld { get; }
+    internal IPlayerStaffCommandSource PlayerCommands { get; }
+    internal ICharacterMoodImpulseQuery MoodImpulse { get; }
+    internal IGameEventBus EventBus { get; }
+
+    internal static StaffManagementDomainContext Unavailable() =>
+        new StaffManagementDomainContext(
+            false,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    internal static StaffManagementDomainContext Create(
+        StaffDiscontentRuntime staffDiscontent,
+        ICharacterWorldQuery characterWorld,
+        IBuildingWorldQuery buildingWorld,
+        IPlayerStaffCommandSource playerCommands,
+        ICharacterMoodImpulseQuery moodImpulse,
+        IGameEventBus eventBus) =>
+        new StaffManagementDomainContext(
+            true,
+            staffDiscontent
+                ?? throw new ArgumentNullException(nameof(staffDiscontent)),
+            characterWorld
+                ?? throw new ArgumentNullException(nameof(characterWorld)),
+            buildingWorld
+                ?? throw new ArgumentNullException(nameof(buildingWorld)),
+            playerCommands
+                ?? throw new ArgumentNullException(nameof(playerCommands)),
+            moodImpulse
+                ?? throw new ArgumentNullException(nameof(moodImpulse)),
+            eventBus
+                ?? throw new ArgumentNullException(nameof(eventBus)));
+}
+
+[MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
+internal sealed class StaffManagementSurfacePanel
 {
     private enum StaffPanelMode
     {
@@ -15,11 +78,97 @@ public partial class StaffWorkPriorityPanel
     }
 
     private const float ManagementWidth = 980f;
+    private const string NoneText = "없음";
+    private const string UndeterminedText = "미정";
+    private readonly IStaffManagementSurfaceQuery viewQuery;
+    private readonly IStaffManagementSurfaceCommand viewCommands;
+    private readonly IStaffWorkPriorityPanelModelBuilder modelBuilder;
+    private readonly StaffManagementDomainContext domain;
+    private readonly StaffDiscontentRuntime staffDiscontentRuntime;
+    private readonly ICharacterWorldQuery characterWorldQuery;
+    private readonly IBuildingWorldQuery buildingWorldQuery;
+    private readonly IPlayerStaffCommandSource playerStaffCommands;
+    private readonly ICharacterMoodImpulseQuery moodImpulseQuery;
+    private readonly IGameEventBus gameEventBus;
+    private readonly Func<CharacterActor> getSelectedCharacter;
+    private readonly Action<CharacterActor> setSelectedCharacter;
+    private readonly List<GameObject> spawnedObjects = new List<GameObject>();
     private StaffPanelMode panelMode;
     private readonly Dictionary<StaffPanelMode, Button> modeButtons =
         new Dictionary<StaffPanelMode, Button>();
 
-    private void BuildModeBar(RectTransform host)
+    internal StaffManagementSurfacePanel(
+        IStaffManagementSurfaceQuery viewQuery,
+        IStaffManagementSurfaceCommand viewCommands,
+        IStaffWorkPriorityPanelModelBuilder modelBuilder,
+        StaffManagementDomainContext domain,
+        Func<CharacterActor> getSelectedCharacter,
+        Action<CharacterActor> setSelectedCharacter)
+    {
+        this.viewQuery = viewQuery
+            ?? throw new ArgumentNullException(nameof(viewQuery));
+        this.viewCommands = viewCommands
+            ?? throw new ArgumentNullException(nameof(viewCommands));
+        this.modelBuilder = modelBuilder
+            ?? throw new ArgumentNullException(nameof(modelBuilder));
+        this.domain = domain ?? throw new ArgumentNullException(nameof(domain));
+        staffDiscontentRuntime = domain.StaffDiscontent;
+        characterWorldQuery = domain.CharacterWorld;
+        buildingWorldQuery = domain.BuildingWorld;
+        playerStaffCommands = domain.PlayerCommands;
+        moodImpulseQuery = domain.MoodImpulse;
+        gameEventBus = domain.EventBus;
+        this.getSelectedCharacter = getSelectedCharacter
+            ?? throw new ArgumentNullException(nameof(getSelectedCharacter));
+        this.setSelectedCharacter = setSelectedCharacter
+            ?? throw new ArgumentNullException(nameof(setSelectedCharacter));
+    }
+
+    internal bool IsManagementMode => panelMode == StaffPanelMode.Management;
+
+    private CharacterActor SelectedCharacter
+    {
+        get => getSelectedCharacter();
+        set => setSelectedCharacter(value);
+    }
+
+    private CharacterActor selectedCharacter
+    {
+        get => SelectedCharacter;
+        set => SelectedCharacter = value;
+    }
+
+    private RectTransform contentRoot => viewQuery.ContentRoot;
+    private Transform tableRoot => viewQuery.TableRoot;
+    private TMP_Text titleText => viewQuery.TitleText;
+    private int visibleWorkerCount;
+    private int visibleCellCount;
+    private int VisibleWorkerCount
+    {
+        set
+        {
+            visibleWorkerCount = value;
+            viewCommands.SetVisibleCounts(visibleWorkerCount, visibleCellCount);
+        }
+    }
+    private int VisibleCellCount
+    {
+        set
+        {
+            visibleCellCount = value;
+            viewCommands.SetVisibleCounts(visibleWorkerCount, visibleCellCount);
+        }
+    }
+
+    private IStaffWorkPriorityPanelUiFactory RequireUiFactory() =>
+        viewQuery.UiFactory;
+
+    private IStaffWorkPriorityPanelModelBuilder RequireModelBuilder() =>
+        modelBuilder;
+
+    private void Refresh() => viewCommands.RequestRefresh();
+
+    internal void BuildModeBar(RectTransform host)
     {
         GameObject bar = RequireUiFactory().CreateUiObject("StaffModeBar", host);
         RectTransform rect = bar.GetComponent<RectTransform>();
@@ -67,8 +216,17 @@ public partial class StaffWorkPriorityPanel
         }
     }
 
-    private void BuildStaffManagement(IReadOnlyList<StaffWorkPriorityRowModel> workers)
+    internal void BuildStaffManagement(IReadOnlyList<StaffWorkPriorityRowModel> workers)
     {
+        if (!domain.IsAvailable)
+        {
+            VisibleWorkerCount = 0;
+            VisibleCellCount = 0;
+            AddManagementBanner(
+                "직원 관리 준비 중",
+                "직원 관리 런타임이 연결된 뒤 사용할 수 있습니다.");
+            return;
+        }
         if (workers.Count > 0 && (selectedCharacter == null || workers.All((worker) => worker.Character != selectedCharacter)))
         {
             selectedCharacter = workers[0].Character;
@@ -210,7 +368,7 @@ public partial class StaffWorkPriorityPanel
         AddManagementBanner(
             "사장 우선 명령/반란 제압 명령",
             controller != null
-                ? $"명령 직원 {GetObjectName(controller.SelectedActor, "미선택")} / 작업 대상 {GetObjectName(worker.Work.PriorityWorkTarget, "없음")} / 제압 대상 {GetObjectName(worker.Work.PrioritySuppressActor, "없음")}"
+                ? $"명령 직원 {GetObjectName(controller.SelectedActor, "미선택")} / 작업 대상 {GetObjectName(worker.Work.PriorityWorkTarget, NoneText)} / 제압 대상 {GetObjectName(worker.Work.PrioritySuppressActor, NoneText)}"
                 : "사장 명령 컨트롤러가 현재 씬에 없습니다.");
 
         if (controller == null)
@@ -279,11 +437,11 @@ public partial class StaffWorkPriorityPanel
             : "특성 없음";
         CharacterStats stats = worker.Character.Stats;
         string abilitySummary = BuildCharacterStatSummary(stats);
-        AddManagementBanner("캐릭터 프로필/종족/특성", $"{identity?.SpeciesTag ?? "미정"} · {traits}");
+        AddManagementBanner("캐릭터 프로필/종족/특성", $"{identity?.SpeciesTag ?? UndeterminedText} · {traits}");
         CreateManagementCard(
             "P1Action_StaffProfile",
             identity != null ? identity.DisplayName : worker.Name,
-            $"역할 {identity?.Role.ToString() ?? "미정"} · 유형 {identity?.CharacterType.ToString() ?? "미정"}\n{identity?.GetSpeciesShortDescription()}\n특성: {traits}\n{abilitySummary}",
+            $"역할 {identity?.Role.ToString() ?? UndeterminedText} · 유형 {identity?.CharacterType.ToString() ?? UndeterminedText}\n{identity?.GetSpeciesShortDescription()}\n특성: {traits}\n{abilitySummary}",
             "프로필 확인",
             () => gameEventBus.ShowNotice($"프로필 확인: {worker.Name}", NoticeFeedEvent.Grade.NONE),
             156f);
@@ -321,17 +479,13 @@ public partial class StaffWorkPriorityPanel
         CreateManagementStatusCard(
             "P1State_StaffMood",
             "최근 기분 반응",
-            $"대상 {FirstValue(moodImpulseQuery?.LastAppliedActorName, "없음")} / 유형 {moodImpulseQuery?.LastAppliedType.ToString() ?? "없음"}",
+            $"대상 {FirstValue(moodImpulseQuery?.LastAppliedActorName, NoneText)} / 유형 {moodImpulseQuery?.LastAppliedType.ToString() ?? NoneText}",
             104f);
     }
 
     private StaffDiscontentRuntime ResolveStaffDiscontentRuntime()
     {
-        return staffDiscontentRuntimeProvider != null
-            && staffDiscontentRuntimeProvider.TryGetRuntime(
-                out StaffDiscontentRuntime runtime)
-            ? runtime
-            : null;
+        return staffDiscontentRuntime;
     }
 
     private void AddManagementBanner(string title, string detail)
@@ -490,11 +644,20 @@ public partial class StaffWorkPriorityPanel
         string value = tags != null
             ? string.Join(", ", tags.Where((tag) => !string.IsNullOrWhiteSpace(tag)))
             : string.Empty;
-        return string.IsNullOrWhiteSpace(value) ? "없음" : value;
+        return string.IsNullOrWhiteSpace(value) ? NoneText : value;
     }
 
     private static string FirstValue(params string[] values)
     {
         return values?.FirstOrDefault((value) => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
+    }
+
+    internal void Clear()
+    {
+        for (int index = spawnedObjects.Count - 1; index >= 0; index--)
+        {
+            RequireUiFactory().Release(spawnedObjects[index]);
+        }
+        spawnedObjects.Clear();
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using DungeonStory.Operation;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -273,7 +274,7 @@ public static class InvasionCombatReportDebugScenarios
             data.height = 1;
             data.layer = GridLayer.Building;
             data.category = BuildingCategory.Special;
-            data.type = typeof(DefenseFacility);
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.DefenseFacility;
             data.Facility = new FacilityData
             {
                 disabledWhenDamaged = true

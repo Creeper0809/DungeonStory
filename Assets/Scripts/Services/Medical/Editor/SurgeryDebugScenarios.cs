@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using VContainer;
 
 public static class SurgeryDebugScenarios
 {
@@ -31,7 +32,7 @@ public static class SurgeryDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
-        SurgeryContentAssetBuilder.RebuildAll();
+        SurgeryContentAssetBuilder.ValidateBuiltContent();
         Directory.CreateDirectory("Temp");
         List<string> lines = new List<string> { "case\tresult\tdetails" };
         List<string> errors = new List<string>();
@@ -44,6 +45,12 @@ public static class SurgeryDebugScenarios
         Run("risk_formula", VerifyRiskFormula, lines, errors);
         Run("corpse_extraction_ledger", VerifyExtractionLedger, lines, errors);
         Run("unique_part_save_data", VerifyUniquePartSaveData, lines, errors);
+        Run("strict_v6_payload", VerifyStrictV6Payload, lines, errors);
+        Run(
+            "restore_late_participant_rollback",
+            VerifyRestoreLateParticipantRollback,
+            lines,
+            errors);
         Run("work_and_stat_contract", VerifyWorkAndStatContract, lines, errors);
 
         File.WriteAllLines(ReportPath, lines);
@@ -58,6 +65,114 @@ public static class SurgeryDebugScenarios
         }
 
         return errors.Count == 0;
+    }
+
+    public static bool RunAtomicSurgeryRestoreContracts()
+    {
+        try
+        {
+            DungeonRuntimeLifetimeScope scope =
+                UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>(
+                    FindObjectsInactive.Include);
+            if (scope == null)
+            {
+                throw new InvalidOperationException(
+                    "Atomic surgery validation requires a live runtime scope.");
+            }
+
+            ISurgeryPersistence persistence =
+                scope.Container.Resolve<ISurgeryPersistence>();
+            SurgeryRestoreCoordinator coordinator =
+                scope.Container.Resolve<SurgeryRestoreCoordinator>();
+            DungeonRuntimeAggregateRootStore rootStore =
+                scope.Container.Resolve<DungeonRuntimeAggregateRootStore>();
+            IsolatedSurgerySaveSection surgerySection = new(
+                persistence,
+                coordinator);
+            FailOnceAfterSurgerySaveSection failOnce = new();
+            DungeonSaveSectionRegistry registry = new(
+                new IDungeonSaveSection[] { surgerySection, failOnce },
+                rootStore,
+                new IDungeonRestoreTransactionParticipant[] { coordinator });
+
+            List<DungeonSaveSectionEnvelope> baseline = registry.CaptureAll();
+            DungeonSaveSectionEnvelope surgeryEnvelope = baseline.Single(
+                envelope => envelope.sectionId == surgerySection.SectionId);
+            DungeonSurgerySaveData payload =
+                JsonUtility.FromJson<DungeonSurgerySaveData>(
+                    surgeryEnvelope.payloadJson);
+            if (surgeryEnvelope.sectionVersion
+                    != DungeonSurgerySaveData.CurrentVersion
+                || payload.version != DungeonSurgerySaveData.CurrentVersion)
+            {
+                Debug.LogError(
+                    "SURGERY_ATOMIC_RESTORE section/payload version mismatch.");
+                return false;
+            }
+
+            DungeonGameRestoreReport valid = new();
+            if (!registry.RestoreAll(baseline, valid) || !valid.Success)
+            {
+                Debug.LogError(
+                    "SURGERY_ATOMIC_RESTORE valid round trip failed: "
+                    + string.Join(" | ", valid.Errors));
+                return false;
+            }
+
+            string stateBeforeFailure = JsonUtility.ToJson(
+                persistence.Capture());
+            int revisionBeforeFailure = rootStore.PublishedRestoreRevision;
+            List<DungeonSaveSectionEnvelope> failing = registry.CaptureAll();
+            DungeonSaveSectionEnvelope changed = failing.Single(
+                envelope => envelope.sectionId == surgerySection.SectionId);
+            DungeonSurgerySaveData changedPayload =
+                JsonUtility.FromJson<DungeonSurgerySaveData>(changed.payloadJson);
+            changedPayload.orderSequence++;
+            changed.payloadJson = JsonUtility.ToJson(changedPayload);
+            failOnce.FailNextCommit = true;
+            DungeonGameRestoreReport failed = new();
+            bool failureAccepted = registry.RestoreAll(failing, failed);
+            string stateAfterFailure = JsonUtility.ToJson(
+                persistence.Capture());
+            if (failureAccepted
+                || failed.Success
+                || !string.Equals(
+                    stateBeforeFailure,
+                    stateAfterFailure,
+                    StringComparison.Ordinal)
+                || rootStore.PublishedRestoreRevision != revisionBeforeFailure
+                || rootStore.IsRestoreStaging)
+            {
+                Debug.LogError(
+                    "SURGERY_ATOMIC_RESTORE failed commit changed live state.");
+                return false;
+            }
+
+            List<DungeonSaveSectionEnvelope> legacy = registry.CaptureAll();
+            legacy.Single(envelope =>
+                    envelope.sectionId == surgerySection.SectionId)
+                .sectionVersion = DungeonSurgerySaveData.CurrentVersion - 1;
+            DungeonGameRestoreReport legacyReport = new();
+            if (registry.RestoreAll(legacy, legacyReport)
+                || legacyReport.Success
+                || rootStore.IsRestoreStaging)
+            {
+                Debug.LogError(
+                    "SURGERY_ATOMIC_RESTORE accepted a legacy section version.");
+                return false;
+            }
+
+            Debug.Log(
+                "SURGERY_ATOMIC_RESTORE=PASS "
+                + $"rollbackErrors={failed.Errors.Count} "
+                + $"legacyErrors={legacyReport.Errors.Count}");
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception);
+            return false;
+        }
     }
 
     private static string VerifySpecializedFacilities()
@@ -106,7 +221,7 @@ public static class SurgeryDebugScenarios
             "Assets/Resources/SO/Medical/Procedures");
         ResourceSurgicalProcedureCatalog catalog =
             new ResourceSurgicalProcedureCatalog(procedures);
-        Require(procedures.Length == 13, $"expected 13 procedures, got {procedures.Length}");
+        Require(procedures.Length == 42, $"expected 42 procedures, got {procedures.Length}");
         Require(catalog.Validate().Count == 0, string.Join(" | ", catalog.Validate()));
         Require(
             procedures.All(procedure =>
@@ -130,7 +245,7 @@ public static class SurgeryDebugScenarios
                 procedure.Kind == SurgicalProcedureKind.Rehabilitation
                 && procedure.Effects.OfType<ReduceSurgicalBurdenEffect>().Any()),
             "rehabilitation did not reduce post-operative burdens");
-        return "13 procedures require work, facilities, hauled materials, and valid effects";
+        return "42 procedures require work, facilities, hauled materials, and valid effects";
     }
 
     private static string VerifyAnatomyProfiles()
@@ -139,7 +254,7 @@ public static class SurgeryDebugScenarios
             "Assets/Resources/SO/Medical/Anatomy");
         ResourceAnatomyProfileCatalog catalog =
             new ResourceAnatomyProfileCatalog(profiles);
-        Require(profiles.Length == 6, $"expected 6 anatomy profiles, got {profiles.Length}");
+        Require(profiles.Length == 12, $"expected 12 anatomy profiles, got {profiles.Length}");
         Require(catalog.Validate().Count == 0, string.Join(" | ", catalog.Validate()));
 
         AnatomyProfileDefinition humanoid = catalog.GetDefaultHumanoid();
@@ -158,7 +273,37 @@ public static class SurgeryDebugScenarios
         Require(
             catalog.GetForSpecies("Slime").ProfileId == "anatomy:slime",
             "slime did not resolve to its dedicated anatomy");
-        return "six anatomy profiles resolve stable vital and paired nodes";
+        Dictionary<string, string> expectedSpeciesProfiles =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Human"] = "anatomy:human",
+                ["Orc"] = "anatomy:orc",
+                ["Vampire"] = "anatomy:vampire",
+                ["Beastkin"] = "anatomy:beastkin",
+                ["Demon"] = "anatomy:demon",
+                ["Kobold"] = "anatomy:kobold",
+                ["Myconid"] = "anatomy:fungal",
+                ["Harpy"] = "anatomy:avian",
+                ["Golem"] = "anatomy:construct"
+            };
+        foreach (KeyValuePair<string, string> pair in expectedSpeciesProfiles)
+        {
+            Require(
+                catalog.GetForSpecies(pair.Key).ProfileId == pair.Value,
+                $"{pair.Key} resolved to the wrong anatomy profile");
+        }
+        Require(
+            expectedSpeciesProfiles.Keys
+                .Select(species => catalog.GetForSpecies(species).ProfileId)
+                .Distinct(StringComparer.Ordinal)
+                .Count() == 9,
+            "the nine playable/NPC species did not resolve to nine independent anatomy profiles");
+        RequireNode(catalog.GetForSpecies("Orc"), "tusk:left", vital: false);
+        RequireNode(catalog.GetForSpecies("Vampire"), "blood-sac", vital: false);
+        RequireNode(catalog.GetForSpecies("Beastkin"), "balance-tail", vital: false);
+        RequireNode(catalog.GetForSpecies("Demon"), "mana-core", vital: true);
+        RequireNode(catalog.GetForSpecies("Kobold"), "hand:left", vital: false);
+        return "12 anatomy assets provide nine independent species profiles plus legacy and wildlife contracts";
     }
 
     private static string VerifyResearchBranch()
@@ -231,7 +376,7 @@ public static class SurgeryDebugScenarios
             0f,
             0f,
             Array.Empty<BuildableObject>(),
-            string.Empty);
+            DomainFailure.None);
         SurgicalFacilitySnapshot good = new SurgicalFacilitySnapshot(
             null,
             procedure.RequiredFacilityTags,
@@ -240,7 +385,7 @@ public static class SurgeryDebugScenarios
             0.25f,
             1f,
             Array.Empty<BuildableObject>(),
-            string.Empty);
+            DomainFailure.None);
         SurgicalSubjectRef subject = new SurgicalSubjectRef
         {
             kind = SurgicalSubjectKind.Character,
@@ -265,22 +410,31 @@ public static class SurgeryDebugScenarios
 
     private static string VerifyExtractionLedger()
     {
-        SurgeryExtractionLedger ledger = new SurgeryExtractionLedger();
+        SurgeryAggregateStateStore stateStore = new(
+            new DungeonRuntimeAggregateRootStore());
+        SurgeryExtractionLedger ledger = new SurgeryExtractionLedger(stateStore);
         Require(
             ledger.TryMarkExtracted("corpse:test", "heart", out _),
             "first extraction was rejected");
         Require(
-            !ledger.TryMarkExtracted("corpse:test", "heart", out string reason)
-            && !string.IsNullOrWhiteSpace(reason),
+            !ledger.TryMarkExtracted(
+                "corpse:test",
+                "heart",
+                out DomainFailure failure)
+            && failure.Code == FailureCode.SurgeryExtractionAlreadyRecorded,
             "duplicate extraction was accepted");
         Require(
             ledger.TryMarkExtracted("corpse:test", "lung:left", out _),
             "another organ could not be extracted");
 
-        SurgeryExtractionLedger restored = new SurgeryExtractionLedger();
-        restored.Restore(ledger.Capture(), new List<string>());
-        Require(restored.IsExtracted("corpse:test", "heart"), "extraction state was not restored");
-        return "corpse organs are extracted once and survive save restoration";
+        IReadOnlyList<CorpseSurgicalRecord> captured = ledger.Capture();
+        Require(
+            captured.Count == 1
+            && captured[0].stackId == "corpse:test"
+            && captured[0].extractedNodeIds.SequenceEqual(
+                new[] { "heart", "lung:left" }),
+            "extraction ledger did not capture canonical state");
+        return "corpse organs are extracted once and capture canonical aggregate state";
     }
 
     private static string VerifyUniquePartSaveData()
@@ -310,6 +464,29 @@ public static class SurgeryDebugScenarios
                     orderId = "surgery:test",
                     procedureId = "procedure:emergency-suture",
                     state = SurgeryOrderState.Procedure,
+                    statusData = new SurgeryStatusData
+                    {
+                        code = SurgeryStatusCode.ProcedureInProgress,
+                        primaryId = "character:test",
+                        secondaryId = "procedure:emergency-suture",
+                        scalarValue = 12.5f,
+                        secondaryScalarValue = 3.25f,
+                        tertiaryScalarValue = 0.75f,
+                        countValue = 2,
+                        stage = SurgeryOrderState.Procedure
+                    },
+                    environmentWait = new SurgeryStatusData
+                    {
+                        code = SurgeryStatusCode.EnvironmentStabilizing,
+                        scalarValue = 4.5f,
+                        stage = SurgeryOrderState.Suturing
+                    },
+                    environmentRecovery = new SurgeryStatusData
+                    {
+                        code = SurgeryStatusCode.EnvironmentRecoveryRequested,
+                        countValue = 3,
+                        stage = SurgeryOrderState.Recovering
+                    },
                     reachedClinicalStages = new List<SurgeryOrderState>
                     {
                         SurgeryOrderState.Anesthetizing,
@@ -341,7 +518,106 @@ public static class SurgeryDebugScenarios
             restored.orders.Single().reachedClinicalStages.SequenceEqual(
                 data.orders.Single().reachedClinicalStages),
             "clinical stage history changed during save");
-        return "unique donor, graft, freshness, and clinical stages round-trip through V16 section data";
+        SurgeryOrder restoredOrder = restored.orders.Single();
+        Require(
+            restoredOrder.statusData.code == SurgeryStatusCode.ProcedureInProgress
+            && restoredOrder.statusData.primaryId == "character:test"
+            && restoredOrder.statusData.secondaryId == "procedure:emergency-suture"
+            && restoredOrder.statusData.scalarValue == 12.5f
+            && restoredOrder.statusData.secondaryScalarValue == 3.25f
+            && restoredOrder.statusData.tertiaryScalarValue == 0.75f
+            && restoredOrder.statusData.countValue == 2
+            && restoredOrder.statusData.stage == SurgeryOrderState.Procedure
+            && restoredOrder.environmentWait.code
+                == SurgeryStatusCode.EnvironmentStabilizing
+            && restoredOrder.environmentRecovery.code
+                == SurgeryStatusCode.EnvironmentRecoveryRequested,
+            "typed surgery status payload changed during save");
+        return "unique donor, graft, freshness, clinical stages, and typed statuses round-trip through V6 section data";
+    }
+
+    private static string VerifyStrictV6Payload()
+    {
+        ResourceSurgicalProcedureCatalog procedures = new(
+            LoadAssets<SurgicalProcedureSO>(
+                "Assets/Resources/SO/Medical/Procedures"));
+        ResourceAnatomyProfileCatalog anatomyProfiles = new(
+            LoadAssets<AnatomyProfileSO>(
+                "Assets/Resources/SO/Medical/Anatomy"));
+
+        DungeonSurgerySaveData valid = new();
+        DungeonGameRestoreReport validReport = new();
+        SurgerySaveValidation.Validate(
+            valid,
+            procedures,
+            anatomyProfiles,
+            validReport);
+        Require(
+            validReport.Success,
+            $"canonical empty V6 payload failed: {string.Join(" | ", validReport.Errors)}");
+
+        DungeonSurgerySaveData legacy = CloneSaveData(valid);
+        legacy.version = DungeonSurgerySaveData.CurrentVersion - 1;
+        RequireRejected(legacy, procedures, anatomyProfiles, "legacy V5 payload");
+
+        DungeonSurgerySaveData unknownStatus = CloneSaveData(valid);
+        unknownStatus.orderSequence = 1;
+        unknownStatus.orders.Add(new SurgeryOrder
+        {
+            orderId = "surgery:1",
+            procedureId = "procedure:emergency-suture",
+            subject = new SurgicalSubjectRef
+            {
+                kind = SurgicalSubjectKind.Character,
+                subjectId = "character:contract-patient"
+            },
+            state = SurgeryOrderState.Completed,
+            statusData = new SurgeryStatusData
+            {
+                code = (SurgeryStatusCode)int.MaxValue,
+                stage = SurgeryOrderState.Completed
+            }
+        });
+        RequireRejected(
+            unknownStatus,
+            procedures,
+            anatomyProfiles,
+            "unknown surgery status code");
+
+        DungeonSurgerySaveData missingCollection = CloneSaveData(valid);
+        missingCollection.parts = null;
+        RequireRejected(
+            missingCollection,
+            procedures,
+            anatomyProfiles,
+            "missing required collection");
+
+        DungeonSurgerySaveData reusedSequence = CloneSaveData(valid);
+        reusedSequence.orderSequence = -1;
+        RequireRejected(
+            reusedSequence,
+            procedures,
+            anatomyProfiles,
+            "negative order sequence");
+
+        DungeonSurgerySaveData duplicatePolicy = CloneSaveData(valid);
+        duplicatePolicy.policies.Add(new SurgerySubjectPolicyState
+        {
+            subjectId = "character:contract-patient",
+            automaticEmergencySurgery = true
+        });
+        duplicatePolicy.policies.Add(new SurgerySubjectPolicyState
+        {
+            subjectId = "character:contract-patient",
+            automaticEmergencySurgery = false
+        });
+        RequireRejected(
+            duplicatePolicy,
+            procedures,
+            anatomyProfiles,
+            "duplicate subject policy");
+
+        return "strict V6 accepts canonical state and rejects legacy, unknown status, missing, sequence, and duplicate corruption";
     }
 
     private static string VerifyWorkAndStatContract()
@@ -372,6 +648,14 @@ public static class SurgeryDebugScenarios
         return "surgery is a registered Priority1 work type and Medical is the twelfth stat";
     }
 
+    private static string VerifyRestoreLateParticipantRollback()
+    {
+        Require(
+            SurgeryRestoreFaultScenarios.Run(),
+            "surgery restore publication did not roll back exactly after a late participant failure");
+        return "three late-participant checkpoints preserve transports, orders, patient phase, and deferred wildlife returns until completion";
+    }
+
     private static T[] LoadAssets<T>(string folder)
         where T : UnityEngine.Object
     {
@@ -380,6 +664,141 @@ public static class SurgeryDebugScenarios
             .Select(AssetDatabase.LoadAssetAtPath<T>)
             .Where(asset => asset != null)
             .ToArray();
+    }
+
+    private static DungeonSurgerySaveData CloneSaveData(
+        DungeonSurgerySaveData source)
+    {
+        return JsonUtility.FromJson<DungeonSurgerySaveData>(
+            JsonUtility.ToJson(source));
+    }
+
+    private static void RequireRejected(
+        DungeonSurgerySaveData payload,
+        ISurgicalProcedureCatalog procedures,
+        IAnatomyProfileCatalog anatomyProfiles,
+        string caseName)
+    {
+        DungeonGameRestoreReport report = new();
+        SurgerySaveValidation.Validate(
+            payload,
+            procedures,
+            anatomyProfiles,
+            report);
+        Require(
+            !report.Success && report.Errors.Count > 0,
+            $"{caseName} was accepted");
+    }
+
+    private sealed class IsolatedSurgerySaveSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        private readonly ISurgeryPersistence persistence;
+        private readonly SurgeryRestoreCoordinator coordinator;
+
+        internal IsolatedSurgerySaveSection(
+            ISurgeryPersistence persistence,
+            SurgeryRestoreCoordinator coordinator)
+        {
+            this.persistence = persistence
+                ?? throw new ArgumentNullException(nameof(persistence));
+            this.coordinator = coordinator
+                ?? throw new ArgumentNullException(nameof(coordinator));
+        }
+
+        public string SectionId => "surgery.atomic-contract";
+        public int SectionVersion =>
+            DungeonSurgerySaveData.CurrentVersion;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.LateRuntimeState;
+        public IReadOnlyList<string> DependsOn => Array.Empty<string>();
+
+        public string Capture()
+        {
+            return JsonUtility.ToJson(persistence.Capture());
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            IDungeonSaveRestoreStage stage = StageRestore(
+                payloadJson,
+                sectionVersion,
+                report);
+            if (report.Success)
+            {
+                stage.Commit(report);
+            }
+        }
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            coordinator.PrepareRestore(ReadPayload(payloadJson, sectionVersion));
+        }
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            SurgeryRestoreCandidate candidate = coordinator.PrepareRestore(
+                ReadPayload(payloadJson, sectionVersion));
+            return new DungeonDelegateSaveRestoreStage(
+                SectionId,
+                _ => coordinator.PublishRestore(candidate));
+        }
+
+        private DungeonSurgerySaveData ReadPayload(
+            string payloadJson,
+            int sectionVersion)
+        {
+            if (sectionVersion != SectionVersion)
+            {
+                throw new InvalidOperationException(
+                    $"Unsupported {SectionId} section version {sectionVersion}.");
+            }
+
+            if (string.IsNullOrWhiteSpace(payloadJson))
+            {
+                throw new InvalidOperationException(
+                    $"{SectionId} payload is empty.");
+            }
+
+            return JsonUtility.FromJson<DungeonSurgerySaveData>(payloadJson)
+                ?? throw new InvalidOperationException(
+                    $"{SectionId} payload deserialized to null.");
+        }
+    }
+
+    private sealed class FailOnceAfterSurgerySaveSection :
+        DungeonDebugStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        internal bool FailNextCommit;
+
+        public override string SectionId => "zz.surgery-atomic-failure";
+        public override DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.LateRuntimeState;
+
+        protected override void CommitMarker(
+            DungeonGameRestoreReport report)
+        {
+            if (!FailNextCommit)
+            {
+                return;
+            }
+
+            FailNextCommit = false;
+            report.AddError("Injected post-surgery commit failure.");
+        }
     }
 
     private static void RequireNode(

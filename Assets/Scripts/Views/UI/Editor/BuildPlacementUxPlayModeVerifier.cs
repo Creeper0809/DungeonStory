@@ -53,6 +53,7 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
     private InputSettings.EditorInputBehaviorInPlayMode originalEditorInputBehavior;
     private Mouse originalMouse;
     private Mouse verificationMouse;
+    private DungeonAutomationInputTestCapability automationInput;
     private int verificationMouseSerial;
     private Vector2 originalMousePosition;
     private bool inputConfigured;
@@ -512,7 +513,7 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
 
     private static int GetDeliveredMaterialCount(WorkOrderProgressState order)
     {
-        return order?.DeliveredMaterials?.Values.Sum() ?? 0;
+        return order?.DeliveredItemMaterials?.Values.Sum() ?? 0;
     }
 
     private static string DescribeOrder(WorkOrderProgressState order)
@@ -555,8 +556,8 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
     {
         report.Add(
             $"[FLOW SITE] site={site?.name};"
-            + $" reservation={site?.WorkerReservation?.name};"
-            + $" worker={site?.ActiveWorker?.name};"
+            + $" reservation={site?.WorkerReservation?.BuildingDisplayName};"
+            + $" worker={site?.ActiveWorker?.VisitorSnapshot.DisplayName};"
             + $" status={site?.GetConstructionWorkStatus().FailureKind}:"
             + $"{site?.GetConstructionWorkStatus().Reason}");
 
@@ -614,9 +615,9 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
         {
             string materialSummary = string.Join(
                 ",",
-                (order.materials ?? new List<WorkOrderMaterialSaveData>())
+                (order.itemMaterials ?? new List<WorkOrderItemMaterialSaveData>())
                 .Select(material =>
-                    $"{material.category}:{material.delivered}/{material.required}"));
+                    $"{material.itemId}:{material.delivered}/{material.required}"));
             report.Add(
                 $"[FLOW ORDER] id={order.workOrderId}; status={order.status};"
                 + $" work={order.completedWork:0.##}/{order.requiredWork:0.##};"
@@ -668,7 +669,7 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
     private IEnumerator ClickWorldPoint(Vector2 screenPoint)
     {
         MoveAutomationPointer(screenPoint);
-        DungeonAutomationInputState.ClickPointer(0);
+        automationInput.ClickPointer(0);
         yield return null;
         yield return null;
         yield return null;
@@ -694,9 +695,8 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
         verificationMouse = InputSystem.AddDevice<Mouse>($"BuildPlacementVerificationMouse{++verificationMouseSerial}");
         InputSystem.EnableDevice(verificationMouse);
         verificationMouse.MakeCurrent();
-        DungeonAutomationInputState.Enable(
-            new DungeonStory.Foundation.UnityGameClock(),
-            new DungeonStory.Foundation.UnityUiClock());
+        automationInput = new DungeonAutomationInputTestCapability();
+        automationInput.Enable();
     }
 
     private void RestoreInput()
@@ -706,7 +706,8 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
             return;
         }
 
-        DungeonAutomationInputState.Disable();
+        automationInput?.Dispose();
+        automationInput = null;
         if (verificationMouse != null && verificationMouse.added)
         {
             InputSystem.RemoveDevice(verificationMouse);
@@ -728,7 +729,7 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
 
     private void MoveAutomationPointer(Vector2 screenPoint)
     {
-        DungeonAutomationInputState.MovePointer(screenPoint);
+        automationInput.MovePointer(screenPoint);
         if (verificationMouse == null)
         {
             return;
@@ -830,7 +831,7 @@ public sealed class BuildPlacementUxPlayModeVerificationRunner : MonoBehaviour
             || gameObject.GetComponentInParent<BuildingSummaryInfo>() != null
             || gameObject.GetComponentInParent<UIBuildingInfo>() != null
             || gameObject.GetComponentInParent<ItemPileInfoPanel>() != null
-            || gameObject.GetComponentInParent<CharacterSummeryInfo>() != null;
+            || gameObject.GetComponentInParent<CharacterSummaryInfo>() != null;
     }
 
     private static ConstructionSite FindConstructionSiteAt(Grid grid, BuildingSO building, Vector2Int position)

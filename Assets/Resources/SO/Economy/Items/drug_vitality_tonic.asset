@@ -26,21 +26,42 @@ MonoBehaviour:
   displayName: "\uD65C\uB825 \uAC15\uC7A5\uC81C"
   description: "\uD53C\uB85C\uB97C \uC904\uC774\uB294 \uBE44\uC911\uB3C5\uC131 \uAC15\uC7A5\uC81C."
   stockCategory: 5
-  kind: 4
-  ingredientTags: 1
-  unitPrice: 16
-  marketSaleRate: 0.6
   unitWeight: 0.2
   maxStack: 40
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:distillation
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 16
+  features:
+  - rid: 7737211673962611660
+  - rid: 7737211673962611661
+  - rid: 7737211673962611662
+  - rid: 7737211673962611663
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611660
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:distillation
+    - rid: 7737211673962611661
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 4
+        ingredientTags: 1
+        sharedIntermediate: 0
+    - rid: 7737211673962611662
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211673962611663
+      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        substanceId: substance:vitality-tonic
+        useClass: 1
+        addictionChance: 0
+        overdoseChance: 0.006
+        toleranceGain: 0
+        withdrawalPerHour: 0
+        moodEffect: 2
+        workSpeedEffect: 0.12
+        combatEffect: 0
+        durationSeconds: 150

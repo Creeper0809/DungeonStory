@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: survival_tainted_food
+  m_EditorClassIdentifier: Assembly-CSharp::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: survival:tainted_food
+  displayName: "\uC624\uC5FC\uB41C \uC74C\uC2DD"
+  description: "\uBA39\uC73C\uBA74 \uBCD1\uC744 \uBD80\uB97C \uC218 \uC788\uB294
+    \uC74C\uC2DD\uC785\uB2C8\uB2E4. \uCE58\uC6B0\uAC70\uB098 \uBC84\uB824\uC57C \uD569\uB2C8\uB2E4."
+  stockCategory: 0
+  unitWeight: 0.5
+  maxStack: 75
+  sprite: {fileID: 0}
+  unitPrice: 0
+  features:
+  - rid: 7737211673752633603
+  - rid: 7737211673752633604
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673752633603
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 2
+        ingredientTags: 0
+        sharedIntermediate: 0
+    - rid: 7737211673752633604
+      type: {class: FoodItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        quality: 0
+        nutrition: 10
+        mood: 0
+        freshnessSeconds: 600
+        preserved: 0

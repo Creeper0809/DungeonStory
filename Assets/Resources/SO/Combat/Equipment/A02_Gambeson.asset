@@ -24,6 +24,18 @@ MonoBehaviour:
   primaryMaterialAmount: 3
   allowedMaterialFamilies: 0400000005000000
   craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:growth-frame
+    amount: 1
+  - itemId: textile:quilted-liner
+    amount: 1
+  requiredResearchId: research:textile:tailoring
+  era: 1
+  tier: 1
+  slotProfile: 3
+  lineageKind: 1
+  growthEquipment: 1
+  growthBaseStatMultiplier: 0.88
   layer: 1
   collisionTag: torso-clothing
   bodyPartDefense:

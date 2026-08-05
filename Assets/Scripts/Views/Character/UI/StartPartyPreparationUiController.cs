@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using DungeonStory.Foundation;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using VContainer.Unity;
+using static StartPartyPreparationViewFactory;
+using static StartPartyPreparationPresentation;
 
 public sealed class StartPartyPreparationUiController : IStartable, IDisposable
 {
@@ -17,31 +18,25 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         PartyPrepare
     }
 
-    private enum DetailTab
-    {
-        Identity,
-        Aptitude,
-        Skill
-    }
-
     private readonly IOwnerCandidateCatalog ownerCandidateCatalog;
     private readonly IStartPartyPreparationService preparationService;
     private readonly IDungeonSceneNavigator sceneNavigator;
     private readonly IDungeonUiCanvasProvider canvasProvider;
     private readonly ITmpKoreanFontService fontService;
     private readonly IUiClock uiClock;
+    private readonly IDungeonUserSettingsService userSettings;
+    private readonly StartPartyPreparationViewFactory viewFactory;
+    private readonly StartPartyMemberDetailRenderer memberDetailRenderer;
 
     private CharacterSO[] ownerCandidates = Array.Empty<CharacterSO>();
     private DungeonPreparationLaunchRequest launchRequest;
     private PreparationScreen screen = PreparationScreen.OwnerSelect;
-    private DetailTab selectedTab = DetailTab.Identity;
     private CharacterSO selectedOwner;
     private int selectedOwnerSkillIndex;
     private int selectedMemberIndex = 1;
     private GameObject root;
     private GameObject contentRoot;
     private TMP_Text statusText;
-    private GameObject hoverTooltip;
     private string lastStatusMessage = string.Empty;
     private bool lastStatusIsError;
     private int draggingMemberIndex = -1;
@@ -53,7 +48,8 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         IDungeonSceneNavigator sceneNavigator,
         IDungeonUiCanvasProvider canvasProvider,
         ITmpKoreanFontService fontService,
-        IUiClock uiClock)
+        IUiClock uiClock,
+        IDungeonUserSettingsService userSettings)
     {
         this.ownerCandidateCatalog = ownerCandidateCatalog
             ?? throw new ArgumentNullException(nameof(ownerCandidateCatalog));
@@ -66,6 +62,14 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         this.fontService = fontService
             ?? throw new ArgumentNullException(nameof(fontService));
         this.uiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        this.userSettings = userSettings
+            ?? throw new ArgumentNullException(nameof(userSettings));
+        viewFactory = new StartPartyPreparationViewFactory(fontService);
+        memberDetailRenderer = new StartPartyMemberDetailRenderer(
+            viewFactory,
+            Render,
+            Reroll,
+            Swap);
     }
 
     public void Start()
@@ -82,7 +86,11 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         root = new GameObject("StartPreparationRuntimeUI", typeof(RectTransform));
         root.transform.SetParent(canvas.transform, false);
         Stretch(root.GetComponent<RectTransform>());
-        DungeonUiThemeRuntime.Ensure(canvas, fontService, uiClock).ApplyNow();
+        DungeonUiThemeRuntime.Ensure(
+            canvas,
+            fontService,
+            uiClock,
+            userSettings).ApplyNow();
         Render();
     }
 
@@ -90,7 +98,7 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
     {
         preparationService.Changed -= HandlePreparationChanged;
         preparationService.Cancel();
-        HideTraitTooltip();
+        memberDetailRenderer.HideTooltip();
         if (root != null)
         {
             UnityEngine.Object.Destroy(root);
@@ -113,7 +121,7 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         }
 
         rendering = true;
-        HideTraitTooltip();
+        memberDetailRenderer.HideTooltip();
         if (contentRoot != null)
         {
             UnityEngine.Object.Destroy(contentRoot);
@@ -271,7 +279,14 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         RenderRoster(roster);
 
         Transform detail = CreatePanel(parent, "PartyDetailPanel", new Vector2(0.305f, 0.15f), new Vector2(0.965f, 0.89f), true);
-        RenderMemberDetail(detail);
+        StartPartyMemberPreparation selectedMember = ResolveSelectedMember();
+        memberDetailRenderer.Render(
+            detail,
+            root.transform,
+            selectedMember,
+            selectedMember != null
+                ? GetMemberReadyLabel(selectedMember)
+                : string.Empty);
 
         Transform team = CreatePanel(parent, "TeamSummaryPanel", new Vector2(0.305f, 0.035f), new Vector2(0.74f, 0.13f), false);
         team.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
@@ -355,241 +370,6 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         canvasGroup.alpha = draggingMemberIndex == member.Index ? 0.68f : 1f;
     }
 
-    private void RenderMemberDetail(Transform parent)
-    {
-        StartPartyMemberPreparation member = ResolveSelectedMember();
-        if (member == null)
-        {
-            TMP_Text empty = CreateText(parent, "NoMember", "\uC900\uBE44 \uC911\uC778 \uCE90\uB9AD\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.", 22f, TextAlignmentOptions.Center);
-            Stretch(empty.rectTransform);
-            return;
-        }
-
-        Image portraitFrame = CreateImage(parent, "MemberPortraitFrame", DungeonUiTheme.SurfaceRaised);
-        SetRect(portraitFrame.rectTransform, new Vector2(0.045f, 0.755f), new Vector2(0.17f, 0.955f));
-        Image portrait = CreateImage(parent, "MemberPortrait", Color.clear);
-        portrait.transform.SetParent(portraitFrame.transform, false);
-        Stretch(portrait.rectTransform, new Vector2(8f, 8f), new Vector2(-8f, -8f));
-        portrait.sprite = member.CharacterData != null ? member.CharacterData.characterSprite : null;
-        portrait.preserveAspect = true;
-        portrait.raycastTarget = false;
-
-        TMP_Text name = CreateText(parent, "MemberName", ResolveMemberName(member), 32f, TextAlignmentOptions.MidlineLeft);
-        SetRect(name.rectTransform, new Vector2(0.195f, 0.895f), new Vector2(0.62f, 0.965f));
-        name.fontStyle = FontStyles.Bold;
-
-        string subtitle = $"{member.RosterLabel}  ·  {member.CharacterData?.SpeciesTag ?? "-"}  ·  Lv.{member.Progression?.Level ?? 1}";
-        TMP_Text sub = CreateText(parent, "MemberSubtitle", subtitle, 17f, TextAlignmentOptions.MidlineLeft);
-        SetRect(sub.rectTransform, new Vector2(0.197f, 0.845f), new Vector2(0.62f, 0.895f));
-        sub.color = DungeonUiTheme.TextSecondary;
-
-        TMP_Text role = CreateText(parent, "MemberRole", GetMemberReadyLabel(member), 17f, TextAlignmentOptions.MidlineRight);
-        SetRect(role.rectTransform, new Vector2(0.62f, 0.895f), new Vector2(0.885f, 0.965f));
-        role.color = DungeonUiTheme.TextSecondary;
-
-        if (!member.IsOwner)
-        {
-            CreateDiceButton(
-                parent,
-                "PreparationFullRerollDice_" + member.Index,
-                () => Reroll(member, null),
-                new Vector2(0.905f, 0.89f),
-                new Vector2(0.955f, 0.955f),
-                member.IdentityRerollsRemaining + member.AptitudeRerollsRemaining + member.SkillRerollsRemaining > 0,
-                "\uC804\uCCB4 \uB9AC\uB864");
-        }
-
-        CreateTab(parent, member, DetailTab.Identity, "\uC815\uCCB4\uC131", 0.195f);
-        CreateTab(parent, member, DetailTab.Aptitude, "\uC7AC\uB2A5", 0.345f);
-        CreateTab(parent, member, DetailTab.Skill, "\uC2A4\uD0AC", 0.495f);
-
-        switch (selectedTab)
-        {
-            case DetailTab.Identity:
-                RenderIdentityDetail(member, parent);
-                break;
-            case DetailTab.Aptitude:
-                RenderAptitudeDetail(member, parent);
-                break;
-            case DetailTab.Skill:
-                RenderSkillDetail(member, parent);
-                break;
-        }
-    }
-
-    private void CreateTab(
-        Transform parent,
-        StartPartyMemberPreparation member,
-        DetailTab tab,
-        string label,
-        float left)
-    {
-        Button button = CreateButton(
-            parent,
-            $"PreparationTab_{member.Index}_{tab}",
-            label,
-            () =>
-            {
-                selectedTab = tab;
-                Render();
-            },
-            new Vector2(left, 0.78f),
-            new Vector2(left + 0.13f, 0.85f),
-            selectedTab == tab);
-        button.image.color = selectedTab == tab
-            ? DungeonUiTheme.Accent
-            : DungeonUiTheme.SurfaceRaised;
-    }
-
-    private void RenderIdentityDetail(StartPartyMemberPreparation member, Transform parent)
-    {
-        CharacterGrowthState growth = member.Progression?.GrowthState;
-        Transform basics = CreatePanel(parent, "IdentityBasics", new Vector2(0.045f, 0.38f), new Vector2(0.46f, 0.72f), false);
-        basics.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
-        CreateSectionTitle(basics, "\uAE30\uBCF8 \uC815\uBCF4", member, StartPartyRerollGroup.Identity);
-        CreateInfoRow(basics, "\uC774\uB984", ResolveMemberName(member), 0.63f);
-        CreateInfoRow(basics, "\uC5ED\uD560", member.RosterLabel, 0.46f);
-        CreateInfoRow(basics, "\uC885\uC871", member.CharacterData?.SpeciesTag ?? "-", 0.29f);
-        CreateInfoRow(basics, "\uCD9C\uC2E0", growth?.origin ?? "-", 0.12f);
-
-        Transform traits = CreatePanel(parent, "IdentityTraits", new Vector2(0.485f, 0.38f), new Vector2(0.955f, 0.72f), false);
-        traits.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
-        TMP_Text traitTitle = CreateText(traits, "TraitTitle", "\uD2B9\uC131", 20f, TextAlignmentOptions.MidlineLeft);
-        SetRect(traitTitle.rectTransform, new Vector2(0.05f, 0.78f), new Vector2(0.65f, 0.94f));
-        traitTitle.fontStyle = FontStyles.Bold;
-
-        IReadOnlyList<CharacterTraitSO> resolvedTraits = member.Progression?.ResolveSelectedTraits()
-            ?? Array.Empty<CharacterTraitSO>();
-        if (resolvedTraits.Count == 0)
-        {
-            TMP_Text none = CreateText(traits, "TraitNone", "-", 17f, TextAlignmentOptions.TopLeft);
-            SetRect(none.rectTransform, new Vector2(0.05f, 0.1f), new Vector2(0.94f, 0.73f));
-            none.color = DungeonUiTheme.TextSecondary;
-            return;
-        }
-
-        for (int i = 0; i < resolvedTraits.Count && i < 3; i++)
-        {
-            RenderTraitChip(traits, resolvedTraits[i], 0.56f - i * 0.25f);
-        }
-    }
-
-    private void RenderAptitudeDetail(StartPartyMemberPreparation member, Transform parent)
-    {
-        CharacterGrowthState growth = member.Progression?.GrowthState;
-        Transform summary = CreatePanel(parent, "AptitudeSummary", new Vector2(0.045f, 0.57f), new Vector2(0.955f, 0.72f), false);
-        summary.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
-        CreateSectionTitle(summary, "\uC7AC\uB2A5", member, StartPartyRerollGroup.Aptitude);
-        TMP_Text potential = CreateText(
-            summary,
-            "PotentialValue",
-            $"\uC7A0\uC7AC\uB825  {PotentialLabel(growth?.potentialGrade ?? CharacterPotentialGrade.Ordinary)}",
-            22f,
-            TextAlignmentOptions.MidlineLeft);
-        SetRect(potential.rectTransform, new Vector2(0.04f, 0.22f), new Vector2(0.5f, 0.68f));
-        potential.color = DungeonUiTheme.Accent;
-        potential.fontStyle = FontStyles.Bold;
-
-        int total = Enum.GetValues(typeof(CharacterStatType))
-            .Cast<CharacterStatType>()
-            .Sum(type => growth?.initialBaseStats?.Get(type) ?? 0);
-        TMP_Text totalText = CreateText(summary, "StatTotal", $"\uCD08\uAE30 \uB2A5\uB825\uCE58 \uD569\uACC4  {total}", 17f, TextAlignmentOptions.MidlineRight);
-        SetRect(totalText.rectTransform, new Vector2(0.5f, 0.22f), new Vector2(0.94f, 0.68f));
-        totalText.color = DungeonUiTheme.TextSecondary;
-
-        Transform stats = CreatePanel(parent, "AptitudeStats", new Vector2(0.045f, 0.08f), new Vector2(0.955f, 0.54f), false);
-        stats.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
-        CharacterStatType[] types = Enum.GetValues(typeof(CharacterStatType)).Cast<CharacterStatType>().ToArray();
-        for (int i = 0; i < types.Length; i++)
-        {
-            int column = i / 3;
-            int row = i % 3;
-            float left = 0.04f + column * 0.315f;
-            float top = 0.82f - row * 0.28f;
-            RenderStatBar(stats, types[i], growth?.initialBaseStats?.Get(types[i]) ?? 0, left, top);
-        }
-    }
-
-    private void RenderSkillDetail(StartPartyMemberPreparation member, Transform parent)
-    {
-        Transform slots = CreatePanel(parent, "SkillSlots", new Vector2(0.045f, 0.38f), new Vector2(0.955f, 0.72f), false);
-        slots.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
-        CreateSectionTitle(slots, "\uC2A4\uD0AC", member, StartPartyRerollGroup.Skill);
-
-        if (member.IsOwner)
-        {
-            IReadOnlyList<CharacterSkillInstance> ownerSkills = CharacterOwnerFixedSkillUtility.GetSkills(member.CharacterData);
-            for (int i = 0; i < ownerSkills.Count && i < CharacterOwnerFixedSkillUtility.FixedSlotCount; i++)
-            {
-                RenderSkillCard(slots, ownerSkills[i], i, 0.08f + i * 0.225f, 0.12f, 0.205f, true);
-            }
-
-            TMP_Text hint = CreateText(
-                parent,
-                "OwnerSkillHint",
-                "\uC0AC\uC7A5\uC740 \uACE0\uC815 \uAD8C\uB2A5\uC73C\uB85C \uB7F0\uC744 \uC2DC\uC791\uD569\uB2C8\uB2E4. \uC77C\uBC18 \uC131\uC7A5 \uC2A4\uD0AC\uC740 \uB7F0 \uC911 \uD574\uAE08\uB429\uB2C8\uB2E4.",
-                18f,
-                TextAlignmentOptions.MidlineLeft);
-            SetRect(hint.rectTransform, new Vector2(0.055f, 0.25f), new Vector2(0.94f, 0.34f));
-            hint.color = DungeonUiTheme.TextSecondary;
-            hint.textWrappingMode = TextWrappingModes.Normal;
-            return;
-        }
-
-        RenderSlotSummary(slots, "\uC885\uC871 \uC561\uD2F0\uBE0C", member.CharacterData?.SpeciesTag ?? "-", 0.64f);
-        RenderSlotSummary(slots, "\uCD08\uAE30 \uC561\uD2F0\uBE0C", member.Progression.ActiveSkills.FirstOrDefault()?.displayName ?? "\uC0DD\uC131 \uD544\uC694", 0.43f);
-        RenderSlotSummary(slots, "\uD328\uC2DC\uBE0C", member.Progression.PassiveSkills.FirstOrDefault()?.displayName ?? "\uC0DD\uC131 \uD544\uC694", 0.22f);
-
-        Transform generated = CreatePanel(parent, "GeneratedStartSkills", new Vector2(0.045f, 0.08f), new Vector2(0.955f, 0.35f), false);
-        generated.GetComponent<Image>().color = DungeonUiTheme.SurfaceRaised;
-        RenderGeneratedStartSkills(member, generated);
-    }
-
-    private void RenderGeneratedStartSkills(StartPartyMemberPreparation member, Transform parent)
-    {
-        TMP_Text title = CreateText(parent, "GeneratedSkillTitle", "\uCD08\uAE30 \uC2A4\uD0AC", 18f, TextAlignmentOptions.MidlineLeft);
-        SetRect(title.rectTransform, new Vector2(0.035f, 0.76f), new Vector2(0.55f, 0.95f));
-        title.fontStyle = FontStyles.Bold;
-
-        CharacterSkillInstance active = member.Progression?.ActiveSkills.FirstOrDefault();
-        CharacterSkillInstance passive = member.Progression?.PassiveSkills.FirstOrDefault();
-        if (active == null || passive == null)
-        {
-            TMP_Text waiting = CreateText(parent, "SkillGenerationMissing", "\uCD08\uAE30 \uC2A4\uD0AC\uC744 \uB2E4\uC2DC \uAD6C\uC131\uD558\uACE0 \uC788\uC2B5\uB2C8\uB2E4.", 18f, TextAlignmentOptions.MidlineLeft);
-            SetRect(waiting.rectTransform, new Vector2(0.035f, 0.2f), new Vector2(0.8f, 0.68f));
-            waiting.color = DungeonUiTheme.Warning;
-            return;
-        }
-
-        TMP_Text hint = CreateText(parent, "GeneratedSkillHint", "\uCCAB \uC561\uD2F0\uBE0C\uB294 \uC120\uD0DD\uD558\uC9C0 \uC54A\uACE0 \uC815\uCCB4\uC131\uACFC \uC7AC\uB2A5\uC5D0 \uB9DE\uAC8C \uC989\uC2DC \uD655\uC815\uB429\uB2C8\uB2E4.", 14f, TextAlignmentOptions.MidlineRight);
-        SetRect(hint.rectTransform, new Vector2(0.48f, 0.76f), new Vector2(0.955f, 0.95f));
-        hint.color = DungeonUiTheme.TextSecondary;
-        hint.textWrappingMode = TextWrappingModes.Normal;
-
-        RenderSkillCard(parent, active, 0, 0.05f, 0.12f, 0.42f, false);
-        RenderSkillCard(parent, passive, 1, 0.53f, 0.12f, 0.42f, false);
-    }
-
-    private void RenderRerollButtons(StartPartyMemberPreparation member, Transform parent)
-    {
-        CreateButton(parent, "PreparationFullReroll_" + member.Index, "\uC804\uCCB4 \uB9AC\uB864", () => Reroll(member, null),
-            new Vector2(0.045f, 0.04f), new Vector2(0.18f, 0.1f));
-        CreateButton(parent, "PreparationIdentityReroll_" + member.Index, $"\uC815\uCCB4\uC131 {member.IdentityRerollsRemaining}", () => Reroll(member, StartPartyRerollGroup.Identity),
-            new Vector2(0.195f, 0.04f), new Vector2(0.34f, 0.1f));
-        CreateButton(parent, "PreparationAptitudeReroll_" + member.Index, $"\uC7AC\uB2A5 {member.AptitudeRerollsRemaining}", () => Reroll(member, StartPartyRerollGroup.Aptitude),
-            new Vector2(0.355f, 0.04f), new Vector2(0.5f, 0.1f));
-        CreateButton(parent, "PreparationSkillReroll_" + member.Index, $"\uC2A4\uD0AC {member.SkillRerollsRemaining}", () => Reroll(member, StartPartyRerollGroup.Skill),
-            new Vector2(0.515f, 0.04f), new Vector2(0.66f, 0.1f));
-    }
-
-    private void RenderSwapButtons(StartPartyMemberPreparation member, Transform parent)
-    {
-        CreateButton(parent, "PreparationSwap_" + member.Index + "_1", "\uC9C1\uC6D0 1\uACFC \uAD50\uCCB4", () => Swap(member, 1),
-            new Vector2(0.69f, 0.04f), new Vector2(0.82f, 0.1f));
-        CreateButton(parent, "PreparationSwap_" + member.Index + "_2", "\uC9C1\uC6D0 2\uC640 \uAD50\uCCB4", () => Swap(member, 2),
-            new Vector2(0.835f, 0.04f), new Vector2(0.965f, 0.1f));
-    }
-
     private void BeginPartyPrepare()
     {
         if (selectedOwner == null)
@@ -608,7 +388,7 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         selectedMemberIndex = preparationService.Members.Skip(1).FirstOrDefault()?.Index
             ?? preparationService.Members.FirstOrDefault()?.Index
             ?? 0;
-        selectedTab = DetailTab.Identity;
+        memberDetailRenderer.ResetTab();
         SetStatus(message, false);
         Render();
     }
@@ -617,7 +397,7 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
     {
         preparationService.Cancel();
         screen = PreparationScreen.OwnerSelect;
-        selectedTab = DetailTab.Identity;
+        memberDetailRenderer.ResetTab();
         selectedMemberIndex = 1;
         Render();
     }
@@ -654,6 +434,7 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
     {
         if (!preparationService.TryCreatePreparedSnapshot(
                 launchRequest.Difficulty,
+                launchRequest.SurvivalPressure,
                 launchRequest.RunSeed,
                 out PreparedStartPartySnapshot snapshot,
                 out string message))
@@ -808,319 +589,6 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         SetStatus(message, !ok);
     }
 
-    private void CreateSectionTitle(
-        Transform parent,
-        string label,
-        StartPartyMemberPreparation member,
-        StartPartyRerollGroup? rerollGroup)
-    {
-        TMP_Text title = CreateText(parent, "SectionTitle", label, 20f, TextAlignmentOptions.MidlineLeft);
-        SetRect(title.rectTransform, new Vector2(0.045f, 0.78f), new Vector2(0.7f, 0.95f));
-        title.fontStyle = FontStyles.Bold;
-        if (member == null || member.IsOwner || !rerollGroup.HasValue)
-        {
-            return;
-        }
-
-        int remaining = rerollGroup.Value switch
-        {
-            StartPartyRerollGroup.Identity => member.IdentityRerollsRemaining,
-            StartPartyRerollGroup.Aptitude => member.AptitudeRerollsRemaining,
-            StartPartyRerollGroup.Skill => member.SkillRerollsRemaining,
-            _ => 0
-        };
-        CreateDiceButton(
-            parent,
-            $"Preparation{rerollGroup.Value}RerollDice_{member.Index}",
-            () => Reroll(member, rerollGroup.Value),
-            new Vector2(0.875f, 0.76f),
-            new Vector2(0.955f, 0.94f),
-            remaining > 0,
-            $"{label} \uB9AC\uB864 {remaining}");
-    }
-
-    private void CreateInfoRow(Transform parent, string label, string value, float bottom)
-    {
-        TMP_Text labelText = CreateText(parent, "InfoLabel_" + label, label, 15f, TextAlignmentOptions.MidlineLeft);
-        SetRect(labelText.rectTransform, new Vector2(0.05f, bottom), new Vector2(0.27f, bottom + 0.13f));
-        labelText.color = DungeonUiTheme.TextSecondary;
-        TMP_Text valueText = CreateText(parent, "InfoValue_" + label, value, 17f, TextAlignmentOptions.MidlineLeft);
-        SetRect(valueText.rectTransform, new Vector2(0.28f, bottom), new Vector2(0.94f, bottom + 0.13f));
-        valueText.textWrappingMode = TextWrappingModes.Normal;
-    }
-
-    private void RenderTraitChip(Transform parent, CharacterTraitSO trait, float bottom)
-    {
-        Transform chip = CreatePanel(parent, "TraitChip_" + (trait != null ? trait.id : 0), new Vector2(0.05f, bottom), new Vector2(0.94f, bottom + 0.2f), false);
-        chip.GetComponent<Image>().color = new Color(0.02f, 0.025f, 0.03f, 0.85f);
-        TMP_Text title = CreateText(chip, "TraitName", trait != null ? trait.traitName : "-", 17f, TextAlignmentOptions.MidlineLeft);
-        SetRect(title.rectTransform, new Vector2(0.04f, 0.58f), new Vector2(0.95f, 0.95f));
-        title.color = DungeonUiTheme.Accent;
-        title.fontStyle = FontStyles.Bold;
-        TMP_Text description = CreateText(chip, "TraitDescription", trait != null ? trait.description : string.Empty, 14f, TextAlignmentOptions.TopLeft);
-        SetRect(description.rectTransform, new Vector2(0.04f, 0.08f), new Vector2(0.95f, 0.55f));
-        description.color = DungeonUiTheme.TextSecondary;
-        description.textWrappingMode = TextWrappingModes.Normal;
-
-        EventTrigger trigger = chip.gameObject.AddComponent<EventTrigger>();
-        AddEventTrigger(trigger, EventTriggerType.PointerEnter, () => ShowTraitTooltip(trait));
-        AddEventTrigger(trigger, EventTriggerType.PointerExit, HideTraitTooltip);
-    }
-
-    private void ShowTraitTooltip(CharacterTraitSO trait)
-    {
-        if (trait == null || root == null)
-        {
-            return;
-        }
-
-        HideTraitTooltip();
-        hoverTooltip = new GameObject("TraitStatTooltip", typeof(RectTransform), typeof(Image));
-        hoverTooltip.transform.SetParent(root.transform, false);
-        RectTransform rect = hoverTooltip.GetComponent<RectTransform>();
-        SetRect(rect, new Vector2(0.57f, 0.11f), new Vector2(0.955f, 0.34f));
-        Image panel = hoverTooltip.GetComponent<Image>();
-        panel.color = new Color(0.02f, 0.025f, 0.03f, 0.97f);
-        panel.raycastTarget = false;
-
-        TMP_Text title = CreateText(hoverTooltip.transform, "TooltipTitle", trait.traitName, 19f, TextAlignmentOptions.MidlineLeft);
-        SetRect(title.rectTransform, new Vector2(0.045f, 0.74f), new Vector2(0.95f, 0.94f));
-        title.color = DungeonUiTheme.Accent;
-        title.fontStyle = FontStyles.Bold;
-
-        TMP_Text body = CreateText(hoverTooltip.transform, "TooltipBody", BuildTraitTooltipText(trait), 14f, TextAlignmentOptions.TopLeft);
-        SetRect(body.rectTransform, new Vector2(0.045f, 0.08f), new Vector2(0.95f, 0.72f));
-        body.color = DungeonUiTheme.TextPrimary;
-        body.textWrappingMode = TextWrappingModes.Normal;
-        hoverTooltip.transform.SetAsLastSibling();
-    }
-
-    private void HideTraitTooltip()
-    {
-        if (hoverTooltip == null)
-        {
-            return;
-        }
-
-        UnityEngine.Object.Destroy(hoverTooltip);
-        hoverTooltip = null;
-    }
-
-    private static void AddEventTrigger(EventTrigger trigger, EventTriggerType eventId, Action action)
-    {
-        if (trigger == null)
-        {
-            return;
-        }
-
-        EventTrigger.Entry entry = new EventTrigger.Entry { eventID = eventId };
-        entry.callback.AddListener(_ => action?.Invoke());
-        trigger.triggers.Add(entry);
-    }
-
-    private static string BuildTraitTooltipText(CharacterTraitSO trait)
-    {
-        StringBuilder builder = new StringBuilder();
-        List<string> statLines = new List<string>();
-        foreach (CharacterStatType type in Enum.GetValues(typeof(CharacterStatType)).Cast<CharacterStatType>())
-        {
-            int value = trait.statBonus?.Get(type) ?? 0;
-            if (value != 0)
-            {
-                statLines.Add($"{StatLabel(type)} {value:+#;-#;0}");
-            }
-        }
-
-        builder.AppendLine(statLines.Count > 0
-            ? "스탯 변화  " + string.Join(" · ", statLines)
-            : "스탯 변화  없음");
-
-        CharacterModelModifiers modifiers = trait.modifiers;
-        List<string> modifierLines = new List<string>();
-        AddMultiplierLine(modifierLines, "욕구 소모", modifiers?.consumptionMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "소비 성향", modifiers?.spendingMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "대기 인내", modifiers?.waitPatienceMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "혼잡 민감도", modifiers?.crowdSensitivityMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "사고 확률", modifiers?.accidentChanceMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "작업 속도", modifiers?.workSpeedMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "연구 속도", modifiers?.researchSpeedMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "전투력", modifiers?.combatPowerMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "이동 속도", modifiers?.moveSpeedMultiplier ?? 1f);
-        AddMultiplierLine(modifierLines, "체류 시간", modifiers?.stayDurationMultiplier ?? 1f);
-        if (modifierLines.Count > 0)
-        {
-            builder.AppendLine("세부 보정  " + string.Join(" · ", modifierLines));
-        }
-
-        AppendFlags(builder, "선호 시설", FormatFacilityRoles(modifiers?.preferredFacilityRoles ?? FacilityRole.None));
-        AppendFlags(builder, "기피 시설", FormatFacilityRoles(modifiers?.dislikedFacilityRoles ?? FacilityRole.None));
-        AppendFlags(
-            builder,
-            "선호 업무",
-            FormatWorkTypes(modifiers != null ? modifiers.PreferredWorkTypeIds : Array.Empty<WorkTypeId>()));
-        AppendFlags(
-            builder,
-            "기피 업무",
-            FormatWorkTypes(modifiers != null ? modifiers.DislikedWorkTypeIds : Array.Empty<WorkTypeId>()));
-        return builder.ToString().TrimEnd();
-    }
-
-    private static void AddMultiplierLine(List<string> lines, string label, float value)
-    {
-        if (Mathf.Approximately(value, 1f))
-        {
-            return;
-        }
-
-        float delta = (value - 1f) * 100f;
-        lines.Add($"{label} x{value:0.##} ({delta:+0.#;-0.#;0}%)");
-    }
-
-    private static void AppendFlags(StringBuilder builder, string label, string value)
-    {
-        if (!string.IsNullOrWhiteSpace(value))
-        {
-            builder.AppendLine($"{label}  {value}");
-        }
-    }
-
-    private static string FormatFacilityRoles(FacilityRole roles)
-    {
-        if (roles == FacilityRole.None)
-        {
-            return string.Empty;
-        }
-
-        return string.Join(", ", Enum.GetValues(typeof(FacilityRole))
-            .Cast<FacilityRole>()
-            .Where(role => role != FacilityRole.None && (roles & role) != 0)
-            .Select(FacilityRoleLabel));
-    }
-
-    private static string FormatWorkTypes(IEnumerable<WorkTypeId> workTypeIds)
-    {
-        return CodexTextFormatter.FormatWorkTypes(workTypeIds);
-    }
-
-    private static string FacilityRoleLabel(FacilityRole role)
-    {
-        return role switch
-        {
-            FacilityRole.Meal => "식사",
-            FacilityRole.Purchase => "구매",
-            FacilityRole.Rest => "휴식",
-            FacilityRole.Training => "훈련",
-            FacilityRole.Research => "연구",
-            FacilityRole.Mana => "마나",
-            FacilityRole.Logistics => "물류",
-            FacilityRole.Toilet => "화장실",
-            FacilityRole.Hygiene => "위생",
-            FacilityRole.Administration => "운영",
-            FacilityRole.Security => "방어",
-            _ => role.ToString()
-        };
-    }
-
-
-    private void RenderStatBar(Transform parent, CharacterStatType type, int value, float left, float top)
-    {
-        TMP_Text label = CreateText(parent, "StatLabel_" + type, StatLabel(type), 15f, TextAlignmentOptions.MidlineLeft);
-        SetRect(label.rectTransform, new Vector2(left, top - 0.12f), new Vector2(left + 0.13f, top));
-        label.color = DungeonUiTheme.TextSecondary;
-
-        TMP_Text number = CreateText(parent, "StatValue_" + type, value.ToString(), 16f, TextAlignmentOptions.MidlineRight);
-        SetRect(number.rectTransform, new Vector2(left + 0.25f, top - 0.12f), new Vector2(left + 0.285f, top));
-
-        Image back = CreateImage(parent, "StatBack_" + type, new Color(0.02f, 0.025f, 0.03f, 0.9f));
-        SetRect(back.rectTransform, new Vector2(left + 0.14f, top - 0.085f), new Vector2(left + 0.245f, top - 0.035f));
-        Image fill = CreateImage(back.transform, "Fill", DungeonUiTheme.Accent);
-        float normalized = Mathf.Clamp01(value / 10f);
-        SetRect(fill.rectTransform, Vector2.zero, new Vector2(normalized, 1f));
-    }
-
-    private void RenderSlotSummary(Transform parent, string label, string value, float bottom)
-    {
-        Transform row = CreatePanel(parent, "SkillSlot_" + label, new Vector2(0.05f, bottom), new Vector2(0.95f, bottom + 0.16f), false);
-        row.GetComponent<Image>().color = new Color(0.02f, 0.025f, 0.03f, 0.85f);
-        TMP_Text labelText = CreateText(row, "Label", label, 15f, TextAlignmentOptions.MidlineLeft);
-        SetRect(labelText.rectTransform, new Vector2(0.035f, 0.12f), new Vector2(0.3f, 0.88f));
-        labelText.color = DungeonUiTheme.TextSecondary;
-        TMP_Text valueText = CreateText(row, "Value", value, 18f, TextAlignmentOptions.MidlineLeft);
-        SetRect(valueText.rectTransform, new Vector2(0.32f, 0.12f), new Vector2(0.95f, 0.88f));
-    }
-
-    private void RenderSkillCard(
-        Transform parent,
-        CharacterSkillInstance skill,
-        int index,
-        float left,
-        float bottom,
-        float width,
-        bool fixedSkill)
-    {
-        Transform card = CreatePanel(parent, "OwnerSkillCard_" + index, new Vector2(left, bottom), new Vector2(left + width, bottom + 0.52f), false);
-        card.GetComponent<Image>().color = fixedSkill
-            ? new Color(DungeonUiTheme.Accent.r, DungeonUiTheme.Accent.g, DungeonUiTheme.Accent.b, 0.25f)
-            : new Color(0.02f, 0.025f, 0.03f, 0.85f);
-        TMP_Text name = CreateText(card, "Name", skill != null ? skill.displayName : "-", 16f, TextAlignmentOptions.TopLeft);
-        SetRect(name.rectTransform, new Vector2(0.08f, 0.58f), new Vector2(0.92f, 0.92f));
-        name.fontStyle = FontStyles.Bold;
-        name.textWrappingMode = TextWrappingModes.Normal;
-        TMP_Text desc = CreateText(card, "Description", skill != null ? skill.description : string.Empty, 13f, TextAlignmentOptions.TopLeft);
-        SetRect(desc.rectTransform, new Vector2(0.08f, 0.08f), new Vector2(0.92f, 0.55f));
-        desc.color = DungeonUiTheme.TextSecondary;
-        desc.textWrappingMode = TextWrappingModes.Normal;
-    }
-
-    private string BuildRosterLabel(StartPartyMemberPreparation member)
-    {
-        string state = member.IsReadyToStart ? "\uC900\uBE44 \uC644\uB8CC" : "\uC900\uBE44 \uC911";
-        return $"{member.RosterLabel}\n{ResolveMemberName(member)} - {state}";
-    }
-
-    private string ResolveMemberName(StartPartyMemberPreparation member)
-    {
-        string preparedName = member.Progression?.GrowthState?.displayName;
-        if (!string.IsNullOrWhiteSpace(preparedName))
-        {
-            return preparedName;
-        }
-
-        return member.CharacterData != null ? member.CharacterData.characterName : "-";
-    }
-
-    private string BuildDetailText(StartPartyMemberPreparation member)
-    {
-        CharacterGrowthState growth = member.Progression?.GrowthState;
-        if (growth == null)
-        {
-            return "\uC900\uBE44 \uC911\uC785\uB2C8\uB2E4.";
-        }
-
-        return selectedTab switch
-        {
-            DetailTab.Identity => $"\uCD9C\uC2E0\n{growth.origin}\n\n\uD2B9\uC131\n{FormatTraitIds(growth.traitIds)}\n\n\uC885\uC871\n{member.CharacterData?.SpeciesTag}",
-            DetailTab.Aptitude => $"\uC7A0\uC7AC\uB825\n{growth.potentialGrade}\n\n\uC2A4\uD0EF\n{FormatStats(growth.initialBaseStats)}",
-            DetailTab.Skill => BuildSkillText(member),
-            _ => string.Empty
-        };
-    }
-
-    private string BuildSkillText(StartPartyMemberPreparation member)
-    {
-        string fixedSkills = member.IsOwner
-            ? "\uC0AC\uC7A5 \uACE0\uC815\n" + string.Join("\n", CharacterOwnerFixedSkillUtility.GetSkills(member.CharacterData).Select(skill => "- " + skill.displayName)) + "\n\n"
-            : string.Empty;
-        string active = member.Progression.ActiveSkills.Count > 0
-            ? member.Progression.ActiveSkills[0].displayName
-            : "\uC120\uD0DD \uC804";
-        string passive = member.Progression.PassiveSkills.Count > 0
-            ? member.Progression.PassiveSkills[0].displayName
-            : "\uC900\uBE44 \uC911";
-        CharacterSkillSlotProfile profile = member.SlotProfile;
-        return $"{fixedSkills}\uC2AC\uB86F\n\uC885\uC871 {profile.SpeciesActiveSlots} - \uC561\uD2F0\uBE0C {profile.NormalActiveSlots} - \uD328\uC2DC\uBE0C {profile.PassiveSlots} - \uAD81\uADF9\uAE30 {profile.UltimateSlots}\n\n\uCCAB \uC561\uD2F0\uBE0C\n{active}\n\n\uCCAB \uD328\uC2DC\uBE0C\n{passive}";
-    }
-
     private string BuildTeamSummary()
     {
         IReadOnlyList<StartPartyMemberPreparation> members = preparationService.Members;
@@ -1130,97 +598,6 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
             ? "\uC2DC\uC791 \uAC00\uB2A5"
             : GetStartBlockReason();
         return $"\uD300 \uC900\uBE44 {ready}/{members.Count} - {names}\n{reason}";
-    }
-
-    private static string FormatTraitIds(IEnumerable<int> traitIds)
-    {
-        int[] ids = traitIds?.Distinct().ToArray() ?? Array.Empty<int>();
-        return ids.Length == 0 ? "-" : string.Join(", ", ids.Select(id => $"Trait {id}"));
-    }
-
-    private static string FormatStats(CharacterStatBlock stats)
-    {
-        if (stats == null)
-        {
-            return "-";
-        }
-
-        return string.Join(" - ", Enum.GetValues(typeof(CharacterStatType))
-            .Cast<CharacterStatType>()
-            .Select(type => $"{type} {stats.Get(type)}"));
-    }
-
-    private static string PotentialLabel(CharacterPotentialGrade grade)
-    {
-        return grade switch
-        {
-            CharacterPotentialGrade.Promising => "\uC720\uB9DD",
-            CharacterPotentialGrade.Excellent => "\uC6B0\uC218",
-            CharacterPotentialGrade.Exceptional => "\uD0C1\uC6D4",
-            CharacterPotentialGrade.Genius => "\uCC9C\uC7AC",
-            _ => "\uD3C9\uBC94"
-        };
-    }
-
-    private static string StatLabel(CharacterStatType type)
-    {
-        return type switch
-        {
-            CharacterStatType.Attack => "\uACF5\uACA9",
-            CharacterStatType.Sales => "\uD310\uB9E4",
-            CharacterStatType.Research => "\uC5F0\uAD6C",
-            CharacterStatType.MoveSpeed => "\uC774\uB3D9",
-            CharacterStatType.Strength => "\uADFC\uB825",
-            CharacterStatType.Toughness => "\uB9F7\uC9D1",
-            CharacterStatType.Dexterity => "\uBBFC\uCCA9",
-            CharacterStatType.Cleaning => "\uCCAD\uC18C",
-            CharacterStatType.Endurance => "\uC9C0\uAD6C",
-            _ => type.ToString()
-        };
-    }
-
-    private Button CreateDiceButton(
-        Transform parent,
-        string name,
-        Action clicked,
-        Vector2 anchorMin,
-        Vector2 anchorMax,
-        bool interactable,
-        string accessibleLabel)
-    {
-        GameObject obj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
-        obj.transform.SetParent(parent, false);
-        RectTransform rect = obj.GetComponent<RectTransform>();
-        SetRect(rect, anchorMin, anchorMax);
-        Image image = obj.GetComponent<Image>();
-        image.color = interactable ? DungeonUiTheme.Surface : DungeonUiTheme.SurfaceMuted;
-
-        Button button = obj.GetComponent<Button>();
-        button.interactable = interactable;
-        button.onClick.AddListener(() => clicked?.Invoke());
-        CreateDiceDot(obj.transform, "DotA", new Vector2(0.28f, 0.28f), interactable);
-        CreateDiceDot(obj.transform, "DotB", new Vector2(0.72f, 0.28f), interactable);
-        CreateDiceDot(obj.transform, "DotC", new Vector2(0.5f, 0.5f), interactable);
-        CreateDiceDot(obj.transform, "DotD", new Vector2(0.28f, 0.72f), interactable);
-        CreateDiceDot(obj.transform, "DotE", new Vector2(0.72f, 0.72f), interactable);
-
-        TMP_Text hidden = CreateText(obj.transform, "AccessibleLabel", accessibleLabel, 1f, TextAlignmentOptions.Center);
-        Stretch(hidden.rectTransform);
-        hidden.color = Color.clear;
-        hidden.raycastTarget = false;
-        return button;
-    }
-
-    private void CreateDiceDot(Transform parent, string name, Vector2 anchor, bool enabled)
-    {
-        Image dot = CreateImage(parent, name, enabled ? DungeonUiTheme.TextPrimary : DungeonUiTheme.TextSecondary);
-        RectTransform rect = dot.rectTransform;
-        rect.anchorMin = anchor;
-        rect.anchorMax = anchor;
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = new Vector2(5f, 5f);
-        rect.anchoredPosition = Vector2.zero;
-        dot.raycastTarget = false;
     }
 
     private void SetStatus(string message, bool error)
@@ -1241,46 +618,41 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         statusText.color = lastStatusIsError ? DungeonUiTheme.Danger : DungeonUiTheme.TextSecondary;
     }
 
+    private Button CreateDiceButton(
+        Transform parent,
+        string name,
+        Action clicked,
+        Vector2 anchorMin,
+        Vector2 anchorMax,
+        bool interactable,
+        string accessibleLabel) =>
+        viewFactory.CreateDiceButton(
+            parent,
+            name,
+            clicked,
+            anchorMin,
+            anchorMax,
+            interactable,
+            accessibleLabel);
+
     private TMP_Text CreateText(
         Transform parent,
         string name,
         string text,
         float size,
-        TextAlignmentOptions alignment)
-    {
-        GameObject obj = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
-        obj.transform.SetParent(parent, false);
-        TMP_Text label = obj.GetComponent<TMP_Text>();
-        label.text = text ?? string.Empty;
-        label.fontSize = size;
-        label.alignment = alignment;
-        label.color = DungeonUiTheme.TextPrimary;
-        label.textWrappingMode = TextWrappingModes.NoWrap;
-        label.font = fontService.Resolve();
-        return label;
-    }
+        TextAlignmentOptions alignment) =>
+        viewFactory.CreateText(parent, name, text, size, alignment);
 
-    private Image CreateImage(Transform parent, string name, Color color)
-    {
-        GameObject obj = new GameObject(name, typeof(RectTransform), typeof(Image));
-        obj.transform.SetParent(parent, false);
-        Image image = obj.GetComponent<Image>();
-        image.color = color;
-        return image;
-    }
+    private Image CreateImage(Transform parent, string name, Color color) =>
+        viewFactory.CreateImage(parent, name, color);
 
     private Transform CreatePanel(
         Transform parent,
         string name,
         Vector2 anchorMin,
         Vector2 anchorMax,
-        bool raised)
-    {
-        Image panel = CreateImage(parent, name, raised ? DungeonUiTheme.Surface : DungeonUiTheme.SurfaceMuted);
-        SetRect(panel.rectTransform, anchorMin, anchorMax);
-        panel.raycastTarget = true;
-        return panel.transform;
-    }
+        bool raised) =>
+        viewFactory.CreatePanel(parent, name, anchorMin, anchorMax, raised);
 
     private Button CreateButton(
         Transform parent,
@@ -1289,44 +661,15 @@ public sealed class StartPartyPreparationUiController : IStartable, IDisposable
         Action clicked,
         Vector2 anchorMin,
         Vector2 anchorMax,
-        bool selected = false)
-    {
-        GameObject obj = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
-        obj.transform.SetParent(parent, false);
-        RectTransform rect = obj.GetComponent<RectTransform>();
-        SetRect(rect, anchorMin, anchorMax);
-        Image image = obj.GetComponent<Image>();
-        image.color = selected ? DungeonUiTheme.Accent : DungeonUiTheme.SurfaceRaised;
-
-        Button button = obj.GetComponent<Button>();
-        button.onClick.AddListener(() => clicked?.Invoke());
-
-        TMP_Text text = CreateText(obj.transform, "Label", label, 17f, TextAlignmentOptions.Center);
-        Stretch(text.rectTransform, new Vector2(10f, 4f), new Vector2(-10f, -4f));
-        text.textWrappingMode = TextWrappingModes.Normal;
-        return button;
-    }
-
-    private static void Stretch(RectTransform rect)
-    {
-        Stretch(rect, Vector2.zero, Vector2.zero);
-    }
-
-    private static void Stretch(RectTransform rect, Vector2 offsetMin, Vector2 offsetMax)
-    {
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = offsetMin;
-        rect.offsetMax = offsetMax;
-    }
-
-    private static void SetRect(RectTransform rect, Vector2 anchorMin, Vector2 anchorMax)
-    {
-        rect.anchorMin = anchorMin;
-        rect.anchorMax = anchorMax;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-    }
+        bool selected = false) =>
+        viewFactory.CreateButton(
+            parent,
+            name,
+            label,
+            clicked,
+            anchorMin,
+            anchorMax,
+            selected);
 
     private sealed class StartPartyRosterDragHandler :
         MonoBehaviour,

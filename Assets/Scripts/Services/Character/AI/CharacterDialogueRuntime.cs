@@ -39,7 +39,7 @@ public sealed class CharacterDialogueRuntime : MonoBehaviour
         ICharacterAiSchedulingService aiSchedulingService,
         ICharacterDialogueBubbleFactory bubbleFactory,
         IGameClock gameClock,
-        IDynamicFrameWorkBudget frameWorkBudget = null)
+        IDynamicFrameWorkBudget frameWorkBudget)
     {
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));

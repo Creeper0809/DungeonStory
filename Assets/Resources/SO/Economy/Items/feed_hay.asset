@@ -26,21 +26,35 @@ MonoBehaviour:
   displayName: "\uAC74\uCD08 \uC0AC\uB8CC"
   description: "\uCD08\uC2DD\uB3D9\uBB3C\uC6A9 \uAE30\uBCF8 \uC0AC\uB8CC."
   stockCategory: 0
-  kind: 8
-  ingredientTags: 1
-  unitPrice: 2
-  marketSaleRate: 0.6
   unitWeight: 0.45
   maxStack: 75
   sprite: {fileID: 0}
-  requiredResearchId: research:husbandry:feed
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 2
+  features:
+  - rid: 7737211674039681056
+  - rid: 7737211674039681057
+  - rid: 7737211674039681058
+  - rid: 7737211674039681059
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681056
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:husbandry:feed
+    - rid: 7737211674039681057
+      type: {class: FacilitySupplyItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        fuelValue: 0
+        nutritionValue: 8
+        feedEligible: 1
+    - rid: 7737211674039681058
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 1
+        sharedIntermediate: 0
+    - rid: 7737211674039681059
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

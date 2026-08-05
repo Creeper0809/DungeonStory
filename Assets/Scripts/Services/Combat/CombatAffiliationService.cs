@@ -4,17 +4,20 @@ using UnityEngine;
 
 public sealed class CombatAffiliationService : ICombatAffiliationService
 {
-    private readonly IInvasionDirectorRuntimeProvider invasionDirectorProvider;
+    private readonly InvasionDirectorRuntime invasionDirector;
     private readonly IStaffDiscontentRuntimeService discontentRuntime;
-    private readonly ICharacterDeprivationRuntime deprivationRuntime;
+    private readonly ICharacterDeprivationQuery deprivationRuntime;
 
     public CombatAffiliationService(
-        IInvasionDirectorRuntimeProvider invasionDirectorProvider,
+        InvasionSceneRuntimeReferences invasionRuntimes,
         IStaffDiscontentRuntimeService discontentRuntime,
-        ICharacterDeprivationRuntime deprivationRuntime)
+        ICharacterDeprivationQuery deprivationRuntime)
     {
-        this.invasionDirectorProvider = invasionDirectorProvider
-            ?? throw new ArgumentNullException(nameof(invasionDirectorProvider));
+        invasionDirector = (invasionRuntimes
+                ?? throw new ArgumentNullException(nameof(invasionRuntimes)))
+            .Director
+            ?? throw new InvalidOperationException(
+                $"{nameof(CombatAffiliationService)} requires a loaded {nameof(InvasionDirectorRuntime)}.");
         this.discontentRuntime = discontentRuntime
             ?? throw new ArgumentNullException(nameof(discontentRuntime));
         this.deprivationRuntime = deprivationRuntime
@@ -111,8 +114,7 @@ public sealed class CombatAffiliationService : ICombatAffiliationService
     private bool IsInvasionIntruder(CharacterActor actor)
     {
         return actor != null
-            && invasionDirectorProvider.TryGetRuntime(out InvasionDirectorRuntime director)
-            && director.ActiveIntruders.Any(intruder =>
+            && invasionDirector.ActiveIntruders.Any(intruder =>
                 intruder?.IntruderActor == actor);
     }
 

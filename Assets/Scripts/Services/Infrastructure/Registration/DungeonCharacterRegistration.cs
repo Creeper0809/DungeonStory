@@ -15,20 +15,29 @@ public static class DungeonCharacterRegistration
 
         builder.RegisterInstance(runtimeReferences
             ?? throw new ArgumentNullException(nameof(runtimeReferences)));
+        builder.Register<ExperiencePacingApplicationAdapter>(
+            Lifetime.Singleton);
+        builder.RegisterEntryPoint<ExperiencePacingRuntime>(Lifetime.Singleton)
+            .AsSelf()
+            .As<IExperiencePacingRuntime>();
         builder.RegisterEntryPoint<DungeonRunFlowRuntime>(Lifetime.Singleton)
             .As<IDungeonRunFlowRuntime>();
-        builder.Register<RunVariableRuntimeProvider>(Lifetime.Singleton)
-            .As<IRunVariableRuntimeProvider>();
         builder.Register<RunVariableRuntimeReader>(Lifetime.Singleton)
-            .As<IRunVariableRuntimeReader>();
+            .As<IRunVariableRuntimeReader>()
+            .As<IRunSeedProvider>()
+            .As<ISurvivalPressureProvider>();
         builder.Register<ResourceRunCharacterCatalog>(Lifetime.Singleton)
             .As<IRunCharacterCatalog>();
         builder.Register<ResourceCharacterSpeciesCatalog>(Lifetime.Singleton)
-            .As<ICharacterSpeciesCatalog>();
+            .As<ICharacterSpeciesCatalog>()
+            .As<ICharacterSpeciesDefinitionCatalog>()
+            .As<ICharacterSpeciesEnvironmentCatalog>();
         builder.Register<SpeciesIncidentHandlerRegistry>(Lifetime.Singleton)
             .As<ISpeciesIncidentHandlerRegistry>();
         builder.RegisterEntryPoint<CharacterSpeciesRuntime>(Lifetime.Singleton)
-            .As<ICharacterSpeciesRuntime>();
+            .As<ICharacterSpeciesQuery>()
+            .As<ICharacterSpeciesCommand>()
+            .As<ICharacterSpeciesPersistence>();
         builder.Register<ResourceOwnerCandidateCatalog>(Lifetime.Singleton)
             .As<IOwnerCandidateCatalog>();
         builder.Register<RunStartVariableCatalog>(Lifetime.Singleton)
@@ -50,29 +59,49 @@ public static class DungeonCharacterRegistration
             .As<ICharacterSpawnerProvider>();
         builder.Register<CharacterSpawnObjectFactory>(Lifetime.Singleton)
             .As<ICharacterSpawnObjectFactory>();
-        builder.RegisterEntryPoint<CharacterStatMaintenanceRuntime>(
+        builder.Register<CharacterStatMaintenanceSceneAdapter>(Lifetime.Singleton)
+            .As<DungeonStory.Characters.ICharacterStatMaintenancePort>();
+        builder.Register<DungeonStory.Characters.CharacterStatMaintenanceRuntime>(
             Lifetime.Singleton);
-        builder.Register<StaffDiscontentRuntimeProvider>(Lifetime.Singleton)
-            .As<IStaffDiscontentRuntimeProvider>();
+        builder.RegisterEntryPoint<CharacterStatMaintenanceRuntimeAdapter>(
+                Lifetime.Singleton)
+            .AsSelf();
         builder.Register<StaffDiscontentRuntimeService>(Lifetime.Singleton)
             .As<IStaffDiscontentRuntimeService>();
         builder.Register<DungeonWorkforceReplanService>(Lifetime.Singleton)
-            .As<IWorkforceReplanService>();
+            .As<IWorkforceReplanService>()
+            .As<IBuildingWorkforceReplanPort>();
         builder.Register<LocalLlmRuntimeProvider>(Lifetime.Singleton)
             .As<ILocalLlmRuntimeProvider>();
         builder.Register<ResourceCharacterSkillSystemSettingsProvider>(Lifetime.Singleton)
             .As<ICharacterSkillSystemSettingsProvider>();
+        builder.Register<CharacterProgressionProfileProjector>(
+            Lifetime.Transient);
+        builder.Register<CharacterProgressionNotificationApplicationAdapter>(
+            Lifetime.Singleton);
+        builder.Register<CharacterStatsProjectionService>(Lifetime.Singleton);
+        builder.Register<CharacterNeedStateService>(Lifetime.Singleton);
+        builder.Register<CharacterMoodStateService>(Lifetime.Singleton);
+        builder.Register<CharacterStatsVitalsService>(Lifetime.Singleton);
+        builder.Register<CharacterStatsMaintenanceSchedule>(Lifetime.Transient);
+        builder.Register<CharacterPopulationApplicationAdapter>(Lifetime.Singleton);
         builder.Register<CharacterPopulationService>(Lifetime.Singleton)
             .As<ICharacterPopulationService>();
+        builder.Register<PreparedStartPartyCharacterContext>(Lifetime.Singleton);
+        builder.Register<PreparedStartPartyWorldContext>(Lifetime.Singleton);
         builder.Register<PreparedStartPartyGameplayApplier>(Lifetime.Singleton)
-            .As<IPreparedStartPartyGameplayApplier>();
+            .As<IPreparedStartPartyGameplayApplier>()
+            .As<IPreparedStartPartyDiagnosticsQuery>();
         builder.Register<PreparedStartPartyCommitService>(Lifetime.Singleton)
             .As<IPreparedStartPartyCommitService>();
         builder.Register<StartPartyPreparationService>(Lifetime.Singleton)
             .As<IStartPartyPreparationService>();
         builder.RegisterEntryPoint<CharacterSkillGenerationService>(Lifetime.Singleton)
             .As<ICharacterSkillGenerationService>();
-        builder.RegisterEntryPoint<CharacterSkillAutomaticTriggerRuntime>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CharacterSkillAutomaticTriggerRuntime>(
+                Lifetime.Singleton)
+            .AsSelf();
+        builder.Register<CharacterRecordTemplateBank>(Lifetime.Singleton);
         builder.Register<CharacterLogNarrativeService>(Lifetime.Singleton)
             .AsSelf()
             .As<ICharacterLogNarrativeService>();

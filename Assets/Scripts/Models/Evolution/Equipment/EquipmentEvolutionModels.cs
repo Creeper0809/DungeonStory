@@ -30,6 +30,7 @@ public sealed class EquipmentCatalystDefinition
 {
     public string itemId = string.Empty;
     public string family = string.Empty;
+    public int progressionLevel = 1;
     public int potency = 1;
     public List<string> sourceTags = new List<string>();
 
@@ -39,7 +40,8 @@ public sealed class EquipmentCatalystDefinition
         {
             itemId = itemId ?? string.Empty,
             family = family ?? string.Empty,
-            potency = Mathf.Max(1, potency),
+            progressionLevel = progressionLevel,
+            potency = potency,
             sourceTags = sourceTags?
                 .Where(tag => !string.IsNullOrWhiteSpace(tag))
                 .Select(tag => tag.Trim())
@@ -296,20 +298,22 @@ public readonly struct EquipmentReforgePreview
         float minimumMultiplier,
         float maximumMultiplier,
         IReadOnlyList<string> possibleBurdenIds,
-        int requiredCatalystPotency)
+        int requiredCatalystProgressionLevel)
     {
         Direction = direction;
         MinimumMultiplier = Mathf.Max(1f, minimumMultiplier);
         MaximumMultiplier = Mathf.Max(MinimumMultiplier, maximumMultiplier);
         PossibleBurdenIds = possibleBurdenIds ?? Array.Empty<string>();
-        RequiredCatalystPotency = Mathf.Max(1, requiredCatalystPotency);
+        RequiredCatalystProgressionLevel = Mathf.Max(
+            1,
+            requiredCatalystProgressionLevel);
     }
 
     public EquipmentEvolutionDirection Direction { get; }
     public float MinimumMultiplier { get; }
     public float MaximumMultiplier { get; }
     public IReadOnlyList<string> PossibleBurdenIds { get; }
-    public int RequiredCatalystPotency { get; }
+    public int RequiredCatalystProgressionLevel { get; }
 }
 
 public static class EquipmentEvolutionProgression
@@ -319,7 +323,7 @@ public static class EquipmentEvolutionProgression
         return 100f + 50f * Mathf.Max(0, generation);
     }
 
-    public static int GetMinimumCatalystPotency(int generation)
+    public static int GetMinimumCatalystProgressionLevel(int generation)
     {
         return 1 + Mathf.FloorToInt(Mathf.Max(0, generation) / 4f);
     }

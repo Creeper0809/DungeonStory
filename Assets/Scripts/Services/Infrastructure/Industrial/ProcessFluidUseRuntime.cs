@@ -3,13 +3,13 @@ using UnityEngine;
 
 public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
 {
-    private readonly IWaterNetworkRuntime water;
-    private readonly IWastewaterNetworkRuntime wastewater;
+    private readonly IFluidInfrastructureTransaction water;
+    private readonly IFluidWastewaterTransaction wastewater;
     private readonly IWorldItemStackRuntime items;
 
     public ProcessFluidUseRuntime(
-        IWaterNetworkRuntime water,
-        IWastewaterNetworkRuntime wastewater,
+        IFluidInfrastructureTransaction water,
+        IFluidWastewaterTransaction wastewater,
         IWorldItemStackRuntime items)
     {
         this.water = water ?? throw new ArgumentNullException(nameof(water));
@@ -21,9 +21,9 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
     public bool TryConsumeCycle(
         BuildableObject facility,
         WorkTypeId workTypeId,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         BuildingProcessFluidAbility ability =
             facility?.BuildingData?.GetAbility<BuildingProcessFluidAbility>();
         if (facility == null
@@ -33,7 +33,7 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
             return true;
         }
 
-        string drainFailure = string.Empty;
+        DomainFailure drainFailure = DomainFailure.None;
         bool canDrain = ability.wastewaterPerCycle <= 0f
             || wastewater.CanAcceptWastewater(
                 facility,
@@ -41,9 +41,9 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
                 out drainFailure);
         if (!canDrain && !ability.allowsManualWaterFallback)
         {
-            failureReason = string.IsNullOrWhiteSpace(drainFailure)
-                ? "폐수를 배출할 공간이 부족합니다."
-                : drainFailure;
+            failure = drainFailure.IsFailure
+                ? drainFailure
+                : new DomainFailure(FailureCode.FluidWastewaterUnavailable);
             return false;
         }
 
@@ -52,7 +52,7 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
             ability.minimumQuality,
             ability.cleanWaterPerCycle,
             out _,
-            out string pipeFailure);
+            out DomainFailure pipeFailure);
         if (!consumed && ability.allowsManualWaterFallback)
         {
             string facilityId =
@@ -73,16 +73,17 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
                     destinationId,
                     out _,
                     out _);
-                failureReason = "공정용 물통을 운반하는 중입니다.";
+                failure = new DomainFailure(
+                    FailureCode.FluidManualWaterUnavailable);
                 return false;
             }
         }
 
         if (!consumed)
         {
-            failureReason = string.IsNullOrWhiteSpace(pipeFailure)
-                ? "공정에 사용할 깨끗한 물이 부족합니다."
-                : pipeFailure;
+            failure = pipeFailure.IsFailure
+                ? pipeFailure
+                : new DomainFailure(FailureCode.FluidInsufficientWater);
             return false;
         }
 
@@ -115,12 +116,13 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
         float cleanWater,
         float wastewaterAmount,
         bool allowsManualWaterFallback,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (facility == null)
         {
-            failureReason = "공정 시설을 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.IndustrialBuildingUnavailable);
             return false;
         }
 
@@ -130,11 +132,11 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
             && !wastewater.CanAcceptWastewater(
                 facility,
                 requiredWastewater,
-                out string drainFailure))
+                out DomainFailure drainFailure))
         {
-            failureReason = string.IsNullOrWhiteSpace(drainFailure)
-                ? "폐수를 배출할 공간이 부족합니다."
-                : drainFailure;
+            failure = drainFailure.IsFailure
+                ? drainFailure
+                : new DomainFailure(FailureCode.FluidWastewaterUnavailable);
             return false;
         }
 
@@ -143,7 +145,7 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
             WorldWaterQuality.Clean,
             requiredWater,
             out _,
-            out string pipeFailure);
+            out DomainFailure pipeFailure);
         if (!consumed && allowsManualWaterFallback)
         {
             string facilityId =
@@ -164,16 +166,17 @@ public sealed class ProcessFluidUseRuntime : IProcessFluidUseRuntime
                     destinationId,
                     out _,
                     out _);
-                failureReason = "공정용 물통을 운반하는 중입니다.";
+                failure = new DomainFailure(
+                    FailureCode.FluidManualWaterUnavailable);
                 return false;
             }
         }
 
         if (!consumed)
         {
-            failureReason = string.IsNullOrWhiteSpace(pipeFailure)
-                ? "공정에 사용할 깨끗한 물이 부족합니다."
-                : pipeFailure;
+            failure = pipeFailure.IsFailure
+                ? pipeFailure
+                : new DomainFailure(FailureCode.FluidInsufficientWater);
             return false;
         }
 

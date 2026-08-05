@@ -27,21 +27,35 @@ MonoBehaviour:
   description: "\uBD80\uD328\uBB3C\uACFC \uBD84\uB1E8\uB97C \uAD73\uD78C \uB0C4\uC0C8\uB098\uB294
     \uC5F0\uB8CC."
   stockCategory: 6
-  kind: 1
-  ingredientTags: 10240
-  unitPrice: 1
-  marketSaleRate: 0.6
   unitWeight: 0.8
   maxStack: 75
   sprite: {fileID: 0}
-  requiredResearchId: research:agriculture:compost
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 1
+  features:
+  - rid: 7737211673962611597
+  - rid: 7737211673962611598
+  - rid: 7737211673962611599
+  - rid: 7737211673962611600
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611597
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:agriculture:compost
+    - rid: 7737211673962611598
+      type: {class: FacilitySupplyItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        fuelValue: 6
+        nutritionValue: 0
+        feedEligible: 0
+    - rid: 7737211673962611599
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 10240
+        sharedIntermediate: 1
+    - rid: 7737211673962611600
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

@@ -27,14 +27,30 @@ MonoBehaviour:
   description: "\uC131\uBCC4, \uC131\uC7A5 \uB2E8\uACC4\uC640 \uC784\uC2E0\uC744
     \uACE0\uB824\uD574 \uAC1C\uCCB4 \uC218\uB97C \uAD00\uB9AC\uD55C\uB2E4."
   field: 9
-  requiredWork: 148
+  requiredWork: 132
   prerequisites:
   - {fileID: 11400000, guid: c9c568a7e5b1f1a41b9662a14070c655, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:husbandry:taming
+    prerequisite: {fileID: 11400000, guid: c9c568a7e5b1f1a41b9662a14070c655, type: 2}
+    kind: 2
+    reason: "\uAE38\uB4E4\uC774\uAE30\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBC88\uC2DD \uAD00\uB9AC \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
-    items: []
+    items:
+    - rid: 7737211730927812805
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211730927812805
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 8817

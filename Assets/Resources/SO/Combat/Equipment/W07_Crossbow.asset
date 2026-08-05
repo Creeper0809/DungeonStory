@@ -24,8 +24,20 @@ MonoBehaviour:
   primaryMaterialAmount: 3
   allowedMaterialFamilies: 03000000
   craftMaterials: []
+  requiredComponentInputs:
+  - itemId: material:bowstring
+    amount: 1
+  - itemId: component:machine-parts
+    amount: 1
+  requiredResearchId: research:equipment:mechanical-projectiles
+  era: 1
+  tier: 1
+  slotProfile: 1
+  lineageKind: 0
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
   verbs:
-  - rid: 7302563288033263633
+  - rid: 7737211765905949103
   rangeProfiles:
   - band: 0
     accuracyMultiplier: 0.25
@@ -40,16 +52,24 @@ MonoBehaviour:
     accuracyMultiplier: 0.85
     damageMultiplier: 0.95
   maximumRange: 18
-  ammunitionItemId: ammo:bolt
+  compatibleAmmunitionItemIds:
+  - ammo:bolt
+  - ammo:bolt-bone
+  - ammo:bolt-iron
+  - ammo:bolt-steel
+  - ammo:bolt-rune
   magazineCapacity: 1
   reloadSeconds: 2.2
   supportsAimed: 1
   supportsRapid: 0
   supportsSuppressive: 0
+  gunpowderWeapon: 0
+  maximumMisfireChance: 0
+  smokeExposure: 0
   references:
     version: 2
     RefIds:
-    - rid: 7302563288033263633
+    - rid: 7737211765905949103
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1

@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uACE0\uBC29\uC5B4\uC640 \uB9C8\uBC95 \uC800\uD56D\uC744 \uC81C\uACF5\uD558\uB294
     \uAC00\uC8FD."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 1152
-  unitPrice: 30
-  marketSaleRate: 0.6
   unitWeight: 0.4
   maxStack: 40
   sprite: {fileID: 0}
-  requiredResearchId: research:textile:rune-leather
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 30
+  features:
+  - rid: 7737211674039681127
+  - rid: 7737211674039681128
+  - rid: 7737211674039681129
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681127
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:textile:rune-leather
+    - rid: 7737211674039681128
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 1152
+        sharedIntermediate: 1
+    - rid: 7737211674039681129
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

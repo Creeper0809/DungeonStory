@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
 
 public enum StartPartyRerollGroup
@@ -14,11 +15,6 @@ public enum StartPartyPreparationPhase
 {
     OwnerSelect,
     PartyPrepare
-}
-
-public static class StartPartyCommitDiagnostics
-{
-    public static string LastReport { get; internal set; } = string.Empty;
 }
 
 public sealed class StartPartyMemberPreparation
@@ -80,13 +76,18 @@ public interface IStartPartyPreparationService
         int runSeed,
         out PreparedStartPartySnapshot snapshot,
         out string message);
+    bool TryCreatePreparedSnapshot(
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure,
+        int runSeed,
+        out PreparedStartPartySnapshot snapshot,
+        out string message);
     void Cancel();
 }
 
 public sealed class StartPartyPreparationService : IStartPartyPreparationService, IDisposable
 {
     private const int PartialRerollCharge = 3;
-    private const string TraitResourcePath = "SO/Character/Traits";
 
     private static readonly string[] GivenNames =
     {
@@ -107,10 +108,10 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     private readonly ICharacterSkillGenerationService skillGenerationService;
     private readonly ICharacterSkillSystemSettingsProvider settingsProvider;
     private readonly IRunCharacterCatalog characterCatalog;
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
+    private readonly IGameContentCatalog content;
     private readonly List<StartPartyMemberPreparation> members = new List<StartPartyMemberPreparation>(7);
     private readonly IReadOnlyList<StartPartyMemberPreparation> membersView;
-    private readonly System.Random random = new System.Random();
+    private readonly IRandomStream random;
 
     private CharacterTraitSO[] traitPool;
     private int seedSerial;
@@ -129,7 +130,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         ICharacterSkillGenerationService skillGenerationService,
         ICharacterSkillSystemSettingsProvider settingsProvider,
         IRunCharacterCatalog characterCatalog,
-        IResourcesAssetLoader resourcesAssetLoader)
+        IGameContentCatalog content,
+        IRandomStreamProvider randomStreams)
     {
         this.skillGenerationService = skillGenerationService
             ?? throw new ArgumentNullException(nameof(skillGenerationService));
@@ -137,8 +139,9 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             ?? throw new ArgumentNullException(nameof(settingsProvider));
         this.characterCatalog = characterCatalog
             ?? throw new ArgumentNullException(nameof(characterCatalog));
-        this.resourcesAssetLoader = resourcesAssetLoader
-            ?? throw new ArgumentNullException(nameof(resourcesAssetLoader));
+        this.content = content ?? throw new ArgumentNullException(nameof(content));
+        random = (randomStreams ?? throw new ArgumentNullException(nameof(randomStreams)))
+            .Get("character:start-party-preparation");
         membersView = members.AsReadOnly();
     }
 
@@ -163,8 +166,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         }
 
         Cancel();
-        traitPool ??= resourcesAssetLoader
-            .LoadAllRequired<CharacterTraitSO>(TraitResourcePath)
+        traitPool ??= content.GetAll<CharacterTraitSO>()
             .Where(trait => trait != null)
             .OrderBy(trait => trait.id)
             .ToArray();
@@ -322,6 +324,21 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         out PreparedStartPartySnapshot snapshot,
         out string message)
     {
+        return TryCreatePreparedSnapshot(
+            difficulty,
+            DungeonSurvivalPressure.Standard,
+            runSeed,
+            out snapshot,
+            out message);
+    }
+
+    public bool TryCreatePreparedSnapshot(
+        DungeonDifficulty difficulty,
+        DungeonSurvivalPressure survivalPressure,
+        int runSeed,
+        out PreparedStartPartySnapshot snapshot,
+        out string message)
+    {
         snapshot = null;
         IReadOnlyList<StartPartyMemberPreparation> selectedMembers = GetSelectedMembers();
         if (!IsPreparing || selectedMembers.Count != 3)
@@ -349,6 +366,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         snapshot = new PreparedStartPartySnapshot
         {
             difficulty = difficulty,
+            survivalPressure = DungeonSurvivalPressureRules.Normalize(
+                (int)survivalPressure),
             runSeed = runSeed,
             owner = owner,
             staff = staff
@@ -890,7 +909,10 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         GameObject preview = new GameObject(objectName);
         preview.hideFlags = HideFlags.HideAndDontSave;
         progression = preview.AddComponent<CharacterProgression>();
-        progression.ConstructCharacterProgression(skillGenerationService, settingsProvider);
+        progression.ConfigurePreview(
+            skillGenerationService,
+            settingsProvider,
+            new CharacterProgressionProfileProjector(content));
         progression.SetPublicSkillNotificationsSuppressed(true);
         return preview;
     }
@@ -898,7 +920,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     private CharacterPreparedIdentity RollIdentity(CharacterSO data, int memberIndex)
     {
         List<int> traitIds = new List<int>(3);
-        foreach (CharacterTraitSO trait in traitPool.OrderBy(_ => random.Next()))
+        foreach (CharacterTraitSO trait in traitPool.OrderBy(_ => random.NextInt(0, int.MaxValue)))
         {
             if (traitIds.Count >= 3)
             {
@@ -911,7 +933,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             }
         }
 
-        string baseName = GivenNames[random.Next(GivenNames.Length)];
+        string baseName = GivenNames[random.NextInt(0, GivenNames.Length)];
         string displayName = members.Any(member => member.Progression != null
                 && string.Equals(member.Progression.GrowthState.displayName, baseName, StringComparison.Ordinal))
             ? $"{baseName}{memberIndex + 1}"
@@ -919,7 +941,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
         return new CharacterPreparedIdentity
         {
             displayName = displayName,
-            origin = $"{data.SpeciesTag} - {Origins[random.Next(Origins.Length)]}",
+            origin = $"{data.SpeciesTag} - {Origins[random.NextInt(0, Origins.Length)]}",
             traitIds = traitIds
         };
     }
@@ -951,7 +973,7 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
     {
         seedSerial++;
         return CharacterGrowthRules.StableHash(
-            $"start:{member.Index}:{member.rollSerial}:{seedSerial}:{random.Next()}");
+            $"start:{member.Index}:{member.rollSerial}:{seedSerial}:{random.NextInt(0, int.MaxValue)}");
     }
 
     private static CharacterPreparedIdentity ReadIdentity(CharacterProgression progression)

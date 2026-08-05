@@ -27,7 +27,8 @@ public static class DarkSurvivalDebugScenarios
         Run("filth_cleaning_work", VerifyFilthCleaningWork, errors, logSuccess);
         Run("shared_water_patch_save", VerifySharedWaterPatchSave, errors, logSuccess);
         Run("humanoid_corpse_contract", VerifyHumanoidCorpseContract, errors, logSuccess);
-        Run("v12_round_trip", VerifyV12RoundTrip, errors, logSuccess);
+        Run("v18_v2_round_trip", VerifyV18V2RoundTrip, errors, logSuccess);
+        Run("deprivation_authority", VerifyDeprivationAuthority, errors, logSuccess);
         Run("separate_breakdown_actions", VerifySeparateBreakdownActions, errors, logSuccess);
         Run("permanent_taboo_social_memory", VerifyPermanentTabooSocialMemory, errors, logSuccess);
         return errors;
@@ -71,7 +72,8 @@ public static class DarkSurvivalDebugScenarios
 
     private static string VerifyThirstNeedAndTerrain()
     {
-        Require(CharacterNeedCatalog.TryGet(CharacterCondition.THIRST, out CharacterNeedDefinition thirst)
+        ICharacterNeedDefinitionCatalog catalog = CharacterAiEditorTestDependencies.AuthoredGameplay;
+        Require(catalog.TryGet(CharacterCondition.THIRST, out CharacterNeedDefinition thirst)
                 && thirst.DisplayName == "갈증",
             "thirst need is not registered");
         GridCell cell = new GridCell(Vector2Int.zero);
@@ -102,7 +104,7 @@ public static class DarkSurvivalDebugScenarios
     private static string VerifySharedWaterPatchSave()
     {
         WildlifeHabitatPatch patch = new WildlifeHabitatPatch(
-            "water:test",
+            "wildlife-habitat:test:water",
             WildlifeHabitatType.Water,
             new Vector2Int(5, 0),
             2,
@@ -122,42 +124,48 @@ public static class DarkSurvivalDebugScenarios
 
     private static string VerifyHumanoidCorpseContract()
     {
-        Require(DarkSurvivalItemDefinitions.TryGetDefinition(
+        ResourceDungeonItemCatalogProvider catalog = EditorItemCatalogFactory.Create();
+        Require(catalog.TryGetDefinition(
                 DarkSurvivalItemDefinitions.HumanoidCorpseItemId,
                 out DungeonItemDefinition corpse),
             "humanoid corpse definition is missing");
         Require(corpse.MaxStack == 1 && corpse.UnitWeight >= 20f,
             "humanoid corpse is not unique and heavy");
-        Require(DarkSurvivalItemDefinitions.TryGetDefinition(
+        Require(catalog.TryGetDefinition(
                 DarkSurvivalItemDefinitions.HumanoidMeatItemId,
                 out DungeonItemDefinition meat)
             && meat.StockCategory == StockCategory.Food,
             "humanoid meat is not a food item");
-        Require(DarkSurvivalItemDefinitions.TryGetDefinition(DarkSurvivalItemDefinitions.BoneItemId, out _),
+        Require(catalog.TryGetDefinition(DarkSurvivalItemDefinitions.BoneItemId, out _),
             "bone byproduct is missing");
         return $"corpseStack={corpse.MaxStack}; weight={corpse.UnitWeight:0.#}";
     }
 
-    private static string VerifyV12RoundTrip()
+    private static string VerifyV18V2RoundTrip()
     {
-        Require(DungeonGameSaveData.CurrentVersion == 16, "game save version is not V16");
+        Require(DungeonGameSaveData.CurrentVersion == 18, "game save version is not V18");
         DungeonGameSaveData save = new DungeonGameSaveData();
         DungeonDarkSurvivalSaveData darkSurvival = new DungeonDarkSurvivalSaveData();
         darkSurvival.characters.Add(new CharacterDeprivationState
         {
-            persistentId = "owner",
+            characterId = "owner",
             infectionBurden = 27f,
-            burdens = new List<DeprivationBurdenSaveData>
-            {
-                new DeprivationBurdenSaveData { kind = DeprivationKind.Thirst, burden = 74f }
-            },
+            burdens = Enum.GetValues(typeof(DeprivationKind))
+                .Cast<DeprivationKind>()
+                .Select(kind => new DeprivationBurdenSaveData
+                {
+                    kind = kind,
+                    burden = kind == DeprivationKind.Thirst ? 74f : 0f
+                })
+                .ToList(),
             breakdown = new CharacterBreakdownState
             {
                 active = true,
                 kind = CharacterBreakdownKind.DesperateDrink,
-                cause = DeprivationKind.Thirst,
-                targetId = "water:00000001"
-            }
+                cause = DeprivationKind.Thirst
+            },
+            breakdownGeneration = 1,
+            dispatchedBreakdownGeneration = 1
         });
         darkSurvival.filth.Add(new WorldFilthSaveData
         {
@@ -179,12 +187,20 @@ public static class DarkSurvivalDebugScenarios
             DungeonSaveSectionPayload.ReadOrNew<DungeonDarkSurvivalSaveData>(
                 restored,
                 DarkSurvivalSaveSection.Id);
-        Require(restored != null && restored.version == 16, "V16 root did not round-trip");
-        Require(restoredDarkSurvival.characters.Single().burdens.Single().burden == 74f,
+        Require(restored != null && restored.version == 18, "V18 root did not round-trip");
+        Require(restoredDarkSurvival.characters.Single().burdens
+                .Single(entry => entry.kind == DeprivationKind.Thirst).burden == 74f,
             "deprivation burden did not round-trip");
         Require(restoredDarkSurvival.filth.Single().amount == 11f,
             "filth did not round-trip");
         return $"json={json.Length} chars";
+    }
+
+    private static string VerifyDeprivationAuthority()
+    {
+        List<string> errors = CharacterDeprivationAuthorityDebugScenarios.RunAll();
+        Require(errors.Count == 0, string.Join(" | ", errors));
+        return "typed aggregate, strict restore, and exactly-once transition verified";
     }
 
     private static string VerifySeparateBreakdownActions()

@@ -178,11 +178,22 @@ public sealed class CombatLoadoutPreparationRuntime :
 
         CharacterCombatLoadoutProfile profile =
             equipmentRuntime.GetActiveProfileSnapshot(actorId);
-        string ammoItemId = ResolveDesiredAmmoItem(profile);
         CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(actor);
+        CombatWeaponSO ammunitionWeapon = profile == null
+            ? null
+            : ResolveDesiredAmmunitionWeapon(profile);
+        ItemDefinitionId ammoItemId = ammunitionWeapon == null
+            ? default
+            : CombatAmmunitionPolicy.GetPreferred(
+                ammunitionWeapon.CompatibleAmmunitionItemIds);
+        int carriedAmmo = ammunitionWeapon == null || inventory == null
+            ? 0
+            : CombatAmmunitionPolicy.CountAvailable(
+                ammunitionWeapon,
+                inventory);
         if (profile == null
-            || string.IsNullOrWhiteSpace(ammoItemId)
-            || profile.desiredAmmo <= inventory.CountItem(ammoItemId))
+            || !ammoItemId.IsValid
+            || profile.desiredAmmo <= carriedAmmo)
         {
             message = "추가로 필요한 탄약이 없습니다.";
             return false;
@@ -190,8 +201,8 @@ public sealed class CombatLoadoutPreparationRuntime :
 
         PreparationRequest request = new PreparationRequest
         {
-            ItemId = ammoItemId,
-            Quantity = Mathf.Max(1, profile.desiredAmmo - inventory.CountItem(ammoItemId)),
+            ItemId = ammoItemId.Value,
+            Quantity = Mathf.Max(1, profile.desiredAmmo - carriedAmmo),
             IsEquipment = false
         };
         bool hasReservation = itemRuntime.TryReserveStoredItemForDirectPickup(
@@ -338,8 +349,9 @@ public sealed class CombatLoadoutPreparationRuntime :
         {
             if (!equipmentRuntime.TryGetInstance(instanceId, out CombatEquipmentInstance instance)
                 || !equipmentCatalog.TryGet(instance.definitionId, out CombatEquipmentDefinitionSO definition)
-                || !itemRuntime.SpawnUniqueItemAt(
+                || !itemRuntime.SpawnExistingUniqueItemAt(
                     definition.ItemId,
+                    (ItemInstanceId)instance.instanceId,
                     dropPosition,
                     WorldItemStackState.Loose,
                     string.Empty,
@@ -468,16 +480,22 @@ public sealed class CombatLoadoutPreparationRuntime :
             });
         }
 
-        string ammoItemId = ResolveDesiredAmmoItem(profile);
-        int carriedAmmo = string.IsNullOrWhiteSpace(ammoItemId) || inventory == null
+        CombatWeaponSO ammunitionWeapon = ResolveDesiredAmmunitionWeapon(profile);
+        ItemDefinitionId ammoItemId = ammunitionWeapon == null
+            ? default
+            : CombatAmmunitionPolicy.GetPreferred(
+                ammunitionWeapon.CompatibleAmmunitionItemIds);
+        int carriedAmmo = ammunitionWeapon == null || inventory == null
             ? 0
-            : inventory.CountItem(ammoItemId);
+            : CombatAmmunitionPolicy.CountAvailable(
+                ammunitionWeapon,
+                inventory);
         int missingAmmo = Mathf.Max(0, profile.desiredAmmo - carriedAmmo);
-        if (!string.IsNullOrWhiteSpace(ammoItemId) && missingAmmo > 0)
+        if (ammoItemId.IsValid && missingAmmo > 0)
         {
             result.Enqueue(new PreparationRequest
             {
-                ItemId = ammoItemId,
+                ItemId = ammoItemId.Value,
                 Quantity = missingAmmo,
                 IsEquipment = false
             });
@@ -486,19 +504,20 @@ public sealed class CombatLoadoutPreparationRuntime :
         return result;
     }
 
-    private string ResolveDesiredAmmoItem(CharacterCombatLoadoutProfile profile)
+    private CombatWeaponSO ResolveDesiredAmmunitionWeapon(
+        CharacterCombatLoadoutProfile profile)
     {
         foreach (string definitionId in profile.desiredWeaponDefinitionIds)
         {
             if (equipmentCatalog.TryGet(definitionId, out CombatEquipmentDefinitionSO definition)
                 && definition is CombatWeaponSO weapon
-                && !string.IsNullOrWhiteSpace(weapon.AmmunitionItemId))
+                && weapon.CompatibleAmmunitionItemIds.Count > 0)
             {
-                return weapon.AmmunitionItemId;
+                return weapon;
             }
         }
 
-        return string.Empty;
+        return null;
     }
 
     private void TickActor(ActorPreparationState state)
@@ -640,14 +659,8 @@ public sealed class CombatLoadoutPreparationRuntime :
                 state.Reservation.StackId,
                 out CombatEquipmentInstance instance))
         {
-            instance = equipmentRuntime.CreateInstance(
-                state.Current.DefinitionId,
-                CombatEquipmentQuality.Normal,
-                CombatEquipmentWorldState.Carried);
-            equipmentRuntime.TryLinkToWorldStack(
-                instance.instanceId,
-                state.Reservation.StackId,
-                CombatEquipmentWorldState.Carried);
+            throw new InvalidOperationException(
+                $"Picked equipment stack '{state.Reservation.StackId}' has no item-instance state.");
         }
 
         if (equipmentRuntime.TryAssignToCharacter(
@@ -744,7 +757,8 @@ public sealed class CombatLoadoutPreparationRuntime :
 
     private static string GetId(CharacterActor actor)
     {
-        return actor?.Identity?.PersistentId
-            ?? (actor != null ? $"character:{actor.GetInstanceID()}" : string.Empty);
+        return actor != null
+            ? CharacterPersistentIdentity.Require(actor).Value
+            : string.Empty;
     }
 }

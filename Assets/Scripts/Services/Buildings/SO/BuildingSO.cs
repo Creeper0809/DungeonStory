@@ -177,7 +177,7 @@ public class FacilityData
     {
         get
         {
-            foreach (WorkTypeDefinition definition in WorkTypeCatalog.Enumerate(supportedWorkTypes))
+            foreach (WorkTypeDefinition definition in FacilityWorkTypeMap.Enumerate(supportedWorkTypes))
             {
                 yield return definition.WorkTypeId;
             }
@@ -207,7 +207,7 @@ public class FacilityData
     {
         if (WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition))
         {
-            supportedWorkTypes |= definition.Type;
+            supportedWorkTypes |= FacilityWorkTypeMap.GetRequired(definition);
         }
     }
 
@@ -220,7 +220,7 @@ public class FacilityData
     {
         return workTypeId.IsValid
             && WorkTypeCatalog.TryGet(workTypeId, out WorkTypeDefinition definition)
-            && SupportsWork(definition.Type);
+            && SupportsWork(FacilityWorkTypeMap.GetRequired(definition));
     }
 
     internal bool SupportsWork(FacilityWorkType workType)
@@ -278,7 +278,7 @@ public readonly struct GridBuildingPlacement
 }
 
 [CreateAssetMenu(menuName = "Grid/Building/SO", order = 0)]
-public class BuildingSO : DataScriptableObject
+public class BuildingSO : DataScriptableObject, IGridBuildAreaCapability
 {
     public const string AbilityModulesFieldName = "abilityModules";
 
@@ -298,7 +298,7 @@ public class BuildingSO : DataScriptableObject
     public BuildingCategory category;
     public bool horizontalDraggable;
     public bool verticalDraggable;
-    public Type type;
+    public BuildingRuntimeArchetypeKind runtimeArchetype;
     public Dictionary<GridTexture.TilemapLayer, Tile> tiles;
     [Tooltip("이동 시설이 캐릭터를 통과시킬 때 기준점에 더하는 월드 좌표 오프셋")]
     public Vector2 movementAnchorOffset;
@@ -321,8 +321,11 @@ public class BuildingSO : DataScriptableObject
     public bool IsGridMovement => Placement.IsMovement;
     public bool IsWall => Placement.IsWall;
     public bool IsStructuralWall => Placement.IsStructuralWall;
-    public bool IsDoor => type != null && typeof(Door).IsAssignableFrom(type);
-    public bool IsInteriorDoor => type != null && typeof(InteriorDoor).IsAssignableFrom(type);
+    public bool IsDoor => runtimeArchetype == BuildingRuntimeArchetypeKind.Door
+        || runtimeArchetype == BuildingRuntimeArchetypeKind.InteriorDoor;
+    public bool IsInteriorDoor =>
+        runtimeArchetype == BuildingRuntimeArchetypeKind.InteriorDoor;
+    public GridLayer PlacementLayer => Placement.Layer;
     public bool IsEvenWidth => Placement.HasEvenWidth;
     public bool UsesIndependentRenderer => layer == GridLayer.WallFixture
         || layer == GridLayer.CeilingFixture

@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using DungeonStory.ServiceRooms;
 using UnityEditor;
 using UnityEngine;
 
@@ -19,7 +21,7 @@ public static class ServiceRoomDebugScenarios
         Debug.Log(
             "Service room contracts PASS: five Direct services, closed demand "
             + "policy, explicit modes, 16 support facilities, five process "
-            + "assets, 129 research projects and service.rooms V1.");
+            + "assets, 168 research projects and service.rooms V2.");
     }
 
     public static List<string> Validate()
@@ -30,6 +32,8 @@ public static class ServiceRoomDebugScenarios
         ValidateSupports(failures);
         ValidateResearch(failures);
         ValidateDemandAndSaveContracts(failures);
+        ValidateAggregateAuthority(failures);
+        ValidateHubUnsubscribe(failures);
         return failures;
     }
 
@@ -155,10 +159,10 @@ public static class ServiceRoomDebugScenarios
     {
         ResearchProjectSO[] projects = LoadAll<ResearchProjectSO>(
             "Assets/Resources/SO/Research/Projects");
-        if (projects.Length != 135)
+        if (projects.Length != 168)
         {
             failures.Add(
-                $"Expected 135 research projects, found {projects.Length}.");
+                $"Expected 168 research projects, found {projects.Length}.");
         }
 
         foreach ((string id, int[] buildingIds) in
@@ -205,9 +209,19 @@ public static class ServiceRoomDebugScenarios
         {
             failures.Add("Legacy service hubs do not default to Direct.");
         }
-        if (ServiceRoomsSaveSection.Id != "service.rooms")
+        if (!string.Equals(
+                ServiceRoomsSaveSection.Id,
+                "service.rooms",
+                StringComparison.Ordinal))
         {
             failures.Add("Service room save section id changed.");
+        }
+        object serviceRoomsVersion = typeof(ServiceRoomsSaveData)
+            .GetField(nameof(ServiceRoomsSaveData.CurrentVersion))?
+            .GetRawConstantValue();
+        if (serviceRoomsVersion is not int version || version != 2)
+        {
+            failures.Add("Service room save payload is not exact V2.");
         }
 
         ServiceSessionSnapshot source = new ServiceSessionSnapshot
@@ -259,6 +273,180 @@ public static class ServiceRoomDebugScenarios
             failures.Add(
                 "Active service session contract does not survive save roundtrip.");
         }
+    }
+
+    private static void ValidateAggregateAuthority(
+        ICollection<string> failures)
+    {
+        ServiceSessionContractSnapshot contract = new()
+        {
+            mode = ServiceOperationMode.Direct,
+            activeStages = ServiceProcessStageMask.Service
+                | ServiceProcessStageMask.Payment,
+            serviceSeconds = 2f,
+            price = 17,
+            paymentRequired = true,
+            supportIds = Array.Empty<string>()
+        };
+        ServiceSessionAggregate aggregate = new();
+        if (!aggregate.TryBegin(
+                new ServiceSessionBeginCommand
+                {
+                    HubId = "hub:aggregate-test",
+                    ActorId = "actor:aggregate-test",
+                    ProcessId = "service:test",
+                    Category = ServiceCategory.Dining,
+                    Capacity = 1,
+                    StartedAt = 10f,
+                    Contract = contract
+                },
+                out ServiceSessionSnapshot active,
+                out DomainFailure beginFailure))
+        {
+            failures.Add(
+                $"Service aggregate rejected a valid begin command: {beginFailure.Code}.");
+            return;
+        }
+
+        int versionBeforeCompletion = aggregate.Version;
+        bool firstCompletion = aggregate.TryComplete(
+            active.SessionId,
+            20f,
+            out ServiceSessionCompletionTransition first,
+            out DomainFailure firstFailure);
+        bool duplicateCompletion = aggregate.TryComplete(
+            active.SessionId,
+            21f,
+            out ServiceSessionCompletionTransition duplicate,
+            out DomainFailure duplicateFailure);
+        if (!firstCompletion
+            || firstFailure.IsFailure
+            || first?.Completed?.Stage != ServiceSessionStage.Completed
+            || first.Completed.PaymentCommitted != true
+            || first.EconomicCommand?.Amount != 17
+            || first.EconomicCommand.CommandId
+                != "service-payment:" + active.SessionId
+            || aggregate.Version != versionBeforeCompletion + 1
+            || duplicateCompletion
+            || duplicate != null
+            || duplicateFailure.Code != FailureCode.ServiceSessionMissing)
+        {
+            failures.Add(
+                "Service completion did not issue exactly one economic command or reject duplicate completion.");
+        }
+
+        ServiceSessionAggregate roundtripSource = new();
+        roundtripSource.SetMode(
+            "hub:roundtrip",
+            ServiceOperationMode.Managed,
+            out _);
+        roundtripSource.SetAdvertisingEnabled(ServiceCategory.Lodging, true);
+        ServiceSessionContractSnapshot roundtripContract = contract.Clone();
+        roundtripContract.mode = ServiceOperationMode.Managed;
+        if (!roundtripSource.TryBegin(
+                new ServiceSessionBeginCommand
+                {
+                    HubId = "hub:roundtrip",
+                    ActorId = "actor:roundtrip",
+                    ProcessId = "service:roundtrip",
+                    Category = ServiceCategory.Lodging,
+                    Capacity = 2,
+                    StartedAt = 30f,
+                    Contract = roundtripContract
+                },
+                out ServiceSessionSnapshot sourceSession,
+                out _))
+        {
+            failures.Add("Service aggregate restore fixture could not begin.");
+            return;
+        }
+        ServiceRoomsSaveData captured = roundtripSource.Capture();
+        ServiceSessionAggregate restored = ServiceSessionAggregate.CreateRestored(
+            captured,
+            roundtripSource.Version + 1);
+        ServiceRoomsSaveData recaptured = restored.Capture();
+        ServiceSessionSaveData restoredSession = recaptured.sessions.SingleOrDefault();
+        if (restoredSession == null
+            || restoredSession.sessionId != sourceSession.SessionId
+            || restoredSession.hubId != sourceSession.HubId
+            || restoredSession.actorId != sourceSession.ActorId
+            || restoredSession.processId != sourceSession.ProcessId
+            || restored.Version != roundtripSource.Version + 1)
+        {
+            failures.Add(
+                "Service aggregate restore did not preserve canonical persistent IDs and version transition.");
+        }
+
+        captured.sessions[0].sessionId = " " + captured.sessions[0].sessionId;
+        bool rejectedNonCanonical = false;
+        try
+        {
+            ServiceSessionAggregate.CreateRestored(captured, 99);
+        }
+        catch (ArgumentException)
+        {
+            rejectedNonCanonical = true;
+        }
+        if (!rejectedNonCanonical)
+        {
+            failures.Add(
+                "Service aggregate restore accepted a repaired/non-canonical session ID.");
+        }
+    }
+
+    private static void ValidateHubUnsubscribe(ICollection<string> failures)
+    {
+        Type registryDefinition = typeof(ServiceSessionRuntime).Assembly.GetType(
+            "ServiceHubSubscriptionRegistry`1",
+            throwOnError: false);
+        Type registryType = registryDefinition?.MakeGenericType(
+            typeof(FakeServiceHub));
+        MethodInfo synchronize = registryType?.GetMethod(
+            "Synchronize",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        PropertyInfo count = registryType?.GetProperty(
+            "Count",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        if (registryType == null
+            || synchronize == null
+            || count == null)
+        {
+            failures.Add("Service hub subscription registry is not testable.");
+            return;
+        }
+
+        Action<FakeServiceHub, Action> attach =
+            (hub, handler) => hub.Destroyed += handler;
+        Action<FakeServiceHub, Action> detach =
+            (hub, handler) => hub.Destroyed -= handler;
+        object registry = Activator.CreateInstance(
+            registryType,
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            args: new object[] { attach, detach },
+            culture: null);
+        FakeServiceHub hub = new();
+        int callbacks = 0;
+        Action<FakeServiceHub> onDestroyed = _ => callbacks++;
+        synchronize.Invoke(
+            registry,
+            new object[] { new[] { hub }, onDestroyed });
+        synchronize.Invoke(
+            registry,
+            new object[] { Array.Empty<FakeServiceHub>(), onDestroyed });
+        hub.RaiseDestroyed();
+        if ((int)count.GetValue(registry) != 0 || callbacks != 0)
+        {
+            failures.Add(
+                "Removed service hubs retain a destruction subscription after synchronization.");
+        }
+    }
+
+    private sealed class FakeServiceHub
+    {
+        internal event Action Destroyed;
+
+        internal void RaiseDestroyed() => Destroyed?.Invoke();
     }
 
     private static T[] LoadAll<T>(string root)

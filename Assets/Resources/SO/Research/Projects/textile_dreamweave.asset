@@ -27,20 +27,36 @@ MonoBehaviour:
   description: "\uBABD\uC5FD\uACFC \uC12C\uC720\uB97C \uC5EE\uC5B4 \uCD08\uACBD\uB7C9
     \uC815\uC2E0 \uC800\uD56D \uC6D0\uB2E8\uC744 \uB9CC\uB4E0\uB2E4."
   field: 11
-  requiredWork: 202
+  requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: 5d24ff7a48d2e42439661cde8f81fdae, type: 2}
   - {fileID: 11400000, guid: 14cff071c7b50164e897a3bf13dde4ee, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:pharmacology:anesthesia
+    prerequisite: {fileID: 11400000, guid: 5d24ff7a48d2e42439661cde8f81fdae, type: 2}
+    kind: 2
+    reason: "\uC9C4\uD1B5\xB7\uB9C8\uCDE8\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBABD\uC9C1\uBB3C \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:textile:layered
+    prerequisite: {fileID: 11400000, guid: 14cff071c7b50164e897a3bf13dde4ee, type: 2}
+    kind: 1
+    reason: "\uCE35\uC0C1 \uBC29\uC5B4\uAD6C\uC758 \uC81C\uC791 \uAE30\uBC95\uC774(\uAC00)
+      \uBABD\uC9C1\uBB3C \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563230216618554
+    - rid: 7737211730927812875
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563230216618554
+    - rid: 7737211730927812875
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1092

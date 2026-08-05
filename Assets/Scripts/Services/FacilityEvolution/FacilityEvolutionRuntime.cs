@@ -284,6 +284,155 @@ public sealed class DefaultFacilityEvolutionCandidateBuilder : IFacilityEvolutio
     }
 }
 
+public sealed class FacilityEvolutionDefinitionContext
+{
+    public FacilityEvolutionDefinitionContext(
+        IFacilityEvolutionRecipeQuery recipeQuery,
+        IRoomProfileProvider roomProfileProvider,
+        IFacilityEvolutionRecordProvider recordProvider,
+        IFacilityEvolutionProposalProvider proposalProvider,
+        IRoomLayoutCache roomLayoutCache,
+        IFacilityEvolutionStateComponentFactory stateComponentFactory,
+        IFacilityEvolutionRecordComponentService recordComponentService)
+    {
+        RecipeQuery = recipeQuery
+            ?? throw new ArgumentNullException(nameof(recipeQuery));
+        RecordComponentService = recordComponentService
+            ?? recordProvider as IFacilityEvolutionRecordComponentService
+            ?? throw new ArgumentNullException(nameof(recordComponentService));
+        RecordProvider = recordProvider ?? RecordComponentService;
+        ProposalProvider = proposalProvider
+            ?? throw new ArgumentNullException(nameof(proposalProvider));
+        RoomLayoutCache = roomLayoutCache
+            ?? throw new ArgumentNullException(nameof(roomLayoutCache));
+        StateComponentFactory = stateComponentFactory
+            ?? throw new ArgumentNullException(nameof(stateComponentFactory));
+        RoomProfileProvider = roomProfileProvider
+            ?? throw new ArgumentNullException(nameof(roomProfileProvider));
+    }
+
+    public IFacilityEvolutionRecipeQuery RecipeQuery { get; }
+    public IRoomProfileProvider RoomProfileProvider { get; }
+    public IFacilityEvolutionRecordProvider RecordProvider { get; }
+    public IFacilityEvolutionProposalProvider ProposalProvider { get; }
+    public IRoomLayoutCache RoomLayoutCache { get; }
+    public IFacilityEvolutionStateComponentFactory StateComponentFactory { get; }
+    public IFacilityEvolutionRecordComponentService RecordComponentService { get; }
+}
+
+public sealed class FacilityEvolutionExecutionContext
+{
+    public FacilityEvolutionExecutionContext(
+        IFacilityEvolutionResourceProvider resourceProvider,
+        IFacilityEvolutionBuildingReplacer buildingReplacer,
+        IFacilityCandidateCache facilityCandidateCache,
+        Func<BlueprintResearchState> researchStateProvider,
+        IFacilityEvolutionValidator validator,
+        IFacilityEvolutionCandidateBuilder candidateBuilder,
+        IFacilityEvolutionRecordTokenConsumer recordTokenConsumer,
+        IFacilityEvolutionMutationResolver mutationResolver)
+    {
+        ResourceProvider = resourceProvider
+            ?? throw new ArgumentNullException(nameof(resourceProvider));
+        BuildingReplacer = buildingReplacer
+            ?? throw new ArgumentNullException(nameof(buildingReplacer));
+        FacilityCandidateCache = facilityCandidateCache
+            ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
+        ResearchStateProvider = researchStateProvider
+            ?? throw new ArgumentNullException(nameof(researchStateProvider));
+        Validator = validator
+            ?? throw new ArgumentNullException(nameof(validator));
+        CandidateBuilder = candidateBuilder
+            ?? throw new ArgumentNullException(nameof(candidateBuilder));
+        RecordTokenConsumer = recordTokenConsumer
+            ?? throw new ArgumentNullException(nameof(recordTokenConsumer));
+        MutationResolver = mutationResolver
+            ?? throw new ArgumentNullException(nameof(mutationResolver));
+    }
+
+    public IFacilityEvolutionResourceProvider ResourceProvider { get; }
+    public IFacilityEvolutionBuildingReplacer BuildingReplacer { get; }
+    public IFacilityCandidateCache FacilityCandidateCache { get; }
+    public Func<BlueprintResearchState> ResearchStateProvider { get; }
+    public IFacilityEvolutionValidator Validator { get; }
+    public IFacilityEvolutionCandidateBuilder CandidateBuilder { get; }
+    public IFacilityEvolutionRecordTokenConsumer RecordTokenConsumer { get; }
+    public IFacilityEvolutionMutationResolver MutationResolver { get; }
+}
+
+public interface IFacilityEvolutionExecutionContextFactory
+{
+    FacilityEvolutionExecutionContext Create(
+        Func<BlueprintResearchState> researchStateProvider);
+}
+
+public sealed class FacilityEvolutionExecutionContextFactory :
+    IFacilityEvolutionExecutionContextFactory
+{
+    private readonly IFacilityEvolutionResourceProvider resourceProvider;
+    private readonly IFacilityEvolutionBuildingReplacerFactory buildingReplacerFactory;
+    private readonly IFacilityCandidateCache facilityCandidateCache;
+    private readonly IFacilityEvolutionValidator validator;
+    private readonly IFacilityEvolutionCandidateBuilder candidateBuilder;
+    private readonly IFacilityEvolutionRecordTokenConsumer recordTokenConsumer;
+    private readonly IFacilityEvolutionMutationResolver mutationResolver;
+
+    public FacilityEvolutionExecutionContextFactory(
+        IFacilityEvolutionResourceProvider resourceProvider,
+        IFacilityEvolutionBuildingReplacerFactory buildingReplacerFactory,
+        IFacilityCandidateCache facilityCandidateCache,
+        IFacilityEvolutionValidator validator,
+        IFacilityEvolutionCandidateBuilder candidateBuilder,
+        IFacilityEvolutionRecordTokenConsumer recordTokenConsumer,
+        IFacilityEvolutionMutationResolver mutationResolver)
+    {
+        this.resourceProvider = resourceProvider
+            ?? throw new ArgumentNullException(nameof(resourceProvider));
+        this.buildingReplacerFactory = buildingReplacerFactory
+            ?? throw new ArgumentNullException(nameof(buildingReplacerFactory));
+        this.facilityCandidateCache = facilityCandidateCache
+            ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
+        this.validator = validator
+            ?? throw new ArgumentNullException(nameof(validator));
+        this.candidateBuilder = candidateBuilder
+            ?? throw new ArgumentNullException(nameof(candidateBuilder));
+        this.recordTokenConsumer = recordTokenConsumer
+            ?? throw new ArgumentNullException(nameof(recordTokenConsumer));
+        this.mutationResolver = mutationResolver
+            ?? throw new ArgumentNullException(nameof(mutationResolver));
+    }
+
+    public FacilityEvolutionExecutionContext Create(
+        Func<BlueprintResearchState> researchStateProvider) =>
+        new FacilityEvolutionExecutionContext(
+            resourceProvider,
+            buildingReplacerFactory.Create(),
+            facilityCandidateCache,
+            researchStateProvider
+                ?? throw new ArgumentNullException(nameof(researchStateProvider)),
+            validator,
+            candidateBuilder,
+            recordTokenConsumer,
+            mutationResolver);
+}
+
+public interface IFacilityEvolutionEngineFactory
+{
+    FacilityEvolutionEngine Create(
+        FacilityEvolutionDefinitionContext definitions,
+        FacilityEvolutionExecutionContext execution);
+}
+
+public sealed class FacilityEvolutionEngineFactory : IFacilityEvolutionEngineFactory
+{
+    public FacilityEvolutionEngine Create(
+        FacilityEvolutionDefinitionContext definitions,
+        FacilityEvolutionExecutionContext execution)
+    {
+        return new FacilityEvolutionEngine(definitions, execution);
+    }
+}
+
 public sealed class FacilityEvolutionEngine
 {
     private readonly IFacilityEvolutionRecipeQuery recipeQuery;
@@ -303,50 +452,31 @@ public sealed class FacilityEvolutionEngine
     private readonly Func<BlueprintResearchState> researchStateProvider;
 
     public FacilityEvolutionEngine(
-        IFacilityEvolutionRecipeQuery recipeQuery,
-        IRoomProfileProvider roomProfileProvider,
-        IFacilityEvolutionRecordProvider recordProvider,
-        IFacilityEvolutionProposalProvider proposalProvider,
-        IFacilityEvolutionResourceProvider resourceProvider,
-        IFacilityEvolutionBuildingReplacer buildingReplacer,
-        IRoomLayoutCache roomLayoutCache,
-        IFacilityEvolutionStateComponentFactory stateComponentFactory,
-        IFacilityCandidateCache facilityCandidateCache,
-        Func<BlueprintResearchState> researchStateProvider,
-        IFacilityEvolutionValidator validator = null,
-        IFacilityEvolutionCandidateBuilder candidateBuilder = null,
-        IFacilityEvolutionRecordTokenConsumer recordTokenConsumer = null,
-        IFacilityEvolutionRecordComponentService recordComponentService = null,
-        IFacilityEvolutionMutationResolver mutationResolver = null)
+        FacilityEvolutionDefinitionContext definitions,
+        FacilityEvolutionExecutionContext execution)
     {
-        this.recipeQuery = recipeQuery
-            ?? throw new ArgumentNullException(nameof(recipeQuery));
-        this.recordComponentService = recordComponentService
-            ?? recordProvider as IFacilityEvolutionRecordComponentService
-            ?? throw new ArgumentNullException(nameof(recordComponentService));
-        this.recordProvider = recordProvider ?? this.recordComponentService;
-        this.proposalProvider = proposalProvider ?? new RuleBasedFacilityEvolutionProposalProvider();
-        this.resourceProvider = resourceProvider
-            ?? throw new ArgumentNullException(nameof(resourceProvider));
-        this.buildingReplacer = buildingReplacer
-            ?? throw new ArgumentNullException(nameof(buildingReplacer));
-        this.roomLayoutCache = roomLayoutCache
-            ?? throw new ArgumentNullException(nameof(roomLayoutCache));
-        this.stateComponentFactory = stateComponentFactory
-            ?? throw new ArgumentNullException(nameof(stateComponentFactory));
-        this.facilityCandidateCache = facilityCandidateCache
-            ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
-        this.roomProfileProvider = roomProfileProvider
-            ?? new RoomProfileBuilder(this.recordProvider, this.roomLayoutCache);
-        this.validator = validator ?? new DefaultFacilityEvolutionValidator(this.recipeQuery, this.stateComponentFactory);
-        this.candidateBuilder = candidateBuilder ?? new DefaultFacilityEvolutionCandidateBuilder(this.validator);
-        this.recordTokenConsumer = recordTokenConsumer
-            ?? throw new ArgumentNullException(nameof(recordTokenConsumer));
-        this.mutationResolver = mutationResolver ?? new DefaultFacilityEvolutionMutationResolver();
-        this.researchStateProvider = researchStateProvider;
+        definitions = definitions
+            ?? throw new ArgumentNullException(nameof(definitions));
+        execution = execution
+            ?? throw new ArgumentNullException(nameof(execution));
+        recipeQuery = definitions.RecipeQuery;
+        roomProfileProvider = definitions.RoomProfileProvider;
+        recordProvider = definitions.RecordProvider;
+        proposalProvider = definitions.ProposalProvider;
+        roomLayoutCache = definitions.RoomLayoutCache;
+        stateComponentFactory = definitions.StateComponentFactory;
+        recordComponentService = definitions.RecordComponentService;
+        resourceProvider = execution.ResourceProvider;
+        buildingReplacer = execution.BuildingReplacer;
+        facilityCandidateCache = execution.FacilityCandidateCache;
+        validator = execution.Validator;
+        candidateBuilder = execution.CandidateBuilder;
+        recordTokenConsumer = execution.RecordTokenConsumer;
+        mutationResolver = execution.MutationResolver;
+        researchStateProvider = execution.ResearchStateProvider;
     }
 
-    public BlueprintResearchState ResearchState => researchStateProvider?.Invoke();
+    public BlueprintResearchState ResearchState => researchStateProvider();
 
     public IReadOnlyList<FacilityEvolutionRecipeSO> VisibleRecipes =>
         recipeQuery.GetVisibleRecipes(ResearchState);
@@ -555,8 +685,10 @@ public class FacilityEvolutionRuntime : MonoBehaviour
     private IRoomLayoutCache roomLayoutCache;
     private IFacilityEvolutionStateComponentFactory stateComponentFactory;
     private IFacilityCandidateCache facilityCandidateCache;
-    private ILocalLlmRuntimeProvider llmRuntimeProvider;
     private IFacilityEvolutionBuildingReplacerFactory buildingReplacerFactory;
+    private IFacilityEvolutionEngineFactory engineFactory;
+    private FacilityEvolutionDefinitionContext definitionContext;
+    private IFacilityEvolutionExecutionContextFactory executionContextFactory;
     private IGameEventBus gameEventBus;
     private FacilityEvolutionEngine engine;
 
@@ -565,37 +697,19 @@ public class FacilityEvolutionRuntime : MonoBehaviour
     [Inject]
     public void ConstructFacilityEvolutionRuntime(
         IBlueprintResearchStateService blueprintResearchStateService,
-        ILocalLlmRuntimeProvider llmRuntimeProvider,
-        IRoomLayoutCache roomLayoutCache,
-        IFacilityEvolutionStateComponentFactory stateComponentFactory,
-        IFacilityCandidateCache facilityCandidateCache,
-        IFacilityEvolutionRecipeQuery recipeQuery,
-        IFacilityEvolutionResourceProvider resourceProvider,
-        IFacilityEvolutionRecordTokenConsumer recordTokenConsumer,
-        IFacilityEvolutionRecordComponentService recordComponentService,
-        IFacilityEvolutionBuildingReplacerFactory buildingReplacerFactory,
+        FacilityEvolutionDefinitionContext definitionContext,
+        IFacilityEvolutionExecutionContextFactory executionContextFactory,
+        IFacilityEvolutionEngineFactory engineFactory,
         IGameEventBus gameEventBus)
     {
         this.blueprintResearchStateService = blueprintResearchStateService
             ?? throw new ArgumentNullException(nameof(blueprintResearchStateService));
-        this.llmRuntimeProvider = llmRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
-        this.roomLayoutCache = roomLayoutCache
-            ?? throw new ArgumentNullException(nameof(roomLayoutCache));
-        this.stateComponentFactory = stateComponentFactory
-            ?? throw new ArgumentNullException(nameof(stateComponentFactory));
-        this.facilityCandidateCache = facilityCandidateCache
-            ?? throw new ArgumentNullException(nameof(facilityCandidateCache));
-        this.recipeQuery = recipeQuery
-            ?? throw new ArgumentNullException(nameof(recipeQuery));
-        this.resourceProvider = resourceProvider
-            ?? throw new ArgumentNullException(nameof(resourceProvider));
-        this.recordTokenConsumer = recordTokenConsumer
-            ?? throw new ArgumentNullException(nameof(recordTokenConsumer));
-        this.recordComponentService = recordComponentService
-            ?? throw new ArgumentNullException(nameof(recordComponentService));
-        this.buildingReplacerFactory = buildingReplacerFactory
-            ?? throw new ArgumentNullException(nameof(buildingReplacerFactory));
+        this.definitionContext = definitionContext
+            ?? throw new ArgumentNullException(nameof(definitionContext));
+        this.executionContextFactory = executionContextFactory
+            ?? throw new ArgumentNullException(nameof(executionContextFactory));
+        this.engineFactory = engineFactory
+            ?? throw new ArgumentNullException(nameof(engineFactory));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         engine = null;
@@ -611,41 +725,43 @@ public class FacilityEvolutionRuntime : MonoBehaviour
     private FacilityEvolutionEngine Engine => engine ??= CreateEngine();
 
     public void Configure(
-        IFacilityEvolutionRecipeQuery nextRecipeQuery = null,
-        IRoomProfileProvider nextRoomProfileProvider = null,
-        IFacilityEvolutionRecordProvider nextRecordProvider = null,
-        IFacilityEvolutionProposalProvider nextProposalProvider = null,
-        IFacilityEvolutionResourceProvider nextResourceProvider = null,
-        IFacilityEvolutionBuildingReplacer nextBuildingReplacer = null,
-        IRoomLayoutCache nextRoomLayoutCache = null,
-        IFacilityEvolutionStateComponentFactory nextStateComponentFactory = null,
-        IFacilityCandidateCache nextFacilityCandidateCache = null,
-        IFacilityEvolutionValidator nextValidator = null,
-        IFacilityEvolutionCandidateBuilder nextCandidateBuilder = null,
-        IFacilityEvolutionRecordTokenConsumer nextRecordTokenConsumer = null,
-        IFacilityEvolutionRecordComponentService nextRecordComponentService = null,
-        IBlueprintResearchStateService nextResearchStateService = null,
-        IFacilityEvolutionBuildingReplacerFactory nextBuildingReplacerFactory = null,
-        IFacilityEvolutionMutationResolver nextMutationResolver = null,
-        IGameEventBus nextGameEventBus = null)
+        IFacilityEvolutionRecipeQuery nextRecipeQuery,
+        IRoomProfileProvider nextRoomProfileProvider,
+        IFacilityEvolutionRecordProvider nextRecordProvider,
+        IFacilityEvolutionProposalProvider nextProposalProvider,
+        IFacilityEvolutionResourceProvider nextResourceProvider,
+        IFacilityEvolutionBuildingReplacer nextBuildingReplacer,
+        IRoomLayoutCache nextRoomLayoutCache,
+        IFacilityEvolutionStateComponentFactory nextStateComponentFactory,
+        IFacilityCandidateCache nextFacilityCandidateCache,
+        IFacilityEvolutionValidator nextValidator,
+        IFacilityEvolutionCandidateBuilder nextCandidateBuilder,
+        IFacilityEvolutionRecordTokenConsumer nextRecordTokenConsumer,
+        IFacilityEvolutionRecordComponentService nextRecordComponentService,
+        IBlueprintResearchStateService nextResearchStateService,
+        IFacilityEvolutionBuildingReplacerFactory nextBuildingReplacerFactory,
+        IFacilityEvolutionMutationResolver nextMutationResolver,
+        IGameEventBus nextGameEventBus,
+        IFacilityEvolutionEngineFactory nextEngineFactory)
     {
-        recipeQuery = nextRecipeQuery ?? recipeQuery;
-        recordProvider = nextRecordProvider ?? recordProvider;
-        roomProfileProvider = nextRoomProfileProvider ?? roomProfileProvider;
-        proposalProvider = nextProposalProvider ?? proposalProvider;
-        resourceProvider = nextResourceProvider ?? resourceProvider;
-        buildingReplacer = nextBuildingReplacer ?? buildingReplacer;
-        roomLayoutCache = nextRoomLayoutCache ?? roomLayoutCache;
-        stateComponentFactory = nextStateComponentFactory ?? stateComponentFactory;
-        facilityCandidateCache = nextFacilityCandidateCache ?? facilityCandidateCache;
-        validator = nextValidator ?? validator;
-        candidateBuilder = nextCandidateBuilder ?? candidateBuilder;
-        recordTokenConsumer = nextRecordTokenConsumer ?? recordTokenConsumer;
-        recordComponentService = nextRecordComponentService ?? recordComponentService;
-        blueprintResearchStateService = nextResearchStateService ?? blueprintResearchStateService;
-        buildingReplacerFactory = nextBuildingReplacerFactory ?? buildingReplacerFactory;
-        mutationResolver = nextMutationResolver ?? mutationResolver;
-        gameEventBus = nextGameEventBus ?? gameEventBus;
+        recipeQuery = nextRecipeQuery ?? throw new ArgumentNullException(nameof(nextRecipeQuery));
+        recordProvider = nextRecordProvider ?? throw new ArgumentNullException(nameof(nextRecordProvider));
+        roomProfileProvider = nextRoomProfileProvider ?? throw new ArgumentNullException(nameof(nextRoomProfileProvider));
+        proposalProvider = nextProposalProvider ?? throw new ArgumentNullException(nameof(nextProposalProvider));
+        resourceProvider = nextResourceProvider ?? throw new ArgumentNullException(nameof(nextResourceProvider));
+        buildingReplacer = nextBuildingReplacer ?? throw new ArgumentNullException(nameof(nextBuildingReplacer));
+        roomLayoutCache = nextRoomLayoutCache ?? throw new ArgumentNullException(nameof(nextRoomLayoutCache));
+        stateComponentFactory = nextStateComponentFactory ?? throw new ArgumentNullException(nameof(nextStateComponentFactory));
+        facilityCandidateCache = nextFacilityCandidateCache ?? throw new ArgumentNullException(nameof(nextFacilityCandidateCache));
+        validator = nextValidator ?? throw new ArgumentNullException(nameof(nextValidator));
+        candidateBuilder = nextCandidateBuilder ?? throw new ArgumentNullException(nameof(nextCandidateBuilder));
+        recordTokenConsumer = nextRecordTokenConsumer ?? throw new ArgumentNullException(nameof(nextRecordTokenConsumer));
+        recordComponentService = nextRecordComponentService ?? throw new ArgumentNullException(nameof(nextRecordComponentService));
+        blueprintResearchStateService = nextResearchStateService ?? throw new ArgumentNullException(nameof(nextResearchStateService));
+        buildingReplacerFactory = nextBuildingReplacerFactory;
+        mutationResolver = nextMutationResolver ?? throw new ArgumentNullException(nameof(nextMutationResolver));
+        gameEventBus = nextGameEventBus ?? throw new ArgumentNullException(nameof(nextGameEventBus));
+        engineFactory = nextEngineFactory ?? throw new ArgumentNullException(nameof(nextEngineFactory));
         engine = null;
     }
 
@@ -691,6 +807,13 @@ public class FacilityEvolutionRuntime : MonoBehaviour
 
     private FacilityEvolutionEngine CreateEngine()
     {
+        if (definitionContext != null && executionContextFactory != null)
+        {
+            return ResolveEngineFactory().Create(
+                definitionContext,
+                executionContextFactory.Create(() => ResearchState));
+        }
+
         IFacilityEvolutionRecordProvider records =
             recordProvider ?? ResolveRecordComponentService();
         IFacilityEvolutionRecipeQuery recipes = recipeQuery
@@ -700,40 +823,39 @@ public class FacilityEvolutionRuntime : MonoBehaviour
         IRoomLayoutCache rooms = ResolveRoomLayoutCache();
         IFacilityEvolutionStateComponentFactory states = ResolveStateComponentFactory();
         IFacilityCandidateCache candidateCache = ResolveFacilityCandidateCache();
-        return new FacilityEvolutionEngine(
-            recipes,
-            roomProfileProvider ?? new RoomProfileBuilder(records, rooms),
-            records,
-            proposalProvider ?? CreateDefaultProposalProvider(),
-            resourceProvider
-                ?? throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(IFacilityEvolutionResourceProvider)} injection or explicit configuration."),
-            buildingReplacer ?? ResolveBuildingReplacerFactory().Create(),
-            rooms,
-            states,
-            candidateCache,
-            () => ResearchState,
-            validator,
-            candidateBuilder,
-            tokens,
-            ResolveRecordComponentService(),
-            mutationResolver);
+        FacilityEvolutionDefinitionContext definitions =
+            new FacilityEvolutionDefinitionContext(
+                recipes,
+                roomProfileProvider
+                    ?? throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(IRoomProfileProvider)} injection or explicit configuration."),
+                records,
+                proposalProvider
+                    ?? throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(IFacilityEvolutionProposalProvider)} injection or explicit configuration."),
+                rooms,
+                states,
+                ResolveRecordComponentService());
+        FacilityEvolutionExecutionContext execution =
+            new FacilityEvolutionExecutionContext(
+                resourceProvider
+                    ?? throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(IFacilityEvolutionResourceProvider)} injection or explicit configuration."),
+                buildingReplacer ?? ResolveBuildingReplacerFactory().Create(),
+                candidateCache,
+                () => ResearchState,
+                validator
+                    ?? throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(IFacilityEvolutionValidator)} injection or explicit configuration."),
+                candidateBuilder
+                    ?? throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(IFacilityEvolutionCandidateBuilder)} injection or explicit configuration."),
+                tokens,
+                mutationResolver
+                    ?? throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(IFacilityEvolutionMutationResolver)} injection or explicit configuration."));
+        return ResolveEngineFactory().Create(definitions, execution);
     }
 
-    private IFacilityEvolutionProposalProvider CreateDefaultProposalProvider()
+    private IFacilityEvolutionEngineFactory ResolveEngineFactory()
     {
-        return new RuleBasedFacilityEvolutionProposalProvider();
-    }
-
-    private ILocalLlmRuntime ResolveLocalLlmRuntime()
-    {
-        if (llmRuntimeProvider == null)
-        {
-            throw new InvalidOperationException($"{nameof(FacilityEvolutionRuntime)} requires {nameof(ILocalLlmRuntimeProvider)} injection.");
-        }
-
-        return llmRuntimeProvider.TryGetRuntime(out ILocalLlmRuntime runtime)
-            ? runtime
-            : null;
+        return engineFactory
+            ?? throw new InvalidOperationException(
+                $"{nameof(FacilityEvolutionRuntime)} requires {nameof(IFacilityEvolutionEngineFactory)} injection or explicit configuration.");
     }
 
     private IBlueprintResearchStateService ResolveResearchStateService()

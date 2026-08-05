@@ -29,40 +29,56 @@ MonoBehaviour:
     \uBCF4\uC628 \uC810\uC561 \uD328\uB4DC\uC640 \uBC29\uD55C \uC791\uC5C5\uBCF5\uC744
     \uC6B4\uC6A9\uD55C\uB2E4."
   field: 0
-  requiredWork: 104
+  requiredWork: 92
   prerequisites:
   - {fileID: 11400000, guid: 969470a77353b3d45a9026b935c6c7bd, type: 2}
   - {fileID: 11400000, guid: 8f2a5bca31574f1478107e01d22cd5f2, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:survival:preservation
+    prerequisite: {fileID: 11400000, guid: 969470a77353b3d45a9026b935c6c7bd, type: 2}
+    kind: 3
+    reason: "\uC2DD\uB7C9 \uBCF4\uC874\uC758 \uC548\uC804 \uAE30\uC900\uC774(\uAC00)
+      \uC800\uC628 \uC791\uC5C5 \uBCF4\uD638 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:textile:fiber
+    prerequisite: {fileID: 11400000, guid: 8f2a5bca31574f1478107e01d22cd5f2, type: 2}
+    kind: 3
+    reason: "\uC12C\uC720 \uAC00\uACF5\uC758 \uC548\uC804 \uAE30\uC900\uC774(\uAC00)
+      \uC800\uC628 \uC791\uC5C5 \uBCF4\uD638 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563287088235070
-    - rid: 7302563287088235071
-    - rid: 7302563287088235072
-    - rid: 7302563287088235073
-    - rid: 7302563287088235074
+    - rid: 7737211730927813351
+    - rid: 7737211730927813352
+    - rid: 7737211730927813353
+    - rid: 7737211730927813354
+    - rid: 7737211730927813355
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563287088235070
+    - rid: 7737211730927813351
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1500
-    - rid: 7302563287088235071
+    - rid: 7737211730927813352
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1501
-    - rid: 7302563287088235072
+    - rid: 7737211730927813353
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1503
-    - rid: 7302563287088235073
+    - rid: 7737211730927813354
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1504
-    - rid: 7302563287088235074
+    - rid: 7737211730927813355
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1505

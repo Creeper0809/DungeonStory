@@ -27,21 +27,42 @@ MonoBehaviour:
   description: "\uB8EC \uBC29\uD55C\uBCF5\uACFC \uB0B4\uD55C\uC131 \uC810\uC561 \uBC30\uC591\uC73C\uB85C
     \uADF9\uC800\uC628 \uC791\uC5C5 \uAD50\uB300\uB97C \uAC00\uB2A5\uD558\uAC8C \uD55C\uB2E4."
   field: 0
-  requiredWork: 196
+  requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
   - {fileID: 11400000, guid: 0bbcc9aa811fd5e4c840444868ba8a4b, type: 2}
   - {fileID: 11400000, guid: 8ac67a646af7ea148bef357bd91c4bb7, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:advanced
+    prerequisite: {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
+    kind: 0
+    reason: "\uBE44\uC804 \uC5F0\uAD6C\uC758 \uC774\uB860\uC774(\uAC00) \uB8EC \uB2E8\uC5F4\uD559
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:environment:cold-work
+    prerequisite: {fileID: 11400000, guid: 0bbcc9aa811fd5e4c840444868ba8a4b, type: 2}
+    kind: 3
+    reason: "\uC800\uC628 \uC791\uC5C5 \uBCF4\uD638\uC758 \uC548\uC804 \uAE30\uC900\uC774(\uAC00)
+      \uB8EC \uB2E8\uC5F4\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:textile:rune-leather
+    prerequisite: {fileID: 11400000, guid: 8ac67a646af7ea148bef357bd91c4bb7, type: 2}
+    kind: 1
+    reason: "\uB8EC\uAC00\uC8FD\uC758 \uC81C\uC791 \uAE30\uBC95\uC774(\uAC00) \uB8EC
+      \uB2E8\uC5F4\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563287088235069
+    - rid: 7737211730927813210
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563287088235069
+    - rid: 7737211730927813210
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1502

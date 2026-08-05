@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: surgery_contaminated_tissue
+  m_EditorClassIdentifier: Assembly-CSharp::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: surgery:contaminated-tissue
+  displayName: "\uC624\uC5FC \uC870\uC9C1"
+  description: "\uBD80\uD328\uD55C \uC7A5\uAE30 \uC870\uC9C1. \uD1F4\uBE44\xB7\uC5F0\uAE08\xB7\uC18C\uAC01\uC5D0
+    \uC0AC\uC6A9\uD55C\uB2E4."
+  stockCategory: 8
+  unitWeight: 0.6
+  maxStack: 25
+  sprite: {fileID: 0}
+  unitPrice: 1
+  features:
+  - rid: 7737211673752633417
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673752633417
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 8
+        ingredientTags: 0
+        sharedIntermediate: 0

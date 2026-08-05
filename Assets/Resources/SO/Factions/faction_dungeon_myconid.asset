@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2141cf61d65c4574b72b89276d3dd67f, type: 3}
+  m_Name: faction_dungeon_myconid
+  m_EditorClassIdentifier: Assembly-CSharp::DungeonFactionDefinitionSO
+  factionId: faction:dungeon:myconid
+  displayName: "\uADE0\uC0AC \uC2EC\uB9BC"
+  speciesTag: Myconid
+  description: "\uCE58\uB8CC\xB7\uC81C\uB3C5\uACFC \uC57D\uD488\xB7\uD1F4\uBE44 \uC9C0\uC6D0"
+  relationTags:
+  - "\uC2B5\uAE30"
+  - "\uC624\uC5FC"
+  - "\uC800\uC628"
+  tradeTags:
+  - "\uC2B5\uAE30"
+  - "\uC624\uC5FC"
+  - "\uC800\uC628"
+  reinforcementRole: "\uCE58\uB8CC\xB7\uC81C\uB3C5\uACFC \uC57D\uD488\xB7\uD1F4\uBE44
+    \uC9C0\uC6D0"
+  crest: {fileID: 0}
+  tradeCargo:
+  - itemId: medicine:standard
+    amount: 8
+  - itemId: resource:blood
+    amount: 5
+  supplyCargo:
+  - itemId: medicine:standard
+    amount: 14
+  - itemId: resource:blood
+    amount: 10

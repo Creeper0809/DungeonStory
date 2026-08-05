@@ -6,118 +6,107 @@ using UnityEngine;
 using VContainer.Unity;
 
 public sealed class SurgeryRuntime :
-    ISurgeryRuntime,
+    ISurgeryQuery,
+    ISurgeryWorkCommand,
+    ISurgeryPersistence,
     ISurgeryCommandService,
     ITickable
 {
     private const float MaterialRefreshInterval = 0.75f;
-    private const float AdmissionRetryInterval = 1.5f;
     private const float AutomaticPolicyScanInterval = 1f;
     private const float RecoverySeconds = 10f;
-    private static readonly Vector2Int[] CardinalDirections =
-    {
-        Vector2Int.left,
-        Vector2Int.right,
-        Vector2Int.up,
-        Vector2Int.down
-    };
 
     private readonly ISurgicalProcedureCatalog procedures;
     private readonly ISurgicalFacilityQuery facilities;
     private readonly ISurgeryRiskEvaluator riskEvaluator;
     private readonly ISurgicalPartRuntime parts;
     private readonly ISurgeryPolicyRuntime policies;
-    private readonly ISurgeryExtractionLedger extractionLedger;
     private readonly ISurgicalCorpseFreshnessRuntime corpseFreshness;
     private readonly ICharacterWorldQuery characters;
     private readonly IWildlifeWorldQuery wildlife;
     private readonly ICaptivityRuntime captivity;
     private readonly IBuildingWorldQuery buildings;
     private readonly IWorldItemStackRuntime items;
-    private readonly ICharacterBodyHealthRuntime bodyHealth;
+    private readonly ICharacterBodyHealthQuery bodyHealth;
     private readonly IAnatomyHealthRuntime anatomy;
     private readonly IWildlifeAnatomyHealthRuntime wildlifeAnatomy;
     private readonly IAnatomyProfileCatalog anatomyProfiles;
     private readonly ISurgicalPatientTransportRuntime patientTransport;
-    private readonly ICharacterMedicalRuntime medical;
-    private readonly IBlueprintResearchStateService research;
     private readonly IWorkforceReplanService workforce;
     private readonly IGameClock clock;
     private readonly IRandomStream outcomeRandom;
     private readonly IProcessFluidUseRuntime processFluids;
-    private readonly IEnvironmentalFieldRuntime environmentalField;
-    private readonly ICharacterEnvironmentStatusQuery environmentStatus;
     private readonly ISurgeryEnvironmentRiskEvaluator
         environmentRiskEvaluator;
+    private readonly ICharacterSpeciesCatalog speciesCatalog;
     private readonly Dictionary<Type, ISurgicalProcedureEffectHandler> effectHandlers;
-    private readonly List<SurgeryOrder> orders = new();
+    private readonly SurgeryOrderPlanningService planning;
+    private readonly SurgeryPersistence persistence;
+    private readonly SurgeryEnvironmentRuntime surgeryEnvironment;
+    private readonly SurgeryLogisticsRuntime surgeryLogistics;
+    private readonly SurgeryAggregateStateStore stateStore;
     private float nextMaterialRefreshAt;
     private float nextAutomaticPolicyScanAt;
-    private int orderSequence;
+
+    private List<SurgeryOrder> orders => stateStore.State.Orders;
+    private int orderSequence
+    {
+        get => stateStore.State.OrderSequence;
+        set => stateStore.State.OrderSequence = value;
+    }
 
     public SurgeryRuntime(
-        ISurgicalProcedureCatalog procedures,
-        ISurgicalFacilityQuery facilities,
-        ISurgeryRiskEvaluator riskEvaluator,
-        ISurgicalPartRuntime parts,
-        ISurgeryPolicyRuntime policies,
-        ISurgeryExtractionLedger extractionLedger,
-        ISurgicalCorpseFreshnessRuntime corpseFreshness,
-        ICharacterWorldQuery characters,
-        IWildlifeWorldQuery wildlife,
-        ICaptivityRuntime captivity,
-        IBuildingWorldQuery buildings,
-        IWorldItemStackRuntime items,
-        ICharacterBodyHealthRuntime bodyHealth,
-        IAnatomyHealthRuntime anatomy,
-        IWildlifeAnatomyHealthRuntime wildlifeAnatomy,
-        IAnatomyProfileCatalog anatomyProfiles,
-        ISurgicalPatientTransportRuntime patientTransport,
-        ICharacterMedicalRuntime medical,
-        IBlueprintResearchStateService research,
-        IWorkforceReplanService workforce,
-        IGameClock clock,
-        IRandomStreamProvider randomStreams,
-        IReadOnlyList<ISurgicalProcedureEffectHandler> registeredEffectHandlers,
-        IProcessFluidUseRuntime processFluids = null,
-        IEnvironmentalFieldRuntime environmentalField = null,
-        ICharacterEnvironmentStatusQuery environmentStatus = null,
-        ISurgeryEnvironmentRiskEvaluator environmentRiskEvaluator = null)
+        SurgeryContentServices content,
+        SurgeryWorldServices world,
+        SurgeryResourceServices resources,
+        SurgeryExecutionServices execution,
+        SurgeryAggregateStateStore stateStore)
     {
-        this.procedures = procedures ?? throw new ArgumentNullException(nameof(procedures));
-        this.facilities = facilities ?? throw new ArgumentNullException(nameof(facilities));
-        this.riskEvaluator = riskEvaluator ?? throw new ArgumentNullException(nameof(riskEvaluator));
-        this.parts = parts ?? throw new ArgumentNullException(nameof(parts));
-        this.policies = policies ?? throw new ArgumentNullException(nameof(policies));
-        this.extractionLedger = extractionLedger
-            ?? throw new ArgumentNullException(nameof(extractionLedger));
-        this.corpseFreshness = corpseFreshness
-            ?? throw new ArgumentNullException(nameof(corpseFreshness));
-        this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
-        this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
-        this.captivity = captivity ?? throw new ArgumentNullException(nameof(captivity));
-        this.buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
-        this.items = items ?? throw new ArgumentNullException(nameof(items));
-        this.bodyHealth = bodyHealth ?? throw new ArgumentNullException(nameof(bodyHealth));
-        this.anatomy = anatomy ?? throw new ArgumentNullException(nameof(anatomy));
-        this.wildlifeAnatomy = wildlifeAnatomy
-            ?? throw new ArgumentNullException(nameof(wildlifeAnatomy));
-        this.anatomyProfiles = anatomyProfiles
-            ?? throw new ArgumentNullException(nameof(anatomyProfiles));
-        this.patientTransport = patientTransport
-            ?? throw new ArgumentNullException(nameof(patientTransport));
-        this.medical = medical ?? throw new ArgumentNullException(nameof(medical));
-        this.research = research ?? throw new ArgumentNullException(nameof(research));
-        this.workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
-        this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
-        this.processFluids = processFluids;
-        this.environmentalField = environmentalField;
-        this.environmentStatus = environmentStatus;
-        this.environmentRiskEvaluator = environmentRiskEvaluator;
-        outcomeRandom = (randomStreams
-            ?? throw new ArgumentNullException(nameof(randomStreams)))
-            .Get("medical:surgery-outcomes");
-        effectHandlers = BuildEffectIndex(registeredEffectHandlers);
+        SurgeryContentServices requiredContent = content ?? throw new ArgumentNullException(nameof(content));
+        SurgeryWorldServices requiredWorld = world ?? throw new ArgumentNullException(nameof(world));
+        SurgeryResourceServices requiredResources = resources ?? throw new ArgumentNullException(nameof(resources));
+        SurgeryExecutionServices requiredExecution = execution ?? throw new ArgumentNullException(nameof(execution));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
+        procedures = requiredContent.Procedures;
+        facilities = requiredContent.Facilities;
+        riskEvaluator = requiredContent.Risk;
+        parts = requiredContent.Parts;
+        policies = requiredContent.Policies;
+        anatomyProfiles = requiredContent.AnatomyProfiles;
+        speciesCatalog = requiredContent.Species;
+        effectHandlers = SurgeryRuntimeSupport.BuildEffectIndex(
+            requiredContent.Effects);
+        corpseFreshness = requiredWorld.CorpseFreshness;
+        characters = requiredWorld.Characters;
+        wildlife = requiredWorld.Wildlife;
+        captivity = requiredWorld.Captivity;
+        buildings = requiredWorld.Buildings;
+        patientTransport = requiredWorld.PatientTransport;
+        bodyHealth = requiredWorld.BodyHealthQuery;
+        items = requiredResources.Items;
+        anatomy = requiredResources.Anatomy;
+        wildlifeAnatomy = requiredResources.WildlifeAnatomy;
+        workforce = requiredResources.Workforce;
+        processFluids = requiredResources.ProcessFluids;
+        clock = requiredExecution.Clock;
+        outcomeRandom = requiredExecution.OutcomeRandom;
+        environmentRiskEvaluator = requiredExecution.EnvironmentRisk;
+        planning = new SurgeryOrderPlanningService(
+            requiredContent,
+            requiredWorld,
+            requiredResources);
+        persistence = new SurgeryPersistence(this.stateStore);
+        surgeryEnvironment = new SurgeryEnvironmentRuntime(
+            requiredContent,
+            requiredWorld,
+            requiredResources,
+            requiredExecution);
+        surgeryLogistics = new SurgeryLogisticsRuntime(
+            requiredContent,
+            requiredWorld,
+            requiredResources,
+            requiredExecution);
     }
 
     public IReadOnlyList<SurgeryOrder> ActiveOrders =>
@@ -158,7 +147,9 @@ public sealed class SurgeryRuntime :
                 if (unavailable)
                 {
                     order.doctorId = string.Empty;
-                    order.status = "집도의 행동 불능: 대체 집도의 요청";
+                    order.statusData.Set(
+                        SurgeryStatusCode.DoctorReplacementRequested,
+                        order.doctorId);
                     workforce.RequestOneWorkerToReplanFor(
                         BuiltInWorkTypeIds.Surgery,
                         forceInterrupt: true);
@@ -168,13 +159,13 @@ public sealed class SurgeryRuntime :
             if (!TryResolveFacility(order.facilityId, out BuildableObject facility)
                 || !procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure))
             {
-                CancelInternal(order, "수술 시설 또는 절차가 사라졌습니다.");
+                CancelInternal(order);
                 continue;
             }
 
             if (order.state == SurgeryOrderState.EnvironmentWaiting)
             {
-                TickEnvironmentWaiting(order, facility);
+                surgeryEnvironment.TickWaiting(order, facility);
                 continue;
             }
 
@@ -183,7 +174,9 @@ public sealed class SurgeryRuntime :
                 procedure.RequiredFacilityTags);
             if (!facilityState.IsAvailable)
             {
-                order.status = facilityState.BlockReason;
+                order.statusData.Set(
+                    SurgeryStatusCode.FacilityUnavailable,
+                    order.facilityId);
                 continue;
             }
 
@@ -192,7 +185,7 @@ public sealed class SurgeryRuntime :
                 if (clock.Time >= order.recoveryUntil)
                 {
                     order.state = SurgeryOrderState.Completed;
-                    order.status = "수술 후 회복 완료";
+                    order.statusData.Set(SurgeryStatusCode.RecoveryCompleted);
                     ReleasePatient(order);
                 }
 
@@ -201,11 +194,11 @@ public sealed class SurgeryRuntime :
 
             if (refreshMaterials)
             {
-                RequestMissingMaterials(order, facility, procedure);
+                surgeryLogistics.RequestMissingMaterials(order, facility);
             }
 
-            bool patientReady = EnsurePatientAdmission(order, facility);
-            bool materialsReady = AreRequiredMaterialsReady(order);
+            bool patientReady = surgeryLogistics.EnsureAdmission(order, facility);
+            bool materialsReady = surgeryLogistics.AreRequiredMaterialsReady(order);
             if (!patientReady)
             {
                 order.state = SurgeryOrderState.PatientWaiting;
@@ -215,7 +208,8 @@ public sealed class SurgeryRuntime :
             if (!materialsReady)
             {
                 order.state = SurgeryOrderState.MaterialsWaiting;
-                order.status = "수술 재료 운반 대기";
+                order.statusData.Set(
+                    SurgeryStatusCode.MaterialsDeliveryPending);
                 continue;
             }
 
@@ -223,9 +217,10 @@ public sealed class SurgeryRuntime :
                 or SurgeryOrderState.MaterialsWaiting)
             {
                 order.state = SurgeryOrderState.Anesthetizing;
-                order.status = procedure.RequiresAnesthesia
-                    ? "마취 준비 완료"
-                    : "절개 준비 완료";
+                order.statusData.Set(
+                    procedure.RequiresAnesthesia
+                        ? SurgeryStatusCode.AnesthesiaInProgress
+                        : SurgeryStatusCode.PatientRestraintInProgress);
                 workforce.RequestOneWorkerToReplanFor(
                     BuiltInWorkTypeIds.Surgery,
                     forceInterrupt: true);
@@ -252,7 +247,7 @@ public sealed class SurgeryRuntime :
                 continue;
             }
 
-            SurgicalSubjectRef subject = CreateCharacterSubject(
+            SurgicalSubjectRef subject = SurgeryRuntimeSupport.CreateCharacterSubject(
                 actor,
                 automaticEmergencyDefault: true);
             if (!policies.IsAutomaticEmergencySurgeryEnabled(subject)
@@ -322,21 +317,6 @@ public sealed class SurgeryRuntime :
         }
     }
 
-    private static SurgicalSubjectRef CreateCharacterSubject(
-        CharacterActor actor,
-        bool automaticEmergencyDefault)
-    {
-        return new SurgicalSubjectRef
-        {
-            kind = SurgicalSubjectKind.Character,
-            subjectId = actor?.Identity?.PersistentId ?? string.Empty,
-            displayName = actor?.Identity?.DisplayName ?? string.Empty,
-            speciesId = actor?.Identity?.SpeciesTag ?? string.Empty,
-            willing = actor != null && actor.characterType == CharacterType.NPC,
-            automaticEmergencyDefault = automaticEmergencyDefault
-        };
-    }
-
     public bool TryGetOrder(string orderId, out SurgeryOrder order)
     {
         order = orders.FirstOrDefault(candidate =>
@@ -366,23 +346,57 @@ public sealed class SurgeryRuntime :
                     candidate.facilityId,
                     facilityId,
                     StringComparison.Ordinal))
-            .OrderBy(candidate => candidate.createdAt)
+                .OrderByDescending(surgeryEnvironment.GetUrgency)
+            .ThenBy(candidate => candidate.createdAt)
             .ThenBy(candidate => candidate.orderId, StringComparer.Ordinal)
             .FirstOrDefault();
         return order != null;
+    }
+
+    public bool CanOperate(
+        SurgeryOrder order,
+        CharacterActor doctor,
+        out DomainFailure failure)
+    {
+        failure = DomainFailure.None;
+        if (order == null || !order.IsActive)
+        {
+            failure = new DomainFailure(FailureCode.SurgeryOrderMissing);
+            return false;
+        }
+
+        if (doctor == null || doctor.IsDead || !doctor.CanRunAi)
+        {
+            failure = new DomainFailure(FailureCode.SurgeryOperatorIneligible);
+            return false;
+        }
+
+        if (!procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure))
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryProcedureMissing,
+                order.procedureId);
+            return false;
+        }
+
+        return procedure.OperatorRequirement.IsQualified(
+            doctor,
+            procedure.Family,
+            out _,
+            out failure);
     }
 
     public bool TryReserveWork(
         BuildableObject facility,
         CharacterActor doctor,
         out SurgeryOrder order,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (doctor == null || doctor.IsDead || !doctor.CanRunAi)
         {
             order = null;
-            failureReason = "집도 가능한 의사가 아닙니다.";
+            failure = new DomainFailure(FailureCode.SurgeryOperatorIneligible);
             return false;
         }
 
@@ -391,13 +405,13 @@ public sealed class SurgeryRuntime :
             || doctor.characterType != CharacterType.NPC)
         {
             order = null;
-            failureReason = "사장 또는 직원만 수술을 집도할 수 있습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryStaffOnly, doctorId);
             return false;
         }
 
         if (!TryGetWorkFor(facility, out order))
         {
-            failureReason = "이 시설에서 진행할 수술이 없습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryOrderMissing);
             return false;
         }
 
@@ -408,7 +422,9 @@ public sealed class SurgeryRuntime :
                 StringComparison.Ordinal))
         {
             order = null;
-            failureReason = "지정된 의사만 집도할 수 있습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryPreferredDoctorOnly,
+                order.preferredDoctorId);
             return false;
         }
 
@@ -419,7 +435,9 @@ public sealed class SurgeryRuntime :
                 StringComparison.Ordinal))
         {
             order = null;
-            failureReason = "다른 의사가 집도 중입니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryDoctorAlreadyAssigned,
+                order.doctorId);
             return false;
         }
 
@@ -428,7 +446,15 @@ public sealed class SurgeryRuntime :
                 out SurgicalProcedureSO procedure))
         {
             order = null;
-            failureReason = "수술 절차를 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryProcedureMissing,
+                order.procedureId);
+            return false;
+        }
+
+        if (!CanOperate(order, doctor, out failure))
+        {
+            order = null;
             return false;
         }
 
@@ -438,7 +464,9 @@ public sealed class SurgeryRuntime :
         if (!snapshot.IsAvailable)
         {
             order = null;
-            failureReason = snapshot.BlockReason;
+            failure = new DomainFailure(
+                FailureCode.SurgeryFacilityUnavailable,
+                facilities.GetFacilityId(facility));
             return false;
         }
 
@@ -448,27 +476,26 @@ public sealed class SurgeryRuntime :
             order.subject,
             procedure,
             snapshot,
-            ResolvePatientInstability(order.subject),
-            ResolveCompatibilityPenalty(order));
-        if (environmentRiskEvaluator != null)
+            planning.ResolvePatientInstability(order.subject),
+            planning.ResolveCompatibilityPenalty(order));
+        SurgeryEnvironmentRiskSnapshot environmentRisk =
+            environmentRiskEvaluator.Evaluate(
+                facility.centerPos,
+                doctor,
+                order.subject);
+        if (environmentRisk.Extreme
+            && !surgeryEnvironment.IsEmergency(order))
         {
-            SurgeryEnvironmentRiskSnapshot environmentRisk =
-                environmentRiskEvaluator.Evaluate(
-                    facility.centerPos,
-                    doctor,
-                    order.subject);
-            if (environmentRisk.Extreme
-                && !IsEmergencyOrder(order))
-            {
-                EnterEnvironmentWait(
-                    order,
-                    SurgeryOrderState.Anesthetizing,
-                    environmentRisk);
-                failureReason = order.environmentWaitReason;
-                return false;
-            }
+            surgeryEnvironment.EnterWait(
+                order,
+                SurgeryOrderState.Anesthetizing,
+                environmentRisk);
+            failure = new DomainFailure(
+                FailureCode.SurgeryEnvironmentUnsafe,
+                order.orderId);
+            return false;
         }
-        order.status = "집도 시작";
+        order.statusData.Set(SurgeryStatusCode.OperationStarted);
         return true;
     }
 
@@ -477,14 +504,14 @@ public sealed class SurgeryRuntime :
         CharacterActor doctor,
         float work,
         out bool completed,
-        out string failureReason)
+        out DomainFailure failure)
     {
         completed = false;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (!TryGetOrder(orderId, out SurgeryOrder order)
             || !order.IsActive)
         {
-            failureReason = "수술 주문이 유효하지 않습니다.";
+            failure = new DomainFailure(FailureCode.SurgeryOrderMissing, orderId);
             return false;
         }
 
@@ -494,48 +521,55 @@ public sealed class SurgeryRuntime :
                 doctor.Identity?.PersistentId,
                 StringComparison.Ordinal))
         {
-            failureReason = "예약된 의사가 아닙니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryReservedDoctorMismatch,
+                order.doctorId,
+                doctor?.Identity?.PersistentId ?? string.Empty);
             return false;
         }
 
         if (!TryResolveFacility(order.facilityId, out BuildableObject facility)
             || !procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure))
         {
-            failureReason = "수술 시설 또는 절차가 사라졌습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryFacilityOrProcedureMissing,
+                order.facilityId,
+                order.procedureId);
             return false;
         }
 
         if (!order.processFluidConsumed
-            && processFluids != null
             && !processFluids.TryConsumeCycle(
                 facility,
                 BuiltInWorkTypeIds.Surgery,
-                out failureReason))
+                out _))
         {
-            order.status = failureReason;
+            failure = new DomainFailure(FailureCode.SurgeryMaterialUnavailable);
+            order.statusData.Set(SurgeryStatusCode.ProcessFluidUnavailable);
             return false;
         }
 
         order.processFluidConsumed = true;
         if (!order.materialsConsumed
-            && !TryConsumeMaterials(order, out failureReason))
+            && !surgeryLogistics.TryConsumeMaterials(order, out failure))
         {
             order.state = SurgeryOrderState.MaterialsWaiting;
-            order.status = failureReason;
+            order.statusData.Set(SurgeryStatusCode.MaterialsDeliveryPending);
             return false;
         }
 
         if (order.state == SurgeryOrderState.EnvironmentWaiting)
         {
-            failureReason = order.environmentWaitReason;
+            failure = new DomainFailure(
+                FailureCode.SurgeryEnvironmentUnsafe,
+                order.orderId);
             return false;
         }
 
-        float stageBoundary = GetCurrentStageBoundary(order);
+        float stageBoundary = surgeryEnvironment.GetCurrentStageBoundary(order);
         SurgeryEnvironmentRiskSnapshot environmentRisk = default;
         bool waitAtBoundary = false;
-        if (environmentRiskEvaluator != null
-            && !IsEmergencyOrder(order))
+        if (!surgeryEnvironment.IsEmergency(order))
         {
             environmentRisk = environmentRiskEvaluator.Evaluate(
                 facility.centerPos,
@@ -545,15 +579,17 @@ public sealed class SurgeryRuntime :
             if (waitAtBoundary
                 && order.completedWork + 0.001f >= stageBoundary)
             {
-                ApplyCurrentStageEnvironmentRisk(
+                surgeryEnvironment.ApplyCurrentStageRisk(
                     order,
                     doctor,
                     facility);
-                EnterEnvironmentWait(
+                surgeryEnvironment.EnterWait(
                     order,
-                    GetNextClinicalStage(order.state),
+                    surgeryEnvironment.GetNextClinicalStage(order.state),
                     environmentRisk);
-                failureReason = order.environmentWaitReason;
+                failure = new DomainFailure(
+                    FailureCode.SurgeryEnvironmentUnsafe,
+                    order.orderId);
                 return false;
             }
         }
@@ -577,15 +613,17 @@ public sealed class SurgeryRuntime :
             && order.completedWork + 0.001f >= stageBoundary
             && stageBoundary + 0.001f < order.requiredWork)
         {
-            ApplyCurrentStageEnvironmentRisk(
+            surgeryEnvironment.ApplyCurrentStageRisk(
                 order,
                 doctor,
                 facility);
-            EnterEnvironmentWait(
+            surgeryEnvironment.EnterWait(
                 order,
-                GetNextClinicalStage(order.state),
+                surgeryEnvironment.GetNextClinicalStage(order.state),
                 environmentRisk);
-            failureReason = order.environmentWaitReason;
+            failure = new DomainFailure(
+                FailureCode.SurgeryEnvironmentUnsafe,
+                order.orderId);
             return false;
         }
 
@@ -596,15 +634,14 @@ public sealed class SurgeryRuntime :
         }
 
         order.resultRolled = true;
-        completed = ResolveOutcome(order, procedure, facility, out failureReason);
+        completed = ResolveOutcome(order, procedure, facility, out failure);
         order.doctorId = string.Empty;
         return completed || order.state == SurgeryOrderState.Failed;
     }
 
     public void ReleaseDoctor(
         string orderId,
-        CharacterActor doctor,
-        string reason)
+        CharacterActor doctor)
     {
         if (!TryGetOrder(orderId, out SurgeryOrder order)
             || doctor == null
@@ -627,12 +664,16 @@ public sealed class SurgeryRuntime :
                 order.targetNodeId,
                 1f,
                 0.08f,
-                "중단된 수술의 열린 상처");
-            order.status = $"수술 중단 · 열린 상처: {reason}";
+                SurgeryStatusCode.ProcedureInterruptedOpenWound.ToString());
+            order.statusData.Set(
+                SurgeryStatusCode.ProcedureInterruptedOpenWound,
+                order.orderId);
         }
         else
         {
-            order.status = $"수술 일시 중단: {reason}";
+            order.statusData.Set(
+                SurgeryStatusCode.ProcedurePaused,
+                order.orderId);
         }
     }
 
@@ -644,34 +685,59 @@ public sealed class SurgeryRuntime :
         string preferredDoctorId,
         string preferredFacilityId,
         out SurgeryOrder order,
-        out string failureReason)
+        out DomainFailure failure)
     {
         order = null;
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (subject == null || !subject.IsValid)
         {
-            failureReason = "수술 대상이 유효하지 않습니다.";
+            failure = new DomainFailure(FailureCode.SurgerySubjectInvalid);
             return false;
         }
 
         if (subject.kind == SurgicalSubjectKind.Character
-            && CharacterSpeciesResourceLookup.TryGet(
-                subject.speciesId,
+            && !surgeryEnvironment.IsProcedureFamily(
+                procedureId,
+                MedicalProcedureFamily.Construct)
+            && speciesCatalog.TryGet(
+                new CharacterSpeciesId(subject.speciesId),
                 out CharacterSpeciesSO subjectSpecies)
             && (subjectSpecies.needs?.UsesMaintenanceInsteadOfSurgery ?? false))
         {
-            failureReason =
-                $"{subjectSpecies.displayName}은(는) 생물 수술 대상이 아닙니다. 정비 주문을 사용해야 합니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgerySubjectMaintenanceOnly,
+                subject.speciesId);
             return false;
         }
 
         if (!procedures.TryGet(procedureId, out SurgicalProcedureSO procedure))
         {
-            failureReason = "수술 절차를 찾을 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryProcedureMissing,
+                procedureId);
             return false;
         }
 
         string normalizedDoctorId = preferredDoctorId?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(normalizedDoctorId))
+        {
+            CharacterActor preferredDoctor = characters.Characters.FirstOrDefault(
+                candidate => candidate?.Identity != null
+                    && string.Equals(
+                        candidate.Identity.PersistentId,
+                        normalizedDoctorId,
+                        StringComparison.Ordinal));
+            if (preferredDoctor != null
+                && !procedure.OperatorRequirement.IsQualified(
+                    preferredDoctor,
+                    procedure.Family,
+                    out _,
+                    out failure))
+            {
+                return false;
+            }
+        }
+
         if (subject.kind == SurgicalSubjectKind.Character
             && !string.IsNullOrWhiteSpace(normalizedDoctorId)
             && string.Equals(
@@ -679,12 +745,13 @@ public sealed class SurgeryRuntime :
                 normalizedDoctorId,
                 StringComparison.Ordinal))
         {
-            failureReason = "환자는 자신의 수술을 집도할 수 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgerySelfOperationForbidden);
             return false;
         }
 
-        if (!ValidateSubject(subject, procedure, targetNodeId, out failureReason)
-            || !ValidateResearch(procedure, out failureReason))
+        if (!planning.ValidateSubject(subject, procedure, targetNodeId, out failure)
+            || !planning.ValidateResearch(procedure, out failure))
         {
             return false;
         }
@@ -696,7 +763,9 @@ public sealed class SurgeryRuntime :
                 subject.subjectId,
                 StringComparison.Ordinal)))
         {
-            failureReason = "대상에게 이미 진행 중인 수술 주문이 있습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgerySubjectAlreadyScheduled,
+                subject.subjectId);
             return false;
         }
 
@@ -705,7 +774,9 @@ public sealed class SurgeryRuntime :
         {
             if (!TryResolveFacility(preferredFacilityId, out BuildableObject preferred))
             {
-                failureReason = "지정한 수술 시설을 찾을 수 없습니다.";
+                failure = new DomainFailure(
+                    FailureCode.SurgeryFacilityMissing,
+                    preferredFacilityId);
                 return false;
             }
 
@@ -714,7 +785,9 @@ public sealed class SurgeryRuntime :
                 procedure.RequiredFacilityTags);
             if (!facility.IsAvailable)
             {
-                failureReason = facility.BlockReason;
+                failure = new DomainFailure(
+                    FailureCode.SurgeryFacilityUnavailable,
+                    preferredFacilityId);
                 return false;
             }
         }
@@ -722,25 +795,33 @@ public sealed class SurgeryRuntime :
                      subject,
                      procedure,
                      out facility,
-                     out failureReason))
+                     out _))
         {
+            failure = new DomainFailure(
+                FailureCode.SurgeryFacilityUnavailable);
             return false;
         }
 
         string id = $"surgery:{++orderSequence}";
-        if (RequiresInstalledPart(procedure))
+        if (planning.RequiresInstalledPart(procedure))
         {
-            if (!ValidateSelectedPart(
+            if (!planning.ValidateSelectedPart(
                     subject,
                     procedure,
                     targetNodeId,
                     selectedPartInstanceId,
-                    out failureReason)
+                    out failure)
                 || !parts.TryReserveForOrder(
                     selectedPartInstanceId,
                     id,
-                    out failureReason))
+                    out _))
             {
+                if (!failure.IsFailure)
+                {
+                    failure = new DomainFailure(
+                        FailureCode.SurgeryPartUnavailable,
+                        selectedPartInstanceId);
+                }
                 return false;
             }
         }
@@ -763,13 +844,16 @@ public sealed class SurgeryRuntime :
             incisionWork = procedure.RequiredWork * 0.2f,
             procedureWork = procedure.RequiredWork * 0.5f,
             sutureWork = procedure.RequiredWork * 0.15f,
-            materials = BuildMaterialRequirements(subject, procedure, facility),
-            status = "환자 입실 대기",
+            materials = planning.BuildMaterials(subject, procedure, facility),
+            statusData = new SurgeryStatusData
+            {
+                code = SurgeryStatusCode.PatientAdmissionWaiting
+            },
             createdAt = clock.Time
         };
         orders.Add(order);
-        RequestMissingMaterials(order, facility.PrimaryFacility, procedure);
-        PrepareSubjectForAdmission(order, facility.PrimaryFacility);
+        surgeryLogistics.RequestMissingMaterials(order, facility.PrimaryFacility);
+        surgeryLogistics.PrepareAdmission(order, facility.PrimaryFacility);
         workforce.RequestOneHaulerToReplan(forceInterrupt: true);
         workforce.RequestOneWorkerToReplanFor(
             BuiltInWorkTypeIds.Surgery,
@@ -777,552 +861,24 @@ public sealed class SurgeryRuntime :
         return true;
     }
 
-    private bool ValidateSelectedPart(
-        SurgicalSubjectRef subject,
-        SurgicalProcedureSO procedure,
-        string targetNodeId,
-        string partInstanceId,
-        out string failureReason)
+    public bool TryCancel(string orderId, out DomainFailure failure)
     {
-        failureReason = string.Empty;
-        if (!parts.TryGet(partInstanceId, out SurgicalPartInstance part)
-            || part.installed)
-        {
-            failureReason = "사용 가능한 장기 또는 보철을 선택해야 합니다.";
-            return false;
-        }
-
-        bool kindMatches = procedure.Kind switch
-        {
-            SurgicalProcedureKind.TransplantOrgan =>
-                part.kind == SurgicalPartKind.NaturalOrgan,
-            SurgicalProcedureKind.InstallProsthetic =>
-                part.kind == SurgicalPartKind.Prosthetic,
-            SurgicalProcedureKind.InstallImplant =>
-                part.kind == SurgicalPartKind.Implant,
-            SurgicalProcedureKind.ArcaneModification =>
-                part.kind == SurgicalPartKind.ArcaneGraft
-                || part.kind == SurgicalPartKind.Implant,
-            _ => true
-        };
-        if (!kindMatches)
-        {
-            failureReason = "선택한 부품 종류가 수술 절차와 맞지 않습니다.";
-            return false;
-        }
-
-        string target = string.IsNullOrWhiteSpace(targetNodeId)
-            ? procedure.TargetNodeId
-            : targetNodeId.Trim();
-        if (string.Equals(part.nodeId, target, StringComparison.Ordinal))
-        {
-            return true;
-        }
-
-        AnatomyProfileDefinition recipient =
-            anatomyProfiles.GetForSpecies(subject?.speciesId);
-        if (recipient.TryGetNode(target, out AnatomyNodeDefinition targetNode)
-            && recipient.TryGetNode(
-                part.nodeId,
-                out AnatomyNodeDefinition partNode)
-            && !string.IsNullOrWhiteSpace(targetNode.PairedGroupId)
-            && string.Equals(
-                targetNode.PairedGroupId,
-                partNode.PairedGroupId,
-                StringComparison.Ordinal))
-        {
-            return true;
-        }
-
-        failureReason = "선택한 장기 또는 보철은 대상 부위와 맞지 않습니다.";
-        return false;
-    }
-
-    public bool TryCancel(string orderId, out string failureReason)
-    {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         if (!TryGetOrder(orderId, out SurgeryOrder order) || !order.IsActive)
         {
-            failureReason = "취소할 수술 주문이 없습니다.";
+            failure = new DomainFailure(
+                FailureCode.SurgeryOrderMissing,
+                orderId);
             return false;
         }
 
-        CancelInternal(order, "플레이어가 수술을 취소했습니다.");
+        CancelInternal(order);
         return true;
     }
 
     public DungeonSurgerySaveData Capture()
     {
-        SurgeryPolicyRuntime concretePolicies = policies as SurgeryPolicyRuntime;
-        return new DungeonSurgerySaveData
-        {
-            orders = orders.Select(CloneOrder).ToList(),
-            parts = parts.CaptureParts().ToList(),
-            organStorageStates = parts.CaptureStorageStates().ToList(),
-            corpseFreshness = corpseFreshness.Capture().ToList(),
-            policies = concretePolicies?.Capture().ToList()
-                ?? new List<SurgerySubjectPolicyState>(),
-            corpseRecords = extractionLedger.Capture().ToList(),
-            wildlifeAnatomy = wildlifeAnatomy.Capture().ToList(),
-            orderSequence = orderSequence
-        };
-    }
-
-    public void Restore(
-        DungeonSurgerySaveData saveData,
-        IList<string> warnings)
-    {
-        foreach (SurgeryOrder active in orders.Where(order =>
-                     order != null && order.IsActive))
-        {
-            patientTransport.CancelTransport(
-                active,
-                "저장 상태 복원을 위해 운반 예약을 해제했습니다.");
-            if (active.subject?.kind == SurgicalSubjectKind.Character)
-            {
-                ReleasePatient(active);
-            }
-        }
-
-        orders.Clear();
-        orderSequence = Mathf.Max(0, saveData?.orderSequence ?? 0);
-        parts.RestoreParts(saveData?.parts, warnings);
-        parts.RestoreStorageStates(saveData?.organStorageStates, warnings);
-        corpseFreshness.Restore(saveData?.corpseFreshness, warnings);
-        extractionLedger.Restore(saveData?.corpseRecords, warnings);
-        wildlifeAnatomy.Restore(saveData?.wildlifeAnatomy, warnings);
-        if (policies is SurgeryPolicyRuntime concretePolicies)
-        {
-            concretePolicies.Restore(saveData?.policies, warnings);
-        }
-
-        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (SurgeryOrder source in
-                 saveData?.orders ?? new List<SurgeryOrder>())
-        {
-            if (source == null
-                || string.IsNullOrWhiteSpace(source.orderId)
-                || !ids.Add(source.orderId))
-            {
-                warnings?.Add("중복되거나 잘못된 수술 주문을 제외했습니다.");
-                continue;
-            }
-
-            SurgeryOrder restored = CloneOrder(source);
-            restored.doctorId = string.Empty;
-            restored.admissionMoveRequested = false;
-            restored.patientTransporterId = string.Empty;
-            restored.patientTransportInProgress = false;
-            restored.patientReturnRequested = false;
-            if (!restored.IsActive
-                || procedures.TryGet(restored.procedureId, out _)
-                && TryResolveFacility(restored.facilityId, out _))
-            {
-                orders.Add(restored);
-            }
-            else
-            {
-                warnings?.Add($"{restored.orderId}: 대상 시설이나 절차가 없어 취소했습니다.");
-                restored.state = SurgeryOrderState.Cancelled;
-                restored.status = "복원 중 수술 대상 소실";
-                orders.Add(restored);
-            }
-        }
-    }
-
-    private void PrepareSubjectForAdmission(
-        SurgeryOrder order,
-        BuildableObject facility)
-    {
-        if (order.subject.kind != SurgicalSubjectKind.Character)
-        {
-            return;
-        }
-
-        CharacterActor patient = SurgicalSubjectResolver.FindCharacter(
-            characters,
-            order.subject.subjectId);
-        if (patient == null || patient.IsDead)
-        {
-            return;
-        }
-
-        if (bodyHealth.GetSnapshot(patient).Downed)
-        {
-            if (medical.TryRequestTreatment(patient, out CharacterMedicalOrder medicalOrder, out _))
-            {
-                medical.TryAssignSpecificTreatmentFacility(
-                    medicalOrder.orderId,
-                    facility,
-                    out _);
-            }
-
-            return;
-        }
-
-        order.subjectAiWasPaused = patient.IsAiPaused();
-        patient.SetAiPaused(true);
-        patient.Brain?.SetActionPhase("수술 입실 준비", facility);
-    }
-
-    private bool EnsurePatientAdmission(
-        SurgeryOrder order,
-        BuildableObject facility)
-    {
-        if (order.subject.kind is SurgicalSubjectKind.HumanoidCorpse
-            or SurgicalSubjectKind.WildlifeCorpse)
-        {
-            WorldItemStackSnapshot corpse = items.GetAllStacks().FirstOrDefault(stack =>
-                stack != null
-                && string.Equals(
-                    stack.StackId,
-                    order.subject.subjectId,
-                    StringComparison.Ordinal));
-            bool ready = corpse != null
-                && corpse.State == WorldItemStackState.FacilityBuffer
-                && string.Equals(
-                    corpse.DestinationId,
-                    order.materialDestinationId,
-                    StringComparison.Ordinal);
-            order.status = ready ? "사체 해부 준비 완료" : "사체 운반 대기";
-            return ready;
-        }
-
-        if (order.subject.kind == SurgicalSubjectKind.Wildlife)
-        {
-            WildlifeActor animal = SurgicalSubjectResolver.FindWildlife(
-                wildlife,
-                order.subject.subjectId);
-            if (animal == null || !animal.IsAlive)
-            {
-                order.status = "살아 있는 동물 환자를 찾을 수 없습니다.";
-                return false;
-            }
-
-            if (ManhattanToFacility(animal.GridPosition, facility) <= 1)
-            {
-                order.patientAdmitted = true;
-                order.status = "동물 환자 준비 완료";
-                return true;
-            }
-
-            if (!TryFindAdmissionCell(
-                    facility,
-                    animal.GridPosition,
-                    out Vector2Int wildlifeAdmission))
-            {
-                order.status = "수술대에 접근할 수 있는 동물 환자 칸이 없습니다.";
-                return false;
-            }
-
-            bool ready = patientTransport.EnsureWildlifeAdmission(
-                order,
-                animal,
-                wildlifeAdmission,
-                out string transportStatus);
-            order.status = transportStatus;
-            return ready;
-        }
-
-        CharacterActor patient = SurgicalSubjectResolver.FindCharacter(
-            characters,
-            order.subject.subjectId);
-        if (patient == null || patient.IsDead)
-        {
-            order.status = "환자를 찾을 수 없습니다.";
-            return false;
-        }
-
-        if (order.patientAdmitted)
-        {
-            return true;
-        }
-
-        if (ManhattanToFacility(patient.GetNowXY(), facility) <= 1
-            || facility.ContainsGridPosition(patient.GetNowXY()))
-        {
-            order.patientAdmitted = true;
-            patient.SetAiPaused(true);
-            patient.Brain?.SetActionPhase("수술 대기", facility);
-            order.status = "환자 입실 완료";
-            return true;
-        }
-
-        if (bodyHealth.GetSnapshot(patient).Downed)
-        {
-            order.status = "구조자가 환자를 수술실로 이송 중";
-            return false;
-        }
-
-        if (!order.subject.willing)
-        {
-            if (!captivity.TryGetCaptive(
-                    order.subject.subjectId,
-                    out CaptiveState captive)
-                || !captive.restrained)
-            {
-                order.status = "비동의 환자는 먼저 구속해야 합니다.";
-                return false;
-            }
-        }
-
-        AbilityMove move = patient.GetAbility<AbilityMove>();
-        Vector2Int requestedAdmission = new(
-            order.admissionX,
-            order.admissionY);
-        if (order.admissionMoveRequested)
-        {
-            if (move != null
-                && move.IsSystemMoveInProgressTo(requestedAdmission))
-            {
-                order.status = "환자가 수술실로 이동 중";
-                return false;
-            }
-
-            order.admissionMoveRequested = false;
-        }
-
-        if (move != null && move.IsSystemMoveInProgress)
-        {
-            order.status = "환자의 현재 이동이 끝나기를 기다리는 중";
-            return false;
-        }
-
-        if (clock.Time < order.nextAdmissionRetryAt)
-        {
-            order.status = "환자가 수술실로 이동 중";
-            return false;
-        }
-
-        if (!TryFindAdmissionCell(facility, patient.GetNowXY(), out Vector2Int admission))
-        {
-            order.status = "수술대에 접근할 수 있는 환자 칸이 없습니다.";
-            return false;
-        }
-
-        if (!order.admissionMoveRequested)
-        {
-            Vector2Int origin = patient.GetNowXY();
-            order.patientOriginX = origin.x;
-            order.patientOriginY = origin.y;
-        }
-
-        order.admissionX = admission.x;
-        order.admissionY = admission.y;
-        order.nextAdmissionRetryAt = clock.Time + AdmissionRetryInterval;
-        string message = "환자를 수술대로 이동시킬 수 없습니다.";
-        order.admissionMoveRequested = move != null
-            && move.TryStartSystemMove(
-                admission,
-                order.subject.willing
-                    ? DoorAccessOverrideKind.None
-                    : DoorAccessOverrideKind.EscortPass,
-                out message);
-        order.status = order.admissionMoveRequested
-            ? "환자가 수술실로 이동 중"
-            : message;
-        return false;
-    }
-
-    private void RequestMissingMaterials(
-        SurgeryOrder order,
-        BuildableObject facility,
-        SurgicalProcedureSO procedure)
-    {
-        if (order == null || facility == null)
-        {
-            return;
-        }
-
-        bool deliveryCreated = false;
-        foreach (SurgicalMaterialRequirement requirement in order.materials)
-        {
-            if (requirement == null || requirement.optional)
-            {
-                continue;
-            }
-
-            int routed = CountRoutedItem(order, requirement.itemId);
-            int missing = Mathf.Max(0, requirement.quantity - routed);
-            if (missing > 0)
-            {
-                bool created = items.TryRequestItemDelivery(
-                    requirement.itemId,
-                    missing,
-                    facility.centerPos,
-                    order.materialDestinationId,
-                    out int requested,
-                    out _);
-                deliveryCreated |= created && requested > 0;
-            }
-        }
-
-        if (order.subject.kind is SurgicalSubjectKind.HumanoidCorpse
-            or SurgicalSubjectKind.WildlifeCorpse)
-        {
-            WorldItemStackSnapshot corpse = items.GetAllStacks().FirstOrDefault(stack =>
-                stack != null
-                && string.Equals(
-                    stack.StackId,
-                    order.subject.subjectId,
-                    StringComparison.Ordinal));
-            if (corpse != null
-                && !string.Equals(
-                    corpse.DestinationId,
-                    order.materialDestinationId,
-                    StringComparison.Ordinal))
-            {
-                bool created = items.TryRequestStackDelivery(
-                    corpse.StackId,
-                    1,
-                    facility.centerPos,
-                    order.materialDestinationId,
-                    out int requested,
-                    out _);
-                deliveryCreated |= created && requested > 0;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId)
-            && parts.TryGet(
-                order.selectedPartInstanceId,
-                out SurgicalPartInstance part)
-            && !string.IsNullOrWhiteSpace(part.worldStackId))
-        {
-            bool created = items.TryRequestStackDelivery(
-                part.worldStackId,
-                1,
-                facility.centerPos,
-                order.materialDestinationId,
-                out int requested,
-                out _);
-            deliveryCreated |= created && requested > 0;
-        }
-
-        if (deliveryCreated)
-        {
-            foreach (WorldItemStackSnapshot stack in items.GetAllStacks()
-                         .Where(stack => stack != null
-                             && string.Equals(
-                                 stack.DestinationId,
-                                 order.materialDestinationId,
-                                 StringComparison.Ordinal)
-                             && stack.State is WorldItemStackState.Loose
-                                 or WorldItemStackState.Stored))
-            {
-                items.PrioritizeHaul(stack.StackId);
-            }
-        }
-
-        if (deliveryCreated)
-        {
-            workforce.RequestOneHaulerToReplan(forceInterrupt: true);
-        }
-
-        order.materialsRequested = true;
-    }
-
-    private int CountRoutedItem(SurgeryOrder order, string itemId)
-    {
-        int worldQuantity = items.GetAllStacks()
-            .Where(stack => stack != null
-                && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
-                && string.Equals(
-                    stack.DestinationId,
-                    order.materialDestinationId,
-                    StringComparison.Ordinal))
-            .Sum(stack => stack.Quantity);
-        int carriedQuantity = characters.Characters
-            .Where(actor => actor != null)
-            .Select(actor => actor.GetComponent<AbilityHaul>())
-            .Where(haul => haul != null)
-            .Sum(haul => haul.GetInTransitQuantity(
-                order.materialDestinationId,
-                itemId));
-        return worldQuantity + carriedQuantity;
-    }
-
-    private bool AreRequiredMaterialsReady(SurgeryOrder order)
-    {
-        foreach (SurgicalMaterialRequirement requirement in order.materials)
-        {
-            if (requirement == null || requirement.optional)
-            {
-                continue;
-            }
-
-            int buffered = items.GetAllStacks()
-                .Where(stack => stack != null
-                    && stack.State == WorldItemStackState.FacilityBuffer
-                    && string.Equals(
-                        stack.DestinationId,
-                        order.materialDestinationId,
-                        StringComparison.Ordinal)
-                    && string.Equals(
-                        stack.ItemId,
-                        requirement.itemId,
-                        StringComparison.Ordinal))
-                .Sum(stack => stack.Quantity);
-            if (buffered < requirement.quantity)
-            {
-                return false;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId)
-            && parts.TryGet(
-                order.selectedPartInstanceId,
-                out SurgicalPartInstance selected))
-        {
-            WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(
-                candidate => candidate != null
-                    && string.Equals(
-                        candidate.StackId,
-                        selected.worldStackId,
-                        StringComparison.Ordinal));
-            if (stack == null
-                || stack.State != WorldItemStackState.FacilityBuffer
-                || !string.Equals(
-                    stack.DestinationId,
-                    order.materialDestinationId,
-                    StringComparison.Ordinal))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private bool TryConsumeMaterials(
-        SurgeryOrder order,
-        out string failureReason)
-    {
-        Dictionary<string, int> costs = order.materials
-            .Where(requirement => requirement != null && !requirement.optional)
-            .GroupBy(requirement => requirement.itemId, StringComparer.Ordinal)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Sum(item => Mathf.Max(1, item.quantity)),
-                StringComparer.Ordinal);
-        if (costs.Count > 0
-            && !items.TryConsumeFacilityItemBuffer(
-                order.materialDestinationId,
-                costs,
-                out failureReason))
-        {
-            return false;
-        }
-
-        order.materialsConsumed = true;
-        order.anesthesiaConsumed = order.materials.Any(requirement =>
-            requirement != null
-            && string.Equals(
-                requirement.itemId,
-                SurgeryItemDefinitions.AnestheticId,
-                StringComparison.Ordinal));
-        failureReason = string.Empty;
-        return true;
+        return persistence.Capture();
     }
 
     private void UpdatePhase(
@@ -1334,452 +890,66 @@ public sealed class SurgeryRuntime :
         float anesthesiaEnd = order.anesthesiaWork;
         float incisionEnd = anesthesiaEnd + order.incisionWork;
         float procedureEnd = incisionEnd + order.procedureWork;
-        if (RecordClinicalStage(
+        if (surgeryEnvironment.RecordClinicalStage(
             order,
             SurgeryOrderState.Anesthetizing))
         {
-            ApplyEnvironmentRisk(order, doctor, facility);
+            surgeryEnvironment.ApplyRisk(order, doctor, facility);
         }
         if (order.completedWork < anesthesiaEnd)
         {
             order.state = SurgeryOrderState.Anesthetizing;
-            order.status = procedure.RequiresAnesthesia ? "마취 중" : "환자 고정 중";
+            order.statusData.Set(
+                procedure.RequiresAnesthesia
+                    ? SurgeryStatusCode.AnesthesiaInProgress
+                    : SurgeryStatusCode.PatientRestraintInProgress);
             return;
         }
 
-        if (RecordClinicalStage(order, SurgeryOrderState.Incision))
+        if (surgeryEnvironment.RecordClinicalStage(
+                order,
+                SurgeryOrderState.Incision))
         {
-            ApplyEnvironmentRisk(order, doctor, facility);
+            surgeryEnvironment.ApplyRisk(order, doctor, facility);
         }
         order.incisionOpen = true;
         if (order.completedWork < incisionEnd)
         {
             order.state = SurgeryOrderState.Incision;
-            order.status = "절개 중";
+            order.statusData.Set(SurgeryStatusCode.IncisionInProgress);
             return;
         }
 
-        if (RecordClinicalStage(order, SurgeryOrderState.Procedure))
+        if (surgeryEnvironment.RecordClinicalStage(
+                order,
+                SurgeryOrderState.Procedure))
         {
-            ApplyEnvironmentRisk(order, doctor, facility);
+            surgeryEnvironment.ApplyRisk(order, doctor, facility);
         }
         if (order.completedWork < procedureEnd)
         {
             order.state = SurgeryOrderState.Procedure;
-            order.status = "수술 처치 중";
+            order.statusData.Set(SurgeryStatusCode.ProcedureInProgress);
             return;
         }
 
-        if (RecordClinicalStage(order, SurgeryOrderState.Suturing))
+        if (surgeryEnvironment.RecordClinicalStage(
+                order,
+                SurgeryOrderState.Suturing))
         {
-            ApplyEnvironmentRisk(order, doctor, facility);
+            surgeryEnvironment.ApplyRisk(order, doctor, facility);
         }
         order.state = SurgeryOrderState.Suturing;
-        order.status = "봉합 중";
-    }
-
-    private void TickEnvironmentWaiting(
-        SurgeryOrder order,
-        BuildableObject facility)
-    {
-        if (environmentRiskEvaluator == null)
-        {
-            order.state = order.environmentResumeStage;
-            order.environmentStableSeconds = 0f;
-            workforce.RequestOneWorkerToReplanFor(
-                BuiltInWorkTypeIds.Surgery,
-                forceInterrupt: true);
-            return;
-        }
-
-        SurgeryEnvironmentRiskSnapshot snapshot =
-            environmentRiskEvaluator.Evaluate(
-                facility.centerPos,
-                null,
-                order.subject);
-        if (!snapshot.Normal)
-        {
-            order.environmentStableSeconds = 0f;
-            order.environmentWaitReason =
-                $"환경 복구 대기: 16~28°C, 공기·조명 70 이상 필요. {snapshot.Summary}";
-            order.status = order.environmentWaitReason;
-            RequestEnvironmentRecovery(order, snapshot);
-            return;
-        }
-
-        order.environmentStableSeconds += Mathf.Max(
-            0f,
-            clock.DeltaTime);
-        order.status =
-            $"환경 안정 확인 {order.environmentStableSeconds:0.0}/5.0초";
-        if (order.environmentStableSeconds < 5f)
-        {
-            return;
-        }
-
-        order.state = order.environmentResumeStage;
-        order.environmentStableSeconds = 0f;
-        order.environmentWaitReason = string.Empty;
-        order.environmentRecoveryWorkStatus = "환경 정상, 집도의 재배정 대기";
-        order.status =
-            $"환경 복구 완료 — {order.environmentResumeStage} 단계부터 재개";
-        workforce.RequestOneWorkerToReplanFor(
-            BuiltInWorkTypeIds.Surgery,
-            forceInterrupt: true);
-    }
-
-    private void EnterEnvironmentWait(
-        SurgeryOrder order,
-        SurgeryOrderState resumeStage,
-        SurgeryEnvironmentRiskSnapshot snapshot)
-    {
-        order.state = SurgeryOrderState.EnvironmentWaiting;
-        order.environmentResumeStage = resumeStage;
-        order.environmentStableSeconds = 0f;
-        order.environmentWaitReason =
-            $"환경 복구 대기: 16~28°C, 공기·조명 70 이상 필요. {snapshot.Summary}";
-        order.status = order.environmentWaitReason;
-        order.doctorId = string.Empty;
-        RequestEnvironmentRecovery(order, snapshot);
-    }
-
-    private void RequestEnvironmentRecovery(
-        SurgeryOrder order,
-        SurgeryEnvironmentRiskSnapshot snapshot)
-    {
-        List<string> requests = new List<string>();
-        if (snapshot.Environment.TemperatureC < 16f)
-        {
-            BuildableObject source = FindEnvironmentRecoveryFacility(
-                order,
-                building =>
-                {
-                    BuildingThermalEmitterAbility ability =
-                        building.BuildingData?
-                            .GetAbility<BuildingThermalEmitterAbility>();
-                    return ability != null
-                        && ability.mode is ThermalEmitterMode.Heat
-                            or ThermalEmitterMode.Thermostat;
-                });
-            requests.Add(
-                $"난방·연료 점검 ({FormatRecoveryFacility(source, order)})");
-            workforce.RequestOneWorkerToReplanFor(
-                BuiltInWorkTypeIds.Refuel,
-                forceInterrupt: true);
-        }
-        else if (snapshot.Environment.TemperatureC > 28f)
-        {
-            BuildableObject source = FindEnvironmentRecoveryFacility(
-                order,
-                building =>
-                {
-                    BuildingThermalEmitterAbility ability =
-                        building.BuildingData?
-                            .GetAbility<BuildingThermalEmitterAbility>();
-                    return ability != null
-                        && ability.mode is ThermalEmitterMode.Cool
-                            or ThermalEmitterMode.Thermostat;
-                });
-            requests.Add(
-                $"냉각·공조 점검 ({FormatRecoveryFacility(source, order)})");
-            workforce.RequestOneWorkerToReplanFor(
-                BuiltInWorkTypeIds.Repair,
-                forceInterrupt: true);
-        }
-
-        if (snapshot.Environment.AirQuality < 70f)
-        {
-            BuildableObject source = FindEnvironmentRecoveryFacility(
-                order,
-                building => building.BuildingData?
-                    .GetAbility<BuildingAirExchangeAbility>() != null);
-            requests.Add(
-                $"환기·공조 복구 ({FormatRecoveryFacility(source, order)})");
-            workforce.RequestOneWorkerToReplanFor(
-                BuiltInWorkTypeIds.Repair,
-                forceInterrupt: true);
-        }
-
-        if (snapshot.Environment.LightLevel < 70f)
-        {
-            BuildableObject source = FindEnvironmentRecoveryFacility(
-                order,
-                building => building.BuildingData?
-                    .GetAbility<BuildingLightingAbility>() != null);
-            requests.Add(
-                $"조명 전력·연료 복구 ({FormatRecoveryFacility(source, order)})");
-            workforce.RequestOneWorkerToReplanFor(
-                BuiltInWorkTypeIds.Refuel,
-                forceInterrupt: true);
-        }
-
-        order.environmentRecoveryWorkStatus = requests.Count == 0
-            ? "복구 작업 불필요"
-            : string.Join(", ", requests);
-    }
-
-    private BuildableObject FindEnvironmentRecoveryFacility(
-        SurgeryOrder order,
-        Func<BuildableObject, bool> predicate)
-    {
-        if (!TryResolveFacility(
-                order?.facilityId,
-                out BuildableObject surgeryFacility))
-        {
-            return null;
-        }
-
-        return buildings.Buildings
-            .Where(building => building != null
-                && !building.isDestroy
-                && predicate(building))
-            .OrderBy(building =>
-                Mathf.Abs(
-                    building.centerPos.x - surgeryFacility.centerPos.x)
-                + Mathf.Abs(
-                    building.centerPos.y - surgeryFacility.centerPos.y))
-            .ThenBy(building => facilities.GetFacilityId(building))
-            .FirstOrDefault();
-    }
-
-    private string FormatRecoveryFacility(
-        BuildableObject facility,
-        SurgeryOrder order)
-    {
-        if (facility == null)
-        {
-            return $"원인 시설 없음 · 수술실 {order?.facilityId}";
-        }
-
-        string displayName = facility.BuildingData?.objectName
-            ?? facility.name;
-        return $"{displayName} · {facilities.GetFacilityId(facility)}";
-    }
-
-    private static bool IsEmergencyOrder(SurgeryOrder order)
-    {
-        return order?.subject?.automaticEmergencyDefault == true
-            || (order?.procedureId?.IndexOf(
-                    "emergency",
-                    StringComparison.OrdinalIgnoreCase)
-                ?? -1) >= 0;
-    }
-
-    private static float GetCurrentStageBoundary(SurgeryOrder order)
-    {
-        if (order == null)
-        {
-            return 0f;
-        }
-
-        return order.state switch
-        {
-            SurgeryOrderState.Anesthetizing => order.anesthesiaWork,
-            SurgeryOrderState.Incision =>
-                order.anesthesiaWork + order.incisionWork,
-            SurgeryOrderState.Procedure =>
-                order.anesthesiaWork
-                + order.incisionWork
-                + order.procedureWork,
-            SurgeryOrderState.Suturing => order.requiredWork,
-            _ => order.completedWork
-        };
-    }
-
-    private static SurgeryOrderState GetNextClinicalStage(
-        SurgeryOrderState state)
-    {
-        return state switch
-        {
-            SurgeryOrderState.Anesthetizing =>
-                SurgeryOrderState.Incision,
-            SurgeryOrderState.Incision =>
-                SurgeryOrderState.Procedure,
-            SurgeryOrderState.Procedure =>
-                SurgeryOrderState.Suturing,
-            _ => SurgeryOrderState.Suturing
-        };
-    }
-
-    private static bool RecordClinicalStage(
-        SurgeryOrder order,
-        SurgeryOrderState state)
-    {
-        order.reachedClinicalStages ??= new List<SurgeryOrderState>();
-        if (!order.reachedClinicalStages.Contains(state))
-        {
-            order.reachedClinicalStages.Add(state);
-            return true;
-        }
-
-        return false;
-    }
-
-    private void ApplyCurrentStageEnvironmentRisk(
-        SurgeryOrder order,
-        CharacterActor doctor,
-        BuildableObject facility)
-    {
-        if (order != null
-            && RecordClinicalStage(order, order.state))
-        {
-            ApplyEnvironmentRisk(order, doctor, facility);
-        }
-    }
-
-    private void ApplyEnvironmentRisk(
-        SurgeryOrder order,
-        CharacterActor doctor,
-        BuildableObject facility)
-    {
-        if (environmentalField == null)
-        {
-            return;
-        }
-
-        if (facility == null
-            || !environmentalField.TryGetCell(
-                facility.centerPos,
-                out EnvironmentalCellSnapshot environment))
-        {
-            throw new InvalidOperationException(
-                $"Surgery environment cell is unavailable for '{order?.orderId}'.");
-        }
-
-        if (environmentRiskEvaluator != null)
-        {
-            SurgeryEnvironmentRiskSnapshot snapshot =
-                environmentRiskEvaluator.Evaluate(
-                    facility.centerPos,
-                    doctor,
-                    order.subject);
-            order.risk = environmentRiskEvaluator.Apply(
-                order.risk,
-                snapshot,
-                0.25f);
-            if (!snapshot.Normal)
-            {
-                RequestEnvironmentRecovery(order, snapshot);
-                if (IsEmergencyOrder(order))
-                {
-                    order.status =
-                        $"응급 수술 지속 — {snapshot.Summary}; 복구 작업 동시 요청";
-                }
-            }
-
-            return;
-        }
-
-        const float stageWeight = 0.25f;
-        float successPenalty = 0f;
-        float infection = 0f;
-        float bleeding = 0f;
-        float organDamage = 0f;
-        if (environment.TemperatureC < 8f
-            || environment.TemperatureC > 35f)
-        {
-            successPenalty += 0.16f;
-            bleeding += 0.10f;
-        }
-        else if (environment.TemperatureC < 16f
-            || environment.TemperatureC > 28f)
-        {
-            successPenalty += 0.08f;
-            bleeding += 0.05f;
-        }
-
-        if (environment.AirQuality < 40f)
-        {
-            successPenalty += 0.12f;
-            infection += 0.25f;
-        }
-        else if (environment.AirQuality < 70f)
-        {
-            successPenalty += 0.06f;
-            infection += 0.12f;
-        }
-
-        if (environment.LightLevel < 40f)
-        {
-            successPenalty += 0.20f;
-            organDamage += 0.18f;
-        }
-        else if (environment.LightLevel < 70f)
-        {
-            successPenalty += 0.10f;
-            organDamage += 0.08f;
-        }
-
-        EnvironmentalExposureBand doctorBand =
-            environmentStatus?.GetPhysiologicalBand(
-                doctor?.Identity?.PersistentId)
-            ?? EnvironmentalExposureBand.Stable;
-        successPenalty += doctorBand switch
-        {
-            EnvironmentalExposureBand.Critical
-                or EnvironmentalExposureBand.Collapse => 0.12f,
-            EnvironmentalExposureBand.Impaired => 0.05f,
-            _ => 0f
-        };
-
-        CharacterActor patient = SurgicalSubjectResolver.FindCharacter(
-            characters,
-            order.subject?.subjectId);
-        EnvironmentalExposureBand patientBand =
-            environmentStatus?.GetPhysiologicalBand(
-                patient?.Identity?.PersistentId)
-            ?? EnvironmentalExposureBand.Stable;
-        float instabilityAdded = patientBand switch
-        {
-            EnvironmentalExposureBand.Critical
-                or EnvironmentalExposureBand.Collapse => 0.2f,
-            EnvironmentalExposureBand.Impaired => 0.1f,
-            _ => 0f
-        };
-        successPenalty += instabilityAdded * 0.3f;
-
-        SurgeryRiskBreakdown risk =
-            order.risk ??= new SurgeryRiskBreakdown();
-        risk.environmentStagesEvaluated++;
-        risk.environmentSuccessPenalty += successPenalty * stageWeight;
-        risk.environmentInfectionPenalty += infection * stageWeight;
-        risk.environmentBleedingPenalty += bleeding * stageWeight;
-        risk.environmentOrganDamagePenalty += organDamage * stageWeight;
-        risk.environmentInstabilityAdded +=
-            instabilityAdded * stageWeight;
-        risk.successChance = Mathf.Clamp(
-            risk.successChance - successPenalty * stageWeight,
-            0.05f,
-            0.98f);
-        risk.infectionChance = Mathf.Clamp01(
-            risk.infectionChance + infection * stageWeight);
-        risk.bleedingChance = Mathf.Clamp01(
-            risk.bleedingChance + bleeding * stageWeight);
-        risk.organDamageChance = Mathf.Clamp01(
-            risk.organDamageChance + organDamage * stageWeight);
-        risk.summary =
-            $"{risk.summary} | 환경 누적: 성공 -{risk.environmentSuccessPenalty * 100f:0.#}%p, "
-            + $"감염 +{risk.environmentInfectionPenalty * 100f:0.#}%p, "
-            + $"출혈 +{risk.environmentBleedingPenalty * 100f:0.#}%p, "
-            + $"장기손상 +{risk.environmentOrganDamagePenalty * 100f:0.#}%p";
-        if (successPenalty > 0f
-            || infection > 0f
-            || bleeding > 0f
-            || organDamage > 0f)
-        {
-            workforce.RequestOneWorkerToReplanFor(
-                BuiltInWorkTypeIds.Repair,
-                forceInterrupt: true);
-        }
+        order.statusData.Set(SurgeryStatusCode.SuturingInProgress);
     }
 
     private bool ResolveOutcome(
         SurgeryOrder order,
         SurgicalProcedureSO procedure,
         BuildableObject facility,
-        out string failureReason)
+        out DomainFailure failure)
     {
-        failureReason = string.Empty;
+        failure = DomainFailure.None;
         bool success = outcomeRandom.NextFloat() <= order.risk.successChance;
         if (success)
         {
@@ -1790,10 +960,11 @@ public sealed class SurgeryRuntime :
                         effect.GetType(),
                         out ISurgicalProcedureEffectHandler handler))
                 {
-                    failureReason =
-                        $"등록되지 않은 수술 효과입니다: {effect?.GetType().Name ?? "null"}";
+                    failure = new DomainFailure(
+                        FailureCode.SurgeryEffectHandlerMissing,
+                        effect?.GetType().Name ?? string.Empty);
                     order.state = SurgeryOrderState.Failed;
-                    order.status = failureReason;
+                    order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
                     return false;
                 }
 
@@ -1801,10 +972,10 @@ public sealed class SurgeryRuntime :
                         order,
                         effect,
                         facility,
-                        out failureReason))
+                        out failure))
                 {
                     order.state = SurgeryOrderState.Failed;
-                    order.status = failureReason;
+                    order.statusData.Set(SurgeryStatusCode.ProcedurePaused);
                     return false;
                 }
             }
@@ -1813,7 +984,7 @@ public sealed class SurgeryRuntime :
             order.incisionOpen = false;
             order.state = SurgeryOrderState.Recovering;
             order.recoveryUntil = clock.Time + RecoverySeconds;
-            order.status = "수술 완료 · 회복 관찰 중";
+            order.statusData.Set(SurgeryStatusCode.RecoveryObservation);
             return true;
         }
 
@@ -1826,15 +997,19 @@ public sealed class SurgeryRuntime :
         ApplyFailureConsequences(order);
         order.incisionOpen = false;
         order.state = SurgeryOrderState.Failed;
-        order.status = order.failureSeverity switch
+        order.statusData.Set(order.failureSeverity switch
         {
-            SurgeryFailureSeverity.Minor => "수술 실패 · 경미한 합병증",
-            SurgeryFailureSeverity.Major => "수술 실패 · 장기 손상",
-            SurgeryFailureSeverity.Fatal => "수술 실패 · 치명적 결과",
-            _ => "수술 실패"
-        };
+            SurgeryFailureSeverity.Minor =>
+                SurgeryStatusCode.CompletedWithMinorFailure,
+            SurgeryFailureSeverity.Major =>
+                SurgeryStatusCode.CompletedWithMajorFailure,
+            SurgeryFailureSeverity.Fatal => SurgeryStatusCode.FailedFatal,
+            _ => SurgeryStatusCode.CompletedWithMajorFailure
+        });
         ReleasePatient(order);
-        failureReason = order.status;
+        failure = new DomainFailure(
+            FailureCode.SurgeryOutcomeFailed,
+            order.failureSeverity.ToString());
         return false;
     }
 
@@ -1871,7 +1046,7 @@ public sealed class SurgeryRuntime :
                     order.targetNodeId,
                     3f,
                     0.08f,
-                    "수술 합병증");
+                    SurgeryStatusCode.CompletedWithMinorFailure.ToString());
                 anatomy.TryAddNodeBurden(
                     patient,
                     order.targetNodeId,
@@ -1886,7 +1061,7 @@ public sealed class SurgeryRuntime :
                     order.targetNodeId,
                     10f,
                     0.25f,
-                    "수술 중 장기 손상");
+                    SurgeryStatusCode.CompletedWithMajorFailure.ToString());
                 anatomy.TryAddNodeBurden(
                     patient,
                     order.targetNodeId,
@@ -1896,296 +1071,12 @@ public sealed class SurgeryRuntime :
                     out _);
                 break;
             case SurgeryFailureSeverity.Fatal:
-                patient.Die("치명적인 수술 실패");
+                patient.Die(SurgeryStatusCode.FailedFatal.ToString());
                 break;
         }
     }
 
-    private bool ValidateSubject(
-        SurgicalSubjectRef subject,
-        SurgicalProcedureSO procedure,
-        string targetNodeId,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        bool corpse = subject.kind is SurgicalSubjectKind.HumanoidCorpse
-            or SurgicalSubjectKind.WildlifeCorpse;
-        if (corpse && !procedure.AllowsCorpseSubject
-            || !corpse && !procedure.AllowsLivingSubject
-            || subject.kind is SurgicalSubjectKind.Wildlife
-                or SurgicalSubjectKind.WildlifeCorpse
-                && !procedure.AllowsWildlife)
-        {
-            failureReason = "이 수술은 선택한 대상 유형에 사용할 수 없습니다.";
-            return false;
-        }
-
-        string nodeId = string.IsNullOrWhiteSpace(targetNodeId)
-            ? procedure.TargetNodeId
-            : targetNodeId.Trim();
-        if (string.IsNullOrWhiteSpace(nodeId))
-        {
-            failureReason = "수술할 신체 부위를 선택해야 합니다.";
-            return false;
-        }
-
-        if (corpse)
-        {
-            WorldItemStackSnapshot stack = items.GetAllStacks().FirstOrDefault(candidate =>
-                candidate != null
-                && string.Equals(
-                    candidate.StackId,
-                    subject.subjectId,
-                    StringComparison.Ordinal));
-            if (stack == null)
-            {
-                failureReason = "신선한 사체 물리 스택을 찾을 수 없습니다.";
-                return false;
-            }
-
-            if (!corpseFreshness.TryGetFreshness(
-                    subject.subjectId,
-                    out _,
-                    out bool isFresh)
-                || !isFresh)
-            {
-                failureReason = "신선하지 않은 사체에서는 장기를 적출할 수 없습니다.";
-                return false;
-            }
-
-            if (extractionLedger.IsExtracted(subject.subjectId, nodeId))
-            {
-                failureReason = "이미 적출한 부위입니다.";
-                return false;
-            }
-        }
-        else if (subject.kind == SurgicalSubjectKind.Character)
-        {
-            CharacterActor actor = SurgicalSubjectResolver.FindCharacter(
-                characters,
-                subject.subjectId);
-            if (actor == null || actor.IsDead)
-            {
-                failureReason = "살아 있는 수술 대상을 찾을 수 없습니다.";
-                return false;
-            }
-
-            if (!anatomy.GetAnatomySnapshot(actor).Nodes.Any(node =>
-                    node != null
-                    && string.Equals(node.nodeId, nodeId, StringComparison.Ordinal)))
-            {
-                failureReason = "대상의 해부 구조에 해당 부위가 없습니다.";
-                return false;
-            }
-        }
-        else
-        {
-            WildlifeActor animal = SurgicalSubjectResolver.FindWildlife(
-                wildlife,
-                subject.subjectId);
-            if (animal == null || !animal.IsAlive)
-            {
-                failureReason = "살아 있는 동물 수술 대상을 찾을 수 없습니다.";
-                return false;
-            }
-
-            if (!wildlifeAnatomy.GetAnatomySnapshot(animal).Nodes.Any(node =>
-                    node != null
-                    && string.Equals(node.nodeId, nodeId, StringComparison.Ordinal)))
-            {
-                failureReason = "대상 동물의 해부 구조에 해당 부위가 없습니다.";
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private bool ValidateResearch(
-        SurgicalProcedureSO procedure,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        if (string.IsNullOrWhiteSpace(procedure.RequiredResearchId))
-        {
-            return true;
-        }
-
-        try
-        {
-            if (research.GetState().Projects.IsCompleted(
-                    new ResearchProjectId(procedure.RequiredResearchId)))
-            {
-                return true;
-            }
-        }
-        catch (InvalidOperationException)
-        {
-            failureReason = "연구 상태를 불러오지 못했습니다.";
-            return false;
-        }
-
-        failureReason = "필요한 수술 연구가 완료되지 않았습니다.";
-        return false;
-    }
-
-    private List<SurgicalMaterialRequirement> BuildMaterialRequirements(
-        SurgicalSubjectRef subject,
-        SurgicalProcedureSO procedure,
-        SurgicalFacilitySnapshot facility)
-    {
-        Dictionary<string, SurgicalMaterialRequirement> merged =
-            new Dictionary<string, SurgicalMaterialRequirement>(StringComparer.Ordinal);
-        foreach (SurgicalMaterialRequirement requirement in procedure.Materials)
-        {
-            Add(requirement?.itemId, requirement?.quantity ?? 0, requirement?.optional ?? false);
-        }
-
-        if (procedure.RequiresAnesthesia
-            || subject != null && !subject.willing)
-        {
-            Add(SurgeryItemDefinitions.AnestheticId, 1, false);
-        }
-
-        bool alreadyRestrained = subject?.kind == SurgicalSubjectKind.Character
-            && captivity.TryGetCaptive(
-                subject.subjectId,
-                out CaptiveState captive)
-            && captive.restrained;
-        if (procedure.RequiresRestraintForUnwilling
-            && subject != null
-            && !subject.willing
-            && !alreadyRestrained)
-        {
-            Add(CaptivityItemDefinitions.RestraintsItemId, 1, false);
-        }
-
-        foreach (BuildableObject support in facility.SupportFacilities
-                     .Append(facility.PrimaryFacility)
-                     .Where(building => building != null))
-        {
-            BuildingSterilizationAbility sterilization =
-                support.BuildingData?.GetAbility<BuildingSterilizationAbility>();
-            if (sterilization != null)
-            {
-                Add(
-                    DungeonItemCatalogSO.StockItemId(StockCategory.Water),
-                    sterilization.waterCost,
-                    false);
-                Add(
-                    SurgeryItemDefinitions.DisinfectantId,
-                    sterilization.disinfectantCost,
-                    false);
-            }
-
-            BuildingTransplantSupportAbility transplant =
-                support.BuildingData?.GetAbility<BuildingTransplantSupportAbility>();
-            if (transplant != null
-                && (procedure.RequiredFacilityTags & SurgeryFacilityTag.Transplant) != 0)
-            {
-                Add(SurgeryItemDefinitions.BloodPackId, transplant.bloodCost, false);
-                Add(
-                    SurgeryItemDefinitions.ImmunosuppressantId,
-                    transplant.immunosuppressantCost,
-                    false);
-            }
-
-            BuildingArcaneSurgeryAbility arcane =
-                support.BuildingData?.GetAbility<BuildingArcaneSurgeryAbility>();
-            if (arcane != null)
-            {
-                Add(
-                    DungeonItemCatalogSO.StockItemId(StockCategory.Mana),
-                    arcane.manaCrystalCost,
-                    false);
-            }
-        }
-
-        return merged.Values
-            .Where(requirement => requirement.quantity > 0)
-            .OrderBy(requirement => requirement.itemId, StringComparer.Ordinal)
-            .ToList();
-
-        void Add(string itemId, int quantity, bool optional)
-        {
-            if (string.IsNullOrWhiteSpace(itemId) || quantity <= 0)
-            {
-                return;
-            }
-
-            if (!merged.TryGetValue(itemId.Trim(), out SurgicalMaterialRequirement entry))
-            {
-                entry = new SurgicalMaterialRequirement
-                {
-                    itemId = itemId.Trim(),
-                    optional = optional
-                };
-                merged.Add(entry.itemId, entry);
-            }
-
-            entry.quantity += quantity;
-            entry.optional &= optional;
-        }
-    }
-
-    private float ResolvePatientInstability(SurgicalSubjectRef subject)
-    {
-        CharacterActor actor = SurgicalSubjectResolver.FindCharacter(
-            characters,
-            subject?.subjectId);
-        if (actor != null)
-        {
-            CharacterBodyHealthSnapshot snapshot = bodyHealth.GetSnapshot(actor);
-            return Mathf.Clamp01(
-                Mathf.Max(
-                    1f - snapshot.Consciousness,
-                    snapshot.BloodLoss / 100f));
-        }
-
-        WildlifeActor animal = SurgicalSubjectResolver.FindWildlife(
-            wildlife,
-            subject?.subjectId);
-        return animal != null
-            ? 1f - animal.CurrentHealth / Mathf.Max(1f, animal.MaxHealth)
-            : 0f;
-    }
-
-    private float ResolveCompatibilityPenalty(SurgeryOrder order)
-    {
-        if (order == null
-            || string.IsNullOrWhiteSpace(order.selectedPartInstanceId)
-            || !parts.TryGet(
-                order.selectedPartInstanceId,
-                out SurgicalPartInstance part))
-        {
-            return 0f;
-        }
-
-        if (string.Equals(
-                part.donorSpeciesId,
-                order.subject?.speciesId,
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return 0f;
-        }
-
-        AnatomyProfileDefinition recipient = anatomyProfiles.GetForSpecies(
-            order.subject?.speciesId);
-        float compatibility = string.Equals(
-                part.anatomyFamily,
-                recipient.AnatomyFamily,
-                StringComparison.OrdinalIgnoreCase)
-            ? 0.75f
-            : string.Equals(
-                recipient.AnatomyFamily,
-                "slime",
-                StringComparison.OrdinalIgnoreCase)
-                ? 0.2f
-                : 0.45f;
-        return (1f - compatibility) * 0.35f;
-    }
-
-    private void CancelInternal(SurgeryOrder order, string reason)
+    private void CancelInternal(SurgeryOrder order)
     {
         if (order == null)
         {
@@ -2193,7 +1084,7 @@ public sealed class SurgeryRuntime :
         }
 
         order.state = SurgeryOrderState.Cancelled;
-        order.status = reason ?? "수술 취소";
+        order.statusData.Set(SurgeryStatusCode.Cancelled);
         order.doctorId = string.Empty;
         if (!string.IsNullOrWhiteSpace(order.selectedPartInstanceId))
         {
@@ -2257,13 +1148,15 @@ public sealed class SurgeryRuntime :
                     DoorAccessOverrideKind.EscortPass,
                     out _))
             {
-                patient.Brain?.SetActionPhase("수술 후 감방으로 복귀 중", null);
+                patient.Brain?.SetActionPhase(
+                    SurgeryStatusCode.PrisonReturnInProgress.ToString(),
+                    null);
                 if (!order.subjectAiWasPaused)
                 {
                     patient.SetAiPaused(false);
                 }
 
-                order.status = "수술 완료 · 감방 복귀 중";
+                order.statusData.Set(SurgeryStatusCode.PrisonReturnInProgress);
                 order.patientAdmitted = false;
                 return;
             }
@@ -2275,51 +1168,11 @@ public sealed class SurgeryRuntime :
         }
 
         patient.Brain?.SetActionPhase(
-            order.state == SurgeryOrderState.Completed
-                ? "수술 회복 완료"
-                : "수술 종료",
+            (order.state == SurgeryOrderState.Completed
+                ? SurgeryStatusCode.RecoveryCompleted
+                : SurgeryStatusCode.Completed).ToString(),
             null);
         order.patientAdmitted = false;
-    }
-
-    private bool TryFindAdmissionCell(
-        BuildableObject facility,
-        Vector2Int origin,
-        out Vector2Int admission)
-    {
-        admission = default;
-        if (facility?.Grid == null)
-        {
-            return false;
-        }
-
-        List<Vector2Int> candidates = new List<Vector2Int>();
-        foreach (Vector2Int occupied in facility.buildPoses)
-        {
-            foreach (Vector2Int direction in CardinalDirections)
-            {
-                Vector2Int cell = occupied + direction;
-                if (!facility.ContainsGridPosition(cell)
-                    && facility.Grid.IsValidGridPos(cell)
-                    && facility.Grid.IsWalkable(cell)
-                    && !candidates.Contains(cell))
-                {
-                    candidates.Add(cell);
-                }
-            }
-        }
-
-        if (candidates.Count == 0)
-        {
-            return false;
-        }
-
-        admission = candidates
-            .OrderBy(cell => Mathf.Abs(cell.x - origin.x) + Mathf.Abs(cell.y - origin.y))
-            .ThenBy(cell => cell.y)
-            .ThenBy(cell => cell.x)
-            .First();
-        return true;
     }
 
     private bool TryResolveFacility(
@@ -2334,104 +1187,5 @@ public sealed class SurgeryRuntime :
                 facilityId,
                 StringComparison.Ordinal));
         return facility != null;
-    }
-
-    private static int ManhattanToFacility(
-        Vector2Int position,
-        BuildableObject facility)
-    {
-        return facility?.buildPoses?
-            .Select(cell => Mathf.Abs(cell.x - position.x) + Mathf.Abs(cell.y - position.y))
-            .DefaultIfEmpty(int.MaxValue)
-            .Min() ?? int.MaxValue;
-    }
-
-    private static bool RequiresInstalledPart(SurgicalProcedureSO procedure)
-    {
-        return procedure?.Kind is SurgicalProcedureKind.TransplantOrgan
-            or SurgicalProcedureKind.InstallProsthetic
-            or SurgicalProcedureKind.InstallImplant
-            or SurgicalProcedureKind.ArcaneModification;
-    }
-
-    private static Dictionary<Type, ISurgicalProcedureEffectHandler> BuildEffectIndex(
-        IReadOnlyList<ISurgicalProcedureEffectHandler> handlers)
-    {
-        Dictionary<Type, ISurgicalProcedureEffectHandler> index =
-            new Dictionary<Type, ISurgicalProcedureEffectHandler>();
-        foreach (ISurgicalProcedureEffectHandler handler in
-                 handlers ?? Array.Empty<ISurgicalProcedureEffectHandler>())
-        {
-            if (handler == null || handler.EffectType == null)
-            {
-                continue;
-            }
-
-            if (!index.TryAdd(handler.EffectType, handler))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate surgical effect handler: {handler.EffectType.Name}");
-            }
-        }
-
-        return index;
-    }
-
-    private static SurgeryOrder CloneOrder(SurgeryOrder source)
-    {
-        return new SurgeryOrder
-        {
-            orderId = source.orderId ?? string.Empty,
-            procedureId = source.procedureId ?? string.Empty,
-            subject = source.subject?.Clone() ?? new SurgicalSubjectRef(),
-            targetNodeId = source.targetNodeId ?? string.Empty,
-            selectedPartInstanceId = source.selectedPartInstanceId ?? string.Empty,
-            preferredDoctorId = source.preferredDoctorId ?? string.Empty,
-            doctorId = source.doctorId ?? string.Empty,
-            facilityId = source.facilityId ?? string.Empty,
-            materialDestinationId = source.materialDestinationId ?? string.Empty,
-            state = source.state,
-            requiredWork = source.requiredWork,
-            completedWork = source.completedWork,
-            anesthesiaWork = source.anesthesiaWork,
-            incisionWork = source.incisionWork,
-            procedureWork = source.procedureWork,
-            sutureWork = source.sutureWork,
-            materialsRequested = source.materialsRequested,
-            materialsConsumed = source.materialsConsumed,
-            processFluidConsumed = source.processFluidConsumed,
-            anesthesiaConsumed = source.anesthesiaConsumed,
-            incisionOpen = source.incisionOpen,
-            resultRolled = source.resultRolled,
-            patientAdmitted = source.patientAdmitted,
-            admissionMoveRequested = source.admissionMoveRequested,
-            subjectAiWasPaused = source.subjectAiWasPaused,
-            patientTransporterId = source.patientTransporterId ?? string.Empty,
-            patientTransportInProgress = source.patientTransportInProgress,
-            patientReturnRequested = source.patientReturnRequested,
-            patientOriginX = source.patientOriginX,
-            patientOriginY = source.patientOriginY,
-            admissionX = source.admissionX,
-            admissionY = source.admissionY,
-            nextAdmissionRetryAt = source.nextAdmissionRetryAt,
-            failureSeverity = source.failureSeverity,
-            risk = source.risk?.Clone() ?? new SurgeryRiskBreakdown(),
-            reachedClinicalStages = (source.reachedClinicalStages
-                ?? new List<SurgeryOrderState>()).ToList(),
-            materials = (source.materials ?? new List<SurgicalMaterialRequirement>())
-                .Where(requirement => requirement != null)
-                .Select(requirement => requirement.Clone())
-                .ToList(),
-            status = source.status ?? string.Empty,
-            createdAt = source.createdAt,
-            recoveryUntil = source.recoveryUntil,
-            environmentResumeStage = source.environmentResumeStage,
-            environmentWaitReason =
-                source.environmentWaitReason ?? string.Empty,
-            environmentStableSeconds =
-                Mathf.Max(0f, source.environmentStableSeconds),
-            environmentRecoveryWorkStatus =
-                source.environmentRecoveryWorkStatus ?? string.Empty
-        };
     }
 }

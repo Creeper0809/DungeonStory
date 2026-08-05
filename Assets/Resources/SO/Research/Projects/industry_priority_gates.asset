@@ -27,19 +27,33 @@ MonoBehaviour:
   description: "\uC911\uC694 \uC0DD\uC0B0\uC120\uC5D0 \uBA3C\uC800 \uACF5\uAC04\uC744
     \uB0B4\uC8FC\uACE0 \uC800\uC21C\uC704 \uD750\uB984\uC744 \uB300\uAE30\uC2DC\uD0A8\uB2E4."
   field: 15
-  requiredWork: 194
+  requiredWork: 720
   prerequisites:
   - {fileID: 11400000, guid: 0db1928877b77dd4bb9bc5698a6f87aa, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:industry:filters
+    prerequisite: {fileID: 11400000, guid: 0db1928877b77dd4bb9bc5698a6f87aa, type: 2}
+    kind: 2
+    reason: "\uBB3C\uB958 \uD544\uD130\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC6B0\uC120\uC21C\uC704 \uAC8C\uC774\uD2B8 \uAD6C\uD604\uC5D0 \uC9C1\uC811
+      \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687351
+    - rid: 7737211730927813372
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687351
+    - rid: 7737211730927813372
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9849

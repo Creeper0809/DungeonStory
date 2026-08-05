@@ -318,7 +318,8 @@ public static class CharacterAiFeatureQaRuntimeProbe
                 if (work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                     && candidate.IsValid)
                 {
-                    target = candidate.Building;
+                    target = WorkTargetCandidateRuntimeAdapter.ResolveBuilding(
+                        candidate);
                     targetWorkType = candidate.WorkTypeId;
                     prioritySet = work.TrySetPriorityWorkTarget(target, targetWorkType, search, out priorityMessage);
                 }
@@ -370,7 +371,8 @@ public static class CharacterAiFeatureQaRuntimeProbe
                 if (work.TryGetBestAnyWorkCandidate(search, out WorkTargetCandidate candidate)
                     && candidate.IsValid)
                 {
-                    target = candidate.Building;
+                    target = WorkTargetCandidateRuntimeAdapter.ResolveBuilding(
+                        candidate);
                     targetWorkType = candidate.WorkTypeId;
                     prioritySet = work.TrySetPriorityWorkTarget(target, targetWorkType, search, out priorityMessage);
                 }
@@ -741,7 +743,8 @@ public static class CharacterAiFeatureQaRuntimeProbe
                 && candidate.IsValid;
             if (workCandidateFound)
             {
-                workTarget = candidate.Building;
+                workTarget = WorkTargetCandidateRuntimeAdapter.ResolveBuilding(
+                    candidate);
                 workType = candidate.WorkTypeId;
                 if (workTarget != null && workTarget.buildPoses != null && workTarget.buildPoses.Count > 0)
                 {

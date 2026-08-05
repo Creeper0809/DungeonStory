@@ -79,7 +79,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         private readonly Vector2Int start;
         private readonly Vector2Int destination;
         private readonly GridTraversalContext traversalContext;
-        private readonly IDoorAccessQuery doorAccessQuery;
+        private readonly IGridTraversalAccessQuery doorAccessQuery;
         private readonly IGridTraversalCostPolicy costPolicy;
         private GridSearchPriorityQueue queue;
         private SparseGridSearchWorkspace workspace;
@@ -96,7 +96,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
             Vector2Int start,
             Vector2Int destination,
             GridTraversalContext traversalContext,
-            IDoorAccessQuery doorAccessQuery,
+            IGridTraversalAccessQuery doorAccessQuery,
             IGridTraversalCostPolicy costPolicy,
             int accessFrame)
         {
@@ -461,8 +461,8 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
     private const int MaxCacheAgeFrames = 120;
     private const int CachePruneIntervalFrames = 30;
     private readonly IGameClock gameClock;
-    private readonly IDoorAccessQuery doorAccessQuery;
-    private readonly ICharacterAiPerformanceRecorder performanceRecorder;
+    private readonly IGridTraversalAccessQuery doorAccessQuery;
+    private readonly IGridPathPerformanceRecorder performanceRecorder;
     private readonly IGridTraversalCostPolicy costPolicy;
     private readonly Dictionary<PathKey, CacheEntry> pathCache =
         new Dictionary<PathKey, CacheEntry>();
@@ -481,9 +481,9 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
 
     public GridPathSearchBroker(
         IGameClock gameClock,
-        IDoorAccessQuery doorAccessQuery = null,
-        ICharacterAiPerformanceRecorder performanceRecorder = null,
-        IGridTraversalCostPolicy costPolicy = null)
+        IGridTraversalAccessQuery doorAccessQuery,
+        IGridPathPerformanceRecorder performanceRecorder,
+        IGridTraversalCostPolicy costPolicy)
     {
         this.gameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
         this.doorAccessQuery = doorAccessQuery;
@@ -770,9 +770,7 @@ public sealed class GridPathSearchBroker : IGridPathSearchBroker
         searchMillisecondsThisFrame += elapsedSearchMilliseconds;
         if (recordSearch)
         {
-            performanceRecorder.Record(
-                AiPerformanceCategory.PathSearch,
-                elapsedSearchMilliseconds);
+            performanceRecorder.RecordGridPathSearch(elapsedSearchMilliseconds);
         }
 
         SearchesThisFrame++;

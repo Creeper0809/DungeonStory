@@ -13,12 +13,16 @@ public sealed class PlumbingWorkExecutionHandler :
         BuiltInWorkTypeIds.Plumbing
     };
 
-    private readonly IPlumbingCommandService plumbing;
+    private readonly IFluidInfrastructureQuery query;
+    private readonly IFluidInfrastructureCommand commands;
 
-    public PlumbingWorkExecutionHandler(IPlumbingCommandService plumbing)
+    public PlumbingWorkExecutionHandler(
+        IFluidInfrastructureQuery query,
+        IFluidInfrastructureCommand commands)
     {
-        this.plumbing = plumbing
-            ?? throw new ArgumentNullException(nameof(plumbing));
+        this.query = query ?? throw new ArgumentNullException(nameof(query));
+        this.commands = commands
+            ?? throw new ArgumentNullException(nameof(commands));
     }
 
     public IReadOnlyCollection<WorkTypeId> WorkTypeIds => Ids;
@@ -31,7 +35,7 @@ public sealed class PlumbingWorkExecutionHandler :
     {
         reason = string.Empty;
         if (workTypeId != BuiltInWorkTypeIds.Plumbing
-            || !plumbing.TryGetMaintenance(
+            || !query.TryGetMaintenance(
                 target,
                 out float blockage,
                 out float leak))
@@ -54,7 +58,7 @@ public sealed class PlumbingWorkExecutionHandler :
         BuildableObject target)
     {
         return workTypeId == BuiltInWorkTypeIds.Plumbing
-            && plumbing.TryGetMaintenance(
+            && query.TryGetMaintenance(
                 target,
                 out float blockage,
                 out float leak)
@@ -66,7 +70,7 @@ public sealed class PlumbingWorkExecutionHandler :
         WorkExecutionContext context,
         WorkExecutionResult result)
     {
-        if (!plumbing.TryGetMaintenance(
+        if (!query.TryGetMaintenance(
                 context.Target,
                 out float blockage,
                 out float leak)
@@ -88,12 +92,12 @@ public sealed class PlumbingWorkExecutionHandler :
 
         if (blockage > 0.01f)
         {
-            plumbing.ClearBlockage(context.Target);
+            commands.ClearBlockage(context.Target);
         }
 
         if (leak > 0.01f)
         {
-            plumbing.RepairLeak(context.Target);
+            commands.RepairLeak(context.Target);
         }
 
         result.CompletedSuccessfully = true;

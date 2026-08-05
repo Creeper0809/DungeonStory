@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
   m_Name: Species_Kobold
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  m_EditorClassIdentifier: DungeonStory.Species::CharacterSpeciesSO
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -26,7 +26,7 @@ MonoBehaviour:
   displayName: "\uCF54\uBCFC\uD2B8"
   ownerSelectionPolicy: 1
   homeFactionId: faction:dungeon:kobold
-  anatomyProfileId: anatomy:humanoid
+  anatomyProfileId: anatomy:kobold
   needs:
     hungerRateMultiplier: 0.85
     thirstRateMultiplier: 0.9
@@ -149,12 +149,12 @@ MonoBehaviour:
     - "\uC815\uBE44"
   combatAbilities:
     abilities:
-    - rid: 7302563310531248881
+    - rid: 7302563319989403741
   references:
     version: 2
     RefIds:
-    - rid: 7302563310531248881
-      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+    - rid: 7302563319989403741
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: DungeonStory.Combat}
       data:
         id: species-active:kobold
         displayName: "\uAE09\uC870 \uD568\uC815"
@@ -165,8 +165,8 @@ MonoBehaviour:
         usableFrom: 7
         targetPositions: 7
         effects:
-        - rid: 7302563310531248882
-    - rid: 7302563310531248882
-      type: {class: OffenseDelayEffect, ns: , asm: Assembly-CSharp}
+        - rid: 7302563319989403742
+    - rid: 7302563319989403742
+      type: {class: OffenseDelayEffect, ns: , asm: DungeonStory.Combat}
       data:
         initiativePenalty: 0.35

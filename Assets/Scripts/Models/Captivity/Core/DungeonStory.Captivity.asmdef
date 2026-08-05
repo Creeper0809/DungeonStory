@@ -1,0 +1,17 @@
+{
+  "name": "DungeonStory.Captivity",
+  "rootNamespace": "DungeonStory.Captivity",
+  "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.Foundation"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

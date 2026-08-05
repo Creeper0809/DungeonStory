@@ -1,0 +1,114 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 319e562edb6800049aa5db86683c9031, type: 3}
+  m_Name: "I18_\uACC4\uBCF4_\uAE30\uB85D\uC2E4"
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: tiles
+      Entry: 6
+      Data: 
+    - Name: OnBuildCondition
+      Entry: 6
+      Data: 
+  id: 9827
+  objectName: "\uACC4\uBCF4 \uAE30\uB85D\uC2E4"
+  sprite: {fileID: 21300000, guid: 7c40435a2a61ffe4a9aff113f39d2ac0, type: 3}
+  icon: {fileID: 21300000, guid: 7c40435a2a61ffe4a9aff113f39d2ac0, type: 3}
+  abilityModules:
+    items:
+    - rid: 7737211730889015713
+    - rid: 7737211730889015714
+    - rid: 7737211730889015715
+    - rid: 7737211730889015716
+    - rid: 7737211730889015717
+    - rid: 7737211730889015718
+    - rid: 7737211730889015719
+  width: 2
+  height: 1
+  layer: 1
+  category: 7
+  horizontalDraggable: 0
+  verticalDraggable: 0
+  runtimeArchetype: 0
+  movementAnchorOffset: {x: 0, y: 0}
+  movementTravelTime: 2
+  facilityAnchors:
+    slots: []
+  unlocked: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730889015713
+      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityPartAbility
+        code: I18
+    - rid: 7737211730889015714
+      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingEconomyAbility
+        constructionValue: 130
+        constructionCost: 0
+        maintenance: 0
+        unlockPhase: 3
+        demolitionRefundRate: 0.5
+    - rid: 7737211730889015715
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 48
+        repairWorkRequired: 12
+        cleanWorkRequired: 8
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: component:machine-parts
+          amount: 4
+    - rid: 7737211730889015716
+      type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingFacilityAbility
+        settings:
+          roles: 16
+          capacity: 1
+          useDuration: 2
+          requiredWorkers: 1
+          supportedWorkTypes: 4
+          disabledWhenDamaged: 1
+    - rid: 7737211730889015717
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingSemanticTagsAbility
+        tags:
+        - industrial-infrastructure
+        - research:equipment:lineage-binding
+        - workstation:v3:lineage-archive
+    - rid: 7737211730889015718
+      type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionWorkstationAbility
+        workstationTag: workstation:v3:lineage-archive
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211730889015719
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities: []

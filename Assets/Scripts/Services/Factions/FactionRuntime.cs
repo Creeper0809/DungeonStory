@@ -1,119 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Factions;
 using DungeonStory.Foundation;
+using DungeonStory.Infrastructure;
 using UnityEngine;
 using VContainer.Unity;
 
-public sealed class ResourceDungeonFactionCatalog
-{
-    private readonly IReadOnlyList<DungeonFactionDefinitionSO> definitions;
-
-    public ResourceDungeonFactionCatalog(IResourcesAssetLoader resources)
-    {
-        List<DungeonFactionDefinitionSO> loaded =
-            (resources?.LoadAllOptional<DungeonFactionDefinitionSO>(
-                    DungeonFactionDefinitionSO.ResourcePath)
-                ?? Array.Empty<DungeonFactionDefinitionSO>())
-            .Where(value => value != null && !string.IsNullOrWhiteSpace(value.StableId))
-            .OrderBy(value => value.StableId, StringComparer.Ordinal)
-            .ToList();
-        if (loaded.Count == 0)
-        {
-            loaded.AddRange(CreateFallbackDefinitions());
-        }
-
-        definitions = loaded;
-    }
-
-    public IReadOnlyList<DungeonFactionDefinitionSO> Definitions => definitions;
-
-    private static IEnumerable<DungeonFactionDefinitionSO>
-        CreateFallbackDefinitions()
-    {
-        yield return Create(
-            "faction:dungeon:beastkin", "붉은발 역참", "Beastkin",
-            "빠른 교역·정찰·긴급 운반 지원",
-            new[] { "야외", "무리", "소음" },
-            StockCategory.Food, StockCategory.Biological);
-        yield return Create(
-            "faction:dungeon:demon", "잿불 계약정", "Demon",
-            "마력 촉매와 화염·저주 전투 지원",
-            new[] { "화염", "마력", "고급" },
-            StockCategory.Mana, StockCategory.General);
-        yield return Create(
-            "faction:dungeon:kobold", "심층 톱니굴", "Kobold",
-            "함정 재장전·수리와 광물·탄약 지원",
-            new[] { "질서", "협소", "기계" },
-            StockCategory.General, StockCategory.Ammunition);
-        yield return Create(
-            "faction:dungeon:myconid", "균사 심림", "Myconid",
-            "치료·제독과 약품·퇴비 지원",
-            new[] { "습기", "오염", "저온" },
-            StockCategory.Medicine, StockCategory.Biological);
-        yield return Create(
-            "faction:dungeon:harpy", "폭풍 둥지", "Harpy",
-            "정보·원거리 탄약과 외부 고지 엄호",
-            new[] { "야외", "청정", "개방" },
-            StockCategory.Knowledge, StockCategory.Ammunition);
-        yield return Create(
-            "faction:dungeon:golem", "석맥 주조소", "Golem",
-            "장갑판·동력핵과 방패벽·시설 복구 지원",
-            new[] { "질서", "마력", "기계" },
-            StockCategory.General, StockCategory.Mana);
-    }
-
-    private static DungeonFactionDefinitionSO Create(
-        string id,
-        string name,
-        string species,
-        string description,
-        string[] tags,
-        StockCategory primary,
-        StockCategory secondary)
-    {
-        DungeonFactionDefinitionSO value =
-            ScriptableObject.CreateInstance<DungeonFactionDefinitionSO>();
-        value.factionId = id;
-        value.displayName = name;
-        value.speciesTag = species;
-        value.description = description;
-        value.relationTags = tags;
-        value.tradeTags = tags;
-        value.reinforcementRole = description;
-        value.tradeCargo = new List<FactionCargoLine>
-        {
-            Cargo(primary, 8),
-            Cargo(secondary, 5)
-        };
-        value.supplyCargo = new List<FactionCargoLine>
-        {
-            Cargo(primary, 14),
-            Cargo(secondary, 10)
-        };
-        return value;
-    }
-
-    private static FactionCargoLine Cargo(StockCategory category, int amount)
-    {
-        return new FactionCargoLine
-        {
-            itemId = DungeonItemCatalogSO.StockItemId(category),
-            amount = amount
-        };
-    }
-}
-
-public sealed class FactionRuntime :
+public sealed class FactionRuntimeApplicationAdapter :
     IFactionRuntime,
     IStartable,
     ITickable,
     IDisposable
 {
     private const float SecondsPerHex = 20f;
-    private const int BetrayalEmbargoDays = 10;
-
-    private readonly ResourceDungeonFactionCatalog catalog;
+    private readonly ResourceDungeonFactionCatalogApplicationAdapter catalog;
+    private readonly FactionDomainRuntime domain;
     private readonly IOffenseWorldSimulation world;
     private readonly IWorldItemSpawner itemSpawner;
     private readonly IWorldItemStackRuntime itemRuntime;
@@ -124,54 +26,49 @@ public sealed class FactionRuntime :
     private readonly ICharacterAiWorldRegistry worldRegistry;
     private readonly IGameClock clock;
     private readonly IGameEventBus events;
-    private readonly Dictionary<string, DungeonFactionState> factions =
-        new Dictionary<string, DungeonFactionState>(StringComparer.Ordinal);
-    private readonly List<FactionRouteState> routes =
-        new List<FactionRouteState>();
+    [ApplicationAdapterTransientState]
     private IDisposable daySubscription;
+    [ApplicationAdapterTransientState]
     private bool synchronizingWorldHomes;
-    private int currentDay = 1;
-    private int routeSequence;
+    [ApplicationAdapterTransientState]
+    private int projectedRestoreRevision;
 
-    public FactionRuntime(
-        ResourceDungeonFactionCatalog catalog,
-        FactionRuntimeProvider runtimeProvider,
+    private IEnumerable<DungeonFactionState> factions => domain.FactionStates;
+    private IReadOnlyList<FactionRouteState> routes => domain.Routes;
+    private int currentDay => domain.CurrentDay;
+
+    public FactionRuntimeApplicationAdapter(
+        ResourceDungeonFactionCatalogApplicationAdapter catalog,
         IOffenseWorldSimulation world,
-        IWorldItemSpawner itemSpawner,
-        IWorldItemStackRuntime itemRuntime,
-        IWorldDropZoneQuery dropZones,
-        IRunCharacterCatalog characterCatalog,
-        ICharacterSpawnerProvider spawnerProvider,
-        ICharacterSpawnObjectFactory characterFactory,
-        ICharacterAiWorldRegistry worldRegistry,
+        FactionItemLogisticsDependencies itemLogistics,
+        FactionCharacterSpawnDependencies characterSpawning,
         IGameClock clock,
-        IGameEventBus events)
+        IGameEventBus events,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-        (runtimeProvider ?? throw new ArgumentNullException(nameof(runtimeProvider)))
-            .Bind(this);
         this.world = world ?? throw new ArgumentNullException(nameof(world));
-        this.itemSpawner = itemSpawner
-            ?? throw new ArgumentNullException(nameof(itemSpawner));
-        this.itemRuntime = itemRuntime
-            ?? throw new ArgumentNullException(nameof(itemRuntime));
-        this.dropZones = dropZones ?? throw new ArgumentNullException(nameof(dropZones));
-        this.characterCatalog = characterCatalog
-            ?? throw new ArgumentNullException(nameof(characterCatalog));
-        this.spawnerProvider = spawnerProvider
-            ?? throw new ArgumentNullException(nameof(spawnerProvider));
-        this.characterFactory = characterFactory
-            ?? throw new ArgumentNullException(nameof(characterFactory));
-        this.worldRegistry = worldRegistry
-            ?? throw new ArgumentNullException(nameof(worldRegistry));
+        itemLogistics = itemLogistics
+            ?? throw new ArgumentNullException(nameof(itemLogistics));
+        characterSpawning = characterSpawning
+            ?? throw new ArgumentNullException(nameof(characterSpawning));
+        itemSpawner = itemLogistics.ItemSpawner;
+        itemRuntime = itemLogistics.ItemRuntime;
+        dropZones = itemLogistics.DropZones;
+        characterCatalog = characterSpawning.CharacterCatalog;
+        spawnerProvider = characterSpawning.SpawnerProvider;
+        characterFactory = characterSpawning.CharacterFactory;
+        worldRegistry = characterSpawning.WorldRegistry;
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.events = events ?? throw new ArgumentNullException(nameof(events));
+        domain = new FactionDomainRuntime(
+            aggregateRootStore ?? throw new ArgumentNullException(nameof(aggregateRootStore)));
     }
 
-    public IReadOnlyList<DungeonFactionDefinitionSO> Definitions =>
+    public IReadOnlyList<FactionDefinitionSnapshot> Definitions =>
         catalog.Definitions;
     public IReadOnlyList<DungeonFactionState> Factions =>
-        factions.Values.OrderBy(value => value.factionId, StringComparer.Ordinal)
+        factions.OrderBy(value => value.factionId, StringComparer.Ordinal)
             .ToArray();
     public IReadOnlyList<FactionRouteState> Routes => routes;
 
@@ -179,9 +76,10 @@ public sealed class FactionRuntime :
     {
         EnsureInitialized();
         world.Changed += OnWorldChanged;
+        projectedRestoreRevision = domain.PublishedRestoreRevision;
         SynchronizeWorldHomes();
         daySubscription = events.Subscribe<OperatingDayStartedEvent>(
-            value => currentDay = Mathf.Max(1, value.day));
+            value => domain.SetCurrentDay(value.day));
     }
 
     public void Dispose()
@@ -193,6 +91,7 @@ public sealed class FactionRuntime :
 
     public void Tick()
     {
+        EnsureWorldHomesProjectionCurrent();
         foreach (FactionRouteState arrived in routes.Where(value =>
                      value != null
                      && value.kind == FactionRouteKind.Reinforcement
@@ -207,37 +106,11 @@ public sealed class FactionRuntime :
             return;
         }
 
-        foreach (FactionRouteState route in routes
-                     .Where(value => value != null
-                         && value.status is FactionRouteStatus.Traveling
-                             or FactionRouteStatus.Delayed)
-                     .ToArray())
+        foreach (FactionRouteState route in domain.AdvanceRoutes(
+                     clock.DeltaTime,
+                     SecondsPerHex))
         {
-            if (route.delaySeconds > 0f)
-            {
-                route.status = FactionRouteStatus.Delayed;
-                route.delaySeconds = Mathf.Max(
-                    0f,
-                    route.delaySeconds - clock.DeltaTime);
-                if (route.delaySeconds > 0f)
-                {
-                    continue;
-                }
-                route.status = FactionRouteStatus.Traveling;
-            }
-
-            route.segmentProgress += clock.DeltaTime / SecondsPerHex;
-            while (route.segmentProgress >= 1f
-                && route.pathIndex < route.path.Count - 1)
-            {
-                route.segmentProgress -= 1f;
-                route.pathIndex++;
-            }
-
-            if (route.pathIndex >= route.path.Count - 1)
-            {
-                CompleteRoute(route);
-            }
+            CompleteRoute(route);
         }
     }
 
@@ -246,28 +119,15 @@ public sealed class FactionRuntime :
         out DungeonFactionState faction)
     {
         EnsureInitialized();
-        return factions.TryGetValue(factionId?.Trim() ?? string.Empty, out faction);
+        return domain.TryGetFaction(factionId, out faction);
     }
 
     public bool IsContractUnlocked(
         string factionId,
         FactionContractKind contract)
     {
-        if (!TryGetFaction(factionId, out DungeonFactionState faction)
-            || faction.NegotiationBlocked(currentDay))
-        {
-            return false;
-        }
-
-        return contract switch
-        {
-            FactionContractKind.Trade => faction.trust >= 20,
-            FactionContractKind.Recruitment => faction.trust >= 35,
-            FactionContractKind.Supply => faction.trust >= 50,
-            FactionContractKind.Reinforcement =>
-                faction.trust >= 70 && faction.allianceProjectCompleted,
-            _ => false
-        };
+        return TryGetFaction(factionId, out DungeonFactionState faction)
+            && domain.IsContractUnlocked(faction, contract);
     }
 
     public bool TryAdjustTrust(
@@ -288,18 +148,14 @@ public sealed class FactionRuntime :
             return false;
         }
 
-        int adjusted = amount > 0
-            ? Mathf.Max(1, Mathf.RoundToInt(amount
-                * Mathf.Pow(0.85f, faction.betrayalScars)))
-            : amount;
-        int previous = faction.trust;
-        faction.trust = Mathf.Clamp(faction.trust + adjusted, -100, 100);
+        FactionTrustTransition transition = domain.AdjustTrust(faction, amount);
         events.Publish(new FactionTrustChangedEvent(
-            factionId,
-            previous,
-            faction.trust,
+            transition.FactionId,
+            transition.Previous,
+            transition.Current,
             reason));
-        message = $"{DisplayName(factionId)} 신뢰 {previous} → {faction.trust}";
+        message =
+            $"{DisplayName(factionId)} 신뢰 {transition.Previous} → {transition.Current}";
         return true;
     }
 
@@ -329,7 +185,7 @@ public sealed class FactionRuntime :
             return false;
         }
 
-        faction.discovered = true;
+        domain.AcceptGoodwill(faction);
         int trustGain = Mathf.Clamp(consumedValue / 10, 1, 10);
         TryAdjustTrust(
             factionId,
@@ -352,7 +208,7 @@ public sealed class FactionRuntime :
             return false;
         }
 
-        faction.allianceProjectCompleted = true;
+        domain.CompleteAllianceProject(faction);
         message = $"{DisplayName(factionId)} 동맹 프로젝트 완료";
         return true;
     }
@@ -366,7 +222,7 @@ public sealed class FactionRuntime :
             factionId,
             FactionContractKind.Trade,
             FactionRouteKind.TradeCaravan,
-            FindDefinition(factionId)?.tradeCargo,
+            FindDefinition(factionId)?.TradeCargo,
             100,
             out routeId,
             out message);
@@ -381,7 +237,7 @@ public sealed class FactionRuntime :
             factionId,
             FactionContractKind.Supply,
             FactionRouteKind.SupplyCaravan,
-            FindDefinition(factionId)?.supplyCargo,
+            FindDefinition(factionId)?.SupplyCargo,
             100,
             out routeId,
             out message);
@@ -408,28 +264,20 @@ public sealed class FactionRuntime :
         float delaySeconds,
         out string message)
     {
-        FactionRouteState route = routes.FirstOrDefault(value =>
-            value != null
-            && string.Equals(value.routeId, routeId, StringComparison.Ordinal)
-            && value.status is FactionRouteStatus.Traveling
-                or FactionRouteStatus.Delayed);
+        FactionRouteState route = domain.FindTravelingRoute(routeId);
         if (route == null)
         {
             message = "매복을 적용할 이동 중 경로가 없습니다.";
             return false;
         }
 
-        route.ambushed = true;
-        route.strength = Mathf.Max(0, route.strength - Mathf.Max(0, strengthLoss));
-        route.delaySeconds += Mathf.Max(0f, delaySeconds);
+        domain.ApplyRouteAmbush(route, strengthLoss, delaySeconds);
         if (route.strength <= 0)
         {
-            route.status = FactionRouteStatus.Lost;
             message = "상단 또는 지원군이 매복으로 전멸했습니다.";
             return true;
         }
 
-        route.status = FactionRouteStatus.Delayed;
         message = $"매복 발생 · 전력 {route.strength} · 지연 {route.delaySeconds:0}초";
         return true;
     }
@@ -454,31 +302,19 @@ public sealed class FactionRuntime :
             return false;
         }
 
-        int previousTargetTrust = target.trust;
-        target.trust = -100;
-        target.betrayalScars++;
-        target.negotiationBlockedUntilDay = currentDay + BetrayalEmbargoDays;
-        target.restitutionPaid = false;
-        target.recoveryEventCompleted = false;
-        target.lastBetrayalLootValue = actualLootValue;
-        target.restitutionRequiredValue =
-            Mathf.CeilToInt(actualLootValue * 1.5f);
-        target.discovered = true;
-        events.Publish(new FactionTrustChangedEvent(
-            factionId,
-            previousTargetTrust,
-            target.trust,
-            "동맹 던전 약탈"));
-        foreach (DungeonFactionState peer in factions.Values
-                     .Where(value => !ReferenceEquals(value, target)))
+        foreach (FactionTrustTransition transition in
+                 domain.ApplyBetrayal(target, actualLootValue))
         {
-            int previousPeerTrust = peer.trust;
-            peer.trust = Mathf.Max(-100, peer.trust - 15);
             events.Publish(new FactionTrustChangedEvent(
-                peer.factionId,
-                previousPeerTrust,
-                peer.trust,
-                "다른 던전 배신 목격"));
+                transition.FactionId,
+                transition.Previous,
+                transition.Current,
+                string.Equals(
+                    transition.FactionId,
+                    factionId,
+                    StringComparison.Ordinal)
+                    ? "동맹 던전 약탈"
+                    : "다른 던전 배신 목격"));
         }
 
         message =
@@ -499,11 +335,7 @@ public sealed class FactionRuntime :
             return false;
         }
 
-        int required = Mathf.Max(
-            1,
-            faction.restitutionRequiredValue > 0
-                ? faction.restitutionRequiredValue
-                : 150 * Mathf.Max(1, faction.betrayalScars));
+        int required = domain.GetRestitutionRequired(faction);
         if (physicalValue < required
             || !TryConsumePhysicalGoods(required, out int consumedValue))
         {
@@ -511,8 +343,7 @@ public sealed class FactionRuntime :
             return false;
         }
 
-        faction.restitutionPaid = true;
-        TryFinishRecovery(faction);
+        domain.AcceptRestitution(faction);
         message =
             $"{DisplayName(factionId)} 실물 배상 {consumedValue} 접수 완료";
         return true;
@@ -526,7 +357,7 @@ public sealed class FactionRuntime :
     {
         actualValue = 0;
         message = string.Empty;
-        DungeonFactionDefinitionSO definition = FindDefinition(factionId);
+        FactionDefinitionSnapshot definition = FindDefinition(factionId);
         if (definition == null
             || !dropZones.TryGetDeliveryDropoff(out Vector2Int dropoff))
         {
@@ -534,8 +365,8 @@ public sealed class FactionRuntime :
             return false;
         }
 
-        FactionCargoLine[] warehouse = definition.tradeCargo
-            .Concat(definition.supplyCargo)
+        FactionCargoLine[] warehouse = definition.TradeCargo
+            .Concat(definition.SupplyCargo)
             .Where(line => line != null
                 && !string.IsNullOrWhiteSpace(line.itemId)
                 && line.amount > 0)
@@ -645,8 +476,7 @@ public sealed class FactionRuntime :
             return false;
         }
 
-        faction.recoveryEventCompleted = true;
-        TryFinishRecovery(faction);
+        domain.CompleteRecoveryEvent(faction);
         message = $"{DisplayName(factionId)} 구조·방어 사건 완료";
         return true;
     }
@@ -661,14 +491,7 @@ public sealed class FactionRuntime :
             return;
         }
 
-        int dead = Mathf.Max(0, deaths);
-        int lost = Mathf.Max(0, equipmentLosses);
-        faction.reinforcementDeaths += dead;
-        faction.equipmentLosses += lost;
-        faction.trust = Mathf.Clamp(
-            faction.trust - dead * 4 - lost,
-            -100,
-            100);
+        domain.RecordReinforcementLoss(faction, deaths, equipmentLosses);
     }
 
     public DungeonFactionSaveData Capture()
@@ -677,52 +500,85 @@ public sealed class FactionRuntime :
         return new DungeonFactionSaveData
         {
             currentDay = currentDay,
-            routeSequence = routeSequence,
+            routeSequence = domain.RouteSequence,
             factions = Factions.Select(CloneFaction).ToList(),
-            routes = routes.Select(CloneRoute).ToList()
+            routes = routes
+                .Select(CloneRoute)
+                .OrderBy(value => FactionPayloadValidation.RouteSequenceOf(value.routeId))
+                .ToList()
         };
     }
 
-    public void Restore(DungeonFactionSaveData saveData)
+    public FactionRestoreCandidate PrepareRestoreCandidate(
+        DungeonFactionSaveData saveData)
     {
-        Reset();
-        if (saveData == null)
+        if (saveData?.factions == null || saveData.routes == null)
         {
-            return;
+            throw new InvalidOperationException(
+                "Faction restore payload or collections are missing.");
         }
 
-        currentDay = Mathf.Max(1, saveData.currentDay);
-        routeSequence = Mathf.Max(0, saveData.routeSequence);
-        foreach (DungeonFactionState state in saveData.factions
-                     ?? new List<DungeonFactionState>())
+        FactionAggregateState restored = new()
         {
-            if (state != null && factions.ContainsKey(state.factionId))
-            {
-                factions[state.factionId] = CloneFaction(state);
-            }
+            CurrentDay = saveData.currentDay,
+            RouteSequence = saveData.routeSequence
+        };
+        foreach (DungeonFactionState savedFaction in saveData.factions)
+        {
+            DungeonFactionState clone = CloneFaction(savedFaction);
+            restored.Factions.Add(clone.factionId, clone);
         }
+        restored.Routes.AddRange(saveData.routes.Select(CloneRoute));
+        return new FactionRestoreCandidate(restored, saveData);
+    }
 
-        routes.AddRange((saveData.routes ?? new List<FactionRouteState>())
-            .Where(value => value != null)
-            .Select(CloneRoute));
-        SynchronizeWorldHomes();
+    public void PublishRestoreCandidate(FactionRestoreCandidate candidate)
+    {
+        domain.ReplaceState((candidate
+            ?? throw new ArgumentNullException(nameof(candidate))).State);
+        SynchronizeWorldHomesUnlessStaging();
     }
 
     public void Reset()
     {
-        factions.Clear();
-        routes.Clear();
-        currentDay = 1;
-        routeSequence = 0;
-        EnsureInitialized();
+        domain.ReplaceState(CreateDefaultState());
+        SynchronizeWorldHomesUnlessStaging();
     }
 
     private void EnsureInitialized()
     {
-        if (factions.Count > 0)
+        if (factions.Any())
         {
             return;
         }
+
+        domain.ReplaceState(CreateDefaultState());
+        SynchronizeWorldHomesUnlessStaging();
+    }
+
+    private void SynchronizeWorldHomesUnlessStaging()
+    {
+        if (!domain.IsRestoreStaging)
+        {
+            SynchronizeWorldHomes();
+        }
+    }
+
+    private void EnsureWorldHomesProjectionCurrent()
+    {
+        int publishedRevision = domain.PublishedRestoreRevision;
+        if (projectedRestoreRevision == publishedRevision)
+        {
+            return;
+        }
+
+        projectedRestoreRevision = publishedRevision;
+        SynchronizeWorldHomes();
+    }
+
+    private FactionAggregateState CreateDefaultState()
+    {
+        FactionAggregateState created = new();
 
         HashSet<OffenseHexCoord> occupied = world.Sites
             .Where(site => site != null && site.IsActive)
@@ -737,7 +593,7 @@ public sealed class FactionRuntime :
             .ToArray();
         for (int i = 0; i < catalog.Definitions.Count; i++)
         {
-            DungeonFactionDefinitionSO definition = catalog.Definitions[i];
+            FactionDefinitionSnapshot definition = catalog.Definitions[i];
             int startIndex = candidates.Count > 0
                 ? StableIndex(definition.StableId, candidates.Count)
                 : 0;
@@ -745,7 +601,7 @@ public sealed class FactionRuntime :
                 ? FindUnusedHome(candidates, occupied, startIndex)
                 : new OffenseHexCoord(i + 4, -i);
             occupied.Add(home);
-            factions[definition.StableId] = new DungeonFactionState
+            created.Factions[definition.StableId] = new DungeonFactionState
             {
                 factionId = definition.StableId,
                 trust = 0,
@@ -755,7 +611,7 @@ public sealed class FactionRuntime :
             };
         }
 
-        SynchronizeWorldHomes();
+        return created;
     }
 
     private void OnWorldChanged()
@@ -768,7 +624,7 @@ public sealed class FactionRuntime :
         synchronizingWorldHomes = true;
         try
         {
-            foreach (DungeonFactionState faction in factions.Values.ToArray())
+            foreach (DungeonFactionState faction in factions.ToArray())
             {
                 string siteId = HomeSiteId(
                     faction.factionId,
@@ -802,18 +658,18 @@ public sealed class FactionRuntime :
         synchronizingWorldHomes = true;
         try
         {
-            foreach (DungeonFactionState faction in factions.Values)
+            foreach (DungeonFactionState faction in factions)
             {
-                DungeonFactionDefinitionSO definition =
+                FactionDefinitionSnapshot definition =
                     FindDefinition(faction.factionId);
                 world.TryRegisterStrategicSite(new OffenseWorldSiteStateData
                 {
                     siteId = HomeSiteId(
                         faction.factionId,
                         faction.betrayalScars),
-                    archetypeId = HomeArchetype(definition?.speciesTag),
+                    archetypeId = HomeArchetype(definition?.SpeciesTag),
                     displayName =
-                        $"{definition?.displayName ?? faction.factionId} 본거지",
+                        $"{definition?.DisplayName ?? faction.factionId} 본거지",
                     q = faction.homeQ,
                     r = faction.homeR,
                     regionId = $"region:{faction.factionId}",
@@ -890,7 +746,7 @@ public sealed class FactionRuntime :
         }
 
         if (!world.TryFindPath(
-                faction.HomeCoord,
+                new OffenseHexCoord(faction.HomeCoord.Q, faction.HomeCoord.R),
                 world.DungeonCoord,
                 OffenseTravelProfile.Default,
                 out IReadOnlyList<OffenseHexCoord> path,
@@ -900,15 +756,14 @@ public sealed class FactionRuntime :
             return false;
         }
 
-        routeId = $"faction-route:{++routeSequence}";
         int steps = Mathf.Max(1, path.Count - 1);
-        routes.Add(new FactionRouteState
+        FactionRouteState route = new FactionRouteState
         {
-            routeId = routeId,
             factionId = factionId,
             kind = kind,
             status = FactionRouteStatus.Traveling,
-            path = path.Select(OffenseHexCoordSaveData.From).ToList(),
+            path = path.Select(value => FactionHexCoordSaveData.From(
+                new FactionHexCoord(value.Q, value.R))).ToList(),
             strength = Mathf.Clamp(strength, 1, 100),
             createdDay = currentDay,
             estimatedArrivalDay =
@@ -917,15 +772,14 @@ public sealed class FactionRuntime :
                 .Where(value => value != null)
                 .Select(value => value.Clone())
                 .ToList()
-        });
-        message = $"{DisplayName(factionId)} 경로 출발 · ETA Day {routes[^1].estimatedArrivalDay}";
+        };
+        routeId = domain.AddRoute(route);
+        message = $"{DisplayName(factionId)} 경로 출발 · ETA Day {route.estimatedArrivalDay}";
         return true;
     }
 
     private void CompleteRoute(FactionRouteState route)
     {
-        route.status = FactionRouteStatus.Arrived;
-        route.segmentProgress = 0f;
         if (route.kind is FactionRouteKind.TradeCaravan
             or FactionRouteKind.SupplyCaravan
             or FactionRouteKind.Restitution)
@@ -962,7 +816,7 @@ public sealed class FactionRuntime :
                 WorldItemStackState.Loose,
                 $"faction-delivery:{route.routeId}");
         }
-        route.cargoDelivered = true;
+        domain.MarkCargoDelivered(route);
     }
 
     private void MaterializeReinforcements(FactionRouteState route)
@@ -976,12 +830,12 @@ public sealed class FactionRuntime :
             return;
         }
 
-        DungeonFactionDefinitionSO definition = FindDefinition(route.factionId);
+        FactionDefinitionSnapshot definition = FindDefinition(route.factionId);
         CharacterSO template = characterCatalog.Characters
             .Where(value => value != null)
             .Where(value => string.Equals(
                 value.SpeciesTag,
-                definition?.speciesTag,
+                definition?.SpeciesTag,
                 StringComparison.OrdinalIgnoreCase))
             .OrderBy(value => value.id)
             .FirstOrDefault();
@@ -994,11 +848,10 @@ public sealed class FactionRuntime :
             Mathf.CeilToInt(route.strength / 40f),
             1,
             3);
-        route.reinforcementActorIds ??= new List<string>();
         for (int index = 0; index < count; index++)
         {
-            GameObject instance = characterFactory.Create(spawner.characterPrefab);
-            characterFactory.Inject(instance);
+            GameObject instance = characterFactory.CreateInactive(
+                spawner.characterPrefab);
             CharacterActor actor = instance.GetComponent<CharacterActor>();
             if (actor == null)
             {
@@ -1008,7 +861,7 @@ public sealed class FactionRuntime :
 
             string actorId = $"{route.routeId}:ally:{index + 1}";
             instance.name =
-                $"{definition?.displayName ?? route.factionId} 지원군 {index + 1}";
+                $"{definition?.DisplayName ?? route.factionId} 지원군 {index + 1}";
             instance.transform.position =
                 spawner.GetOutsideSpawnWorldPosition()
                 + Vector3.right * (index * 0.35f);
@@ -1028,9 +881,8 @@ public sealed class FactionRuntime :
                 instance.GetComponent<FactionReinforcementMarker>()
                 ?? instance.AddComponent<FactionReinforcementMarker>();
             marker.Configure(route.routeId, route.factionId, route.strength);
-            worldRegistry.RegisterCharacter(actor);
-            worldRegistry.RegisterCharacterLifetime(actor);
-            route.reinforcementActorIds.Add(actorId);
+            domain.AddReinforcementActor(route, actorId);
+            characterFactory.Publish(instance);
 
             if (actor.TryGetAbility(out AbilityMove move))
             {
@@ -1045,20 +897,10 @@ public sealed class FactionRuntime :
             }
         }
 
-        route.actorsSpawned = route.reinforcementActorIds.Count > 0;
+        domain.FinishReinforcementMaterialization(route);
     }
 
-    private void TryFinishRecovery(DungeonFactionState faction)
-    {
-        if (currentDay >= faction.negotiationBlockedUntilDay
-            && faction.restitutionPaid
-            && faction.recoveryEventCompleted)
-        {
-            faction.trust = 0;
-        }
-    }
-
-    private DungeonFactionDefinitionSO FindDefinition(string factionId)
+    private FactionDefinitionSnapshot FindDefinition(string factionId)
     {
         return catalog.Definitions.FirstOrDefault(value =>
             string.Equals(value.StableId, factionId, StringComparison.Ordinal));
@@ -1066,7 +908,7 @@ public sealed class FactionRuntime :
 
     private string DisplayName(string factionId)
     {
-        return FindDefinition(factionId)?.displayName ?? factionId;
+        return FindDefinition(factionId)?.DisplayName ?? factionId;
     }
 
     private int StableIndex(string id, int count)

@@ -5,22 +5,35 @@ using System.Linq;
 public interface IOffenseSaveService
 {
     DungeonOffenseSaveData Capture();
-    void Restore(DungeonOffenseSaveData source, DungeonGameRestoreReport report);
+    OffenseExpeditionRestoreCandidate BuildRestoreCandidate(
+        DungeonOffenseSaveData source,
+        DungeonGameRestoreReport report,
+        IReadOnlyList<OffenseRegionState> restoredRegions,
+        IOffenseWorldMapStateView campaignState);
+    void PublishRestoreCandidate(
+        OffenseExpeditionRestoreCandidate candidate);
+}
+
+public sealed class OffenseExpeditionRestoreCandidate
+{
+    internal OffenseRewardState Rewards { get; set; }
+    internal List<OffenseExpeditionRun> ActiveExpeditions { get; set; }
+    internal List<OffenseExpeditionResult> ResultHistory { get; set; }
+    internal OffenseBattleRestoreCandidate Battle { get; set; }
 }
 
 [Serializable]
 public sealed class DungeonOffenseSaveData
 {
-    public int reconLevel;
-    public string selectedTargetId = string.Empty;
-    public List<string> knownTargetIds = new List<string>();
-    public List<string> completedTargetIds = new List<string>();
-    public string revealedTruthTargetId = string.Empty;
+    public const int CurrentVersion = 2;
+
+    public int version = CurrentVersion;
     public DungeonOffenseRewardSaveData rewards = new DungeonOffenseRewardSaveData();
     public List<DungeonOffenseExpeditionRunSaveData> activeExpeditions =
         new List<DungeonOffenseExpeditionRunSaveData>();
     public List<DungeonOffenseExpeditionResultSaveData> resultHistory =
         new List<DungeonOffenseExpeditionResultSaveData>();
+    public bool hasActiveBattle;
     public OffenseBattlePersistenceState activeBattle;
 }
 
@@ -44,12 +57,15 @@ public sealed class DungeonOffenseStockRewardSaveData
 [Serializable]
 public sealed class DungeonOffenseExpeditionRunSaveData
 {
+    public const int CurrentVersion = 2;
+
     public int journeyVersion;
     public string expeditionId = string.Empty;
     public string targetId = string.Empty;
     public float totalPower;
     public float remainingSeconds;
     public List<string> memberPersistentIds = new List<string>();
+    public List<string> protectedRescueMemberPersistentIds = new List<string>();
     public OffenseExpeditionPhase phase;
     public string currentNodeId = string.Empty;
     public float light;
@@ -66,12 +82,12 @@ public sealed class DungeonOffenseExpeditionRunSaveData
     public float medicineHealRatio;
     public int scouting;
     public List<string> preparationSources = new List<string>();
-    public bool usesV17WorldTravel;
-    public string v17SiteId = string.Empty;
-    public bool v17ObjectiveCompleted;
-    public bool v17ObjectiveBattleActive;
+    public bool usesWorldTravel;
+    public string worldSiteId = string.Empty;
+    public bool worldObjectiveCompleted;
+    public bool worldObjectiveBattleActive;
     public bool departureCompleted;
-    public OffenseTargetDefinition v17Target;
+    public OffenseTargetDefinition worldTarget;
     public int fieldFunds;
     public bool fieldFundsReturned;
 }
@@ -120,25 +136,28 @@ public sealed class DungeonOffenseExpeditionMemberResultSaveData
 
 public sealed class OffenseSaveService : IOffenseSaveService
 {
-    private readonly IOffenseWorldMapRuntimeProvider worldMapProvider;
-    private readonly IOffenseRewardRuntimeProvider rewardProvider;
-    private readonly IOffenseExpeditionRuntimeProvider expeditionProvider;
+    private readonly IOffenseCampaignCatalog campaignDefinitions;
+    private readonly OffenseRewardRuntime rewardRuntime;
+    private readonly OffenseExpeditionRuntime expeditionRuntime;
     private readonly ICharacterWorldSaveService characterSaveService;
     private readonly IOffenseBattleRuntime battleRuntime;
 
     public OffenseSaveService(
-        IOffenseWorldMapRuntimeProvider worldMapProvider,
-        IOffenseRewardRuntimeProvider rewardProvider,
-        IOffenseExpeditionRuntimeProvider expeditionProvider,
+        OffenseSceneRuntimeReferences runtimeReferences,
+        IOffenseCampaignCatalog campaignDefinitions,
         ICharacterWorldSaveService characterSaveService,
         IOffenseBattleRuntime battleRuntime)
     {
-        this.worldMapProvider = worldMapProvider
-            ?? throw new ArgumentNullException(nameof(worldMapProvider));
-        this.rewardProvider = rewardProvider
-            ?? throw new ArgumentNullException(nameof(rewardProvider));
-        this.expeditionProvider = expeditionProvider
-            ?? throw new ArgumentNullException(nameof(expeditionProvider));
+        runtimeReferences = runtimeReferences
+            ?? throw new ArgumentNullException(nameof(runtimeReferences));
+        this.campaignDefinitions = campaignDefinitions
+            ?? throw new ArgumentNullException(nameof(campaignDefinitions));
+        rewardRuntime = runtimeReferences.Rewards
+            ?? throw new InvalidOperationException(
+                $"{nameof(OffenseSaveService)} requires a loaded {nameof(OffenseRewardRuntime)}.");
+        expeditionRuntime = runtimeReferences.Expedition
+            ?? throw new InvalidOperationException(
+                $"{nameof(OffenseSaveService)} requires a loaded {nameof(OffenseExpeditionRuntime)}.");
         this.characterSaveService = characterSaveService
             ?? throw new ArgumentNullException(nameof(characterSaveService));
         this.battleRuntime = battleRuntime
@@ -148,22 +167,7 @@ public sealed class OffenseSaveService : IOffenseSaveService
     public DungeonOffenseSaveData Capture()
     {
         DungeonOffenseSaveData result = new DungeonOffenseSaveData();
-        if (worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap))
-        {
-            result.reconLevel = worldMap.State.ReconLevel;
-            result.selectedTargetId = worldMap.State.SelectedTargetId;
-            result.knownTargetIds = worldMap.State.KnownTargetIds
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .OrderBy(id => id, StringComparer.Ordinal)
-                .ToList();
-            result.completedTargetIds = worldMap.State.CompletedTargetIds
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .OrderBy(id => id, StringComparer.Ordinal)
-                .ToList();
-            result.revealedTruthTargetId = worldMap.State.RevealedTruthTargetId;
-        }
-
-        if (rewardProvider.TryGetRuntime(out OffenseRewardRuntime rewardRuntime))
+        if (rewardRuntime != null)
         {
             IOffenseRewardStateView state = rewardRuntime.State;
             result.rewards = new DungeonOffenseRewardSaveData
@@ -182,7 +186,7 @@ public sealed class OffenseSaveService : IOffenseSaveService
             };
         }
 
-        if (expeditionProvider.TryGetRuntime(out OffenseExpeditionRuntime expeditionRuntime))
+        if (expeditionRuntime != null)
         {
             result.activeExpeditions = expeditionRuntime.ActiveExpeditions
                 .Where(expedition => expedition?.Target != null)
@@ -201,114 +205,78 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 && string.Equals(expedition.expeditionId, activeBattle.expeditionId, StringComparison.Ordinal))
                 ? activeBattle
                 : null;
+        result.hasActiveBattle = result.activeBattle != null;
 
         return result;
     }
 
-    public void Restore(DungeonOffenseSaveData source, DungeonGameRestoreReport report)
+    public OffenseExpeditionRestoreCandidate BuildRestoreCandidate(
+        DungeonOffenseSaveData source,
+        DungeonGameRestoreReport report,
+        IReadOnlyList<OffenseRegionState> restoredRegions,
+        IOffenseWorldMapStateView campaignState)
     {
         if (report == null)
         {
             throw new ArgumentNullException(nameof(report));
         }
 
-        source ??= new DungeonOffenseSaveData();
-        battleRuntime.ClearForPersistentRestore();
-        if (!worldMapProvider.TryGetRuntime(out OffenseWorldMapRuntime worldMap))
+        if (source == null
+            || source.version != DungeonOffenseSaveData.CurrentVersion)
         {
-            report.AddWarning("Offense world map runtime was not present; offense state was skipped.");
-            return;
+            throw new InvalidOperationException(
+                $"Unsupported offense expedition payload version {source?.version.ToString() ?? "null"}; expected {DungeonOffenseSaveData.CurrentVersion}.");
         }
 
-        List<string> restoredCompletedTargets = (source.completedTargetIds ?? new List<string>())
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-        if (restoredCompletedTargets.Count == 0)
-        {
-            restoredCompletedTargets = (source.resultHistory
-                    ?? new List<DungeonOffenseExpeditionResultSaveData>())
-                .Where(result => result != null && result.success && !string.IsNullOrWhiteSpace(result.targetId))
-                .Select(result => result.targetId)
-                .Distinct(StringComparer.Ordinal)
-                .ToList();
-        }
+        campaignState = campaignState
+            ?? throw new ArgumentNullException(nameof(campaignState));
 
-        worldMap.RestorePersistentState(
-            source.reconLevel,
-            source.selectedTargetId,
-            source.knownTargetIds ?? new List<string>(),
-            restoredCompletedTargets,
-            source.revealedTruthTargetId);
+        DungeonOffenseRewardSaveData rewards = source.rewards;
+        Dictionary<StockCategory, int> stock = rewards.stockGranted
+            .ToDictionary(entry => entry.category, entry => entry.amount);
+        OffenseRewardState rewardCandidate =
+            OffenseRewardRuntime.PreparePersistentState(
+            rewards.moneyEarned,
+            stock,
+            rewards.rareFacilityBuildingIds,
+            rewards.acquiredBlueprintIds);
 
-        if (rewardProvider.TryGetRuntime(out OffenseRewardRuntime rewardRuntime))
-        {
-            DungeonOffenseRewardSaveData rewards = source.rewards ?? new DungeonOffenseRewardSaveData();
-            Dictionary<StockCategory, int> stock = (rewards.stockGranted
-                    ?? new List<DungeonOffenseStockRewardSaveData>())
-                .Where(entry => entry != null && entry.amount > 0)
-                .GroupBy(entry => entry.category)
-                .ToDictionary(group => group.Key, group => group.Sum(entry => entry.amount));
-            rewardRuntime.RestorePersistentState(
-                rewards.moneyEarned,
-                stock,
-                rewards.rareFacilityBuildingIds ?? new List<int>(),
-                rewards.acquiredBlueprintIds ?? new List<int>());
-        }
-        else
-        {
-            report.AddWarning("Offense reward runtime was not present; reward history was skipped.");
-        }
-
-        if (!expeditionProvider.TryGetRuntime(out OffenseExpeditionRuntime expeditionRuntime))
-        {
-            report.AddWarning("Offense expedition runtime was not present; expeditions were skipped.");
-            return;
-        }
-
-        Dictionary<string, OffenseTargetDefinition> targets = worldMap.TargetDefinitions
+        Dictionary<string, OffenseTargetDefinition> targets = campaignDefinitions.Targets
             .Where(target => target != null && !string.IsNullOrWhiteSpace(target.id))
             .GroupBy(target => target.id, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         List<OffenseExpeditionRun> activeRuns = new List<OffenseExpeditionRun>();
-        foreach (DungeonOffenseExpeditionRunSaveData savedRun in source.activeExpeditions
-            ?? new List<DungeonOffenseExpeditionRunSaveData>())
+        foreach (DungeonOffenseExpeditionRunSaveData savedRun in source.activeExpeditions)
         {
-            if (savedRun == null)
-            {
-                continue;
-            }
-
-            bool isV17 = savedRun.usesV17WorldTravel
-                || !string.IsNullOrWhiteSpace(savedRun.v17SiteId);
-            OffenseTargetDefinition target = isV17
-                ? savedRun.v17Target?.CreateRuntimeCopy()
+            bool isStrategic = savedRun.usesWorldTravel
+                || !string.IsNullOrWhiteSpace(savedRun.worldSiteId);
+            OffenseTargetDefinition target = isStrategic
+                ? savedRun.worldTarget?.CreateRuntimeCopy()
                 : targets.TryGetValue(
                     savedRun.targetId,
-                    out OffenseTargetDefinition legacyTarget)
-                    ? legacyTarget
+                    out OffenseTargetDefinition campaignTarget)
+                    ? campaignTarget
                     : null;
             if (target == null || !target.IsValid)
             {
-                report.AddWarning(
+                throw new InvalidOperationException(
                     $"Offense target '{savedRun.targetId}' no longer exists; "
-                    + "its active expedition was skipped.");
-                continue;
+                    + "the save cannot be restored.");
             }
 
-            if (!isV17
-                && (worldMap.State.TruthRevealed
-                    || worldMap.State.IsTargetCompleted(target.id)))
+            if (!isStrategic
+                && (campaignState.TruthRevealed
+                    || campaignState.IsTargetCompleted(target.id)))
             {
-                report.AddWarning($"Expedition '{savedRun.expeditionId}' targeted an already completed campaign objective and was skipped.");
-                continue;
+                throw new InvalidOperationException(
+                    $"Expedition '{savedRun.expeditionId}' targets an already completed campaign objective.");
             }
 
             List<CharacterActor> members = new List<CharacterActor>();
-            bool departureCompleted = !isV17
-                || savedRun.journeyVersion < 2
+            List<CharacterActor> protectedRescueMembers = new List<CharacterActor>();
+            bool departureCompleted = !isStrategic
                 || savedRun.departureCompleted;
-            foreach (string persistentId in savedRun.memberPersistentIds ?? new List<string>())
+            foreach (string persistentId in savedRun.memberPersistentIds)
             {
                 if (characterSaveService.TryGetRestoredActor(persistentId, out CharacterActor actor))
                 {
@@ -320,61 +288,76 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 }
                 else
                 {
-                    report.AddWarning($"Expedition member '{persistentId}' could not be restored.");
+                    throw new InvalidOperationException(
+                        $"Expedition member '{persistentId}' does not exist in the staged character world.");
+                }
+            }
+
+            foreach (string persistentId in savedRun.protectedRescueMemberPersistentIds)
+            {
+                if (characterSaveService.TryGetRestoredActor(
+                        persistentId,
+                        out CharacterActor actor))
+                {
+                    if (departureCompleted)
+                    {
+                        actor.BeginExpedition();
+                    }
+                    protectedRescueMembers.Add(actor);
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"Protected rescue member '{persistentId}' does not exist in the staged character world.");
                 }
             }
 
             if (members.Count == 0)
             {
-                report.AddWarning($"Expedition '{savedRun.expeditionId}' has no restored members and was skipped.");
-                continue;
+                throw new InvalidOperationException(
+                    $"Expedition '{savedRun.expeditionId}' has no staged members.");
             }
 
-            bool legacyJourney = savedRun.journeyVersion <= 0;
-            Dictionary<OffenseSupplyType, int> restoredSupplies = (savedRun.supplies
-                    ?? new List<DungeonOffenseSupplySaveData>())
-                .Where(entry => entry != null && entry.amount > 0)
-                .GroupBy(entry => entry.type)
-                .ToDictionary(group => group.Key, group => group.Sum(entry => entry.amount));
-            OffenseExpeditionPreparation preparation = legacyJourney
-                ? new OffenseExpeditionPreparation()
-                : new OffenseExpeditionPreparation(
+            Dictionary<OffenseSupplyType, int> restoredSupplies = savedRun.supplies
+                .ToDictionary(entry => entry.type, entry => entry.amount);
+            OffenseExpeditionPreparation preparation =
+                new OffenseExpeditionPreparation(
                     savedRun.supplyCapacity,
                     savedRun.startingLight,
                     savedRun.campHealRatio,
                     savedRun.campStressRecovery,
                     savedRun.medicineHealRatio,
                     savedRun.scouting,
-                    savedRun.preparationSources ?? new List<string>(),
+                    savedRun.preparationSources,
                     savedRun.fieldFunds);
+            OffenseRouteGraph route = OffenseRouteGenerator.Create(target);
+            if (!route.TryGetNode(savedRun.currentNodeId, out _)
+                || !savedRun.completedNodeIds.Contains(
+                    route.EntranceNodeId,
+                    StringComparer.Ordinal)
+                || savedRun.completedNodeIds.Any(nodeId =>
+                    !route.TryGetNode(nodeId, out _)))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition '{savedRun.expeditionId}' references a route node that is not present in its authored route.");
+            }
             OffenseExpeditionRun restoredRun = new OffenseExpeditionRun(
                 savedRun.expeditionId,
                 target,
                 members,
                 savedRun.totalPower,
                 savedRun.remainingSeconds,
-                OffenseRouteGenerator.Create(target),
+                route,
                 new OffenseSupplyLoadout(restoredSupplies),
                 preparation);
+            restoredRun.MergeProtectedRescueMembers(protectedRescueMembers);
 
             string currentNodeId = savedRun.currentNodeId;
             OffenseExpeditionPhase phase = savedRun.phase;
             float light = savedRun.light;
             IEnumerable<string> completedNodes = savedRun.completedNodeIds;
-            if (legacyJourney)
-            {
-                OffenseRouteNode boss = restoredRun.Route.Nodes.First(node => node.IsBoss);
-                currentNodeId = boss.Id;
-                phase = OffenseExpeditionPhase.InBattle;
-                light = preparation.StartingLight;
-                completedNodes = new[] { restoredRun.Route.EntranceNodeId };
-            }
-
-            Dictionary<StockCategory, int> carriedStock = (savedRun.carriedStock
-                    ?? new List<DungeonOffenseStockRewardSaveData>())
-                .Where(entry => entry != null && entry.amount > 0)
-                .GroupBy(entry => entry.category)
-                .ToDictionary(group => group.Key, group => group.Sum(entry => entry.amount));
+            Dictionary<StockCategory, int> carriedStock = savedRun.carriedStock
+                .ToDictionary(entry => entry.category, entry => entry.amount);
             restoredRun.RestoreJourneyState(
                 phase,
                 currentNodeId,
@@ -384,29 +367,30 @@ public sealed class OffenseSaveService : IOffenseSaveService
             restoredRun.RestoreFieldFunds(
                 savedRun.fieldFunds,
                 savedRun.fieldFundsReturned);
-            if (isV17)
+            if (isStrategic)
             {
-                restoredRun.RestoreV17JourneyState(
-                    string.IsNullOrWhiteSpace(savedRun.v17SiteId)
+                restoredRun.RestoreStrategicJourneyState(
+                    string.IsNullOrWhiteSpace(savedRun.worldSiteId)
                         ? target.id
-                        : savedRun.v17SiteId,
-                    savedRun.v17ObjectiveCompleted,
-                    savedRun.v17ObjectiveBattleActive,
+                        : savedRun.worldSiteId,
+                    savedRun.worldObjectiveCompleted,
+                    savedRun.worldObjectiveBattleActive,
                     phase);
                 restoredRun.RestoreDepartureState(departureCompleted);
             }
 
             Dictionary<string, DungeonOffenseExpeditionMemberStateSaveData> memberStateById =
-                (savedRun.memberStates ?? new List<DungeonOffenseExpeditionMemberStateSaveData>())
-                    .Where(entry => entry != null && !string.IsNullOrWhiteSpace(entry.persistentId))
-                    .GroupBy(entry => entry.persistentId, StringComparer.Ordinal)
-                    .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+                savedRun.memberStates.ToDictionary(
+                    entry => entry.persistentId,
+                    entry => entry,
+                    StringComparer.Ordinal);
             foreach (OffenseExpeditionMemberState memberState in restoredRun.MemberStates)
             {
                 if (!characterSaveService.TryGetPersistentId(memberState.Actor, out string persistentId)
                     || !memberStateById.TryGetValue(persistentId, out DungeonOffenseExpeditionMemberStateSaveData savedMember))
                 {
-                    continue;
+                    throw new InvalidOperationException(
+                        $"Expedition '{savedRun.expeditionId}' member state cannot be bound to a staged character.");
                 }
 
                 memberState.Restore(
@@ -418,12 +402,10 @@ public sealed class OffenseSaveService : IOffenseSaveService
             activeRuns.Add(restoredRun);
         }
 
-        List<OffenseExpeditionResult> history = (source.resultHistory
-                ?? new List<DungeonOffenseExpeditionResultSaveData>())
-            .Where(savedResult => savedResult != null)
+        List<OffenseExpeditionResult> history = source.resultHistory
             .Select(RestoreResult)
             .ToList();
-        OffenseBattlePersistenceState savedBattle = HasSavedBattle(source.activeBattle)
+        OffenseBattlePersistenceState savedBattle = source.hasActiveBattle
             ? source.activeBattle
             : null;
         OffenseExpeditionRun restoredBattleRun = null;
@@ -435,8 +417,8 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 StringComparison.Ordinal));
             if (restoredBattleRun == null)
             {
-                report.AddWarning("The saved battle has no matching expedition and was skipped.");
-                restoredBattleRun = activeRuns.FirstOrDefault();
+                throw new InvalidOperationException(
+                    "The saved offense battle has no matching active expedition.");
             }
         }
         else
@@ -444,70 +426,70 @@ public sealed class OffenseSaveService : IOffenseSaveService
             restoredBattleRun = activeRuns.FirstOrDefault();
         }
 
-        foreach (OffenseExpeditionRun skipped in activeRuns.Where(run => !ReferenceEquals(run, restoredBattleRun)))
-        {
-            foreach (CharacterActor member in skipped.MemberActors)
-            {
-                member?.EndExpedition(alive: true);
-            }
+        List<OffenseExpeditionRun> restoredRuns = activeRuns;
 
-            report.AddWarning($"Legacy expedition '{skipped.ExpeditionId}' was skipped because turn combat supports one active battle.");
-        }
-
-        List<OffenseExpeditionRun> restoredRuns = restoredBattleRun != null
-            ? new List<OffenseExpeditionRun> { restoredBattleRun }
-            : new List<OffenseExpeditionRun>();
-        expeditionRuntime.RestorePersistentState(restoredRuns, history);
+        OffenseBattleRuntime concreteBattle = battleRuntime as OffenseBattleRuntime
+            ?? throw new InvalidOperationException(
+                "Offense save restore requires the canonical battle runtime.");
+        OffenseBattleRestoreCandidate battleCandidate =
+            concreteBattle.PrepareEmptyPersistentRestore();
         if (restoredBattleRun != null)
         {
-            if (restoredBattleRun.UsesV17WorldTravel)
+            if (restoredBattleRun.UsesWorldTravel)
             {
-                report.RecordRestoredExpeditions(
-                    expeditionRuntime.ActiveExpeditions.Count);
-                return;
-            }
-
-            bool requiresBattle = restoredBattleRun.Phase == OffenseExpeditionPhase.InBattle;
-            string battleMessage = "경로 상태 복원";
-            bool restored = true;
-            if (requiresBattle)
-            {
-                restored = savedBattle != null
-                    ? battleRuntime.TryRestoreBattle(restoredBattleRun, savedBattle, out battleMessage)
-                    : battleRuntime.TryStartBattle(restoredBattleRun, out battleMessage);
-            }
-            if (restored && requiresBattle && savedBattle == null)
-            {
-                battleRuntime.AdvanceToPlayerDecision();
-            }
-            if (!restored)
-            {
-                foreach (CharacterActor member in restoredBattleRun.MemberActors)
+                if (savedBattle != null)
                 {
-                    member?.EndExpedition(alive: true);
+                    throw new InvalidOperationException(
+                        "A strategic world-travel expedition cannot own a turn battle payload.");
                 }
-
-                expeditionRuntime.RestorePersistentState(Array.Empty<OffenseExpeditionRun>(), history);
-                report.AddWarning($"Active offense battle could not be restored: {battleMessage}");
+            }
+            else if (restoredBattleRun.Phase == OffenseExpeditionPhase.InBattle)
+            {
+                if (savedBattle == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Expedition '{restoredBattleRun.ExpeditionId}' is in battle without a battle payload.");
+                }
+                battleCandidate = concreteBattle.PreparePersistentRestore(
+                    restoredBattleRun,
+                    savedBattle,
+                    restoredRegions != null
+                        ? OffenseRegionRuntime.CreatePressureForTarget(
+                            restoredBattleRun.Target,
+                            restoredRegions)
+                        : (OffenseStrategicPressureSnapshot?)null);
             }
         }
 
-        report.RecordRestoredExpeditions(expeditionRuntime.ActiveExpeditions.Count);
+        return new OffenseExpeditionRestoreCandidate
+        {
+            Rewards = rewardCandidate,
+            ActiveExpeditions = restoredRuns,
+            ResultHistory = history,
+            Battle = battleCandidate
+        };
     }
 
-    private static bool HasSavedBattle(OffenseBattlePersistenceState battle)
+    public void PublishRestoreCandidate(
+        OffenseExpeditionRestoreCandidate candidate)
     {
-        return battle != null
-            && !string.IsNullOrWhiteSpace(battle.battleId)
-            && !string.IsNullOrWhiteSpace(battle.expeditionId)
-            && !string.IsNullOrWhiteSpace(battle.targetId);
+        if (candidate == null)
+        {
+            throw new ArgumentNullException(nameof(candidate));
+        }
+        rewardRuntime.PublishPersistentState(candidate.Rewards);
+        expeditionRuntime.PublishPersistentState(
+            candidate.ActiveExpeditions,
+            candidate.ResultHistory);
+        ((OffenseBattleRuntime)battleRuntime).PublishPersistentRestore(
+            candidate.Battle);
     }
 
     private DungeonOffenseExpeditionRunSaveData CaptureExpedition(OffenseExpeditionRun expedition)
     {
         return new DungeonOffenseExpeditionRunSaveData
         {
-            journeyVersion = 2,
+            journeyVersion = DungeonOffenseExpeditionRunSaveData.CurrentVersion,
             expeditionId = expedition.ExpeditionId,
             targetId = expedition.Target.id,
             totalPower = expedition.TotalPower,
@@ -517,6 +499,16 @@ public sealed class OffenseSaveService : IOffenseSaveService
                 .Select(member => characterSaveService.TryGetPersistentId(member, out string persistentId)
                     ? persistentId
                     : string.Empty)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.Ordinal)
+                .ToList(),
+            protectedRescueMemberPersistentIds = expedition.ProtectedRescueActors
+                .Where(member => member != null)
+                .Select(member => characterSaveService.TryGetPersistentId(
+                    member,
+                    out string persistentId)
+                        ? persistentId
+                        : string.Empty)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .Distinct(StringComparer.Ordinal)
                 .ToList(),
@@ -556,12 +548,12 @@ public sealed class OffenseSaveService : IOffenseSaveService
             medicineHealRatio = expedition.Preparation.MedicineHealRatio,
             scouting = expedition.Preparation.Scouting,
             preparationSources = expedition.Preparation.SourceSummaries.ToList(),
-            usesV17WorldTravel = expedition.UsesV17WorldTravel,
-            v17SiteId = expedition.V17SiteId,
-            v17ObjectiveCompleted = expedition.V17ObjectiveCompleted,
-            v17ObjectiveBattleActive = expedition.V17ObjectiveBattleActive,
+            usesWorldTravel = expedition.UsesWorldTravel,
+            worldSiteId = expedition.WorldSiteId,
+            worldObjectiveCompleted = expedition.WorldObjectiveCompleted,
+            worldObjectiveBattleActive = expedition.WorldObjectiveBattleActive,
             departureCompleted = expedition.DepartureCompleted,
-            v17Target = expedition.UsesV17WorldTravel
+            worldTarget = expedition.UsesWorldTravel
                 ? expedition.Target.CreateRuntimeCopy()
                 : null,
             fieldFunds = expedition.FieldFunds,
@@ -607,8 +599,7 @@ public sealed class OffenseSaveService : IOffenseSaveService
             source.requiredPower,
             source.danger,
             source.elapsedSeconds,
-            (source.members ?? new List<DungeonOffenseExpeditionMemberResultSaveData>())
-                .Where(member => member != null)
+            source.members
                 .Select(member => new OffenseExpeditionMemberSnapshot(
                     member.name,
                     member.speciesTag,
@@ -616,6 +607,6 @@ public sealed class OffenseSaveService : IOffenseSaveService
                     member.survived,
                     member.damageTaken))
                 .ToList(),
-            source.rewardSummaries ?? new List<string>());
+            source.rewardSummaries);
     }
 }

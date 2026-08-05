@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
-public sealed class WorldResourceSaveSection : IDungeonSaveSection
+public sealed class WorldResourceSaveSection :
+    DungeonStrictJsonSaveSection<
+        DungeonWorldResourceSaveData,
+        WorldResourceRestoreCandidate>,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "economy.world-resources";
 
@@ -12,42 +15,29 @@ public sealed class WorldResourceSaveSection : IDungeonSaveSection
         PhysicalItemsSaveSection.Id
     };
 
-    private readonly IWorldResourceRuntime runtime;
+    private readonly IWorldResourcePersistence persistence;
 
-    public WorldResourceSaveSection(IWorldResourceRuntime runtime)
+    public WorldResourceSaveSection(IWorldResourcePersistence persistence)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
-    public string SectionId => Id;
-    public int SectionVersion => DungeonWorldResourceSaveData.CurrentVersion;
-    public DungeonSaveRestorePhase RestorePhase =>
+    public override string SectionId => Id;
+    public override int SectionVersion =>
+        DungeonWorldResourceSaveData.CurrentVersion;
+    public override DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.RuntimeState;
-    public IReadOnlyList<string> DependsOn => Dependencies;
+    public override IReadOnlyList<string> DependsOn => Dependencies;
 
-    public string Capture()
-    {
-        return JsonUtility.ToJson(runtime.Capture());
-    }
+    protected override DungeonWorldResourceSaveData CapturePayload() =>
+        persistence.Capture();
 
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        if (sectionVersion != SectionVersion)
-        {
-            report.AddError(
-                $"Unsupported world-resource section version {sectionVersion}; "
-                + $"expected {SectionVersion}.");
-            return;
-        }
+    protected override WorldResourceRestoreCandidate BuildRestoreCandidate(
+        DungeonWorldResourceSaveData payload) =>
+        persistence.BuildRestore(payload);
 
-        DungeonWorldResourceSaveData snapshot =
-            string.IsNullOrWhiteSpace(payloadJson)
-                ? new DungeonWorldResourceSaveData()
-                : JsonUtility.FromJson<DungeonWorldResourceSaveData>(payloadJson)
-                    ?? new DungeonWorldResourceSaveData();
-        runtime.Restore(snapshot);
-    }
+    protected override void PublishRestoreCandidate(
+        WorldResourceRestoreCandidate candidate) =>
+        persistence.Restore(candidate);
 }

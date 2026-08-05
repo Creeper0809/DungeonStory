@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,17 +33,19 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: e175fa2724a20ee4e8bb5d2ed5817f09, type: 3}
   abilityModules:
     items:
-    - rid: 7302563299362341539
-    - rid: 7302563299362341540
-    - rid: 7302563299362341541
-    - rid: 7302563299362341542
-    - rid: 7302563299362341543
+    - rid: 7737211765905949227
+    - rid: 7737211765905949228
+    - rid: 7737211765905949229
+    - rid: 7737211765905949230
+    - rid: 7737211765905949231
+    - rid: 7737211765905949232
   width: 1
   height: 1
   layer: 1
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -61,13 +54,13 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563299362341539
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211765905949227
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CP02
-    - rid: 7302563299362341540
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211765905949228
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 0
@@ -75,7 +68,19 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563299362341541
+    - rid: 7737211765905949229
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 19.8
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:lumber
+          amount: 5
+    - rid: 7737211765905949230
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -86,12 +91,12 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 0
           disabledWhenDamaged: 1
-    - rid: 7302563299362341542
-      type: {class: BuildingRoomRequirementAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211765905949231
+      type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7302563299362341543
-      type: {class: BuildingPublicPunishmentAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211765905949232
+      type: {class: BuildingPublicPunishmentAbility, ns: , asm: DungeonStory.Captivity}
       data:
         abilityId: BuildingPublicPunishmentAbility
         cruelSatisfactionBonus: 8

@@ -79,6 +79,7 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
     private Mouse verificationMouse;
     private Keyboard originalKeyboard;
     private Keyboard verificationKeyboard;
+    private DungeonAutomationInputTestCapability automationInput;
     private InputSettings.EditorInputBehaviorInPlayMode originalInputBehavior;
     private int originalGameViewSizeIndex = -1;
     private IDungeonUserSettingsService settings;
@@ -120,8 +121,9 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
         IWorldItemStackRuntime itemRuntime = container.Resolve<IWorldItemStackRuntime>();
         IMainCameraProvider cameraProvider = container.Resolve<IMainCameraProvider>();
         IWildlifeRuntime wildlifeRuntime = container.Resolve<IWildlifeRuntime>();
-        IInvasionDirectorRuntimeProvider directorProvider =
-            container.Resolve<IInvasionDirectorRuntimeProvider>();
+        InvasionDirectorRuntime director = container
+            .Resolve<InvasionSceneRuntimeReferences>()
+            .Director;
         IDungeonGameSaveService saveService = container.Resolve<IDungeonGameSaveService>();
 
         settings.Update(data => data.developerMode = false);
@@ -235,7 +237,7 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
 
         DungeonDebugCommandResult invasionResult = Execute(registry, "defense:invasion");
         yield return new WaitForSecondsRealtime(0.5f);
-        bool hasDirector = directorProvider.TryGetRuntime(out InvasionDirectorRuntime director);
+        bool hasDirector = director != null;
         Check(invasionResult.Success && hasDirector && director.ActiveIntruders.Count > 0,
             "NORMAL_INVASION",
             invasionResult.Message);
@@ -288,7 +290,8 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
 
         mode.SetCheat(DungeonDebugCheat.FreezeNeeds, true);
         DungeonDebugRunSaveData debugSnapshot = mode.Capture();
-        mode.Restore(debugSnapshot);
+        mode.PublishRestoreCandidate(
+            mode.PrepareRestoreCandidate(debugSnapshot));
         Check(mode.IsDebugModified && !mode.IsCheatEnabled(DungeonDebugCheat.FreezeNeeds),
             "LOAD_RESETS_CHEATS",
             "world marker persisted and transient cheat cleared");
@@ -533,14 +536,13 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
         verificationKeyboard = InputSystem.AddDevice<Keyboard>("DungeonDebugVerificationKeyboard");
         verificationMouse.MakeCurrent();
         verificationKeyboard.MakeCurrent();
-        DungeonAutomationInputState.Enable(
-            new DungeonStory.Foundation.UnityGameClock(),
-            new DungeonStory.Foundation.UnityUiClock());
+        automationInput = new DungeonAutomationInputTestCapability();
+        automationInput.Enable();
     }
 
     private void QueueMouse(MouseState state)
     {
-        DungeonAutomationInputState.MovePointer(state.position);
+        automationInput.MovePointer(state.position);
         verificationMouse.MakeCurrent();
         InputSystem.QueueStateEvent(verificationMouse, state);
         InputSystem.Update();
@@ -561,7 +563,8 @@ public sealed class DungeonDebugModeVerificationRunner : MonoBehaviour
 
     private void TeardownInput()
     {
-        DungeonAutomationInputState.Disable();
+        automationInput?.Dispose();
+        automationInput = null;
         if (verificationMouse != null && verificationMouse.added)
         {
             InputSystem.RemoveDevice(verificationMouse);

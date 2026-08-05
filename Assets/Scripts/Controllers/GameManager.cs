@@ -5,15 +5,8 @@ using System.Collections;
 using System.Collections.Generic;
 using DungeonStory.Foundation;
 using UnityEngine;
+using UnityEngine.Serialization;
 using VContainer;
-public enum TimeOfDay
-{
-    None,
-    Morning,
-    Noon,
-    Evening,
-    Night,
-}
 public enum NumberCondition
 {
     ONBUYINGITEM,
@@ -21,43 +14,57 @@ public enum NumberCondition
 }
 public class GameManager : SerializedMonoBehaviour
 {
-    public GameData gameData;
+    [FormerlySerializedAs("gameData")]
+    [SerializeField] private GameData gameDataSettings;
     public Dictionary<NumberCondition,DamageNumber> numbers;
-    public bool isPause;
+
+    public GameData Settings => gameDataSettings;
+    public GameSessionState gameData =>
+        sessionStateProvider != null
+        && sessionStateProvider.TryGetSessionState(out GameSessionState state)
+            ? state
+            : null;
+    public bool isPause
+    {
+        get => gameData?.IsPaused ?? false;
+        set => gameSpeedController?.SetPaused(value);
+    }
 
     private IOwnerRunManagerProvider ownerRunManagerProvider;
     private OwnerRunManager ownerRunManager;
-    private Coroutine timerRoutine;
-    private IGameEventBus gameEventBus;
-    private IGameClock gameClock;
-    private IGameTimeScaleController timeScaleController;
+    private IGameCalendar gameCalendar;
+    private IGameSpeedController gameSpeedController;
+    private IGameSessionStateProvider sessionStateProvider;
 
     [Inject]
     public void ConstructGameManager(
         IOwnerRunManagerProvider ownerRunManagerProvider,
-        IGameEventBus gameEventBus,
-        IGameClock gameClock,
-        IGameTimeScaleController timeScaleController)
+        IGameCalendar gameCalendar,
+        IGameSpeedController gameSpeedController,
+        IGameSessionStateProvider sessionStateProvider)
     {
-        this.ownerRunManagerProvider = ownerRunManagerProvider;
-        this.gameEventBus = gameEventBus
-            ?? throw new System.ArgumentNullException(nameof(gameEventBus));
-        this.gameClock = gameClock
-            ?? throw new System.ArgumentNullException(nameof(gameClock));
-        this.timeScaleController = timeScaleController
-            ?? throw new System.ArgumentNullException(nameof(timeScaleController));
+        this.ownerRunManagerProvider = ownerRunManagerProvider
+            ?? throw new System.ArgumentNullException(nameof(ownerRunManagerProvider));
+        this.gameCalendar = gameCalendar
+            ?? throw new System.ArgumentNullException(nameof(gameCalendar));
+        this.gameSpeedController = gameSpeedController
+            ?? throw new System.ArgumentNullException(nameof(gameSpeedController));
+        this.sessionStateProvider = sessionStateProvider
+            ?? throw new System.ArgumentNullException(nameof(sessionStateProvider));
     }
 
     private void Awake()
     {
+        if (gameDataSettings == null)
+        {
+            throw new System.InvalidOperationException(
+                $"{nameof(GameManager)} requires a {nameof(GameData)} settings asset.");
+        }
+
         DOTween.Init();
     }
     void Start()
     {
-        gameData.gameSpeed.Initialize(1);
-        gameData.holdingMoney.Initialize(5000);
-        gameData.day.Initialize(1);
-
         if (ownerRunManagerProvider != null
             && ownerRunManagerProvider.TryGetManager(out ownerRunManager)
             && ownerRunManager != null)
@@ -65,99 +72,30 @@ public class GameManager : SerializedMonoBehaviour
             ownerRunManager.OnOwnerSelected += HandleOwnerSelected;
             if (ownerRunManager.CurrentOwnerActor != null)
             {
-                StartGameClock();
+                gameCalendar.Start();
             }
 
             return;
         }
 
-        StartGameClock();
+        gameCalendar.Start();
     }
 
     private void HandleOwnerSelected(CharacterSO ownerData)
     {
         if (ownerData != null)
         {
-            StartGameClock();
+            gameCalendar.Start();
         }
     }
 
-    private void StartGameClock()
-    {
-        if (timerRoutine != null)
-        {
-            return;
-        }
-
-        timerRoutine = StartCoroutine(Timer());
-        gameEventBus.Publish(new OperatingDayStartedEvent(gameData.day.Value));
-    }
-    public void ConvertSecondsToGameTime()
-    {
-        float dayFraction = gameData.curTime.Value / 180;
-
-        float gameHours = dayFraction * 24;
-        gameData.hour.Value = (int)gameHours % 24;
-    }
     public void ChangeGameSpeed()
     {
-        gameData.gameSpeed.Value = gameData.gameSpeed.Value % 5 + 1;
-        if (!isPause)
-        {
-            timeScaleController.Scale = gameData.gameSpeed.Value;
-        }
+        gameSpeedController.CycleSpeed();
     }
     public void TogglePause()
     {
-        isPause = !isPause;
-        if (isPause)
-        {
-            timeScaleController.Scale = 0f;
-        }
-        else
-        {
-            timeScaleController.Scale = gameData.gameSpeed.Value;
-        }
-    }
-    // Update is called once per frame
-    void Update()
-    {
-        ConvertSecondsToGameTime();
-        if (gameData.curTime.Value < 40f)
-        {
-            gameData.timeOfDay.Value = TimeOfDay.Night;
-        }
-        else if (gameData.curTime.Value < 50f)
-        {
-            gameData.timeOfDay.Value = TimeOfDay.Morning;
-        }
-        else if(gameData.curTime.Value < 145f)
-        {
-            gameData.timeOfDay.Value = TimeOfDay.Noon;
-        }
-        else if(gameData.curTime.Value < 155f)
-        {
-            gameData.timeOfDay.Value = TimeOfDay.Evening;
-        }
-        else
-        {
-            gameData.timeOfDay.Value = TimeOfDay.Night;
-        }
-    }
-    public IEnumerator Timer()
-    {
-        while (true)
-        {
-            gameData.curTime.Value = 0;
-            while (gameData.curTime.Value <= 180)
-            {
-                gameData.curTime.Value += gameClock.DeltaTime;
-                yield return null;
-            }
-            gameEventBus.Publish(new OperatingDayEndedEvent(gameData.day.Value));
-            gameData.day.Value++;
-            gameEventBus.Publish(new OperatingDayStartedEvent(gameData.day.Value));
-        }
+        gameSpeedController.TogglePause();
     }
 
     private void OnDestroy()

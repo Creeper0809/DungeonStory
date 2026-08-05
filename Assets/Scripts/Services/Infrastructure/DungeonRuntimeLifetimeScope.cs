@@ -26,7 +26,7 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
         OffenseSceneRuntimeReferences offenseRuntimeReferences =
             CaptureOffenseRuntimeReferences(sceneQuery);
         InvasionSceneRuntimeReferences invasionRuntimeReferences =
-            CaptureInvasionRuntimeReferences(sceneQuery);
+            CaptureInvasionRuntimeReferences(sceneQuery, transform);
         FacilityFeatureSceneRuntimeReferences facilityRuntimeReferences =
             CaptureFacilityRuntimeReferences(sceneQuery);
         CharacterSceneRuntimeReferences characterRuntimeReferences =
@@ -39,10 +39,14 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
             sceneQuery.SingleRequired<OwnerCommandController>(includeInactive: true);
         IPlayerCombatCommandSource playerCombatCommands =
             ownerCommandController as IPlayerCombatCommandSource
-            ?? new UnavailablePlayerCombatCommandSource();
+            ?? throw new System.InvalidOperationException(
+                $"{nameof(OwnerCommandController)} must implement "
+                + $"{nameof(IPlayerCombatCommandSource)}.");
         IPlayerStaffCommandSource playerStaffCommands =
             ownerCommandController as IPlayerStaffCommandSource
             ?? new UnavailablePlayerStaffCommandSource();
+        builder.RegisterBuildCallback(
+            resolver => InjectSceneHierarchy(resolver, scopeScene));
         builder.RegisterDungeonFoundation();
         builder.RegisterDungeonWork();
 
@@ -71,13 +75,12 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
 
         builder.RegisterBuildCallback((resolver) =>
         {
-            InjectSceneHierarchy(resolver, scopeScene);
             resolver.Resolve<ItemPileInfoPanel>();
             resolver.Resolve<WildlifeInfoPanel>();
             resolver.Resolve<RegularCustomerRuntime>();
             resolver.Resolve<IExteriorActivityRuntime>();
             resolver.Resolve<IWildlifeRuntime>();
-            resolver.Resolve<ISurvivalFoodRuntime>();
+            resolver.Resolve<ISurvivalFoodQuery>();
         });
     }
 
@@ -92,26 +95,66 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
         GameObject[] roots = scopeScene.GetRootGameObjects();
         for (int i = 0; i < roots.Length; i++)
         {
-            resolver.InjectGameObject(roots[i]);
+            MonoBehaviour[] behaviours =
+                roots[i].GetComponentsInChildren<MonoBehaviour>(includeInactive: true);
+            for (int j = 0; j < behaviours.Length; j++)
+            {
+                MonoBehaviour behaviour = behaviours[j];
+                if (behaviour == null)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    resolver.Inject(behaviour);
+                }
+                catch (System.Exception exception)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Scene injection failed for {behaviour.GetType().FullName} " +
+                        $"at {GetHierarchyPath(behaviour.transform)}.",
+                        exception);
+                }
+            }
         }
+    }
+
+    private static string GetHierarchyPath(Transform target)
+    {
+        if (target == null)
+        {
+            return "<destroyed>";
+        }
+
+        string path = target.name;
+        while (target.parent != null)
+        {
+            target = target.parent;
+            path = target.name + "/" + path;
+        }
+
+        return path;
     }
 
     private static DungeonSceneRuntimeReferences CaptureSceneRuntimeReferences(
         DungeonSceneComponentQuery sceneQuery)
     {
         return new DungeonSceneRuntimeReferences(
-            sceneQuery.First<UIManager>(includeInactive: true),
-            sceneQuery.First<OperatingDaySettlementRuntime>(includeInactive: true),
-            sceneQuery.First<EventAlertRuntime>(includeInactive: true),
-            sceneQuery.First<RunVariableRuntime>(includeInactive: true),
-            sceneQuery.First<Canvas>(includeInactive: true),
-            sceneQuery.First<GameManager>(includeInactive: true),
-            sceneQuery.First<GridSystemManager>(includeInactive: true),
-            sceneQuery.First<DungeonStoryGridBuildingController>(includeInactive: true),
-            sceneQuery.First<GridTexture>(includeInactive: true),
-            sceneQuery.First<Camera>(includeInactive: true),
-            sceneQuery.First<OwnerSelectionPanel>(includeInactive: true),
-            sceneQuery.First<UIBuildingInfo>(includeInactive: true));
+            new DungeonSceneServiceReferences(
+                sceneQuery.First<UIManager>(includeInactive: true),
+                sceneQuery.First<OperatingDaySettlementRuntime>(includeInactive: true),
+                sceneQuery.First<EventAlertRuntime>(includeInactive: true),
+                sceneQuery.First<RunVariableRuntime>(includeInactive: true)),
+            new DungeonSceneViewReferences(
+                sceneQuery.First<Canvas>(includeInactive: true),
+                sceneQuery.First<GameManager>(includeInactive: true),
+                sceneQuery.First<GridSystemManager>(includeInactive: true),
+                sceneQuery.First<DungeonStoryGridBuildingController>(includeInactive: true),
+                sceneQuery.First<GridTexture>(includeInactive: true),
+                sceneQuery.First<Camera>(includeInactive: true),
+                sceneQuery.First<OwnerSelectionPanel>(includeInactive: true),
+                sceneQuery.First<UIBuildingInfo>(includeInactive: true)));
     }
 
     private static DungeonUserSettingsRuntimeTargets CaptureUserSettingsTargets(
@@ -145,12 +188,52 @@ public sealed class DungeonRuntimeLifetimeScope : LifetimeScope
     }
 
     private static InvasionSceneRuntimeReferences CaptureInvasionRuntimeReferences(
-        DungeonSceneComponentQuery sceneQuery)
+        DungeonSceneComponentQuery sceneQuery,
+        Transform runtimeRoot)
     {
+        InvasionThreatRuntime threat =
+            sceneQuery.First<InvasionThreatRuntime>(includeInactive: true);
+        InvasionDirectorRuntime director =
+            sceneQuery.First<InvasionDirectorRuntime>(includeInactive: true);
+        InvasionCombatReportRuntime combatReport =
+            sceneQuery.First<InvasionCombatReportRuntime>(includeInactive: true);
+        GameObject runtimeHost = null;
+        threat = RequireInvasionRuntime(threat, runtimeRoot, ref runtimeHost);
+        director = RequireInvasionRuntime(director, runtimeRoot, ref runtimeHost);
+        combatReport = RequireInvasionRuntime(
+            combatReport,
+            runtimeRoot,
+            ref runtimeHost);
         return new InvasionSceneRuntimeReferences(
-            sceneQuery.First<InvasionThreatRuntime>(includeInactive: true),
-            sceneQuery.First<InvasionDirectorRuntime>(includeInactive: true),
-            sceneQuery.First<InvasionCombatReportRuntime>(includeInactive: true));
+            threat,
+            director,
+            combatReport);
+    }
+
+    private static T RequireInvasionRuntime<T>(
+        T existing,
+        Transform runtimeRoot,
+        ref GameObject runtimeHost)
+        where T : Component
+    {
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        if (runtimeRoot == null)
+        {
+            throw new System.InvalidOperationException(
+                $"Cannot create required invasion runtime {typeof(T).Name} without a runtime root.");
+        }
+
+        if (runtimeHost == null)
+        {
+            runtimeHost = new GameObject("DungeonInvasionRuntime");
+            runtimeHost.transform.SetParent(runtimeRoot, worldPositionStays: false);
+        }
+
+        return runtimeHost.AddComponent<T>();
     }
 
     private static FacilityFeatureSceneRuntimeReferences CaptureFacilityRuntimeReferences(

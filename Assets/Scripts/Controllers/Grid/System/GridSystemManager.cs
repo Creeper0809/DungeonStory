@@ -94,6 +94,37 @@ public class GridSystemManager : MonoBehaviour
         worldRegistry?.SetGrid(grid);
     }
 
+    public bool TryPublishGrid(
+        Grid expectedCurrent,
+        Grid replacement,
+        out string failureReason)
+    {
+        if (replacement == null)
+        {
+            failureReason = "A replacement grid is required.";
+            return false;
+        }
+
+        EnsureGridInitialized();
+        if (!ReferenceEquals(grid, expectedCurrent))
+        {
+            failureReason = "The live grid changed while a restore candidate was being prepared.";
+            return false;
+        }
+
+        grid = replacement;
+        worldRegistry?.SetGrid(grid);
+        failureReason = string.Empty;
+        return true;
+    }
+
+    public void CompleteGridPublication()
+    {
+        CancelDragSelection();
+        OnGridExpand?.Invoke();
+        NotifyGridObjectChanged();
+    }
+
     protected virtual void Start()
     {
         SetGridMode(GridMode.None);

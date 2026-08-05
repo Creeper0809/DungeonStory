@@ -1,0 +1,72 @@
+[INFO] FAST_PARTY_COMMIT committed=True; message=준비한 사장과 직원으로 새 런을 시작했습니다.; staff=2; actors=Dion:-638088:staff:1:02:active=True,Sion:-637946:staff:1:01:active=True; diagnostics=prepared-1:name=Sion;go=-637918;id=staff:1:01;active=False || prepared-2:name=Dion;go=-638060;id=staff:1:02;active=False || scan:name=Sion;go=-637918;id=staff:1:01;active=False;retained=True || scan:name=Dion;go=-638060;id=staff:1:02;active=False;retained=True || scan:name=Sion;go=-637918;id=staff:1:01;active=True;retained=True || scan:name=Dion;go=-638060;id=staff:1:02;active=True;retained=True || retained:name=Sion;go=-637918;id=staff:1:01;active=True || retained:name=Dion;go=-638060;id=staff:1:02;active=True
+[PASS] PLAYABLE_RUN_READY owner=Leon
+[PASS] SCOPE_READY gameplay LifetimeScope resolved
+[PASS] EVENT_BUS_READY character info event bus resolved
+[PASS] MEDICAL_UI_SERVICE_READY character surgery window service resolved
+[PASS] CHARACTER_SUMMARY_READY CharacterSummaryInfo resolved
+[PASS] CHARACTER_ACTOR_READY Leon
+[PASS] RESOLUTION_1600x900 actual=1600x900
+[PASS] SUMMARY_OPEN_1600x900 info event opened CharacterSummaryInfo
+[PASS] SUMMARY_GENERATED_1600x900 generated summary view is active
+[PASS] SUMMARY_BOUNDS_1600x900 (x:20.00, y:66.67, width:416.67, height:583.33)
+[PASS] SUMMARY_MEDICAL_POINTER_TARGETS_1600x900 health=True; surgery=True; automatic=True; close=True
+[PASS] HEALTH_TAB_POINTER_1600x900_HIT_TEST point=(114.52, 564.17); hits=2; top=HealthTab; expected=HealthTab
+[PASS] HEALTH_TAB_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] HEALTH_TAB_SELECTED_1600x900 health=True; status=False
+[PASS] HEALTH_COMMAND_BOUNDS_1600x900 surgery=(x:164.17, y:503.33, width:128.33, height:36.67); automatic=(x:296.67, y:503.33, width:128.33, height:36.67)
+[PASS] HEALTH_COMMAND_LABELS_FIT_1600x900 health and surgery command labels do not overflow
+[PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_1600x900_HIT_TEST point=(360.83, 521.67); hits=2; top=AutomaticSurgery; expected=AutomaticSurgery
+[PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] AUTOMATIC_SURGERY_TOGGLED_1600x900 True->False
+[PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_1600x900_HIT_TEST point=(360.83, 521.67); hits=2; top=AutomaticSurgery; expected=AutomaticSurgery
+[PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] AUTOMATIC_SURGERY_RESTORED_1600x900 expected=True; actual=True
+[PASS] SUMMARY_HEALTH_CAPTURE_1600x900 size=1600x900; bytes=217634; visible=1413412; path=Artifacts/QA/CharacterSummaryMedical\1600x900-summary-health.png
+[PASS] SURGERY_OPEN_POINTER_1600x900_HIT_TEST point=(228.33, 521.67); hits=2; top=SurgeryCommand; expected=SurgeryCommand
+[PASS] SURGERY_OPEN_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] SURGERY_MODAL_OPEN_1600x900 CharacterSurgeryWindow
+[PASS] SURGERY_PANEL_BOUNDS_1600x900 (x:308.33, y:100.00, width:983.33, height:700.00)
+[PASS] SURGERY_FOOTER_TARGETS_1600x900 schedule=True; cancel=True; close=True
+[PASS] SURGERY_FOOTER_BOUNDS_1600x900 schedule=(x:325.00, y:115.00, width:312.22, height:71.41); cancel=(x:643.89, y:115.00, width:312.22, height:71.41); close=(x:962.78, y:115.00, width:312.22, height:71.41)
+[PASS] SURGERY_FOOTER_LABELS_FIT_1600x900 surgery footer labels do not overflow
+[PASS] SURGERY_MODAL_CAPTURE_1600x900 size=1600x900; bytes=233700; visible=1440000; path=Artifacts/QA/CharacterSummaryMedical\1600x900-surgery-modal.png
+[PASS] SURGERY_CLOSE_POINTER_1600x900_HIT_TEST point=(1118.89, 150.71); hits=4; top=Close; expected=Close
+[PASS] SURGERY_CLOSE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] SURGERY_MODAL_CLOSED_1600x900 close pointer removed the surgery modal
+[PASS] SUMMARY_CLOSE_POINTER_1600x900_HIT_TEST point=(398.33, 625.00); hits=3; top=CloseButton; expected=CloseButton
+[PASS] SUMMARY_CLOSE_POINTER_1600x900_DISPATCH Unity pointer event dispatched
+[PASS] SUMMARY_CLOSED_1600x900 close pointer hid CharacterSummaryInfo
+[PASS] RESOLUTION_900x1600 actual=900x1600
+[PASS] SUMMARY_OPEN_900x1600 info event opened CharacterSummaryInfo
+[PASS] SUMMARY_GENERATED_900x1600 generated summary view is active
+[PASS] SUMMARY_BOUNDS_900x1600 (x:20.00, y:66.67, width:416.67, height:583.33)
+[PASS] SUMMARY_MEDICAL_POINTER_TARGETS_900x1600 health=True; surgery=True; automatic=True; close=True
+[PASS] HEALTH_TAB_POINTER_900x1600_HIT_TEST point=(114.52, 564.17); hits=2; top=HealthTab; expected=HealthTab
+[PASS] HEALTH_TAB_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] HEALTH_TAB_SELECTED_900x1600 health=True; status=False
+[PASS] HEALTH_COMMAND_BOUNDS_900x1600 surgery=(x:164.17, y:503.33, width:128.33, height:36.67); automatic=(x:296.67, y:503.33, width:128.33, height:36.67)
+[PASS] HEALTH_COMMAND_LABELS_FIT_900x1600 health and surgery command labels do not overflow
+[PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_900x1600_HIT_TEST point=(360.83, 521.67); hits=2; top=AutomaticSurgery; expected=AutomaticSurgery
+[PASS] AUTOMATIC_SURGERY_ENABLE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] AUTOMATIC_SURGERY_TOGGLED_900x1600 True->False
+[PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_900x1600_HIT_TEST point=(360.83, 521.67); hits=2; top=AutomaticSurgery; expected=AutomaticSurgery
+[PASS] AUTOMATIC_SURGERY_RESTORE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] AUTOMATIC_SURGERY_RESTORED_900x1600 expected=True; actual=True
+[PASS] SUMMARY_HEALTH_CAPTURE_900x1600 size=900x1600; bytes=199073; visible=1434734; path=Artifacts/QA/CharacterSummaryMedical\900x1600-summary-health.png
+[PASS] SURGERY_OPEN_POINTER_900x1600_HIT_TEST point=(228.33, 521.67); hits=2; top=SurgeryCommand; expected=SurgeryCommand
+[PASS] SURGERY_OPEN_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] SURGERY_MODAL_OPEN_900x1600 CharacterSurgeryWindow
+[PASS] SURGERY_PANEL_BOUNDS_900x1600 (x:20.00, y:450.00, width:860.00, height:700.00)
+[PASS] SURGERY_FOOTER_TARGETS_900x1600 schedule=True; cancel=True; close=True
+[PASS] SURGERY_FOOTER_BOUNDS_900x1600 schedule=(x:36.67, y:465.00, width:271.11, height:71.41); cancel=(x:314.44, y:465.00, width:271.11, height:71.41); close=(x:592.22, y:465.00, width:271.11, height:71.41)
+[PASS] SURGERY_FOOTER_LABELS_FIT_900x1600 surgery footer labels do not overflow
+[PASS] SURGERY_MODAL_CAPTURE_900x1600 size=900x1600; bytes=199969; visible=1440000; path=Artifacts/QA/CharacterSummaryMedical\900x1600-surgery-modal.png
+[PASS] SURGERY_CLOSE_POINTER_900x1600_HIT_TEST point=(727.78, 500.71); hits=4; top=Close; expected=Close
+[PASS] SURGERY_CLOSE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] SURGERY_MODAL_CLOSED_900x1600 close pointer removed the surgery modal
+[PASS] SUMMARY_CLOSE_POINTER_900x1600_HIT_TEST point=(398.33, 625.00); hits=3; top=CloseButton; expected=CloseButton
+[PASS] SUMMARY_CLOSE_POINTER_900x1600_DISPATCH Unity pointer event dispatched
+[PASS] SUMMARY_CLOSED_900x1600 close pointer hid CharacterSummaryInfo
+capturedErrors=0; <none>
+capturedWarnings=0; <none>
+RESULT=PASS; failures=0; <none>

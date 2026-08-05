@@ -1,0 +1,1292 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: DomainFailures Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: DomainFailures
+  m_TableCollectionNameGuidString: e35a33f9183c68c4186aeb6d15ce08e8
+  m_Entries:
+  - m_Id: 1135955968
+    m_Key: RequiredResearchUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704704
+    m_Key: EquipmentDefinitionMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704705
+    m_Key: EquipmentInstanceMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704706
+    m_Key: EquipmentModuleMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704707
+    m_Key: EquipmentOrModuleMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704708
+    m_Key: ModuleNotUnidentified
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704709
+    m_Key: ModuleNotRestorable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704710
+    m_Key: ModuleNotTunable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704711
+    m_Key: ModuleSlotMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704712
+    m_Key: ModuleSlotEmpty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704713
+    m_Key: EquipmentLineageMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704714
+    m_Key: ModuleLineageMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704715
+    m_Key: ModuleNeedsRestoration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704716
+    m_Key: ModuleNeedsRuneTuning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704717
+    m_Key: ModuleAlreadyAttached
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704718
+    m_Key: HistorySourceHasModules
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704719
+    m_Key: HistoryTransferAlreadyActive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704720
+    m_Key: LineageSealMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704721
+    m_Key: HistoryTransferOrderMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704722
+    m_Key: HistoryTransferEquipmentMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704723
+    m_Key: HistoryTransferSealMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704724
+    m_Key: HostileRumorUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704725
+    m_Key: OperatingDayNotStarted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704726
+    m_Key: RumorMitigationAlreadyUsed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704727
+    m_Key: InsufficientRenown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704728
+    m_Key: InsufficientGold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704729
+    m_Key: DreadDefenseAlreadyArmed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704730
+    m_Key: InsufficientDread
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704731
+    m_Key: ExpeditionSiteIdMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704732
+    m_Key: InsufficientScoutingLabor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704733
+    m_Key: TrailCharmMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704734
+    m_Key: ExpeditionSiteExpired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704735
+    m_Key: ExternalPaymentRejected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704736
+    m_Key: OffenseTargetUnknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704737
+    m_Key: ExternalInfluenceUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704738
+    m_Key: ServiceClosed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704739
+    m_Key: ServiceProcessIdMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704740
+    m_Key: ServiceHubUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704741
+    m_Key: ServiceCapacityFull
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704742
+    m_Key: ServiceActorAlreadyActive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704743
+    m_Key: ServiceProcessContractMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704744
+    m_Key: ServiceSessionMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704745
+    m_Key: ServiceStageNotAllowed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704746
+    m_Key: ServiceStageIncomplete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704747
+    m_Key: ServiceModeUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704748
+    m_Key: ServiceFeatureMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704749
+    m_Key: ServiceSupportUnpowered
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704750
+    m_Key: SurgerySubjectInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704751
+    m_Key: SurgeryProcedureMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704752
+    m_Key: SurgerySubjectMaintenanceOnly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704753
+    m_Key: SurgeryPreferredDoctorInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704754
+    m_Key: SurgerySelfOperationForbidden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704755
+    m_Key: SurgerySubjectAlreadyScheduled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704756
+    m_Key: SurgeryFacilityMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704757
+    m_Key: SurgeryFacilityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704758
+    m_Key: SurgeryOrderMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704759
+    m_Key: SurgeryPartUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704760
+    m_Key: SurgeryPartKindMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704761
+    m_Key: SurgeryPartNodeMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704762
+    m_Key: SurgerySubjectKindUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704763
+    m_Key: SurgeryAnatomyFamilyUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704764
+    m_Key: SurgerySpeciesUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704765
+    m_Key: SurgeryConstructProcedureRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704766
+    m_Key: SurgeryConstructProcedureBiologicalMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704767
+    m_Key: SurgeryTargetNodeMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704768
+    m_Key: SurgeryResearchStateUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704769
+    m_Key: SurgeryResearchIncomplete
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704770
+    m_Key: SurgeryCorpseMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704771
+    m_Key: SurgeryCorpseStale
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704772
+    m_Key: SurgeryNodeAlreadyExtracted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704773
+    m_Key: SurgeryLivingSubjectUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704774
+    m_Key: SurgeryWildlifeSubjectUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704775
+    m_Key: SurgeryTargetNodeUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704776
+    m_Key: SurgeryOperatorMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704777
+    m_Key: SurgeryOperatorStatInsufficient
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704778
+    m_Key: SurgeryOperatorSkillInsufficient
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704779
+    m_Key: SurgeryOperatorIneligible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704780
+    m_Key: SurgeryStaffOnly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704781
+    m_Key: SurgeryPreferredDoctorOnly
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704782
+    m_Key: SurgeryDoctorAlreadyAssigned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704783
+    m_Key: SurgeryFacilityOrProcedureMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704784
+    m_Key: SurgeryReservedDoctorMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704785
+    m_Key: SurgeryMaterialUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704786
+    m_Key: SurgeryEffectHandlerMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704787
+    m_Key: SurgeryEffectFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704788
+    m_Key: SurgeryTransportOrderMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704789
+    m_Key: SurgeryTransportCarrierMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704790
+    m_Key: SurgeryTransportUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704791
+    m_Key: SurgeryExtractionAlreadyRecorded
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704792
+    m_Key: PatientAdmissionWaiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704793
+    m_Key: PatientMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704794
+    m_Key: PatientAdmitted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704795
+    m_Key: PatientMovingToSurgery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704796
+    m_Key: PatientCurrentMovePending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704797
+    m_Key: PatientTransportByRescuer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704798
+    m_Key: PatientRestraintRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704799
+    m_Key: PatientAdmissionCellMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704800
+    m_Key: WildlifePatientMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704801
+    m_Key: WildlifePatientReady
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704802
+    m_Key: WildlifePatientTransporting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704803
+    m_Key: WildlifePatientReturning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704804
+    m_Key: WildlifePatientReturnCompleted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704805
+    m_Key: WildlifeRestraintRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704806
+    m_Key: CorpseReady
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704807
+    m_Key: CorpseTransportPending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704808
+    m_Key: MaterialsDeliveryPending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704809
+    m_Key: ProcessFluidUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704810
+    m_Key: AnesthesiaInProgress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704811
+    m_Key: PatientRestraintInProgress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704812
+    m_Key: OperationStarted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704813
+    m_Key: IncisionInProgress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704814
+    m_Key: ProcedureInProgress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704815
+    m_Key: SuturingInProgress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704816
+    m_Key: RecoveryObservation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704817
+    m_Key: RecoveryCompleted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704818
+    m_Key: Completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704819
+    m_Key: CompletedWithMinorFailure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704820
+    m_Key: CompletedWithMajorFailure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704821
+    m_Key: FailedFatal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704822
+    m_Key: Cancelled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704823
+    m_Key: DoctorReplacementRequested
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704824
+    m_Key: FacilityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704825
+    m_Key: EnvironmentUnsafe
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704826
+    m_Key: EnvironmentStabilizing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704827
+    m_Key: EnvironmentRestored
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704828
+    m_Key: EnvironmentRecoveryIdle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704829
+    m_Key: EnvironmentRecoveryRequested
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704830
+    m_Key: EmergencyProcedureContinuing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704831
+    m_Key: ProcedurePaused
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704832
+    m_Key: ProcedureInterruptedOpenWound
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704833
+    m_Key: PrisonReturnInProgress
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704834
+    m_Key: PrisonReturnCompleted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710000
+    m_Key: EnvironmentThermostatUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710001
+    m_Key: EnvironmentEvacuationContextInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710002
+    m_Key: EnvironmentEvacuationCellUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710003
+    m_Key: EnvironmentWorkwearCharacterMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710004
+    m_Key: EnvironmentWorkwearDefinitionMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710005
+    m_Key: EnvironmentWorkwearSpeciesIncompatible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710006
+    m_Key: EnvironmentWorkwearResearchLocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710007
+    m_Key: EnvironmentWorkwearStockMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710008
+    m_Key: EnvironmentWorkwearTransferFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710009
+    m_Key: EnvironmentWorkwearInstanceIdMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710010
+    m_Key: EnvironmentWorkwearLockerUnreachable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710011
+    m_Key: EnvironmentWorkwearNotEquipped
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710012
+    m_Key: EnvironmentWorkwearPhysicalItemMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710013
+    m_Key: EnvironmentWorkwearProductionContextInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710014
+    m_Key: EnvironmentWorkwearOutputSpawnFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710015
+    m_Key: SurgeryEnvironmentUnsafe
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710016
+    m_Key: SurgeryOutcomeFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710017
+    m_Key: SurgeryRiskProcedureMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710018
+    m_Key: SurgeryRiskEvaluated
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710019
+    m_Key: SurgeryRiskEnvironmentAdjusted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710100
+    m_Key: EnvironmentWorkTargetUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710101
+    m_Key: EnvironmentColdWorkCooldownActive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710102
+    m_Key: EnvironmentProtectionInsufficient
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710103
+    m_Key: EnvironmentExposureCritical
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710200
+    m_Key: CharacterMedicalRuntimeUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710201
+    m_Key: CharacterMedicalRescuerUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710202
+    m_Key: CharacterMedicalPatientUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710203
+    m_Key: CharacterMedicalParticipantsInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710204
+    m_Key: CharacterMedicalOrderUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710205
+    m_Key: CharacterMedicalOrderMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710206
+    m_Key: CharacterMedicalOrderCreationFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710207
+    m_Key: CharacterMedicalNoTreatableInjury
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710208
+    m_Key: CharacterMedicalAmbulatoryTreatmentUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710209
+    m_Key: CharacterMedicalFacilityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710210
+    m_Key: CharacterMedicalFacilityReserved
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710211
+    m_Key: CharacterMedicalStabilizationRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710212
+    m_Key: CharacterMedicalBedUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710213
+    m_Key: CharacterMedicalDestinationUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710214
+    m_Key: CharacterMedicalReservationMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710215
+    m_Key: CharacterMedicalProjectionPositionInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710216
+    m_Key: CharacterMedicalProjectionGridOccupied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710300
+    m_Key: CharacterMedicalStatusAwaitingStabilization
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710301
+    m_Key: CharacterMedicalStatusPreparingStabilization
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710302
+    m_Key: CharacterMedicalStatusStabilizing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710303
+    m_Key: CharacterMedicalStatusStabilizedWithInfectionRisk
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710304
+    m_Key: CharacterMedicalStatusAwaitingRescue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710305
+    m_Key: CharacterMedicalStatusPreparingTransfer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710306
+    m_Key: CharacterMedicalStatusCarrying
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710307
+    m_Key: CharacterMedicalStatusAwaitingBed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710308
+    m_Key: CharacterMedicalStatusTreating
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710309
+    m_Key: CharacterMedicalStatusTreatingWithExtractedBlood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710310
+    m_Key: CharacterMedicalStatusAdditionalTreatmentRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710311
+    m_Key: CharacterMedicalStatusTreatmentCompleted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710312
+    m_Key: CharacterMedicalStatusTreatmentRequested
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710313
+    m_Key: CharacterMedicalStatusSupplyUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710314
+    m_Key: CharacterMedicalStatusAwaitingMedicineDelivery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710315
+    m_Key: CharacterMedicalStatusAwaitingExtractedBloodDelivery
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710316
+    m_Key: CharacterMedicalStatusMedicineReady
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710317
+    m_Key: CharacterMedicalStatusReservationReleased
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710318
+    m_Key: CharacterMedicalStatusCancelled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710319
+    m_Key: CharacterMedicalStatusPatientMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710320
+    m_Key: CharacterMedicalStatusRescuerMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710321
+    m_Key: CharacterMedicalStatusPatientDied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710322
+    m_Key: CharacterMedicalStatusRescuerDied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710323
+    m_Key: CharacterMedicalStatusRescueInterrupted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710324
+    m_Key: CharacterMedicalStatusStabilizationInterrupted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710325
+    m_Key: CharacterMedicalStatusTreatmentInterrupted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710326
+    m_Key: CharacterMedicalStatusPatientPathUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710327
+    m_Key: CharacterMedicalStatusTreatmentPathUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710328
+    m_Key: CharacterMedicalStatusRestarted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710329
+    m_Key: CharacterMedicalStatusManualRescueAssigned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710330
+    m_Key: InvalidCommand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710331
+    m_Key: CharacterMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710332
+    m_Key: FacilityMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710333
+    m_Key: ItemDefinitionMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710334
+    m_Key: ItemStackMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710335
+    m_Key: ItemNotConsumable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710336
+    m_Key: PolicyForbidden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710337
+    m_Key: DeliveryPending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710338
+    m_Key: AlreadyProcessed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710339
+    m_Key: PhysicalConsumptionFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710340
+    m_Key: CharacterSpeciesStateUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710341
+    m_Key: CharacterSpeciesRechargeUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710342
+    m_Key: CharacterSpeciesRepairUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710343
+    m_Key: SurvivalTargetFacilityMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710344
+    m_Key: SurvivalWorkUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710345
+    m_Key: SurvivalWaterSourceUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710346
+    m_Key: SurvivalWaterFrozen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710347
+    m_Key: SurvivalOutputUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710348
+    m_Key: SurvivalCookingUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710349
+    m_Key: SurvivalFoodStockMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710350
+    m_Key: SurvivalFuelStockMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710351
+    m_Key: SurvivalTreatmentUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710352
+    m_Key: SurvivalTreatmentTargetMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710353
+    m_Key: SurvivalTreatmentMaterialMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710354
+    m_Key: SurvivalRefuelUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949080608768
+    m_Key: AutomationFacilityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163200
+    m_Key: AutomationFaulted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163201
+    m_Key: AutomationMaintenanceRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163202
+    m_Key: AutomationModeUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163203
+    m_Key: AutomationUnpowered
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163204
+    m_Key: ConveyorDestinationUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163205
+    m_Key: ConveyorFilterMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163206
+    m_Key: ConveyorOverflowApprovalRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163207
+    m_Key: ConveyorPayloadMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163208
+    m_Key: ConveyorPortFull
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357504
+    m_Key: ConveyorPortUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357505
+    m_Key: ConveyorRouteUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357506
+    m_Key: ConveyorStackOutOfRange
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357507
+    m_Key: ConveyorStackReserved
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357508
+    m_Key: ConveyorStackUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357509
+    m_Key: ConveyorTransitOwnershipMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357510
+    m_Key: FluidInsufficientWater
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357511
+    m_Key: FluidMaintenanceUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357512
+    m_Key: FluidManualWaterUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357513
+    m_Key: FluidNetworkUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357514
+    m_Key: FluidWastewaterUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357515
+    m_Key: IndustrialBuildingUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357516
+    m_Key: IndustrialCommandInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357517
+    m_Key: InfrastructureStatusConveyorDeadlocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357518
+    m_Key: InfrastructureStatusConveyorDestinationFull
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357519
+    m_Key: InfrastructureStatusConveyorFilterMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357520
+    m_Key: InfrastructureStatusConveyorOverflowApprovalRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357521
+    m_Key: InfrastructureStatusConveyorRouteUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357522
+    m_Key: InfrastructureStatusInputDeliveryPending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357523
+    m_Key: InfrastructureStatusMaintenanceRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357524
+    m_Key: InfrastructureStatusOutputSpaceUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357525
+    m_Key: InfrastructureStatusOutputTargetReached
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357526
+    m_Key: InfrastructureStatusPowerUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357527
+    m_Key: InfrastructureStatusProductionMaterialUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357528
+    m_Key: InfrastructureStatusProductionOrderUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357529
+    m_Key: InfrastructureStatusProductionOutputUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357530
+    m_Key: InfrastructureStatusStorageCapacityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357531
+    m_Key: ItemTransferConsumptionFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357532
+    m_Key: ItemTransferDestinationMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357533
+    m_Key: ItemTransferRequestFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357534
+    m_Key: ItemTransferStackUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357535
+    m_Key: PowerBreakerUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357536
+    m_Key: PowerConsumerUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357537
+    m_Key: ProductionBatchRuined
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357538
+    m_Key: ProductionBillMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357539
+    m_Key: ProductionBillReservedByOtherWorker
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357540
+    m_Key: ProductionBillUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357541
+    m_Key: ProductionDistributionRouteUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357542
+    m_Key: ProductionFacilityMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357543
+    m_Key: ProductionMaterialsMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357544
+    m_Key: ProductionOutputSpaceUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357545
+    m_Key: ProductionOutputUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357546
+    m_Key: ProductionProcessingActive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357547
+    m_Key: ProductionRecipeMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357548
+    m_Key: ProductionResearchLocked
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357549
+    m_Key: ProductionStockSensorRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357550
+    m_Key: ProductionSupportUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357551
+    m_Key: ProductionTargetStockSatisfied
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357552
+    m_Key: ProductionUtilitiesUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357553
+    m_Key: ProductionWorkstationMismatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357554
+    m_Key: ProductionWorkstationMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357555
+    m_Key: WasteFeedBufferUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357556
+    m_Key: WasteFeedDeliveryFailed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357557
+    m_Key: WasteFeedUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357558
+    m_Key: WastePolicyInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357559
+    m_Key: WastePolicyUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 931359404412928
+    m_Key: RunResultEmpty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 931359471521792
+    m_Key: RunResultNextRun
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550472040448
+    m_Key: DefenseAutomaticControlUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789184
+    m_Key: DefenseConditionCritical
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789185
+    m_Key: DefenseCooldownActive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789186
+    m_Key: DefenseDestroyed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789187
+    m_Key: DefenseFacilityUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789188
+    m_Key: DefenseMaintenanceDeliveryPending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789189
+    m_Key: DefenseMaintenancePartMissing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789190
+    m_Key: DefenseManualActivationRequired
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789191
+    m_Key: DefenseMechanicalJam
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789192
+    m_Key: DefenseNotJammed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789193
+    m_Key: DefensePartialMisfire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789194
+    m_Key: DefensePhysicalSupplyUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789195
+    m_Key: DefensePowerUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789196
+    m_Key: DefenseRepairAmountInvalid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789197
+    m_Key: DefenseSupplyCapacityFull
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789198
+    m_Key: DefenseSupplyDeliveryPending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789199
+    m_Key: DefenseSupplyUnavailable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789200
+    m_Key: DefenseTargetDisallowed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789201
+    m_Key: DefenseTriggerUnsupported
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789202
+    m_Key: EquipmentProgressionFacilityUnavailable
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 7737211680766821091
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211680766821091
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1785587101504

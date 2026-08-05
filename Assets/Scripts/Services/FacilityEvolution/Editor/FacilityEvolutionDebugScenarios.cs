@@ -15,6 +15,7 @@ public static class FacilityEvolutionDebugScenarios
     public static bool RunAll(bool log = false)
     {
         List<string> errors = new List<string>();
+        RunScenario("Engine constructor facade stays bounded and guarded", FacilityEvolutionConstructorFacadeDebugScenarios.Verify, errors);
         RunScenario("Modular strategy evolution assets are generated and loadable", VerifyP1EvolutionAssets, errors);
         RunScenario("Room profile separates crowded and fine dining", VerifyDiningProfilesSeparateCrowdedAndFineDining, errors);
         RunScenario("Record metrics cannot override room-owned metrics", VerifyRecordMetricsCannotOverrideRoomOwnedMetrics, errors);
@@ -276,8 +277,8 @@ public static class FacilityEvolutionDebugScenarios
     {
         WarehouseInventory first = new WarehouseInventory(10);
         WarehouseInventory second = new WarehouseInventory(10);
-        first.AddStock(StockCategory.General, 2);
-        second.AddStock(StockCategory.General, 3);
+        first.SeedPhysicalStockForTest(StockCategory.General, 2);
+        second.SeedPhysicalStockForTest(StockCategory.General, 3);
         WarehouseFacilityEvolutionResourceProvider provider =
             new WarehouseFacilityEvolutionResourceProvider(
                 new StaticWarehouseInventoryQuery(first, second));
@@ -461,11 +462,11 @@ public static class FacilityEvolutionDebugScenarios
         GameObject runtimeObject = new GameObject("FacilityEvolutionRecordRuntimeScenario");
         world.TrackObject(runtimeObject);
         FacilityEvolutionRecordRuntime runtime = runtimeObject.AddComponent<FacilityEvolutionRecordRuntime>();
-        FacilityCandidateCacheStore candidateCache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+        FacilityCandidateCacheStore candidateCache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
         FacilityEvolutionRecordComponentService records =
             new FacilityEvolutionRecordComponentService(new FacilityEvolutionRecordComponentFactory());
         runtime.Construct(
-            new FacilityEvolutionRecordEventRecorder(candidateCache, records),
+            new FacilityEvolutionRecordEventRecorder(candidateCache, records, instanceEvolutionRuntime: null),
             CharacterAiEditorTestDependencies.GameEvents);
         CharacterActor mercenary = CreateDebugActor(
             world,
@@ -905,17 +906,45 @@ public static class FacilityEvolutionDebugScenarios
     private sealed class StaticWarehouseInventoryQuery :
         IFacilityEvolutionWarehouseInventoryQuery
     {
-        private readonly IReadOnlyList<WarehouseInventory> inventories;
+        private readonly IReadOnlyList<IWarehouseFacility> warehouses;
 
         public StaticWarehouseInventoryQuery(params WarehouseInventory[] inventories)
         {
-            this.inventories = inventories ?? Array.Empty<WarehouseInventory>();
+            warehouses = (inventories ?? Array.Empty<WarehouseInventory>())
+                .Select((inventory, index) => (IWarehouseFacility)new TestWarehouse(
+                    inventory,
+                    $"building:test-facility-evolution-{index}"))
+                .ToArray();
         }
 
-        public IReadOnlyList<WarehouseInventory> GetInventories()
+        public IReadOnlyList<IWarehouseFacility> GetWarehouses()
         {
-            return inventories;
+            return warehouses;
         }
+
+        public int Consume(StockCategory category, int amount)
+        {
+            int remaining = amount;
+            foreach (IWarehouseFacility warehouse in warehouses)
+            {
+                remaining -= warehouse.Inventory.ConsumePhysicalStockForTest(category, remaining);
+                if (remaining == 0) break;
+            }
+            return amount - remaining;
+        }
+    }
+
+    private sealed class TestWarehouse : IWarehouseFacility
+    {
+        public TestWarehouse(WarehouseInventory inventory, string id)
+        {
+            Inventory = inventory;
+            PersistentInstanceId = (BuildingInstanceId)id;
+        }
+
+        public BuildingInstanceId PersistentInstanceId { get; }
+        public WarehouseInventory Inventory { get; }
+        public bool HasWarehouseInventory => Inventory != null;
     }
 
     private sealed class RejectingEvolutionValidator : IFacilityEvolutionValidator
@@ -951,7 +980,7 @@ public static class FacilityEvolutionDebugScenarios
         private readonly IWorldInfoClickSelector worldInfoClickSelector =
             new NoopWorldInfoClickSelector();
         private readonly IFacilityCandidateCache facilityCandidateCache =
-            new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+            new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
         private readonly IRoomFacilityPolicy roomFacilityPolicy =
             new RoomFacilityPolicyService(new RoomLayoutCache());
         private int nextBuildingId = 5100;
@@ -1032,24 +1061,35 @@ public static class FacilityEvolutionDebugScenarios
             IRoomLayoutCache rooms = new RoomLayoutCache();
             IFacilityEvolutionStateComponentFactory states =
                 new FacilityEvolutionStateComponentFactory();
-            IFacilityCandidateCache candidateCache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
-            return new FacilityEvolutionEngine(
-                new EditorFacilityEvolutionRecipeQuery(recipes, states),
-                new RoomProfileBuilder(records, rooms),
-                records,
-                proposalProvider ?? new RuleBasedFacilityEvolutionProposalProvider(),
-                resources ?? new EmptyFacilityEvolutionResourceProvider(),
-                CreateReplacer(),
-                rooms,
-                states,
-                candidateCache,
-                () => null,
-                validator,
-                candidateBuilder,
-                recordTokenConsumer ?? new DefaultFacilityEvolutionRecordTokenConsumer(
-                    new EmptyFacilityEvolutionRecordTokenDefinitionProvider()),
-                records,
-                mutationResolver);
+            IFacilityCandidateCache candidateCache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
+            IFacilityEvolutionRecipeQuery recipeQuery =
+                new EditorFacilityEvolutionRecipeQuery(recipes, states);
+            IFacilityEvolutionValidator resolvedValidator = validator
+                ?? new DefaultFacilityEvolutionValidator(recipeQuery, states);
+            IFacilityEvolutionCandidateBuilder resolvedCandidateBuilder =
+                candidateBuilder
+                ?? new DefaultFacilityEvolutionCandidateBuilder(resolvedValidator);
+            FacilityEvolutionDefinitionContext definitions =
+                new FacilityEvolutionDefinitionContext(
+                    recipeQuery,
+                    new RoomProfileBuilder(records, rooms),
+                    records,
+                    proposalProvider ?? new RuleBasedFacilityEvolutionProposalProvider(),
+                    rooms,
+                    states,
+                    records);
+            FacilityEvolutionExecutionContext execution =
+                new FacilityEvolutionExecutionContext(
+                    resources ?? new EmptyFacilityEvolutionResourceProvider(),
+                    CreateReplacer(),
+                    candidateCache,
+                    () => null,
+                    resolvedValidator,
+                    resolvedCandidateBuilder,
+                    recordTokenConsumer ?? new DefaultFacilityEvolutionRecordTokenConsumer(
+                        new EmptyFacilityEvolutionRecordTokenDefinitionProvider()),
+                    mutationResolver ?? new DefaultFacilityEvolutionMutationResolver());
+            return new FacilityEvolutionEngine(definitions, execution);
         }
 
         public FacilityEvolutionRuntime CreateRuntime(
@@ -1064,10 +1104,14 @@ public static class FacilityEvolutionDebugScenarios
             IRoomLayoutCache rooms = new RoomLayoutCache();
             IFacilityEvolutionStateComponentFactory states =
                 new FacilityEvolutionStateComponentFactory();
-            IFacilityCandidateCache candidateCache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+            IFacilityCandidateCache candidateCache = new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
+            IFacilityEvolutionRecipeQuery recipeQuery =
+                new EditorFacilityEvolutionRecipeQuery(recipes, states);
+            IFacilityEvolutionValidator validator =
+                new DefaultFacilityEvolutionValidator(recipeQuery, states);
             FacilityEvolutionRuntime runtime = obj.AddComponent<FacilityEvolutionRuntime>();
             runtime.Configure(
-                new EditorFacilityEvolutionRecipeQuery(recipes, states),
+                recipeQuery,
                 new RoomProfileBuilder(records, rooms),
                 records,
                 new RuleBasedFacilityEvolutionProposalProvider(),
@@ -1080,7 +1124,12 @@ public static class FacilityEvolutionDebugScenarios
                     new EmptyFacilityEvolutionRecordTokenDefinitionProvider()),
                 nextRecordComponentService: records,
                 nextResearchStateService: new EmptyBlueprintResearchStateService(),
-                nextGameEventBus: new DungeonStory.Foundation.GameEventBus());
+                nextGameEventBus: new DungeonStory.Foundation.GameEventBus(),
+                nextValidator: validator,
+                nextCandidateBuilder: new DefaultFacilityEvolutionCandidateBuilder(validator),
+                nextBuildingReplacerFactory: null,
+                nextMutationResolver: new DefaultFacilityEvolutionMutationResolver(),
+                nextEngineFactory: new FacilityEvolutionEngineFactory());
             return runtime;
         }
 
@@ -1172,7 +1221,7 @@ public static class FacilityEvolutionDebugScenarios
         {
             BuildingSO data = CreateBuildingData("문", FacilityRole.None);
             data.category = BuildingCategory.None;
-            data.type = typeof(Door);
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.Door;
             Place(data, position);
         }
 
@@ -1263,7 +1312,9 @@ public static class FacilityEvolutionDebugScenarios
             data.height = 1;
             data.layer = GridLayer.Building;
             data.category = roles == FacilityRole.None ? BuildingCategory.None : BuildingCategory.Special;
-            data.type = roles == FacilityRole.None ? typeof(BuildableObject) : typeof(Facility);
+            data.runtimeArchetype = roles == FacilityRole.None
+                ? BuildingRuntimeArchetypeKind.Generic
+                : BuildingRuntimeArchetypeKind.Facility;
             data.unlocked = true;
             data.Facility = new FacilityData
             {
@@ -1295,7 +1346,7 @@ public static class FacilityEvolutionDebugScenarios
         {
             GameObject obj = new GameObject(data.objectName);
             cleanup.Add(obj);
-            BuildableObject building = data.type == typeof(Facility)
+            BuildableObject building = data.runtimeArchetype == BuildingRuntimeArchetypeKind.Facility
                 ? obj.AddComponent<Facility>()
                 : obj.AddComponent<BuildableObject>();
             InjectBuildable(building);
@@ -1316,11 +1367,11 @@ public static class FacilityEvolutionDebugScenarios
 
         private void InjectBuildable(BuildableObject building)
         {
+            building?.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
             building?.ConstructBuildableObject(
-                blueprintResearchWorkService,
-                worldInfoClickSelector,
+                new BuildingResearchWorkPortAdapter(blueprintResearchWorkService),
                 facilityCandidateCache,
-                roomFacilityPolicy);
+                roomFacilityPolicy, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
         }
 
         private void AddRecord(BuildableObject facility, params (string key, float value)[] metrics)

@@ -27,18 +27,22 @@ MonoBehaviour:
   description: "\uACE1\uBB3C, \uBFCC\uB9AC, \uBC84\uC12F\uC73C\uB85C \uC548\uC804\uD55C
     \uAE30\uBCF8\uC2DD\uC744 \uB9CC\uB4E0\uB2E4."
   field: 12
-  requiredWork: 32
+  requiredWork: 36
   prerequisites: []
+  prerequisiteLinks: []
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563230216618557
+    - rid: 7737211730927813238
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563230216618557
+    - rid: 7737211730927813238
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1087

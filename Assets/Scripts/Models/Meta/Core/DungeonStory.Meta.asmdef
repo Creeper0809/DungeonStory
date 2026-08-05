@@ -1,0 +1,20 @@
+{
+  "name": "DungeonStory.Meta",
+  "rootNamespace": "DungeonStory.Meta",
+  "references": [
+    "DungeonStory.Foundation",
+    "DungeonStory.CoreSession",
+    "DungeonStory.Invasion",
+    "DungeonStory.Run",
+    "DungeonStory.Survival"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

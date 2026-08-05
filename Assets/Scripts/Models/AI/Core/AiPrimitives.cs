@@ -28,7 +28,8 @@ public enum CharacterAiBranch
     Wait,
     Idle,
     Toilet,
-    Hygiene
+    Hygiene,
+    Drink
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

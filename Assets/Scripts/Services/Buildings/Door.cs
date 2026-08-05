@@ -1,77 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public static class DoorVisualMaterial
-{
-    public const string ResourcePath = "Materials/DoorSpriteUnlit";
-    public const string ShaderName = "Universal Render Pipeline/2D/Sprite-Unlit-Default";
-
-    private static Material material;
-
-    public static void Apply(SpriteRenderer renderer, IResourcesAssetLoader assetLoader = null)
-    {
-        if (renderer == null)
-        {
-            return;
-        }
-
-        if (material == null)
-        {
-            material = assetLoader?.LoadOptional<Material>(ResourcePath);
-        }
-
-        if (material == null)
-        {
-            Shader shader = Shader.Find(ShaderName);
-            if (shader == null)
-            {
-                shader = Shader.Find("Sprites/Default");
-            }
-
-            if (shader != null)
-            {
-                material = new Material(shader)
-                {
-                    hideFlags = HideFlags.HideAndDontSave
-                };
-            }
-        }
-
-        if (material != null)
-        {
-            renderer.sharedMaterial = material;
-        }
-    }
-}
-
-public static class DungeonDoorVisualLayout
-{
-    public const string VisualObjectName = "DungeonDoorVisual";
-    public const string SortingLayerName = "Wall";
-    public const int SortingOrder = 99;
-    public const string CeilingSortingLayerName = "Wall";
-    public const int CeilingSortingOrder = 100;
-    public const string TraversalSortingLayerName = "DungeonMiddleObject";
-    public const string DefaultCharacterSortingLayerName = "Default";
-    public const float VisualWidth = 3f;
-    public const float VisualHeight = 3f;
-    public static readonly Vector2 TraversalColliderSize = new Vector2(3f, 1f);
-    public static readonly Vector2 TraversalColliderOffset = new Vector2(2f, 0.5f);
-
-    public static Vector3 CalculateScale(Sprite sprite)
-    {
-        if (sprite == null || sprite.bounds.size.x <= 0f || sprite.bounds.size.y <= 0f)
-        {
-            return Vector3.one;
-        }
-
-        return new Vector3(
-            VisualWidth / sprite.bounds.size.x,
-            VisualHeight / sprite.bounds.size.y,
-            1f);
-    }
-}
-
 public class Door : BuildableObject
 {
     public SpriteRenderer VisualRenderer { get; protected set; }
@@ -80,29 +9,33 @@ public class Door : BuildableObject
     public DoorAccessStateModule AccessStateModule { get; private set; }
     public DoorAccessPolicyState AccessPolicy => AccessStateModule?.State;
 
-    private readonly HashSet<CharacterActor> traversalActors = new HashSet<CharacterActor>();
-    private readonly HashSet<WildlifeActor> traversalWildlife = new HashSet<WildlifeActor>();
-    private readonly Dictionary<int, CharacterActor> traversalActorCache =
-        new Dictionary<int, CharacterActor>();
-    private readonly Dictionary<int, WildlifeActor> traversalWildlifeCache =
-        new Dictionary<int, WildlifeActor>();
-    private IResourcesAssetLoader resourcesAssetLoader;
+    private readonly HashSet<object> traversalSubjects = new HashSet<object>();
+    private readonly Dictionary<int, BuildingDoorTraversalSubjects> traversalSubjectCache =
+        new Dictionary<int, BuildingDoorTraversalSubjects>();
+    private Material doorVisualMaterial;
     private IDoorAccessStateChangeSink accessStateChangeSink;
+    private IBuildingDoorTraversalSubjectPort traversalSubjectPort;
     private DoorAccessLockIndicator accessLockIndicator;
 
-    protected IResourcesAssetLoader ResourcesAssetLoader => resourcesAssetLoader;
+    protected Material DoorVisualMaterialAsset => doorVisualMaterial;
 
     [VContainer.Inject]
-    public void ConstructDoorVisualResources(IResourcesAssetLoader resourcesAssetLoader)
+    public void ConstructDoorVisualResources(IGameContentCatalog content)
     {
-        this.resourcesAssetLoader = resourcesAssetLoader;
+        doorVisualMaterial = (content
+            ?? throw new System.ArgumentNullException(nameof(content)))
+            .Media.DoorSpriteMaterial;
     }
 
     [VContainer.Inject]
-    public void ConstructDoorAccess(IDoorAccessStateChangeSink accessStateChangeSink)
+    public void ConstructDoorAccess(
+        IDoorAccessStateChangeSink accessStateChangeSink,
+        IBuildingDoorTraversalSubjectPort traversalSubjectPort)
     {
         this.accessStateChangeSink = accessStateChangeSink
             ?? throw new System.ArgumentNullException(nameof(accessStateChangeSink));
+        this.traversalSubjectPort = traversalSubjectPort
+            ?? throw new System.ArgumentNullException(nameof(traversalSubjectPort));
     }
 
     private void OnEnable()
@@ -180,32 +113,16 @@ public class Door : BuildableObject
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        CharacterActor actor = ResolveTraversalActor(collision);
-        if (actor != null)
-        {
-            KeepCharacterBehindWall(actor);
-        }
-
-        WildlifeActor wildlife = ResolveTraversalWildlife(collision);
-        if (wildlife != null)
-        {
-            KeepWildlifeBehindWall(wildlife);
-        }
+        BuildingDoorTraversalSubjects subjects = ResolveTraversalSubjects(collision);
+        KeepSubjectBehindWall(subjects.First);
+        KeepSubjectBehindWall(subjects.Second);
     }
 
     private void OnTriggerStay2D(Collider2D collision)
     {
-        CharacterActor actor = GetCachedTraversalActor(collision);
-        if (actor != null)
-        {
-            KeepCharacterBehindWall(actor);
-        }
-
-        WildlifeActor wildlife = GetCachedTraversalWildlife(collision);
-        if (wildlife != null)
-        {
-            KeepWildlifeBehindWall(wildlife);
-        }
+        BuildingDoorTraversalSubjects subjects = GetCachedTraversalSubjects(collision);
+        KeepSubjectBehindWall(subjects.First);
+        KeepSubjectBehindWall(subjects.Second);
     }
 
     private void RemoveLegacyInteriorVisual(string childName)
@@ -251,7 +168,7 @@ public class Door : BuildableObject
         visualTransform.localScale = DungeonDoorVisualLayout.CalculateScale(sprite);
         VisualRenderer.sprite = sprite;
         VisualRenderer.color = Color.white;
-        DoorVisualMaterial.Apply(VisualRenderer, resourcesAssetLoader);
+        DoorVisualMaterial.Apply(VisualRenderer, doorVisualMaterial);
         VisualRenderer.sortingLayerName = DungeonDoorVisualLayout.SortingLayerName;
         VisualRenderer.sortingOrder = DungeonDoorVisualLayout.SortingOrder;
         VisualRenderer.enabled = sprite != null;
@@ -260,128 +177,90 @@ public class Door : BuildableObject
     private void OnTriggerExit2D(Collider2D collision)
     {
         int colliderId = collision != null ? collision.GetInstanceID() : 0;
-        CharacterActor actor = GetCachedTraversalActor(collision);
-        if (actor != null)
-        {
-            traversalActors.Remove(actor);
-            actor.ChangeLayer(DungeonDoorVisualLayout.DefaultCharacterSortingLayerName);
-        }
-
-        WildlifeActor wildlife = GetCachedTraversalWildlife(collision);
-        if (wildlife != null)
-        {
-            traversalWildlife.Remove(wildlife);
-            wildlife.ChangeLayer(DungeonDoorVisualLayout.DefaultCharacterSortingLayerName);
-        }
-
-        traversalActorCache.Remove(colliderId);
-        traversalWildlifeCache.Remove(colliderId);
+        BuildingDoorTraversalSubjects subjects = GetCachedTraversalSubjects(collision);
+        RestoreSubjectLayer(subjects.First);
+        RestoreSubjectLayer(subjects.Second);
+        traversalSubjectCache.Remove(colliderId);
     }
 
-    private CharacterActor GetCachedTraversalActor(Collider2D collision)
+    private BuildingDoorTraversalSubjects GetCachedTraversalSubjects(
+        Collider2D collision)
     {
         if (collision == null)
         {
-            return null;
+            return default;
         }
 
         int colliderId = collision.GetInstanceID();
-        if (!traversalActorCache.TryGetValue(colliderId, out CharacterActor actor))
+        if (!traversalSubjectCache.TryGetValue(
+                colliderId,
+                out BuildingDoorTraversalSubjects subjects))
         {
-            actor = ResolveTraversalActor(collision);
-            traversalActorCache[colliderId] = actor;
+            subjects = ResolveTraversalSubjects(collision);
+            traversalSubjectCache[colliderId] = subjects;
         }
 
-        return actor;
+        return subjects;
     }
 
-    private WildlifeActor GetCachedTraversalWildlife(Collider2D collision)
-    {
-        if (collision == null)
-        {
-            return null;
-        }
-
-        int colliderId = collision.GetInstanceID();
-        if (!traversalWildlifeCache.TryGetValue(colliderId, out WildlifeActor wildlife))
-        {
-            wildlife = ResolveTraversalWildlife(collision);
-            traversalWildlifeCache[colliderId] = wildlife;
-        }
-
-        return wildlife;
-    }
-
-    private CharacterActor ResolveTraversalActor(Collider2D collision)
+    private BuildingDoorTraversalSubjects ResolveTraversalSubjects(
+        Collider2D collision)
     {
         if (BuildingData == null
             || !ChangesCharacterLayerDuringTraversal
-            || collision == null)
+            || collision == null
+            || traversalSubjectPort == null)
         {
-            return null;
+            return default;
         }
 
-        CharacterActor actor = collision.GetComponentInParent<CharacterActor>();
-        return actor != null && actor.CompareTag("Character") ? actor : null;
+        return traversalSubjectPort.ResolveTraversalSubjects(collision);
     }
 
-    private WildlifeActor ResolveTraversalWildlife(Collider2D collision)
+    private void KeepSubjectBehindWall(object subject)
     {
-        if (BuildingData == null
-            || !ChangesCharacterLayerDuringTraversal
-            || collision == null)
-        {
-            return null;
-        }
-
-        WildlifeActor wildlife = collision.GetComponentInParent<WildlifeActor>();
-        return wildlife != null && wildlife.CanEnterDungeon ? wildlife : null;
-    }
-
-    private void KeepCharacterBehindWall(CharacterActor actor)
-    {
-        if (actor == null)
+        if (traversalSubjectPort == null
+            || !traversalSubjectPort.IsTraversalSubjectAvailable(subject))
         {
             return;
         }
 
-        traversalActors.Add(actor);
-        actor.ChangeLayer(DungeonDoorVisualLayout.TraversalSortingLayerName);
+        traversalSubjects.Add(subject);
+        traversalSubjectPort.ChangeTraversalSortingLayer(
+            subject,
+            DungeonDoorVisualLayout.TraversalSortingLayerName);
     }
 
-    private void KeepWildlifeBehindWall(WildlifeActor wildlife)
+    private void RestoreSubjectLayer(object subject)
     {
-        if (wildlife == null)
+        if (traversalSubjectPort == null
+            || !traversalSubjectPort.IsTraversalSubjectAvailable(subject))
         {
             return;
         }
 
-        traversalWildlife.Add(wildlife);
-        wildlife.ChangeLayer(DungeonDoorVisualLayout.TraversalSortingLayerName);
+        traversalSubjects.Remove(subject);
+        traversalSubjectPort.ChangeTraversalSortingLayer(
+            subject,
+            DungeonDoorVisualLayout.DefaultCharacterSortingLayerName);
     }
 
     private void RestoreTrackedCharacterLayers()
     {
-        foreach (CharacterActor actor in traversalActors)
+        if (traversalSubjectPort != null)
         {
-            if (actor != null)
+            foreach (object subject in traversalSubjects)
             {
-                actor.ChangeLayer(DungeonDoorVisualLayout.DefaultCharacterSortingLayerName);
+                if (traversalSubjectPort.IsTraversalSubjectAvailable(subject))
+                {
+                    traversalSubjectPort.ChangeTraversalSortingLayer(
+                        subject,
+                        DungeonDoorVisualLayout.DefaultCharacterSortingLayerName);
+                }
             }
         }
 
-        traversalActors.Clear();
-
-        foreach (WildlifeActor wildlife in traversalWildlife)
-        {
-            if (wildlife != null)
-            {
-                wildlife.ChangeLayer(DungeonDoorVisualLayout.DefaultCharacterSortingLayerName);
-            }
-        }
-
-        traversalWildlife.Clear();
-        traversalActorCache.Clear();
-        traversalWildlifeCache.Clear();
+        traversalSubjects.Clear();
+        traversalSubjectCache.Clear();
     }
 }

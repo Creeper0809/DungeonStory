@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa401bda1083a0a49abbc7ea825b25a0, type: 3}
+  m_Name: W16_Handgonne
+  m_EditorClassIdentifier: Assembly-CSharp::CombatWeaponSO
+  equipmentId: weapon:handgonne
+  displayName: "\uC218\uCD1D"
+  description: "\uC218\uCD1D \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:weapon:handgonne
+  weight: 4.8
+  occupiedHands: 2
+  maxDurability: 100
+  requiredCraftWork: 6
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 4
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:machine-parts
+    amount: 1
+  - itemId: component:precision-parts
+    amount: 1
+  - itemId: component:engineering-drawing
+    amount: 1
+  requiredResearchId: research:equipment:ignition-mechanisms
+  era: 2
+  tier: 2
+  slotProfile: 1
+  lineageKind: 0
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
+  verbs:
+  - rid: 7737211765905949112
+  rangeProfiles:
+  - band: 1
+    accuracyMultiplier: 0.72
+    damageMultiplier: 1.25
+  - band: 2
+    accuracyMultiplier: 0.5
+    damageMultiplier: 1
+  maximumRange: 16
+  compatibleAmmunitionItemIds:
+  - ammo:paper-cartridge
+  magazineCapacity: 1
+  reloadSeconds: 7.5
+  supportsAimed: 1
+  supportsRapid: 0
+  supportsSuppressive: 1
+  gunpowderWeapon: 1
+  maximumMisfireChance: 0.2
+  smokeExposure: 10
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211765905949112
+      type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
+      data:
+        attackTime: 1.6
+        baseDamage: 28
+        penetration: 25
+        damageType: 1
+        tracking: 0.02
+        projectileSpeed: 14

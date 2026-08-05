@@ -718,6 +718,9 @@ public sealed class EvolutionHistoryNarrativeRuntime :
         EvolutionNarrativeRequestSnapshot request)
     {
         StringBuilder builder = new StringBuilder(1400);
+        builder.AppendLine("규칙 시스템이 effectId와 효과 수치를 이미 확정했다. LLM은 이름과 역사 문구만 작성하며 기계적 효과를 추가하거나 변경하지 않는다.");
+        builder.AppendLine("계승 후 장비 형태가 바뀔 수 있으므로 검, 활, 총열, 날, 현, 방아쇠처럼 특정 형태를 전제하는 표현을 사용하지 않는다.");
+        builder.AppendLine("위력, 관통, 정밀, 속도, 제압, 처형, 내구처럼 모든 동계열 장비에 통용되는 표현만 사용한다.");
         builder.AppendLine("당신은 다크 판타지 던전 경영 게임의 시설·장비 역사를 쓰는 서술자다.");
         builder.AppendLine("아래 구조화된 사실만 사용한다. 효과, 수치, 증거, 인물, 사건을 새로 만들지 않는다.");
         builder.AppendLine("기술 상태, LLM, 요청, 실패, 대기라는 표현을 절대 쓰지 않는다.");

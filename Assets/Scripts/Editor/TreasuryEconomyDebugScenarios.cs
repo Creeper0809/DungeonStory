@@ -27,10 +27,12 @@ public static class TreasuryEconomyDebugScenarios
             HasUiObject("TreasuryFinanceWindow"),
             "금고 상세 창이 생성되지 않았습니다.");
 
-        IGameMoneyRuntime money =
-            scope.Container.Resolve<IGameMoneyRuntime>();
+        IGameMoneyAccount money =
+            scope.Container.Resolve<IGameMoneyAccount>();
         IEconomyTransactionLedger ledger =
             scope.Container.Resolve<IEconomyTransactionLedger>();
+        ITreasuryEconomyPersistence treasuryPersistence =
+            scope.Container.Resolve<ITreasuryEconomyPersistence>();
         IAutoProcurementRuntime procurement =
             scope.Container.Resolve<IAutoProcurementRuntime>();
         IEmploymentContractRuntime employment =
@@ -48,6 +50,7 @@ public static class TreasuryEconomyDebugScenarios
             {
                 money,
                 ledger,
+                treasuryPersistence,
                 procurement,
                 employment,
                 paid,
@@ -58,7 +61,8 @@ public static class TreasuryEconomyDebugScenarios
             "금고 경제 서비스 조립이 완전하지 않습니다.");
 
         int beforeBalance = money.Balance;
-        EconomyTransactionLedgerSaveData ledgerSave = ledger.Capture();
+        TreasuryEconomySaveData treasurySave =
+            treasuryPersistence.Capture();
         money.Add(
             17,
             new EconomyTransactionContext(
@@ -84,7 +88,9 @@ public static class TreasuryEconomyDebugScenarios
                 .All(record =>
                     record.kind == EconomyTransactionKind.DebugAdjustment),
             "거래 출처가 장부에 기록되지 않았습니다.");
-        ledger.Restore(ledgerSave);
+        TreasuryEconomyRestoreCandidate restoreCandidate =
+            treasuryPersistence.BuildRestore(treasurySave);
+        treasuryPersistence.PublishRestoreCandidate(restoreCandidate);
 
         BuildingSO treasuryBuilding = Resources
             .LoadAll<BuildingSO>("SO/Building/P1")
@@ -101,7 +107,7 @@ public static class TreasuryEconomyDebugScenarios
             "금고 연동 방어시설에 오버클럭 지원 모듈이 없습니다.");
         Require(
             treasuryBuilding.GetConstructionMaterials()
-                .Any(pair => pair.Value > 0),
+                .Any(material => material.Amount > 0),
             "금고 연동 방어시설의 물리 건설 재료가 없습니다.");
 
         BuildingSO[] modularBuildings =

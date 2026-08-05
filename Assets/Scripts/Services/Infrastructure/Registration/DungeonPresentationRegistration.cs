@@ -28,11 +28,15 @@ public static class DungeonPresentationRegistration
         builder.RegisterEntryPoint<CharacterPresentationScheduler>(
                 Lifetime.Singleton)
             .As<ICharacterPresentationScheduler>();
+        builder.RegisterEntryPoint<FacilityOperationalPresentationScheduler>(
+                Lifetime.Singleton)
+            .AsSelf();
         builder.Register<OffensePanelFactory>(Lifetime.Singleton)
             .As<IOffensePanelFactory>();
         builder.Register<OffenseBattlePanelFactory>(Lifetime.Singleton)
             .As<IOffenseBattlePanelFactory>();
-        builder.RegisterEntryPoint<OffenseBattleUiController>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<OffenseBattleUiController>(Lifetime.Singleton)
+            .AsSelf();
         builder.Register<OffensePanelButtonFactory>(Lifetime.Singleton)
             .As<IOffensePanelButtonFactory>();
         builder.Register<OffensePanelService>(Lifetime.Singleton)
@@ -46,6 +50,10 @@ public static class DungeonPresentationRegistration
             .As<IRunResultPanelRegistry>();
         builder.Register<RunResultPanelFactory>(Lifetime.Singleton)
             .As<IRunResultPanelFactory>();
+        builder.Register<RunResultTextLocalizer>(Lifetime.Singleton)
+            .As<IRunResultTextQuery>();
+        builder.Register<RunResultThemeApplicationAdapter>(Lifetime.Singleton)
+            .As<IRunResultThemeQuery>();
         builder.Register<RunResultPanelService>(Lifetime.Singleton)
             .As<IRunResultPanelService>();
         builder.Register<CodexPanelFactory>(Lifetime.Singleton)
@@ -54,6 +62,9 @@ public static class DungeonPresentationRegistration
             .As<IFacilitySynthesisPanelFactory>();
         builder.Register<FacilityEvolutionPanelFactory>(Lifetime.Singleton)
             .As<IFacilityEvolutionPanelFactory>();
+        builder.Register<FacilityEvolutionPanelGateway>(Lifetime.Singleton)
+            .As<IFacilityEvolutionPanelQuery>()
+            .As<IFacilityEvolutionPanelCommand>();
         builder.Register<StaffWorkPriorityPanelUiFactory>(Lifetime.Singleton)
             .As<IStaffWorkPriorityPanelUiFactory>();
         builder.Register<StaffWorkPriorityPanelModelBuilder>(Lifetime.Singleton)
@@ -64,9 +75,17 @@ public static class DungeonPresentationRegistration
             .As<IP0FeatureSurfacePanelFactory>();
         builder.Register<ResearchTreeWindowFactory>(Lifetime.Singleton)
             .As<IResearchTreeWindowFactory>();
+        builder.Register<SurgeryClinicalContext>(Lifetime.Singleton);
+        builder.Register<SurgeryExecutionContext>(Lifetime.Singleton);
+        builder.Register<SurgerySubjectWorldContext>(Lifetime.Singleton);
+        builder.Register<CharacterSurgeryWindowViewFactory>(Lifetime.Singleton)
+            .As<ICharacterSurgeryWindowViewFactory>();
+        builder.Register<SurgeryWindowPresentationContext>(Lifetime.Singleton);
         builder.Register<CharacterSurgeryWindowService>(Lifetime.Singleton)
             .As<ICharacterSurgeryWindowService>()
-            .As<ISurgeryPlanningWindowService>();
+            .As<ISurgeryPlanningWindowService>()
+            .As<ICharacterSurgeryWindowQuery>()
+            .As<ICharacterSurgeryWindowCommand>();
 
         builder.Register<BuildingFeatureQueryService>(Lifetime.Singleton)
             .As<IBuildingFeatureQueryService>();
@@ -80,14 +99,23 @@ public static class DungeonPresentationRegistration
             .As<IShopFeatureQueryService>();
         builder.Register<ShopFeatureSurfacePresenter>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<WarehouseFeatureSessionContext>(Lifetime.Singleton);
+        builder.Register<WarehouseFeatureWorldContext>(Lifetime.Singleton);
+        builder.Register<WarehouseFeatureEconomyContext>(Lifetime.Singleton);
         builder.Register<WarehouseFeatureQueryService>(Lifetime.Singleton)
             .As<IWarehouseFeatureQueryService>();
+        builder.Register<WarehouseCommandSessionContext>(Lifetime.Singleton);
+        builder.Register<WarehouseCommandWorldContext>(Lifetime.Singleton);
+        builder.Register<WarehouseCommandPlanningContext>(Lifetime.Singleton);
         builder.Register<WarehouseFeatureCommandService>(Lifetime.Singleton)
             .As<IWarehouseFeatureCommandService>();
         builder.Register<WarehouseFeatureSurfacePresenter>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenter>();
         builder.Register<GameplayFlowDiagnosticsQuery>(Lifetime.Singleton)
             .As<IGameplayFlowDiagnosticsQuery>();
+        builder.Register<OperationsSceneContext>(Lifetime.Singleton);
+        builder.Register<OperationsWorldContext>(Lifetime.Singleton);
+        builder.Register<OperationsStaffContext>(Lifetime.Singleton);
         builder.Register<OperationsFeatureQueryService>(Lifetime.Singleton)
             .As<IOperationsFeatureQueryService>();
         builder.Register<OperationsFeatureCommandService>(Lifetime.Singleton)
@@ -96,8 +124,14 @@ public static class DungeonPresentationRegistration
             .As<ICaptivityFeatureSectionPresenter>();
         builder.Register<OperationsFeatureSurfacePresenter>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<DefenseThreatContext>(Lifetime.Singleton);
+        builder.Register<DefenseOperationsContext>(Lifetime.Singleton);
+        builder.Register<DefenseFacilityContext>(Lifetime.Singleton);
         builder.Register<DefenseFeatureQueryService>(Lifetime.Singleton)
             .As<IDefenseFeatureQueryService>();
+        builder.RegisterEntryPoint<DefenseTacticalWorldOverlayController>(
+                Lifetime.Singleton)
+            .AsSelf();
         builder.Register<DefenseFeatureCommandService>(Lifetime.Singleton)
             .As<IDefenseFeatureCommandService>();
         builder.Register<DefenseFeatureSurfacePresenter>(Lifetime.Singleton)
@@ -114,6 +148,10 @@ public static class DungeonPresentationRegistration
             .As<ICodexFeatureCommandService>();
         builder.Register<CodexFeatureSurfacePresenter>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenter>();
+        builder.Register<IndustrialPowerFluidContext>(Lifetime.Singleton);
+        builder.Register<IndustrialTransportAutomationContext>(
+            Lifetime.Singleton);
+        builder.Register<IndustrialPresentationContext>(Lifetime.Singleton);
         builder.Register<IndustrialFeatureSurfacePresenter>(Lifetime.Singleton)
             .As<IFeatureSurfaceTabPresenter>();
         builder.Register<FeatureSurfaceTabPresenterRegistry>(Lifetime.Singleton)
@@ -132,22 +170,50 @@ public static class DungeonPresentationRegistration
         builder.Register<EventAlertCanvasProvider>(Lifetime.Singleton)
             .As<IEventAlertCanvasProvider>()
             .As<IDungeonUiCanvasProvider>();
+        builder.Register<FirstRunObjectiveProgressContext>(Lifetime.Singleton);
+        builder.Register<FirstRunObjectivePresentationContext>(Lifetime.Singleton);
         builder.RegisterEntryPoint<FirstRunObjectiveRuntime>(Lifetime.Singleton)
             .As<IFirstRunObjectiveRuntime>();
-        builder.RegisterEntryPoint<DungeonPlayerAutomationBridge>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<DungeonPlayerAutomationBridge>(Lifetime.Singleton)
+            .AsSelf();
         builder.Register<NoticeFeedItemFactory>(Lifetime.Singleton)
             .As<INoticeFeedItemFactory>();
         builder.Register<NoticeFeedPresenter>(Lifetime.Singleton)
             .As<INoticeFeedPresenter>();
+        builder.Register<DomainFailureLocalizer>(Lifetime.Singleton)
+            .As<IDomainFailureLocalizer>()
+            .As<IDefenseUiTextQuery>();
+        builder.Register<CharacterNarrativeTextQuery>(Lifetime.Singleton)
+            .As<ICharacterNarrativeTextQuery>();
+        builder.Register<CharacterMedicalStatusLocalizer>(Lifetime.Singleton)
+            .As<ICharacterMedicalStatusLocalizer>();
+        builder.Register<OffenseWorldMapPanel.StrategicPresentationServices>(
+            Lifetime.Singleton);
         builder.Register<CharacterSummaryRuntimeLogFactory>(Lifetime.Singleton)
             .As<ICharacterSummaryRuntimeLogFactory>();
+        builder.Register<CharacterSummaryCombatPresenter>(Lifetime.Singleton);
+        builder.Register<CharacterSummaryCaptivityPresenter>(Lifetime.Singleton);
+        builder.Register<CharacterSummaryHealthPresenter>(Lifetime.Singleton);
+        builder.Register<CharacterSummaryAiPresenter>(Lifetime.Singleton);
+        builder.Register<CharacterSummaryGrowthPresenter>(Lifetime.Singleton);
+        builder.Register<CharacterSummaryStatusPresenter>(Lifetime.Singleton);
+        builder.Register<CharacterSummaryShellPresenter>(Lifetime.Singleton);
+        builder.Register<CharacterDetailedStatsRuntime>(Lifetime.Singleton)
+            .As<ICharacterDetailedStatsRuntime>();
         _ = sceneRuntimeReferences
             ?? throw new ArgumentNullException(nameof(sceneRuntimeReferences));
 
-        builder.Register<StaffWorkforceRuntimeQueryService>(Lifetime.Singleton)
+        builder.Register<StaffWorkforceSceneAdapter>(Lifetime.Singleton)
+            .AsSelf()
+            .As<DungeonStory.Work.IStaffWorkforceSnapshotQuery>();
+        builder.Register<DungeonStory.Work.StaffWorkforceRuntimeQueryService>(
+            Lifetime.Singleton);
+        builder.Register<StaffWorkforceRuntimeQueryServiceAdapter>(Lifetime.Singleton)
             .As<IStaffWorkforceQueryService>();
         builder.Register<WorkGridResolver>(Lifetime.Singleton)
             .As<IWorkGridResolver>();
+        builder.Register<BuildingManagementWorldQueryAdapter>(Lifetime.Singleton)
+            .As<IBuildingManagementWorldQuery>();
         builder.Register<BuildingManagementSummaryService>(Lifetime.Singleton)
             .As<IBuildingManagementSummaryService>();
         builder.Register<InvasionDefenseSummaryService>(Lifetime.Singleton)
@@ -158,6 +224,8 @@ public static class DungeonPresentationRegistration
             .As<IOperationTabSummaryService>();
         builder.Register<ResearchCraftingSummaryService>(Lifetime.Singleton)
             .As<IResearchCraftingSummaryService>();
+        builder.Register<CodexRecordSummaryApplicationAdapter>(Lifetime.Singleton)
+            .As<ICodexRecordSummaryQueryPort>();
         builder.Register<CodexRecordSummaryService>(Lifetime.Singleton)
             .As<ICodexRecordSummaryService>();
 
@@ -192,10 +260,18 @@ public static class DungeonPresentationRegistration
         builder.Register<EnvironmentalBuildingPanelPresenter>(
                 Lifetime.Singleton)
             .As<IEnvironmentalBuildingPanelPresenter>();
+        builder.Register<ProductionPanelOrderContext>(Lifetime.Singleton);
+        builder.Register<ProductionPanelFacilityContext>(Lifetime.Singleton);
+        builder.Register<ProductionUiTextLocalizer>(Lifetime.Singleton)
+            .As<IProductionUiTextQuery>();
+        builder.Register<ProductionPanelEnvironmentContext>(Lifetime.Singleton);
         builder.Register<ProductionBuildingPanelPresenter>(Lifetime.Singleton)
             .As<IProductionBuildingPanelPresenter>();
+        builder.Register<EquipmentProgressionCommandPanel>(Lifetime.Singleton);
         builder.Register<EquipmentCraftingPanelPresenter>(Lifetime.Singleton)
             .As<IEquipmentCraftingPanelPresenter>();
+        builder.Register<InstanceEvolutionPanelPresentation>(Lifetime.Singleton);
+        builder.Register<InstanceEquipmentEvolutionSection>(Lifetime.Singleton);
         builder.Register<InstanceEvolutionPanelPresenter>(Lifetime.Singleton)
             .As<IInstanceEvolutionPanelPresenter>();
         builder.RegisterEntryPoint<FacilityRelocationTargetingService>(
@@ -216,9 +292,14 @@ public static class DungeonPresentationRegistration
         builder.Register<TreasuryDefenseBuildingPanelPresenter>(
                 Lifetime.Singleton)
             .As<ITreasuryDefenseBuildingPanelPresenter>();
-        builder.RegisterEntryPoint<CropPlotVisualPresenter>(Lifetime.Singleton);
+        builder.RegisterEntryPoint<CropPlotVisualPresenter>(Lifetime.Singleton)
+            .AsSelf();
+        builder.Register<TreasuryHudPresentationContext>(Lifetime.Singleton);
+        builder.Register<TreasuryHudEconomyContext>(Lifetime.Singleton);
+        builder.Register<TreasuryHudContractContext>(Lifetime.Singleton);
         builder.RegisterEntryPoint<TreasuryResourceHudController>(
-            Lifetime.Singleton);
+                Lifetime.Singleton)
+            .AsSelf();
 
         builder.RegisterComponentOnNewGameObject<ItemPileInfoPanel>(
                 Lifetime.Singleton,

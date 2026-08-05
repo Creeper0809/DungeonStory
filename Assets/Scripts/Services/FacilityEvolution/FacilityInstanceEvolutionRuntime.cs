@@ -1,112 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEngine;
-
-public interface IFacilityEvolutionRuntime
-{
-    FacilityEvolutionState GetState(BuildableObject facility);
-    FacilityEvolutionState RecordUsage(
-        BuildableObject facility,
-        string eventId,
-        float mastery,
-        float amount = 1f,
-        string actorId = "",
-        IEnumerable<string> sourceTags = null);
-    IReadOnlyList<FacilityGenerationCandidate> GetGenerationCandidates(
-        BuildableObject facility);
-    bool TryQueueCandidate(
-        BuildableObject facility,
-        string candidateId,
-        out FacilityModificationOrder order,
-        out string failureReason);
-    bool TryQueueCandidate(
-        BuildableObject facility,
-        string candidateId,
-        string catalystItemId,
-        out FacilityModificationOrder order,
-        out string failureReason);
-    bool TryQueueRecalibration(
-        BuildableObject facility,
-        string nodeId,
-        EvolutionModuleActivationRule targetRule,
-        string catalystItemId,
-        out FacilityRecalibrationOrder order,
-        out string failureReason);
-    bool TryQueueRecalibrationToCurrentRoom(
-        BuildableObject facility,
-        string nodeId,
-        string catalystItemId,
-        out FacilityRecalibrationOrder order,
-        out string failureReason);
-    bool TryQueueRelocation(
-        BuildableObject facility,
-        Vector2Int destination,
-        out FacilityRelocationOrder order,
-        out string failureReason);
-    bool TryGetPendingWork(
-        BuildableObject facility,
-        out FacilityModificationOrder modification,
-        out FacilityRecalibrationOrder recalibration);
-    bool TryGetPendingRelocation(
-        BuildableObject facility,
-        out FacilityRelocationOrder relocation);
-    bool ApplyPendingWork(
-        BuildableObject facility,
-        float workUnits,
-        out EvolutionNode completedNode,
-        out bool completed,
-        out string failureReason);
-    bool ApplyRelocationWork(
-        BuildableObject facility,
-        float workUnits,
-        out BuildableObject relocatedFacility,
-        out bool completed,
-        out string failureReason);
-    bool CancelPendingWork(
-        BuildableObject facility,
-        out string failureReason);
-    bool RefreshRoomActivation(BuildableObject facility);
-}
-
-public static class FacilityEvolutionWorkUtility
-{
-    public static bool HasPendingWork(BuildableObject building)
-    {
-        FacilityEvolutionState state = GetState(building);
-        return state != null
-            && (state.modificationOrder != null
-                || state.recalibrationOrder != null
-                || state.relocationOrder != null);
-    }
-
-    public static bool IsRelocating(BuildableObject building)
-    {
-        return GetState(building)?.relocationOrder != null;
-    }
-
-    public static FacilityWorkType AddFallbackWorkTypes(
-        BuildableObject building,
-        FacilityWorkType current)
-    {
-        return HasPendingWork(building)
-            ? current | FacilityWorkType.Craft
-            : current;
-    }
-
-    private static FacilityEvolutionState GetState(
-        BuildableObject building)
-    {
-        if (building == null || building.isDestroy)
-        {
-            return null;
-        }
-
-        FacilityEvolutionStateComponent component =
-            building.GetComponent<FacilityEvolutionStateComponent>();
-        return component != null ? component.InstanceEvolution : null;
-    }
-}
 
 public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
 {
@@ -126,7 +22,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
     private readonly IEvolutionModuleRegistry moduleRegistry;
     private readonly IRoomEnvironmentQuery roomEnvironment;
     private readonly IFacilityCandidateCache facilityCandidateCache;
-    private readonly IRunVariableRuntimeProvider runVariables;
+    private readonly IRunSeedProvider runSeedProvider;
     private readonly IWorldItemStackRuntime worldItems;
     private readonly IFacilityRelocationWorldService relocationWorld;
 
@@ -138,7 +34,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         IFacilityCandidateCache facilityCandidateCache,
         IWorldItemStackRuntime worldItems,
         IFacilityRelocationWorldService relocationWorld,
-        IRunVariableRuntimeProvider runVariables = null)
+        IRunSeedProvider runSeedProvider)
     {
         this.stateFactory = stateFactory
             ?? throw new ArgumentNullException(nameof(stateFactory));
@@ -151,7 +47,8 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         this.worldItems = worldItems;
         this.relocationWorld = relocationWorld
             ?? throw new ArgumentNullException(nameof(relocationWorld));
-        this.runVariables = runVariables;
+        this.runSeedProvider = runSeedProvider
+            ?? throw new ArgumentNullException(nameof(runSeedProvider));
     }
 
     public FacilityEvolutionState GetState(BuildableObject facility)
@@ -214,10 +111,10 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                     candidateId?.Trim(),
                     StringComparison.Ordinal));
         string catalystItemId = candidate != null
-            && candidate.minimumCatalystPotency > 0
+            && candidate.minimumCatalystProgressionLevel > 0
                 ? EvolutionCatalystItemId.BuildCatalyst(
                     candidate.catalystFamily,
-                    candidate.minimumCatalystPotency)
+                    candidate.minimumCatalystProgressionLevel)
                 : string.Empty;
         return TryQueueCandidate(
             facility,
@@ -269,7 +166,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
 
         FacilityGenerationCandidate lockedCandidate = candidate.Clone();
         string normalizedCatalystItemId = string.Empty;
-        if (candidate.minimumCatalystPotency > 0)
+        if (candidate.minimumCatalystProgressionLevel > 0)
         {
             if (!EvolutionCatalystItemId.TryParseCatalyst(
                     catalystItemId,
@@ -279,18 +176,21 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 return false;
             }
 
-            if (catalyst.potency < candidate.minimumCatalystPotency)
+            if (catalyst.progressionLevel
+                < candidate.minimumCatalystProgressionLevel)
             {
                 failureReason =
-                    $"촉매 효능이 부족합니다. {catalyst.potency}/{candidate.minimumCatalystPotency}";
+                    $"촉매 진행 단계가 부족합니다. {catalyst.progressionLevel}/{candidate.minimumCatalystProgressionLevel}";
                 return false;
             }
 
             normalizedCatalystItemId = catalyst.itemId;
             lockedCandidate.catalystFamily = catalyst.family;
-            lockedCandidate.minimumCatalystPotency = catalyst.potency;
+            lockedCandidate.minimumCatalystProgressionLevel =
+                catalyst.progressionLevel;
             lockedCandidate.benefitModuleId =
-                ResolveFacilityModuleForCatalyst(catalyst.family);
+                FacilityEvolutionRules.ResolveFacilityModuleForCatalyst(
+                    catalyst.family);
             lockedCandidate.burdenModuleId = "facility:risky-overdrive";
         }
 
@@ -320,7 +220,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         if (!RequestMaterials(
                 position,
                 destinationId,
-                BuildRequirements(created),
+                FacilityEvolutionRules.BuildRequirements(created),
                 out failureReason))
         {
             return false;
@@ -374,13 +274,13 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             return false;
         }
 
-        int requiredPotency =
-            EquipmentEvolutionProgression.GetMinimumCatalystPotency(
+        int requiredProgressionLevel =
+            EquipmentEvolutionProgression.GetMinimumCatalystProgressionLevel(
                 Mathf.Max(0, node.generation - 1));
-        if (catalyst.potency < requiredPotency)
+        if (catalyst.progressionLevel < requiredProgressionLevel)
         {
             failureReason =
-                $"촉매 효능이 부족합니다. {catalyst.potency}/{requiredPotency}";
+                $"촉매 진행 단계가 부족합니다. {catalyst.progressionLevel}/{requiredProgressionLevel}";
             return false;
         }
 
@@ -938,7 +838,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         if (worldItems == null
             || !worldItems.TryConsumeFacilityItemBuffer(
                 order.destinationId,
-                BuildRequirements(order),
+                FacilityEvolutionRules.BuildRequirements(order),
                 out failureReason))
         {
             return false;
@@ -976,26 +876,6 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         order.materialsConsumed = true;
         order.state = EvolutionReforgeOrderState.Ready;
         return true;
-    }
-
-    private static Dictionary<string, int> BuildRequirements(
-        FacilityModificationOrder order)
-    {
-        Dictionary<string, int> requirements =
-            new Dictionary<string, int>(StringComparer.Ordinal);
-        if (!string.IsNullOrWhiteSpace(order.bindingItemId)
-            && order.bindingAmount > 0)
-        {
-            requirements[order.bindingItemId] = order.bindingAmount;
-        }
-
-        if (!string.IsNullOrWhiteSpace(order.catalystItemId)
-            && order.catalystAmount > 0)
-        {
-            requirements[order.catalystItemId] = order.catalystAmount;
-        }
-
-        return requirements;
     }
 
     private void ReleaseDestination(
@@ -1063,14 +943,17 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             state.facilityPersistentId,
             state.generation.ToString(),
             historyHash);
-        System.Random random = new System.Random(
+        IRandomStream random = new DeterministicRandomSequence(
             StableEvolutionHash.ToSeed(seedKey));
-        string primaryModuleId = ResolvePrimaryModuleId(closed);
+        string primaryModuleId =
+            FacilityEvolutionRules.ResolvePrimaryModuleId(closed);
         EvolutionModuleActivationRule roomRule = BuildCurrentRoomRule(facility);
         int nextGeneration = state.generation + 1;
-        int catalystPotency = 1 + Mathf.FloorToInt(state.generation / 4f);
+        int catalystProgressionLevel =
+            EquipmentEvolutionProgression.GetMinimumCatalystProgressionLevel(
+                state.generation);
         string catalystFamily = CatalystFamilies[
-            random.Next(0, CatalystFamilies.Length)];
+            random.NextInt(0, CatalystFamilies.Length)];
 
         state.pendingHistoryHash = historyHash;
         state.pendingCandidates = new List<FacilityGenerationCandidate>
@@ -1103,7 +986,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 "facility:risky-overdrive",
                 "facility:risky-overdrive",
                 catalystFamily,
-                catalystPotency,
+                catalystProgressionLevel,
                 new EvolutionModuleActivationRule())
         };
         component.ReplaceInstanceEvolution(state);
@@ -1179,7 +1062,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
         string benefitModuleId,
         string burdenModuleId,
         string catalystFamily,
-        int minimumCatalystPotency,
+        int minimumCatalystProgressionLevel,
         EvolutionModuleActivationRule activationRule)
     {
         string candidateHash = StableEvolutionHash.Compute(string.Join(
@@ -1192,7 +1075,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             benefitModuleId,
             burdenModuleId,
             catalystFamily,
-            minimumCatalystPotency.ToString()));
+            minimumCatalystProgressionLevel.ToString()));
         return new FacilityGenerationCandidate
         {
             candidateId = $"facility-candidate:{candidateHash}",
@@ -1201,78 +1084,12 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
             benefitModuleId = benefitModuleId,
             burdenModuleId = burdenModuleId,
             catalystFamily = catalystFamily,
-            minimumCatalystPotency = minimumCatalystPotency,
+            minimumCatalystProgressionLevel =
+                minimumCatalystProgressionLevel,
             historyHash = historyHash,
             activationRule = activationRule?.Clone()
                 ?? new EvolutionModuleActivationRule()
         };
-    }
-
-    private static string ResolvePrimaryModuleId(
-        CompactedHistorySegment segment)
-    {
-        string dominant = segment.metrics
-            .OrderByDescending(metric => Mathf.Abs(metric.value))
-            .ThenBy(metric => metric.metricId, StringComparer.Ordinal)
-            .Select(metric => metric.metricId?.ToLowerInvariant() ?? string.Empty)
-            .FirstOrDefault() ?? string.Empty;
-        string tags = string.Join(
-            "|",
-            segment.sourceTags.Select(tag => tag.ToLowerInvariant()));
-        string source = dominant + "|" + tags;
-        if (ContainsAny(source, "defense", "combat", "guard", "intruder"))
-        {
-            return "facility:defense";
-        }
-
-        if (ContainsAny(source, "research", "arcane", "mana"))
-        {
-            return "facility:research";
-        }
-
-        if (ContainsAny(source, "survival", "food", "water", "clean", "medical"))
-        {
-            return "facility:survival";
-        }
-
-        if (ContainsAny(source, "entertainment", "circus", "perform"))
-        {
-            return "facility:entertainment";
-        }
-
-        if (ContainsAny(source, "visit", "service", "revenue", "shop"))
-        {
-            return "facility:service";
-        }
-
-        return "facility:output";
-    }
-
-    private static string ResolveFacilityModuleForCatalyst(string family)
-    {
-        string normalized = family?.Trim().ToLowerInvariant() ?? string.Empty;
-        if (normalized.Contains("defense")
-            || normalized.Contains("offense"))
-        {
-            return "facility:defense";
-        }
-
-        if (normalized.Contains("survival"))
-        {
-            return "facility:survival";
-        }
-
-        if (normalized.Contains("arcane"))
-        {
-            return "facility:research";
-        }
-
-        if (normalized.Contains("authority"))
-        {
-            return "facility:service";
-        }
-
-        return "facility:output";
     }
 
     private EvolutionModuleActivationRule BuildCurrentRoomRule(
@@ -1342,10 +1159,7 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
 
     private int ResolveRunSeed()
     {
-        return runVariables != null
-            && runVariables.TryGetRuntime(out RunVariableRuntime runtime)
-            ? runtime.RunSeed
-            : 0;
+        return runSeedProvider.RunSeed;
     }
 
     private FacilityEvolutionStateComponent RequireComponent(
@@ -1363,9 +1177,4 @@ public sealed class FacilityInstanceEvolutionRuntime : IFacilityEvolutionRuntime
                 "Facility evolution state component could not be created.");
     }
 
-    private static bool ContainsAny(string source, params string[] values)
-    {
-        return values.Any(value =>
-            source.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0);
-    }
 }

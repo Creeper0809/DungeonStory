@@ -1,0 +1,26 @@
+{
+  "name": "DungeonStory.Content",
+  "rootNamespace": "DungeonStory.Content",
+  "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.CharacterNeeds",
+    "DungeonStory.Characters",
+    "DungeonStory.Combat",
+    "DungeonStory.CoreSession",
+    "DungeonStory.Economy",
+    "DungeonStory.Environment",
+    "DungeonStory.Foundation",
+    "DungeonStory.Invasion",
+    "DungeonStory.Meta",
+    "Unity.TextMeshPro"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

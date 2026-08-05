@@ -1,23 +1,6 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine.EventSystems;
 using UnityEngine;
-
-public sealed class SceneUiBootstrapReferences
-{
-    public SceneUiBootstrapReferences(EventSystem eventSystem)
-    {
-        EventSystem = eventSystem;
-    }
-
-    public EventSystem EventSystem { get; private set; }
-
-    public void RegisterEventSystem(EventSystem eventSystem)
-    {
-        EventSystem = eventSystem
-            ?? throw new ArgumentNullException(nameof(eventSystem));
-    }
-}
 
 public sealed class DungeonUserSettingsRuntimeTargets
 {
@@ -53,13 +36,29 @@ public sealed class SceneValidationReferences
     public IReadOnlyList<LocalLlmRequestQueue> LocalLlmQueues { get; }
 }
 
-public sealed class DungeonSceneRuntimeReferences
+public sealed class DungeonSceneServiceReferences
 {
-    public DungeonSceneRuntimeReferences(
+    public DungeonSceneServiceReferences(
         UIManager uiManager,
         OperatingDaySettlementRuntime settlement,
         EventAlertRuntime alerts,
-        RunVariableRuntime runVariables,
+        RunVariableRuntime runVariables)
+    {
+        UIManager = uiManager;
+        Settlement = settlement;
+        Alerts = alerts;
+        RunVariables = runVariables;
+    }
+
+    public UIManager UIManager { get; }
+    public OperatingDaySettlementRuntime Settlement { get; }
+    public EventAlertRuntime Alerts { get; }
+    public RunVariableRuntime RunVariables { get; }
+}
+
+public sealed class DungeonSceneViewReferences
+{
+    public DungeonSceneViewReferences(
         Canvas canvas,
         GameManager gameManager,
         GridSystemManager gridSystemManager,
@@ -67,12 +66,8 @@ public sealed class DungeonSceneRuntimeReferences
         GridTexture gridTexture,
         Camera mainCamera,
         OwnerSelectionPanel ownerSelectionPanel,
-        UIBuildingInfo buildingInfo = null)
+        UIBuildingInfo buildingInfo)
     {
-        UIManager = uiManager;
-        Settlement = settlement;
-        Alerts = alerts;
-        RunVariables = runVariables;
         Canvas = canvas;
         GameManager = gameManager;
         GridSystemManager = gridSystemManager;
@@ -81,6 +76,38 @@ public sealed class DungeonSceneRuntimeReferences
         MainCamera = mainCamera;
         OwnerSelectionPanel = ownerSelectionPanel;
         BuildingInfo = buildingInfo;
+    }
+
+    public Canvas Canvas { get; }
+    public GameManager GameManager { get; }
+    public GridSystemManager GridSystemManager { get; }
+    public DungeonStoryGridBuildingController GridBuildingController { get; }
+    public GridTexture GridTexture { get; }
+    public Camera MainCamera { get; }
+    public OwnerSelectionPanel OwnerSelectionPanel { get; }
+    public UIBuildingInfo BuildingInfo { get; }
+}
+
+public sealed class DungeonSceneRuntimeReferences
+{
+    public DungeonSceneRuntimeReferences(
+        DungeonSceneServiceReferences services,
+        DungeonSceneViewReferences views)
+    {
+        services = services ?? throw new ArgumentNullException(nameof(services));
+        views = views ?? throw new ArgumentNullException(nameof(views));
+        UIManager = services.UIManager;
+        Settlement = services.Settlement;
+        Alerts = services.Alerts;
+        RunVariables = services.RunVariables;
+        Canvas = views.Canvas;
+        GameManager = views.GameManager;
+        GridSystemManager = views.GridSystemManager;
+        GridBuildingController = views.GridBuildingController;
+        GridTexture = views.GridTexture;
+        MainCamera = views.MainCamera;
+        OwnerSelectionPanel = views.OwnerSelectionPanel;
+        BuildingInfo = views.BuildingInfo;
     }
 
     public UIManager UIManager { get; }

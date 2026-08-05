@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: DefenseFacility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -38,20 +29,22 @@ MonoBehaviour:
       Data: 
   id: 1805
   objectName: "\uBCBD\uBA74 \uBC1C\uC0AC\uAD6C"
-  sprite: {fileID: 21300000, guid: 6e35769ef6f215238a4221527f73d537, type: 3}
-  icon: {fileID: 21300000, guid: 6e35769ef6f215238a4221527f73d537, type: 3}
+  sprite: {fileID: 21300000, guid: a082ee6f52f4a7b4683158d6593fa112, type: 3}
+  icon: {fileID: 21300000, guid: a082ee6f52f4a7b4683158d6593fa112, type: 3}
   abilityModules:
     items:
+    - rid: 8800000000000001805
     - rid: 7302563312817144258
     - rid: 7302563312817144261
-    - rid: 7302563313672520143
-    - rid: 7302563313672520144
+    - rid: 7737211765905949281
+    - rid: 7737211765905949282
   width: 1
   height: 1
   layer: 3
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 7
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -61,7 +54,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7302563312817144258
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 225
@@ -70,11 +63,11 @@ MonoBehaviour:
         unlockPhase: 1
         demolitionRefundRate: 0.5
     - rid: 7302563312817144261
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: DF06
-    - rid: 7302563313672520143
+    - rid: 7737211765905949281
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -85,7 +78,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7302563313672520144
+    - rid: 7737211765905949282
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility
@@ -124,3 +117,15 @@ MonoBehaviour:
             detectionRangeLevel: 0
             identificationLevel: 0
             outageResistanceLevel: 0
+    - rid: 8800000000000001805
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 22.5
+        repairWorkRequired: 10
+        cleanWorkRequired: 6.25
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 12

@@ -39,6 +39,8 @@ public static class CharacterLogNarrativePlayModeVerifier
 
 public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehaviour
 {
+    private static readonly ICharacterNarrativeTextQuery NarrativeText =
+        new CharacterNarrativeTextQuery();
     private const string StartEvent = "작업 시작 · 연금 연구 · 지하 연구실";
     private const string AlternateStartEvent = "작업 시작 · 무기 판매 · 무기상점";
     private const string EndEvent = "작업 종료 · 연금 연구 · 지하 연구실 · 새 제조법 정리 완료";
@@ -69,7 +71,7 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
     private IEnumerator VerifyDeterministicDisplayGating()
     {
         DeferredCharacterRecordRuntime templateRuntime = new DeferredCharacterRecordRuntime();
-        CharacterLogNarrativeService templateService = new CharacterLogNarrativeService(
+        CharacterLogNarrativeService templateService = CreateNarrativeService(
             new FixedLocalLlmRuntimeProvider(templateRuntime));
         CharacterLog templateLog = CreateProbeLog("asd", templateService);
         templateLog.AddActivity(CreateWorkActivity(
@@ -84,7 +86,7 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
             $"visible={Compact(templateLog.Entries)}; pending={templateRuntime.PendingRecordCount}; templates={templateService.TemplateLineCount}");
 
         DeferredCharacterRecordRuntime successRuntime = new DeferredCharacterRecordRuntime();
-        CharacterLogNarrativeService successService = new CharacterLogNarrativeService(
+        CharacterLogNarrativeService successService = CreateNarrativeService(
             new FixedLocalLlmRuntimeProvider(successRuntime));
         CharacterLog successLog = CreateProbeLog("asd", successService);
         CharacterLogEntry successEntry = default;
@@ -101,7 +103,8 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
         string requiredSubject = CharacterLogNarrativeService.BuildRequiredSubject(successLog.name);
         string successLine = CharacterLogNarrativeService.BuildControlledFallbackLine(
             successEntry,
-            requiredSubject);
+            requiredSubject,
+            NarrativeText);
         successRuntime.CompleteNext(
             LocalLlmRequestStatus.Succeeded,
             JsonUtility.ToJson(new CharacterRecordJsonDto { line = successLine }));
@@ -112,7 +115,7 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
             Compact(successLog.Entries));
 
         DeferredCharacterRecordRuntime failureRuntime = new DeferredCharacterRecordRuntime();
-        CharacterLogNarrativeService failureService = new CharacterLogNarrativeService(
+        CharacterLogNarrativeService failureService = CreateNarrativeService(
             new FixedLocalLlmRuntimeProvider(failureRuntime));
         CharacterLog failureLog = CreateProbeLog("asd", failureService);
         failureLog.AddActivity(CreateMajorActivity(
@@ -131,7 +134,7 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
         {
             AcceptRecordRequests = false
         };
-        CharacterLogNarrativeService rejectedService = new CharacterLogNarrativeService(
+        CharacterLogNarrativeService rejectedService = CreateNarrativeService(
             new FixedLocalLlmRuntimeProvider(rejectedRuntime));
         CharacterLog rejectedLog = CreateProbeLog("asd", rejectedService);
         rejectedLog.AddActivity(CreateMajorActivity(
@@ -144,7 +147,7 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
             Compact(rejectedLog.Entries));
 
         DeferredCharacterRecordRuntime saturatedRuntime = new DeferredCharacterRecordRuntime();
-        CharacterLogNarrativeService saturatedService = new CharacterLogNarrativeService(
+        CharacterLogNarrativeService saturatedService = CreateNarrativeService(
             new FixedLocalLlmRuntimeProvider(saturatedRuntime));
         CharacterLog saturatedLog = CreateProbeLog("asd", saturatedService);
         saturatedLog.AddActivity(CreateMajorActivity(
@@ -167,7 +170,7 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
             $"pending={saturatedRuntime.PendingRecordCount}; visible={Compact(saturatedLog.Entries)}");
 
         DeferredCharacterRecordRuntime repeatedRuntime = new DeferredCharacterRecordRuntime();
-        CharacterLogNarrativeService repeatedService = new CharacterLogNarrativeService(
+        CharacterLogNarrativeService repeatedService = CreateNarrativeService(
             new FixedLocalLlmRuntimeProvider(repeatedRuntime));
         CharacterLog repeatedLog = CreateProbeLog("asd", repeatedService);
         repeatedLog.AddActivity(CreateMajorActivity(
@@ -196,7 +199,7 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
     private IEnumerator VerifyNarrativeRecords()
     {
         DungeonRuntimeLifetimeScope scope = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
-        CharacterSummeryInfo summary = UnityEngine.Object.FindFirstObjectByType<CharacterSummeryInfo>();
+        CharacterSummaryInfo summary = UnityEngine.Object.FindFirstObjectByType<CharacterSummaryInfo>();
         CharacterActor actor = UnityEngine.Object.FindObjectsByType<CharacterActor>(
                 FindObjectsInactive.Exclude,
                 FindObjectsSortMode.None)
@@ -452,6 +455,13 @@ public sealed class CharacterLogNarrativePlayModeVerificationRunner : MonoBehavi
         };
         button.OnPointerClick(eventData);
     }
+
+    private static CharacterLogNarrativeService CreateNarrativeService(
+        ILocalLlmRuntimeProvider provider) =>
+        new CharacterLogNarrativeService(
+            provider,
+            new CharacterRecordTemplateBank(NarrativeText),
+            NarrativeText);
 
     private static CharacterLog CreateProbeLog(
         string objectName,

@@ -203,7 +203,7 @@ public static class ServiceRoomContentAssetBuilder
         building.category = BuildingCategory.Special;
         building.horizontalDraggable = false;
         building.verticalDraggable = false;
-        building.type = typeof(Facility);
+        building.runtimeArchetype = BuildingRuntimeArchetypeKind.Facility;
         building.tiles = null;
         building.unlocked = false;
 
@@ -215,6 +215,23 @@ public static class ServiceRoomContentAssetBuilder
             unlockPhase = spec.RequiresPower ? 3 : 2,
             demolitionRefundRate = 0.5f
         });
+        BuildingWorkAmountAbility workAmount = new BuildingWorkAmountAbility
+        {
+            constructionWorkRequired = spec.RequiresPower ? 24.8f : 18.48f,
+            repairWorkRequired = 10f,
+            cleanWorkRequired = 6.25f,
+            researchWorkRequired = 6f,
+            operateWorkRequired = 10f
+        };
+        workAmount.SetConstructionMaterials(new[]
+        {
+            new ItemAmountDefinition(
+                spec.RequiresPower
+                    ? "component:machine-parts"
+                    : "material:lumber",
+                2)
+        });
+        abilities.Add(workAmount);
         abilities.Add(new BuildingFacilityPartAbility { code = spec.Code });
         abilities.Add(new BuildingRoomRequirementAbility());
         abilities.Add(new BuildingSemanticTagsAbility
@@ -336,8 +353,6 @@ public static class ServiceRoomContentAssetBuilder
             "service:dining:meal",
             ServiceCategory.Dining,
             "service:dining",
-            StockCategory.Food,
-            1,
             string.Empty,
             0f,
             0f,
@@ -349,8 +364,6 @@ public static class ServiceRoomContentAssetBuilder
             "service:retail:sale",
             ServiceCategory.Retail,
             "service:retail",
-            StockCategory.General,
-            1,
             string.Empty,
             0f,
             0f,
@@ -362,8 +375,6 @@ public static class ServiceRoomContentAssetBuilder
             "service:lodging:rest",
             ServiceCategory.Lodging,
             "service:lodging",
-            StockCategory.General,
-            0,
             string.Empty,
             0f,
             0f,
@@ -375,8 +386,6 @@ public static class ServiceRoomContentAssetBuilder
             "service:bathing:wash",
             ServiceCategory.Bathing,
             "service:bathing",
-            StockCategory.Water,
-            0,
             string.Empty,
             0.45f,
             0.45f,
@@ -388,8 +397,6 @@ public static class ServiceRoomContentAssetBuilder
             "service:medical:treat",
             ServiceCategory.Medical,
             "service:medical",
-            StockCategory.Medicine,
-            1,
             "work:treat",
             0f,
             0f,
@@ -403,8 +410,6 @@ public static class ServiceRoomContentAssetBuilder
         string processId,
         ServiceCategory category,
         string ownerHubTag,
-        StockCategory inputCategory,
-        int inputQuantity,
         string workTypeId,
         float cleanWater,
         float wastewater,
@@ -468,9 +473,6 @@ public static class ServiceRoomContentAssetBuilder
                     directPrice + 3,
                     directSatisfaction + 8f)
             },
-            string.Empty,
-            inputQuantity,
-            inputCategory,
             workTypeId,
             cleanWater,
             wastewater,

@@ -29,11 +29,19 @@ public interface IUiPointerBlocker
 
 public sealed class UnityPlayerInputReader : IPlayerInputReader
 {
+    private readonly IDungeonAutomationInputReader automationInput;
+
+    public UnityPlayerInputReader(IDungeonAutomationInputReader automationInput)
+    {
+        this.automationInput = automationInput
+            ?? throw new ArgumentNullException(nameof(automationInput));
+    }
+
     public Vector3 MousePosition
     {
         get
         {
-            if (DungeonAutomationInputState.TryGetPointerPosition(out Vector3 automationPosition))
+            if (automationInput.TryGetPointerPosition(out Vector3 automationPosition))
             {
                 return automationPosition;
             }
@@ -59,7 +67,7 @@ public sealed class UnityPlayerInputReader : IPlayerInputReader
     {
         get
         {
-            if (DungeonAutomationInputState.TryConsumeScrollDeltaY(out float automationScroll))
+            if (automationInput.TryConsumeScrollDeltaY(out float automationScroll))
             {
                 return automationScroll;
             }
@@ -88,21 +96,21 @@ public sealed class UnityPlayerInputReader : IPlayerInputReader
 
     public bool GetKey(KeyCode keyCode)
     {
-        return DungeonAutomationInputState.GetKey(keyCode)
+        return automationInput.GetKey(keyCode)
             || IsLegacyKeyPressed(keyCode)
             || IsInputSystemKeyPressed(keyCode);
     }
 
     public bool GetKeyDown(KeyCode keyCode)
     {
-        return DungeonAutomationInputState.GetKeyDown(keyCode)
+        return automationInput.GetKeyDown(keyCode)
             || IsLegacyKeyPressedThisFrame(keyCode)
             || IsInputSystemKeyPressedThisFrame(keyCode);
     }
 
     public bool GetMouseButtonDown(int button)
     {
-        if (DungeonAutomationInputState.GetMouseButtonDown(button))
+        if (automationInput.GetMouseButtonDown(button))
         {
             return true;
         }
@@ -123,7 +131,7 @@ public sealed class UnityPlayerInputReader : IPlayerInputReader
 
     public bool GetMouseButton(int button)
     {
-        if (DungeonAutomationInputState.GetMouseButton(button))
+        if (automationInput.GetMouseButton(button))
         {
             return true;
         }

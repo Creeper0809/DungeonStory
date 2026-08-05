@@ -1,0 +1,797 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: DefenseUI_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: 08de28fcb12537e409afdaebf897ac17, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 372592640
+    m_Localized: Assign this policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952768
+    m_Localized: Assigned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952769
+    m_Localized: Clear jam
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952770
+    m_Localized: Confirm deletion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952771
+    m_Localized: Cycle arming
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952772
+    m_Localized: Delete policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952773
+    m_Localized: Details
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952774
+    m_Localized: Disable auto response
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952775
+    m_Localized: Duplicate policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952776
+    m_Localized: Enable auto response
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952777
+    m_Localized: Execute
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952778
+    m_Localized: Hold without replacement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952779
+    m_Localized: Minimum dispatch health {0:P0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952780
+    m_Localized: New policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952781
+    m_Localized: Rejoin after treatment {0:P0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952782
+    m_Localized: Request reload
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952783
+    m_Localized: Retreat health {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952784
+    m_Localized: Retreat without replacement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952785
+    m_Localized: Select
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952786
+    m_Localized: Selected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952787
+    m_Localized: Track
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952788
+    m_Localized: '{0} active facilities'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952789
+    m_Localized: '{0} active intruders'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952790
+    m_Localized: Aggressive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952791
+    m_Localized: Alert
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952792
+    m_Localized: Manual
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952793
+    m_Localized: Safe
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952794
+    m_Localized: Fire
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952795
+    m_Localized: Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952796
+    m_Localized: Ice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952797
+    m_Localized: Lightning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952798
+    m_Localized: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952799
+    m_Localized: Physical
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952800
+    m_Localized: Poison
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952801
+    m_Localized: Facility
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952802
+    m_Localized: '{0} {1:0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952803
+    m_Localized: No branch information
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952804
+    m_Localized: ' ({0})'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952805
+    m_Localized: '{0} / Objective {1} / Intelligence confidence {2:P0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952806
+    m_Localized: No scheduled operation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952807
+    m_Localized: '{0}
+
+      Weakest branch: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952808
+    m_Localized: '{0} completed reports'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952809
+    m_Localized: '{0} / {1} / {2}
+
+      {3} / Known risks {4}
+
+      Route decision:
+      {5}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952810
+    m_Localized: 'Breach / {0} / {1}
+
+      {2} {3:0}/{4:0} / Attackers {5} / ETA
+      {6:0.0}s{7}
+
+      {8} / {9}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952811
+    m_Localized: Waiting for a raid / Operation, route, and breach state appear when
+      intruders arrive.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952812
+    m_Localized: The dungeon is currently safe.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952813
+    m_Localized: Off duty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952814
+    m_Localized: On duty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952815
+    m_Localized: Engagement / {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952816
+    m_Localized: Completed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952817
+    m_Localized: Dispatching
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952818
+    m_Localized: Engaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952819
+    m_Localized: Front collapsed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952820
+    m_Localized: Interception planned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952821
+    m_Localized: Reserve waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952822
+    m_Localized: Retreating
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952823
+    m_Localized: Switching
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952824
+    m_Localized: ' / Enraged breach'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952825
+    m_Localized: 'Expected route: {0} cells'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952826
+    m_Localized: Expected route unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952827
+    m_Localized: Could not change the arming policy.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952828
+    m_Localized: "Arming policy {0} \u2192 {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952829
+    m_Localized: '
+
+      Blocked: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952830
+    m_Localized: '{0} / {1} / {2} / Supply {3} / Condition {4:0}%
+
+      Detection
+      {5} / Control {6} / Supply {7} / Maintenance {8}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952831
+    m_Localized: The defense facility was not found.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952832
+    m_Localized: Defense-facility service requested.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952833
+    m_Localized: Arrived
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952834
+    m_Localized: Delayed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952835
+    m_Localized: Lost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952836
+    m_Localized: Returning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952837
+    m_Localized: Traveling
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952838
+    m_Localized: The guard to assign was not found.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952839
+    m_Localized: Current {0} / {1} / Guard priority {2}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952840
+    m_Localized: '{0}: policy assigned'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952841
+    m_Localized: Could not assign the policy.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952842
+    m_Localized: '{0} staff / Policy to assign: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952843
+    m_Localized: Applies only to on-duty staff with guard priority enabled.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952844
+    m_Localized: Press once more to confirm deletion.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952845
+    m_Localized: Assigned guards will return to the standard policy.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952846
+    m_Localized: Duplicates the current policy as a new custom policy.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952847
+    m_Localized: Controls the lead guard when no reserve is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952848
+    m_Localized: Creates a custom policy from the current defaults.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952849
+    m_Localized: 0% disables automatic retreat.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952850
+    m_Localized: Minimum health required for a retreated guard to rejoin.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952851
+    m_Localized: Adjusts by 5% each time.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952852
+    m_Localized: Fully identified
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952853
+    m_Localized: Unidentified
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952854
+    m_Localized: Signs identified
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952855
+    m_Localized: Target identified
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952856
+    m_Localized: Approaching entrance / Guards waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952857
+    m_Localized: Advancing inside / Front not formed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952858
+    m_Localized: No state
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952859
+    m_Localized: Rallying outside {0}s / Guards waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952860
+    m_Localized: 'State {0} / Focus {1:0.#} / Target {2}
+
+      {3}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952861
+    m_Localized: Intruder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952862
+    m_Localized: Front {0} / Lead {1} / Reserve {2} / Exchanges {3}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952863
+    m_Localized: Breaching
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952864
+    m_Localized: Damaging facility
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952865
+    m_Localized: Engaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952866
+    m_Localized: Entering
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952867
+    m_Localized: Final combat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952868
+    m_Localized: Finished
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952869
+    m_Localized: Front broken
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952870
+    m_Localized: Interception planned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952871
+    m_Localized: Tracking facility
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952872
+    m_Localized: Tracking owner
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952873
+    m_Localized: Waiting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952874
+    m_Localized: Rallying outside
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952875
+    m_Localized: Searching
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952876
+    m_Localized: Intruder state is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952877
+    m_Localized: '{0} / {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952878
+    m_Localized: Connected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952879
+    m_Localized: '-'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952880
+    m_Localized: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952881
+    m_Localized: Captive rescue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952882
+    m_Localized: Facility sabotage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952883
+    m_Localized: Frontal assault
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952884
+    m_Localized: Loot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952885
+    m_Localized: Owner assassination
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952886
+    m_Localized: Siege
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952887
+    m_Localized: Cooldown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952888
+    m_Localized: Damaged
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952889
+    m_Localized: Destroyed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952890
+    m_Localized: Detecting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952891
+    m_Localized: Disarmed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952892
+    m_Localized: Empty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952893
+    m_Localized: Faulted
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952894
+    m_Localized: Jammed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952895
+    m_Localized: Preparing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952896
+    m_Localized: Ready
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952897
+    m_Localized: Reloading
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952898
+    m_Localized: Triggered
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952899
+    m_Localized: Unpowered
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952900
+    m_Localized: '{0} / Target {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952901
+    m_Localized: ' / Evacuation complete'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952902
+    m_Localized: The owner will evacuate to a safe interior cell when an invasion
+      starts.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952903
+    m_Localized: '{0} Copy'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952904
+    m_Localized: Could not create the defense policy.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952905
+    m_Localized: 'Defense policy created: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952906
+    m_Localized: New Policy {0}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952907
+    m_Localized: Confirm policy deletion once more.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952908
+    m_Localized: The standard policy cannot be deleted.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952909
+    m_Localized: Policy deleted; guards were reassigned to the standard policy.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952910
+    m_Localized: 'Dispatch health {0:P0} / Retreat {1} / Rejoin {2:P0} / No replacement:
+      {3}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952911
+    m_Localized: Could not duplicate the defense policy.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952912
+    m_Localized: 'Defense policy duplicated: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952913
+    m_Localized: Hold
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952914
+    m_Localized: The defense policy was not found.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952915
+    m_Localized: Retreat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952916
+    m_Localized: 'Defense policy selected: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952917
+    m_Localized: '{0} policies / Selected: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952918
+    m_Localized: Standard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952919
+    m_Localized: No defense policies are available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952920
+    m_Localized: Could not update the defense policy.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952921
+    m_Localized: 'Defense policy updated: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952922
+    m_Localized: Power online
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952923
+    m_Localized: Power outage
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952924
+    m_Localized: Owner or key facility
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952925
+    m_Localized: Rally / Entry in {0}s
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952926
+    m_Localized: No allied reinforcements are traveling or present.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952927
+    m_Localized: '{0} / {1} / ETA day {2} / Strength {3}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952928
+    m_Localized: Defense succeeded
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952929
+    m_Localized: Defense failed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952930
+    m_Localized: Residual risk {0:0.#} / Contributions {1} / Damaged {2}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952931
+    m_Localized: '{0} / Threat {1:0.#}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952932
+    m_Localized: No route change
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952933
+    m_Localized: Human Coalition Operation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952934
+    m_Localized: Invasion Combat Reports
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952935
+    m_Localized: Defense Facilities
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952936
+    m_Localized: Defense HUD
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952937
+    m_Localized: Guard Policy Assignment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952938
+    m_Localized: Guard Response Policy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952939
+    m_Localized: Intruder Tracking
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952940
+    m_Localized: Invasion Threat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952941
+    m_Localized: Owner Evacuation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952942
+    m_Localized: Allied Reinforcements
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952943
+    m_Localized: No supply required
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952944
+    m_Localized: 'Current factors: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952945
+    m_Localized: None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952946
+    m_Localized: Pending
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952947
+    m_Localized: No threat information
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952948
+    m_Localized: Candidate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952949
+    m_Localized: Peaceful
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952950
+    m_Localized: Safety period
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952951
+    m_Localized: Warning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952952
+    m_Localized: Threat {0:0.#} / Stage {1} / Safety {2:0.#}s / Forecast {3}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952953
+    m_Localized: The invasion-threat system is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 401952954
+    m_Localized: Unknown intruder
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

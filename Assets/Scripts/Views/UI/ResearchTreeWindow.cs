@@ -7,42 +7,12 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using VContainer;
+using static ResearchTreeViewFactory;
 
-public interface IResearchTreeWindowFactory
-{
-    ResearchTreeWindow Ensure(GameObject panelObject);
-}
 
-public sealed class ResearchTreeWindowFactory : IResearchTreeWindowFactory
-{
-    private readonly IObjectResolver objectResolver;
-
-    public ResearchTreeWindowFactory(IObjectResolver objectResolver)
-    {
-        this.objectResolver = objectResolver
-            ?? throw new ArgumentNullException(nameof(objectResolver));
-    }
-
-    public ResearchTreeWindow Ensure(GameObject panelObject)
-    {
-        if (panelObject == null)
-        {
-            throw new ArgumentNullException(nameof(panelObject));
-        }
-
-        ResearchTreeWindow window = panelObject.GetComponent<ResearchTreeWindow>();
-        if (window == null)
-        {
-            window = panelObject.AddComponent<ResearchTreeWindow>();
-        }
-
-        objectResolver.Inject(window);
-        window.ConfigureHost();
-        return window;
-    }
-}
-
-public sealed class ResearchTreeWindow : MonoBehaviour
+public sealed class ResearchTreeWindow :
+    MonoBehaviour,
+    IResearchTreeInteractionSink
 {
     private const float ToolbarHeight = 58f;
     private const float DesktopInspectorWidth = 400f;
@@ -50,8 +20,6 @@ public sealed class ResearchTreeWindow : MonoBehaviour
     private const float BottomTabSafeArea = 64f;
     private const float TopHudSafeArea = 82f;
     private const float RefreshInterval = 0.35f;
-    private const float MinZoom = 0.55f;
-    private const float MaxZoom = 1.45f;
 
     private readonly List<GameObject> nodeObjects = new List<GameObject>();
     private readonly List<GameObject> queueObjects = new List<GameObject>();
@@ -62,13 +30,11 @@ public sealed class ResearchTreeWindow : MonoBehaviour
     private IResearchProjectCatalog projectCatalog;
     private IResearchGraphLayoutService layoutService;
     private IResearchQueueCommandService queueCommands;
-    private IBlueprintResearchRuntimeProvider runtimeProvider;
-    private IResearchBlueprintArchiveQuery archiveQuery;
-    private IFacilityShopCatalog facilityCatalog;
-    private ITmpKoreanFontService fontService;
-    private IDungeonUserSettingsService settingsService;
-    private DungeonUserSettingsRuntimeTargets runtimeTargets;
-    private IGameTimeScaleController timeScaleController;
+    private BlueprintResearchRuntime runtime;
+    private ResearchTreePresentationRules presentationRules;
+    private ResearchTreeViewFactory viewFactory;
+    private ResearchTreeViewportController viewportController;
+    private ResearchTreePauseScope pauseScope;
 
     private RectTransform windowRoot;
     private RectTransform graphViewport;
@@ -89,16 +55,12 @@ public sealed class ResearchTreeWindow : MonoBehaviour
     private ResearchGraphLayout graphLayout;
     private ResearchProjectSO selectedProject;
     private ResearchField? selectedField;
-    private float zoom = 1f;
     private float nextRefreshAt;
     private bool layoutReady;
     private bool initialViewApplied;
     private bool portrait;
     private bool showQueueOnPortrait;
     private Vector2 lastScreenSize;
-    private bool pauseCaptured;
-    private bool wasPaused;
-    private float previousTimeScale;
     private bool queueDragActive;
 
     [Inject]
@@ -106,13 +68,13 @@ public sealed class ResearchTreeWindow : MonoBehaviour
         IResearchProjectCatalog projectCatalog,
         IResearchGraphLayoutService layoutService,
         IResearchQueueCommandService queueCommands,
-        IBlueprintResearchRuntimeProvider runtimeProvider,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
         IResearchBlueprintArchiveQuery archiveQuery,
         IFacilityShopCatalog facilityCatalog,
+        IResearchRewardCatalog rewardCatalog,
         ITmpKoreanFontService fontService,
         IDungeonUserSettingsService settingsService,
-        DungeonUserSettingsRuntimeTargets runtimeTargets,
-        IGameTimeScaleController timeScaleController)
+        IGameSpeedController gameSpeedController)
     {
         this.projectCatalog = projectCatalog
             ?? throw new ArgumentNullException(nameof(projectCatalog));
@@ -120,20 +82,19 @@ public sealed class ResearchTreeWindow : MonoBehaviour
             ?? throw new ArgumentNullException(nameof(layoutService));
         this.queueCommands = queueCommands
             ?? throw new ArgumentNullException(nameof(queueCommands));
-        this.runtimeProvider = runtimeProvider
-            ?? throw new ArgumentNullException(nameof(runtimeProvider));
-        this.archiveQuery = archiveQuery
-            ?? throw new ArgumentNullException(nameof(archiveQuery));
-        this.facilityCatalog = facilityCatalog
-            ?? throw new ArgumentNullException(nameof(facilityCatalog));
-        this.fontService = fontService
-            ?? throw new ArgumentNullException(nameof(fontService));
-        this.settingsService = settingsService
-            ?? throw new ArgumentNullException(nameof(settingsService));
-        this.runtimeTargets = runtimeTargets
-            ?? throw new ArgumentNullException(nameof(runtimeTargets));
-        this.timeScaleController = timeScaleController
-            ?? throw new ArgumentNullException(nameof(timeScaleController));
+        runtime = (progressionRuntimes
+                ?? throw new ArgumentNullException(nameof(progressionRuntimes)))
+            .BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(ResearchTreeWindow)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
+        presentationRules = new ResearchTreePresentationRules(
+            archiveQuery,
+            facilityCatalog,
+            rewardCatalog);
+        viewFactory = new ResearchTreeViewFactory(fontService);
+        pauseScope = new ResearchTreePauseScope(
+            settingsService,
+            gameSpeedController);
     }
 
     public void ConfigureHost()
@@ -166,13 +127,13 @@ public sealed class ResearchTreeWindow : MonoBehaviour
 
     private void OnEnable()
     {
-        CaptureOptionalPause();
+        pauseScope?.Capture();
         Refresh();
     }
 
     private void OnDisable()
     {
-        RestoreOptionalPause();
+        pauseScope?.Restore();
     }
 
     private void Update()
@@ -201,12 +162,12 @@ public sealed class ResearchTreeWindow : MonoBehaviour
     {
         EnsureLayout();
         graphLayout = layoutService.Build(projectCatalog.Projects);
+        viewportController.SetLayout(graphLayout);
         if (selectedProject == null)
         {
             selectedProject = projectCatalog.Projects.FirstOrDefault();
         }
 
-        ResizeGraph();
         RebuildNodesAndConnections();
         RebuildInspector();
         if (!layoutReady)
@@ -224,39 +185,12 @@ public sealed class ResearchTreeWindow : MonoBehaviour
 
     public void Pan(Vector2 delta)
     {
-        if (graphRoot == null)
-        {
-            return;
-        }
-
-        graphRoot.anchoredPosition += delta;
+        viewportController?.Pan(delta);
     }
 
     public void Zoom(PointerEventData eventData)
     {
-        if (graphRoot == null || graphViewport == null)
-        {
-            return;
-        }
-
-        float next = Mathf.Clamp(
-            zoom * (eventData.scrollDelta.y > 0f ? 1.1f : 0.9f),
-            MinZoom,
-            MaxZoom);
-        if (Mathf.Approximately(next, zoom))
-        {
-            return;
-        }
-
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            graphViewport,
-            eventData.position,
-            eventData.pressEventCamera,
-            out Vector2 pointer);
-        Vector2 graphPoint = (pointer - graphRoot.anchoredPosition) / zoom;
-        zoom = next;
-        graphRoot.localScale = Vector3.one * zoom;
-        graphRoot.anchoredPosition = pointer - graphPoint * zoom;
+        viewportController?.Zoom(eventData);
     }
 
     public void SelectProject(ResearchProjectSO project)
@@ -273,21 +207,8 @@ public sealed class ResearchTreeWindow : MonoBehaviour
 
     public bool CenterProject(ResearchProjectSO project)
     {
-        if (project == null
-            || graphRoot == null
-            || graphViewport == null
-            || graphLayout == null
-            || !graphLayout.NodeRects.TryGetValue(project.ProjectId.Value, out Rect rect))
-        {
-            return false;
-        }
-
-        Canvas.ForceUpdateCanvases();
-        Vector2 nodeCenter = new Vector2(rect.center.x, -rect.center.y);
-        Vector3 nodeWorldPosition = graphRoot.TransformPoint(nodeCenter);
-        Vector2 nodePositionInViewport = graphViewport.InverseTransformPoint(nodeWorldPosition);
-        graphRoot.anchoredPosition += graphViewport.rect.center - nodePositionInViewport;
-        return true;
+        return project != null
+            && viewportController?.Center(project.ProjectId) == true;
     }
 
     public void MoveQueueEntry(int fromIndex, Vector2 pointerScreenPosition)
@@ -347,26 +268,26 @@ public sealed class ResearchTreeWindow : MonoBehaviour
         toolbar.sizeDelta = new Vector2(0f, ToolbarHeight);
         CreateImage(toolbar.gameObject, DungeonUiTheme.SurfaceRaised);
 
-        TMP_Text title = CreateText(toolbar, "Title", "연구", 26f, TextAlignmentOptions.Left);
+        TMP_Text title = viewFactory.CreateText(toolbar, "Title", "연구", 26f, TextAlignmentOptions.Left);
         SetRect(title.rectTransform, new Vector2(0f, 0f), new Vector2(0.16f, 1f), 18f, 0f, -4f, 0f);
 
-        searchInput = CreateInput(toolbar, "Search", "연구·시설·조합식 검색");
+        searchInput = viewFactory.CreateInput(toolbar, "Search", "연구·시설·조합식 검색");
         SetRect(searchInput.GetComponent<RectTransform>(),
             new Vector2(0.16f, 0.14f), new Vector2(0.51f, 0.86f), 0f, 0f, 0f, 0f);
         searchInput.onValueChanged.AddListener(_ => RefreshDynamicContent());
 
-        Button fieldButton = CreateButton(toolbar, "FieldFilter", "전체 분야", CycleField);
+        Button fieldButton = viewFactory.CreateButton(toolbar, "FieldFilter", "전체 분야", CycleField);
         SetRect(fieldButton.GetComponent<RectTransform>(),
             new Vector2(0.52f, 0.14f), new Vector2(0.67f, 0.86f), 0f, 0f, 0f, 0f);
         fieldFilterLabel = fieldButton.GetComponentInChildren<TMP_Text>();
 
-        Button fitButton = CreateButton(toolbar, "Fit", "맞춤", FitView);
+        Button fitButton = viewFactory.CreateButton(toolbar, "Fit", "맞춤", FitView);
         SetRect(fitButton.GetComponent<RectTransform>(),
             new Vector2(0.68f, 0.14f), new Vector2(0.77f, 0.86f), 0f, 0f, 0f, 0f);
-        Button centerButton = CreateButton(toolbar, "Center", "선택 이동", CenterSelected);
+        Button centerButton = viewFactory.CreateButton(toolbar, "Center", "선택 이동", CenterSelected);
         SetRect(centerButton.GetComponent<RectTransform>(),
             new Vector2(0.78f, 0.14f), new Vector2(0.9f, 0.86f), 0f, 0f, 0f, 0f);
-        Button closeButton = CreateButton(toolbar, "Close", "닫기", () => GetComponent<UITab>()?.CloseTab());
+        Button closeButton = viewFactory.CreateButton(toolbar, "Close", "닫기", () => GetComponent<UITab>()?.CloseTab());
         SetRect(closeButton.GetComponent<RectTransform>(),
             new Vector2(0.91f, 0.14f), new Vector2(0.99f, 0.86f), 0f, 0f, 0f, 0f);
 
@@ -393,12 +314,17 @@ public sealed class ResearchTreeWindow : MonoBehaviour
         nodeRoot.anchorMax = new Vector2(0f, 1f);
         nodeRoot.pivot = new Vector2(0f, 1f);
         nodeRoot.anchoredPosition = Vector2.zero;
+        viewportController = new ResearchTreeViewportController(
+            graphViewport,
+            graphRoot,
+            nodeRoot,
+            connectorGraphic);
 
         inspectorRoot = CreateRect("Inspector", main);
         CreateImage(inspectorRoot.gameObject, DungeonUiTheme.Surface);
         CreateInspectorContents();
 
-        feedbackText = CreateText(windowRoot, "Feedback", string.Empty, 15f, TextAlignmentOptions.Center);
+        feedbackText = viewFactory.CreateText(windowRoot, "Feedback", string.Empty, 15f, TextAlignmentOptions.Center);
         feedbackText.color = DungeonUiTheme.Warning;
         feedbackText.rectTransform.anchorMin = new Vector2(0.3f, 0f);
         feedbackText.rectTransform.anchorMax = new Vector2(0.7f, 0f);
@@ -419,14 +345,14 @@ public sealed class ResearchTreeWindow : MonoBehaviour
         tabs.pivot = new Vector2(0.5f, 1f);
         tabs.sizeDelta = new Vector2(0f, 46f);
 
-        detailTabButton = CreateButton(tabs, "DetailTab", "상세", () =>
+        detailTabButton = viewFactory.CreateButton(tabs, "DetailTab", "상세", () =>
         {
             showQueueOnPortrait = false;
             ApplyInspectorTabState();
         });
         SetRect(detailTabButton.GetComponent<RectTransform>(),
             new Vector2(0f, 0f), new Vector2(0.5f, 1f), 4f, 3f, -2f, -3f);
-        queueTabButton = CreateButton(tabs, "QueueTab", "연구 큐", () =>
+        queueTabButton = viewFactory.CreateButton(tabs, "QueueTab", "연구 큐", () =>
         {
             showQueueOnPortrait = true;
             ApplyInspectorTabState();
@@ -440,11 +366,11 @@ public sealed class ResearchTreeWindow : MonoBehaviour
         detailRoot.offsetMin = new Vector2(14f, 14f);
         detailRoot.offsetMax = new Vector2(-14f, -54f);
 
-        detailText = CreateText(detailRoot, "DetailText", string.Empty, 17f, TextAlignmentOptions.TopLeft);
+        detailText = viewFactory.CreateText(detailRoot, "DetailText", string.Empty, 17f, TextAlignmentOptions.TopLeft);
         detailText.textWrappingMode = TextWrappingModes.Normal;
         SetRect(detailText.rectTransform, new Vector2(0f, 0.17f), Vector2.one, 0f, 0f, 0f, 0f);
 
-        projectActionButton = CreateButton(detailRoot, "ProjectAction", "연구 예약", ToggleSelectedProjectQueue);
+        projectActionButton = viewFactory.CreateButton(detailRoot, "ProjectAction", "연구 예약", ToggleSelectedProjectQueue);
         SetRect(projectActionButton.GetComponent<RectTransform>(),
             new Vector2(0f, 0f), new Vector2(1f, 0.14f), 0f, 0f, 0f, 0f);
         projectActionLabel = projectActionButton.GetComponentInChildren<TMP_Text>();
@@ -539,7 +465,7 @@ public sealed class ResearchTreeWindow : MonoBehaviour
     {
         ClearObjects(nodeObjects);
         nodeStates.Clear();
-        if (!runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime))
+        if (runtime == null)
         {
             connectorGraphic.SetLines(Array.Empty<ResearchConnectorLine>());
             return;
@@ -555,7 +481,10 @@ public sealed class ResearchTreeWindow : MonoBehaviour
                 continue;
             }
 
-            bool matches = MatchesFilter(project, search);
+            bool matches = presentationRules.MatchesFilter(
+                project,
+                selectedField,
+                search);
             CreateNode(project, state, nodeRect, matches);
         }
 
@@ -564,7 +493,9 @@ public sealed class ResearchTreeWindow : MonoBehaviour
             nodeStates.TryGetValue(edge.To.Value, out ResearchNodeState state);
             return new ResearchConnectorLine(
                 edge.Points,
-                GetConnectorColor(state, edge.IsShortcut),
+                ResearchTreePresentationRules.GetConnectorColor(
+                    state,
+                    edge.IsShortcut),
                 edge.IsShortcut);
         }).ToList();
         connectorGraphic.SetLines(lines);
@@ -583,7 +514,9 @@ public sealed class ResearchTreeWindow : MonoBehaviour
         node.anchoredPosition = new Vector2(layoutRect.x, -layoutRect.y);
         node.sizeDelta = layoutRect.size;
 
-        Image background = CreateImage(node.gameObject, GetNodeColor(state));
+        Image background = CreateImage(
+            node.gameObject,
+            ResearchTreePresentationRules.GetNodeColor(state));
         background.color = WithAlpha(background.color, matches ? 1f : 0.28f);
         Button button = node.gameObject.AddComponent<Button>();
         button.targetGraphic = background;
@@ -596,20 +529,31 @@ public sealed class ResearchTreeWindow : MonoBehaviour
             outline.effectDistance = new Vector2(3f, -3f);
         }
 
-        TMP_Text field = CreateText(node, "Field", FormatField(project.Field), 14f, TextAlignmentOptions.TopLeft);
+        TMP_Text field = viewFactory.CreateText(
+            node,
+            "Field",
+            ResearchTreePresentationRules.FormatField(project.Field),
+            14f,
+            TextAlignmentOptions.TopLeft);
         field.color = DungeonUiTheme.TextSecondary;
         SetRect(field.rectTransform, new Vector2(0f, 0.7f), new Vector2(1f, 1f), 12f, 3f, -70f, -5f);
 
-        TMP_Text stateText = CreateText(node, "State", FormatNodeState(state), 13f, TextAlignmentOptions.TopRight);
-        stateText.color = GetStateTextColor(state);
+        TMP_Text stateText = viewFactory.CreateText(
+            node,
+            "State",
+            ResearchTreePresentationRules.FormatNodeState(state),
+            13f,
+            TextAlignmentOptions.TopRight);
+        stateText.color =
+            ResearchTreePresentationRules.GetStateTextColor(state);
         SetRect(stateText.rectTransform, new Vector2(0.56f, 0.7f), new Vector2(1f, 1f), 0f, 3f, -10f, -5f);
 
-        TMP_Text name = CreateText(node, "Name", project.DisplayName, 21f, TextAlignmentOptions.MidlineLeft);
+        TMP_Text name = viewFactory.CreateText(node, "Name", project.DisplayName, 21f, TextAlignmentOptions.MidlineLeft);
         name.fontStyle = FontStyles.Bold;
         name.textWrappingMode = TextWrappingModes.Normal;
         SetRect(name.rectTransform, new Vector2(0f, 0.26f), new Vector2(1f, 0.72f), 12f, 0f, -10f, 0f);
 
-        float ratio = runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime)
+        float ratio = runtime != null
             ? runtime.State.Projects.GetProgress(project.ProjectId).GetRatio(project)
             : 0f;
         RectTransform progressBack = CreateRect("Progress", node);
@@ -635,7 +579,7 @@ public sealed class ResearchTreeWindow : MonoBehaviour
     private void RebuildDetail()
     {
         if (selectedProject == null
-            || !runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime))
+            || runtime == null)
         {
             detailText.text = "연구 노드를 선택하세요.";
             projectActionButton.interactable = false;
@@ -651,15 +595,37 @@ public sealed class ResearchTreeWindow : MonoBehaviour
                 runtime.State.Projects.IsCompleted(project.ProjectId)
                     ? $"{project.DisplayName} (완료)"
                     : project.DisplayName));
-        string blueprint = FormatBlueprintDetail(selectedProject);
-        string unlocks = FormatUnlocks(selectedProject);
+        if (selectedProject.PrerequisiteLinks.Count > 0)
+        {
+            prerequisites += "\n" + string.Join("\n",
+                selectedProject.PrerequisiteLinks.Select(link =>
+                    $"· {link.Kind}: {link.Reason}"));
+        }
+        string blueprint =
+            presentationRules.FormatBlueprintDetail(selectedProject);
+        string facilityCapacity = runtime.ResearchFacilityCapacity != null
+            ? runtime.ResearchFacilityCapacity.FormatRequirements(selectedProject)
+            : "연구 시설  판정 없음";
+        float remainingPrerequisiteWork =
+            ResearchTreePresentationRules.CalculateRemainingPrerequisiteWork(
+            selectedProject,
+            runtime);
+        float totalRemainingWork = remainingPrerequisiteWork
+            + Mathf.Max(0f, selectedProject.RequiredWork - progress.Progress);
+        const float effectiveWorkPerGameDay = 180f * 0.55f;
+        float expectedDays = totalRemainingWork / effectiveWorkPerGameDay;
+        string unlocks = presentationRules.FormatUnlocks(selectedProject)
+            + $"\n<b>잔여 선행 작업량</b> {remainingPrerequisiteWork:0.#} (중복 제거)"
+            + $"\n<b>예상</b> {Mathf.CeilToInt(expectedDays)}교대 · {expectedDays:0.0}게임일";
         detailText.text =
             $"<b>{selectedProject.DisplayName}</b>\n" +
-            $"{FormatField(selectedProject.Field)} · {FormatNodeState(state)}\n\n" +
+            $"{ResearchTreePresentationRules.FormatField(selectedProject.Field)} · "
+            + $"{ResearchTreePresentationRules.FormatNodeState(state)}\n\n" +
             $"{selectedProject.Description}\n\n" +
             $"<b>진행</b>  {progress.Progress:0.#} / {selectedProject.RequiredWork:0.#}\n" +
             $"<b>선행</b>  {prerequisites}\n" +
             $"<b>설계도</b>  {blueprint}\n" +
+            $"<b>수용력</b>  {facilityCapacity}\n" +
             $"<b>해금</b>  {unlocks}" +
             (string.IsNullOrWhiteSpace(blocker) ? string.Empty : $"\n\n<color=#D2A449><b>중단 사유</b>  {blocker}</color>");
 
@@ -679,12 +645,12 @@ public sealed class ResearchTreeWindow : MonoBehaviour
     {
         ClearObjects(queueObjects);
         queueRows.Clear();
-        if (!runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime))
+        if (runtime == null)
         {
             return;
         }
 
-        TMP_Text heading = CreateText(queueRoot, "QueueHeading", "연구 큐", 20f, TextAlignmentOptions.TopLeft);
+        TMP_Text heading = viewFactory.CreateText(queueRoot, "QueueHeading", "연구 큐", 20f, TextAlignmentOptions.TopLeft);
         heading.fontStyle = FontStyles.Bold;
         heading.rectTransform.anchorMin = new Vector2(0f, 1f);
         heading.rectTransform.anchorMax = Vector2.one;
@@ -718,7 +684,7 @@ public sealed class ResearchTreeWindow : MonoBehaviour
                 ? "진행"
                 : $"{index + 1}";
             string suffix = entry.IsSuspended ? $"\n{entry.SuspendedReason}" : string.Empty;
-            TMP_Text label = CreateText(
+            TMP_Text label = viewFactory.CreateText(
                 row,
                 "Label",
                 $"{prefix}  {project.DisplayName}{suffix}",
@@ -736,7 +702,7 @@ public sealed class ResearchTreeWindow : MonoBehaviour
 
         if (queue.Count == 0)
         {
-            TMP_Text empty = CreateText(queueRoot, "Empty", "예약된 연구가 없습니다.", 16f, TextAlignmentOptions.TopLeft);
+            TMP_Text empty = viewFactory.CreateText(queueRoot, "Empty", "예약된 연구가 없습니다.", 16f, TextAlignmentOptions.TopLeft);
             empty.color = DungeonUiTheme.TextSecondary;
             empty.rectTransform.anchorMin = new Vector2(0f, 1f);
             empty.rectTransform.anchorMax = Vector2.one;
@@ -750,7 +716,7 @@ public sealed class ResearchTreeWindow : MonoBehaviour
     private void ToggleSelectedProjectQueue()
     {
         if (selectedProject == null
-            || !runtimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime))
+            || runtime == null)
         {
             return;
         }
@@ -773,108 +739,14 @@ public sealed class ResearchTreeWindow : MonoBehaviour
         int current = Array.IndexOf(options, selectedField);
         selectedField = options[(current + 1) % options.Length];
         fieldFilterLabel.text = selectedField.HasValue
-            ? FormatField(selectedField.Value)
+            ? ResearchTreePresentationRules.FormatField(selectedField.Value)
             : "전체 분야";
         RefreshDynamicContent();
     }
 
-    private bool MatchesFilter(ResearchProjectSO project, string search)
-    {
-        if (selectedField.HasValue && project.Field != selectedField.Value)
-        {
-            return false;
-        }
-        if (string.IsNullOrWhiteSpace(search))
-        {
-            return true;
-        }
-
-        return project.DisplayName.Contains(search, StringComparison.OrdinalIgnoreCase)
-            || project.Description.Contains(search, StringComparison.OrdinalIgnoreCase)
-            || FormatUnlocks(project).Contains(search, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private string FormatBlueprintDetail(ResearchProjectSO project)
-    {
-        if (project.BlueprintRule == ResearchBlueprintRule.None)
-        {
-            return "필요 없음";
-        }
-
-        ResearchBlueprintArchiveStatus status = archiveQuery.GetStatus(project.Blueprint);
-        string rule = project.BlueprintRule == ResearchBlueprintRule.Required
-            ? "필수"
-            : "선행 우회";
-        string location = status.IsArchived
-            ? status.Location
-            : status.IsInTransit
-                ? "운반 중"
-                : "미보유";
-        return $"{project.Blueprint.DisplayName} ({rule}, {location})";
-    }
-
-    private string FormatUnlocks(ResearchProjectSO project)
-    {
-        List<string> values = new List<string>();
-        foreach (BlueprintUnlock unlock in project.Unlocks.Where(unlock => unlock != null))
-        {
-            switch (unlock)
-            {
-                case IBlueprintBuildingUnlock buildingUnlock:
-                {
-                    BuildingSO building = FacilityShopService.FindBuildingById(
-                        facilityCatalog,
-                        buildingUnlock.BuildingId);
-                    values.Add(building != null
-                        ? FacilityShopService.GetBuildingName(building)
-                        : $"시설 {buildingUnlock.BuildingId}");
-                    break;
-                }
-                case BlueprintRecipeUnlock recipe:
-                    values.Add(recipe.recipeId);
-                    break;
-            }
-        }
-
-        return values.Count == 0 ? "없음" : string.Join(", ", values.Distinct());
-    }
-
-    private void ResizeGraph()
-    {
-        if (graphLayout == null || graphRoot == null)
-        {
-            return;
-        }
-
-        graphRoot.sizeDelta = graphLayout.Bounds.size;
-        nodeRoot.sizeDelta = graphLayout.Bounds.size;
-        connectorGraphic.rectTransform.sizeDelta = graphLayout.Bounds.size;
-    }
-
     private void FitView()
     {
-        if (graphLayout == null || graphViewport == null || graphRoot == null)
-        {
-            return;
-        }
-
-        Canvas.ForceUpdateCanvases();
-        Vector2 viewport = graphViewport.rect.size;
-        if (viewport.x <= 1f || viewport.y <= 1f)
-        {
-            return;
-        }
-
-        zoom = Mathf.Clamp(
-            Mathf.Min(
-                (viewport.x - 36f) / graphLayout.Bounds.width,
-                (viewport.y - 36f) / graphLayout.Bounds.height),
-            MinZoom,
-            1f);
-        graphRoot.localScale = Vector3.one * zoom;
-        graphRoot.anchoredPosition = new Vector2(
-            Mathf.Max(18f, (viewport.x - graphLayout.Bounds.width * zoom) * 0.5f),
-            -Mathf.Max(18f, (viewport.y - graphLayout.Bounds.height * zoom) * 0.5f));
+        viewportController?.Fit();
     }
 
     private void CenterSelected()
@@ -891,40 +763,6 @@ public sealed class ResearchTreeWindow : MonoBehaviour
 
         feedbackText.text = message ?? string.Empty;
         feedbackText.color = success ? DungeonUiTheme.Good : DungeonUiTheme.Warning;
-    }
-
-    private void CaptureOptionalPause()
-    {
-        if (pauseCaptured || settingsService?.Current.pauseOnResearchTree != true)
-        {
-            return;
-        }
-
-        GameManager gameManager = runtimeTargets?.GameManager;
-        wasPaused = gameManager != null && gameManager.isPause;
-        previousTimeScale = timeScaleController.Scale;
-        pauseCaptured = true;
-        if (gameManager != null)
-        {
-            gameManager.isPause = true;
-        }
-        timeScaleController.Scale = 0f;
-    }
-
-    private void RestoreOptionalPause()
-    {
-        if (!pauseCaptured)
-        {
-            return;
-        }
-
-        GameManager gameManager = runtimeTargets?.GameManager;
-        if (gameManager != null)
-        {
-            gameManager.isPause = wasPaused;
-        }
-        timeScaleController.Scale = wasPaused ? 0f : previousTimeScale;
-        pauseCaptured = false;
     }
 
     private void ClearGeneratedChildren()
@@ -954,341 +792,4 @@ public sealed class ResearchTreeWindow : MonoBehaviour
         objects.Clear();
     }
 
-    private static string FormatField(ResearchField field)
-    {
-        return field switch
-        {
-            ResearchField.LifeAndSurvival => "생활·생존",
-            ResearchField.CommerceAndCraft => "상업·제작",
-            ResearchField.DefenseAndTactics => "방어·전술",
-            ResearchField.RecordsAndArcane => "기록·비전",
-            ResearchField.CaptivityAndEntertainment => "포로·흥행",
-            ResearchField.AuthorityAndHousing => "권위·주거",
-            ResearchField.Agriculture => "재배",
-            ResearchField.Forestry => "임업",
-            ResearchField.Mining => "채광",
-            ResearchField.Husbandry => "축산",
-            ResearchField.Metallurgy => "금속",
-            ResearchField.Textiles => "직물",
-            ResearchField.Cuisine => "요리",
-            ResearchField.Pharmacology => "약리",
-            ResearchField.SurgeryAndTransplant => "외과·이식",
-            _ => "기타"
-        };
-    }
-
-    private static string FormatNodeState(ResearchNodeState state)
-    {
-        return state switch
-        {
-            ResearchNodeState.Completed => "완료",
-            ResearchNodeState.Active => "진행 중",
-            ResearchNodeState.Queued => "대기",
-            ResearchNodeState.Suspended => "일시 중단",
-            ResearchNodeState.Available => "연구 가능",
-            ResearchNodeState.BlueprintInTransit => "설계도 운반 중",
-            ResearchNodeState.ShortcutAvailable => "설계도 우회 가능",
-            _ => "조건 부족"
-        };
-    }
-
-    private static Color GetNodeColor(ResearchNodeState state)
-    {
-        return state switch
-        {
-            ResearchNodeState.Completed => new Color(0.16f, 0.34f, 0.27f, 1f),
-            ResearchNodeState.Active => DungeonUiTheme.AccentPressed,
-            ResearchNodeState.Queued => new Color(0.23f, 0.31f, 0.36f, 1f),
-            ResearchNodeState.Suspended => new Color(0.34f, 0.27f, 0.2f, 1f),
-            ResearchNodeState.Available => DungeonUiTheme.SurfaceRaised,
-            ResearchNodeState.BlueprintInTransit => new Color(0.28f, 0.31f, 0.22f, 1f),
-            ResearchNodeState.ShortcutAvailable => new Color(0.38f, 0.31f, 0.13f, 1f),
-            _ => new Color(0.11f, 0.16f, 0.18f, 1f)
-        };
-    }
-
-    private static Color GetStateTextColor(ResearchNodeState state)
-    {
-        return state switch
-        {
-            ResearchNodeState.Completed => DungeonUiTheme.Good,
-            ResearchNodeState.Active => Color.white,
-            ResearchNodeState.Suspended => DungeonUiTheme.Warning,
-            ResearchNodeState.ShortcutAvailable => DungeonUiTheme.Warning,
-            _ => DungeonUiTheme.TextSecondary
-        };
-    }
-
-    private static Color GetConnectorColor(ResearchNodeState state, bool shortcut)
-    {
-        if (shortcut)
-        {
-            return new Color(0.83f, 0.64f, 0.23f, 0.9f);
-        }
-        return state is ResearchNodeState.Completed or ResearchNodeState.Active
-            ? DungeonUiTheme.Accent
-            : new Color(0.42f, 0.5f, 0.52f, 0.42f);
-    }
-
-    private TMP_InputField CreateInput(Transform parent, string name, string placeholder)
-    {
-        RectTransform root = CreateRect(name, parent);
-        CreateImage(root.gameObject, DungeonUiTheme.SurfaceMuted);
-        TMP_Text placeholderText = CreateText(root, "Placeholder", placeholder, 16f, TextAlignmentOptions.MidlineLeft);
-        placeholderText.color = DungeonUiTheme.TextSecondary;
-        SetRect(placeholderText.rectTransform, Vector2.zero, Vector2.one, 12f, 0f, -10f, 0f);
-        TMP_Text value = CreateText(root, "Text", string.Empty, 16f, TextAlignmentOptions.MidlineLeft);
-        SetRect(value.rectTransform, Vector2.zero, Vector2.one, 12f, 0f, -10f, 0f);
-        TMP_InputField input = root.gameObject.AddComponent<TMP_InputField>();
-        input.textComponent = value;
-        input.placeholder = placeholderText;
-        input.lineType = TMP_InputField.LineType.SingleLine;
-        return input;
-    }
-
-    private Button CreateButton(Transform parent, string name, string label, Action onClick)
-    {
-        RectTransform root = CreateRect(name, parent);
-        Image image = CreateImage(root.gameObject, DungeonUiTheme.SurfaceRaised);
-        Button button = root.gameObject.AddComponent<Button>();
-        button.targetGraphic = image;
-        ColorBlock colors = button.colors;
-        colors.normalColor = DungeonUiTheme.SurfaceRaised;
-        colors.highlightedColor = DungeonUiTheme.AccentHover;
-        colors.pressedColor = DungeonUiTheme.AccentPressed;
-        colors.selectedColor = DungeonUiTheme.Accent;
-        button.colors = colors;
-        button.onClick.AddListener(() => onClick?.Invoke());
-        TMP_Text text = CreateText(root, "Label", label, 16f, TextAlignmentOptions.Center);
-        Stretch(text.rectTransform);
-        return button;
-    }
-
-    private TMP_Text CreateText(
-        Transform parent,
-        string name,
-        string value,
-        float size,
-        TextAlignmentOptions alignment)
-    {
-        RectTransform rect = CreateRect(name, parent);
-        TextMeshProUGUI text = rect.gameObject.AddComponent<TextMeshProUGUI>();
-        fontService.Apply(text);
-        text.text = value;
-        text.fontSize = size;
-        text.color = DungeonUiTheme.TextPrimary;
-        text.alignment = alignment;
-        text.raycastTarget = false;
-        return text;
-    }
-
-    private static RectTransform CreateRect(string name, Transform parent)
-    {
-        GameObject created = new GameObject(name, typeof(RectTransform));
-        created.transform.SetParent(parent, false);
-        return created.GetComponent<RectTransform>();
-    }
-
-    private static Image CreateImage(GameObject target, Color color)
-    {
-        Image image = target.GetComponent<Image>() ?? target.AddComponent<Image>();
-        image.color = color;
-        return image;
-    }
-
-    private static void SetButtonColor(Button button, Color color)
-    {
-        if (button?.targetGraphic != null)
-        {
-            button.targetGraphic.color = color;
-        }
-    }
-
-    private static Color WithAlpha(Color color, float alpha)
-    {
-        color.a = alpha;
-        return color;
-    }
-
-    private static void Stretch(RectTransform rect)
-    {
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
-    }
-
-    private static void SetRect(
-        RectTransform rect,
-        Vector2 anchorMin,
-        Vector2 anchorMax,
-        float left,
-        float bottom,
-        float right,
-        float top)
-    {
-        rect.anchorMin = anchorMin;
-        rect.anchorMax = anchorMax;
-        rect.offsetMin = new Vector2(left, bottom);
-        rect.offsetMax = new Vector2(right, top);
-    }
-}
-
-public sealed class ResearchTreePanSurface :
-    MonoBehaviour,
-    IBeginDragHandler,
-    IDragHandler,
-    IScrollHandler
-{
-    private ResearchTreeWindow owner;
-    private Vector2 previous;
-
-    public void Bind(ResearchTreeWindow window)
-    {
-        owner = window;
-    }
-
-    public void OnBeginDrag(PointerEventData eventData)
-    {
-        previous = eventData.position;
-    }
-
-    public void OnDrag(PointerEventData eventData)
-    {
-        Vector2 delta = eventData.position - previous;
-        previous = eventData.position;
-        owner?.Pan(delta);
-    }
-
-    public void OnScroll(PointerEventData eventData)
-    {
-        owner?.Zoom(eventData);
-    }
-}
-
-public sealed class ResearchQueueRowDrag :
-    MonoBehaviour,
-    IBeginDragHandler,
-    IEndDragHandler
-{
-    private ResearchTreeWindow owner;
-    private int index;
-
-    public void Bind(ResearchTreeWindow window, int queueIndex)
-    {
-        owner = window;
-        index = queueIndex;
-    }
-
-    public void OnBeginDrag(PointerEventData eventData)
-    {
-        owner?.BeginQueueDrag();
-    }
-
-    public void OnEndDrag(PointerEventData eventData)
-    {
-        owner?.MoveQueueEntry(index, eventData.position);
-        owner?.EndQueueDrag();
-    }
-}
-
-public readonly struct ResearchConnectorLine
-{
-    public ResearchConnectorLine(
-        IReadOnlyList<Vector2> points,
-        Color color,
-        bool dotted)
-    {
-        Points = points ?? Array.Empty<Vector2>();
-        Color = color;
-        Dotted = dotted;
-    }
-
-    public IReadOnlyList<Vector2> Points { get; }
-    public Color Color { get; }
-    public bool Dotted { get; }
-}
-
-[RequireComponent(typeof(CanvasRenderer))]
-public sealed class ResearchConnectorGraphic : MaskableGraphic
-{
-    private readonly List<ResearchConnectorLine> lines = new List<ResearchConnectorLine>();
-
-    public void SetLines(IEnumerable<ResearchConnectorLine> source)
-    {
-        lines.Clear();
-        lines.AddRange(source ?? Array.Empty<ResearchConnectorLine>());
-        SetVerticesDirty();
-    }
-
-    protected override void OnPopulateMesh(VertexHelper vh)
-    {
-        vh.Clear();
-        foreach (ResearchConnectorLine line in lines)
-        {
-            for (int index = 0; index + 1 < line.Points.Count; index++)
-            {
-                Vector2 from = ToCanvasPoint(line.Points[index]);
-                Vector2 to = ToCanvasPoint(line.Points[index + 1]);
-                if (line.Dotted)
-                {
-                    AddDottedSegment(vh, from, to, 3f, 10f, 7f, line.Color);
-                }
-                else
-                {
-                    AddSegment(vh, from, to, 4f, line.Color);
-                }
-            }
-        }
-    }
-
-    private static Vector2 ToCanvasPoint(Vector2 layoutPoint)
-    {
-        return new Vector2(layoutPoint.x, -layoutPoint.y);
-    }
-
-    private static void AddDottedSegment(
-        VertexHelper vh,
-        Vector2 from,
-        Vector2 to,
-        float width,
-        float dash,
-        float gap,
-        Color color)
-    {
-        float length = Vector2.Distance(from, to);
-        if (length <= 0.01f)
-        {
-            return;
-        }
-        Vector2 direction = (to - from) / length;
-        for (float cursor = 0f; cursor < length; cursor += dash + gap)
-        {
-            Vector2 dashStart = from + direction * cursor;
-            Vector2 dashEnd = from + direction * Mathf.Min(length, cursor + dash);
-            AddSegment(vh, dashStart, dashEnd, width, color);
-        }
-    }
-
-    private static void AddSegment(
-        VertexHelper vh,
-        Vector2 from,
-        Vector2 to,
-        float width,
-        Color color)
-    {
-        Vector2 direction = to - from;
-        if (direction.sqrMagnitude <= 0.001f)
-        {
-            return;
-        }
-        Vector2 normal = new Vector2(-direction.y, direction.x).normalized * (width * 0.5f);
-        int start = vh.currentVertCount;
-        vh.AddVert(from - normal, color, Vector2.zero);
-        vh.AddVert(from + normal, color, Vector2.zero);
-        vh.AddVert(to + normal, color, Vector2.zero);
-        vh.AddVert(to - normal, color, Vector2.zero);
-        vh.AddTriangle(start, start + 1, start + 2);
-        vh.AddTriangle(start, start + 2, start + 3);
-    }
 }

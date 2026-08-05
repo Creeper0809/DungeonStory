@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
   m_Name: Species_Golem
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  m_EditorClassIdentifier: DungeonStory.Species::CharacterSpeciesSO
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -152,12 +152,12 @@ MonoBehaviour:
     - "\uC815\uBE44"
   combatAbilities:
     abilities:
-    - rid: 7302563310531248891
+    - rid: 7302563319989403751
   references:
     version: 2
     RefIds:
-    - rid: 7302563310531248891
-      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+    - rid: 7302563319989403751
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: DungeonStory.Combat}
       data:
         id: species-active:golem
         displayName: "\uC8FC\uC870 \uBC29\uBCBD"
@@ -168,9 +168,9 @@ MonoBehaviour:
         usableFrom: 7
         targetPositions: 7
         effects:
-        - rid: 7302563310531248892
-    - rid: 7302563310531248892
-      type: {class: OffenseGuardEffect, ns: , asm: Assembly-CSharp}
+        - rid: 7302563319989403752
+    - rid: 7302563319989403752
+      type: {class: OffenseGuardEffect, ns: , asm: DungeonStory.Combat}
       data:
         damageReduction: 0.45
         turns: 2

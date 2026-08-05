@@ -27,12 +27,16 @@ MonoBehaviour:
   description: "\uC678\uBD80 \uC554\uC11D\uC5D0\uC11C \uC11D\uC7AC\uC640 \uC595\uC740
     \uAD11\uC11D\uC744 \uCC44\uCDE8\uD55C\uB2E4."
   field: 8
-  requiredWork: 34
+  requiredWork: 36
   prerequisites: []
+  prerequisiteLinks: []
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items: []
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2

@@ -2,11 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-public interface IDailyFacilityShopRuntimeProvider
-{
-    bool TryGetRuntime(out DailyFacilityShopRuntime runtime);
-}
-
 public interface IFacilityShopCatalog
 {
     IReadOnlyCollection<BuildingSO> Buildings { get; }
@@ -19,47 +14,29 @@ public interface IFacilityShopUnlockStateService
     FacilityShopUnlockState GetUnlockState();
 }
 
-public sealed class DailyFacilityShopRuntimeProvider :
-    IDailyFacilityShopRuntimeProvider
-{
-    private readonly ProgressionSceneRuntimeReferences runtimeReferences;
-
-    public DailyFacilityShopRuntimeProvider(
-        ProgressionSceneRuntimeReferences runtimeReferences)
-    {
-        this.runtimeReferences = runtimeReferences
-            ?? throw new ArgumentNullException(nameof(runtimeReferences));
-    }
-
-    public bool TryGetRuntime(out DailyFacilityShopRuntime runtime)
-    {
-        runtime = runtimeReferences.FacilityShop;
-        return runtime != null;
-    }
-}
-
 public sealed class FacilityShopUnlockStateService : IFacilityShopUnlockStateService
 {
-    private readonly IDailyFacilityShopRuntimeProvider runtimeProvider;
+    private readonly DailyFacilityShopRuntime runtime;
 
-    public FacilityShopUnlockStateService(IDailyFacilityShopRuntimeProvider runtimeProvider)
+    public FacilityShopUnlockStateService(
+        ProgressionSceneRuntimeReferences runtimeReferences)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new ArgumentNullException(nameof(runtimeProvider));
+        runtime = (runtimeReferences
+                ?? throw new ArgumentNullException(nameof(runtimeReferences)))
+            .FacilityShop
+            ?? throw new InvalidOperationException(
+                $"{nameof(FacilityShopUnlockStateService)} requires a loaded {nameof(DailyFacilityShopRuntime)}.");
     }
 
     public FacilityShopUnlockState GetUnlockState()
     {
-        if (!runtimeProvider.TryGetRuntime(out DailyFacilityShopRuntime runtime))
-        {
-            throw new InvalidOperationException($"{nameof(FacilityShopUnlockStateService)} requires a loaded {nameof(DailyFacilityShopRuntime)}.");
-        }
-
         return runtime.UnlockState;
     }
 }
 
-public sealed class DataCatalogFacilityShopCatalog : IFacilityShopCatalog
+public sealed class DataCatalogFacilityShopCatalog :
+    IFacilityShopCatalog,
+    IFacilityShopDefinitionCatalog
 {
     private readonly IDataCatalog catalog;
 
@@ -80,6 +57,17 @@ public sealed class DataCatalogFacilityShopCatalog : IFacilityShopCatalog
         .Values
         .Where((blueprint) => blueprint != null)
         .ToArray();
+
+    IReadOnlyCollection<FacilityShopCatalogDefinition>
+        IFacilityShopDefinitionCatalog.Buildings => Buildings
+            .Select(building => new FacilityShopCatalogDefinition(
+                building.id,
+                FacilityShopService.GetBuildingName(building),
+                FacilityShopService.GetBuildingStar(building)))
+            .ToArray();
+
+    IReadOnlyCollection<int> IFacilityShopDefinitionCatalog.BlueprintIds =>
+        Blueprints.Select(blueprint => blueprint.id).ToArray();
 
     public BuildingSO FindBuildingById(int buildingId)
     {

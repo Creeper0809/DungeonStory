@@ -1,35 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Operation;
 
-public interface IOperatingDaySettlementRuntimeProvider
+namespace DungeonStory.Infrastructure
 {
-    bool TryGetRuntime(out OperatingDaySettlementRuntime runtime);
-}
-
-public sealed class OperatingDaySettlementRuntimeProvider :
-    IOperatingDaySettlementRuntimeProvider
-{
-    private readonly DungeonSceneRuntimeReferences runtimeReferences;
-
-    public OperatingDaySettlementRuntimeProvider(
-        DungeonSceneRuntimeReferences runtimeReferences)
-    {
-        this.runtimeReferences = runtimeReferences
-            ?? throw new ArgumentNullException(nameof(runtimeReferences));
-    }
-
-    public bool TryGetRuntime(out OperatingDaySettlementRuntime runtime)
-    {
-        runtime = runtimeReferences.Settlement;
-        return runtime != null;
-    }
-}
-
 public interface IOperatingDaySettlementSaveService
 {
     DungeonOperatingDaySettlementSaveData Capture();
-    void Restore(DungeonOperatingDaySettlementSaveData source, DungeonGameRestoreReport report);
+    OperatingDaySettlementRestoreCandidate PrepareRestore(
+        DungeonOperatingDaySettlementSaveData source);
+    void PublishRestore(OperatingDaySettlementRestoreCandidate candidate);
 }
 
 [Serializable]
@@ -138,22 +119,372 @@ public sealed class DungeonOperatingDayReportSaveData
         new List<DungeonFacilityShopOfferSummarySaveData>();
 }
 
+internal static class OperatingDaySettlementSaveValidation
+{
+    private const int MaxReportHistory = 20;
+
+    public static void Validate(
+        DungeonOperatingDaySettlementSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (report == null)
+        {
+            throw new ArgumentNullException(nameof(report));
+        }
+
+        if (payload == null)
+        {
+            report.AddError("Operating-day settlement payload is null.");
+            return;
+        }
+
+        if (payload.currentDay < 1)
+        {
+            report.AddError("Operating-day settlement current day is invalid.");
+        }
+        ValidateNonNegative(payload.totalRevenue, "total revenue", report);
+        ValidateNonNegative(payload.totalVisits, "total visits", report);
+        ValidateNonNegative(
+            payload.restockFailureCount,
+            "restock failure count",
+            report);
+        ValidateNonNegative(payload.outstandingDebt, "outstanding debt", report);
+        ValidateNonNegative(
+            payload.consecutiveShortfallDays,
+            "consecutive shortfall days",
+            report);
+        ValidateStringIntEntries(
+            payload.facilityRevenue,
+            "facility revenue",
+            report);
+        ValidateStringIntEntries(
+            payload.speciesVisits,
+            "species visits",
+            report);
+        ValidateStockAmounts(payload.consumedStock, "consumed stock", report);
+
+        if (payload.visitorMoodSamples == null)
+        {
+            report.AddError("Operating-day settlement mood samples are missing.");
+        }
+        else
+        {
+            for (int index = 0; index < payload.visitorMoodSamples.Count; index++)
+            {
+                float mood = payload.visitorMoodSamples[index];
+                if (!IsFinite(mood) || mood < 0f || mood > 100f)
+                {
+                    report.AddError(
+                        $"Operating-day settlement mood sample {index} is invalid.");
+                }
+            }
+        }
+
+        ValidateSupplyResults(
+            payload.stockSupplyResults,
+            "current stock supply",
+            report);
+        ValidateTextList(payload.incidents, "incidents", report);
+        ValidateTextList(payload.eventLog, "event log", report);
+        if (payload.reportHistory == null)
+        {
+            report.AddError("Operating-day settlement report history is missing.");
+            return;
+        }
+
+        if (payload.reportHistory.Count > MaxReportHistory)
+        {
+            report.AddError(
+                $"Operating-day settlement exceeds the {MaxReportHistory}-report history limit.");
+        }
+
+        HashSet<int> reportDays = new HashSet<int>();
+        for (int index = 0; index < payload.reportHistory.Count; index++)
+        {
+            DungeonOperatingDayReportSaveData saved = payload.reportHistory[index];
+            if (saved == null)
+            {
+                report.AddError(
+                    $"Operating-day settlement report {index} is null.");
+                continue;
+            }
+
+            if (!reportDays.Add(saved.day))
+            {
+                report.AddError(
+                    $"Operating-day settlement contains duplicate report day {saved.day}.");
+            }
+
+            ValidateReport(saved, index, report);
+        }
+    }
+
+    private static void ValidateReport(
+        DungeonOperatingDayReportSaveData saved,
+        int index,
+        DungeonGameRestoreReport report)
+    {
+        string prefix = $"Operating-day report {index}";
+        if (saved.day < 1)
+        {
+            report.AddError($"{prefix} day is invalid.");
+        }
+        ValidateNonNegative(saved.totalRevenue, $"{prefix} revenue", report);
+        ValidateNonNegative(saved.totalVisits, $"{prefix} visits", report);
+        ValidateNonNegative(saved.repairCost, $"{prefix} repair cost", report);
+        ValidateNonNegative(
+            saved.restockFailureCount,
+            $"{prefix} restock failures",
+            report);
+        ValidateNonNegative(saved.maintenanceCost, $"{prefix} maintenance", report);
+        ValidateNonNegative(saved.payrollCost, $"{prefix} payroll", report);
+        ValidateNonNegative(saved.previousDebt, $"{prefix} previous debt", report);
+        ValidateNonNegative(saved.paidOperatingCost, $"{prefix} paid cost", report);
+        ValidateNonNegative(saved.unpaidOperatingCost, $"{prefix} unpaid cost", report);
+        ValidateNonNegative(saved.closingBalance, $"{prefix} closing balance", report);
+        ValidateNonNegative(
+            saved.consecutiveShortfallDays,
+            $"{prefix} shortfall days",
+            report);
+        ValidateNonNegative(saved.staffCount, $"{prefix} staff count", report);
+        ValidateNonNegative(saved.workingCount, $"{prefix} working count", report);
+        ValidateNonNegative(saved.offDutyCount, $"{prefix} off-duty count", report);
+        if (!IsFinite(saved.averageSatisfaction)
+            || saved.averageSatisfaction < 0f
+            || saved.averageSatisfaction > 100f
+            || !IsFinite(saved.averageSleep)
+            || !IsFinite(saved.averageMood))
+        {
+            report.AddError($"{prefix} contains invalid average values.");
+        }
+
+        ValidateStringIntEntries(saved.facilityRevenues, $"{prefix} facility revenue", report);
+        ValidateStringIntEntries(saved.speciesVisits, $"{prefix} species visits", report);
+        ValidateTextList(saved.incidents, $"{prefix} incidents", report);
+        ValidateTextList(saved.damagedFacilities, $"{prefix} damaged facilities", report);
+        ValidateTextList(saved.stockShortageFacilities, $"{prefix} shortages", report);
+        ValidateTextList(saved.staffComplaintEvents, $"{prefix} complaints", report);
+        ValidateTextList(saved.eventLog, $"{prefix} event log", report);
+        ValidateTextList(saved.unlockedCodexInfo, $"{prefix} codex info", report);
+        ValidateWarehouses(saved.warehouseStocks, prefix, report);
+        ValidateStockAmounts(saved.stockConsumed, $"{prefix} consumed stock", report);
+        ValidateSupplyResults(saved.stockSupplyResults, $"{prefix} stock supply", report);
+        ValidateDeliveryOffers(saved.refreshedDailyShopOffers, prefix, report);
+        ValidateFacilityOffers(saved.refreshedFacilityShopOffers, prefix, report);
+    }
+
+    private static void ValidateStringIntEntries(
+        IReadOnlyList<DungeonStringIntSaveEntry> entries,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (entries == null)
+        {
+            report.AddError($"{label} entries are missing.");
+            return;
+        }
+
+        HashSet<string> keys = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < entries.Count; index++)
+        {
+            DungeonStringIntSaveEntry entry = entries[index];
+            if (entry == null
+                || string.IsNullOrWhiteSpace(entry.key)
+                || entry.value < 0
+                || !keys.Add(entry.key))
+            {
+                report.AddError($"{label} entry {index} is invalid or duplicate.");
+            }
+        }
+    }
+
+    private static void ValidateStockAmounts(
+        IReadOnlyList<DungeonStockAmountSaveData> entries,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (entries == null)
+        {
+            report.AddError($"{label} entries are missing.");
+            return;
+        }
+
+        HashSet<StockCategory> categories = new HashSet<StockCategory>();
+        for (int index = 0; index < entries.Count; index++)
+        {
+            DungeonStockAmountSaveData entry = entries[index];
+            if (entry == null
+                || !Enum.IsDefined(typeof(StockCategory), entry.category)
+                || entry.amount < 0
+                || !categories.Add(entry.category))
+            {
+                report.AddError($"{label} entry {index} is invalid or duplicate.");
+            }
+        }
+    }
+
+    private static void ValidateSupplyResults(
+        IReadOnlyList<DungeonStockSupplyResultSaveData> entries,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (entries == null)
+        {
+            report.AddError($"{label} entries are missing.");
+            return;
+        }
+
+        for (int index = 0; index < entries.Count; index++)
+        {
+            DungeonStockSupplyResultSaveData entry = entries[index];
+            if (entry == null
+                || !Enum.IsDefined(typeof(StockCategory), entry.category)
+                || entry.requestedAmount < 0
+                || entry.deliveredAmount < 0
+                || entry.deliveredAmount > entry.requestedAmount
+                || entry.cost < 0
+                || entry.sourceLabel == null
+                || entry.reason == null)
+            {
+                report.AddError($"{label} entry {index} is invalid.");
+            }
+        }
+    }
+
+    private static void ValidateTextList(
+        IReadOnlyList<string> values,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (values == null)
+        {
+            report.AddError($"{label} is missing.");
+            return;
+        }
+
+        for (int index = 0; index < values.Count; index++)
+        {
+            if (string.IsNullOrWhiteSpace(values[index]))
+            {
+                report.AddError($"{label} entry {index} is empty.");
+            }
+        }
+    }
+
+    private static void ValidateWarehouses(
+        IReadOnlyList<DungeonWarehouseStockSaveData> warehouses,
+        string prefix,
+        DungeonGameRestoreReport report)
+    {
+        if (warehouses == null)
+        {
+            report.AddError($"{prefix} warehouse list is missing.");
+            return;
+        }
+
+        for (int index = 0; index < warehouses.Count; index++)
+        {
+            DungeonWarehouseStockSaveData warehouse = warehouses[index];
+            if (warehouse == null
+                || string.IsNullOrWhiteSpace(warehouse.warehouseName)
+                || warehouse.totalStock < 0
+                || warehouse.maxCapacity < 0
+                || warehouse.totalStock > warehouse.maxCapacity)
+            {
+                report.AddError($"{prefix} warehouse {index} is invalid.");
+                continue;
+            }
+
+            ValidateStockAmounts(
+                warehouse.stocks,
+                $"{prefix} warehouse {index} stock",
+                report);
+        }
+    }
+
+    private static void ValidateDeliveryOffers(
+        IReadOnlyList<DungeonStockDeliveryOfferSaveData> offers,
+        string prefix,
+        DungeonGameRestoreReport report)
+    {
+        if (offers == null)
+        {
+            report.AddError($"{prefix} delivery offers are missing.");
+            return;
+        }
+
+        for (int index = 0; index < offers.Count; index++)
+        {
+            DungeonStockDeliveryOfferSaveData offer = offers[index];
+            if (offer == null
+                || !Enum.IsDefined(typeof(StockCategory), offer.category)
+                || offer.amount < 0
+                || offer.cost < 0
+                || offer.sourceLabel == null)
+            {
+                report.AddError($"{prefix} delivery offer {index} is invalid.");
+            }
+        }
+    }
+
+    private static void ValidateFacilityOffers(
+        IReadOnlyList<DungeonFacilityShopOfferSummarySaveData> offers,
+        string prefix,
+        DungeonGameRestoreReport report)
+    {
+        if (offers == null)
+        {
+            report.AddError($"{prefix} facility offers are missing.");
+            return;
+        }
+
+        for (int index = 0; index < offers.Count; index++)
+        {
+            DungeonFacilityShopOfferSummarySaveData offer = offers[index];
+            if (offer == null
+                || string.IsNullOrWhiteSpace(offer.offerTypeId)
+                || string.IsNullOrWhiteSpace(offer.typeDisplayName)
+                || string.IsNullOrWhiteSpace(offer.displayName)
+                || !Enum.IsDefined(typeof(FacilityShopRarity), offer.rarity)
+                || offer.cost < 0
+                || offer.star < 0)
+            {
+                report.AddError($"{prefix} facility offer {index} is invalid.");
+            }
+        }
+    }
+
+    private static void ValidateNonNegative(
+        int value,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (value < 0)
+        {
+            report.AddError($"Operating-day settlement {label} is invalid.");
+        }
+    }
+
+    private static bool IsFinite(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value);
+}
+
 public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementSaveService
 {
-    private readonly IOperatingDaySettlementRuntimeProvider provider;
+    private readonly OperatingDaySettlementRuntime runtime;
 
-    public OperatingDaySettlementSaveService(IOperatingDaySettlementRuntimeProvider provider)
+    public OperatingDaySettlementSaveService(
+        DungeonSceneRuntimeReferences runtimeReferences)
     {
-        this.provider = provider ?? throw new ArgumentNullException(nameof(provider));
+        runtime = (runtimeReferences
+                ?? throw new ArgumentNullException(nameof(runtimeReferences)))
+            .Settlement
+            ?? throw new InvalidOperationException(
+                $"{nameof(OperatingDaySettlementSaveService)} requires a loaded {nameof(OperatingDaySettlementRuntime)}.");
     }
 
     public DungeonOperatingDaySettlementSaveData Capture()
     {
-        if (!provider.TryGetRuntime(out OperatingDaySettlementRuntime runtime))
-        {
-            return new DungeonOperatingDaySettlementSaveData();
-        }
-
         OperatingDaySettlementPersistenceState state = runtime.CapturePersistentState();
         return new DungeonOperatingDaySettlementSaveData
         {
@@ -178,45 +509,45 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
         };
     }
 
-    public void Restore(DungeonOperatingDaySettlementSaveData source, DungeonGameRestoreReport report)
+    public OperatingDaySettlementRestoreCandidate PrepareRestore(
+        DungeonOperatingDaySettlementSaveData source)
     {
-        if (report == null)
+        if (source == null)
         {
-            throw new ArgumentNullException(nameof(report));
+            throw new ArgumentNullException(nameof(source));
         }
 
-        if (!provider.TryGetRuntime(out OperatingDaySettlementRuntime runtime))
-        {
-            report.AddWarning("Operating-day settlement runtime was not present; ledger history was skipped.");
-            return;
-        }
-
-        source ??= new DungeonOperatingDaySettlementSaveData();
-        runtime.RestorePersistentState(new OperatingDaySettlementPersistenceState(
+        OperatingDaySettlementPersistenceState restored =
+            new OperatingDaySettlementPersistenceState(
             source.currentDay,
             source.totalRevenue,
             source.totalVisits,
             source.restockFailureCount,
             ToStringIntDictionary(source.facilityRevenue),
             ToStringIntDictionary(source.speciesVisits),
-            (source.consumedStock ?? new List<DungeonStockAmountSaveData>())
-                .Where(entry => entry != null)
+            source.consumedStock
                 .GroupBy(entry => entry.category)
                 .ToDictionary(group => group.Key, group => group.Last().amount),
-            source.visitorMoodSamples ?? new List<float>(),
-            (source.stockSupplyResults ?? new List<DungeonStockSupplyResultSaveData>())
-                .Where(entry => entry != null)
+            source.visitorMoodSamples,
+            source.stockSupplyResults
                 .Select(FromSaveData)
                 .ToList(),
-            source.incidents ?? new List<string>(),
-            source.eventLog ?? new List<string>(),
-            (source.reportHistory ?? new List<DungeonOperatingDayReportSaveData>())
-                .Where(entry => entry != null)
+            source.incidents,
+            source.eventLog,
+            source.reportHistory
                 .Select(FromSaveData)
                 .ToList(),
             source.outstandingDebt,
             source.consecutiveShortfallDays,
-            source.emergencyFundingUsed));
+            source.emergencyFundingUsed);
+        return runtime.PrepareRestoreCandidate(restored);
+    }
+
+    public void PublishRestore(
+        OperatingDaySettlementRestoreCandidate candidate)
+    {
+        runtime.PublishRestoreCandidate(candidate
+            ?? throw new ArgumentNullException(nameof(candidate)));
     }
 
     private static List<DungeonStringIntSaveEntry> ToStringIntEntries(IReadOnlyDictionary<string, int> source)
@@ -229,8 +560,12 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
 
     private static Dictionary<string, int> ToStringIntDictionary(IEnumerable<DungeonStringIntSaveEntry> source)
     {
-        return (source ?? Array.Empty<DungeonStringIntSaveEntry>())
-            .Where(entry => entry != null && !string.IsNullOrWhiteSpace(entry.key))
+        if (source == null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        return source
             .GroupBy(entry => entry.key, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Last().value, StringComparer.Ordinal);
     }
@@ -335,50 +670,41 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
             averageSatisfaction: source.averageSatisfaction,
             repairCost: source.repairCost,
             restockFailureCount: source.restockFailureCount,
-            facilityRevenues: (source.facilityRevenues ?? new List<DungeonStringIntSaveEntry>())
-                .Where(entry => entry != null)
+            facilityRevenues: source.facilityRevenues
                 .Select(entry => new FacilityRevenueSummary(entry.key, entry.value)).ToList(),
-            speciesVisits: (source.speciesVisits ?? new List<DungeonStringIntSaveEntry>())
-                .Where(entry => entry != null)
+            speciesVisits: source.speciesVisits
                 .Select(entry => new SpeciesVisitSummary(entry.key, entry.value)).ToList(),
-            incidents: source.incidents ?? new List<string>(),
-            damagedFacilities: source.damagedFacilities ?? new List<string>(),
-            stockShortageFacilities: source.stockShortageFacilities ?? new List<string>(),
-            staffComplaintEvents: source.staffComplaintEvents ?? new List<string>(),
-            eventLog: source.eventLog ?? new List<string>(),
-            unlockedCodexInfo: source.unlockedCodexInfo ?? new List<string>(),
+            incidents: source.incidents,
+            damagedFacilities: source.damagedFacilities,
+            stockShortageFacilities: source.stockShortageFacilities,
+            staffComplaintEvents: source.staffComplaintEvents,
+            eventLog: source.eventLog,
+            unlockedCodexInfo: source.unlockedCodexInfo,
             staffSummary: new StaffWorkSummary(
                 source.staffCount,
                 source.workingCount,
                 source.offDutyCount,
                 source.averageSleep,
                 source.averageMood),
-            warehouseStocks: (source.warehouseStocks ?? new List<DungeonWarehouseStockSaveData>())
-                .Where(warehouse => warehouse != null)
+            warehouseStocks: source.warehouseStocks
                 .Select(warehouse => new WarehouseStockSummary(
                     warehouse.warehouseName,
                     warehouse.totalStock,
                     warehouse.maxCapacity,
-                    (warehouse.stocks ?? new List<DungeonStockAmountSaveData>())
-                        .Where(stock => stock != null)
+                    warehouse.stocks
                         .Select(stock => new StockConsumptionSummary(stock.category, stock.amount)).ToList()))
                 .ToList(),
-            stockConsumed: (source.stockConsumed ?? new List<DungeonStockAmountSaveData>())
-                .Where(stock => stock != null)
+            stockConsumed: source.stockConsumed
                 .Select(stock => new StockConsumptionSummary(stock.category, stock.amount)).ToList(),
-            stockSupplyResults: (source.stockSupplyResults ?? new List<DungeonStockSupplyResultSaveData>())
-                .Where(entry => entry != null)
+            stockSupplyResults: source.stockSupplyResults
                 .Select(FromSaveData).ToList(),
-            refreshedDailyShopOffers: (source.refreshedDailyShopOffers ?? new List<DungeonStockDeliveryOfferSaveData>())
-                .Where(offer => offer != null)
+            refreshedDailyShopOffers: source.refreshedDailyShopOffers
                 .Select(offer => new StockDeliveryOffer(
                     offer.category,
                     offer.amount,
                     offer.cost,
                     offer.sourceLabel)).ToList(),
-            refreshedFacilityShopOffers: (source.refreshedFacilityShopOffers
-                    ?? new List<DungeonFacilityShopOfferSummarySaveData>())
-                .Where(offer => offer != null)
+            refreshedFacilityShopOffers: source.refreshedFacilityShopOffers
                 .Select(offer => new FacilityShopOfferSnapshot(
                     offer.offerTypeId,
                     offer.typeDisplayName,
@@ -395,4 +721,6 @@ public sealed class OperatingDaySettlementSaveService : IOperatingDaySettlementS
             closingBalance: source.closingBalance,
             consecutiveShortfallDays: source.consecutiveShortfallDays);
     }
+}
+
 }

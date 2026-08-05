@@ -43,29 +43,31 @@ public interface IInvasionDefenseSummaryService
 
 public sealed class InvasionDefenseSummaryService : IInvasionDefenseSummaryService
 {
-    private readonly IInvasionThreatRuntimeProvider threatProvider;
-    private readonly IInvasionDirectorRuntimeProvider directorProvider;
-    private readonly IInvasionCombatReportRuntimeProvider reportProvider;
+    private readonly InvasionThreatRuntime threat;
+    private readonly InvasionDirectorRuntime director;
+    private readonly InvasionCombatReportRuntime reportRuntime;
     private readonly IBuildingWorldQuery buildingWorld;
 
     public InvasionDefenseSummaryService(
-        IInvasionThreatRuntimeProvider threatProvider,
-        IInvasionDirectorRuntimeProvider directorProvider,
-        IInvasionCombatReportRuntimeProvider reportProvider,
+        InvasionSceneRuntimeReferences invasionRuntimes,
         IBuildingWorldQuery buildingWorld)
     {
-        this.threatProvider = threatProvider ?? throw new ArgumentNullException(nameof(threatProvider));
-        this.directorProvider = directorProvider ?? throw new ArgumentNullException(nameof(directorProvider));
-        this.reportProvider = reportProvider ?? throw new ArgumentNullException(nameof(reportProvider));
+        invasionRuntimes = invasionRuntimes
+            ?? throw new ArgumentNullException(nameof(invasionRuntimes));
+        threat = invasionRuntimes.Threat
+            ?? throw new InvalidOperationException(
+                $"{nameof(InvasionDefenseSummaryService)} requires a loaded {nameof(InvasionThreatRuntime)}.");
+        director = invasionRuntimes.Director
+            ?? throw new InvalidOperationException(
+                $"{nameof(InvasionDefenseSummaryService)} requires a loaded {nameof(InvasionDirectorRuntime)}.");
+        reportRuntime = invasionRuntimes.CombatReport
+            ?? throw new InvalidOperationException(
+                $"{nameof(InvasionDefenseSummaryService)} requires a loaded {nameof(InvasionCombatReportRuntime)}.");
         this.buildingWorld = buildingWorld ?? throw new ArgumentNullException(nameof(buildingWorld));
     }
 
     public InvasionDefenseSummary Capture()
     {
-        threatProvider.TryGetRuntime(out InvasionThreatRuntime threat);
-        directorProvider.TryGetRuntime(out InvasionDirectorRuntime director);
-        reportProvider.TryGetRuntime(out InvasionCombatReportRuntime reportRuntime);
-
         CountFacilities(buildingWorld.Buildings, out int defenseFacilities, out int damagedFacilities);
 
         return new InvasionDefenseSummary(

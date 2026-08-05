@@ -28,15 +28,38 @@ MonoBehaviour:
     \uBC29\uC5B4\uC2DC\uC124 \uD5C8\uC6A9 \uBAA9\uB85D\uC744 \uACF5\uC720\uD558\uB294
     \uC2E0\uD638 \uCCB4\uACC4\uB97C \uB9CC\uB4E0\uB2E4."
   field: 2
-  requiredWork: 296
+  requiredWork: 336
   prerequisites:
   - {fileID: 11400000, guid: bf20f6e0daefa5f45b490d5a4555869d, type: 2}
   - {fileID: 11400000, guid: a24581a41b78d0344aaf0472e0db52c6, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:commerce:secure-trade
+    prerequisite: {fileID: 11400000, guid: bf20f6e0daefa5f45b490d5a4555869d, type: 2}
+    kind: 2
+    reason: "\uC0C1\uAD8C \uD1B5\uD569\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uB3D9\uB9F9 \uC2E0\uD638\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:defense:siege-fortification
+    prerequisite: {fileID: 11400000, guid: a24581a41b78d0344aaf0472e0db52c6, type: 2}
+    kind: 2
+    reason: "\uACF5\uC131 \uC694\uC0C8\uD654\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uB3D9\uB9F9 \uC2E0\uD638\uD559 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
-    items: []
+    items:
+    - rid: 7737211730927813415
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211730927813415
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 8812

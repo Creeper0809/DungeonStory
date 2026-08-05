@@ -66,6 +66,7 @@ public sealed class CameraTimeScaleVerificationRunner : MonoBehaviour
     private readonly List<string> warnings = new List<string>();
 
     private CameraManager cameraManager;
+    private DungeonAutomationInputTestCapability automationInput;
     private Vector3 originalPosition;
     private float originalTimeScale;
     private bool originalEdgeScroll;
@@ -93,9 +94,8 @@ public sealed class CameraTimeScaleVerificationRunner : MonoBehaviour
         {
             CaptureState();
             cameraManager.enableEdgeScroll = false;
-            DungeonAutomationInputState.Enable(
-                new DungeonStory.Foundation.UnityGameClock(),
-                new DungeonStory.Foundation.UnityUiClock());
+            automationInput = new DungeonAutomationInputTestCapability();
+            automationInput.Enable();
 
             float pausedDistance = 0f;
             float oneXDistance = 0f;
@@ -133,14 +133,14 @@ public sealed class CameraTimeScaleVerificationRunner : MonoBehaviour
         yield return null;
 
         float startX = cameraManager.transform.position.x;
-        DungeonAutomationInputState.HoldKey(KeyCode.D, HoldSeconds);
+        automationInput.HoldKey(KeyCode.D, HoldSeconds);
         double startedAt = Time.realtimeSinceStartupAsDouble;
         while (Time.realtimeSinceStartupAsDouble - startedAt < HoldSeconds)
         {
             yield return null;
         }
 
-        DungeonAutomationInputState.ReleaseKey(KeyCode.D);
+        automationInput.ReleaseKey(KeyCode.D);
         complete(Mathf.Max(0f, cameraManager.transform.position.x - startX));
         yield return null;
     }
@@ -172,14 +172,14 @@ public sealed class CameraTimeScaleVerificationRunner : MonoBehaviour
         float minimum = Mathf.Min(cameraManager.zoomBounds.x, cameraManager.zoomBounds.y);
         float maximum = Mathf.Max(cameraManager.zoomBounds.x, cameraManager.zoomBounds.y);
         camera.orthographicSize = Mathf.Clamp((minimum + maximum) * 0.5f, minimum, maximum);
-        DungeonAutomationInputState.MovePointer(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f));
+        automationInput.MovePointer(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f));
         yield return null;
 
         float before = camera.orthographicSize;
-        DungeonAutomationInputState.Scroll(120f);
+        automationInput.Scroll(120f);
         yield return null;
         float zoomedIn = camera.orthographicSize;
-        DungeonAutomationInputState.Scroll(-120f);
+        automationInput.Scroll(-120f);
         yield return null;
         float zoomedOut = camera.orthographicSize;
 
@@ -197,8 +197,9 @@ public sealed class CameraTimeScaleVerificationRunner : MonoBehaviour
 
     private void RestoreState()
     {
-        DungeonAutomationInputState.ReleaseKey(KeyCode.D);
-        DungeonAutomationInputState.Disable();
+        automationInput?.ReleaseKey(KeyCode.D);
+        automationInput?.Dispose();
+        automationInput = null;
         if (!stateCaptured || cameraManager == null)
         {
             return;

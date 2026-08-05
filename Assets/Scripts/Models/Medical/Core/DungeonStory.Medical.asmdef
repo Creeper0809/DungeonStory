@@ -1,0 +1,19 @@
+{
+  "name": "DungeonStory.Medical",
+  "rootNamespace": "DungeonStory.Medical",
+  "references": [
+    "DungeonStory.Buildings",
+    "DungeonStory.Combat",
+    "DungeonStory.Environment",
+    "DungeonStory.Foundation"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

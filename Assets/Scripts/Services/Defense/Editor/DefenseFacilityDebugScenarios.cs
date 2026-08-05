@@ -9,6 +9,37 @@ using Object = UnityEngine.Object;
 
 public static class DefenseFacilityDebugScenarios
 {
+    private sealed class NoAutomationInfrastructure :
+        IAutomationInfrastructureQuery,
+        IAutomationInfrastructureCommand
+    {
+        public static readonly NoAutomationInfrastructure Instance = new();
+
+        public int Version => 0;
+        public IReadOnlyList<AutomationFacilitySnapshot> Facilities =>
+            Array.Empty<AutomationFacilitySnapshot>();
+
+        public bool TryGetFacility(
+            BuildableObject facility,
+            out AutomationFacilitySnapshot snapshot)
+        {
+            snapshot = null;
+            return false;
+        }
+
+        public float GetWorkSpeedMultiplier(BuildableObject facility) => 1f;
+
+        public InfrastructureCommandResult SetMode(
+            BuildableObject facility,
+            AutomationMode mode) => InfrastructureCommandResult.Failed(
+                FailureCode.AutomationFacilityUnavailable);
+
+        public InfrastructureCommandResult Maintain(
+            BuildableObject facility,
+            float amount) => InfrastructureCommandResult.Failed(
+                FailureCode.AutomationFacilityUnavailable);
+    }
+
     private static readonly IDefenseStatusRuntimeService StatusRuntimeService =
         new DefenseStatusRuntimeService(new DefenseStatusRuntimeFactory());
     private static readonly IBlueprintResearchWorkService BlueprintResearchWorkService =
@@ -20,7 +51,7 @@ public static class DefenseFacilityDebugScenarios
     private static readonly IWorkGridResolver WorkGridResolver =
         new ScenarioWorkGridResolver();
     private static readonly IFacilityCandidateCache FacilityCandidateCache =
-        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry);
+        new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null);
     private static readonly IWorldInfoClickSelector WorldInfoClickSelector =
         new NoopWorldInfoClickSelector();
     private static readonly IRoomFacilityPolicy RoomFacilityPolicy =
@@ -68,6 +99,8 @@ public static class DefenseFacilityDebugScenarios
         RunScenario("냉기 감속 지연", VerifyIceSlow, errors);
         RunScenario("경비실 경비 작업과 교전", VerifyGuardRoom, errors);
 
+        RunScenario("strict save boundary", VerifyStrictSaveBoundary, errors);
+
         if (errors.Count > 0)
         {
             foreach (string error in errors)
@@ -104,7 +137,7 @@ public static class DefenseFacilityDebugScenarios
     {
         BuildingSO[] assets = DefenseAssetNames.Select(LoadDefense).ToArray();
         return assets.All((asset) => asset != null
-            && asset.type == typeof(DefenseFacility)
+            && asset.runtimeArchetype == BuildingRuntimeArchetypeKind.DefenseFacility
             && asset.category == BuildingCategory.Special
             && asset.Facility != null
             && asset.Facility.disabledWhenDamaged
@@ -175,7 +208,7 @@ public static class DefenseFacilityDebugScenarios
             CharacterActor.From(intruder),
             new Vector2Int(1, 0),
             DefenseTriggerTiming.OnEnter,
-            StatusRuntimeService);
+            StatusRuntimeService, treasuryDefenseRuntime: null);
 
         return reports.Count == 1
             && reports[0].TotalDamage > 0f
@@ -213,8 +246,8 @@ public static class DefenseFacilityDebugScenarios
             CharacterActor.From(intruder),
             new Vector2Int(1, 0),
             DefenseTriggerTiming.OnEnter,
-            StatusRuntimeService);
-        string summary = CodexTextFormatter.FormatDefenseEffects(clone.Defense).SingleOrDefault();
+            StatusRuntimeService, treasuryDefenseRuntime: null);
+        string summary = CodexDomainTextFormatter.FormatDefenseEffects(clone.Defense).SingleOrDefault();
 
         return reports.Count == 1
             && Mathf.Approximately(before - intruder.CurrentHealth, 7f)
@@ -235,7 +268,7 @@ public static class DefenseFacilityDebugScenarios
             CharacterActor.From(intruder),
             new Vector2Int(1, 0),
             DefenseTriggerTiming.OnEnter,
-            StatusRuntimeService);
+            StatusRuntimeService, treasuryDefenseRuntime: null);
 
         bool valid = reports.Count == 1
             && reports[0].Facility == spike
@@ -260,7 +293,7 @@ public static class DefenseFacilityDebugScenarios
             CharacterActor.From(intruder),
             new Vector2Int(1, 0),
             DefenseTriggerTiming.OnEnter,
-            StatusRuntimeService).Count == 0;
+            StatusRuntimeService, treasuryDefenseRuntime: null).Count == 0;
 
         bool repairCandidate = worker.TryGetAbility(out AbilityWork work)
             && work.TrySetPriorityWorkTarget(spike, BuiltInWorkTypeIds.Repair, world.Grid.SearchPath(worker.GetNowXY()), out _)
@@ -286,10 +319,10 @@ public static class DefenseFacilityDebugScenarios
         CharacterActor intruder = world.CreateIntruder(new Vector2Int(1, 0));
 
         float beforePoison = intruder.CurrentHealth;
-        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(1, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService);
+        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(1, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService, treasuryDefenseRuntime: null);
         float poisonDamage = beforePoison - intruder.CurrentHealth;
         float beforeSpike = intruder.CurrentHealth;
-        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(3, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService);
+        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(3, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService, treasuryDefenseRuntime: null);
         float spikeDamageAfterCorrosion = beforeSpike - intruder.CurrentHealth;
 
         return poisonDamage > 0f && spikeDamageAfterCorrosion > 14f;
@@ -301,7 +334,7 @@ public static class DefenseFacilityDebugScenarios
         world.PlaceDefense("P1_FireVent", new Vector2Int(2, 0));
         CharacterActor intruder = world.CreateIntruder(new Vector2Int(1, 0));
 
-        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(1, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService);
+        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(1, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService, treasuryDefenseRuntime: null);
         float beforeTick = intruder.CurrentHealth;
         float tickDamage = DefenseEffectResolver.TickStatuses(CharacterActor.From(intruder), 2f, StatusRuntimeService);
 
@@ -317,9 +350,9 @@ public static class DefenseFacilityDebugScenarios
         CharacterActor intruder = world.CreateIntruder(new Vector2Int(0, 0));
 
         float before = intruder.CurrentHealth;
-        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(0, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService);
-        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(2, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService);
-        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(4, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService);
+        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(0, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService, treasuryDefenseRuntime: null);
+        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(2, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService, treasuryDefenseRuntime: null);
+        DefenseFacilityResolver.TriggerAt(world.Grid, CharacterActor.From(intruder), new Vector2Int(4, 0), DefenseTriggerTiming.OnEnter, StatusRuntimeService, treasuryDefenseRuntime: null);
         float totalDamage = before - intruder.CurrentHealth;
 
         return Mathf.Approximately(totalDamage, 54f);
@@ -336,7 +369,7 @@ public static class DefenseFacilityDebugScenarios
             CharacterActor.From(intruder),
             new Vector2Int(1, 0),
             DefenseTriggerTiming.OnEnter,
-            StatusRuntimeService);
+            StatusRuntimeService, treasuryDefenseRuntime: null);
 
         return reports.Count == 1
             && reports[0].TotalDamage > 0f
@@ -354,7 +387,7 @@ public static class DefenseFacilityDebugScenarios
             CharacterActor.From(intruder),
             new Vector2Int(1, 0),
             DefenseTriggerTiming.OnEnter,
-            StatusRuntimeService);
+            StatusRuntimeService, treasuryDefenseRuntime: null);
 
         return guardRoom.Facility.SupportsWork(BuiltInWorkTypeIds.Guard)
             && guardRoom.Facility.requiredWorkers == 1
@@ -385,7 +418,12 @@ public static class DefenseFacilityDebugScenarios
         RepairWorkExecutionHandler handler = new RepairWorkExecutionHandler(
             new NoopEquipmentMaintenanceRuntime(),
             new FixedWorkAmountCalculator(),
-            CharacterAiEditorTestDependencies.GameClock);
+            CharacterAiEditorTestDependencies.GameClock,
+            automationQuery: NoAutomationInfrastructure.Instance,
+            automationCommands: NoAutomationInfrastructure.Instance,
+            structuralIntegrity: null,
+            defenseFacilities: null,
+            defenseNetwork: null);
         WorkExecutionResult result = new WorkExecutionResult();
         WorkExecutionContext context = new WorkExecutionContext(
             1,
@@ -480,9 +518,14 @@ public static class DefenseFacilityDebugScenarios
         }
 
         public CombatEquipmentMaintenanceSaveData Capture() => new CombatEquipmentMaintenanceSaveData();
-        public void Restore(
-            CombatEquipmentMaintenanceSaveData saveData,
-            IList<string> warnings)
+        public EquipmentMaintenanceRestoreCandidate PrepareRestore(
+            CombatEquipmentMaintenanceSaveData saveData)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void PublishRestore(
+            EquipmentMaintenanceRestoreCandidate candidate)
         {
         }
     }
@@ -519,6 +562,104 @@ public static class DefenseFacilityDebugScenarios
         }
 
         return ticks;
+    }
+
+    private static bool VerifyStrictSaveBoundary()
+    {
+        DefenseFacilitySaveData valid = new DefenseFacilitySaveData
+        {
+            facilities = new List<DefenseFacilityRecordSaveData>
+            {
+                new DefenseFacilityRecordSaveData
+                {
+                    facilityPersistentId = "building:defense-fixture:1",
+                    buildingId = 1,
+                    gridX = 2,
+                    gridY = 3,
+                    armingPolicy = DefenseArmingPolicy.Alert,
+                    operationalState = DefenseFacilityOperationalState.Ready,
+                    condition = 87.5f,
+                    supply = 4,
+                    activationCount = 2,
+                    cooldownUntil = 12.5f,
+                    forcedDangerousOperation = true,
+                    allowedGroups = (int)(DoorAccessGroup.Owner | DoorAccessGroup.Staff),
+                    allowedPersistentIds = new List<string>
+                    {
+                        "character:defense-fixture:1",
+                        "owner"
+                    },
+                    growth = new DefenseFacilityGrowthSaveData
+                    {
+                        capacityLevel = 1,
+                        resetSpeedLevel = 2,
+                        effectStrengthLevel = 3,
+                        detectionRangeLevel = 4,
+                        identificationLevel = 5,
+                        outageResistanceLevel = 6
+                    },
+                    blockedReason = string.Empty
+                }
+            }
+        };
+        StrictDefenseSaveRuntime runtime = new StrictDefenseSaveRuntime(valid);
+        DefenseFacilitySaveSection section = new DefenseFacilitySaveSection(runtime);
+        string canonicalJson = JsonUtility.ToJson(valid);
+        DungeonGameRestoreReport validReport = new DungeonGameRestoreReport();
+        section.Restore(
+            canonicalJson,
+            DefenseFacilitySaveData.CurrentVersion,
+            validReport);
+        object sectionContract = section;
+        if (!validReport.Success
+            || runtime.RestoreCount != 1
+            || !string.Equals(section.Capture(), canonicalJson, StringComparison.Ordinal)
+            || sectionContract is not IDungeonSaveSectionPreflight
+            || sectionContract is not IDungeonRollbackFreeSaveSection
+            || sectionContract is IOptionalDungeonSaveSection
+            || sectionContract is IDungeonStagedOptionalSaveSection)
+        {
+            return false;
+        }
+
+        DefenseFacilitySaveData invalid = JsonUtility.FromJson<DefenseFacilitySaveData>(
+            canonicalJson);
+        invalid.facilities[0].condition = 101f;
+        invalid.facilities[0].allowedPersistentIds.Reverse();
+        string beforeInvalid = section.Capture();
+        bool invalidRejected = ThrowsInvalidOperation(() => section.Restore(
+            JsonUtility.ToJson(invalid),
+            DefenseFacilitySaveData.CurrentVersion,
+            new DungeonGameRestoreReport()));
+        bool legacyRejected = ThrowsInvalidOperation(() => section.ValidatePayload(
+            canonicalJson,
+            DefenseFacilitySaveData.CurrentVersion - 1,
+            new DungeonGameRestoreReport()));
+        bool emptyRejected = ThrowsInvalidOperation(() => section.ValidatePayload(
+            string.Empty,
+            DefenseFacilitySaveData.CurrentVersion,
+            new DungeonGameRestoreReport()));
+        return invalidRejected
+            && legacyRejected
+            && emptyRejected
+            && runtime.RestoreCount == 1
+            && string.Equals(
+                section.Capture(),
+                beforeInvalid,
+                StringComparison.Ordinal);
+    }
+
+    private static bool ThrowsInvalidOperation(Action action)
+    {
+        try
+        {
+            action();
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return true;
+        }
     }
 
     private sealed class DefenseScenarioWorld : IDisposable
@@ -572,15 +713,17 @@ public static class DefenseFacilityDebugScenarios
             }
 
             defense.ConstructBuildableObject(
-                BlueprintResearchWorkService,
-                WorldInfoClickSelector,
+                new BuildingResearchWorkPortAdapter(BlueprintResearchWorkService),
                 FacilityCandidateCache,
                 RoomFacilityPolicy,
-                gameClock: CharacterAiEditorTestDependencies.GameClock);
+                gameClock: CharacterAiEditorTestDependencies.GameClock, combatEquipmentRuntime: null, worldRegistry: null, worldItemStackRuntime: null, abilityRuntimeDispatcher: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
             defense.ConstructDefenseFacilityEventBus(
-                CharacterAiEditorTestDependencies.GameEvents);
+                CharacterAiEditorTestDependencies.GameEvents, worldThreatModifiers: null, defenseRuntime: null);
+            defense.ConstructDebugRules(DisabledDungeonDebugRuleQuery.Instance);
             objects.Add(defense.gameObject);
             defense.SetGrid(Grid);
+            defense.RestorePersistentIdentity(
+                (BuildingInstanceId)$"building:defense-fixture:{buildingData.id}:{position.x}:{position.y}");
             defense.Initialization(buildingData, position);
             bool registered = Grid.RegisterOccupant(
                 defense,
@@ -629,7 +772,9 @@ public static class DefenseFacilityDebugScenarios
                 FloatingIconFeedbackService,
                 WorkGridResolver,
                 FacilityCandidateCache,
-                null);
+                null, exteriorZoneQuery: null, workExecutionHandlerRegistry: null, workPolicyRegistry: null, workOrderRuntime: null, workAmountCalculator: null, captiveLaborQuery: null, gameClock: null, defenseEngagementRuntime: null, roomEnvironmentExperienceService: null, paidFacilityContracts: null, environmentWorkPolicy: null, characterEnvironment: NoCharacterEnvironmentWorkContext.Instance, environmentalWorkwearCommands: NoEnvironmentalWorkwearCommand.Instance,
+                needDefinitionCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+                debugRules: DisabledDungeonDebugRuleQuery.Instance);
             CharacterActor character = obj.GetComponent<CharacterActor>();
             InitializeCharacter(character, data, position);
             character.RefreshAbilityCache();
@@ -664,16 +809,117 @@ public static class DefenseFacilityDebugScenarios
         {
             CharacterAiEditorTestDependencies.Inject(character.gameObject);
             CharacterAwakeMethod?.Invoke(character, null);
-            character.GetComponent<CharacterStats>()?.ConstructCharacterStats(
+            CharacterAiEditorTestDependencies.InjectCharacterStats(
+                character.GetComponent<CharacterStats>(),
                 StaffDiscontentRuntimeService,
-                OwnerRunLifecycleService,
                 MetaProgressionRuntimeReader,
                 new DungeonStory.Foundation.UnityGameClock(),
-                gameEventBus: CharacterAiEditorTestDependencies.GameEvents);
+                CharacterAiEditorTestDependencies.AuthoredGameplay,
+                DisabledDungeonDebugRuleQuery.Instance);
             character.RefreshAbilityCache();
             character.Initialization(data);
             character.SetLifecycleState(CharacterLifecycleState.Active);
             character.transform.position = Grid.GetWorldPos(position);
+        }
+    }
+
+    private sealed class StrictDefenseSaveRuntime : IDefenseFacilityPersistence
+    {
+        private DefenseFacilitySaveData data;
+
+        public StrictDefenseSaveRuntime(DefenseFacilitySaveData data)
+        {
+            this.data = data ?? throw new ArgumentNullException(nameof(data));
+        }
+
+        public int RestoreCount { get; private set; }
+
+        public DefenseFacilitySnapshot GetSnapshot(DefenseFacility facility) => default;
+
+        public bool CanActivate(
+            DefenseFacility facility,
+            CharacterActor target,
+            DefenseTriggerTiming timing,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return false;
+        }
+
+        public bool TryBeginActivation(
+            DefenseFacility facility,
+            CharacterActor target,
+            DefenseTriggerTiming timing,
+            out DefenseActivationAuthorization authorization,
+            out DomainFailure failure)
+        {
+            authorization = default;
+            failure = DomainFailure.None;
+            return false;
+        }
+
+        public void CompleteActivation(
+            DefenseFacility facility,
+            DefenseActivationAuthorization authorization)
+        {
+        }
+
+        public bool SetArmingPolicy(
+            DefenseFacility facility,
+            DefenseArmingPolicy policy)
+        {
+            return false;
+        }
+
+        public bool SetAllowed(
+            DefenseFacility facility,
+            DoorAccessGroup group,
+            bool allowed) => false;
+
+        public bool SetAllowed(
+            DefenseFacility facility,
+            string persistentId,
+            bool allowed) => false;
+
+        public bool TryRequestReload(
+            DefenseFacility facility,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return false;
+        }
+
+        public bool TryClearJam(
+            DefenseFacility facility,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return false;
+        }
+
+        public bool TryRepair(
+            DefenseFacility facility,
+            float condition,
+            out DomainFailure failure)
+        {
+            failure = DomainFailure.None;
+            return false;
+        }
+
+        public DefenseFacilitySaveData CaptureState() => data;
+
+        public DefenseFacilityRestoreCandidate PrepareRestoreState(
+            DefenseFacilitySaveData restored)
+        {
+            data = restored ?? throw new ArgumentNullException(nameof(restored));
+            return new DefenseFacilityRestoreCandidate(
+                new DefenseFacilityAggregateState());
+        }
+
+        public void PublishRestoreState(
+            DefenseFacilityRestoreCandidate candidate)
+        {
+            RestoreCount++;
         }
     }
 

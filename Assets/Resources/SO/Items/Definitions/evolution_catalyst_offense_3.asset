@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: evolution_catalyst_offense_3
+  m_EditorClassIdentifier: Assembly-CSharp::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: evolution:catalyst:offense:3
+  displayName: "\uACF5\uC138 \uCD09\uB9E4 \uC9C4\uD589 3 \xB7 1\uB4F1\uAE09"
+  description: "\uC2DC\uC124 \uAC1C\uC870\uC640 \uC7A5\uBE44 \uC870\uC728\uC5D0 \uC0AC\uC6A9\uD558\uB294
+    \uC9C4\uD654 \uCD09\uB9E4."
+  stockCategory: 1
+  unitWeight: 0.25
+  maxStack: 20
+  sprite: {fileID: 0}
+  unitPrice: 480
+  features:
+  - rid: 7737211730538790942
+  - rid: 7737211731118654219
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730538790942
+      type: {class: ProductionItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        kind: 8
+        ingredientTags: 0
+        sharedIntermediate: 0
+    - rid: 7737211731118654219
+      type: {class: EvolutionCatalystItemFeature, ns: , asm: DungeonStory.Economy}
+      data:
+        family: offense
+        potency: 1
+        residue: 0

@@ -27,24 +27,37 @@ MonoBehaviour:
   description: "\uD55C \uBB3C\uB958\uC120\uC744 \uC5EC\uB7EC \uBAA9\uC801\uC9C0\uB85C
     \uB098\uB204\uACE0 \uB2E4\uC2DC \uD569\uCE5C\uB2E4."
   field: 15
-  requiredWork: 150
+  requiredWork: 560
   prerequisites:
   - {fileID: 11400000, guid: edaf98ccfa45c53459e9b78c28f5cd45, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:industry:ports
+    prerequisite: {fileID: 11400000, guid: edaf98ccfa45c53459e9b78c28f5cd45, type: 2}
+    kind: 2
+    reason: "\uC785\uCD9C\uB825 \uD3EC\uD2B8\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uBD84\uBC30\uC640 \uD569\uB958 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687341
-    - rid: 7302563278452687342
+    - rid: 7737211730927813271
+    - rid: 7737211730927813272
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687341
+    - rid: 7737211730927813271
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9846
-    - rid: 7302563278452687342
+    - rid: 7737211730927813272
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9847

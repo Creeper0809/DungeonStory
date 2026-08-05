@@ -463,7 +463,7 @@ public static class P0FeatureSurfacePlayModeVerifier
         private void PrepareGameState(List<string> lines)
         {
             GameManager gameManager = FindActiveSceneComponent<GameManager>();
-            GameData gameData = gameManager != null ? gameManager.gameData : null;
+            GameSessionState gameData = gameManager != null ? gameManager.gameData : null;
             if (gameData != null && gameData.holdingMoney != null)
             {
                 int beforeMoney = gameData.holdingMoney.Value;
@@ -568,10 +568,11 @@ public static class P0FeatureSurfacePlayModeVerifier
             {
                 int beforeWarehouse = warehouse.Inventory.TotalStock;
                 int removed = 0;
-                foreach (StockCategoryDefinition definition in StockCategoryCatalog.All)
+                foreach (StockCategoryDefinition definition in
+                         ((IStockCategoryDefinitionCatalog)CharacterAiEditorTestDependencies.AuthoredGameplay).All)
                 {
                     StockCategory category = definition.Category;
-                    removed += warehouse.Inventory.Withdraw(category, 10);
+                    removed += warehouse.Inventory.ConsumePhysicalStockForTest(category, 10);
                     if (removed >= 30)
                     {
                         break;
@@ -650,6 +651,9 @@ public static class P0FeatureSurfacePlayModeVerifier
             IResourceEconomyContentCatalog economyCatalog =
                 scope?.Container?.Resolve(typeof(IResourceEconomyContentCatalog))
                 as IResourceEconomyContentCatalog;
+            IItemDefinitionCatalog itemDefinitions =
+                scope?.Container?.Resolve(typeof(IItemDefinitionCatalog))
+                as IItemDefinitionCatalog;
             IRegionalSupplyContractRuntime contracts =
                 scope?.Container?.Resolve(typeof(IRegionalSupplyContractRuntime))
                 as IRegionalSupplyContractRuntime;
@@ -674,7 +678,8 @@ public static class P0FeatureSurfacePlayModeVerifier
                 .Select(row => row?.ItemId)
                 .FirstOrDefault(itemId =>
                     economyCatalog?.TryGetItem(itemId, out _) == true
-                    || DungeonItemCatalogSO.TryGetStockCategoryFromItemId(
+                    || TryGetAuthoredStockCategory(
+                        itemDefinitions,
                         itemId,
                         out _));
             HashSet<string> physicalItemIds = new HashSet<string>(
@@ -1024,15 +1029,16 @@ public static class P0FeatureSurfacePlayModeVerifier
                         new RegionalSupplyContractRequirement
                         {
                             itemId = index == 0
-                                ? "stock-item:4"
-                                : "stock-item:6",
+                                ? "resource:clean-water"
+                                : "material:low-fuel",
                             amount = 1
                         }
                     }
                 });
             }
 
-            contracts.Restore(saveData);
+            contracts.PublishRestoreCandidate(
+                contracts.PrepareRestoreCandidate(saveData));
         }
 
         private IEnumerator DismissStartupAndSelectOwner(List<string> lines)
@@ -1222,7 +1228,9 @@ public static class P0FeatureSurfacePlayModeVerifier
             BuildingCategory category = building.IsInteriorDoor
                 ? BuildingCategory.Wall
                 : building.category;
-            string categoryName = BuildingCategoryCatalog.GetDisplayName(category, string.Empty);
+            string categoryName =
+                ((IBuildingCategoryDefinitionCatalog)CharacterAiEditorTestDependencies.AuthoredGameplay)
+                .GetDisplayName(category, string.Empty);
             return constructTab.GetComponentsInChildren<Button>(true)
                 .FirstOrDefault(candidate => candidate != null
                     && candidate.gameObject.activeInHierarchy
@@ -1312,7 +1320,7 @@ public static class P0FeatureSurfacePlayModeVerifier
                 scope?.Container?.Resolve(typeof(IResearchProjectCatalog)) as IResearchProjectCatalog;
             IDataCatalog dataCatalog = scope?.Container?.Resolve(typeof(IDataCatalog)) as IDataCatalog;
             GameManager gameManager = FindActiveSceneComponent<GameManager>();
-            GameData gameData = gameManager != null ? gameManager.gameData : null;
+            GameSessionState gameData = gameManager != null ? gameManager.gameData : null;
 
             if (research == null
                 || projectCatalog == null
@@ -1355,7 +1363,11 @@ public static class P0FeatureSurfacePlayModeVerifier
                 yield break;
             }
 
-            bool lockedBefore = !FacilityProgression.IsUnlocked(targetBuilding, gameData, research.State);
+            bool lockedBefore = !FacilityProgression.IsUnlocked(
+                targetBuilding,
+                gameData,
+                research.State,
+                DisabledDungeonDebugRuleQuery.Instance);
             ResearchNodeState state = research.GetNodeState(project, out string blocker);
             ResearchTreeWindow window = FindVisibleResearchTreeWindow();
             if (window == null)
@@ -1473,8 +1485,15 @@ public static class P0FeatureSurfacePlayModeVerifier
                 AIBrain brain = actor != null ? actor.Brain : null;
                 AIAction action = brain != null ? brain.bestAction : null;
                 BuildableObject assignedTarget = work.assignedShop;
+                BuildableObject researchTarget =
+                    WorkTargetCandidateRuntimeAdapter.ResolveBuilding(candidate);
+                BuildableObject cleanTarget =
+                    WorkTargetCandidateRuntimeAdapter.ResolveBuilding(
+                        cleanCandidate);
+                BuildableObject anyTarget =
+                    WorkTargetCandidateRuntimeAdapter.ResolveBuilding(anyCandidate);
                 lines.Add(
-                    $"RESEARCH_WORKER {phase}; actor={actor?.name ?? work.name}; active={work.gameObject.activeInHierarchy}; canRunAi={actor != null && actor.CanRunAi}; pos={(actor != null ? actor.GetNowXY().ToString() : "none")}; offDuty={work.IsOffDuty}; working={work.isWorking}; assigned={work.AssignedWorkTypeId}:{assignedTarget?.name ?? "none"}@{(assignedTarget != null ? assignedTarget.centerPos.ToString() : "none")}; priority={work.WorkPriorities?.GetPriority(BuiltInWorkTypeIds.Research)}; research={found}:{candidate.Building?.name ?? "none"}:{candidate.Score:0.##}; clean={foundClean}:{cleanCandidate.Building?.name ?? "none"}:{cleanCandidate.Score:0.##}; best={foundAny}:{anyCandidate.WorkTypeId}:{anyCandidate.Building?.name ?? "none"}:{anyCandidate.Score:0.##}; action={brain?.CurrentActionDebugLabel ?? "none"}/{brain?.CurrentActionPhase ?? "none"}; running={(action != null ? action.RunningSeconds : -1f):0.##}; plan={(action != null ? action.planKind.ToString() : "none")}:{(action != null ? action.pathSteps.Count : -1)}; moveBlocked={work.WorkerMove != null && work.WorkerMove.LastGridMoveWasBlocked}; rejected={rejected}");
+                    $"RESEARCH_WORKER {phase}; actor={actor?.name ?? work.name}; active={work.gameObject.activeInHierarchy}; canRunAi={actor != null && actor.CanRunAi}; pos={(actor != null ? actor.GetNowXY().ToString() : "none")}; offDuty={work.IsOffDuty}; working={work.isWorking}; assigned={work.AssignedWorkTypeId}:{assignedTarget?.name ?? "none"}@{(assignedTarget != null ? assignedTarget.centerPos.ToString() : "none")}; priority={work.WorkPriorities?.GetPriority(BuiltInWorkTypeIds.Research)}; research={found}:{researchTarget?.name ?? "none"}:{candidate.Score:0.##}; clean={foundClean}:{cleanTarget?.name ?? "none"}:{cleanCandidate.Score:0.##}; best={foundAny}:{anyCandidate.WorkTypeId}:{anyTarget?.name ?? "none"}:{anyCandidate.Score:0.##}; action={brain?.CurrentActionDebugLabel ?? "none"}/{brain?.CurrentActionPhase ?? "none"}; running={(action != null ? action.RunningSeconds : -1f):0.##}; plan={(action != null ? action.planKind.ToString() : "none")}:{(action != null ? action.pathSteps.Count : -1)}; moveBlocked={work.WorkerMove != null && work.WorkerMove.LastGridMoveWasBlocked}; rejected={rejected}");
             }
         }
 
@@ -1570,14 +1589,14 @@ public static class P0FeatureSurfacePlayModeVerifier
         private int GetHoldingMoney()
         {
             GameManager gameManager = FindActiveSceneComponent<GameManager>();
-            GameData gameData = gameManager != null ? gameManager.gameData : null;
+            GameSessionState gameData = gameManager != null ? gameManager.gameData : null;
             return gameData != null && gameData.holdingMoney != null ? gameData.holdingMoney.Value : -1;
         }
 
         private int GetCurrentDay()
         {
             GameManager gameManager = FindActiveSceneComponent<GameManager>();
-            GameData gameData = gameManager != null ? gameManager.gameData : null;
+            GameSessionState gameData = gameManager != null ? gameManager.gameData : null;
             return gameData != null && gameData.day != null ? gameData.day.Value : -1;
         }
 
@@ -1880,6 +1899,24 @@ public static class P0FeatureSurfacePlayModeVerifier
             return values == null || values.Count == 0
                 ? "<none>"
                 : string.Join(" || ", values.Select((value) => CompactText(value, 180)));
+        }
+
+        private static bool TryGetAuthoredStockCategory(
+            IItemDefinitionCatalog itemDefinitions,
+            string itemId,
+            out StockCategory category)
+        {
+            if (itemDefinitions != null
+                && itemDefinitions.TryGet(
+                    (ItemDefinitionId)itemId,
+                    out ItemDefinitionSO definition))
+            {
+                category = definition.StockCategory;
+                return true;
+            }
+
+            category = default;
+            return false;
         }
 
         private static string CompactText(string value, int maxLength)

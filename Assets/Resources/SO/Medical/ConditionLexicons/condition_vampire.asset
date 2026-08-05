@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d16b16f8c229994d90e0c3088a34a0e, type: 3}
+  m_Name: condition_vampire
+  m_EditorClassIdentifier: DungeonStory.Medical::AnatomyConditionLexiconSO
+  lexiconId: condition:vampire
+  anatomyFamily: humanoid
+  speciesIds:
+  - vampire
+  entries:
+  - condition: 0
+    label: "\uD608\uC561 \uACE0\uAC08"
+    treatmentVerb: "\uD608\uC220 \uCC98\uCE58"
+    iconId: condition:fluidloss
+    vfxId: medical:fluidloss
+  - condition: 1
+    label: "\uBD80\uD328 \uAC10\uC5FC"
+    treatmentVerb: "\uD608\uC220 \uCC98\uCE58"
+    iconId: condition:contamination
+    vfxId: medical:contamination
+  - condition: 2
+    label: "\uD608\uB958 \uC1FC\uD06C"
+    treatmentVerb: "\uD608\uC220 \uCC98\uCE58"
+    iconId: condition:overstrain
+    vfxId: medical:overstrain
+  - condition: 3
+    label: "\uACE8\uC808\xB7\uD30C\uC5F4"
+    treatmentVerb: "\uD608\uC220 \uCC98\uCE58"
+    iconId: condition:fracture
+    vfxId: medical:fracture
+  - condition: 4
+    label: "\uD608\uC561\uB0AD \uC815\uC9C0"
+    treatmentVerb: "\uD608\uC220 \uCC98\uCE58"
+    iconId: condition:partfailure
+    vfxId: medical:partfailure
+  - condition: 5
+    label: "\uD608\uD575 \uAC70\uBD80"
+    treatmentVerb: "\uD608\uC220 \uCC98\uCE58"
+    iconId: condition:compatibilityfailure
+    vfxId: medical:compatibilityfailure
+  - condition: 6
+    label: "\uD608\uC220 \uCC98\uCE58 \uD544\uC694"
+    treatmentVerb: "\uD608\uC220 \uCC98\uCE58"
+    iconId: condition:treatmentrequired
+    vfxId: medical:treatmentrequired

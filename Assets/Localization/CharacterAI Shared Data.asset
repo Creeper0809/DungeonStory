@@ -1,0 +1,436 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: CharacterAI Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: CharacterAI
+  m_TableCollectionNameGuidString: 9fafb9d788be072478e8f067ae3ca8f4
+  m_Entries:
+  - m_Id: 376786944
+    m_Key: CharacterAI.Area.BlockedExterior
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147072
+    m_Key: CharacterAI.Area.DropZone
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147073
+    m_Key: CharacterAI.Area.DungeonInterior
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147074
+    m_Key: CharacterAI.Area.Entrance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147075
+    m_Key: CharacterAI.Area.ExteriorPath
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147076
+    m_Key: CharacterAI.Area.Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147077
+    m_Key: CharacterAI.Branch.ContinueCurrent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147078
+    m_Key: CharacterAI.Branch.Critical
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147079
+    m_Key: CharacterAI.Branch.DutyWork
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147080
+    m_Key: CharacterAI.Branch.Eat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147081
+    m_Key: CharacterAI.Branch.Emergency
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147082
+    m_Key: CharacterAI.Branch.ExitDungeon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147083
+    m_Key: CharacterAI.Branch.Hygiene
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147084
+    m_Key: CharacterAI.Branch.Idle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147085
+    m_Key: CharacterAI.Branch.InterruptCheck
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147086
+    m_Key: CharacterAI.Branch.LeisureVisit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147087
+    m_Key: CharacterAI.Branch.LockedAction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147088
+    m_Key: CharacterAI.Branch.LookAround
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147089
+    m_Key: CharacterAI.Branch.MacroGoal
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147090
+    m_Key: CharacterAI.Branch.Rest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147091
+    m_Key: CharacterAI.Branch.RoutineUtility
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147092
+    m_Key: CharacterAI.Branch.Shopping
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147093
+    m_Key: CharacterAI.Branch.SoftLock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147094
+    m_Key: CharacterAI.Branch.StopCurrent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147095
+    m_Key: CharacterAI.Branch.SurvivalNeeds
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147096
+    m_Key: CharacterAI.Branch.Toilet
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147097
+    m_Key: CharacterAI.Branch.Wait
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147098
+    m_Key: CharacterAI.Branch.Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147099
+    m_Key: CharacterAI.Breakdown.Multiline
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147100
+    m_Key: CharacterAI.Breakdown.Rejected
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147101
+    m_Key: CharacterAI.Breakdown.Score
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147102
+    m_Key: CharacterAI.Breakdown.ScoreWithFactors
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147103
+    m_Key: CharacterAI.Factor.Crowd
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147104
+    m_Key: CharacterAI.Factor.Distance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147105
+    m_Key: CharacterAI.Factor.Fatigue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147106
+    m_Key: CharacterAI.Factor.Format.Score
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147107
+    m_Key: CharacterAI.Factor.Format.ScoreWithReason
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147108
+    m_Key: CharacterAI.Factor.Memory
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147109
+    m_Key: CharacterAI.Factor.Momentum
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147110
+    m_Key: CharacterAI.Factor.Need
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147111
+    m_Key: CharacterAI.Factor.Novelty
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147112
+    m_Key: CharacterAI.Factor.PathConfidence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147113
+    m_Key: CharacterAI.Factor.Personality
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147114
+    m_Key: CharacterAI.Factor.Priority
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147115
+    m_Key: CharacterAI.Factor.Queue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147116
+    m_Key: CharacterAI.Factor.Reservation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147117
+    m_Key: CharacterAI.Factor.Risk
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147118
+    m_Key: CharacterAI.Factor.Room
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147119
+    m_Key: CharacterAI.Factor.Schedule
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147120
+    m_Key: CharacterAI.Factor.Social
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147121
+    m_Key: CharacterAI.Factor.Stock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147122
+    m_Key: CharacterAI.Factor.Weather
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147123
+    m_Key: CharacterAI.Intent.Active
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147124
+    m_Key: CharacterAI.Intent.Expiry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147125
+    m_Key: CharacterAI.Intent.Inactive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147126
+    m_Key: CharacterAI.Intent.InactiveWithBreak
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147127
+    m_Key: CharacterAI.Intent.Interruptible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147128
+    m_Key: CharacterAI.Intent.Minimum
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147129
+    m_Key: CharacterAI.Intent.NoExpiry
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147130
+    m_Key: CharacterAI.Intent.NoTarget
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147131
+    m_Key: CharacterAI.Intent.Target
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147132
+    m_Key: CharacterAI.Intention.Exit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147133
+    m_Key: CharacterAI.Intention.Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147134
+    m_Key: CharacterAI.Intention.Hunt
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147135
+    m_Key: CharacterAI.Intention.Idle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147136
+    m_Key: CharacterAI.Intention.Leisure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147137
+    m_Key: CharacterAI.Intention.Logistics
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147138
+    m_Key: CharacterAI.Intention.None
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147139
+    m_Key: CharacterAI.Intention.Recover
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147140
+    m_Key: CharacterAI.Intention.Shop
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147141
+    m_Key: CharacterAI.Intention.Social
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147142
+    m_Key: CharacterAI.Intention.Survive
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147143
+    m_Key: CharacterAI.Intention.Work
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147144
+    m_Key: CharacterAI.Reason.BaseScore
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147145
+    m_Key: CharacterAI.Reason.Diligence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147146
+    m_Key: CharacterAI.Reason.Enjoyment
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147147
+    m_Key: CharacterAI.Reason.Health
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147148
+    m_Key: CharacterAI.Reason.LightInteraction
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147149
+    m_Key: CharacterAI.Reason.MoodAndFun
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147150
+    m_Key: CharacterAI.Reason.NaturalMomentum
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147151
+    m_Key: CharacterAI.Reason.NearbyPeople
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147152
+    m_Key: CharacterAI.Reason.NoUrgentTask
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147153
+    m_Key: CharacterAI.Reason.PathConfidence
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147154
+    m_Key: CharacterAI.Reason.Queue
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147155
+    m_Key: CharacterAI.Reason.Queueing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147156
+    m_Key: CharacterAI.Reason.RecentFailure
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147157
+    m_Key: CharacterAI.Reason.RecentFlow
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147158
+    m_Key: CharacterAI.Reason.RiskCapacity
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147159
+    m_Key: CharacterAI.Reason.SurvivalStock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147160
+    m_Key: CharacterAI.Reason.WalkableWeather
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147161
+    m_Key: CharacterAI.Reason.Weather
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147162
+    m_Key: CharacterAI.Reason.WeatherBurden
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147163
+    m_Key: CharacterAI.Reason.WildlifeThreat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147164
+    m_Key: CharacterAI.Reason.WorkCapacity
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147165
+    m_Key: CharacterAI.Reason.WorkHours
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147166
+    m_Key: CharacterAI.Reason.WorkPriority
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147167
+    m_Key: CharacterAI.Time.Evening
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147168
+    m_Key: CharacterAI.Time.Morning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147169
+    m_Key: CharacterAI.Time.Night
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147170
+    m_Key: CharacterAI.Time.Noon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147171
+    m_Key: CharacterAI.Time.Unknown
+    m_Metadata:
+      m_Items: []
+  - m_Id: 406147172
+    m_Key: CharacterAI.WorldSignals.Compact
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 7737211745717977428
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211745717977428
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1785858633981

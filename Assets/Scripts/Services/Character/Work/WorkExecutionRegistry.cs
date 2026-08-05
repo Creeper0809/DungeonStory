@@ -93,7 +93,7 @@ public sealed class WorkExecutionContext
         LegacyWorkType = WorkTypeCatalog.TryGet(
                 workTypeId,
                 out WorkTypeDefinition definition)
-            ? definition.Type
+            ? FacilityWorkTypeMap.GetRequired(definition)
             : FacilityWorkType.None;
         WorkTypeId = workTypeId;
         this.executeWorkAmount = executeWorkAmount
@@ -390,6 +390,19 @@ public sealed class SurgeryStatPolicy : IWorkStatPolicy
 
     public IReadOnlyCollection<WorkTypeId> WorkTypeIds => WorkTypes;
 
+    private readonly ISurgeryQuery surgery;
+    private readonly ISurgicalProcedureCatalog procedures;
+
+    public SurgeryStatPolicy(
+        ISurgeryQuery surgery,
+        ISurgicalProcedureCatalog procedures)
+    {
+        this.surgery = surgery
+            ?? throw new ArgumentNullException(nameof(surgery));
+        this.procedures = procedures
+            ?? throw new ArgumentNullException(nameof(procedures));
+    }
+
     public float GetWorkSpeedMultiplier(
         CharacterActor actor,
         BuildableObject target)
@@ -397,6 +410,15 @@ public sealed class SurgeryStatPolicy : IWorkStatPolicy
         if (actor == null)
         {
             return 1f;
+        }
+
+        if (target != null
+            && surgery.TryGetWorkFor(target, out SurgeryOrder order)
+            && procedures.TryGet(order.procedureId, out SurgicalProcedureSO procedure))
+        {
+            return procedure.OperatorRequirement.GetWorkSpeedMultiplier(
+                actor,
+                procedure.Family);
         }
 
         float weightedSkill =
@@ -528,16 +550,18 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
 {
     private readonly IWorkStatPolicyRegistry policies;
     private readonly IFacilityEvolutionModifierQuery facilityEvolution;
-    private readonly IAutomationRuntime automation;
+    private readonly IAutomationInfrastructureQuery automation;
 
     public WorkAmountCalculator(
         IWorkStatPolicyRegistry policies,
-        IFacilityEvolutionModifierQuery facilityEvolution = null,
-        IAutomationRuntime automation = null)
+        IFacilityEvolutionModifierQuery facilityEvolution,
+        IAutomationInfrastructureQuery automation)
     {
         this.policies = policies ?? throw new ArgumentNullException(nameof(policies));
-        this.facilityEvolution = facilityEvolution;
-        this.automation = automation;
+        this.facilityEvolution = facilityEvolution
+            ?? throw new ArgumentNullException(nameof(facilityEvolution));
+        this.automation = automation
+            ?? throw new ArgumentNullException(nameof(automation));
     }
 
     public float CalculateWorkPerSecond(
@@ -556,12 +580,10 @@ public sealed class WorkAmountCalculator : IWorkAmountCalculator
             ? Mathf.Max(0.1f, actor.GetWorkSpeedMultiplier(definition.WorkTypeId))
             : 1f;
         float environment = 1f / Mathf.Max(0.1f, environmentDurationMultiplier);
-        float evolution = facilityEvolution?.GetWorkSpeedMultiplier(
-                target,
-                definition.WorkTypeId)
-            ?? 1f;
-        float poweredAssist = automation?.GetWorkSpeedMultiplier(target)
-            ?? 1f;
+        float evolution = facilityEvolution.GetWorkSpeedMultiplier(
+            target,
+            definition.WorkTypeId);
+        float poweredAssist = automation.GetWorkSpeedMultiplier(target);
         return Mathf.Clamp(
             statMultiplier
             * workSpeed

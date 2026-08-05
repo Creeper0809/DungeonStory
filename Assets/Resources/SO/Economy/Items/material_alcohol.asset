@@ -27,21 +27,28 @@ MonoBehaviour:
   description: "\uC220, \uC18C\uB3C5\uC81C\uC640 \uC5F0\uAE08 \uC6A9\uB9E4\uC758
     \uAE30\uBC18."
   stockCategory: 1
-  kind: 1
-  ingredientTags: 1
-  unitPrice: 6
-  marketSaleRate: 0.6
   unitWeight: 0.5
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:fermentation
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 6
+  features:
+  - rid: 7737211674039681036
+  - rid: 7737211674039681037
+  - rid: 7737211674039681038
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681036
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:fermentation
+    - rid: 7737211674039681037
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 1
+        ingredientTags: 1
+        sharedIntermediate: 1
+    - rid: 7737211674039681038
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

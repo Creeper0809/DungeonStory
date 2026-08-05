@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DungeonStory.Foundation;
 
 public interface ICharacterWorldQuery
@@ -60,11 +61,14 @@ public interface ICharacterAiWorldRegistry :
     void UnregisterWarehouse(IWarehouseFacility warehouse);
     void SetGrid(Grid grid);
     bool TryGetGrid(out Grid grid);
-    bool TryGetGameData(out GameData data);
+    bool TryGetSessionState(out GameSessionState data);
     void Clear();
 }
 
-public sealed class CharacterAiWorldRegistry : ICharacterAiWorldRegistry
+public sealed class CharacterAiWorldRegistry :
+    ICharacterAiWorldRegistry,
+    IBuildingWorldRegistryPort,
+    IBuildingCharacterDisplayQuery
 {
     private readonly ISceneRuntimeRegistry<CharacterActor> characters;
     private readonly ISceneRuntimeRegistry<CharacterActor> lifetimeCharacters =
@@ -73,7 +77,8 @@ public sealed class CharacterAiWorldRegistry : ICharacterAiWorldRegistry
     private readonly ISceneRuntimeRegistry<BuildableObject> buildings;
     private readonly ISceneRuntimeRegistry<IWarehouseFacility> warehouses;
     private readonly ISceneRuntimeRegistry<IRetailFacility> retailFacilities;
-    private readonly IGameDataProvider gameDataProvider;
+    private readonly IGameSessionStateProvider gameDataProvider;
+    private readonly IRestoreWorldCandidateQuery restoreCandidates;
     private Grid grid;
     private int gridVersion;
 
@@ -83,7 +88,8 @@ public sealed class CharacterAiWorldRegistry : ICharacterAiWorldRegistry
         ISceneRuntimeRegistry<BuildableObject> buildings,
         ISceneRuntimeRegistry<IWarehouseFacility> warehouses,
         ISceneRuntimeRegistry<IRetailFacility> retailFacilities,
-        IGameDataProvider gameDataProvider)
+        IGameSessionStateProvider gameDataProvider,
+        IRestoreWorldCandidateQuery restoreCandidates)
     {
         this.characters = characters ?? throw new ArgumentNullException(nameof(characters));
         this.wildlife = wildlife ?? throw new ArgumentNullException(nameof(wildlife));
@@ -92,6 +98,8 @@ public sealed class CharacterAiWorldRegistry : ICharacterAiWorldRegistry
         this.retailFacilities = retailFacilities
             ?? throw new ArgumentNullException(nameof(retailFacilities));
         this.gameDataProvider = gameDataProvider ?? throw new ArgumentNullException(nameof(gameDataProvider));
+        this.restoreCandidates = restoreCandidates
+            ?? throw new ArgumentNullException(nameof(restoreCandidates));
     }
 
     public int Version => unchecked(
@@ -101,39 +109,101 @@ public sealed class CharacterAiWorldRegistry : ICharacterAiWorldRegistry
         + wildlife.Version
         + buildings.Version
         + warehouses.Version
-        + retailFacilities.Version);
-    public int CharacterVersion => characters.Version;
-    public int LifetimeCharacterVersion => lifetimeCharacters.Version;
-    public int WildlifeVersion => wildlife.Version;
-    public int BuildingVersion => buildings.Version;
-    public int WarehouseVersion => warehouses.Version;
-    public int RetailVersion => retailFacilities.Version;
-    public IReadOnlyList<CharacterActor> Characters => characters.Entries;
+        + retailFacilities.Version
+        + restoreCandidates.Revision);
+    public int CharacterVersion => unchecked(
+        characters.Version + restoreCandidates.Revision);
+    public int LifetimeCharacterVersion => unchecked(
+        lifetimeCharacters.Version + restoreCandidates.Revision);
+    public int WildlifeVersion => unchecked(
+        wildlife.Version + restoreCandidates.Revision);
+    public int BuildingVersion => unchecked(
+        buildings.Version + restoreCandidates.Revision);
+    public int WarehouseVersion => unchecked(
+        warehouses.Version + restoreCandidates.Revision);
+    public int RetailVersion => unchecked(
+        retailFacilities.Version + restoreCandidates.Revision);
+    public IReadOnlyList<CharacterActor> Characters =>
+        restoreCandidates.TryGetCharacters(out IReadOnlyList<CharacterActor> candidates)
+            ? candidates
+            : characters.Entries;
     public IReadOnlyList<CharacterActor> AllCharacters =>
-        lifetimeCharacters.Entries;
-    public IReadOnlyList<WildlifeActor> Wildlife => wildlife.Entries;
-    public IReadOnlyList<BuildableObject> Buildings => buildings.Entries;
-    public IReadOnlyList<IWarehouseFacility> Warehouses => warehouses.Entries;
-    public IReadOnlyList<IRetailFacility> RetailFacilities => retailFacilities.Entries;
+        restoreCandidates.TryGetCharacters(out IReadOnlyList<CharacterActor> candidates)
+            ? candidates
+            : lifetimeCharacters.Entries;
+    public IReadOnlyList<WildlifeActor> Wildlife =>
+        restoreCandidates.TryGetWildlife(out IReadOnlyList<WildlifeActor> candidates)
+            ? candidates
+            : wildlife.Entries;
+    public IReadOnlyList<BuildableObject> Buildings =>
+        restoreCandidates.TryGetBuildings(out IReadOnlyList<BuildableObject> candidates)
+            ? candidates
+            : buildings.Entries;
+    IReadOnlyList<IBuildingWorldEntryPort> IBuildingWorldRegistryPort.Buildings => Buildings;
+    public IReadOnlyList<IWarehouseFacility> Warehouses =>
+        restoreCandidates.TryGetBuildings(out IReadOnlyList<BuildableObject> candidates)
+            ? FilterCandidateFacilities<IWarehouseFacility>(candidates)
+            : warehouses.Entries;
+    public IReadOnlyList<IRetailFacility> RetailFacilities =>
+        restoreCandidates.TryGetBuildings(out IReadOnlyList<BuildableObject> candidates)
+            ? FilterCandidateFacilities<IRetailFacility>(candidates)
+            : retailFacilities.Entries;
+
+    public bool TryGetDisplayName(
+        string persistentId,
+        out string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(persistentId))
+        {
+            throw new ArgumentException(
+                "Building character display lookup requires a persistent id.",
+                nameof(persistentId));
+        }
+
+        CharacterActor actor = Characters.FirstOrDefault(candidate =>
+            candidate != null
+            && string.Equals(
+                candidate.Identity?.PersistentId,
+                persistentId,
+                StringComparison.Ordinal));
+        displayName = actor?.Identity?.DisplayName ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(displayName);
+    }
 
     public void RegisterCharacter(CharacterActor actor)
     {
-        characters.Register(actor);
+        CharacterActor canonical = CharacterActorCollection.GetCanonical(actor);
+        if (canonical != null)
+        {
+            characters.Register(canonical);
+        }
     }
 
     public void UnregisterCharacter(CharacterActor actor)
     {
-        characters.Unregister(actor);
+        CharacterActor canonical = CharacterActorCollection.GetCanonical(actor);
+        if (canonical != null)
+        {
+            characters.Unregister(canonical);
+        }
     }
 
     public void RegisterCharacterLifetime(CharacterActor actor)
     {
-        lifetimeCharacters.Register(actor);
+        CharacterActor canonical = CharacterActorCollection.GetCanonical(actor);
+        if (canonical != null)
+        {
+            lifetimeCharacters.Register(canonical);
+        }
     }
 
     public void UnregisterCharacterLifetime(CharacterActor actor)
     {
-        lifetimeCharacters.Unregister(actor);
+        CharacterActor canonical = CharacterActorCollection.GetCanonical(actor);
+        if (canonical != null)
+        {
+            lifetimeCharacters.Unregister(canonical);
+        }
     }
 
     public void RegisterWildlife(WildlifeActor actor)
@@ -182,6 +252,40 @@ public sealed class CharacterAiWorldRegistry : ICharacterAiWorldRegistry
         }
     }
 
+    void IBuildingWorldRegistryPort.RegisterBuilding(IBuildingWorldEntryPort building)
+    {
+        if (building == null)
+        {
+            return;
+        }
+
+        if (building is not BuildableObject buildableObject)
+        {
+            throw new ArgumentException(
+                $"{nameof(IBuildingWorldRegistryPort)} only accepts {nameof(BuildableObject)} entries.",
+                nameof(building));
+        }
+
+        RegisterBuilding(buildableObject);
+    }
+
+    void IBuildingWorldRegistryPort.UnregisterBuilding(IBuildingWorldEntryPort building)
+    {
+        if (building == null)
+        {
+            return;
+        }
+
+        if (building is not BuildableObject buildableObject)
+        {
+            throw new ArgumentException(
+                $"{nameof(IBuildingWorldRegistryPort)} only accepts {nameof(BuildableObject)} entries.",
+                nameof(building));
+        }
+
+        UnregisterBuilding(buildableObject);
+    }
+
     public void RegisterWarehouse(IWarehouseFacility warehouse)
     {
         warehouses.Register(warehouse);
@@ -208,13 +312,18 @@ public sealed class CharacterAiWorldRegistry : ICharacterAiWorldRegistry
 
     public bool TryGetGrid(out Grid grid)
     {
+        if (restoreCandidates.TryGetGrid(out grid))
+        {
+            return true;
+        }
+
         grid = this.grid;
         return grid != null;
     }
 
-    public bool TryGetGameData(out GameData data)
+    public bool TryGetSessionState(out GameSessionState data)
     {
-        return gameDataProvider.TryGetGameData(out data);
+        return gameDataProvider.TryGetSessionState(out data);
     }
 
     public void Clear()
@@ -230,5 +339,22 @@ public sealed class CharacterAiWorldRegistry : ICharacterAiWorldRegistry
         {
             gridVersion++;
         }
+    }
+
+    private static IReadOnlyList<TFacility> FilterCandidateFacilities<TFacility>(
+        IReadOnlyList<BuildableObject> candidates)
+        where TFacility : class
+    {
+        List<TFacility> result = new List<TFacility>();
+        foreach (BuildableObject candidate in
+                 candidates ?? Array.Empty<BuildableObject>())
+        {
+            if (candidate is TFacility facility)
+            {
+                result.Add(facility);
+            }
+        }
+
+        return result;
     }
 }

@@ -27,15 +27,38 @@ MonoBehaviour:
   description: "\uBCD1\uBAA9\uACFC \uB300\uAE30 \uC6D0\uC778\uC744 \uBD84\uC11D\uD574
     \uBD84\uBC30 \uBE44\uC728\uC744 \uC870\uC815\uD55C\uB2E4."
   field: 15
-  requiredWork: 218
+  requiredWork: 960
   prerequisites:
   - {fileID: 11400000, guid: 957f0a8d21cf1c543b3497f4e0be1385, type: 2}
   - {fileID: 11400000, guid: 8a33cbe9c68d5094ba54d4d93738bd9f, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:industry:junctions
+    prerequisite: {fileID: 11400000, guid: 957f0a8d21cf1c543b3497f4e0be1385, type: 2}
+    kind: 2
+    reason: "\uBD84\uBC30\uC640 \uD569\uB958\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC0DD\uC0B0\uC120 \uADE0\uD615 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:industry:stock-sensors
+    prerequisite: {fileID: 11400000, guid: 8a33cbe9c68d5094ba54d4d93738bd9f, type: 2}
+    kind: 2
+    reason: "\uC7AC\uACE0 \uAC10\uC9C0\uAE30\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uC0DD\uC0B0\uC120 \uADE0\uD615 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
-    items: []
+    items:
+    - rid: 7737211730927813449
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 7737211730927813449
+      type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
+      data:
+        buildingId: 8829

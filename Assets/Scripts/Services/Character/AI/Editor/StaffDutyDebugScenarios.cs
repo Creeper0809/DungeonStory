@@ -36,24 +36,24 @@ public static class StaffDutyDebugScenarios
         RunScenario("Spawner exit handoff preserves recruited staff", VerifySpawnerExitHandoffPreservesRecruitedStaff, errors);
         RunScenario("On-duty injured expedition staff can use recovery rest", VerifyOnDutyExpeditionRecoveryRest, errors);
 
-        RunScenario("吏곸썝 珥덇린 而⑤뵒??蹂댁젙", VerifyWorkerInitialCondition, errors);
-        RunScenario("洹쇰Т ?쇰줈濡?鍮꾨쾲 ?꾪솚", VerifyWorkFatigueTriggersOffDuty, errors);
+        RunScenario("직원 초기 컨디션 보정", VerifyWorkerInitialCondition, errors);
+        RunScenario("근무 피로로 비번 전환", VerifyWorkFatigueTriggersOffDuty, errors);
         RunScenario("Critical fatigue enters off-duty instead of stuck rest protection", VerifyCriticalFatigueEntersOffDuty, errors);
-        RunScenario("鍮꾨쾲 諛⑸Ц ?ъ씠???쒖옉", VerifyOffDutyVisitCycle, errors);
-        RunScenario("吏곸썝 AI 鍮꾨쾲 ?됰룞 蹂닿컯", VerifyStaffBrainAddsOffDutyActions, errors);
-        RunScenario("?⑤???吏곸썝 援ш꼍 ?쒖쇅", VerifyOnDutyStaffDoesNotUseLookAround, errors);
+        RunScenario("비번 방문 사이클 시작", VerifyOffDutyVisitCycle, errors);
+        RunScenario("직원 AI 비번 행동 보강", VerifyStaffBrainAddsOffDutyActions, errors);
+        RunScenario("업무 중 직원 구경 행동 제외", VerifyOnDutyStaffDoesNotUseLookAround, errors);
         RunScenario("Owner keeps self-care but excludes discretionary visitor actions", VerifyOwnerSelfCareActionPolicy, errors);
-        RunScenario("鍮꾨쾲 吏곸썝 留ㅼ텧 ?쒖쇅", VerifyOffDutyStaffDoesNotCreateRevenue, errors);
-        RunScenario("湲닿툒 ?묒뾽 鍮꾨쾲 以묐떒", VerifyEmergencyCanInterruptOffDuty, errors);
+        RunScenario("비번 직원 매출 제외", VerifyOffDutyStaffDoesNotCreateRevenue, errors);
+        RunScenario("긴급 작업이 비번을 중단", VerifyEmergencyCanInterruptOffDuty, errors);
 
         RunScenario("Hunger interrupts work without forcing off-duty", VerifyHungerInterruptsWithoutForcingOffDuty, errors);
-        RunScenario("鍮꾨쾲 ?湲곕뒗 ?덇린瑜??뚮났?섏? ?딆쓬", VerifyWaitDoesNotRecoverHunger, errors);
-        RunScenario("?⑤????湲?吏곸썝 ?섏쟾 諛고쉶 寃쎈줈", VerifyOnDutyWaitCanWander, errors);
+        RunScenario("비번 대기는 허기를 회복하지 않음", VerifyWaitDoesNotRecoverHunger, errors);
+        RunScenario("업무 중 대기 직원의 순환 배회 경로", VerifyOnDutyWaitCanWander, errors);
         RunScenario("On-duty wait selects dungeon wander", VerifyOnDutyWaitSelectsDungeonWander, errors);
         RunScenario("Idle wander can use valid stairs", VerifyIdleWanderCanUseValidStairs, errors);
         RunScenario("Off-duty wait can wander", VerifyOffDutyWaitCanWander, errors);
         RunScenario("Occupied work wait uses dungeon wander", VerifyOccupiedWorkWaitUsesDungeonWander, errors);
-        RunScenario("Customer ???吏곸썝??吏곸썝 AI 洹쒖튃 ?곸슜", VerifyCustomerTypedWorkerUsesStaffRules, errors);
+        RunScenario("Customer 타입 직원도 직원 AI 규칙 적용", VerifyCustomerTypedWorkerUsesStaffRules, errors);
         RunScenario("Expedition return wakes staff work decision", VerifyExpeditionReturnWakesWorkDecision, errors);
 
         if (errors.Count > 0)
@@ -424,10 +424,10 @@ public static class StaffDutyDebugScenarios
         CharacterActor npcVisitor = CreateCustomer();
         npcVisitor.characterType = CharacterType.NPC;
 
-        bool valid = !Shop.CreatesRevenueFor(CharacterActor.From(staff))
-            && Shop.CreatesRevenueFor(CharacterActor.From(customer))
-            && Shop.CreatesRevenueFor(CharacterActor.From(npcVisitor))
-            && Shop.CreatesRevenueFor((CharacterActor)null);
+        bool valid = !Shop.CreatesRevenueFor(staff.BuildingVisitor)
+            && Shop.CreatesRevenueFor(customer.BuildingVisitor)
+            && Shop.CreatesRevenueFor(npcVisitor.BuildingVisitor)
+            && Shop.CreatesRevenueFor(null);
 
         Object.DestroyImmediate(staff.gameObject);
         Object.DestroyImmediate(customer.gameObject);
@@ -1103,6 +1103,8 @@ public static class StaffDutyDebugScenarios
     private static CharacterActor InitializeCharacterObject(GameObject obj, CharacterSO data)
     {
         CharacterAiEditorTestDependencies.Inject(obj);
+        obj.GetComponent<AbilityMove>()?.ConstructDoorAccessQuery(
+            OpenDoorAccessQuery.Instance);
         CharacterActor character = obj.GetComponent<CharacterActor>();
         typeof(CharacterActor)
             .GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -1118,6 +1120,35 @@ public static class StaffDutyDebugScenarios
         }
         character.SetLifecycleState(CharacterLifecycleState.Active);
         return character;
+    }
+
+    private sealed class OpenDoorAccessQuery : IDoorAccessQuery
+    {
+        public static readonly OpenDoorAccessQuery Instance = new();
+
+        public int DoorAccessVersion => 0;
+
+        public DoorAccessSubjectRef ResolveSubject(GridTraversalContext context) =>
+            default;
+
+        public bool CanUse(
+            Door door,
+            GridTraversalContext context,
+            out string denialReason)
+        {
+            denialReason = string.Empty;
+            return true;
+        }
+
+        public bool CanTraverse(
+            Grid grid,
+            Vector2Int position,
+            GridTraversalContext context,
+            out string denialReason)
+        {
+            denialReason = string.Empty;
+            return true;
+        }
     }
 
     private static bool IsAdjacentWalkPath(Queue<GridMoveStep> path)
@@ -1252,7 +1283,7 @@ public static class StaffDutyDebugScenarios
             buildingData.height = 1;
             buildingData.layer = GridLayer.Building;
             buildingData.category = BuildingCategory.None;
-            buildingData.type = typeof(Door);
+            buildingData.runtimeArchetype = BuildingRuntimeArchetypeKind.Door;
             buildingData.unlocked = true;
             buildingData.Facility = new FacilityData();
 
@@ -1299,7 +1330,9 @@ public static class StaffDutyDebugScenarios
         public bool IsGridMovement => true;
         public GridMoveType GridMoveType => GridMoveType.Stair;
 
-        public System.Collections.IEnumerator Traverse(CharacterActor actor, GridMoveStep step)
+        public System.Collections.IEnumerator Traverse(
+            IBuildingVisitorPort actor,
+            GridMoveStep step)
         {
             yield break;
         }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DungeonStory.Foundation;
 using UnityEngine;
 using VContainer;
@@ -46,15 +46,7 @@ public class InvasionThreatRuntime : MonoBehaviour
 
     [SerializeField] private InvasionThreatSettings settings = new InvasionThreatSettings();
 
-    private float currentThreat;
-    private float secondsSinceLastInvasion;
-    private float safetyRemaining;
-    private float candidateDelayRemaining = -1f;
-    private float warningCooldownRemaining;
-    private bool warningRaisedThisCycle;
-    private bool candidateRaisedThisCycle;
-    private float residualRisk;
-    private InvasionThreatFactors lastFactors;
+    private InvasionAggregateStateStore aggregateStateStore;
     private float endlessDefenseThreatMultiplier = 1f;
     private IInvasionThreatWorldSampler worldSampler;
     private IRunVariableRuntimeReader runVariableReader;
@@ -62,10 +54,62 @@ public class InvasionThreatRuntime : MonoBehaviour
     private IGameClock gameClock;
     private IGameEventBus gameEventBus;
     private IWorldThreatModifierQuery worldThreatModifiers;
+    private IExperiencePacingRuntime experiencePacing;
     private IDisposable invasionStartedSubscription;
     private IDisposable invasionResolvedSubscription;
     private IDisposable operatingDayStartedSubscription;
     private IRandomStream randomStream;
+
+    private InvasionThreatAggregateState State =>
+        (aggregateStateStore
+            ?? throw new InvalidOperationException(
+                $"{nameof(InvasionThreatRuntime)} is not constructed."))
+        .Threat;
+    private float currentThreat
+    {
+        get => State.CurrentThreat;
+        set => State.CurrentThreat = value;
+    }
+    private float secondsSinceLastInvasion
+    {
+        get => State.SecondsSinceLastInvasion;
+        set => State.SecondsSinceLastInvasion = value;
+    }
+    private float safetyRemaining
+    {
+        get => State.SafetyRemaining;
+        set => State.SafetyRemaining = value;
+    }
+    private float candidateDelayRemaining
+    {
+        get => State.CandidateDelayRemaining;
+        set => State.CandidateDelayRemaining = value;
+    }
+    private float warningCooldownRemaining
+    {
+        get => State.WarningCooldownRemaining;
+        set => State.WarningCooldownRemaining = value;
+    }
+    private bool warningRaisedThisCycle
+    {
+        get => State.WarningRaisedThisCycle;
+        set => State.WarningRaisedThisCycle = value;
+    }
+    private bool candidateRaisedThisCycle
+    {
+        get => State.CandidateRaisedThisCycle;
+        set => State.CandidateRaisedThisCycle = value;
+    }
+    private float residualRisk
+    {
+        get => State.ResidualRisk;
+        set => State.ResidualRisk = value;
+    }
+    private InvasionThreatFactors lastFactors
+    {
+        get => State.LastFactors;
+        set => State.LastFactors = value;
+    }
 
     public float CurrentThreat => currentThreat;
     public float SafetyRemaining => safetyRemaining;
@@ -125,7 +169,9 @@ public class InvasionThreatRuntime : MonoBehaviour
         IGameClock gameClock,
         IGameEventBus gameEventBus,
         IRandomStreamProvider randomStreamProvider,
-        IWorldThreatModifierQuery worldThreatModifiers = null)
+        IWorldThreatModifierQuery worldThreatModifiers,
+        IExperiencePacingRuntime experiencePacing,
+        InvasionAggregateStateStore aggregateStateStore)
     {
         this.worldSampler = worldSampler
             ?? throw new ArgumentNullException(nameof(worldSampler));
@@ -138,6 +184,9 @@ public class InvasionThreatRuntime : MonoBehaviour
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.worldThreatModifiers = worldThreatModifiers;
+        this.experiencePacing = experiencePacing;
+        this.aggregateStateStore = aggregateStateStore
+            ?? throw new ArgumentNullException(nameof(aggregateStateStore));
         randomStream = (randomStreamProvider
             ?? throw new ArgumentNullException(nameof(randomStreamProvider)))
             .Get("invasion-threat");
@@ -175,6 +224,12 @@ public class InvasionThreatRuntime : MonoBehaviour
         if (safetyRemaining > 0f)
         {
             safetyRemaining = Mathf.Max(0f, safetyRemaining - safeDelta);
+            secondsSinceLastInvasion += safeDelta;
+            return;
+        }
+
+        if (experiencePacing != null && !experiencePacing.AllowsRandomInvasion)
+        {
             secondsSinceLastInvasion += safeDelta;
             return;
         }
@@ -220,6 +275,13 @@ public class InvasionThreatRuntime : MonoBehaviour
 
     public bool ForceCandidateNow()
     {
+        return ForceCandidateNow(
+            "최종 침공 임박",
+            "던전의 운명을 가를 적이 입구로 접근하고 있습니다.");
+    }
+
+    public bool ForceCandidateNow(string title, string detail)
+    {
         if (settings == null || candidateRaisedThisCycle)
         {
             return false;
@@ -238,8 +300,10 @@ public class InvasionThreatRuntime : MonoBehaviour
         InvasionThreatSnapshot snapshot = BuildSnapshot();
         gameEventBus.Publish(new InvasionCandidateEvent(snapshot));
         gameEventBus.RaiseAlert(
-            "최종 침공 임박",
-            "던전의 운명을 가를 적이 입구로 접근하고 있습니다.",
+            string.IsNullOrWhiteSpace(title) ? "침입 임박" : title,
+            string.IsNullOrWhiteSpace(detail)
+                ? InvasionThreatCalculator.BuildCandidateDetail(snapshot)
+                : detail,
             EventAlertImportance.High,
             "침입");
         return true;
@@ -261,6 +325,7 @@ public class InvasionThreatRuntime : MonoBehaviour
 
     public void OnTriggerEvent(OperatingDayStartedEvent eventType)
     {
+        experiencePacing?.AdvanceToDay(eventType.day);
         if (eventType.day <= PreparationEndDay)
         {
             if (settings != null)
@@ -270,6 +335,11 @@ public class InvasionThreatRuntime : MonoBehaviour
                     settings.GetInitialSafetyDuration());
             }
 
+            return;
+        }
+
+        if (experiencePacing != null && !experiencePacing.AllowsRandomInvasion)
+        {
             return;
         }
 
@@ -324,6 +394,10 @@ public class InvasionThreatRuntime : MonoBehaviour
 
     private void TryRaiseWarning()
     {
+        if (experiencePacing != null && !experiencePacing.AllowsRandomInvasion)
+        {
+            return;
+        }
         float thresholdMultiplier = GetWarningThresholdMultiplier();
         float warningThreshold = settings != null
             ? settings.warningThreshold * Mathf.Max(0.05f, thresholdMultiplier)
@@ -350,7 +424,9 @@ public class InvasionThreatRuntime : MonoBehaviour
 
     private void TickCandidateDelay(float deltaTime)
     {
-        if (settings == null || candidateRaisedThisCycle)
+        if (settings == null
+            || candidateRaisedThisCycle
+            || (experiencePacing != null && !experiencePacing.AllowsRandomInvasion))
         {
             return;
         }

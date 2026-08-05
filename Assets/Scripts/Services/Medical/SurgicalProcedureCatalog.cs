@@ -7,9 +7,9 @@ public sealed class ResourceSurgicalProcedureCatalog : ISurgicalProcedureCatalog
     private readonly IReadOnlyList<SurgicalProcedureSO> procedures;
     private readonly IReadOnlyDictionary<string, SurgicalProcedureSO> byId;
 
-    public ResourceSurgicalProcedureCatalog(IResourcesAssetLoader resources)
-        : this(resources?.LoadAllOptional<SurgicalProcedureSO>(
-            SurgicalProcedureSO.ResourcePath))
+    public ResourceSurgicalProcedureCatalog(IGameContentCatalog content)
+        : this((content ?? throw new ArgumentNullException(nameof(content)))
+            .GetAll<SurgicalProcedureSO>())
     {
     }
 
@@ -57,6 +57,9 @@ public sealed class ResourceSurgicalProcedureCatalog : ISurgicalProcedureCatalog
             {
                 errors.Add($"{procedure.ProcedureId}: 수술 효과가 없습니다.");
             }
+
+            errors.AddRange(
+                procedure.OperatorRequirement.Validate(procedure.ProcedureId));
 
             foreach (SurgicalMaterialRequirement material in
                      procedure.Materials ?? Array.Empty<SurgicalMaterialRequirement>())

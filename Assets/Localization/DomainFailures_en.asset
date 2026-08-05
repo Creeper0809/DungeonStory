@@ -1,0 +1,1313 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: DomainFailures_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: e35a33f9183c68c4186aeb6d15ce08e8, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 1173710338
+    m_Localized: Already processed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704810
+    m_Localized: Anesthesia in progress.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949080608768
+    m_Localized: The automation facility is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163200
+    m_Localized: Automation is stopped by a facility fault.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163201
+    m_Localized: Maintenance is required before automation can resume.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163202
+    m_Localized: This facility does not support the selected automation mode.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163203
+    m_Localized: Automation is waiting for power.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704822
+    m_Localized: Cancelled.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710208
+    m_Localized: 'Ambulatory patients cannot use rescue medical orders. Patient:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710212
+    m_Localized: 'No treatment bed is available. Order: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710213
+    m_Localized: 'The treatment destination is unavailable. Order: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710210
+    m_Localized: 'The medical facility is reserved for another patient. Facility:
+      {0}, patient: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710209
+    m_Localized: 'This medical facility cannot receive the patient. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710207
+    m_Localized: 'The patient has no injury requiring treatment. Patient: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710206
+    m_Localized: 'A treatment order could not be created for the patient. Patient:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710205
+    m_Localized: 'The medical order could not be found. Order: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710204
+    m_Localized: 'The medical order is unavailable. Patient or order: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710203
+    m_Localized: Character medical participants invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710202
+    m_Localized: Character medical patient unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710216
+    m_Localized: 'The patient''s restore position is occupied. Position: ({0}, {1})'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710215
+    m_Localized: 'The patient''s restore position is invalid or duplicated. Patient:
+      {0}, position: ({1}, {2})'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710201
+    m_Localized: Character medical rescuer unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710214
+    m_Localized: 'The rescuer does not own the medical-order reservation. Order:
+      {0}, rescuer: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710200
+    m_Localized: Character medical runtime unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710211
+    m_Localized: 'Field stabilization is required before transport. Order: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710310
+    m_Localized: Character medical status additional treatment required.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710307
+    m_Localized: Character medical status awaiting bed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710315
+    m_Localized: Character medical status awaiting extracted blood delivery.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710314
+    m_Localized: Character medical status awaiting medicine delivery.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710304
+    m_Localized: Character medical status awaiting rescue.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710300
+    m_Localized: Character medical status awaiting stabilization.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710318
+    m_Localized: Character medical status cancelled.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710306
+    m_Localized: Character medical status carrying.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710329
+    m_Localized: Character medical status manual rescue assigned.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710316
+    m_Localized: Character medical status medicine ready.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710321
+    m_Localized: Character medical status patient died.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710319
+    m_Localized: Character medical status patient missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710326
+    m_Localized: Character medical status patient path unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710301
+    m_Localized: Character medical status preparing stabilization.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710305
+    m_Localized: Character medical status preparing transfer.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710323
+    m_Localized: Character medical status rescue interrupted.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710322
+    m_Localized: Character medical status rescuer died.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710320
+    m_Localized: Character medical status rescuer missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710317
+    m_Localized: Character medical status reservation released.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710328
+    m_Localized: Character medical status restarted.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710324
+    m_Localized: Character medical status stabilization interrupted.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710303
+    m_Localized: Character medical status stabilized with infection risk.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710302
+    m_Localized: Character medical status stabilizing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710313
+    m_Localized: Character medical status supply unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710308
+    m_Localized: Character medical status treating.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710309
+    m_Localized: Character medical status treating with extracted blood.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710311
+    m_Localized: Character medical status treatment completed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710325
+    m_Localized: Character medical status treatment interrupted.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710327
+    m_Localized: Character medical status treatment path unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710312
+    m_Localized: Character medical status treatment requested.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710331
+    m_Localized: Character missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710341
+    m_Localized: 'This species cannot be recharged. Species: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710342
+    m_Localized: 'This species cannot receive integrity maintenance. Species: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710340
+    m_Localized: 'The character species state is unavailable. Character: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704818
+    m_Localized: Completed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704820
+    m_Localized: Completed with major failure.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704819
+    m_Localized: Completed with minor failure.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163204
+    m_Localized: The conveyor destination is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163205
+    m_Localized: The cargo does not match the conveyor filter.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163206
+    m_Localized: Manual approval is required for overflow discharge.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163207
+    m_Localized: The conveyor payload no longer exists.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949114163208
+    m_Localized: The conveyor port is full.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357504
+    m_Localized: No compatible conveyor port is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357505
+    m_Localized: No conveyor route is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357506
+    m_Localized: The requested cargo is outside conveyor range.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357507
+    m_Localized: The requested cargo is already reserved.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357508
+    m_Localized: The requested conveyor cargo is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357509
+    m_Localized: The conveyor transit reservation does not own this cargo.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704806
+    m_Localized: Corpse ready.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704807
+    m_Localized: Corpse transport pending.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710337
+    m_Localized: Delivery pending.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704823
+    m_Localized: Doctor replacement requested.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704729
+    m_Localized: Dread defense already armed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704830
+    m_Localized: "Emergency surgery continuing \xB7 temperature {2:0.#}\xB0C \xB7
+      air {3:0.#} \xB7 light {4:0.#}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710101
+    m_Localized: 'New cold-storage work cannot be assigned until exposure falls below
+      the recovery threshold. Current exposure: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710002
+    m_Localized: 'No reachable evacuation cell is available. Character: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710001
+    m_Localized: Environment evacuation context invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710103
+    m_Localized: 'Predicted environmental exposure is critical. Hazard cell: ({0},
+      {1}), stage: {2}, cold: {3}, heat: {4}, air: {5}, visibility: {6}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710102
+    m_Localized: Environment protection insufficient.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704828
+    m_Localized: Environment recovery idle.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704829
+    m_Localized: 'Environmental recovery tasks requested: {5}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704827
+    m_Localized: "Environment restored \xB7 next stage {6}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704826
+    m_Localized: "Stabilizing environment \xB7 {2:0.0}/5.0 sec"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710000
+    m_Localized: 'A target temperature cannot be set at this facility position. Position:
+      ({0}, {1})'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704825
+    m_Localized: "Environmental recovery required \xB7 temperature {2:0.#}\xB0C \xB7
+      air {3:0.#} \xB7 light {4:0.#}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710100
+    m_Localized: Environment work target unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710003
+    m_Localized: Environment workwear character missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710004
+    m_Localized: 'The environmental workwear definition is missing. Equipment: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710009
+    m_Localized: 'The environmental workwear has no physical instance ID. Stack:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710010
+    m_Localized: 'No reachable workwear locker is near the route. Destination: ({0},
+      {1})'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710011
+    m_Localized: 'The character is not wearing environmental protection. Character:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710014
+    m_Localized: 'The environmental workwear output could not be spawned. Item: {0},
+      quantity: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710012
+    m_Localized: 'The equipped environmental workwear item is missing. Instance:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710013
+    m_Localized: 'The environmental workwear production request is invalid. Item:
+      {0}, quantity: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710006
+    m_Localized: 'The required environmental workwear research is incomplete. Research:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710005
+    m_Localized: Equipment {0} cannot be worn by species {1}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710007
+    m_Localized: 'No environmental workwear stock is available. Query: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710008
+    m_Localized: 'The environmental workwear could not be transferred. Item: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704704
+    m_Localized: Equipment definition missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704705
+    m_Localized: Equipment instance missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704713
+    m_Localized: Equipment lineage mismatch.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704706
+    m_Localized: Equipment module missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704707
+    m_Localized: Equipment or module missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704734
+    m_Localized: The site expired on Day {0}; payment was cancelled.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704731
+    m_Localized: Expedition site id missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704737
+    m_Localized: External influence unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704735
+    m_Localized: External payment rejected.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710332
+    m_Localized: Facility missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704824
+    m_Localized: Facility unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704821
+    m_Localized: Failed fatal.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357510
+    m_Localized: The clean-water supply is insufficient.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357511
+    m_Localized: Fluid-network maintenance cannot be performed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357512
+    m_Localized: Manual water supply is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357513
+    m_Localized: No compatible fluid network is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357514
+    m_Localized: Wastewater storage or drainage is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704718
+    m_Localized: History source has modules.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704719
+    m_Localized: History transfer already active.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704722
+    m_Localized: History transfer equipment missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704721
+    m_Localized: History transfer order missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704723
+    m_Localized: History transfer seal missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704724
+    m_Localized: Hostile rumor unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704813
+    m_Localized: Incision in progress.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357515
+    m_Localized: The industrial facility is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357516
+    m_Localized: The industrial command is invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357517
+    m_Localized: The conveyor network is deadlocked.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357518
+    m_Localized: The conveyor destination is full.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357519
+    m_Localized: The cargo does not match the conveyor filter.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357520
+    m_Localized: Overflow discharge requires manual approval.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357521
+    m_Localized: No conveyor route is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357522
+    m_Localized: Waiting for input delivery.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357523
+    m_Localized: Maintenance is required.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357524
+    m_Localized: Waiting for output space.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357525
+    m_Localized: The output target has been reached.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357526
+    m_Localized: Waiting for power.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357527
+    m_Localized: Production materials are unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357528
+    m_Localized: No production order is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357529
+    m_Localized: Production output is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357530
+    m_Localized: Storage capacity is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704730
+    m_Localized: Insufficient dread. Available {0} / required {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704728
+    m_Localized: Insufficient gold. Available {0} / required {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704727
+    m_Localized: Insufficient renown. Available {0} / required {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704732
+    m_Localized: Insufficient scouting labor. Available {0} / required {1}
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710330
+    m_Localized: Invalid command.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710333
+    m_Localized: Item definition missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710335
+    m_Localized: Item not consumable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710334
+    m_Localized: Item stack missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357531
+    m_Localized: The reserved item could not be consumed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357532
+    m_Localized: The item-transfer destination is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357533
+    m_Localized: The item transfer could not be requested.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357534
+    m_Localized: The item stack is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704720
+    m_Localized: Lineage seal missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704808
+    m_Localized: Materials delivery pending.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704717
+    m_Localized: Module already attached.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704714
+    m_Localized: Module lineage mismatch.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704715
+    m_Localized: Module needs restoration.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704716
+    m_Localized: Module needs rune tuning.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704709
+    m_Localized: Module not restorable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704710
+    m_Localized: Module not tunable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704708
+    m_Localized: Module not unidentified.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704712
+    m_Localized: Module slot {0} has no module to remove.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704711
+    m_Localized: This equipment has no module slot {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704736
+    m_Localized: 'This expedition target has not been discovered: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704725
+    m_Localized: Operating day not started.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704812
+    m_Localized: Operation started.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704799
+    m_Localized: Patient admission cell missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704792
+    m_Localized: Patient admission waiting.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704794
+    m_Localized: Patient admitted.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704796
+    m_Localized: Patient current move pending.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704793
+    m_Localized: Patient missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704795
+    m_Localized: Patient moving to surgery.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704811
+    m_Localized: Patient restraint in progress.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704798
+    m_Localized: Patient restraint required.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704797
+    m_Localized: Patient transport by rescuer.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710339
+    m_Localized: Physical consumption failed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710336
+    m_Localized: Policy forbidden.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357535
+    m_Localized: The circuit breaker is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357536
+    m_Localized: The power consumer is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704834
+    m_Localized: Prison return completed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704833
+    m_Localized: Prison return in progress.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704814
+    m_Localized: Procedure in progress.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704832
+    m_Localized: Procedure interrupted open wound.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704831
+    m_Localized: Procedure paused.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704809
+    m_Localized: Process fluid unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357537
+    m_Localized: The production batch was ruined.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357538
+    m_Localized: The production order is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357539
+    m_Localized: Another worker has reserved this production order.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357540
+    m_Localized: The production order is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357541
+    m_Localized: No output distribution route is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357542
+    m_Localized: The production facility is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357543
+    m_Localized: Required production materials are missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357544
+    m_Localized: There is no reserved output space.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357545
+    m_Localized: The production output cannot be created.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357546
+    m_Localized: The production batch is still in progress.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357547
+    m_Localized: The production recipe is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357548
+    m_Localized: The required research is not complete.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357549
+    m_Localized: A stock sensor is required for this order mode.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357550
+    m_Localized: Required production support is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357551
+    m_Localized: The target stock level is already satisfied.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357552
+    m_Localized: Required utilities are unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357553
+    m_Localized: This workstation cannot run the selected recipe.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357554
+    m_Localized: The production workstation is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704817
+    m_Localized: Recovery completed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704816
+    m_Localized: Recovery observation.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1135955968
+    m_Localized: 'Required research or facility is unavailable. Research: {0}, facility:
+      {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704726
+    m_Localized: Rumors have already been mitigated on Day {0}.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704742
+    m_Localized: Service actor already active.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704741
+    m_Localized: Service capacity full.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704738
+    m_Localized: Service closed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704748
+    m_Localized: 'A required connected facility is missing from the room: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704740
+    m_Localized: Service hub unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704747
+    m_Localized: Service mode unsupported.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704743
+    m_Localized: Process {0} has no {1} operations contract.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704739
+    m_Localized: Service process id missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704744
+    m_Localized: Service session missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704746
+    m_Localized: Service stage incomplete.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704745
+    m_Localized: Stage {0} is not allowed by the current contract.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704749
+    m_Localized: 'The support facility has no power: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704763
+    m_Localized: 'This surgery does not support the anatomy family. Family: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704766
+    m_Localized: Surgery construct procedure biological mismatch.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704765
+    m_Localized: Surgery construct procedure required.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704770
+    m_Localized: 'The target corpse item could not be found. Corpse: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704771
+    m_Localized: Surgery corpse stale.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704782
+    m_Localized: 'Another surgeon is already operating. Surgeon: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704787
+    m_Localized: 'The surgery effect failed. Effect: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704786
+    m_Localized: 'The surgery effect is not registered. Effect: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710015
+    m_Localized: 'The surgery environment is unsafe. Order: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704791
+    m_Localized: 'An extraction is already recorded for this node. Corpse: {0}, node:
+      {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704756
+    m_Localized: 'The surgery facility could not be found. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704783
+    m_Localized: Surgery facility or procedure missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704757
+    m_Localized: 'The surgery facility is unavailable. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704773
+    m_Localized: 'The living surgery subject could not be found. Subject: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704785
+    m_Localized: 'The surgery material is unavailable. Item: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704772
+    m_Localized: 'The target anatomy node has already been extracted. Node: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704779
+    m_Localized: Surgery operator ineligible.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704776
+    m_Localized: Surgery operator missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704778
+    m_Localized: 'Surgeon skill is insufficient. Required: {0}, current: {1}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704777
+    m_Localized: 'Surgeon stat is insufficient. Stat: {0}, required: {1}, current:
+      {2}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704758
+    m_Localized: 'No actionable surgery order was found. Order: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710016
+    m_Localized: 'The surgery outcome failed. Severity: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704760
+    m_Localized: Surgery part kind mismatch.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704761
+    m_Localized: Surgery part node mismatch.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704759
+    m_Localized: Surgery part unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704753
+    m_Localized: 'The preferred surgeon could not be found or assigned. Surgeon:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704781
+    m_Localized: 'Only the preferred surgeon may perform this operation. Surgeon:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704751
+    m_Localized: 'The surgery procedure could not be found. Procedure: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704769
+    m_Localized: 'Required surgery research is incomplete. Research: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704768
+    m_Localized: Surgery research state unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704784
+    m_Localized: 'This is not the reserved surgeon. Surgeon: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710019
+    m_Localized: "Environment accumulated {9} stage(s) \xB7 success -{5:P1} \xB7
+      infection +{6:P1} \xB7 bleeding +{7:P1} \xB7 organ damage +{8:P1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710018
+    m_Localized: "Success {0:P1} \xB7 infection {1:P1} \xB7 bleeding {2:P1} \xB7
+      organ damage {3:P1} \xB7 death {4:P1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710017
+    m_Localized: Surgery risk procedure missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704754
+    m_Localized: Surgery self operation forbidden.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704764
+    m_Localized: 'This surgery does not support the species. Species: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704780
+    m_Localized: Surgery staff only.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704755
+    m_Localized: 'The subject already has an active surgery order. Subject: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704750
+    m_Localized: Surgery subject invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704762
+    m_Localized: Surgery subject kind unsupported.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704752
+    m_Localized: '{0} requires maintenance rather than biological surgery.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704767
+    m_Localized: Surgery target node missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704775
+    m_Localized: 'The subject does not have the target anatomy node. Node: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704789
+    m_Localized: 'This is not the reserved carrier. Carrier: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704788
+    m_Localized: 'The wildlife patient transport order could not be found. Order:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704790
+    m_Localized: 'The wildlife patient cannot be transported. Subject: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704774
+    m_Localized: 'The living wildlife surgery subject could not be found. Subject:
+      {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710348
+    m_Localized: 'This facility cannot cook. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710349
+    m_Localized: 'Insufficient cooking ingredients. Required quantity: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710350
+    m_Localized: 'Insufficient fuel. Required quantity: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710347
+    m_Localized: 'There is no space for the output. Item: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710354
+    m_Localized: 'This facility cannot be refueled. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710343
+    m_Localized: Survival target facility missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710353
+    m_Localized: Survival treatment material missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710352
+    m_Localized: 'There is no treatment target. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710351
+    m_Localized: 'This facility cannot provide treatment. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710346
+    m_Localized: 'Cold weather has blocked the water supply. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710345
+    m_Localized: 'This facility cannot provide water. Facility: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173710344
+    m_Localized: 'This survival task is unsupported. Task: {0}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704815
+    m_Localized: Suturing in progress.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704733
+    m_Localized: Trail charm missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357555
+    m_Localized: No delivered waste feed is available in the destination buffer.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357556
+    m_Localized: Waste feed delivery could not be requested.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357557
+    m_Localized: No safe waste feed matches the current policy.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357558
+    m_Localized: The waste policy is invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 776949118357559
+    m_Localized: This waste origin does not support the selected disposition.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704800
+    m_Localized: Wildlife patient missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704801
+    m_Localized: Wildlife patient ready.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704804
+    m_Localized: Wildlife patient return completed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704803
+    m_Localized: Wildlife patient returning.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704802
+    m_Localized: Wildlife patient transporting.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1173704805
+    m_Localized: Wildlife restraint required.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 931359404412928
+    m_Localized: No run result is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 931359471521792
+    m_Localized: Next run
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550472040448
+    m_Localized: Automatic control is unavailable for this defense facility.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789184
+    m_Localized: The defense facility is in critical condition.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789185
+    m_Localized: The defense facility is cooling down.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789186
+    m_Localized: The defense facility has been destroyed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789187
+    m_Localized: The defense facility is unavailable.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789188
+    m_Localized: Waiting for maintenance parts to be delivered.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789189
+    m_Localized: The required maintenance part is missing.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789190
+    m_Localized: Manual activation is required.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789191
+    m_Localized: The defense facility is mechanically jammed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789192
+    m_Localized: The defense facility is not jammed.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789193
+    m_Localized: Some of the defense facility's shots misfired.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789194
+    m_Localized: This defense facility cannot use that physical supply.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789195
+    m_Localized: The defense facility has no power.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789196
+    m_Localized: The requested repair amount is invalid.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789197
+    m_Localized: The defense supply buffer is full.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789198
+    m_Localized: Waiting for defense supplies to be delivered.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789199
+    m_Localized: No compatible defense supply is available.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789200
+    m_Localized: This defense facility cannot target the selected unit.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789201
+    m_Localized: This defense facility does not support that trigger mode.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1145550509789202
+    m_Localized: A dedicated equipment progression facility is required.
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

@@ -5,10 +5,77 @@ using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
+public sealed class WorkTaskCoreDependencies
+{
+    public WorkTaskCoreDependencies(
+        AbilityWork work,
+        WorkTargetSelector targetSelector,
+        IGameClock gameClock,
+        IDungeonDebugRuleQuery debugRules)
+    {
+        Work = work ?? throw new ArgumentNullException(nameof(work));
+        TargetSelector = targetSelector ?? throw new ArgumentNullException(nameof(targetSelector));
+        GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        DebugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
+    }
+
+    public AbilityWork Work { get; }
+    public WorkTargetSelector TargetSelector { get; }
+    public IGameClock GameClock { get; }
+    public IDungeonDebugRuleQuery DebugRules { get; }
+}
+
+public sealed class WorkTaskExecutionDependencies
+{
+    public WorkTaskExecutionDependencies(
+        IWorkExecutionHandlerRegistry executionHandlers,
+        IWorkOrderRuntime workOrderRuntime,
+        IWorkAmountCalculator workAmountCalculator,
+        IPaidFacilityContractRuntime paidFacilityContracts)
+    {
+        ExecutionHandlers = executionHandlers
+            ?? throw new ArgumentNullException(nameof(executionHandlers));
+        WorkOrderRuntime = workOrderRuntime
+            ?? throw new ArgumentNullException(nameof(workOrderRuntime));
+        WorkAmountCalculator = workAmountCalculator
+            ?? throw new ArgumentNullException(nameof(workAmountCalculator));
+        PaidFacilityContracts = paidFacilityContracts
+            ?? throw new ArgumentNullException(nameof(paidFacilityContracts));
+    }
+
+    public IWorkExecutionHandlerRegistry ExecutionHandlers { get; }
+    public IWorkOrderRuntime WorkOrderRuntime { get; }
+    public IWorkAmountCalculator WorkAmountCalculator { get; }
+    public IPaidFacilityContractRuntime PaidFacilityContracts { get; }
+}
+
+public sealed class WorkTaskEnvironmentDependencies
+{
+    public WorkTaskEnvironmentDependencies(
+        IRoomEnvironmentExperienceService roomEnvironmentExperienceService,
+        ICharacterEnvironmentWorkContext characterEnvironment,
+        IEnvironmentalWorkwearCommand environmentalWorkwearCommands,
+        IEnvironmentWorkPolicy environmentWorkPolicy)
+    {
+        RoomEnvironmentExperienceService = roomEnvironmentExperienceService
+            ?? throw new ArgumentNullException(nameof(roomEnvironmentExperienceService));
+        CharacterEnvironment = characterEnvironment
+            ?? throw new ArgumentNullException(nameof(characterEnvironment));
+        EnvironmentalWorkwearCommands = environmentalWorkwearCommands
+            ?? throw new ArgumentNullException(nameof(environmentalWorkwearCommands));
+        EnvironmentWorkPolicy = environmentWorkPolicy
+            ?? throw new ArgumentNullException(nameof(environmentWorkPolicy));
+    }
+
+    public IRoomEnvironmentExperienceService RoomEnvironmentExperienceService { get; }
+    public ICharacterEnvironmentWorkContext CharacterEnvironment { get; }
+    public IEnvironmentalWorkwearCommand EnvironmentalWorkwearCommands { get; }
+    public IEnvironmentWorkPolicy EnvironmentWorkPolicy { get; }
+}
+
 public sealed class WorkTaskExecutor
 {
     private const float RestockPickupWaitSeconds = 0.35f;
-    private const float MinimumNaturalExteriorWorkSeconds = 3.2f;
 
     private readonly AbilityWork work;
     private readonly WorkTargetSelector targetSelector;
@@ -18,36 +85,33 @@ public sealed class WorkTaskExecutor
     private readonly IGameClock gameClock;
     private readonly IRoomEnvironmentExperienceService roomEnvironmentExperienceService;
     private readonly IPaidFacilityContractRuntime paidFacilityContracts;
-    private readonly ICharacterEnvironmentRuntime characterEnvironmentRuntime;
-    private readonly IEnvironmentalWorkwearRuntime environmentalWorkwearRuntime;
+    private readonly ICharacterEnvironmentWorkContext characterEnvironment;
+    private readonly IEnvironmentalWorkwearCommand environmentalWorkwearCommands;
     private readonly IEnvironmentWorkPolicy environmentWorkPolicy;
+    private readonly IDungeonDebugRuleQuery debugRules;
     private float nextEnvironmentRecheckAt;
     private bool environmentInterrupted;
 
     public WorkTaskExecutor(
-        AbilityWork work,
-        WorkTargetSelector targetSelector,
-        IWorkExecutionHandlerRegistry executionHandlers = null,
-        IWorkOrderRuntime workOrderRuntime = null,
-        IWorkAmountCalculator workAmountCalculator = null,
-        IGameClock gameClock = null,
-        IRoomEnvironmentExperienceService roomEnvironmentExperienceService = null,
-        IPaidFacilityContractRuntime paidFacilityContracts = null,
-        ICharacterEnvironmentRuntime characterEnvironmentRuntime = null,
-        IEnvironmentalWorkwearRuntime environmentalWorkwearRuntime = null,
-        IEnvironmentWorkPolicy environmentWorkPolicy = null)
+        WorkTaskCoreDependencies core,
+        WorkTaskExecutionDependencies execution,
+        WorkTaskEnvironmentDependencies environment)
     {
-        this.work = work;
-        this.targetSelector = targetSelector;
-        this.executionHandlers = executionHandlers;
-        this.workOrderRuntime = workOrderRuntime;
-        this.workAmountCalculator = workAmountCalculator;
-        this.gameClock = gameClock ?? new UnityGameClock();
-        this.roomEnvironmentExperienceService = roomEnvironmentExperienceService;
-        this.paidFacilityContracts = paidFacilityContracts;
-        this.characterEnvironmentRuntime = characterEnvironmentRuntime;
-        this.environmentalWorkwearRuntime = environmentalWorkwearRuntime;
-        this.environmentWorkPolicy = environmentWorkPolicy;
+        core = core ?? throw new ArgumentNullException(nameof(core));
+        execution = execution ?? throw new ArgumentNullException(nameof(execution));
+        environment = environment ?? throw new ArgumentNullException(nameof(environment));
+        work = core.Work;
+        targetSelector = core.TargetSelector;
+        gameClock = core.GameClock;
+        debugRules = core.DebugRules;
+        executionHandlers = execution.ExecutionHandlers;
+        workOrderRuntime = execution.WorkOrderRuntime;
+        workAmountCalculator = execution.WorkAmountCalculator;
+        paidFacilityContracts = execution.PaidFacilityContracts;
+        roomEnvironmentExperienceService = environment.RoomEnvironmentExperienceService;
+        characterEnvironment = environment.CharacterEnvironment;
+        environmentalWorkwearCommands = environment.EnvironmentalWorkwearCommands;
+        environmentWorkPolicy = environment.EnvironmentWorkPolicy;
     }
 
     public IEnumerator Work(int runId)
@@ -98,19 +162,20 @@ public sealed class WorkTaskExecutor
         if (HasReachedAssignedWorkTarget(actor, grid)
             && assignedTarget is IWorkableFacility facility)
         {
-            yield return facility.AllocateWorker(actor);
+            IBuildingVisitorPort visitor = actor?.BuildingVisitor;
+            yield return facility.AllocateWorker(visitor);
             if (ShouldAbortWorkRun(runId, actor)
                 || !work.isWorking
                 || work.assignedShop != assignedTarget)
             {
-                facility.DeallocateWorker(actor);
+                facility.DeallocateWorker(visitor);
                 AbortWorkRun(runId, actor, currentAction);
                 yield break;
             }
 
             currentAction?.ReleaseReservation(actor);
             FacilityWorkType workType = work.AssignedWorkType;
-            WorkTypeDefinition workDefinition = WorkTypeCatalog.TryGet(
+            WorkTypeDefinition workDefinition = FacilityWorkTypeMap.TryGet(
                     workType,
                     out WorkTypeDefinition resolvedWorkDefinition)
                 ? resolvedWorkDefinition
@@ -141,7 +206,7 @@ public sealed class WorkTaskExecutor
                     assignedTarget,
                     reasonCode: "paid-facility-order",
                     bubbleEligible: true));
-                facility.DeallocateWorker(actor);
+                facility.DeallocateWorker(visitor);
                 work.isWorking = false;
                 EndAiAction(actor, currentAction);
                 work.ClearActiveWorkRoutine(runId);
@@ -152,10 +217,10 @@ public sealed class WorkTaskExecutor
                 actor,
                 assignedTarget,
                 workTypeId,
-                $"work:{runId}:{assignedTarget.GetInstanceID()}:started");
-            characterEnvironmentRuntime?.SetWorkContext(
-                actor?.Identity?.PersistentId,
-                ResolveEnvironmentWorkKind(workTypeId));
+                $"work:{runId}:{assignedTarget.RequirePersistentInstanceId().Value}:started");
+            characterEnvironment.SetWorkContext(
+                new CharacterId(actor?.Identity?.PersistentId),
+                WorkExecutionRules.ResolveEnvironmentWorkKind(workTypeId));
             WorkDebugLog.LogStarted(actor);
             bool completedImmediately = false;
             bool completedSuccessfully = true;
@@ -177,14 +242,18 @@ public sealed class WorkTaskExecutor
                     });
                 if (ShouldAbortWorkRun(runId, actor))
                 {
-                    facility.DeallocateWorker(actor);
+                    facility.DeallocateWorker(visitor);
                     AbortWorkRun(runId, actor, currentAction);
                     yield break;
                 }
 
                 completedImmediately = true;
             }
-            else if (TryGetExteriorWorkSeconds(assignedTarget, actor, workTypeId, out float exteriorWorkSeconds))
+            else if (WorkExecutionRules.TryGetExteriorWorkSeconds(
+                         assignedTarget,
+                         actor,
+                         workTypeId,
+                         out float exteriorWorkSeconds))
             {
                 yield return ExecuteWorkAmountLoop(
                     runId,
@@ -195,7 +264,7 @@ public sealed class WorkTaskExecutor
                     WorkTaskCatalog.GetLegacyDisplayName(workType));
                 if (ShouldAbortWorkRun(runId, actor))
                 {
-                    facility.DeallocateWorker(actor);
+                    facility.DeallocateWorker(visitor);
                     AbortWorkRun(runId, actor, currentAction);
                     yield break;
                 }
@@ -245,7 +314,7 @@ public sealed class WorkTaskExecutor
                     executionResult.CompletionEffectsAlreadyApplied;
                 if (ShouldAbortWorkRun(runId, actor))
                 {
-                    facility.DeallocateWorker(actor);
+                    facility.DeallocateWorker(visitor);
                     AbortWorkRun(runId, actor, currentAction);
                     yield break;
                 }
@@ -279,11 +348,11 @@ public sealed class WorkTaskExecutor
                     actor,
                     assignedTarget,
                     workTypeId,
-                    $"work:{runId}:{assignedTarget.GetInstanceID()}:completed");
+                    $"work:{runId}:{assignedTarget.RequirePersistentInstanceId().Value}:completed");
                 if (!completionEffectsAlreadyApplied)
                 {
                     ModularFacilityRuntimeEffects.ApplyWorkCompleted(
-                        actor,
+                        visitor,
                         assignedTarget,
                         workTypeId);
                     roomEnvironmentExperienceService?.Apply(new RoomEnvironmentExperienceEvent(
@@ -301,7 +370,7 @@ public sealed class WorkTaskExecutor
                 $"{WorkTaskCatalog.GetLegacyDisplayName(workType)} {(completedSuccessfully ? "완료" : "실패")}: {assignedTarget.name}");
             CharacterSkillRuntimeEffects.EndWork(actor);
             bool wasPriorityTarget = work.assignedShop == work.PriorityWorkTarget;
-            facility.DeallocateWorker(actor);
+            facility.DeallocateWorker(visitor);
             currentAction?.ReleaseReservation(actor);
             work.AssignWork(null, FacilityWorkType.None);
             if (wasPriorityTarget)
@@ -355,7 +424,7 @@ public sealed class WorkTaskExecutor
             actor,
             restockTarget,
             BuiltInWorkTypeIds.Restock,
-            $"work:{runId}:{(restockTarget != null ? restockTarget.GetInstanceID() : 0)}:restock-started");
+            $"work:{runId}:{restockTarget.RequirePersistentInstanceId().Value}:restock-started");
         float durationMultiplier = work.GetWorkEnvironmentDurationMultiplier(BuiltInWorkTypeIds.Restock)
             / Mathf.Max(0.1f, CharacterSkillRuntimeEffects.GetWorkSpeedMultiplier(actor));
         if (restockTarget is not IRestockableFacility restockable)
@@ -378,7 +447,7 @@ public sealed class WorkTaskExecutor
             restockable,
             out BuildableObject warehouseBuilding,
             out IWarehouseFacility warehouse,
-            out SaleItem saleItem,
+            out WarehouseRestockItem saleItem,
             out int loadAmount,
             out Queue<GridMoveStep> pathToWarehouse,
             out string failureReason))
@@ -419,7 +488,13 @@ public sealed class WorkTaskExecutor
                 yield break;
             }
 
-            int withdrawn = warehouse.Inventory.Withdraw(saleItem.category, 1);
+            IWorldItemStackRuntime physicalItems = actor.WorldItemStackRuntime
+                ?? throw new InvalidOperationException(
+                    "Restock work requires physical item runtime.");
+            int withdrawn = physicalItems.Consume(
+                warehouse,
+                saleItem.Category,
+                1);
             if (withdrawn <= 0)
             {
                 break;
@@ -429,11 +504,14 @@ public sealed class WorkTaskExecutor
             actor?.AddActivity(CharacterActivityEvent.Work(
                 FacilityWorkType.Restock,
                 CharacterActivityOutcomes.Progress,
-                $"보충 적재: {saleItem.itemName} {carriedAmount}/{loadAmount}",
+                $"보충 적재: {saleItem.Name} {carriedAmount}/{loadAmount}",
                 warehouseBuilding,
                 reasonCode: "loading-stock",
                 quantity: carriedAmount));
-            work.FloatingIconFeedbackService.Show(actor, saleItem.itemSprite, FloatingIconFeedbackDefaults.DefaultMaxWorldSize);
+            work.FloatingIconFeedbackService.Show(
+                actor,
+                saleItem.Sprite,
+                FloatingIconFeedbackDefaults.DefaultMaxWorldSize);
             yield return new WaitForSeconds(RestockPickupWaitSeconds * durationMultiplier);
             if (ShouldAbortWorkRun(runId, actor))
             {
@@ -505,7 +583,7 @@ public sealed class WorkTaskExecutor
                 actor,
                 restockTarget,
                 BuiltInWorkTypeIds.Restock,
-                $"work:{runId}:{restockTarget.GetInstanceID()}:restock-completed");
+                $"work:{runId}:{restockTarget.RequirePersistentInstanceId().Value}:restock-completed");
         }
 
         actor?.AiMemory?.RecordWork(
@@ -528,14 +606,14 @@ public sealed class WorkTaskExecutor
         IRestockableFacility restockable,
         out BuildableObject warehouseBuilding,
         out IWarehouseFacility warehouse,
-        out SaleItem saleItem,
+        out WarehouseRestockItem saleItem,
         out int loadAmount,
         out Queue<GridMoveStep> pathToWarehouse,
         out string failureReason)
     {
         warehouseBuilding = null;
         warehouse = null;
-        saleItem = null;
+        saleItem = default;
         loadAmount = 0;
         pathToWarehouse = null;
         failureReason = string.Empty;
@@ -649,19 +727,30 @@ public sealed class WorkTaskExecutor
 
     private void ReturnCarriedStock(
         IWarehouseFacility warehouse,
-        SaleItem saleItem,
+        WarehouseRestockItem saleItem,
         int amount)
     {
         if (warehouse == null
             || !warehouse.HasWarehouseInventory
             || warehouse.Inventory == null
-            || saleItem == null
             || amount <= 0)
         {
             return;
         }
 
-        warehouse.Inventory.Deposit(saleItem.category, amount);
+        IWorldItemStackRuntime physicalItems = work.WorkerActor?.WorldItemStackRuntime
+            ?? throw new InvalidOperationException(
+                "Returning restock cargo requires physical item runtime.");
+        if (!physicalItems.SpawnStockInWarehouse(
+                warehouse,
+                saleItem.Category,
+                amount,
+                out int restored)
+            || restored != amount)
+        {
+            throw new InvalidOperationException(
+                "Failed to return restock cargo to physical warehouse storage.");
+        }
         work.MarkFacilityDynamicStateDirty();
     }
 
@@ -696,7 +785,8 @@ public sealed class WorkTaskExecutor
                 order.RequiredWork - order.CompletedWork)
                 / Mathf.Max(
                     0.05f,
-                    CalculateWorkPerSecond(
+                    WorkExecutionRules.CalculateWorkPerSecond(
+                        workAmountCalculator,
                         actor,
                         target,
                         workTypeId,
@@ -727,7 +817,8 @@ public sealed class WorkTaskExecutor
                 }
             }
 
-            float deltaWork = CalculateWorkPerSecond(
+            float deltaWork = WorkExecutionRules.CalculateWorkPerSecond(
+                    workAmountCalculator,
                     actor,
                     target,
                     workTypeId,
@@ -797,7 +888,7 @@ public sealed class WorkTaskExecutor
     {
         requiredWork = Mathf.Max(0.1f, requiredWork);
         label = string.IsNullOrWhiteSpace(label) ? WorkTaskCatalog.GetLegacyDisplayName(workType) : label;
-        if (DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.InstantWork))
+        if (debugRules.IsEnabled(DungeonDebugCheat.InstantWork))
         {
             actor?.Brain?.SetActionPhase($"{label} 100%", target);
             yield return null;
@@ -805,7 +896,9 @@ public sealed class WorkTaskExecutor
         }
 
         float completedWork = 0f;
-        WorkTypeId workTypeId = WorkTypeCatalog.TryGet(workType, out WorkTypeDefinition definition)
+        WorkTypeId workTypeId = FacilityWorkTypeMap.TryGet(
+                workType,
+                out WorkTypeDefinition definition)
             ? definition.WorkTypeId
             : default;
         float durationMultiplier = work.GetWorkEnvironmentDurationMultiplier(workTypeId);
@@ -818,7 +911,8 @@ public sealed class WorkTaskExecutor
                 Mathf.Max(0f, requiredWork - completedWork)
                 / Mathf.Max(
                     0.05f,
-                    CalculateWorkPerSecond(
+                    WorkExecutionRules.CalculateWorkPerSecond(
+                        workAmountCalculator,
                         actor,
                         target,
                         workTypeId,
@@ -835,7 +929,8 @@ public sealed class WorkTaskExecutor
             float tickDeltaTime = gameClock.DeltaTime > 0f
                 ? gameClock.DeltaTime
                 : 1f / 60f;
-            float deltaWork = CalculateWorkPerSecond(
+            float deltaWork = WorkExecutionRules.CalculateWorkPerSecond(
+                    workAmountCalculator,
                     actor,
                     target,
                     workTypeId,
@@ -878,7 +973,7 @@ public sealed class WorkTaskExecutor
             ? WorkTaskCatalog.GetLegacyDisplayName(workType)
             : label;
 
-        if (DungeonDebugRuntimeRules.IsEnabled(DungeonDebugCheat.InstantWork))
+        if (debugRules.IsEnabled(DungeonDebugCheat.InstantWork))
         {
             float remainingWork = Mathf.Max(0f, requiredWork - completedWork);
             if (remainingWork > 0f)
@@ -891,7 +986,7 @@ public sealed class WorkTaskExecutor
             yield break;
         }
 
-        WorkTypeId workTypeId = WorkTypeCatalog.TryGet(
+        WorkTypeId workTypeId = FacilityWorkTypeMap.TryGet(
                 workType,
                 out WorkTypeDefinition definition)
             ? definition.WorkTypeId
@@ -908,7 +1003,8 @@ public sealed class WorkTaskExecutor
                 Mathf.Max(0f, requiredWork - completedWork)
                 / Mathf.Max(
                     0.05f,
-                    CalculateWorkPerSecond(
+                    WorkExecutionRules.CalculateWorkPerSecond(
+                        workAmountCalculator,
                         actor,
                         target,
                         workTypeId,
@@ -927,7 +1023,8 @@ public sealed class WorkTaskExecutor
                 : 1f / 60f;
             float deltaWork = Mathf.Min(
                 requiredWork - completedWork,
-                CalculateWorkPerSecond(
+                WorkExecutionRules.CalculateWorkPerSecond(
+                        workAmountCalculator,
                         actor,
                         target,
                         workTypeId,
@@ -967,7 +1064,6 @@ public sealed class WorkTaskExecutor
         float remainingSeconds)
     {
         if (environmentWorkPolicy == null
-            || characterEnvironmentRuntime == null
             || actor == null
             || gameClock.Time < nextEnvironmentRecheckAt)
         {
@@ -976,7 +1072,7 @@ public sealed class WorkTaskExecutor
 
         nextEnvironmentRecheckAt = gameClock.Time + 1f;
         EnvironmentalWorkKind workKind =
-            ResolveEnvironmentWorkKind(workTypeId);
+            WorkExecutionRules.ResolveEnvironmentWorkKind(workTypeId);
         if (workKind is EnvironmentalWorkKind.EmergencySurgery
             or EnvironmentalWorkKind.Defense
             or EnvironmentalWorkKind.Safety)
@@ -993,10 +1089,10 @@ public sealed class WorkTaskExecutor
                 forced: false);
         EnvironmentalExposureBand actualBand =
             (EnvironmentalExposureBand)Mathf.Max(
-                (int)characterEnvironmentRuntime.GetPhysiologicalBand(
-                    actor.Identity?.PersistentId),
-                (int)characterEnvironmentRuntime.GetVisualBand(
-                    actor.Identity?.PersistentId));
+                (int)characterEnvironment.GetPhysiologicalBand(
+                    new CharacterId(actor.Identity?.PersistentId)),
+                (int)characterEnvironment.GetVisualBand(
+                    new CharacterId(actor.Identity?.PersistentId)));
         bool evacuate = assessment.Projection.HasLethalChannel
             || actualBand >= EnvironmentalExposureBand.Critical;
         bool reassign = actualBand >= EnvironmentalExposureBand.Impaired;
@@ -1058,47 +1154,6 @@ public sealed class WorkTaskExecutor
         return true;
     }
 
-    private float CalculateWorkPerSecond(
-        CharacterActor actor,
-        BuildableObject target,
-        FacilityWorkType workType,
-        float environmentDurationMultiplier)
-    {
-        WorkTypeId workTypeId = WorkTypeCatalog.TryGet(workType, out WorkTypeDefinition definition)
-            ? definition.WorkTypeId
-            : default;
-        return CalculateWorkPerSecond(actor, target, workTypeId, environmentDurationMultiplier);
-    }
-
-    private float CalculateWorkPerSecond(
-        CharacterActor actor,
-        BuildableObject target,
-        WorkTypeId workTypeId,
-        float environmentDurationMultiplier)
-    {
-        if (workAmountCalculator != null)
-        {
-            if (workTypeId.IsValid)
-            {
-                return workAmountCalculator.CalculateWorkPerSecond(
-                    actor,
-                    target,
-                    workTypeId,
-                    environmentDurationMultiplier);
-            }
-        }
-
-        float workSpeed = actor != null
-            ? Mathf.Max(
-                0.1f,
-                workTypeId.IsValid
-                    ? actor.GetWorkSpeedMultiplier(workTypeId)
-                    : 1f)
-            : 1f;
-        float environment = 1f / Mathf.Max(0.1f, environmentDurationMultiplier);
-        return Mathf.Clamp(workSpeed * environment, 0.05f, 8f);
-    }
-
     private static void EndAiAction(CharacterActor actor, AIAction currentAction)
     {
         currentAction?.ReleaseReservation(actor);
@@ -1111,8 +1166,8 @@ public sealed class WorkTaskExecutor
     private void FinishWorkRun(CharacterActor actor, AIAction currentAction)
     {
         CharacterSkillRuntimeEffects.EndWork(actor);
-        characterEnvironmentRuntime?.ClearWorkContext(
-            actor?.Identity?.PersistentId);
+        characterEnvironment.ClearWorkContext(
+            new CharacterId(actor?.Identity?.PersistentId));
         ReturnEnvironmentalWorkwear(actor);
         bool wasPriorityTarget = work.assignedShop == work.PriorityWorkTarget;
         currentAction?.ReleaseReservation(actor);
@@ -1161,8 +1216,8 @@ public sealed class WorkTaskExecutor
     private void AbortWorkRun(int runId, CharacterActor actor, AIAction currentAction)
     {
         CharacterSkillRuntimeEffects.EndWork(actor);
-        characterEnvironmentRuntime?.ClearWorkContext(
-            actor?.Identity?.PersistentId);
+        characterEnvironment.ClearWorkContext(
+            new CharacterId(actor?.Identity?.PersistentId));
         if (!environmentInterrupted)
         {
             ReturnEnvironmentalWorkwear(actor);
@@ -1179,66 +1234,21 @@ public sealed class WorkTaskExecutor
 
     private void ReturnEnvironmentalWorkwear(CharacterActor actor)
     {
-        string characterId = actor?.Identity?.PersistentId;
-        if (string.IsNullOrWhiteSpace(characterId)
-            || environmentalWorkwearRuntime == null
-            || !environmentalWorkwearRuntime.TryGetEquipped(
-                characterId,
-                out _))
+        CharacterId characterId = new(actor?.Identity?.PersistentId);
+        if (!characterId.IsValid)
         {
             return;
         }
 
-        if (!environmentalWorkwearRuntime.TryUnequip(
+        if (!environmentalWorkwearCommands.TryUnequip(
             characterId,
-            out string failureReason))
+            out DomainFailure failure)
+            && failure.Code != FailureCode.EnvironmentWorkwearNotEquipped)
         {
             Debug.LogWarning(
-                $"[환경 작업복] {characterId} 자동 반납 실패: "
-                + failureReason);
+                $"[환경 작업복] {characterId.Value} 자동 반납 실패: "
+                + failure.Code);
         }
-    }
-
-    private static EnvironmentalWorkKind ResolveEnvironmentWorkKind(
-        WorkTypeId workTypeId)
-    {
-        string id = workTypeId.Value ?? string.Empty;
-        return id.IndexOf("research", StringComparison.OrdinalIgnoreCase) >= 0
-            || id.IndexOf("craft", StringComparison.OrdinalIgnoreCase) >= 0
-            || id.IndexOf("medical", StringComparison.OrdinalIgnoreCase) >= 0
-            || id.IndexOf("treat", StringComparison.OrdinalIgnoreCase) >= 0
-                ? EnvironmentalWorkKind.Precision
-                : EnvironmentalWorkKind.General;
-    }
-
-    private static bool TryGetExteriorWorkSeconds(
-        BuildableObject target,
-        CharacterActor actor,
-        WorkTypeId workTypeId,
-        out float seconds)
-    {
-        seconds = 0f;
-        if (target?.BuildingData == null)
-        {
-            return false;
-        }
-
-        foreach (IBuildingExteriorWorkRuntimeAbility ability in target.BuildingData.Abilities
-                     .OfType<IBuildingExteriorWorkRuntimeAbility>())
-        {
-            if (!ability.SupportsExteriorWork(workTypeId)
-                || !ability.IsExteriorWorkAvailable(actor, target, workTypeId))
-            {
-                continue;
-            }
-
-            seconds = Mathf.Max(
-                MinimumNaturalExteriorWorkSeconds,
-                ability.GetExteriorWorkSeconds(actor, target, workTypeId));
-            return true;
-        }
-
-        return false;
     }
 
 }

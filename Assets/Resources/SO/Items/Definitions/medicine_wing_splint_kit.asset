@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb4b1f490bee1344a1002cabb362d7a, type: 3}
+  m_Name: medicine_wing_splint_kit
+  m_EditorClassIdentifier: Assembly-CSharp::GenericItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 0
+  itemId: medicine:wing-splint-kit
+  displayName: "\uB0A0\uAC1C \uACE0\uC815 \uD0A4\uD2B8"
+  description: "\uD30C\uC190\uB41C \uB0A0\uAC1C\uC640 \uAF2C\uB9AC\uAE43\uC744 \uC6B4\uBC18
+    \uAC00\uB2A5\uD55C \uC0C1\uD0DC\uB85C \uACE0\uC815\uD55C\uB2E4."
+  stockCategory: 5
+  unitWeight: 0.8
+  maxStack: 10
+  sprite: {fileID: 0}
+  unitPrice: 50
+  features:
+  - rid: 7737211673752633467
+  - rid: 7737211673752633468
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673752633467
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 3
+        ingredientTags: 0
+        sharedIntermediate: 0
+    - rid: 7737211673752633468
+      type: {class: MedicineItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        supportsInjuryTreatment: 1
+        treatmentPotency: 1
+        infectionReduction: 0
+        detoxReduction: 0
+        painReduction: 0

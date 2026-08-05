@@ -27,21 +27,42 @@ MonoBehaviour:
   description: "\uAE30\uBD84\uACFC \uC0AC\uAD50\uC131\uC744 \uB192\uC774\uB294 \uC720\uD765\uC131
     \uC220."
   stockCategory: 0
-  kind: 4
-  ingredientTags: 1
-  unitPrice: 14
-  marketSaleRate: 0.6
   unitWeight: 0.5
   maxStack: 40
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:fermentation
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 14
+  features:
+  - rid: 7737211673962611541
+  - rid: 7737211673962611542
+  - rid: 7737211673962611543
+  - rid: 7737211673962611544
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611541
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:fermentation
+    - rid: 7737211673962611542
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 4
+        ingredientTags: 1
+        sharedIntermediate: 0
+    - rid: 7737211673962611543
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211673962611544
+      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        substanceId: substance:night-wine
+        useClass: 3
+        addictionChance: 0.04
+        overdoseChance: 0.025
+        toleranceGain: 0.08
+        withdrawalPerHour: 0.015
+        moodEffect: 7
+        workSpeedEffect: -0.04
+        combatEffect: -0.04
+        durationSeconds: 240

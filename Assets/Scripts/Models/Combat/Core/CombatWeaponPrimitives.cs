@@ -67,7 +67,11 @@ public sealed class CombatWeaponSnapshot
         bool supportsSuppressive,
         float materialDamageMultiplier = 1f,
         float materialPenetrationMultiplier = 1f,
-        float evolutionAccuracyMultiplier = 1f)
+        float evolutionAccuracyMultiplier = 1f,
+        bool gunpowderWeapon = false,
+        float durabilityRatio = 1f,
+        float maximumMisfireChance = 0f,
+        float smokeExposure = 0f)
     {
         DefinitionId = definitionId ?? string.Empty;
         InstanceId = instanceId ?? string.Empty;
@@ -88,6 +92,10 @@ public sealed class CombatWeaponSnapshot
             Mathf.Max(0.01f, materialPenetrationMultiplier);
         EvolutionAccuracyMultiplier =
             Mathf.Max(0.01f, evolutionAccuracyMultiplier);
+        GunpowderWeapon = gunpowderWeapon;
+        DurabilityRatio = Mathf.Clamp01(durabilityRatio);
+        MaximumMisfireChance = Mathf.Clamp01(maximumMisfireChance);
+        SmokeExposure = Mathf.Max(0f, smokeExposure);
     }
 
     public string DefinitionId { get; }
@@ -107,6 +115,14 @@ public sealed class CombatWeaponSnapshot
     public float MaterialDamageMultiplier { get; }
     public float MaterialPenetrationMultiplier { get; }
     public float EvolutionAccuracyMultiplier { get; }
+    public bool GunpowderWeapon { get; }
+    public float DurabilityRatio { get; }
+    public float MaximumMisfireChance { get; }
+    public float SmokeExposure { get; }
+
+    public float MisfireChance => !GunpowderWeapon || DurabilityRatio >= 0.4f
+        ? 0f
+        : MaximumMisfireChance * (1f - DurabilityRatio / 0.4f);
 
     public bool IsRanged =>
         Kind == CombatEquipmentKind.RangedWeapon

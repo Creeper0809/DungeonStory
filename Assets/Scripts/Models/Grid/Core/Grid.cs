@@ -4,761 +4,6 @@ using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
 
-public static class GridCellAreaRules
-{
-    public static bool IsWalkableArea(GridCellAreaType areaType)
-    {
-        return areaType != GridCellAreaType.BlockedExterior;
-    }
-
-    public static bool IsBuildableArea(GridCellAreaType areaType)
-    {
-        return areaType == GridCellAreaType.DungeonInterior;
-    }
-
-    public static bool AllowsItemDrop(GridCellAreaType areaType)
-    {
-        return areaType != GridCellAreaType.BlockedExterior;
-    }
-
-    public static bool AllowsLayer(GridCellAreaType areaType, GridLayer layer)
-    {
-        if (!IsWalkableArea(areaType))
-        {
-            return false;
-        }
-
-        if (areaType == GridCellAreaType.DungeonInterior)
-        {
-            return true;
-        }
-
-        if (areaType == GridCellAreaType.Entrance)
-        {
-            return layer == GridLayer.Hallway
-                || layer == GridLayer.Character
-                || layer == GridLayer.Wildlife
-                || layer == GridLayer.Item
-                || layer == GridLayer.Construction
-                || layer == GridLayer.Building
-                || layer == GridLayer.WallFixture
-                || layer == GridLayer.CeilingFixture
-                || layer == GridLayer.FloorOverlay
-                || layer == GridLayer.Filth
-                || layer == GridLayer.Utility
-                || layer == GridLayer.Conveyor
-                || layer == GridLayer.DownedCharacter;
-        }
-
-        return layer == GridLayer.Hallway
-            || layer == GridLayer.Building
-            || layer == GridLayer.WallFixture
-            || layer == GridLayer.CeilingFixture
-            || layer == GridLayer.FloorOverlay
-            || layer == GridLayer.Character
-            || layer == GridLayer.Wildlife
-            || layer == GridLayer.Item
-            || layer == GridLayer.Construction
-            || layer == GridLayer.Filth
-            || layer == GridLayer.Utility
-            || layer == GridLayer.Conveyor
-            || layer == GridLayer.DownedCharacter;
-    }
-
-    public static bool CanBuildInArea(GridCellAreaType areaType, BuildingSO buildingData)
-    {
-        if (buildingData == null || !IsWalkableArea(areaType))
-        {
-            return false;
-        }
-
-        if (areaType == GridCellAreaType.DungeonInterior)
-        {
-            return true;
-        }
-
-        if (buildingData.IsDoor && !buildingData.IsInteriorDoor)
-        {
-            return true;
-        }
-
-        if (buildingData.Placement.Layer == GridLayer.Hallway)
-        {
-            return areaType == GridCellAreaType.Entrance
-                || areaType == GridCellAreaType.DropZone
-                || areaType == GridCellAreaType.ExteriorPath;
-        }
-
-        if (buildingData.Placement.Layer == GridLayer.Utility
-            || buildingData.Placement.Layer == GridLayer.Conveyor)
-        {
-            return areaType == GridCellAreaType.Entrance
-                || areaType == GridCellAreaType.DropZone
-                || areaType == GridCellAreaType.ExteriorPath;
-        }
-
-        if (areaType == GridCellAreaType.Entrance)
-        {
-            return buildingData.IsDoor || buildingData.IsStructuralWall;
-        }
-
-        return false;
-    }
-}
-
-public class GridPathSearchResult
-{
-    public Grid sourceGrid { get; private set; }
-    public Vector2Int start { get; private set; }
-    public int gridVersion { get; private set; }
-    public int traversalVersion { get; private set; }
-    public int ExpandedNodeCount { get; private set; }
-
-    private readonly int[] parentIndex;
-    private readonly IGridOccupant[] parentMovementOccupant;
-    private readonly GridMoveType[] parentMoveType;
-    private readonly int[] searchOrder;
-    private readonly int searchOrderCount;
-    private readonly int[] moveCost;
-    private readonly List<IGridOccupant> visitableOccupants;
-    private readonly Vector2Int? exactDestination;
-    private readonly GridMoveStep[] exactPath;
-    private readonly int exactMoveCost;
-    private Queue<GridMoveStep> ownedExactPath;
-    private HashSet<IGridOccupant> visitableOccupantSet;
-    private Dictionary<IGridOccupant, Vector2Int> visitableOccupantPositions;
-    private bool visitableOccupantPositionsBuilt;
-
-    internal GridPathSearchResult(
-        Grid sourceGrid,
-        Vector2Int start,
-        int gridVersion,
-        int[] parentIndex,
-        IGridOccupant[] parentMovementOccupant,
-        GridMoveType[] parentMoveType,
-        int[] searchOrder,
-        int searchOrderCount,
-        int[] moveCost,
-        List<IGridOccupant> visitableOccupants)
-    {
-        this.sourceGrid = sourceGrid;
-        this.start = start;
-        this.gridVersion = gridVersion;
-        traversalVersion = gridVersion;
-        this.parentIndex = parentIndex;
-        this.parentMovementOccupant = parentMovementOccupant;
-        this.parentMoveType = parentMoveType;
-        this.searchOrder = searchOrder;
-        this.searchOrderCount = searchOrderCount;
-        ExpandedNodeCount = searchOrderCount;
-        this.moveCost = moveCost;
-        this.visitableOccupants = visitableOccupants;
-        exactDestination = null;
-        exactPath = null;
-        exactMoveCost = int.MaxValue;
-        ownedExactPath = null;
-    }
-
-    internal GridPathSearchResult(
-        Grid sourceGrid,
-        Vector2Int start,
-        int gridVersion,
-        Vector2Int destination,
-        GridMoveStep[] path,
-        int moveCost,
-        int expandedNodeCount = 0)
-    {
-        this.sourceGrid = sourceGrid;
-        this.start = start;
-        this.gridVersion = gridVersion;
-        traversalVersion = gridVersion;
-        parentIndex = Array.Empty<int>();
-        parentMovementOccupant = Array.Empty<IGridOccupant>();
-        parentMoveType = Array.Empty<GridMoveType>();
-        searchOrder = Array.Empty<int>();
-        searchOrderCount = 0;
-        this.moveCost = Array.Empty<int>();
-        visitableOccupants = new List<IGridOccupant>(0);
-        exactDestination = destination;
-        exactPath = path ?? Array.Empty<GridMoveStep>();
-        exactMoveCost = moveCost;
-        ownedExactPath = null;
-        ExpandedNodeCount = Mathf.Max(0, expandedNodeCount);
-    }
-
-    internal GridPathSearchResult(
-        Grid sourceGrid,
-        Vector2Int start,
-        int gridVersion,
-        Vector2Int destination,
-        Queue<GridMoveStep> path,
-        int moveCost,
-        int expandedNodeCount = 0)
-    {
-        this.sourceGrid = sourceGrid;
-        this.start = start;
-        this.gridVersion = gridVersion;
-        traversalVersion = gridVersion;
-        parentIndex = Array.Empty<int>();
-        parentMovementOccupant = Array.Empty<IGridOccupant>();
-        parentMoveType = Array.Empty<GridMoveType>();
-        searchOrder = Array.Empty<int>();
-        searchOrderCount = 0;
-        this.moveCost = Array.Empty<int>();
-        visitableOccupants = new List<IGridOccupant>(0);
-        exactDestination = destination;
-        exactPath = Array.Empty<GridMoveStep>();
-        exactMoveCost = moveCost;
-        ownedExactPath = path;
-        ExpandedNodeCount = Mathf.Max(0, expandedNodeCount);
-    }
-
-    internal Queue<GridMoveStep> TakeOwnedExactMovePath(
-        Vector2Int destination)
-    {
-        if (ownedExactPath != null
-            && exactDestination.HasValue
-            && exactDestination.Value == destination
-            && exactMoveCost != int.MaxValue)
-        {
-            Queue<GridMoveStep> path = ownedExactPath;
-            ownedExactPath = null;
-            return path;
-        }
-
-        return GetMovePathTo(destination);
-    }
-
-    public List<IGridOccupant> GetAllVisitableOccupants()
-    {
-        return new List<IGridOccupant>(visitableOccupants);
-    }
-
-    public bool ContainsVisitableOccupant(IGridOccupant occupant)
-    {
-        if (occupant == null)
-        {
-            return false;
-        }
-
-        visitableOccupantSet ??= new HashSet<IGridOccupant>(visitableOccupants);
-        return visitableOccupantSet.Contains(occupant);
-    }
-
-    public int GetMoveDistanceTo(IGridOccupant destination)
-    {
-        if (destination == null || destination.IsGridDestroyed)
-        {
-            return int.MaxValue;
-        }
-
-        if (!TryGetVisitableOccupantPosition(destination, out Vector2Int position))
-        {
-            return int.MaxValue;
-        }
-
-        return GetMoveDistance(position);
-    }
-
-    public int GetMoveDistanceTo(Vector2Int position)
-    {
-        return ContainsPosition(position)
-            ? GetMoveDistance(position)
-            : int.MaxValue;
-    }
-
-    public int GetMoveCostTo(IGridOccupant destination)
-    {
-        if (destination == null || destination.IsGridDestroyed)
-        {
-            return int.MaxValue;
-        }
-
-        return TryGetVisitableOccupantPosition(destination, out Vector2Int position)
-            ? GetMoveCostTo(position)
-            : int.MaxValue;
-    }
-
-    public int GetMoveCostTo(Vector2Int position)
-    {
-        if (exactDestination.HasValue)
-        {
-            if (position == start)
-            {
-                return 0;
-            }
-
-            return position == exactDestination.Value
-                ? exactMoveCost
-                : int.MaxValue;
-        }
-
-        if (!sourceGrid.TryGetCellIndex(position, out int index))
-        {
-            return int.MaxValue;
-        }
-
-        return moveCost[index];
-    }
-
-    public List<IGridOccupant> GetAllReachableOccupants()
-    {
-        List<IGridOccupant> result = new List<IGridOccupant>();
-        if (exactDestination.HasValue)
-        {
-            foreach (Vector2Int position in GetReachablePositions())
-            {
-                GridCell exactCell = sourceGrid.GetGridCell(position);
-                if (exactCell == null)
-                {
-                    continue;
-                }
-
-                GridSearchScratch.SharedOccupants.Clear();
-                exactCell.FillAllOccupants(GridSearchScratch.SharedOccupants);
-                foreach (IGridOccupant occupant in GridSearchScratch.SharedOccupants)
-                {
-                    if (occupant != null
-                        && !occupant.IsGridDestroyed
-                        && !result.Contains(occupant))
-                    {
-                        result.Add(occupant);
-                    }
-                }
-            }
-
-            GridSearchScratch.SharedOccupants.Clear();
-            return result;
-        }
-
-        for (int index = 0; index < searchOrderCount; index++)
-        {
-            Vector2Int pos = sourceGrid.GetPositionFromCellIndex(searchOrder[index]);
-            GridCell cell = sourceGrid.GetGridCell(pos);
-            if (cell == null) continue;
-
-            GridSearchScratch.SharedOccupants.Clear();
-            cell.FillAllOccupants(GridSearchScratch.SharedOccupants);
-            foreach (IGridOccupant occupant in GridSearchScratch.SharedOccupants)
-            {
-                if (occupant != null && !occupant.IsGridDestroyed && !result.Contains(occupant))
-                {
-                    result.Add(occupant);
-                }
-            }
-        }
-
-        GridSearchScratch.SharedOccupants.Clear();
-        return result;
-    }
-
-    public List<Vector2Int> GetReachablePositions()
-    {
-        if (exactDestination.HasValue)
-        {
-            List<Vector2Int> exactPositions = new List<Vector2Int>(exactPath.Length + 1)
-            {
-                start
-            };
-            for (int index = 0; index < exactPath.Length; index++)
-            {
-                exactPositions.Add(exactPath[index].To);
-            }
-
-            return exactPositions;
-        }
-
-        List<Vector2Int> positions = new List<Vector2Int>(searchOrderCount);
-        for (int index = 0; index < searchOrderCount; index++)
-        {
-            positions.Add(sourceGrid.GetPositionFromCellIndex(searchOrder[index]));
-        }
-
-        return positions;
-    }
-
-    public bool ContainsPosition(Vector2Int position)
-    {
-        if (exactDestination.HasValue)
-        {
-            if (position == start)
-            {
-                return true;
-            }
-
-            for (int exactIndex = 0; exactIndex < exactPath.Length; exactIndex++)
-            {
-                if (exactPath[exactIndex].To == position)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        return sourceGrid.TryGetCellIndex(position, out int index)
-            && moveCost[index] != int.MaxValue;
-    }
-
-    public bool TryGetMovePathToRandomReachablePosition(
-        Func<Vector2Int, bool> destinationCondition,
-        Func<Queue<GridMoveStep>, bool> pathCondition,
-        int minDistance,
-        int maxDistance,
-        IRandomStream randomStream,
-        out Queue<GridMoveStep> path)
-    {
-        path = null;
-        if (destinationCondition == null || randomStream == null)
-        {
-            return false;
-        }
-
-        List<Vector2Int> candidates = GridSearchScratch.RentPositionList();
-        try
-        {
-            for (int index = 0; index < searchOrderCount; index++)
-            {
-                Vector2Int pos = sourceGrid.GetPositionFromCellIndex(searchOrder[index]);
-                if (pos == start
-                    || !IsDistanceInRange(start, pos, minDistance, maxDistance)
-                    || !destinationCondition(pos))
-                {
-                    continue;
-                }
-
-                candidates.Add(pos);
-            }
-
-            while (candidates.Count > 0)
-            {
-                int index = randomStream.NextInt(0, candidates.Count);
-                Vector2Int candidate = candidates[index];
-                candidates[index] = candidates[candidates.Count - 1];
-                candidates.RemoveAt(candidates.Count - 1);
-
-                Queue<GridMoveStep> candidatePath = BuildMovePath(candidate);
-                if (pathCondition != null && !pathCondition(candidatePath))
-                {
-                    continue;
-                }
-
-                path = candidatePath;
-                return true;
-            }
-        }
-        finally
-        {
-            GridSearchScratch.ReturnPositionList(candidates);
-        }
-
-        return false;
-    }
-
-    public Queue<IGridOccupant> GetOccupantPathTo(IGridOccupant destination)
-    {
-        if (destination == null || destination.IsGridDestroyed) return new Queue<IGridOccupant>();
-        if (exactDestination.HasValue)
-        {
-            GridCell exactCell = sourceGrid.GetGridCell(exactDestination.Value);
-            return exactCell != null && exactCell.ContainsOccupant(destination)
-                ? BuildOccupantPath(exactDestination.Value, destination)
-                : new Queue<IGridOccupant>();
-        }
-
-        for (int index = 0; index < searchOrderCount; index++)
-        {
-            Vector2Int pos = sourceGrid.GetPositionFromCellIndex(searchOrder[index]);
-            GridCell cell = sourceGrid.GetGridCell(pos);
-            if (cell != null && cell.ContainsOccupant(destination))
-            {
-                return BuildOccupantPath(pos, destination);
-            }
-        }
-
-        return new Queue<IGridOccupant>();
-    }
-
-    public Queue<IGridOccupant> GetOccupantPath(Func<Vector2Int, bool> terminateEndCondition)
-    {
-        if (terminateEndCondition == null) return new Queue<IGridOccupant>();
-        if (exactDestination.HasValue)
-        {
-            for (int index = 0; index < exactPath.Length; index++)
-            {
-                if (terminateEndCondition(exactPath[index].To))
-                {
-                    return BuildOccupantPath(exactPath[index].To);
-                }
-            }
-
-            return new Queue<IGridOccupant>();
-        }
-
-        for (int index = 0; index < searchOrderCount; index++)
-        {
-            Vector2Int pos = sourceGrid.GetPositionFromCellIndex(searchOrder[index]);
-            if (terminateEndCondition(pos))
-            {
-                return BuildOccupantPath(pos);
-            }
-        }
-
-        return new Queue<IGridOccupant>();
-    }
-
-    public Queue<GridMoveStep> GetMovePathTo(IGridOccupant destination)
-    {
-        if (destination == null || destination.IsGridDestroyed) return new Queue<GridMoveStep>();
-        if (exactDestination.HasValue)
-        {
-            GridCell exactCell = sourceGrid.GetGridCell(exactDestination.Value);
-            return exactCell != null && exactCell.ContainsOccupant(destination)
-                ? BuildMovePath(exactDestination.Value, destination)
-                : new Queue<GridMoveStep>();
-        }
-
-        for (int index = 0; index < searchOrderCount; index++)
-        {
-            Vector2Int pos = sourceGrid.GetPositionFromCellIndex(searchOrder[index]);
-            GridCell cell = sourceGrid.GetGridCell(pos);
-            if (cell != null && cell.ContainsOccupant(destination))
-            {
-                return BuildMovePath(pos, destination);
-            }
-        }
-
-        return new Queue<GridMoveStep>();
-    }
-
-    public Queue<GridMoveStep> GetMovePathTo(Vector2Int destination)
-    {
-        return GetMoveCostTo(destination) != int.MaxValue
-            ? BuildMovePath(destination)
-            : new Queue<GridMoveStep>();
-    }
-
-    public Queue<GridMoveStep> GetMovePath(Func<Vector2Int, bool> terminateEndCondition)
-    {
-        if (terminateEndCondition == null) return new Queue<GridMoveStep>();
-        if (exactDestination.HasValue)
-        {
-            Queue<GridMoveStep> exactPrefix = new Queue<GridMoveStep>();
-            for (int index = 0; index < exactPath.Length; index++)
-            {
-                GridMoveStep step = exactPath[index];
-                exactPrefix.Enqueue(step);
-                if (terminateEndCondition(step.To))
-                {
-                    return exactPrefix;
-                }
-            }
-
-            return new Queue<GridMoveStep>();
-        }
-
-        for (int index = 0; index < searchOrderCount; index++)
-        {
-            Vector2Int pos = sourceGrid.GetPositionFromCellIndex(searchOrder[index]);
-            if (terminateEndCondition(pos))
-            {
-                return BuildMovePath(pos);
-            }
-        }
-
-        return new Queue<GridMoveStep>();
-    }
-
-    private Queue<IGridOccupant> BuildOccupantPath(Vector2Int end, IGridOccupant destination = null)
-    {
-        Queue<IGridOccupant> path = new Queue<IGridOccupant>();
-        foreach (GridMoveStep step in BuildMovePath(end, destination))
-        {
-            IGridOccupant occupant = step.IsSpecialMove
-                ? step.MovementOccupant
-                : step.DestinationOccupant;
-            if (occupant != null && !path.Contains(occupant))
-            {
-                path.Enqueue(occupant);
-            }
-        }
-
-        return path;
-    }
-
-    private Queue<GridMoveStep> BuildMovePath(Vector2Int end, IGridOccupant destination = null)
-    {
-        if (exactDestination.HasValue)
-        {
-            if (end == start)
-            {
-                return new Queue<GridMoveStep>();
-            }
-
-            if (exactMoveCost == int.MaxValue)
-            {
-                return new Queue<GridMoveStep>();
-            }
-
-            int endPathIndex = -1;
-            for (int index = 0; index < exactPath.Length; index++)
-            {
-                if (exactPath[index].To == end)
-                {
-                    endPathIndex = index;
-                    break;
-                }
-            }
-
-            if (endPathIndex < 0)
-            {
-                return new Queue<GridMoveStep>();
-            }
-
-            if (destination == null && endPathIndex == exactPath.Length - 1)
-            {
-                return new Queue<GridMoveStep>(exactPath);
-            }
-
-            GridMoveStep[] prefixPath = new GridMoveStep[endPathIndex + 1];
-            Array.Copy(exactPath, prefixPath, prefixPath.Length);
-            if (destination != null)
-            {
-                prefixPath[prefixPath.Length - 1] =
-                    prefixPath[prefixPath.Length - 1].WithDestination(destination);
-            }
-
-            return new Queue<GridMoveStep>(prefixPath);
-        }
-
-        List<GridMoveStep> path = new List<GridMoveStep>();
-        if (end == start) return new Queue<GridMoveStep>();
-        if (!sourceGrid.TryGetCellIndex(end, out int currentIndex)
-            || !sourceGrid.TryGetCellIndex(start, out int startIndex))
-        {
-            return new Queue<GridMoveStep>();
-        }
-
-        while (currentIndex != startIndex)
-        {
-            int fromIndex = parentIndex[currentIndex];
-            if (fromIndex < 0)
-            {
-                return new Queue<GridMoveStep>();
-            }
-
-            Vector2Int from = sourceGrid.GetPositionFromCellIndex(fromIndex);
-            Vector2Int to = sourceGrid.GetPositionFromCellIndex(currentIndex);
-            IGridOccupant destinationOccupant = currentIndex == sourceGrid.GetCellIndexUnchecked(end)
-                && destination != null
-                    ? destination
-                    : sourceGrid.GetGridCell(to)?.GetTopOccupant();
-            GridMoveStep step = new GridMoveStep(
-                from,
-                to,
-                destinationOccupant,
-                parentMovementOccupant[currentIndex],
-                parentMoveType[currentIndex]);
-            path.Add(step);
-            currentIndex = fromIndex;
-        }
-
-        path.Reverse();
-        return new Queue<GridMoveStep>(path);
-    }
-
-    private bool TryGetVisitableOccupantPosition(IGridOccupant occupant, out Vector2Int position)
-    {
-        EnsureVisitableOccupantPositionCache();
-        return visitableOccupantPositions.TryGetValue(occupant, out position);
-    }
-
-    private void EnsureVisitableOccupantPositionCache()
-    {
-        if (visitableOccupantPositionsBuilt)
-        {
-            return;
-        }
-
-        visitableOccupantPositionsBuilt = true;
-        visitableOccupantSet ??= new HashSet<IGridOccupant>(visitableOccupants);
-        visitableOccupantPositions ??= new Dictionary<IGridOccupant, Vector2Int>();
-        for (int index = 0; index < searchOrderCount; index++)
-        {
-            Vector2Int pos = sourceGrid.GetPositionFromCellIndex(searchOrder[index]);
-            GridCell cell = sourceGrid.GetGridCell(pos);
-            if (cell == null)
-            {
-                continue;
-            }
-
-            GridSearchScratch.SharedOccupants.Clear();
-            cell.FillAllOccupants(GridSearchScratch.SharedOccupants);
-            foreach (IGridOccupant occupant in GridSearchScratch.SharedOccupants)
-            {
-                if (occupant != null
-                    && visitableOccupantSet.Contains(occupant)
-                    && !visitableOccupantPositions.ContainsKey(occupant))
-                {
-                    visitableOccupantPositions.Add(occupant, pos);
-                }
-            }
-        }
-    }
-
-    private int GetMoveDistance(Vector2Int end)
-    {
-        if (exactDestination.HasValue)
-        {
-            if (end == start)
-            {
-                return 0;
-            }
-
-            return end == exactDestination.Value && exactMoveCost != int.MaxValue
-                ? exactPath.Length
-                : int.MaxValue;
-        }
-
-        if (end == start)
-        {
-            return 0;
-        }
-
-        if (!sourceGrid.TryGetCellIndex(end, out int currentIndex)
-            || !sourceGrid.TryGetCellIndex(start, out int startIndex))
-        {
-            return int.MaxValue;
-        }
-
-        int distance = 0;
-        while (currentIndex != startIndex)
-        {
-            currentIndex = parentIndex[currentIndex];
-            if (currentIndex < 0)
-            {
-                return int.MaxValue;
-            }
-
-            distance++;
-        }
-
-        return distance;
-    }
-
-    private static bool IsDistanceInRange(
-        Vector2Int from,
-        Vector2Int to,
-        int minDistance,
-        int maxDistance)
-    {
-        int distance = Mathf.Abs(from.x - to.x) + Mathf.Abs(from.y - to.y);
-        return distance >= Mathf.Max(0, minDistance)
-            && (maxDistance <= 0 || distance <= maxDistance);
-    }
-}
-
 public class Grid
 {
     private const int DefaultCellWorldHeight = 3;
@@ -777,10 +22,7 @@ public class Grid
         new Dictionary<IGridOccupant, int>();
     private Vector3 originPos;
     private int cellWorldHeight;
-    private bool hasArbitraryHorizontalTraversal;
-    private bool hasArbitraryVerticalTraversal;
-    private int minimumAdjacentVerticalTraversalCost;
-    private readonly List<int>[] verticalPortalXsByFloor;
+    private readonly GridTraversalHeuristicIndex traversalHeuristics;
     private int cachedWalkableExitNavigationVersion = -1;
     private bool hasCachedWalkableExit;
     private Vector2Int cachedWalkableExit;
@@ -801,7 +43,7 @@ public class Grid
         NavigationVersion = 0;
 
         gridArray = new GridCell[height, width];
-        verticalPortalXsByFloor = new List<int>[height];
+        traversalHeuristics = new GridTraversalHeuristicIndex(height);
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -811,9 +53,6 @@ public class Grid
             }
         }
 
-        hasArbitraryHorizontalTraversal = false;
-        hasArbitraryVerticalTraversal = false;
-        minimumAdjacentVerticalTraversalCost = int.MaxValue;
     }
 
     public static void ReleaseRetainedSearchMemoryForDiagnostics()
@@ -825,6 +64,27 @@ public class Grid
     {
         this.originPos = originPos;
         this.cellWorldHeight = cellWorldHeight <= 0 ? DefaultCellWorldHeight : cellWorldHeight;
+    }
+
+    /// <summary>
+    /// Creates an occupant-free copy of the authored grid layout. Restore code
+    /// can populate this detached grid without exposing partial world state.
+    /// </summary>
+    public Grid CreateDetachedLayoutCopy()
+    {
+        Grid copy = new Grid(width, height, originPos, cellWorldHeight);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                Vector2Int position = new Vector2Int(x, y);
+                GridCell source = gridArray[y, x];
+                copy.SetAreaType(position, source.AreaType);
+                copy.SetTerrainType(position, source.TerrainType);
+            }
+        }
+
+        return copy;
     }
 
     public Vector2Int GetXY(Vector3 worldPosition)
@@ -862,7 +122,7 @@ public class Grid
         return null;
     }
 
-    internal bool TryGetCellIndex(Vector2Int position, out int index)
+    public bool TryGetCellIndex(Vector2Int position, out int index)
     {
         if (!IsValidGridPos(position))
         {
@@ -879,7 +139,7 @@ public class Grid
         return position.y * width + position.x;
     }
 
-    internal Vector2Int GetPositionFromCellIndex(int index)
+    public Vector2Int GetPositionFromCellIndex(int index)
     {
         return new Vector2Int(index % width, index / width);
     }
@@ -1193,8 +453,8 @@ public class Grid
     public GridPathSearchResult SearchPathTo(
         Vector2Int start,
         Vector2Int destination,
-        Func<Vector2Int, bool> traversalFilter = null,
-        IGridTraversalCostPolicy costPolicy = null,
+        Func<Vector2Int, bool> traversalFilter,
+        IGridTraversalCostPolicy costPolicy,
         GridTraversalContext traversalContext = default)
     {
         return SearchPath(
@@ -1205,6 +465,16 @@ public class Grid
             traversalContext,
             destination);
     }
+
+    public GridPathSearchResult SearchPathTo(
+        Vector2Int start,
+        Vector2Int destination) =>
+        SearchPathTo(
+            start,
+            destination,
+            null,
+            DefaultGridTraversalCostPolicy.Instance,
+            default);
 
     internal GridPathSearchResult SearchPathWeighted(
         Vector2Int start,
@@ -1294,7 +564,10 @@ public class Grid
             queue.Enqueue(new GridSearchQueueNode(
                 startIndex,
                 0,
-                EstimateRemainingCost(start, exactDestination, costPolicy),
+                traversalHeuristics.EstimateRemainingCost(
+                    start,
+                    exactDestination,
+                    costPolicy),
                 sequence++));
 
             while (queue.Count > 0)
@@ -1399,7 +672,10 @@ public class Grid
                             parentMoveType[nextIndex] = step.MoveType;
                         }
                         int priority = candidateCost
-                            + EstimateRemainingCost(nextPos, exactDestination, costPolicy);
+                            + traversalHeuristics.EstimateRemainingCost(
+                                nextPos,
+                                exactDestination,
+                                costPolicy);
                         queue.Enqueue(new GridSearchQueueNode(
                             nextIndex,
                             candidateCost,
@@ -1528,7 +804,8 @@ public class Grid
             return false;
         }
 
-        BuildableObject building = cell.GetOccupant(GridLayer.Building) as BuildableObject;
+        IGridBuildingOccupantCapability building =
+            cell.GetOccupant(GridLayer.Building) as IGridBuildingOccupantCapability;
         if (IsMovementBlockedByWall(pos))
         {
             return false;
@@ -1539,7 +816,7 @@ public class Grid
             return true;
         }
 
-        if (building != null && IsWalkableFacilityCell(building))
+        if (building?.AllowsInteriorWalkability == true)
         {
             return true;
         }
@@ -1563,24 +840,10 @@ public class Grid
 
     public bool IsMovementBlockedByWall(Vector2Int pos)
     {
-        BuildableObject building = GetGridCell(pos)?.GetOccupant(GridLayer.Building) as BuildableObject;
-        if (building == null || building.isDestroy)
-        {
-            return false;
-        }
-
-        BuildingSO buildingData = building.BuildingData;
-        bool isDoor = building is Door || (buildingData != null && buildingData.IsDoor);
-        bool isStructuralWall = buildingData != null
-            ? buildingData.IsStructuralWall
-            : building.category == BuildingCategory.Wall;
-        return isStructuralWall && !isDoor;
-    }
-
-    private static bool IsWalkableFacilityCell(BuildableObject building)
-    {
-        FacilityData facility = building != null ? building.Facility : null;
-        return facility != null && facility.IsVisitorFacility;
+        IGridBuildingOccupantCapability building =
+            GetGridCell(pos)?.GetOccupant(GridLayer.Building)
+                as IGridBuildingOccupantCapability;
+        return building?.BlocksGridMovement == true;
     }
 
     public bool TryFindNearestWalkablePosition(Vector2Int start, out Vector2Int walkablePosition)
@@ -1677,6 +940,17 @@ public class Grid
         return GetOccupantPath(Vector2Int.zero, (pos) => end.Contains(pos)).Any();
     }
 
+    public bool IsConnected(Vector2Int start, int associatedId)
+    {
+        return GetOccupantPath(start, position =>
+        {
+            GridCell cell = GetGridCell(position);
+            return cell != null
+                && cell.GetAllOccupants()
+                    .Any(occupant => occupant.GridId == associatedId);
+        }).Any();
+    }
+
     public List<IGridOccupant> FindAllOccupants(Func<IGridOccupant, bool> predicate)
     {
         List<IGridOccupant> result =
@@ -1752,56 +1026,12 @@ public class Grid
         }
     }
 
-    private int EstimateRemainingCost(
-        Vector2Int position,
-        Vector2Int? exactDestination,
-        IGridTraversalCostPolicy costPolicy)
-    {
-        if (!exactDestination.HasValue)
-        {
-            return 0;
-        }
-
-        long estimate = 0L;
-        if (!hasArbitraryHorizontalTraversal)
-        {
-            int horizontalDistance = Mathf.Abs(position.x - exactDestination.Value.x);
-            if (position.y != exactDestination.Value.y
-                && TryGetNearestVerticalPortalDistance(
-                    position.y,
-                    position.x,
-                    out int distanceToDeparturePortal)
-                && TryGetNearestVerticalPortalDistance(
-                    exactDestination.Value.y,
-                    exactDestination.Value.x,
-                    out int distanceFromArrivalPortal))
-            {
-                horizontalDistance = Mathf.Max(
-                    horizontalDistance,
-                    distanceToDeparturePortal + distanceFromArrivalPortal);
-            }
-
-            estimate += (long)horizontalDistance
-                * Mathf.Max(0, costPolicy.MinimumHorizontalCost);
-        }
-
-        if (ReferenceEquals(costPolicy, DefaultGridTraversalCostPolicy.Instance)
-            && !hasArbitraryVerticalTraversal
-            && minimumAdjacentVerticalTraversalCost != int.MaxValue)
-        {
-            int verticalDistance = Mathf.Abs(position.y - exactDestination.Value.y);
-            estimate += (long)verticalDistance * minimumAdjacentVerticalTraversalCost;
-        }
-
-        return estimate >= int.MaxValue ? int.MaxValue : (int)estimate;
-    }
-
     internal int EstimatePathHeuristicCost(
         Vector2Int position,
         Vector2Int destination,
         IGridTraversalCostPolicy costPolicy)
     {
-        return EstimateRemainingCost(
+        return traversalHeuristics.EstimateRemainingCost(
             position,
             destination,
             costPolicy ?? DefaultGridTraversalCostPolicy.Instance);
@@ -1809,23 +1039,7 @@ public class Grid
 
     public void RefreshTraversalHeuristicMetadata()
     {
-        hasArbitraryHorizontalTraversal = false;
-        hasArbitraryVerticalTraversal = false;
-        minimumAdjacentVerticalTraversalCost = int.MaxValue;
-        Array.Clear(verticalPortalXsByFloor, 0, verticalPortalXsByFloor.Length);
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                GridCell cell = gridArray[y, x];
-                foreach (GridTraversalLink link in cell.TraversalLinks)
-                {
-                    UpdateTraversalHeuristicMetadata(
-                        new Vector2Int(x, y),
-                        link);
-                }
-            }
-        }
+        traversalHeuristics.Rebuild(this);
     }
 
     private static bool AffectsStructure(
@@ -1857,114 +1071,14 @@ public class Grid
                 if (from == to || !CanConnectMovementCells(from, to, moveType)) continue;
 
                 links.Add(new GridTraversalLink(to, occupant, moveType));
-                if (moveType == GridMoveType.Teleport && from.x != to.x)
-                {
-                    hasArbitraryHorizontalTraversal = true;
-                }
             }
 
             cell.SetTraversalLinks(links);
             foreach (GridTraversalLink link in links)
             {
-                UpdateTraversalHeuristicMetadata(from, link);
+                traversalHeuristics.ObserveLink(this, from, link);
             }
         }
-    }
-
-    private void UpdateTraversalHeuristicMetadata(
-        Vector2Int from,
-        GridTraversalLink link)
-    {
-        if (link == null)
-        {
-            return;
-        }
-
-        if (link.MoveType == GridMoveType.Teleport && link.To.x != from.x)
-        {
-            hasArbitraryHorizontalTraversal = true;
-        }
-
-        int verticalDistance = Mathf.Abs(link.To.y - from.y);
-        if (verticalDistance <= 0)
-        {
-            return;
-        }
-
-        RecordVerticalPortal(from);
-        RecordVerticalPortal(link.To);
-        if (verticalDistance != 1)
-        {
-            hasArbitraryVerticalTraversal = true;
-            return;
-        }
-
-        GridTraversalStepData step = new GridTraversalStepData(
-            from,
-            link.To,
-            link.Through,
-            link.MoveType);
-        int cost = DefaultGridTraversalCostPolicy.Instance.GetTraversalCost(
-            this,
-            in step,
-            default);
-        if (cost > 0 && cost < minimumAdjacentVerticalTraversalCost)
-        {
-            minimumAdjacentVerticalTraversalCost = cost;
-        }
-    }
-
-    private void RecordVerticalPortal(Vector2Int position)
-    {
-        if (position.y < 0 || position.y >= verticalPortalXsByFloor.Length)
-        {
-            return;
-        }
-
-        List<int> portals = verticalPortalXsByFloor[position.y];
-        if (portals == null)
-        {
-            portals = new List<int>(2);
-            verticalPortalXsByFloor[position.y] = portals;
-        }
-
-        int index = portals.BinarySearch(position.x);
-        if (index < 0)
-        {
-            portals.Insert(~index, position.x);
-        }
-    }
-
-    private bool TryGetNearestVerticalPortalDistance(
-        int floor,
-        int x,
-        out int distance)
-    {
-        distance = 0;
-        if (floor < 0
-            || floor >= verticalPortalXsByFloor.Length
-            || verticalPortalXsByFloor[floor] == null
-            || verticalPortalXsByFloor[floor].Count == 0)
-        {
-            return false;
-        }
-
-        List<int> portals = verticalPortalXsByFloor[floor];
-        int index = portals.BinarySearch(x);
-        if (index >= 0)
-        {
-            return true;
-        }
-
-        int insertionIndex = ~index;
-        int lowerDistance = insertionIndex > 0
-            ? x - portals[insertionIndex - 1]
-            : int.MaxValue;
-        int upperDistance = insertionIndex < portals.Count
-            ? portals[insertionIndex] - x
-            : int.MaxValue;
-        distance = Mathf.Min(lowerDistance, upperDistance);
-        return distance != int.MaxValue;
     }
 
     private bool CanConnectMovementCells(Vector2Int from, Vector2Int to, GridMoveType moveType)
@@ -2067,485 +1181,5 @@ public class Grid
         int[] result = new int[Mathf.Max(0, count)];
         Array.Fill(result, value);
         return result;
-    }
-}
-
-internal sealed class GridSearchWorkspace
-{
-    public int[] ParentIndex { get; private set; } = Array.Empty<int>();
-    public IGridOccupant[] ParentMovementOccupant { get; private set; } =
-        Array.Empty<IGridOccupant>();
-    public GridMoveType[] ParentMoveType { get; private set; } = Array.Empty<GridMoveType>();
-    public int[] SearchOrder { get; private set; } = Array.Empty<int>();
-    public int[] MoveCost { get; private set; } = Array.Empty<int>();
-    private int[] nodeGeneration = Array.Empty<int>();
-    private int[] touchedIndices = Array.Empty<int>();
-    private int currentGeneration;
-    private int touchedCount;
-
-    public void Prepare(int cellCount)
-    {
-        int capacity = Mathf.NextPowerOfTwo(Mathf.Max(1, cellCount));
-        if (ParentIndex.Length < cellCount)
-        {
-            ParentIndex = new int[capacity];
-            ParentMovementOccupant = new IGridOccupant[capacity];
-            ParentMoveType = new GridMoveType[capacity];
-            SearchOrder = new int[capacity];
-            MoveCost = new int[capacity];
-            nodeGeneration = new int[capacity];
-            touchedIndices = new int[capacity];
-            currentGeneration = 0;
-            touchedCount = 0;
-        }
-
-        currentGeneration++;
-        if (currentGeneration == int.MaxValue)
-        {
-            Array.Clear(nodeGeneration, 0, nodeGeneration.Length);
-            currentGeneration = 1;
-        }
-
-        touchedCount = 0;
-    }
-
-    public int GetMoveCost(int index)
-    {
-        return nodeGeneration[index] == currentGeneration
-            ? MoveCost[index]
-            : int.MaxValue;
-    }
-
-    public void SetStart(int index)
-    {
-        MarkTouched(index);
-        ParentIndex[index] = -1;
-        ParentMovementOccupant[index] = null;
-        ParentMoveType[index] = default;
-        MoveCost[index] = 0;
-    }
-
-    public void SetNode(
-        int index,
-        int cost,
-        int parentIndex,
-        IGridOccupant movementOccupant,
-        GridMoveType moveType)
-    {
-        MarkTouched(index);
-        ParentIndex[index] = parentIndex;
-        ParentMovementOccupant[index] = movementOccupant;
-        ParentMoveType[index] = moveType;
-        MoveCost[index] = cost;
-    }
-
-    public void ReleaseReferences()
-    {
-        for (int index = 0; index < touchedCount; index++)
-        {
-            ParentMovementOccupant[touchedIndices[index]] = null;
-        }
-    }
-
-    private void MarkTouched(int index)
-    {
-        if (nodeGeneration[index] == currentGeneration)
-        {
-            return;
-        }
-
-        nodeGeneration[index] = currentGeneration;
-        touchedIndices[touchedCount++] = index;
-    }
-}
-
-internal sealed class SparseGridSearchWorkspace
-{
-    private const int InitialCapacity = 512;
-    private const int LoadFactorNumerator = 7;
-    private const int LoadFactorDenominator = 10;
-
-    private int[] keys = new int[InitialCapacity];
-    private int[] generations = new int[InitialCapacity];
-    private int[] parentIndices = new int[InitialCapacity];
-    private int[] moveCosts = new int[InitialCapacity];
-    private IGridOccupant[] parentMovementOccupants =
-        new IGridOccupant[InitialCapacity];
-    private GridMoveType[] parentMoveTypes =
-        new GridMoveType[InitialCapacity];
-    private int[] occupiedSlots = new int[InitialCapacity];
-    private int currentGeneration;
-    private int count;
-
-    public void Prepare()
-    {
-        currentGeneration++;
-        if (currentGeneration == int.MaxValue)
-        {
-            Array.Clear(generations, 0, generations.Length);
-            currentGeneration = 1;
-        }
-
-        count = 0;
-    }
-
-    public int GetMoveCost(int cellIndex)
-    {
-        int slot = FindExistingSlot(cellIndex);
-        return slot >= 0 ? moveCosts[slot] : int.MaxValue;
-    }
-
-    public int GetParentIndex(int cellIndex)
-    {
-        int slot = FindExistingSlot(cellIndex);
-        return slot >= 0 ? parentIndices[slot] : -1;
-    }
-
-    public IGridOccupant GetParentMovementOccupant(int cellIndex)
-    {
-        int slot = FindExistingSlot(cellIndex);
-        return slot >= 0 ? parentMovementOccupants[slot] : null;
-    }
-
-    public GridMoveType GetParentMoveType(int cellIndex)
-    {
-        int slot = FindExistingSlot(cellIndex);
-        return slot >= 0 ? parentMoveTypes[slot] : default;
-    }
-
-    public void SetStart(int cellIndex)
-    {
-        int slot = FindOrCreateSlot(cellIndex);
-        parentIndices[slot] = -1;
-        parentMovementOccupants[slot] = null;
-        parentMoveTypes[slot] = default;
-        moveCosts[slot] = 0;
-    }
-
-    public void SetNode(
-        int cellIndex,
-        int cost,
-        int parentIndex,
-        IGridOccupant movementOccupant,
-        GridMoveType moveType)
-    {
-        int slot = FindOrCreateSlot(cellIndex);
-        parentIndices[slot] = parentIndex;
-        parentMovementOccupants[slot] = movementOccupant;
-        parentMoveTypes[slot] = moveType;
-        moveCosts[slot] = cost;
-    }
-
-    public void ReleaseReferences()
-    {
-        for (int index = 0; index < count; index++)
-        {
-            parentMovementOccupants[occupiedSlots[index]] = null;
-        }
-    }
-
-    private int FindExistingSlot(int cellIndex)
-    {
-        int mask = keys.Length - 1;
-        int slot = Hash(cellIndex) & mask;
-        while (generations[slot] == currentGeneration)
-        {
-            if (keys[slot] == cellIndex)
-            {
-                return slot;
-            }
-
-            slot = (slot + 1) & mask;
-        }
-
-        return -1;
-    }
-
-    private int FindOrCreateSlot(int cellIndex)
-    {
-        int existing = FindExistingSlot(cellIndex);
-        if (existing >= 0)
-        {
-            return existing;
-        }
-
-        EnsureInsertCapacity();
-        int mask = keys.Length - 1;
-        int slot = Hash(cellIndex) & mask;
-        while (generations[slot] == currentGeneration)
-        {
-            slot = (slot + 1) & mask;
-        }
-
-        generations[slot] = currentGeneration;
-        keys[slot] = cellIndex;
-        parentIndices[slot] = -1;
-        moveCosts[slot] = int.MaxValue;
-        parentMovementOccupants[slot] = null;
-        parentMoveTypes[slot] = default;
-        occupiedSlots[count++] = slot;
-        return slot;
-    }
-
-    private void EnsureInsertCapacity()
-    {
-        if ((count + 1) * LoadFactorDenominator
-            < keys.Length * LoadFactorNumerator)
-        {
-            return;
-        }
-
-        Grow(keys.Length << 1);
-    }
-
-    private void Grow(int capacity)
-    {
-        int[] oldKeys = keys;
-        int[] oldGenerations = generations;
-        int[] oldParentIndices = parentIndices;
-        int[] oldMoveCosts = moveCosts;
-        IGridOccupant[] oldParentMovementOccupants =
-            parentMovementOccupants;
-        GridMoveType[] oldParentMoveTypes = parentMoveTypes;
-        int oldGeneration = currentGeneration;
-
-        keys = new int[capacity];
-        generations = new int[capacity];
-        parentIndices = new int[capacity];
-        moveCosts = new int[capacity];
-        parentMovementOccupants = new IGridOccupant[capacity];
-        parentMoveTypes = new GridMoveType[capacity];
-        occupiedSlots = new int[capacity];
-        currentGeneration = 1;
-        count = 0;
-
-        int mask = capacity - 1;
-        for (int oldSlot = 0; oldSlot < oldKeys.Length; oldSlot++)
-        {
-            if (oldGenerations[oldSlot] != oldGeneration)
-            {
-                continue;
-            }
-
-            int cellIndex = oldKeys[oldSlot];
-            int slot = Hash(cellIndex) & mask;
-            while (generations[slot] == currentGeneration)
-            {
-                slot = (slot + 1) & mask;
-            }
-
-            generations[slot] = currentGeneration;
-            keys[slot] = cellIndex;
-            parentIndices[slot] = oldParentIndices[oldSlot];
-            moveCosts[slot] = oldMoveCosts[oldSlot];
-            parentMovementOccupants[slot] =
-                oldParentMovementOccupants[oldSlot];
-            parentMoveTypes[slot] = oldParentMoveTypes[oldSlot];
-            occupiedSlots[count++] = slot;
-        }
-    }
-
-    private static int Hash(int value)
-    {
-        unchecked
-        {
-            uint hash = (uint)value;
-            hash ^= hash >> 16;
-            hash *= 0x7FEB352Du;
-            hash ^= hash >> 15;
-            return (int)hash;
-        }
-    }
-}
-
-internal static class GridSearchScratch
-{
-    private static readonly Stack<Queue<Vector2Int>> PositionQueues = new Stack<Queue<Vector2Int>>();
-    private static readonly Stack<List<Vector2Int>> PositionLists = new Stack<List<Vector2Int>>();
-    private static readonly Stack<List<GridTraversalStepData>> TraversalStepLists =
-        new Stack<List<GridTraversalStepData>>();
-    private static readonly Stack<List<IGridOccupant>> OccupantLists = new Stack<List<IGridOccupant>>();
-    private static readonly Stack<HashSet<IGridOccupant>> OccupantSets = new Stack<HashSet<IGridOccupant>>();
-    private static readonly Stack<Queue<GridMoveStep>> MovePaths =
-        new Stack<Queue<GridMoveStep>>();
-    private static readonly Stack<GridSearchPriorityQueue> PriorityQueues =
-        new Stack<GridSearchPriorityQueue>();
-    private static readonly Stack<GridSearchWorkspace> Workspaces =
-        new Stack<GridSearchWorkspace>();
-    private static readonly Stack<SparseGridSearchWorkspace> SparseWorkspaces =
-        new Stack<SparseGridSearchWorkspace>();
-
-    [ThreadStatic] private static List<IGridOccupant> sharedOccupants;
-
-    public static List<IGridOccupant> SharedOccupants =>
-        sharedOccupants ??= new List<IGridOccupant>(8);
-
-    public static Queue<Vector2Int> RentPositionQueue()
-    {
-        return PositionQueues.Count > 0 ? PositionQueues.Pop() : new Queue<Vector2Int>(128);
-    }
-
-    public static Queue<GridMoveStep> RentMovePath(int capacity = 0)
-    {
-        return MovePaths.Count > 0
-            ? MovePaths.Pop()
-            : new Queue<GridMoveStep>(Mathf.Max(4, capacity));
-    }
-
-    public static List<GridTraversalStepData> RentTraversalStepList()
-    {
-        return TraversalStepLists.Count > 0
-            ? TraversalStepLists.Pop()
-            : new List<GridTraversalStepData>(8);
-    }
-
-    public static List<Vector2Int> RentPositionList()
-    {
-        return PositionLists.Count > 0 ? PositionLists.Pop() : new List<Vector2Int>(128);
-    }
-
-    public static List<IGridOccupant> RentOccupantList()
-    {
-        return OccupantLists.Count > 0 ? OccupantLists.Pop() : new List<IGridOccupant>(8);
-    }
-
-    public static HashSet<IGridOccupant> RentOccupantSet()
-    {
-        return OccupantSets.Count > 0 ? OccupantSets.Pop() : new HashSet<IGridOccupant>();
-    }
-
-    public static GridSearchPriorityQueue RentPriorityQueue()
-    {
-        return PriorityQueues.Count > 0
-            ? PriorityQueues.Pop()
-            : new GridSearchPriorityQueue();
-    }
-
-    public static GridSearchWorkspace RentWorkspace(int cellCount)
-    {
-        GridSearchWorkspace workspace = Workspaces.Count > 0
-            ? Workspaces.Pop()
-            : new GridSearchWorkspace();
-        workspace.Prepare(cellCount);
-        return workspace;
-    }
-
-    public static SparseGridSearchWorkspace RentSparseWorkspace()
-    {
-        SparseGridSearchWorkspace workspace =
-            SparseWorkspaces.Count > 0
-                ? SparseWorkspaces.Pop()
-                : new SparseGridSearchWorkspace();
-        workspace.Prepare();
-        return workspace;
-    }
-
-    public static void EnsureIncrementalSearchCapacity(int count)
-    {
-        int target = Mathf.Max(0, count);
-        while (SparseWorkspaces.Count < target)
-        {
-            SparseWorkspaces.Push(new SparseGridSearchWorkspace());
-        }
-
-        while (PriorityQueues.Count < target)
-        {
-            PriorityQueues.Push(new GridSearchPriorityQueue());
-        }
-    }
-
-    public static void Return(Queue<Vector2Int> queue)
-    {
-        if (queue == null) return;
-
-        queue.Clear();
-        PositionQueues.Push(queue);
-    }
-
-    public static void ReturnMovePath(Queue<GridMoveStep> path)
-    {
-        if (path == null)
-        {
-            return;
-        }
-
-        path.Clear();
-        MovePaths.Push(path);
-    }
-
-    public static void ReturnTraversalStepList(List<GridTraversalStepData> list)
-    {
-        if (list == null) return;
-
-        list.Clear();
-        TraversalStepLists.Push(list);
-    }
-
-    public static void ReturnPositionList(List<Vector2Int> list)
-    {
-        if (list == null) return;
-
-        list.Clear();
-        PositionLists.Push(list);
-    }
-
-    public static void ReturnOccupantList(List<IGridOccupant> list)
-    {
-        if (list == null) return;
-
-        list.Clear();
-        OccupantLists.Push(list);
-    }
-
-    public static void Return(HashSet<IGridOccupant> set)
-    {
-        if (set == null) return;
-
-        set.Clear();
-        OccupantSets.Push(set);
-    }
-
-    public static void Return(GridSearchPriorityQueue queue)
-    {
-        if (queue == null) return;
-
-        queue.Clear();
-        PriorityQueues.Push(queue);
-    }
-
-    public static void Return(GridSearchWorkspace workspace)
-    {
-        if (workspace == null)
-        {
-            return;
-        }
-
-        workspace.ReleaseReferences();
-        Workspaces.Push(workspace);
-    }
-
-    public static void Return(SparseGridSearchWorkspace workspace)
-    {
-        if (workspace == null)
-        {
-            return;
-        }
-
-        workspace.ReleaseReferences();
-        SparseWorkspaces.Push(workspace);
-    }
-
-    internal static void ClearRetainedMemory()
-    {
-        PositionQueues.Clear();
-        PositionLists.Clear();
-        TraversalStepLists.Clear();
-        OccupantLists.Clear();
-        OccupantSets.Clear();
-        MovePaths.Clear();
-        PriorityQueues.Clear();
-        Workspaces.Clear();
-        SparseWorkspaces.Clear();
-        sharedOccupants = null;
     }
 }

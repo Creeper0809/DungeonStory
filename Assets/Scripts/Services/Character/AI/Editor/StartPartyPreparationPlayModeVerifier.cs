@@ -54,6 +54,8 @@ public static class StartPartyPreparationPlayModeVerifier
         IStartPartyPreparationService preparation = scope?.Container.Resolve<IStartPartyPreparationService>();
         IPreparedStartPartyCommitService commitService =
             scope?.Container.Resolve<IPreparedStartPartyCommitService>();
+        IPreparedStartPartyDiagnosticsQuery diagnosticsQuery =
+            scope?.Container.Resolve<IPreparedStartPartyDiagnosticsQuery>();
         CharacterSO ownerData = !string.IsNullOrWhiteSpace(preferredSpeciesTag)
             ? manager?.OwnerCandidates?.FirstOrDefault(candidate => candidate != null
                 && string.Equals(
@@ -139,7 +141,7 @@ public static class StartPartyPreparationPlayModeVerifier
             .ToArray();
         string actors = string.Join(",", staff.Select(actor =>
             $"{actor.name}:{actor.GetInstanceID()}:{actor.Identity.PersistentId}:active={actor.gameObject.activeInHierarchy}"));
-        return $"committed={committed}; message={message}; staff={staff.Length}; actors={actors}; diagnostics={StartPartyCommitDiagnostics.LastReport}";
+        return $"committed={committed}; message={message}; staff={staff.Length}; actors={actors}; diagnostics={diagnosticsQuery?.LastReport ?? string.Empty}";
     }
 }
 

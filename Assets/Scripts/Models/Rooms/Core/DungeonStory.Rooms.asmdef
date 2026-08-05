@@ -2,7 +2,10 @@
   "name": "DungeonStory.Rooms",
   "rootNamespace": "DungeonStory.Rooms",
   "references": [
-    "DungeonStory.Buildings"
+    "DungeonStory.Buildings",
+    "DungeonStory.CoreSession",
+    "DungeonStory.Foundation",
+    "DungeonStory.Work"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

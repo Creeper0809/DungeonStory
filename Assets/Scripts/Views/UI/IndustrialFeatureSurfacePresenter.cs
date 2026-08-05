@@ -3,48 +3,111 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+public sealed class IndustrialPowerFluidContext
+{
+    public IndustrialPowerFluidContext(
+        IPowerInfrastructureQuery power,
+        IPowerInfrastructureCommand powerCommands,
+        IFluidInfrastructureQuery water,
+        IFluidInfrastructureCommand plumbing)
+    {
+        Power = power ?? throw new ArgumentNullException(nameof(power));
+        PowerCommands = powerCommands
+            ?? throw new ArgumentNullException(nameof(powerCommands));
+        Water = water ?? throw new ArgumentNullException(nameof(water));
+        Plumbing = plumbing
+            ?? throw new ArgumentNullException(nameof(plumbing));
+    }
+
+    public IPowerInfrastructureQuery Power { get; }
+    public IPowerInfrastructureCommand PowerCommands { get; }
+    public IFluidInfrastructureQuery Water { get; }
+    public IFluidInfrastructureCommand Plumbing { get; }
+}
+
+public sealed class IndustrialTransportAutomationContext
+{
+    public IndustrialTransportAutomationContext(
+        IConveyorInfrastructureQuery conveyorQuery,
+        IConveyorInfrastructureCommand conveyorCommands,
+        IAutomationInfrastructureQuery automationQuery,
+        IAutomationInfrastructureCommand automationCommands)
+    {
+        ConveyorQuery = conveyorQuery
+            ?? throw new ArgumentNullException(nameof(conveyorQuery));
+        ConveyorCommands = conveyorCommands
+            ?? throw new ArgumentNullException(nameof(conveyorCommands));
+        AutomationQuery = automationQuery
+            ?? throw new ArgumentNullException(nameof(automationQuery));
+        AutomationCommands = automationCommands
+            ?? throw new ArgumentNullException(nameof(automationCommands));
+    }
+
+    public IConveyorInfrastructureQuery ConveyorQuery { get; }
+    public IConveyorInfrastructureCommand ConveyorCommands { get; }
+    public IAutomationInfrastructureQuery AutomationQuery { get; }
+    public IAutomationInfrastructureCommand AutomationCommands { get; }
+}
+
+public sealed class IndustrialPresentationContext
+{
+    public IndustrialPresentationContext(
+        IBuildingWorldQuery buildings,
+        IIndustrialInfrastructureOverlayService overlays,
+        IDomainFailureLocalizer failureLocalizer)
+    {
+        Buildings = buildings ?? throw new ArgumentNullException(nameof(buildings));
+        Overlays = overlays ?? throw new ArgumentNullException(nameof(overlays));
+        FailureLocalizer = failureLocalizer
+            ?? throw new ArgumentNullException(nameof(failureLocalizer));
+    }
+
+    public IBuildingWorldQuery Buildings { get; }
+    public IIndustrialInfrastructureOverlayService Overlays { get; }
+    public IDomainFailureLocalizer FailureLocalizer { get; }
+}
+
 public sealed class IndustrialFeatureSurfacePresenter :
     IFeatureSurfaceTabPresenter
 {
     private const float CardHeight = 96f;
     private const int MaxPowerNodeCards = 40;
 
-    private readonly IElectricalNetworkRuntime power;
-    private readonly IPowerPriorityCommandService powerCommands;
-    private readonly IWaterNetworkRuntime water;
-    private readonly IPlumbingCommandService plumbing;
-    private readonly IConveyorCommandService conveyors;
-    private readonly IAutomationRuntime automation;
+    private readonly IPowerInfrastructureQuery power;
+    private readonly IPowerInfrastructureCommand powerCommands;
+    private readonly IFluidInfrastructureQuery water;
+    private readonly IFluidInfrastructureCommand plumbing;
+    private readonly IConveyorInfrastructureQuery conveyorQuery;
+    private readonly IConveyorInfrastructureCommand conveyorCommands;
+    private readonly IAutomationInfrastructureQuery automationQuery;
+    private readonly IAutomationInfrastructureCommand automationCommands;
     private readonly IBuildingWorldQuery buildings;
     private readonly IIndustrialInfrastructureOverlayService overlays;
+    private readonly IDomainFailureLocalizer failureLocalizer;
     private readonly Dictionary<string, BuildableObject> buildingsByNodeId =
         new Dictionary<string, BuildableObject>(StringComparer.Ordinal);
     private int indexedBuildingVersion = int.MinValue;
 
     public IndustrialFeatureSurfacePresenter(
-        IElectricalNetworkRuntime power,
-        IPowerPriorityCommandService powerCommands,
-        IWaterNetworkRuntime water,
-        IPlumbingCommandService plumbing,
-        IConveyorCommandService conveyors,
-        IAutomationRuntime automation,
-        IBuildingWorldQuery buildings,
-        IIndustrialInfrastructureOverlayService overlays)
+        IndustrialPowerFluidContext utilities,
+        IndustrialTransportAutomationContext transport,
+        IndustrialPresentationContext presentation)
     {
-        this.power = power ?? throw new ArgumentNullException(nameof(power));
-        this.powerCommands = powerCommands
-            ?? throw new ArgumentNullException(nameof(powerCommands));
-        this.water = water ?? throw new ArgumentNullException(nameof(water));
-        this.plumbing = plumbing
-            ?? throw new ArgumentNullException(nameof(plumbing));
-        this.conveyors = conveyors
-            ?? throw new ArgumentNullException(nameof(conveyors));
-        this.automation = automation
-            ?? throw new ArgumentNullException(nameof(automation));
-        this.buildings = buildings
-            ?? throw new ArgumentNullException(nameof(buildings));
-        this.overlays = overlays
-            ?? throw new ArgumentNullException(nameof(overlays));
+        utilities = utilities ?? throw new ArgumentNullException(nameof(utilities));
+        transport = transport ?? throw new ArgumentNullException(nameof(transport));
+        presentation = presentation
+            ?? throw new ArgumentNullException(nameof(presentation));
+        power = utilities.Power;
+        powerCommands = utilities.PowerCommands;
+        water = utilities.Water;
+        plumbing = utilities.Plumbing;
+        conveyorQuery = transport.ConveyorQuery;
+        conveyorCommands = transport.ConveyorCommands;
+        automationQuery = transport.AutomationQuery;
+        automationCommands = transport.AutomationCommands;
+        buildings = presentation.Buildings;
+        overlays = presentation.Overlays;
+        failureLocalizer = presentation.FailureLocalizer;
     }
 
     public TabId Id => TabId.Industry;
@@ -117,17 +180,17 @@ public sealed class IndustrialFeatureSurfacePresenter :
             .OrderBy(node => node.Powered)
             .ThenByDescending(node => node.Fault)
             .ThenBy(node => node.Priority)
-            .ThenBy(node => node.NodeId, StringComparer.Ordinal)
+            .ThenBy(node => node.BuildingId.Value, StringComparer.Ordinal)
             .ToArray();
         foreach (PowerNodeSnapshot node in consumerNodes
                      .Take(MaxPowerNodeCards))
         {
             PowerNodeSnapshot captured = node;
-            BuildableObject building = FindBuilding(captured.NodeId);
+            BuildableObject building = FindBuilding(captured.BuildingId.Value);
             view.AddDataCard(
-                $"IndustryPowerPriority_{captured.NodeId}",
+                $"IndustryPowerPriority_{captured.BuildingId.Value}",
                 $"우선순위 {FormatPriority(captured.Priority)}",
-                $"{captured.NodeId} · 공급 {captured.SuppliedFraction * 100f:0}%"
+                $"{captured.BuildingId.Value} · 공급 {captured.SuppliedFraction * 100f:0}%"
                 + (captured.Fault > 0f
                     ? $" · 고장 {captured.Fault:0}"
                     : string.Empty),
@@ -142,7 +205,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                 : captured.Priority + 1;
                         InfrastructureCommandResult result =
                             powerCommands.SetPriority(building, next);
-                        view.ShowFeedback(result.Message);
+                        view.ShowFeedback(FormatCommandResult(result));
                         view.RequestRefresh();
                     },
                 82f);
@@ -158,14 +221,14 @@ public sealed class IndustrialFeatureSurfacePresenter :
         foreach (PowerNodeSnapshot node in networks
                      .SelectMany(network => network.Nodes)
                      .Where(node => node.BreakerTripped)
-                     .OrderBy(node => node.NodeId, StringComparer.Ordinal))
+                     .OrderBy(node => node.BuildingId.Value, StringComparer.Ordinal))
         {
             PowerNodeSnapshot captured = node;
-            BuildableObject building = FindBuilding(captured.NodeId);
+            BuildableObject building = FindBuilding(captured.BuildingId.Value);
             view.AddDataCard(
-                $"IndustryPowerBreaker_{captured.NodeId}",
+                $"IndustryPowerBreaker_{captured.BuildingId.Value}",
                 "차단기 작동",
-                $"{GetBuildingName(building, captured.NodeId)} · 열 {captured.Heat:0}% · 고장 {captured.Fault:0}%",
+                $"{GetBuildingName(building, captured.BuildingId.Value)} · 열 {captured.Heat:0}% · 고장 {captured.Fault:0}%",
                 "차단기 복구",
                 building == null
                     ? () => view.ShowFeedback(
@@ -174,7 +237,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                     {
                         InfrastructureCommandResult result =
                             powerCommands.ResetBreaker(building);
-                        view.ShowFeedback(result.Message);
+                        view.ShowFeedback(FormatCommandResult(result));
                         view.RequestRefresh();
                     },
                 82f);
@@ -213,21 +276,21 @@ public sealed class IndustrialFeatureSurfacePresenter :
         }
 
         foreach (WaterTransferFacilitySnapshot transfer in
-                 plumbing.WaterTransfers)
+                 water.WaterTransfers)
         {
             WaterTransferFacilitySnapshot captured = transfer;
-            BuildableObject building = FindBuilding(captured.FacilityId);
+            BuildableObject building = FindBuilding(captured.BuildingId.Value);
             string detail =
                 $"모드 {FormatWaterTransfer(captured.Mode)}"
                 + $" · 진행 {captured.Progress01 * 100f:0}%"
                 + (captured.Powered ? string.Empty : " · 정전");
-            if (!string.IsNullOrWhiteSpace(captured.BlockedReason))
+            if (captured.Status.IsBlocked)
             {
-                detail += $"\n대기: {captured.BlockedReason}";
+                detail += $"\n대기: {failureLocalizer.Localize(captured.Status)}";
             }
 
             view.AddDataCard(
-                $"IndustryWaterTransfer_{captured.FacilityId}",
+                $"IndustryWaterTransfer_{captured.BuildingId.Value}",
                 "물통 충전소",
                 detail,
                 "모드 변경",
@@ -242,7 +305,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                 : captured.Mode + 1;
                         InfrastructureCommandResult result =
                             plumbing.SetWaterTransferMode(building, next);
-                        view.ShowFeedback(result.Message);
+                        view.ShowFeedback(FormatCommandResult(result));
                         view.RequestRefresh();
                     },
                 CardHeight);
@@ -251,7 +314,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
 
     private void AddConveyors(IFeatureSurfaceView view)
     {
-        IReadOnlyList<ConveyorNetworkSnapshot> networks = conveyors.Networks;
+        IReadOnlyList<ConveyorNetworkSnapshot> networks = conveyorQuery.Networks;
         int stalled = networks.Count(network =>
             network.State is ConveyorNetworkState.Stalled
                 or ConveyorNetworkState.Deadlocked);
@@ -268,9 +331,9 @@ public sealed class IndustrialFeatureSurfacePresenter :
                     $"\n최장 정지 {network.LongestStallSeconds:0.0}초 · {FormatStallReason(network.PrimaryReason)}";
             }
 
-            if (!string.IsNullOrWhiteSpace(network.PlannedOverflowNodeId))
+            if (network.PlannedOverflowBuildingId.IsValid)
             {
-                detail += $"\n예정 배출구 {network.PlannedOverflowNodeId}";
+                detail += $"\n예정 배출구 {network.PlannedOverflowBuildingId.Value}";
             }
 
             ConveyorPayloadSnapshot oldest = network.Payloads
@@ -287,8 +350,8 @@ public sealed class IndustrialFeatureSurfacePresenter :
                     ? () =>
                     {
                         InfrastructureCommandResult result =
-                            conveyors.ApproveOverflow(oldest.PayloadId);
-                        view.ShowFeedback(result.Message);
+                            conveyorCommands.ApproveOverflow(oldest.PayloadId);
+                        view.ShowFeedback(FormatCommandResult(result));
                         view.RequestRefresh();
                     }
                     : view.RequestRefresh,
@@ -298,7 +361,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
             {
                 ConveyorNodeSnapshot capturedNode = node;
                 BuildableObject building = FindBuilding(
-                    capturedNode.NodeId);
+                    capturedNode.BuildingId.Value);
                 if (!ShouldShowConveyorNode(capturedNode, building))
                 {
                     continue;
@@ -311,7 +374,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                     new List<FeatureSurfaceAction>
                     {
                         new FeatureSurfaceAction(
-                            $"ConveyorToggle_{capturedNode.NodeId}",
+                            $"ConveyorToggle_{capturedNode.BuildingId.Value}",
                             capturedNode.Enabled ? "정지" : "가동",
                             () =>
                             {
@@ -323,14 +386,14 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                 }
 
                                 InfrastructureCommandResult result =
-                                    conveyors.SetNodeEnabled(
+                                    conveyorCommands.SetNodeEnabled(
                                         building,
                                         !capturedNode.Enabled);
-                                view.ShowFeedback(result.Message);
+                                view.ShowFeedback(FormatCommandResult(result));
                                 view.RequestRefresh();
                             }),
                         new FeatureSurfaceAction(
-                            $"ConveyorContamination_{capturedNode.NodeId}",
+                            $"ConveyorContamination_{capturedNode.BuildingId.Value}",
                             filter.allowContaminated
                                 ? "오염 차단"
                                 : "오염 허용",
@@ -341,7 +404,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                 changed => changed.allowContaminated =
                                     !filter.allowContaminated)),
                         new FeatureSurfaceAction(
-                            $"ConveyorFreshness_{capturedNode.NodeId}",
+                            $"ConveyorFreshness_{capturedNode.BuildingId.Value}",
                             filter.filterFreshness
                                 ? "신선도 해제"
                                 : "신선도 필터",
@@ -352,7 +415,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                 changed => changed.filterFreshness =
                                     !filter.filterFreshness)),
                         new FeatureSurfaceAction(
-                            $"ConveyorForbidden_{capturedNode.NodeId}",
+                            $"ConveyorForbidden_{capturedNode.BuildingId.Value}",
                             filter.allowForbidden
                                 ? "금지품 차단"
                                 : "금지품 허용",
@@ -363,7 +426,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                 changed => changed.allowForbidden =
                                     !filter.allowForbidden)),
                         new FeatureSurfaceAction(
-                            $"ConveyorQuality_{capturedNode.NodeId}",
+                            $"ConveyorQuality_{capturedNode.BuildingId.Value}",
                             filter.filterQuality
                                 ? "품질 해제"
                                 : "품질 필터",
@@ -378,7 +441,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                         BuildingConveyorOverflowAbility>() != null)
                 {
                     actions.Add(new FeatureSurfaceAction(
-                        $"ConveyorOverflowPolicy_{capturedNode.NodeId}",
+                        $"ConveyorOverflowPolicy_{capturedNode.BuildingId.Value}",
                         "배출 정책",
                         () =>
                         {
@@ -389,11 +452,11 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                         .ReserveWarehouseThenLoose
                                     : capturedNode.OverflowPolicy + 1;
                             InfrastructureCommandResult result =
-                                conveyors.SetOverflowPolicy(
+                                conveyorCommands.SetOverflowPolicy(
                                     building,
                                     next,
                                     capturedNode.ReserveWarehouseId);
-                            view.ShowFeedback(result.Message);
+                            view.ShowFeedback(FormatCommandResult(result));
                             view.RequestRefresh();
                         }));
                 }
@@ -403,7 +466,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                 if (filter.filterFreshness)
                 {
                     steppers.Add(new FeatureSurfaceStepper(
-                        $"Freshness_{capturedNode.NodeId}",
+                        $"Freshness_{capturedNode.BuildingId.Value}",
                         "최소 신선도",
                         $"{filter.minimumFreshness01 * 100f:0}%",
                         () => ApplyFilterChange(
@@ -425,7 +488,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                 if (filter.filterQuality)
                 {
                     steppers.Add(new FeatureSurfaceStepper(
-                        $"QualityMin_{capturedNode.NodeId}",
+                        $"QualityMin_{capturedNode.BuildingId.Value}",
                         "최소 품질",
                         CombatQualityRules.GetDisplayName(
                             filter.minimumQuality),
@@ -462,7 +525,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                 }
                             })));
                     steppers.Add(new FeatureSurfaceStepper(
-                        $"QualityMax_{capturedNode.NodeId}",
+                        $"QualityMax_{capturedNode.BuildingId.Value}",
                         "최대 품질",
                         CombatQualityRules.GetDisplayName(
                             filter.maximumQuality),
@@ -501,8 +564,8 @@ public sealed class IndustrialFeatureSurfacePresenter :
                 }
 
                 view.AddControlCard(
-                    $"IndustryConveyorNode_{capturedNode.NodeId}",
-                    GetBuildingName(building, capturedNode.NodeId),
+                    $"IndustryConveyorNode_{capturedNode.BuildingId.Value}",
+                    GetBuildingName(building, capturedNode.BuildingId.Value),
                     filterSummary,
                     steppers,
                     actions,
@@ -514,7 +577,7 @@ public sealed class IndustrialFeatureSurfacePresenter :
     private void AddAutomation(IFeatureSurfaceView view)
     {
         IReadOnlyList<AutomationFacilitySnapshot> facilities =
-            automation.Facilities;
+            automationQuery.Facilities;
         view.AddSection(
             "자동화",
             facilities.Count == 0
@@ -523,19 +586,19 @@ public sealed class IndustrialFeatureSurfacePresenter :
         foreach (AutomationFacilitySnapshot facility in facilities)
         {
             AutomationFacilitySnapshot captured = facility;
-            BuildableObject building = FindBuilding(captured.FacilityId);
+            BuildableObject building = FindBuilding(captured.BuildingId.Value);
             string detail =
                 $"모드 {FormatAutomation(captured.Mode)} · 작업 속도 {captured.WorkRate:0.00}x\n"
                 + $"정비 {captured.Maintenance:0}% · 고장 {captured.Fault:0}%";
             if (!captured.Operational
-                && !string.IsNullOrWhiteSpace(captured.BlockedReason))
+                && captured.Status.IsBlocked)
             {
-                detail += $"\n중단: {captured.BlockedReason}";
+                detail += $"\n중단: {failureLocalizer.Localize(captured.Status)}";
             }
 
             view.AddDataCard(
-                $"IndustryAutomation_{captured.FacilityId}",
-                captured.FacilityId,
+                $"IndustryAutomation_{captured.BuildingId.Value}",
+                captured.BuildingId.Value,
                 detail,
                 "모드 변경",
                 building == null
@@ -547,8 +610,8 @@ public sealed class IndustrialFeatureSurfacePresenter :
                                 ? AutomationMode.Manual
                                 : captured.Mode + 1;
                         InfrastructureCommandResult result =
-                            automation.SetMode(building, next);
-                        view.ShowFeedback(result.Message);
+                            automationCommands.SetMode(building, next);
+                        view.ShowFeedback(FormatCommandResult(result));
                         view.RequestRefresh();
                     },
                 CardHeight);
@@ -655,10 +718,15 @@ public sealed class IndustrialFeatureSurfacePresenter :
         ConveyorFilterCriteria changed = CloneFilter(source);
         mutate?.Invoke(changed);
         InfrastructureCommandResult result =
-            conveyors.SetAdvancedFilter(building, changed);
-        view.ShowFeedback(result.Message);
+            conveyorCommands.SetAdvancedFilter(building, changed);
+        view.ShowFeedback(FormatCommandResult(result));
         view.RequestRefresh();
     }
+
+    private string FormatCommandResult(InfrastructureCommandResult result) =>
+        result.Succeeded
+            ? string.Empty
+            : failureLocalizer.Localize(result.Failure);
 
     private static ConveyorFilterCriteria CloneFilter(
         ConveyorFilterCriteria source)
@@ -778,42 +846,4 @@ public sealed class IndustrialFeatureSurfacePresenter :
             ConveyorStallReason.IntentionallyStopped => "수동 정지",
             _ => "정상"
         };
-}
-
-public sealed class IndustrialTabContentPresenter : IUITabContentPresenter
-{
-    private readonly IElectricalNetworkRuntime power;
-    private readonly IWaterNetworkRuntime water;
-    private readonly IConveyorRuntime conveyors;
-    private readonly IAutomationRuntime automation;
-
-    public IndustrialTabContentPresenter(
-        IElectricalNetworkRuntime power,
-        IWaterNetworkRuntime water,
-        IConveyorRuntime conveyors,
-        IAutomationRuntime automation)
-    {
-        this.power = power ?? throw new ArgumentNullException(nameof(power));
-        this.water = water ?? throw new ArgumentNullException(nameof(water));
-        this.conveyors = conveyors
-            ?? throw new ArgumentNullException(nameof(conveyors));
-        this.automation = automation
-            ?? throw new ArgumentNullException(nameof(automation));
-    }
-
-    public TabId Id => TabId.Industry;
-
-    public string Build()
-    {
-        int conveyorProblems = conveyors.Networks.Count(network =>
-            network.State is ConveyorNetworkState.Stalled
-                or ConveyorNetworkState.Deadlocked);
-        return string.Join(
-            "\n",
-            $"전력망: {power.Networks.Count}",
-            $"상하수도망: {water.Networks.Count}",
-            $"컨베이어망: {conveyors.Networks.Count}",
-            $"정체·교착: {conveyorProblems}",
-            $"자동화 시설: {automation.Facilities.Count}");
-    }
 }

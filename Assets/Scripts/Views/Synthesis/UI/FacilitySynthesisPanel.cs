@@ -10,7 +10,7 @@ public class FacilitySynthesisPanel : MonoBehaviour
 {
     [SerializeField] private FacilitySynthesisRuntime runtime;
     [SerializeField] private TMP_Text summaryText;
-    private IFacilitySynthesisRuntimeProvider runtimeProvider;
+    private FacilityFeatureSceneRuntimeReferences runtimeReferences;
     private IGameEventBus gameEventBus;
     private IDisposable researchCompletedSubscription;
 
@@ -18,11 +18,11 @@ public class FacilitySynthesisPanel : MonoBehaviour
 
     [Inject]
     public void Construct(
-        IFacilitySynthesisRuntimeProvider runtimeProvider,
+        FacilityFeatureSceneRuntimeReferences runtimeReferences,
         IGameEventBus gameEventBus)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new System.ArgumentNullException(nameof(runtimeProvider));
+        this.runtimeReferences = runtimeReferences
+            ?? throw new System.ArgumentNullException(nameof(runtimeReferences));
         this.gameEventBus = gameEventBus
             ?? throw new System.ArgumentNullException(nameof(gameEventBus));
         SubscribeToScopedEvents();
@@ -107,9 +107,11 @@ public class FacilitySynthesisPanel : MonoBehaviour
     {
         if (runtime != null) return runtime;
 
-        return (runtimeProvider
-                ?? throw new System.InvalidOperationException($"{nameof(FacilitySynthesisPanel)} requires {nameof(IFacilitySynthesisRuntimeProvider)} injection or an explicit runtime binding."))
-            .Runtime;
+        return (runtimeReferences
+                ?? throw new System.InvalidOperationException($"{nameof(FacilitySynthesisPanel)} requires {nameof(FacilityFeatureSceneRuntimeReferences)} injection or an explicit runtime binding."))
+            .Synthesis
+            ?? throw new System.InvalidOperationException(
+                $"{nameof(FacilitySynthesisPanel)} requires a loaded {nameof(FacilitySynthesisRuntime)}.");
     }
 
     private void OnEnable()

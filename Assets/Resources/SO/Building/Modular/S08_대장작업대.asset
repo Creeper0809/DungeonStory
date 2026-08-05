@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: Facility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -42,23 +33,26 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 0d2111d66eaab3a48915941951be79bd, type: 3}
   abilityModules:
     items:
-    - rid: 7302563239583285256
-    - rid: 7302563239583285257
-    - rid: 7302563239583285258
-    - rid: 7302563239583285259
-    - rid: 7302563239583285260
-    - rid: 7302563288033263636
-    - rid: 7302563313672519693
-    - rid: 7302563313672519694
-    - rid: 7302563313672519695
-    - rid: 7302563313672519696
-    - rid: 7302563313672520117
+    - rid: 7737211730834227442
+    - rid: 7737211730834227443
+    - rid: 7737211730834227445
+    - rid: 7737211730834227446
+    - rid: 7737211730834227447
+    - rid: 7737211730834227448
+    - rid: 7737211730889015818
+    - rid: 7737211730889015819
+    - rid: 7737211730889015820
+    - rid: 7737211730889015821
+    - rid: 7737211730927812670
+    - rid: 7737211730927812671
+    - rid: 7737211765905949118
   width: 2
   height: 1
   layer: 1
   category: 2
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 1
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -67,27 +61,39 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7302563239583285256
-      type: {class: BuildingFacilityPartAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211730834227442
+      type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: S08
-    - rid: 7302563239583285257
-      type: {class: BuildingSemanticTagsAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211730834227443
+      type: {class: BuildingSemanticTagsAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSemanticTagsAbility
         tags:
         - forge
-    - rid: 7302563239583285258
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+    - rid: 7737211730834227445
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
-        constructionValue: 0
-        constructionCost: 135
+        constructionValue: 135
+        constructionCost: 0
         maintenance: 4
         unlockPhase: 2
         demolitionRefundRate: 0.5
-    - rid: 7302563239583285259
+    - rid: 7737211730834227446
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 26.7
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:stone-block
+          amount: 7
+    - rid: 7737211730834227447
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -98,7 +104,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 260
           disabledWhenDamaged: 1
-    - rid: 7302563239583285260
+    - rid: 7737211730834227448
       type: {class: BuildingEvolutionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingEvolutionAbility
@@ -113,48 +119,21 @@ MonoBehaviour:
           - key: Service
             value: 2.5
           metrics: []
-    - rid: 7302563288033263636
-      type: {class: BuildingEquipmentCraftingAbility, ns: , asm: Assembly-CSharp}
-      data:
-        abilityId: BuildingEquipmentCraftingAbility
-        craftableEquipmentIds:
-        - armor:breastplate
-        - armor:cloth-hood
-        - armor:gambeson
-        - armor:iron-helmet
-        - armor:leather
-        - armor:leather-cap
-        - armor:mail-coif
-        - armor:mail-shirt
-        - craft:ammo:arrow
-        - craft:ammo:bolt
-        - shield:iron
-        - shield:wood
-        - weapon:crossbow
-        - weapon:dagger
-        - weapon:javelin
-        - weapon:longbow
-        - weapon:longsword
-        - weapon:mace
-        - weapon:shortbow
-        - weapon:spear
-        - weapon:throwing-axe
-        workUnitsPerCycle: 1
-    - rid: 7302563313672519693
+    - rid: 7737211730889015818
       type: {class: BuildingUtilityConnectionAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingUtilityConnectionAbility
         channels: 1
         maxThroughput: 25
         normallyOpen: 1
-    - rid: 7302563313672519694
+    - rid: 7737211730889015819
       type: {class: BuildingPowerConsumerAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingPowerConsumerAbility
         demandPerSecond: 5
         priority: 4
         minimumSupplyFraction: 0.75
-    - rid: 7302563313672519695
+    - rid: 7737211730889015820
       type: {class: BuildingAutomationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingAutomationAbility
@@ -165,15 +144,89 @@ MonoBehaviour:
         automaticWorkPerSecond: 1
         automaticQualityCap: 0.75
         maintenancePerGameHour: 1
-    - rid: 7302563313672519696
+    - rid: 7737211730889015821
       type: {class: BuildingConveyorPortAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingConveyorPortAbility
         mode: 2
         destinationId: 
         capacity: 4
-    - rid: 7302563313672520117
+    - rid: 7737211730927812670
       type: {class: BuildingProductionWorkstationAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingProductionWorkstationAbility
         workstationTag: workstation:forge-basic
+        stockSensorInstallationItemId: component:stock-sensor-panel
+    - rid: 7737211730927812671
+      type: {class: BuildingProductionBufferAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingProductionBufferAbility
+        defaultBatchCapacity: 4
+        outputCapacities:
+        - itemId: material:lead-ingot
+          capacity: 24
+        - itemId: material:lead-shot
+          capacity: 96
+        - itemId: material:black-powder
+          capacity: 48
+        - itemId: material:paper
+          capacity: 64
+        - itemId: ammo:paper-cartridge
+          capacity: 120
+        - itemId: component:machine-parts
+          capacity: 16
+        - itemId: component:precision-parts
+          capacity: 16
+        allowOverflowDump: 1
+        overflowOffset: {x: 1, y: 0}
+    - rid: 7737211765905949118
+      type: {class: BuildingEquipmentCraftingAbility, ns: , asm: DungeonStory.Buildings}
+      data:
+        abilityId: BuildingEquipmentCraftingAbility
+        craftableEquipmentIds:
+        - armor:articulated-plate
+        - armor:blacksteel-carapace
+        - armor:blast-coat
+        - armor:breastplate
+        - armor:brigandine
+        - armor:closed-plate-helm
+        - armor:cloth-hood
+        - armor:gambeson
+        - armor:iron-helmet
+        - armor:leather
+        - armor:leather-cap
+        - armor:mail-coif
+        - armor:mail-shirt
+        - armor:powered-harness
+        - armor:rune-ward-mail
+        - armor:scale-coat
+        - armor:smoke-hood
+        - craft:ammo:arrow
+        - craft:ammo:bolt
+        - shield:buckler
+        - shield:iron
+        - shield:rune
+        - shield:tower
+        - shield:wood
+        - weapon:arquebus
+        - weapon:composite-bow
+        - weapon:crossbow
+        - weapon:dagger
+        - weapon:falchion
+        - weapon:greatsword
+        - weapon:halberd
+        - weapon:handgonne
+        - weapon:javelin
+        - weapon:longbow
+        - weapon:longsword
+        - weapon:mace
+        - weapon:mana-lance
+        - weapon:matchlock-pistol
+        - weapon:rune-blade
+        - weapon:shortbow
+        - weapon:siege-arbalest
+        - weapon:spear
+        - weapon:throwing-axe
+        - weapon:warhammer
+        - weapon:windlass-crossbow
+        workUnitsPerCycle: 1

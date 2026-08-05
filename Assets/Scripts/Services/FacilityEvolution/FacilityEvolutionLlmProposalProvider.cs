@@ -191,12 +191,14 @@ public sealed class CachedLocalLlmFacilityEvolutionProposalProvider : IFacilityE
     private readonly Dictionary<string, string> statusBySignature = new Dictionary<string, string>();
 
     public CachedLocalLlmFacilityEvolutionProposalProvider(
-        IFacilityEvolutionProposalProvider fallbackProvider = null,
-        Func<ILocalLlmRuntime> llmRuntimeProvider = null,
+        IFacilityEvolutionProposalProvider fallbackProvider,
+        Func<ILocalLlmRuntime> llmRuntimeProvider,
         bool allowRequestsOutsidePlayMode = false)
     {
-        this.fallbackProvider = fallbackProvider ?? new RuleBasedFacilityEvolutionProposalProvider();
-        this.llmRuntimeProvider = llmRuntimeProvider;
+        this.fallbackProvider = fallbackProvider
+            ?? throw new ArgumentNullException(nameof(fallbackProvider));
+        this.llmRuntimeProvider = llmRuntimeProvider
+            ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
         this.allowRequestsOutsidePlayMode = allowRequestsOutsidePlayMode;
     }
 

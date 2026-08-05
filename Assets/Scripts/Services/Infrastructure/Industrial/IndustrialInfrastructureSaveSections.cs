@@ -4,7 +4,9 @@ using UnityEngine;
 
 public sealed class PowerInfrastructureSaveSection :
     IDungeonSaveSection,
-    IOptionalDungeonSaveSection
+    IDungeonSaveSectionPreflight,
+    IDungeonStagedSaveSection,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "infrastructure.power";
     private static readonly string[] Dependencies =
@@ -12,50 +14,80 @@ public sealed class PowerInfrastructureSaveSection :
         ModularFacilityWorldSaveSection.Id,
         PhysicalItemsSaveSection.Id
     };
-    private readonly IElectricalNetworkRuntime runtime;
+    private readonly IPowerInfrastructurePersistence persistence;
 
-    public PowerInfrastructureSaveSection(IElectricalNetworkRuntime runtime)
+    public PowerInfrastructureSaveSection(
+        IPowerInfrastructurePersistence persistence)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
     public string SectionId => Id;
-    public int SectionVersion => DungeonPowerInfrastructureSaveData.CurrentVersion;
+    public int SectionVersion =>
+        DungeonPowerInfrastructureSaveData.CurrentVersion;
     public DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.RuntimeState;
     public IReadOnlyList<string> DependsOn => Dependencies;
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public string Capture() => JsonUtility.ToJson(persistence.Capture());
+
+    public void ValidatePayload(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        if (!IndustrialSaveSectionParsing.ValidateHeader(
+                payloadJson,
+                sectionVersion,
+                SectionVersion,
+                "power infrastructure",
+                report))
+        {
+            return;
+        }
+
+        IndustrialInfrastructureSaveValidation.Validate(
+            JsonUtility.FromJson<DungeonPowerInfrastructureSaveData>(payloadJson),
+            report);
+    }
 
     public void Restore(
         string payloadJson,
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion != SectionVersion)
+        ValidatePayload(payloadJson, sectionVersion, report);
+        if (report.Success)
         {
-            report.AddError(
-                $"Unsupported power infrastructure section version "
-                + $"{sectionVersion}; expected {SectionVersion}.");
-            return;
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
         }
-
-        runtime.Restore(string.IsNullOrWhiteSpace(payloadJson)
-            ? new DungeonPowerInfrastructureSaveData()
-            : JsonUtility.FromJson<DungeonPowerInfrastructureSaveData>(
-                payloadJson) ?? new DungeonPowerInfrastructureSaveData());
     }
 
-    public void RestoreMissing(DungeonGameRestoreReport report)
+    public IDungeonSaveRestoreStage StageRestore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
     {
-        runtime.Restore(new DungeonPowerInfrastructureSaveData());
-        report?.AddWarning(
-            "Power infrastructure data was absent and initialized empty.");
+        IndustrialSaveSectionParsing.RequireHeader(
+            payloadJson,
+            sectionVersion,
+            SectionVersion,
+            "power infrastructure");
+        ElectricalNetworkRestoreCandidate candidate =
+            persistence.PrepareRestore(
+                JsonUtility.FromJson<DungeonPowerInfrastructureSaveData>(
+                    payloadJson));
+        return new DungeonDelegateSaveRestoreStage(
+            SectionId,
+            _ => persistence.Restore(candidate));
     }
 }
 
 public sealed class FluidInfrastructureSaveSection :
     IDungeonSaveSection,
-    IOptionalDungeonSaveSection
+    IDungeonSaveSectionPreflight,
+    IDungeonStagedSaveSection,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "infrastructure.fluids";
     private static readonly string[] Dependencies =
@@ -63,50 +95,80 @@ public sealed class FluidInfrastructureSaveSection :
         ModularFacilityWorldSaveSection.Id,
         PowerInfrastructureSaveSection.Id
     };
-    private readonly IWaterNetworkRuntime runtime;
+    private readonly IFluidInfrastructurePersistence persistence;
 
-    public FluidInfrastructureSaveSection(IWaterNetworkRuntime runtime)
+    public FluidInfrastructureSaveSection(
+        IFluidInfrastructurePersistence persistence)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
     public string SectionId => Id;
-    public int SectionVersion => DungeonFluidInfrastructureSaveData.CurrentVersion;
+    public int SectionVersion =>
+        DungeonFluidInfrastructureSaveData.CurrentVersion;
     public DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.RuntimeState;
     public IReadOnlyList<string> DependsOn => Dependencies;
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public string Capture() => JsonUtility.ToJson(persistence.Capture());
+
+    public void ValidatePayload(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        if (!IndustrialSaveSectionParsing.ValidateHeader(
+                payloadJson,
+                sectionVersion,
+                SectionVersion,
+                "fluid infrastructure",
+                report))
+        {
+            return;
+        }
+
+        IndustrialInfrastructureSaveValidation.Validate(
+            JsonUtility.FromJson<DungeonFluidInfrastructureSaveData>(payloadJson),
+            report);
+    }
 
     public void Restore(
         string payloadJson,
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion != SectionVersion)
+        ValidatePayload(payloadJson, sectionVersion, report);
+        if (report.Success)
         {
-            report.AddError(
-                $"Unsupported fluid infrastructure section version "
-                + $"{sectionVersion}; expected {SectionVersion}.");
-            return;
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
         }
-
-        runtime.Restore(string.IsNullOrWhiteSpace(payloadJson)
-            ? new DungeonFluidInfrastructureSaveData()
-            : JsonUtility.FromJson<DungeonFluidInfrastructureSaveData>(
-                payloadJson) ?? new DungeonFluidInfrastructureSaveData());
     }
 
-    public void RestoreMissing(DungeonGameRestoreReport report)
+    public IDungeonSaveRestoreStage StageRestore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
     {
-        runtime.Restore(new DungeonFluidInfrastructureSaveData());
-        report?.AddWarning(
-            "Fluid infrastructure data was absent and initialized empty.");
+        IndustrialSaveSectionParsing.RequireHeader(
+            payloadJson,
+            sectionVersion,
+            SectionVersion,
+            "fluid infrastructure");
+        FluidNetworkRestoreCandidate candidate =
+            persistence.PrepareRestore(
+                JsonUtility.FromJson<DungeonFluidInfrastructureSaveData>(
+                    payloadJson));
+        return new DungeonDelegateSaveRestoreStage(
+            SectionId,
+            _ => persistence.Restore(candidate));
     }
 }
 
 public sealed class ConveyorInfrastructureSaveSection :
     IDungeonSaveSection,
-    IOptionalDungeonSaveSection
+    IDungeonSaveSectionPreflight,
+    IDungeonStagedSaveSection,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "infrastructure.conveyor";
     private static readonly string[] Dependencies =
@@ -115,11 +177,13 @@ public sealed class ConveyorInfrastructureSaveSection :
         PhysicalItemsSaveSection.Id,
         PowerInfrastructureSaveSection.Id
     };
-    private readonly IConveyorRuntime runtime;
+    private readonly IConveyorInfrastructurePersistence persistence;
 
-    public ConveyorInfrastructureSaveSection(IConveyorRuntime runtime)
+    public ConveyorInfrastructureSaveSection(
+        IConveyorInfrastructurePersistence persistence)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
     public string SectionId => Id;
@@ -128,38 +192,65 @@ public sealed class ConveyorInfrastructureSaveSection :
     public DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
     public IReadOnlyList<string> DependsOn => Dependencies;
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public string Capture() => JsonUtility.ToJson(persistence.Capture());
+
+    public void ValidatePayload(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        if (!IndustrialSaveSectionParsing.ValidateHeader(
+                payloadJson,
+                sectionVersion,
+                SectionVersion,
+                "conveyor infrastructure",
+                report))
+        {
+            return;
+        }
+
+        IndustrialInfrastructureSaveValidation.Validate(
+            JsonUtility.FromJson<DungeonConveyorInfrastructureSaveData>(
+                payloadJson),
+            report);
+    }
 
     public void Restore(
         string payloadJson,
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion != SectionVersion)
+        ValidatePayload(payloadJson, sectionVersion, report);
+        if (report.Success)
         {
-            report.AddError(
-                $"Unsupported conveyor infrastructure section version "
-                + $"{sectionVersion}; expected {SectionVersion}.");
-            return;
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
         }
-
-        runtime.Restore(string.IsNullOrWhiteSpace(payloadJson)
-            ? new DungeonConveyorInfrastructureSaveData()
-            : JsonUtility.FromJson<DungeonConveyorInfrastructureSaveData>(
-                payloadJson) ?? new DungeonConveyorInfrastructureSaveData());
     }
 
-    public void RestoreMissing(DungeonGameRestoreReport report)
+    public IDungeonSaveRestoreStage StageRestore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
     {
-        runtime.Restore(new DungeonConveyorInfrastructureSaveData());
-        report?.AddWarning(
-            "Conveyor infrastructure data was absent and initialized empty.");
+        IndustrialSaveSectionParsing.RequireHeader(
+            payloadJson,
+            sectionVersion,
+            SectionVersion,
+            "conveyor infrastructure");
+        ConveyorRestoreState candidate = persistence.PrepareRestore(
+            JsonUtility.FromJson<DungeonConveyorInfrastructureSaveData>(
+                payloadJson));
+        return new DungeonDelegateSaveRestoreStage(
+            SectionId,
+            _ => persistence.Restore(candidate));
     }
 }
 
 public sealed class AutomationInfrastructureSaveSection :
     IDungeonSaveSection,
-    IOptionalDungeonSaveSection
+    IDungeonSaveSectionPreflight,
+    IDungeonStagedSaveSection,
+    IDungeonRollbackFreeSaveSection
 {
     public const string Id = "economy.automation";
     private static readonly string[] Dependencies =
@@ -167,11 +258,13 @@ public sealed class AutomationInfrastructureSaveSection :
         ProductionBillsSaveSection.Id,
         PowerInfrastructureSaveSection.Id
     };
-    private readonly IAutomationRuntime runtime;
+    private readonly IAutomationInfrastructurePersistence persistence;
 
-    public AutomationInfrastructureSaveSection(IAutomationRuntime runtime)
+    public AutomationInfrastructureSaveSection(
+        IAutomationInfrastructurePersistence persistence)
     {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
     }
 
     public string SectionId => Id;
@@ -179,31 +272,96 @@ public sealed class AutomationInfrastructureSaveSection :
     public DungeonSaveRestorePhase RestorePhase =>
         DungeonSaveRestorePhase.LateRuntimeState;
     public IReadOnlyList<string> DependsOn => Dependencies;
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
+    public string Capture() => JsonUtility.ToJson(persistence.Capture());
+
+    public void ValidatePayload(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
+    {
+        if (!IndustrialSaveSectionParsing.ValidateHeader(
+                payloadJson,
+                sectionVersion,
+                SectionVersion,
+                "automation infrastructure",
+                report))
+        {
+            return;
+        }
+
+        IndustrialInfrastructureSaveValidation.Validate(
+            JsonUtility.FromJson<DungeonAutomationSaveData>(payloadJson),
+            report);
+    }
 
     public void Restore(
         string payloadJson,
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        if (sectionVersion != SectionVersion)
+        ValidatePayload(payloadJson, sectionVersion, report);
+        if (report.Success)
         {
-            report.AddError(
-                $"Unsupported automation section version {sectionVersion}; "
-                + $"expected {SectionVersion}.");
-            return;
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
         }
-
-        runtime.Restore(string.IsNullOrWhiteSpace(payloadJson)
-            ? new DungeonAutomationSaveData()
-            : JsonUtility.FromJson<DungeonAutomationSaveData>(
-                payloadJson) ?? new DungeonAutomationSaveData());
     }
 
-    public void RestoreMissing(DungeonGameRestoreReport report)
+    public IDungeonSaveRestoreStage StageRestore(
+        string payloadJson,
+        int sectionVersion,
+        DungeonGameRestoreReport report)
     {
-        runtime.Restore(new DungeonAutomationSaveData());
-        report?.AddWarning(
-            "Automation data was absent and initialized in manual mode.");
+        IndustrialSaveSectionParsing.RequireHeader(
+            payloadJson,
+            sectionVersion,
+            SectionVersion,
+            "automation infrastructure");
+        AutomationRestoreCandidate candidate = persistence.PrepareRestore(
+            JsonUtility.FromJson<DungeonAutomationSaveData>(payloadJson));
+        return new DungeonDelegateSaveRestoreStage(
+            SectionId,
+            _ => persistence.Restore(candidate));
+    }
+}
+
+internal static class IndustrialSaveSectionParsing
+{
+    public static bool ValidateHeader(
+        string payloadJson,
+        int sectionVersion,
+        int expectedVersion,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (sectionVersion != expectedVersion)
+        {
+            report.AddError(
+                $"Unsupported {label} section version {sectionVersion}; "
+                + $"expected {expectedVersion}.");
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(payloadJson))
+        {
+            report.AddError($"Required {label} payload is missing.");
+            return false;
+        }
+
+        return true;
+    }
+
+    public static void RequireHeader(
+        string payloadJson,
+        int sectionVersion,
+        int expectedVersion,
+        string label)
+    {
+        if (sectionVersion != expectedVersion
+            || string.IsNullOrWhiteSpace(payloadJson))
+        {
+            throw new InvalidOperationException(
+                $"Required {label} payload must use exact version "
+                + $"{expectedVersion}.");
+        }
     }
 }

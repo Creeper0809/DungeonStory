@@ -27,19 +27,32 @@ MonoBehaviour:
   description: "\uB0A8\uB294 \uC804\uB825\uC744 \uC800\uC7A5\uD574 \uC815\uC804\uACFC
     \uC218\uC694 \uAE09\uC99D\uC5D0 \uB300\uBE44\uD55C\uB2E4."
   field: 15
-  requiredWork: 142
+  requiredWork: 560
   prerequisites:
   - {fileID: 11400000, guid: 1bbb2845e79f6b649a3c80a133ede933, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:industry:breakers
+    prerequisite: {fileID: 11400000, guid: 1bbb2845e79f6b649a3c80a133ede933, type: 2}
+    kind: 2
+    reason: "\uCC28\uB2E8\uACFC \uBCF4\uD638\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uCD95\uC804 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563278452687350
+    - rid: 7737211730927813044
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563278452687350
+    - rid: 7737211730927813044
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 9813

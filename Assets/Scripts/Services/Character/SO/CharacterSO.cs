@@ -44,7 +44,7 @@ public class CharacterSO : ScriptableObject
     {
         get
         {
-            foreach (WorkTypeDefinition definition in WorkTypeCatalog.Enumerate(ownerPreferredWorkTypes))
+            foreach (WorkTypeDefinition definition in FacilityWorkTypeMap.Enumerate(ownerPreferredWorkTypes))
             {
                 yield return definition.WorkTypeId;
             }

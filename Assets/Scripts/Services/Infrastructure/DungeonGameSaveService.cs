@@ -49,15 +49,26 @@ public sealed class DungeonSaveSlotCatalog : IDungeonSaveSlotCatalog
                 DungeonDebugRunSaveData debug = ReadSectionPayload<DungeonDebugRunSaveData>(
                     data?.sections,
                     DungeonDebugSaveSection.Id);
+                DungeonRunVariableSaveData runVariables =
+                    ReadSectionPayload<DungeonRunVariableSaveData>(
+                        data?.sections,
+                        RunVariableSaveSection.Id);
+                string incompatibilityReason = GetIncompatibilityReason(data);
                 slots.Add(new DungeonSaveSlotInfo(
-                    slotId,
-                    path,
-                    data?.savedAtUtc,
-                    data?.sceneName,
-                    world?.gameData?.day ?? 1,
-                    world?.gameData?.holdingMoney ?? 0,
-                    data != null && data.version == DungeonGameSaveData.CurrentVersion,
-                    debug != null && debug.debugModified));
+                    new DungeonSaveSlotLocation(slotId, path),
+                    new DungeonSaveSlotSummary(
+                        data?.savedAtUtc,
+                        data?.sceneName,
+                        world?.gameData?.day ?? 1,
+                        world?.gameData?.holdingMoney ?? 0,
+                        debug != null && debug.debugModified,
+                        (int)(runVariables?.startVariables?.survivalPressure
+                            ?? DungeonSurvivalPressure.Standard)),
+                    new DungeonSaveSlotCompatibility(
+                        data != null
+                            && data.version == DungeonGameSaveData.CurrentVersion
+                            && string.IsNullOrWhiteSpace(incompatibilityReason),
+                        incompatibilityReason)));
             }
             catch
             {
@@ -66,6 +77,28 @@ public sealed class DungeonSaveSlotCatalog : IDungeonSaveSlotCatalog
         }
 
         return slots;
+    }
+
+    private static string GetIncompatibilityReason(DungeonSaveSlotHeaderData data)
+    {
+        if (data == null)
+        {
+            return "저장 파일을 읽을 수 없습니다.";
+        }
+
+        if (DungeonSaveCompatibility.TryGetIncompatibilityReason(
+                data.version,
+                out string incompatibilityReason))
+        {
+            return incompatibilityReason;
+        }
+
+        return DungeonSaveManifest.TryValidate(
+            data.manifest,
+            data.sections,
+            out string manifestError)
+                ? string.Empty
+                : manifestError;
     }
 
     public bool Delete(string slotId)
@@ -119,6 +152,7 @@ public sealed class DungeonSaveSlotCatalog : IDungeonSaveSlotCatalog
         public int version;
         public string savedAtUtc;
         public string sceneName;
+        public DungeonSaveManifestData manifest;
         public List<DungeonSaveSectionEnvelope> sections;
     }
 }
@@ -126,21 +160,30 @@ public sealed class DungeonSaveSlotCatalog : IDungeonSaveSlotCatalog
 public sealed class DungeonGameSaveService : IDungeonGameSaveService
 {
     private readonly IDungeonSaveSectionRegistry saveSectionRegistry;
+    private readonly IReadOnlyList<IDungeonSavePreflightValidator> preflightValidators;
 
-    public DungeonGameSaveService(IDungeonSaveSectionRegistry saveSectionRegistry)
+    public DungeonGameSaveService(
+        IDungeonSaveSectionRegistry saveSectionRegistry,
+        IEnumerable<IDungeonSavePreflightValidator> preflightValidators)
     {
         this.saveSectionRegistry = saveSectionRegistry
             ?? throw new ArgumentNullException(nameof(saveSectionRegistry));
+        this.preflightValidators = (preflightValidators
+                ?? throw new ArgumentNullException(nameof(preflightValidators)))
+            .Where(validator => validator != null)
+            .ToArray();
     }
 
     public DungeonGameSaveData Capture()
     {
+        List<DungeonSaveSectionEnvelope> sections = saveSectionRegistry.CaptureAll();
         DungeonGameSaveData save = new DungeonGameSaveData
         {
             version = DungeonGameSaveData.CurrentVersion,
             savedAtUtc = DateTime.UtcNow.ToString("O"),
             sceneName = SceneManager.GetActiveScene().name,
-            sections = saveSectionRegistry.CaptureAll()
+            manifest = DungeonSaveManifest.Capture(sections),
+            sections = sections
         };
 
         return save;
@@ -169,8 +212,37 @@ public sealed class DungeonGameSaveService : IDungeonGameSaveService
 
         if (saveData.version != DungeonGameSaveData.CurrentVersion)
         {
-            report.AddError(
-                $"저장 버전 {saveData.version}은 현재 저장 시스템과 호환되지 않습니다. 새 게임을 시작해 주세요.");
+            DungeonSaveCompatibility.TryGetIncompatibilityReason(
+                saveData.version,
+                out string incompatibilityReason);
+            report.AddError(incompatibilityReason);
+            return false;
+        }
+
+        if (!DungeonSaveManifest.TryValidate(
+                saveData.manifest,
+                saveData.sections,
+                out string manifestError))
+        {
+            report.AddError(manifestError);
+            return false;
+        }
+
+        foreach (IDungeonSavePreflightValidator validator in preflightValidators)
+        {
+            try
+            {
+                validator.Validate(saveData, report);
+            }
+            catch (Exception exception)
+            {
+                report.AddError(
+                    $"Save aggregate preflight '{validator.GetType().Name}' failed: {exception.Message}");
+            }
+        }
+
+        if (!report.Success)
+        {
             return false;
         }
 

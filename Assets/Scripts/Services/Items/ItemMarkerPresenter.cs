@@ -22,6 +22,7 @@ public sealed class ItemMarkerPresenter : IItemMarkerPresenter, IDisposable
 {
     private readonly IGridSystemProvider gridSystemProvider;
     private readonly IMainCameraProvider mainCameraProvider;
+    private readonly IPlayerInputReader inputReader;
     private readonly ITmpKoreanFontService fontService;
     private readonly Dictionary<Vector2Int, WorldItemStackMarker> markersByPosition =
         new Dictionary<Vector2Int, WorldItemStackMarker>();
@@ -31,12 +32,15 @@ public sealed class ItemMarkerPresenter : IItemMarkerPresenter, IDisposable
     public ItemMarkerPresenter(
         IGridSystemProvider gridSystemProvider,
         IMainCameraProvider mainCameraProvider,
+        IPlayerInputReader inputReader,
         ITmpKoreanFontService fontService)
     {
         this.gridSystemProvider = gridSystemProvider
             ?? throw new ArgumentNullException(nameof(gridSystemProvider));
         this.mainCameraProvider = mainCameraProvider
             ?? throw new ArgumentNullException(nameof(mainCameraProvider));
+        this.inputReader = inputReader
+            ?? throw new ArgumentNullException(nameof(inputReader));
         this.fontService = fontService
             ?? throw new ArgumentNullException(nameof(fontService));
     }
@@ -81,6 +85,7 @@ public sealed class ItemMarkerPresenter : IItemMarkerPresenter, IDisposable
             marker = WorldItemStackMarker.Create(
                 dataSource,
                 mainCameraProvider,
+                inputReader,
                 fontService.Resolve(),
                 grid,
                 position);

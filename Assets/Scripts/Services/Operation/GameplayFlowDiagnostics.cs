@@ -360,8 +360,8 @@ public static class GameplayFlowDiagnosticsBuilder
     {
         List<string> shortages = new List<string>();
         List<string> deliveries = new List<string>();
-        foreach (WorkOrderMaterialSaveData material in order.materials
-                     ?? new List<WorkOrderMaterialSaveData>())
+        foreach (WorkOrderItemMaterialSaveData material in order.itemMaterials
+                     ?? new List<WorkOrderItemMaterialSaveData>())
         {
             if (material == null)
             {
@@ -375,12 +375,12 @@ public static class GameplayFlowDiagnosticsBuilder
             }
 
             int pending = stacks
-                .Where(stack => IsPendingFor(order, material.category, stack))
+                .Where(stack => IsPendingFor(order, material.itemId, stack))
                 .Sum(stack => stack.Quantity);
             int available = stacks
-                .Where(stack => IsAvailableSource(material.category, stack))
+                .Where(stack => IsAvailableSource(material.itemId, stack))
                 .Sum(stack => stack.Quantity);
-            string materialName = StockCategoryCatalog.GetDisplayName(material.category);
+            string materialName = material.itemId;
             if (pending + available < missing)
             {
                 shortages.Add($"{materialName} {missing - pending - available}");
@@ -420,11 +420,11 @@ public static class GameplayFlowDiagnosticsBuilder
 
     private static bool IsPendingFor(
         WorkOrderSaveData order,
-        StockCategory category,
+        string itemId,
         WorldItemStackSnapshot stack)
     {
         return stack != null
-            && stack.StockCategory == category
+            && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
             && string.Equals(
                 stack.DestinationId,
                 order.materialDestinationId,
@@ -437,11 +437,11 @@ public static class GameplayFlowDiagnosticsBuilder
     }
 
     private static bool IsAvailableSource(
-        StockCategory category,
+        string itemId,
         WorldItemStackSnapshot stack)
     {
         return stack != null
-            && stack.StockCategory == category
+            && string.Equals(stack.ItemId, itemId, StringComparison.Ordinal)
             && !stack.Forbidden
             && string.IsNullOrWhiteSpace(stack.DestinationId)
             && (stack.State == WorldItemStackState.Stored

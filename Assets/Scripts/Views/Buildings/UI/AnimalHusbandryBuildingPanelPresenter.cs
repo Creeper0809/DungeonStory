@@ -18,15 +18,19 @@ public interface IAnimalHusbandryBuildingPanelPresenter
 public sealed class AnimalHusbandryBuildingPanelPresenter :
     IAnimalHusbandryBuildingPanelPresenter
 {
-    private readonly IAnimalHusbandryRuntime husbandry;
+    private readonly IAnimalHusbandryQuery husbandryQuery;
+    private readonly IAnimalHusbandryCommand husbandryCommands;
     private readonly IWildlifeSpeciesCatalogProvider species;
 
     public AnimalHusbandryBuildingPanelPresenter(
-        IAnimalHusbandryRuntime husbandry,
+        IAnimalHusbandryQuery husbandryQuery,
+        IAnimalHusbandryCommand husbandryCommands,
         IWildlifeSpeciesCatalogProvider species)
     {
-        this.husbandry = husbandry
-            ?? throw new ArgumentNullException(nameof(husbandry));
+        this.husbandryQuery = husbandryQuery
+            ?? throw new ArgumentNullException(nameof(husbandryQuery));
+        this.husbandryCommands = husbandryCommands
+            ?? throw new ArgumentNullException(nameof(husbandryCommands));
         this.species = species
             ?? throw new ArgumentNullException(nameof(species));
     }
@@ -45,17 +49,14 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
             return created;
         }
 
-        string penId = GetPenId(building);
-        AnimalPenPolicyData policy = husbandry.GetOrCreatePenPolicy(penId);
-        int effectiveCapacity = husbandry.GetEffectivePenCapacity(penId);
-        HusbandryAnimalState[] animals = husbandry.Animals
-            .Where(state => string.Equals(
-                state.penId,
-                penId,
-                StringComparison.Ordinal))
+        BuildingInstanceId penId = GetPenId(building);
+        AnimalPenPolicyData policy = husbandryQuery.GetPenPolicy(penId);
+        int effectiveCapacity = husbandryQuery.GetEffectivePenCapacity(penId);
+        HusbandryAnimalState[] animals = husbandryQuery.Animals
+            .Where(state => state.PenId.Equals(penId))
             .ToArray();
         AnimalPenCompatibilityResult compatibility =
-            husbandry.EvaluatePen(penId);
+            husbandryQuery.EvaluatePen(penId);
 
         AddText(
             parent,
@@ -81,7 +82,10 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
         {
             AddText(
                 parent,
-                $"주의 · {issue.Message}",
+                $"주의 · {issue.Kind}"
+                + (issue.Parameters.Count > 0
+                    ? $" ({string.Join(", ", issue.Parameters)})"
+                    : string.Empty),
                 font,
                 14f,
                 DungeonUiTheme.Warning,
@@ -154,28 +158,28 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
                 value.protectPregnant = !value.protectPregnant));
 
         foreach (HusbandryAnimalState animal in animals
-                     .OrderBy(state => state.speciesId, StringComparer.Ordinal)
-                     .ThenBy(state => state.wildlifeId, StringComparer.Ordinal))
+                     .OrderBy(state => state.SpeciesId.Value, StringComparer.Ordinal)
+                     .ThenBy(state => state.AnimalId.Value, StringComparer.Ordinal))
         {
             string speciesName = species.TryGetSpecies(
-                animal.speciesId,
+                animal.SpeciesId.Value,
                 out WildlifeSpeciesDefinition definition)
                     ? definition.DisplayName
-                    : animal.speciesId;
-            string sex = animal.sex == AnimalSex.Female ? "암" : "수";
-            string status = animal.tamed
-                ? animal.pregnant
+                    : animal.SpeciesId.Value;
+            string sex = animal.Sex == AnimalSex.Female ? "암" : "수";
+            string status = animal.Tamed
+                ? animal.Pregnant
                     ? "번식 중"
                     : "길들임"
-                : $"길들이기 {animal.tamingProgress:P0}";
+                : $"길들이기 {animal.TamingProgress:P0}";
             AddText(
                 parent,
-                $"{speciesName} · {sex} · {animal.ageDays:0.0}일 · {status}"
-                + (animal.slaughterDesignated ? " · 도축 지정" : string.Empty)
-                + $"\n{animal.lastStatus}",
+                $"{speciesName} · {sex} · {animal.AgeDays:0.0}일 · {status}"
+                + (animal.SlaughterDesignated ? " · 도축 지정" : string.Empty)
+                + $"\n{animal.StatusCode}",
                 font,
                 14f,
-                animal.slaughterDesignated
+                animal.SlaughterDesignated
                     ? DungeonUiTheme.Danger
                     : DungeonUiTheme.TextPrimary,
                 48f,
@@ -190,9 +194,11 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
         {
             AnimalPenPolicyData updated = source.Clone();
             mutate(updated);
-            if (!husbandry.SetPenPolicy(updated, out string failureReason))
+            if (!husbandryCommands.SetPenPolicy(
+                    updated,
+                    out AnimalHusbandryFailure failure))
             {
-                showFeedback?.Invoke(failureReason);
+                showFeedback?.Invoke(failure.Code.ToString());
                 return;
             }
 
@@ -299,8 +305,8 @@ public sealed class AnimalHusbandryBuildingPanelPresenter :
         created.Add(textObject);
     }
 
-    private static string GetPenId(BuildableObject building)
+    private static BuildingInstanceId GetPenId(BuildableObject building)
     {
-        return $"pen:{building.id}:{building.centerPos.x}:{building.centerPos.y}";
+        return building.RequirePersistentInstanceId();
     }
 }

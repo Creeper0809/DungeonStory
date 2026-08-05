@@ -11,13 +11,16 @@ using VContainer.Unity;
 
 public sealed class WorldItemStackRuntime :
     IWorldItemStackRuntime,
+    IPhysicalItemRestoreStaging,
     IWorldItemMarkerDataSource,
     IHaulPlanBuilder,
     IStartable,
+    ITickable,
     IDisposable
 {
     public const string FacilityInputDestinationPrefix = "facility-input:";
-    public const string WarehouseStorageDestinationPrefix = "warehouse:";
+    public const string WarehouseStorageDestinationPrefix =
+        WarehouseStorageIdentity.DestinationPrefix;
     public const string CombatLoadoutDestinationPrefix = "combat-loadout-pickup:";
 
     private readonly IGridSystemProvider gridSystemProvider;
@@ -26,12 +29,6 @@ public sealed class WorldItemStackRuntime :
     private readonly ICharacterIdRegistry characterIdRegistry;
     private readonly IWorldDropZoneQuery worldDropZoneQuery;
     private readonly ICharacterSpawnerProvider characterSpawnerProvider;
-    private readonly IGridPathSearchBroker pathSearchBroker;
-    private readonly ICharacterAiWorldRegistry worldRegistry;
-    private readonly ICombatEquipmentRuntime combatEquipmentRuntime;
-    private readonly ICombatEquipmentCatalog combatEquipmentCatalog;
-    private readonly IGameEventBus gameEventBus;
-    private readonly IGameClock gameClock;
     private readonly IItemMarkerPresenter itemMarkerPresenter;
     private readonly WorldItemRepository itemRepository;
     private readonly IItemReservationService reservationService;
@@ -40,84 +37,54 @@ public sealed class WorldItemStackRuntime :
     private readonly IWorldItemHaulPlanningService haulPlanningService;
     private readonly IItemTransferService itemTransferService;
     private readonly ICharacterAiPerformanceRecorder performanceRecorder;
+    private readonly IDungeonDebugRuleQuery debugRules;
+    private readonly WorldItemTheftService theftService;
+    private readonly WorldItemPersistenceService persistence;
+    private readonly WorldItemWarehouseService warehouseService;
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private int projectedRestoreRevision;
 
     private List<WorldItemStackRecord> stacks => itemRepository.Records;
     private Dictionary<string, WorldItemStackRecord> stacksById => itemRepository.RecordsById;
     private Dictionary<Vector2Int, List<WorldItemStackRecord>> stacksByPosition =>
         itemRepository.RecordsByPosition;
-    private int nextStackSequence
-    {
-        get => itemRepository.NextStackSequence;
-        set => itemRepository.NextStackSequence = value;
-    }
     public WorldItemStackRuntime(
         IGridSystemProvider gridSystemProvider,
-        IDungeonItemCatalogProvider catalogProvider,
-        IItemHaulingSettingsProvider haulingSettingsProvider,
         ICharacterIdRegistry characterIdRegistry,
         IWorldDropZoneQuery worldDropZoneQuery,
         ICharacterSpawnerProvider characterSpawnerProvider,
-        IGridPathSearchBroker pathSearchBroker,
-        ICharacterAiWorldRegistry worldRegistry,
-        ICombatEquipmentRuntime combatEquipmentRuntime,
-        ICombatEquipmentCatalog combatEquipmentCatalog,
-        IGameEventBus gameEventBus,
-        IGameClock gameClock,
-        WorldItemRepository itemRepository,
-        IItemReservationService reservationService,
-        IWorldItemSpawner itemSpawner,
-        WorldItemQueryService itemQueryService,
-        IWorldItemHaulPlanningService haulPlanningService,
-        IItemMarkerPresenter itemMarkerPresenter = null,
-        IItemTransferService itemTransferService = null,
-        ICharacterAiPerformanceRecorder performanceRecorder = null)
+        WorldItemReadServices readServices,
+        WorldItemMutationServices mutationServices,
+        WorldItemPersistenceService persistence,
+        WorldItemWarehouseService warehouseService)
     {
         this.gridSystemProvider = gridSystemProvider ?? throw new ArgumentNullException(nameof(gridSystemProvider));
-        this.catalogProvider = catalogProvider ?? throw new ArgumentNullException(nameof(catalogProvider));
-        this.haulingSettingsProvider = haulingSettingsProvider
-            ?? throw new ArgumentNullException(nameof(haulingSettingsProvider));
         this.characterIdRegistry = characterIdRegistry ?? throw new ArgumentNullException(nameof(characterIdRegistry));
         this.worldDropZoneQuery = worldDropZoneQuery
             ?? throw new ArgumentNullException(nameof(worldDropZoneQuery));
         this.characterSpawnerProvider = characterSpawnerProvider
             ?? throw new ArgumentNullException(nameof(characterSpawnerProvider));
-        this.pathSearchBroker = pathSearchBroker
-            ?? throw new ArgumentNullException(nameof(pathSearchBroker));
-        this.worldRegistry = worldRegistry
-            ?? throw new ArgumentNullException(nameof(worldRegistry));
-        this.combatEquipmentRuntime = combatEquipmentRuntime
-            ?? throw new ArgumentNullException(nameof(combatEquipmentRuntime));
-        this.combatEquipmentCatalog = combatEquipmentCatalog
-            ?? throw new ArgumentNullException(nameof(combatEquipmentCatalog));
-        this.gameEventBus = gameEventBus
-            ?? throw new ArgumentNullException(nameof(gameEventBus));
-        this.gameClock = gameClock
-            ?? throw new ArgumentNullException(nameof(gameClock));
-        this.itemRepository = itemRepository
-            ?? throw new ArgumentNullException(nameof(itemRepository));
-        this.reservationService = reservationService
-            ?? throw new ArgumentNullException(nameof(reservationService));
-        this.itemSpawner = itemSpawner
-            ?? throw new ArgumentNullException(nameof(itemSpawner));
-        this.itemQueryService = itemQueryService
-            ?? throw new ArgumentNullException(nameof(itemQueryService));
-        this.haulPlanningService = haulPlanningService
-            ?? throw new ArgumentNullException(nameof(haulPlanningService));
-        this.itemMarkerPresenter = itemMarkerPresenter ?? NullItemMarkerPresenter.Instance;
-        this.performanceRecorder = performanceRecorder;
-        this.itemTransferService = itemTransferService
-            ?? new ItemTransferService(
-                this.gridSystemProvider,
-                this.catalogProvider,
-                this.haulingSettingsProvider,
-                this.characterIdRegistry,
-                this.worldRegistry,
-                this.combatEquipmentRuntime,
-                this.combatEquipmentCatalog,
-                this.gameEventBus,
-                this.itemRepository,
-                this.itemSpawner,
-                this.itemMarkerPresenter);
+        WorldItemReadServices requiredRead = readServices
+            ?? throw new ArgumentNullException(nameof(readServices));
+        WorldItemMutationServices requiredMutations = mutationServices
+            ?? throw new ArgumentNullException(nameof(mutationServices));
+        catalogProvider = requiredRead.Catalog;
+        haulingSettingsProvider = requiredRead.HaulingSettings;
+        itemQueryService = requiredRead.Queries;
+        itemMarkerPresenter = requiredRead.Markers;
+        performanceRecorder = requiredRead.Performance;
+        debugRules = requiredRead.DebugRules;
+        itemRepository = requiredMutations.Repository;
+        aggregateRootStore = itemRepository.AggregateRootStore;
+        reservationService = requiredMutations.Reservations;
+        itemSpawner = requiredMutations.Spawner;
+        haulPlanningService = requiredMutations.HaulPlanning;
+        itemTransferService = requiredMutations.Transfers;
+        theftService = requiredMutations.Theft;
+        this.persistence = persistence
+            ?? throw new ArgumentNullException(nameof(persistence));
+        this.warehouseService = warehouseService
+            ?? throw new ArgumentNullException(nameof(warehouseService));
     }
 
     public IDungeonItemCatalogProvider CatalogProvider => catalogProvider;
@@ -129,7 +96,19 @@ public sealed class WorldItemStackRuntime :
     public void Start()
     {
         itemMarkerPresenter.Initialize(this);
+        projectedRestoreRevision = aggregateRootStore.PublishedRestoreRevision;
         RefreshAllMarkers();
+    }
+
+    public void Tick()
+    {
+        if (projectedRestoreRevision == aggregateRootStore.PublishedRestoreRevision)
+        {
+            return;
+        }
+
+        projectedRestoreRevision = aggregateRootStore.PublishedRestoreRevision;
+        ProjectRestoredWorldState();
     }
 
     public void Dispose()
@@ -138,19 +117,7 @@ public sealed class WorldItemStackRuntime :
 
     public DungeonPhysicalItemSaveData Capture()
     {
-        return new DungeonPhysicalItemSaveData
-        {
-            version = DungeonPhysicalItemSaveData.CurrentVersion,
-            nextStackSequence = nextStackSequence,
-            haulingSettings = haulingSettingsProvider.Capture(),
-            stacks = stacks
-                .Where(stack => stack != null && stack.quantity > 0)
-                .OrderBy(stack => stack.position.y)
-                .ThenBy(stack => stack.position.x)
-                .ThenBy(stack => stack.itemId, StringComparer.Ordinal)
-                .Select(ToSaveData)
-                .ToList()
-        };
+        return persistence.Capture();
     }
 
     public void SetStoredItemMarkersVisible(bool visible)
@@ -160,70 +127,31 @@ public sealed class WorldItemStackRuntime :
 
     public void Restore(DungeonPhysicalItemSaveData snapshot)
     {
-        ClearRuntimeStacks();
-        if (snapshot == null)
+        IDungeonSaveRestoreStage stage = StageRestore(snapshot);
+        stage.Commit(new DungeonGameRestoreReport());
+    }
+
+    public IDungeonSaveRestoreStage StageRestore(
+        DungeonPhysicalItemSaveData snapshot)
+    {
+        WorldItemRestoreState staged = persistence.StageRestore(snapshot);
+        return new DungeonDelegateSaveRestoreStage(
+            PhysicalItemsSaveSection.Id,
+            _ => CommitRestore(staged));
+    }
+
+    private void CommitRestore(WorldItemRestoreState staged)
+    {
+        persistence.Commit(staged);
+        if (!aggregateRootStore.IsRestoreStaging)
         {
-            return;
+            ProjectRestoredWorldState();
         }
+    }
 
-        if (snapshot.version < 1
-            || snapshot.version > DungeonPhysicalItemSaveData.CurrentVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported physical item save version {snapshot.version}.");
-        }
-
-        haulingSettingsProvider.Restore(snapshot.haulingSettings);
-        nextStackSequence = Mathf.Max(1, snapshot.nextStackSequence);
-        foreach (WorldItemStackSaveData entry in snapshot.stacks ?? new List<WorldItemStackSaveData>())
-        {
-            if (entry == null || entry.quantity <= 0 || string.IsNullOrWhiteSpace(entry.itemId))
-            {
-                continue;
-            }
-
-            WorldItemStackRecord record = new WorldItemStackRecord
-            {
-                stackId = string.IsNullOrWhiteSpace(entry.stackId) ? AllocateStackId() : entry.stackId.Trim(),
-                itemId = entry.itemId.Trim(),
-                quantity = Mathf.Max(0, entry.quantity),
-                state = Enum.IsDefined(typeof(WorldItemStackState), entry.state)
-                    ? entry.state
-                    : WorldItemStackState.Loose,
-                position = new Vector2Int(entry.gridX, entry.gridY),
-                // Haul plans are runtime-only. Persisting their owner without
-                // restoring the plan would leave an unreachable reserved stack.
-                reservedByPersistentId = string.Empty,
-                destinationId = entry.destinationId?.Trim() ?? string.Empty,
-                sourceStorageDestinationId = entry.sourceStorageDestinationId?.Trim() ?? string.Empty,
-                hasDestinationPosition = entry.hasDestinationPosition,
-                destinationPosition = new Vector2Int(entry.destinationGridX, entry.destinationGridY),
-                forbidden = entry.forbidden
-                ,sourceCharacterId = entry.sourceCharacterId?.Trim() ?? string.Empty
-                ,sourceDisplayName = entry.sourceDisplayName?.Trim() ?? string.Empty
-                ,sourceSpeciesTag = entry.sourceSpeciesTag?.Trim() ?? string.Empty
-                ,sourceDeathReason = entry.sourceDeathReason?.Trim() ?? string.Empty
-                ,emergencyButcheryAllowed = entry.emergencyButcheryAllowed
-                ,wasteOrigin = snapshot.version >= 2
-                    && Enum.IsDefined(typeof(WasteOriginKind), entry.wasteOrigin)
-                        ? entry.wasteOrigin
-                        : ResolveLegacyWasteOrigin(entry.itemId)
-                ,contamination = snapshot.version >= 2
-                    ? Mathf.Clamp(entry.contamination, 0f, 100f)
-                    : IsLegacyWasteItem(entry.itemId)
-                        ? 50f
-                        : 0f
-            };
-            if (!string.IsNullOrWhiteSpace(entry.reservedByPersistentId)
-                && IsCombatLoadoutDestination(record.destinationId))
-            {
-                RestoreDirectPickupStack(record);
-            }
-            AddRecord(record);
-        }
-
-        NormalizeLegacyWarehouseStorageIds();
-        SyncWarehouseInventoriesFromStoredStacks();
+    private void ProjectRestoredWorldState()
+    {
+        warehouseService.NormalizeStorageIds();
         RefreshAllMarkers();
     }
 
@@ -252,7 +180,13 @@ public sealed class WorldItemStackRuntime :
             return false;
         }
 
-        DungeonItemDefinition definition = catalogProvider.GetDefinition(category);
+        DungeonItemDefinition definition = catalogProvider.All
+            .Where(candidate => candidate != null
+                && candidate.StockCategory == category)
+            .OrderBy(candidate => candidate.ItemId, StringComparer.Ordinal)
+            .FirstOrDefault()
+            ?? throw new InvalidOperationException(
+                $"No authored concrete item belongs to stock category '{category}'.");
         spawned = Spawn(definition.ItemId, amount, dropoff, state, destinationId ?? string.Empty);
         return spawned == amount;
     }
@@ -263,33 +197,11 @@ public sealed class WorldItemStackRuntime :
         int amount,
         out int spawned)
     {
-        spawned = 0;
-        if (warehouse?.Inventory == null
-            || !warehouse.HasWarehouseInventory
-            || amount <= 0
-            || !warehouse.Inventory.Accepts(category))
-        {
-            return false;
-        }
-
-        DungeonItemDefinition definition =
-            catalogProvider.GetDefinition(category);
-        int accepted = warehouse.Inventory.Deposit(category, amount);
-        if (accepted <= 0)
-        {
-            return false;
-        }
-
-        spawned = AddStoredWarehouseItems(
+        return warehouseService.SpawnStock(
             warehouse,
-            definition.ItemId,
-            accepted);
-        if (spawned < accepted)
-        {
-            warehouse.Inventory.Withdraw(category, accepted - spawned);
-        }
-
-        return spawned == amount;
+            category,
+            amount,
+            out spawned);
     }
 
     public bool SpawnItemAt(
@@ -352,6 +264,43 @@ public sealed class WorldItemStackRuntime :
             out stackId);
     }
 
+    public bool SpawnExistingUniqueItemAt(
+        string itemId,
+        ItemInstanceId itemInstanceId,
+        Vector2Int position,
+        WorldItemStackState state,
+        string destinationId,
+        out string stackId)
+    {
+        IReadOnlyList<ItemInstanceComponentSaveData> components =
+            itemRepository.EquipmentInstances.TryGetValue(
+                itemInstanceId.Value,
+                out CombatEquipmentInstance equipment)
+                ? new[]
+                {
+                    EquipmentItemStateCodec.Encode(
+                        equipment,
+                        (equipment.moduleSlots ?? new List<EquipmentModuleSlotState>())
+                            .Where(slot => slot != null
+                                && !string.IsNullOrWhiteSpace(slot.moduleInstanceId)
+                                && itemRepository.EquipmentModules.ContainsKey(
+                                    slot.moduleInstanceId))
+                            .Select(slot =>
+                                itemRepository.EquipmentModules[slot.moduleInstanceId]))
+                }
+                : Array.Empty<ItemInstanceComponentSaveData>();
+        return itemSpawner.SpawnExistingUnique(
+            itemId,
+            itemInstanceId,
+            position,
+            state,
+            destinationId,
+            false,
+            default,
+            components,
+            out stackId);
+    }
+
     public bool SpawnUniqueItemAt(
         string itemId,
         Vector2Int position,
@@ -381,13 +330,13 @@ public sealed class WorldItemStackRuntime :
             return false;
         }
 
-        string persistentId = source.Identity?.PersistentId;
-        if (string.IsNullOrWhiteSpace(persistentId))
+        if (!CharacterPersistentIdentity.TryGet(source, out CharacterId characterId))
         {
-            persistentId = $"character:{source.GetInstanceID()}";
+            return false;
         }
 
-        int before = nextStackSequence;
+        string persistentId = characterId.Value;
+
         int spawned = Spawn(
             DarkSurvivalItemDefinitions.HumanoidCorpseItemId,
             1,
@@ -407,7 +356,32 @@ public sealed class WorldItemStackRuntime :
         stackId = stacks.LastOrDefault(record => record != null
             && record.itemId == DarkSurvivalItemDefinitions.HumanoidCorpseItemId
             && record.sourceCharacterId == persistentId
-            && record.position == position)?.stackId ?? $"stack:{before:D8}";
+            && record.position == position)?.stackId ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(stackId);
+    }
+
+    public bool TrySetInstanceComponent(
+        string stackId,
+        ItemInstanceComponentSaveData component)
+    {
+        if (component == null
+            || string.IsNullOrWhiteSpace(component.componentTypeId)
+            || !stacksById.TryGetValue(
+                stackId?.Trim() ?? string.Empty,
+                out WorldItemStackRecord stack)
+            || stack == null)
+        {
+            return false;
+        }
+
+        stack.components ??= new List<ItemInstanceComponentSaveData>();
+        stack.components.RemoveAll(existing => existing != null
+            && string.Equals(
+                existing.componentTypeId?.Trim(),
+                component.componentTypeId.Trim(),
+                StringComparison.Ordinal));
+        stack.components.Add(component.Clone());
+        MarkStacksChanged();
         return true;
     }
 
@@ -419,9 +393,8 @@ public sealed class WorldItemStackRuntime :
         out int requested,
         out string failureReason)
     {
-        DungeonItemDefinition definition = catalogProvider.GetDefinition(category);
-        return TryRequestItemDelivery(
-            definition.ItemId,
+        return warehouseService.TryRequestCategoryDelivery(
+            category,
             amount,
             destinationPosition,
             destinationId,
@@ -437,79 +410,13 @@ public sealed class WorldItemStackRuntime :
         out int requested,
         out string failureReason)
     {
-        requested = 0;
-        failureReason = string.Empty;
-        int remaining = Mathf.Max(0, amount);
-        string normalizedDestination = destinationId?.Trim() ?? string.Empty;
-        if (remaining <= 0)
-        {
-            return true;
-        }
-
-        if (string.IsNullOrWhiteSpace(normalizedDestination))
-        {
-            failureReason = "destination missing";
-            return false;
-        }
-
-        DungeonItemDefinition definition = catalogProvider.GetDefinition(itemId);
-        IWarehouseFacility[] warehouses = GetWarehouses().ToArray();
-        if (IsLegacyCategoryMirrorItem(
-                definition.ItemId,
-                definition.StockCategory))
-        {
-            foreach (IWarehouseFacility warehouse in warehouses)
-            {
-                EnsureStoredWarehouseMirror(
-                    warehouse,
-                    definition.ItemId,
-                    definition.StockCategory);
-            }
-        }
-
-        int looseAvailable = CountLooseStockAvailable(definition.ItemId);
-        int warehouseAvailable = warehouses.Sum(candidate =>
-            CountUnassignedStoredStock(candidate, definition.ItemId));
-        if (looseAvailable + warehouseAvailable < remaining)
-        {
-            failureReason = "stock unavailable";
-            return false;
-        }
-
-        int looseRequested = RequestLooseStockDelivery(
-            definition.ItemId,
-            remaining,
+        return warehouseService.TryRequestDelivery(
+            itemId,
+            amount,
             destinationPosition,
-            normalizedDestination);
-        requested += looseRequested;
-        remaining -= looseRequested;
-        if (remaining <= 0)
-        {
-            return true;
-        }
-
-        int storedRequested = RequestStoredStockDelivery(
-            warehouses,
-            definition.ItemId,
-            remaining,
-            destinationPosition,
-            normalizedDestination);
-        requested += storedRequested;
-        remaining -= storedRequested;
-
-        if (requested <= 0)
-        {
-            failureReason = "stock unavailable";
-            return false;
-        }
-
-        if (requested < amount)
-        {
-            failureReason = "partial stock delivery requested";
-            return false;
-        }
-
-        return true;
+            destinationId,
+            out requested,
+            out failureReason);
     }
 
     public bool TryRequestStackDelivery(
@@ -520,76 +427,13 @@ public sealed class WorldItemStackRuntime :
         out int requested,
         out string failureReason)
     {
-        requested = 0;
-        failureReason = string.Empty;
-        string id = stackId?.Trim() ?? string.Empty;
-        string destination = destinationId?.Trim() ?? string.Empty;
-        if (id.Length == 0
-            || destination.Length == 0
-            || amount <= 0
-            || !stacksById.TryGetValue(id, out WorldItemStackRecord source)
-            || source == null
-            || source.quantity <= 0
-            || source.forbidden
-            || !string.IsNullOrWhiteSpace(source.reservedByPersistentId)
-            || !string.IsNullOrWhiteSpace(source.sourceStorageDestinationId)
-            || !string.IsNullOrWhiteSpace(source.destinationId)
-                && source.state != WorldItemStackState.Stored)
-        {
-            failureReason = "선택한 물품을 운반 요청할 수 없습니다.";
-            return false;
-        }
-
-        if (source.state is not (WorldItemStackState.Loose
-                or WorldItemStackState.Stored))
-        {
-            failureReason = "바닥이나 창고에 있는 물품만 운반할 수 있습니다.";
-            return false;
-        }
-
-        int moved = Mathf.Min(amount, source.quantity);
-        Vector2Int sourcePosition = source.position;
-        string storageDestination = source.state == WorldItemStackState.Stored
-            ? source.destinationId
-            : string.Empty;
-        source.quantity -= moved;
-        MarkStacksChanged();
-        if (source.quantity <= 0)
-        {
-            RemoveRecord(source);
-        }
-
-        requested = Spawn(
-            source.itemId,
-            moved,
-            sourcePosition,
-            source.state,
-            destination,
-            hasDestinationPosition: true,
-            destinationPosition: destinationPosition,
-            sourceStorageDestinationId: storageDestination,
-            wasteOrigin: source.wasteOrigin,
-            contamination: source.contamination);
-        if (requested < moved)
-        {
-            Spawn(
-                source.itemId,
-                moved - requested,
-                sourcePosition,
-                source.state,
-                storageDestination,
-                wasteOrigin: source.wasteOrigin,
-                contamination: source.contamination);
-        }
-
-        RefreshMarkerAt(sourcePosition);
-        if (requested <= 0)
-        {
-            failureReason = "물품 운반 요청을 만들지 못했습니다.";
-            return false;
-        }
-
-        return requested == amount;
+        return warehouseService.TryRequestStackDelivery(
+            stackId,
+            amount,
+            destinationPosition,
+            destinationId,
+            out requested,
+            out failureReason);
     }
 
     public bool TryGetPileAt(Vector2Int position, out WorldItemPileSnapshot pile)
@@ -685,76 +529,13 @@ public sealed class WorldItemStackRuntime :
         out Vector2Int pickupStandPosition,
         out string failureReason)
     {
-        reservation = default;
-        pickupStandPosition = default;
-        failureReason = string.Empty;
-        if (actor == null
-            || string.IsNullOrWhiteSpace(itemId)
-            || quantity <= 0
-            || !TryGetGrid(out Grid grid))
-        {
-            failureReason = "직접 수령 대상이 올바르지 않습니다.";
-            return false;
-        }
-
-        string actorId = characterIdRegistry.GetOrAssignPersistentId(actor);
-        WorldItemStackRecord selected = stacks
-            .Where(record => record != null
-                && record.quantity > 0
-                && record.state == WorldItemStackState.Stored
-                && !record.forbidden
-                && string.IsNullOrWhiteSpace(record.reservedByPersistentId)
-                && string.Equals(record.itemId, itemId, StringComparison.Ordinal))
-            .Select(record => new
-            {
-                Record = record,
-                HasStand = TryResolvePickupStandCell(
-                    grid,
-                    record.position,
-                    out Vector2Int stand),
-                Stand = stand
-            })
-            .Where(candidate => candidate.HasStand)
-            .OrderBy(candidate => GetManhattanDistance(
-                actor.GetNowXY(),
-                candidate.Stand))
-            .Select(candidate => candidate.Record)
-            .FirstOrDefault();
-        if (selected == null
-            || !TryResolvePickupStandCell(
-                grid,
-                selected.position,
-                out pickupStandPosition))
-        {
-            failureReason = "창고에 준비된 장비가 없습니다.";
-            return false;
-        }
-
-        if (!reservationService.TryReserve(new[] { selected.stackId }, actorId))
-        {
-            failureReason = "장비 예약 상태가 변경되었습니다.";
-            return false;
-        }
-
-        if (TryGetWarehouseStockCategory(selected.itemId, out _)
-            && string.IsNullOrWhiteSpace(selected.sourceStorageDestinationId))
-        {
-            selected.sourceStorageDestinationId = selected.destinationId;
-            selected.destinationId = CombatLoadoutDestinationPrefix + actorId;
-            selected.hasDestinationPosition = true;
-            selected.destinationPosition = actor.GetNowXY();
-        }
-
-        reservation = new WorldItemReservedStackQuantity(
-            selected.stackId,
-            selected.itemId,
-            Mathf.Min(selected.quantity, Mathf.Max(1, quantity)),
-            selected.position,
-            WorldItemHaulDestinationKind.Warehouse,
-            selected.destinationId);
-        MarkStacksChanged();
-        RefreshMarkerAt(selected.position);
-        return true;
+        return warehouseService.TryReserveStoredForDirectPickup(
+            actor,
+            itemId,
+            quantity,
+            out reservation,
+            out pickupStandPosition,
+            out failureReason);
     }
 
     public bool TryReserveBestHaulJob(
@@ -878,114 +659,11 @@ public sealed class WorldItemStackRuntime :
         out WorldItemStackSnapshot stolenItem,
         out string failureReason)
     {
-        stolenItem = null;
-        failureReason = string.Empty;
-        if (actor == null || actor.characterType != CharacterType.Customer)
-        {
-            failureReason = "not a customer";
-            return false;
-        }
-
-        CharacterCarryInventory inventory = CharacterCarryInventory.Ensure(actor);
-        if (inventory == null)
-        {
-            failureReason = "no carry inventory";
-            return false;
-        }
-
-        Vector2Int origin = ResolveActorGridPosition(actor);
-        int radius = Mathf.Max(0, searchRadius);
-        WorldItemStackRecord bestStack = null;
-        DungeonItemDefinition bestDefinition = null;
-        float bestScore = float.MinValue;
-        foreach (WorldItemStackRecord stack in stacks)
-        {
-            if (stack == null
-                || stack.quantity <= 0
-                || stack.state != WorldItemStackState.Loose
-                || stack.forbidden
-                || !string.IsNullOrWhiteSpace(stack.reservedByPersistentId))
-            {
-                continue;
-            }
-
-            int distance = Mathf.Abs(stack.position.x - origin.x) + Mathf.Abs(stack.position.y - origin.y);
-            if (distance > radius)
-            {
-                continue;
-            }
-
-            DungeonItemDefinition definition = catalogProvider.GetDefinition(stack.itemId);
-            if (inventory.GetMaxAcceptableQuantity(
-                    stack.itemId,
-                    1,
-                    catalogProvider,
-                    haulingSettingsProvider) <= 0)
-            {
-                continue;
-            }
-
-            float score = definition.UnitPrice * 10f
-                + Mathf.Min(50, stack.quantity)
-                - distance * 5f;
-            if (score <= bestScore)
-            {
-                continue;
-            }
-
-            bestStack = stack;
-            bestDefinition = definition;
-            bestScore = score;
-        }
-
-        if (bestStack == null)
-        {
-            failureReason = "no loose item nearby";
-            return false;
-        }
-
-        if (!inventory.TryAddPartialStack(
-                $"floor-theft:{bestStack.stackId}:{gameClock.FrameCount}",
-                bestStack.itemId,
-                1,
-                catalogProvider,
-                haulingSettingsProvider,
-                bestStack.wasteOrigin,
-                bestStack.contamination,
-                out int accepted,
-                out failureReason))
-        {
-            return false;
-        }
-
-        if (accepted != 1)
-        {
-            failureReason = "carry limit";
-            return false;
-        }
-
-        stolenItem = ToSnapshot(bestStack);
-        stolenItem.Quantity = 1;
-        if (bestDefinition != null)
-        {
-            stolenItem.DisplayName = bestDefinition.DisplayName;
-            stolenItem.Description = bestDefinition.Description;
-            stolenItem.StockCategory = bestDefinition.StockCategory;
-            stolenItem.UnitPrice = bestDefinition.UnitPrice;
-            stolenItem.UnitWeight = bestDefinition.UnitWeight;
-            stolenItem.Sprite = bestDefinition.Sprite;
-        }
-
-        Vector2Int position = bestStack.position;
-        bestStack.quantity--;
-        MarkStacksChanged();
-        if (bestStack.quantity <= 0)
-        {
-            RemoveRecord(bestStack);
-        }
-
-        RefreshMarkerAt(position);
-        return true;
+        return theftService.TryStealLooseItem(
+            actor,
+            searchRadius,
+            out stolenItem,
+            out failureReason);
     }
 
     public void ReleaseReservation(string stackId, string persistentId)
@@ -1046,6 +724,36 @@ public sealed class WorldItemStackRuntime :
         }
 
         Vector2Int position = record.position;
+        if (!string.IsNullOrWhiteSpace(record.itemInstanceId))
+        {
+            itemRepository.TryMarkEquipmentLostBySourceStack(record.stackId);
+            itemRepository.TryMarkModuleLostBySourceStack(record.stackId);
+        }
+        RemoveRecord(record);
+        RefreshMarkerAt(position);
+        return true;
+    }
+
+    public bool TryAbsorbUniqueItemStack(
+        string stackId,
+        ItemInstanceId expectedInstanceId)
+    {
+        string normalizedStackId = stackId?.Trim() ?? string.Empty;
+        if (!expectedInstanceId.IsValid
+            || !stacksById.TryGetValue(
+                normalizedStackId,
+                out WorldItemStackRecord record)
+            || record == null
+            || record.quantity != 1
+            || !string.Equals(
+                record.itemInstanceId,
+                expectedInstanceId.Value,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        Vector2Int position = record.position;
         RemoveRecord(record);
         RefreshMarkerAt(position);
         return true;
@@ -1063,7 +771,7 @@ public sealed class WorldItemStackRuntime :
             return false;
         }
 
-        if (DungeonDebugRuntimeRules.ShouldSkipCosts())
+        if (debugRules.ShouldSkipCosts())
         {
             consumed = ToSnapshot(record);
             consumed.Quantity = Mathf.Min(quantity, record.quantity);
@@ -1071,31 +779,6 @@ public sealed class WorldItemStackRuntime :
         }
 
         int amount = Mathf.Min(quantity, record.quantity);
-        if (record.state == WorldItemStackState.Stored)
-        {
-            if (!TryResolveStoredWarehouse(
-                    record,
-                    out IWarehouseFacility sourceWarehouse)
-                || !TryGetWarehouseStockCategory(
-                    record.itemId,
-                    out StockCategory category)
-                || sourceWarehouse.Inventory.GetStock(category) < amount)
-            {
-                return false;
-            }
-
-            int withdrawn = sourceWarehouse.Inventory.Withdraw(category, amount);
-            if (withdrawn != amount)
-            {
-                if (withdrawn > 0)
-                {
-                    sourceWarehouse.Inventory.Deposit(category, withdrawn);
-                }
-
-                return false;
-            }
-        }
-
         consumed = ToSnapshot(record);
         consumed.Quantity = amount;
         Vector2Int position = record.position;
@@ -1103,57 +786,16 @@ public sealed class WorldItemStackRuntime :
         MarkStacksChanged();
         if (record.quantity <= 0)
         {
+            if (!string.IsNullOrWhiteSpace(record.itemInstanceId))
+            {
+                itemRepository.TryMarkEquipmentLostBySourceStack(record.stackId);
+                itemRepository.TryMarkModuleLostBySourceStack(record.stackId);
+            }
             RemoveRecord(record);
         }
 
         RefreshMarkerAt(position);
         return amount > 0;
-    }
-
-    private bool TryResolveStoredWarehouse(
-        WorldItemStackRecord record,
-        out IWarehouseFacility warehouse)
-    {
-        warehouse = null;
-        if (record == null
-            || record.state != WorldItemStackState.Stored)
-        {
-            return false;
-        }
-
-        string destinationId = GetStoredSourceDestinationId(record);
-        IWarehouseFacility positionMatch = null;
-        foreach (IWarehouseFacility candidate in GetWarehouses())
-        {
-            if (candidate?.Inventory == null)
-            {
-                continue;
-            }
-
-            if (!string.IsNullOrWhiteSpace(destinationId)
-                && string.Equals(
-                    GetWarehouseStorageDestinationId(candidate),
-                    destinationId,
-                    StringComparison.Ordinal))
-            {
-                warehouse = candidate;
-                return true;
-            }
-
-            if (string.IsNullOrWhiteSpace(destinationId)
-                && ResolveWarehouseStoragePosition(candidate) == record.position)
-            {
-                if (positionMatch != null)
-                {
-                    return false;
-                }
-
-                positionMatch = candidate;
-            }
-        }
-
-        warehouse = positionMatch;
-        return warehouse != null;
     }
 
     public bool SetEmergencyButcheryAllowed(string stackId, bool allowed)
@@ -1263,6 +905,7 @@ public sealed class WorldItemStackRuntime :
             {
                 Vector2Int loosePosition =
                     target.state == WorldItemStackState.FacilityBuffer
+                    || target.state == WorldItemStackState.FacilityOutputBuffer
                         ? releasePosition
                         : oldPosition;
                 RemoveRecord(target);
@@ -1279,231 +922,6 @@ public sealed class WorldItemStackRuntime :
         }
 
         return released;
-    }
-
-    private int CountLooseStockAvailable(string itemId)
-    {
-        if (string.IsNullOrWhiteSpace(itemId))
-        {
-            return 0;
-        }
-
-        return stacks
-            .Where(stack => stack != null
-                && stack.quantity > 0
-                && stack.state == WorldItemStackState.Loose
-                && !stack.forbidden
-                && string.IsNullOrWhiteSpace(stack.reservedByPersistentId)
-                && string.IsNullOrWhiteSpace(stack.destinationId)
-                && string.Equals(stack.itemId, itemId, StringComparison.Ordinal))
-            .Sum(stack => stack.quantity);
-    }
-
-    private int RequestLooseStockDelivery(
-        string itemId,
-        int amount,
-        Vector2Int destinationPosition,
-        string destinationId)
-    {
-        if (string.IsNullOrWhiteSpace(itemId)
-            || string.IsNullOrWhiteSpace(destinationId)
-            || amount <= 0)
-        {
-            return 0;
-        }
-
-        int remaining = amount;
-        int requested = 0;
-        foreach (WorldItemStackRecord stack in stacks
-            .Where(stack => stack != null
-                && stack.quantity > 0
-                && stack.state == WorldItemStackState.Loose
-                && !stack.forbidden
-                && string.IsNullOrWhiteSpace(stack.reservedByPersistentId)
-                && string.IsNullOrWhiteSpace(stack.destinationId)
-                && string.Equals(stack.itemId, itemId, StringComparison.Ordinal))
-            .OrderBy(stack => Mathf.Abs(stack.position.x - destinationPosition.x)
-                + Mathf.Abs(stack.position.y - destinationPosition.y))
-            .ToArray())
-        {
-            if (remaining <= 0)
-            {
-                break;
-            }
-
-            int moved = Mathf.Min(remaining, stack.quantity);
-            Vector2Int sourcePosition = stack.position;
-            stack.quantity -= moved;
-            MarkStacksChanged();
-            if (stack.quantity <= 0)
-            {
-                RemoveRecord(stack);
-            }
-
-            requested += Spawn(
-                itemId,
-                moved,
-                sourcePosition,
-                WorldItemStackState.Loose,
-                destinationId,
-                hasDestinationPosition: true,
-                destinationPosition: destinationPosition,
-                wasteOrigin: stack.wasteOrigin,
-                contamination: stack.contamination);
-            remaining -= moved;
-            RefreshMarkerAt(sourcePosition);
-        }
-
-        return requested;
-    }
-
-    private int RequestStoredStockDelivery(
-        IEnumerable<IWarehouseFacility> warehouses,
-        string itemId,
-        int amount,
-        Vector2Int destinationPosition,
-        string destinationId)
-    {
-        if (string.IsNullOrWhiteSpace(itemId)
-            || string.IsNullOrWhiteSpace(destinationId)
-            || amount <= 0)
-        {
-            return 0;
-        }
-
-        int remaining = amount;
-        int requested = 0;
-        foreach (IWarehouseFacility warehouse in (warehouses ?? Enumerable.Empty<IWarehouseFacility>())
-            .Where(candidate => candidate != null && candidate.Inventory != null)
-            .OrderBy(candidate => candidate is BuildableObject building
-                ? GetManhattanDistance(building.centerPos, destinationPosition)
-                : int.MaxValue))
-        {
-            if (remaining <= 0)
-            {
-                break;
-            }
-
-            string storageDestinationId = GetWarehouseStorageDestinationId(warehouse);
-            foreach (WorldItemStackRecord stack in stacks
-                .Where(stack => stack != null
-                    && stack.quantity > 0
-                    && stack.state == WorldItemStackState.Stored
-                    && !stack.forbidden
-                    && string.IsNullOrWhiteSpace(stack.reservedByPersistentId)
-                    && string.IsNullOrWhiteSpace(stack.sourceStorageDestinationId)
-                    && string.Equals(stack.itemId, itemId, StringComparison.Ordinal)
-                    && string.Equals(
-                        stack.destinationId ?? string.Empty,
-                        storageDestinationId,
-                        StringComparison.Ordinal))
-                .ToArray())
-            {
-                if (remaining <= 0)
-                {
-                    break;
-                }
-
-                int assigned = Mathf.Min(remaining, stack.quantity);
-                Vector2Int sourcePosition = stack.position;
-                stack.quantity -= assigned;
-                MarkStacksChanged();
-                if (stack.quantity <= 0)
-                {
-                    RemoveRecord(stack);
-                }
-
-                int created = Spawn(
-                    itemId,
-                    assigned,
-                    sourcePosition,
-                    WorldItemStackState.Stored,
-                    destinationId,
-                    hasDestinationPosition: true,
-                    destinationPosition: destinationPosition,
-                    sourceStorageDestinationId: storageDestinationId,
-                    wasteOrigin: stack.wasteOrigin,
-                    contamination: stack.contamination);
-                if (created < assigned)
-                {
-                    AddStoredWarehouseItems(
-                        warehouse,
-                        itemId,
-                        assigned - created,
-                        stack.wasteOrigin,
-                        stack.contamination);
-                }
-
-                requested += created;
-                remaining -= created;
-                RefreshMarkerAt(sourcePosition);
-            }
-        }
-
-        return requested;
-    }
-
-    private void EnsureStoredWarehouseMirror(
-        IWarehouseFacility warehouse,
-        string itemId,
-        StockCategory category)
-    {
-        if (warehouse == null
-            || warehouse.Inventory == null
-            || string.IsNullOrWhiteSpace(itemId))
-        {
-            return;
-        }
-
-        string storageDestinationId = GetWarehouseStorageDestinationId(warehouse);
-        int physicalAmount = stacks
-            .Where(stack => stack != null
-                && stack.quantity > 0
-                && stack.state == WorldItemStackState.Stored
-                && string.Equals(stack.itemId, itemId, StringComparison.Ordinal)
-                && string.Equals(
-                    GetStoredSourceDestinationId(stack),
-                    storageDestinationId,
-                    StringComparison.Ordinal))
-            .Sum(stack => stack.quantity);
-        int missingMirror = Mathf.Max(0, warehouse.Inventory.GetStock(category) - physicalAmount);
-        if (missingMirror > 0)
-        {
-            AddStoredWarehouseItems(warehouse, itemId, missingMirror);
-        }
-    }
-
-    private static bool IsLegacyCategoryMirrorItem(
-        string itemId,
-        StockCategory category)
-    {
-        return string.Equals(
-            itemId,
-            DungeonItemCatalogSO.StockItemId(category),
-            StringComparison.Ordinal);
-    }
-
-    private int CountUnassignedStoredStock(IWarehouseFacility warehouse, string itemId)
-    {
-        if (warehouse == null || string.IsNullOrWhiteSpace(itemId))
-        {
-            return 0;
-        }
-
-        string storageDestinationId = GetWarehouseStorageDestinationId(warehouse);
-        return stacks
-            .Where(stack => stack != null
-                && stack.quantity > 0
-                && stack.state == WorldItemStackState.Stored
-                && !stack.forbidden
-                && string.IsNullOrWhiteSpace(stack.reservedByPersistentId)
-                && string.IsNullOrWhiteSpace(stack.sourceStorageDestinationId)
-                && string.Equals(stack.itemId, itemId, StringComparison.Ordinal)
-                && string.Equals(
-                    stack.destinationId ?? string.Empty,
-                    storageDestinationId,
-                    StringComparison.Ordinal))
-            .Sum(stack => stack.quantity);
     }
 
     private int Spawn(
@@ -1541,11 +959,6 @@ public sealed class WorldItemStackRuntime :
             contamination);
     }
 
-    private static int GetManhattanDistance(Vector2Int a, Vector2Int b)
-    {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
-    }
-
     private static WasteOriginKind ResolveLegacyWasteOrigin(string itemId)
     {
         string id = itemId?.Trim() ?? string.Empty;
@@ -1574,207 +987,6 @@ public sealed class WorldItemStackRuntime :
         string id = itemId?.Trim() ?? string.Empty;
         return id.StartsWith("waste:", StringComparison.Ordinal)
             || string.Equals(id, WildlifeItemDefinitions.RotItemId, StringComparison.Ordinal);
-    }
-
-    private IEnumerable<IWarehouseFacility> GetWarehouses()
-    {
-        foreach (IWarehouseFacility warehouse in worldRegistry.Warehouses)
-        {
-            if (warehouse != null
-                && warehouse.HasWarehouseInventory
-                && warehouse.Inventory != null)
-            {
-                yield return warehouse;
-            }
-        }
-    }
-
-    private void SyncWarehouseInventoriesFromStoredStacks()
-    {
-        Dictionary<string, Dictionary<StockCategory, int>> stockByWarehouse =
-            new Dictionary<string, Dictionary<StockCategory, int>>(StringComparer.Ordinal);
-        foreach (WorldItemStackRecord stack in stacks)
-        {
-            if (stack == null
-                || stack.quantity <= 0
-                || stack.state != WorldItemStackState.Stored
-                || !TryGetWarehouseStockCategory(stack.itemId, out StockCategory category))
-            {
-                continue;
-            }
-
-            string destinationId = GetStoredSourceDestinationId(stack);
-            if (!destinationId.StartsWith(WarehouseStorageDestinationPrefix, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            if (!stockByWarehouse.TryGetValue(destinationId, out Dictionary<StockCategory, int> stockByCategory))
-            {
-                stockByCategory = new Dictionary<StockCategory, int>();
-                stockByWarehouse[destinationId] = stockByCategory;
-            }
-
-            long combined = (long)(stockByCategory.TryGetValue(category, out int current) ? current : 0)
-                + stack.quantity;
-            stockByCategory[category] = combined >= int.MaxValue ? int.MaxValue : (int)combined;
-        }
-
-        if (stockByWarehouse.Count == 0)
-        {
-            return;
-        }
-
-        foreach (IWarehouseFacility warehouse in GetWarehouses())
-        {
-            WarehouseInventorySnapshot snapshot = warehouse.Inventory.CreateSnapshot();
-            string destinationId = GetWarehouseStorageDestinationId(warehouse);
-            stockByWarehouse.TryGetValue(destinationId, out Dictionary<StockCategory, int> stockByCategory);
-            snapshot.stocks = (stockByCategory ?? new Dictionary<StockCategory, int>())
-                .Where(pair => pair.Value > 0 && warehouse.Inventory.Accepts(pair.Key))
-                .OrderBy(pair => StockCategoryCatalog.TryGet(pair.Key, out StockCategoryDefinition definition)
-                    ? definition.SortOrder
-                    : int.MaxValue)
-                .ThenBy(pair => Convert.ToInt32(pair.Key, CultureInfo.InvariantCulture))
-                .Select(pair => StockAmountSnapshot.From(pair.Key, pair.Value))
-                .ToList();
-            warehouse.Inventory.ApplySnapshot(snapshot);
-        }
-    }
-
-    private int AddStoredWarehouseItems(
-        IWarehouseFacility warehouse,
-        string itemId,
-        int amount,
-        WasteOriginKind wasteOrigin = WasteOriginKind.Unknown,
-        float contamination = 0f)
-    {
-        if (warehouse == null || string.IsNullOrWhiteSpace(itemId) || amount <= 0)
-        {
-            return 0;
-        }
-
-        return Spawn(
-            itemId,
-            amount,
-            ResolveWarehouseStoragePosition(warehouse),
-            WorldItemStackState.Stored,
-            GetWarehouseStorageDestinationId(warehouse),
-            wasteOrigin: wasteOrigin,
-            contamination: contamination);
-    }
-
-    private int RemoveStoredWarehouseItems(IWarehouseFacility warehouse, string itemId, int amount)
-    {
-        if (warehouse == null || string.IsNullOrWhiteSpace(itemId) || amount <= 0)
-        {
-            return 0;
-        }
-
-        if (DungeonDebugRuntimeRules.ShouldSkipCosts())
-        {
-            return amount;
-        }
-
-        string destinationId = GetWarehouseStorageDestinationId(warehouse);
-        int remaining = amount;
-        int removed = 0;
-        foreach (WorldItemStackRecord stack in stacks.ToArray())
-        {
-            if (remaining <= 0)
-            {
-                break;
-            }
-
-            if (stack == null
-                || stack.quantity <= 0
-                || stack.state != WorldItemStackState.Stored
-                || !string.Equals(stack.itemId, itemId, StringComparison.Ordinal)
-                || !string.Equals(stack.destinationId ?? string.Empty, destinationId, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            int consumed = Mathf.Min(remaining, stack.quantity);
-            Vector2Int position = stack.position;
-            stack.quantity -= consumed;
-            remaining -= consumed;
-            removed += consumed;
-            MarkStacksChanged();
-            if (stack.quantity <= 0)
-            {
-                RemoveRecord(stack);
-            }
-
-            RefreshMarkerAt(position);
-        }
-
-        return removed;
-    }
-
-    private static string GetWarehouseStorageDestinationId(IWarehouseFacility warehouse)
-    {
-        if (warehouse is BuildableObject building)
-        {
-            return string.Concat(
-                WarehouseStorageDestinationPrefix,
-                building.GridId.ToString(CultureInfo.InvariantCulture),
-                ":",
-                building.centerPos.x.ToString(CultureInfo.InvariantCulture),
-                ":",
-                building.centerPos.y.ToString(CultureInfo.InvariantCulture));
-        }
-
-        return WarehouseStorageDestinationPrefix + warehouse.GetHashCode().ToString(CultureInfo.InvariantCulture);
-    }
-
-    private void NormalizeLegacyWarehouseStorageIds()
-    {
-        IWarehouseFacility[] warehouses = GetWarehouses().ToArray();
-        foreach (WorldItemStackRecord stack in stacks)
-        {
-            if (stack == null || stack.state != WorldItemStackState.Stored)
-            {
-                continue;
-            }
-
-            stack.destinationId = NormalizeLegacyWarehouseStorageId(
-                stack.destinationId,
-                stack.position,
-                warehouses);
-            stack.sourceStorageDestinationId = NormalizeLegacyWarehouseStorageId(
-                stack.sourceStorageDestinationId,
-                stack.position,
-                warehouses);
-        }
-    }
-
-    private static string NormalizeLegacyWarehouseStorageId(
-        string storageDestinationId,
-        Vector2Int storagePosition,
-        IReadOnlyList<IWarehouseFacility> warehouses)
-    {
-        string normalized = storageDestinationId?.Trim() ?? string.Empty;
-        if (!normalized.StartsWith(WarehouseStorageDestinationPrefix, StringComparison.Ordinal))
-        {
-            return normalized;
-        }
-
-        string suffix = normalized.Substring(WarehouseStorageDestinationPrefix.Length);
-        if (suffix.Contains(":")
-            || !int.TryParse(suffix, NumberStyles.Integer, CultureInfo.InvariantCulture, out int legacyGridId))
-        {
-            return normalized;
-        }
-
-        IWarehouseFacility matchingWarehouse = (warehouses ?? Array.Empty<IWarehouseFacility>())
-            .FirstOrDefault(candidate =>
-                candidate is BuildableObject building
-                && building.GridId == legacyGridId
-                && building.centerPos == storagePosition);
-        return matchingWarehouse != null
-            ? GetWarehouseStorageDestinationId(matchingWarehouse)
-            : normalized;
     }
 
     private static string GetStoredSourceDestinationId(WorldItemStackRecord stack)
@@ -1824,50 +1036,6 @@ public sealed class WorldItemStackRuntime :
             && destinationId.StartsWith(CombatLoadoutDestinationPrefix, StringComparison.Ordinal);
     }
 
-    private static bool TryGetWarehouseStockCategory(string itemId, out StockCategory category)
-    {
-        if (DungeonItemCatalogSO.TryGetStockCategoryFromItemId(itemId, out category))
-        {
-            return true;
-        }
-
-        if (CombatItemDefinitions.TryGetDefinition(itemId, out DungeonItemDefinition ammunition))
-        {
-            category = ammunition.StockCategory;
-            return true;
-        }
-
-        category = default;
-        return false;
-    }
-
-    private static void RestoreDirectPickupStack(WorldItemStackRecord stack)
-    {
-        if (stack == null || !IsCombatLoadoutDestination(stack.destinationId))
-        {
-            return;
-        }
-
-        stack.destinationId = stack.sourceStorageDestinationId ?? string.Empty;
-        stack.sourceStorageDestinationId = string.Empty;
-        stack.hasDestinationPosition = false;
-        stack.destinationPosition = default;
-    }
-
-    private static bool TryResolvePickupStandCell(
-        Grid grid,
-        Vector2Int itemPosition,
-        out Vector2Int standCell)
-    {
-        if (grid.IsValidGridPos(itemPosition) && grid.IsWalkable(itemPosition))
-        {
-            standCell = itemPosition;
-            return true;
-        }
-
-        return grid.TryFindNearbyWalkablePositionOnSameFloor(itemPosition, out standCell, maxDistance: 1);
-    }
-
     private bool TryGetDropoffPosition(out Vector2Int dropoff)
     {
         if (worldDropZoneQuery.TryGetDeliveryDropoff(out dropoff))
@@ -1899,67 +1067,14 @@ public sealed class WorldItemStackRuntime :
         return false;
     }
 
-    private Vector2Int ResolveActorGridPosition(CharacterActor actor)
-    {
-        if (actor != null && TryGetGrid(out Grid grid))
-        {
-            return grid.GetXY(actor.transform.position);
-        }
-
-        return Vector2Int.zero;
-    }
-
-    private void AddRecord(WorldItemStackRecord record)
-    {
-        itemRepository.Add(record);
-    }
-
     private void RemoveRecord(WorldItemStackRecord record)
     {
         itemRepository.Remove(record);
     }
 
-    private void ClearRuntimeStacks()
-    {
-        itemRepository.Clear();
-        itemMarkerPresenter.Clear();
-    }
-
     private void MarkStacksChanged()
     {
         itemRepository.MarkChanged();
-    }
-
-    private string AllocateStackId()
-    {
-        return itemRepository.AllocateStackId();
-    }
-
-    private WorldItemStackSaveData ToSaveData(WorldItemStackRecord stack)
-    {
-        return new WorldItemStackSaveData
-        {
-            stackId = stack.stackId,
-            itemId = stack.itemId,
-            quantity = Mathf.Max(0, stack.quantity),
-            state = stack.state,
-            gridX = stack.position.x,
-            gridY = stack.position.y,
-            reservedByPersistentId = stack.reservedByPersistentId ?? string.Empty,
-            destinationId = stack.destinationId ?? string.Empty,
-            sourceStorageDestinationId = stack.sourceStorageDestinationId ?? string.Empty,
-            hasDestinationPosition = stack.hasDestinationPosition,
-            destinationGridX = stack.destinationPosition.x,
-            destinationGridY = stack.destinationPosition.y,
-            forbidden = stack.forbidden
-            ,sourceCharacterId = stack.sourceCharacterId ?? string.Empty
-            ,sourceDisplayName = stack.sourceDisplayName ?? string.Empty
-            ,sourceSpeciesTag = stack.sourceSpeciesTag ?? string.Empty
-            ,sourceDeathReason = stack.sourceDeathReason ?? string.Empty
-            ,emergencyButcheryAllowed = stack.emergencyButcheryAllowed
-            ,wasteOrigin = stack.wasteOrigin
-            ,contamination = Mathf.Clamp(stack.contamination, 0f, 100f)
-        };
     }
 
     private WorldItemStackSnapshot ToSnapshot(WorldItemStackRecord stack)

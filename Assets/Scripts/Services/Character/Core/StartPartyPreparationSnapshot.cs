@@ -31,6 +31,8 @@ public sealed class PreparedStartPartyMemberSnapshot
 public sealed class PreparedStartPartySnapshot
 {
     public DungeonDifficulty difficulty = DungeonDifficulty.Normal;
+    public DungeonSurvivalPressure survivalPressure =
+        DungeonSurvivalPressure.Standard;
     public int runSeed;
     public PreparedStartPartyMemberSnapshot owner;
     public List<PreparedStartPartyMemberSnapshot> staff = new List<PreparedStartPartyMemberSnapshot>();

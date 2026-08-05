@@ -16,8 +16,8 @@ public sealed class AbilityUseSubstance : MonoBehaviour
     public bool IsUsingSubstance => routine != null;
     public CharacterSubstanceUseRequest ActiveRequest => request;
 
-    private ICharacterConsumablesRuntime Consumables =>
-        actor?.ConsumablesRuntime;
+    private ICharacterSubstanceRuntime Substances =>
+        actor?.SubstanceRuntime;
     private IWorldItemStackRuntime Items =>
         actor?.WorldItemStackRuntime;
 
@@ -59,7 +59,7 @@ public sealed class AbilityUseSubstance : MonoBehaviour
         return actor != null
             && move != null
             && Items != null
-            && Consumables?.TryGetAutomaticUseRequest(actor, out next) == true;
+            && Substances?.TryGetAutomaticUseRequest(actor, out next) == true;
     }
 
     public void StartUse()
@@ -91,7 +91,7 @@ public sealed class AbilityUseSubstance : MonoBehaviour
     {
         CharacterCarryInventory inventory =
             CharacterCarryInventory.Ensure(actor);
-        if (inventory == null || Items == null || Consumables == null)
+        if (inventory == null || Items == null || Substances == null)
         {
             Finish();
             yield break;
@@ -150,17 +150,18 @@ public sealed class AbilityUseSubstance : MonoBehaviour
             $"{request.DisplayName} 복용",
             null,
             request.Reason);
-        if (!Consumables.TryConsume(
+        if (!Substances.TryConsume(
                 actor,
                 request.SubstanceId,
                 request.MedicalContext,
                 request.CombatContext,
                 out SubstanceUseResult result))
         {
+            string failureCode = result.FailureCode.ToString();
             actor.Brain?.SetActionPhase(
-                "복용 중단",
+                failureCode,
                 null,
-                result.FailureReason);
+                failureCode);
         }
         else
         {

@@ -26,21 +26,28 @@ MonoBehaviour:
   displayName: "\uD53C"
   description: "\uC57D\uD488, \uCD09\uC9C4\uC81C\uC640 \uC758\uC2DD \uC7AC\uB8CC."
   stockCategory: 8
-  kind: 5
-  ingredientTags: 4128
-  unitPrice: 7
-  marketSaleRate: 0.6
   unitWeight: 0.5
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:husbandry:capture
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 7
+  features:
+  - rid: 7737211673962611706
+  - rid: 7737211673962611707
+  - rid: 7737211673962611708
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211673962611706
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:husbandry:capture
+    - rid: 7737211673962611707
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 5
+        ingredientTags: 4128
+        sharedIntermediate: 0
+    - rid: 7737211673962611708
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: af4061a25738a28e7b9dbb8593dd53e7, type: 3}
   m_Name: Species_Demon
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterSpeciesSO
+  m_EditorClassIdentifier: DungeonStory.Species::CharacterSpeciesSO
   serializationData:
     SerializedFormat: 2
     SerializedBytes: 
@@ -26,7 +26,7 @@ MonoBehaviour:
   displayName: "\uB370\uBAAC"
   ownerSelectionPolicy: 1
   homeFactionId: faction:dungeon:demon
-  anatomyProfileId: anatomy:humanoid
+  anatomyProfileId: anatomy:demon
   needs:
     hungerRateMultiplier: 1
     thirstRateMultiplier: 0.9
@@ -149,12 +149,12 @@ MonoBehaviour:
     - "\uC704\uC555"
   combatAbilities:
     abilities:
-    - rid: 7302563310531248885
+    - rid: 7302563319989403745
   references:
     version: 2
     RefIds:
-    - rid: 7302563310531248885
-      type: {class: CharacterCombatAbilityDefinition, ns: , asm: Assembly-CSharp}
+    - rid: 7302563319989403745
+      type: {class: CharacterCombatAbilityDefinition, ns: , asm: DungeonStory.Combat}
       data:
         id: species-active:demon
         displayName: "\uC7BF\uBD88 \uACC4\uC57D"
@@ -165,9 +165,9 @@ MonoBehaviour:
         usableFrom: 7
         targetPositions: 7
         effects:
-        - rid: 7302563310531248886
-    - rid: 7302563310531248886
-      type: {class: OffenseDamageEffect, ns: , asm: Assembly-CSharp}
+        - rid: 7302563319989403746
+    - rid: 7302563319989403746
+      type: {class: OffenseDamageEffect, ns: , asm: DungeonStory.Combat}
       data:
         basicDamageMultiplier: 1.4
         flatDamage: 4

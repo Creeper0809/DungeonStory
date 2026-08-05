@@ -14,7 +14,9 @@ public sealed class CharacterNeedIdDrawer : PropertyDrawer
             return;
         }
 
-        CharacterNeedDefinition[] definitions = CharacterNeedCatalog.All.ToArray();
+        ICharacterNeedDefinitionCatalog catalog = new AuthoredGameplayCatalog(
+            new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        CharacterNeedDefinition[] definitions = catalog.All.ToArray();
         string currentId = property.stringValue ?? string.Empty;
         int selectedIndex = Array.FindIndex(
             definitions,

@@ -132,7 +132,8 @@ public static class OffenseBattleDebugScenarios
             DungeonDifficulty.Normal,
             new[] { ally, enemy },
             new FixedCombatResolutionService(
-                Hit(CombatBodyPart.Torso, damage: 12f, bleeding: 0f, suppression: 0f)));
+                Hit(CombatBodyPart.Torso, damage: 12f, bleeding: 0f, suppression: 0f)),
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
         Require(guardSession.TryExecuteCommand(
             new OffenseBattleCommand(1, ally.PersistentId, OffenseBattleActionType.Guard, ally.PersistentId),
             out _), "Guard command was rejected.");
@@ -240,7 +241,9 @@ public static class OffenseBattleDebugScenarios
             140f, 9f, 6f, 6f, 5f, 4f);
         OffenseBattleSession restored = OffenseBattleSession.Restore(
             state,
-            new[] { restoredAlly, restoredEnemy });
+            new[] { restoredAlly, restoredEnemy },
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
 
         Require(restored.BattleId == original.BattleId, "Battle ID changed during restore.");
         Require(restored.CurrentActor?.PersistentId == original.CurrentActor?.PersistentId,
@@ -356,7 +359,8 @@ public static class OffenseBattleDebugScenarios
             "Body Test",
             DungeonDifficulty.Normal,
             new[] { ally, enemy },
-            resolver);
+            resolver,
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
         Require(session.TryExecuteCommand(
             new OffenseBattleCommand(
                 1,
@@ -398,7 +402,8 @@ public static class OffenseBattleDebugScenarios
         OffenseBattleSession restored = OffenseBattleSession.Restore(
             state,
             new[] { restoredAlly, restoredEnemy },
-            resolver);
+            resolver,
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
         CharacterBodyPartHealthState restoredArm = restoredEnemy.BodyParts.Single(
             part => part.bodyPart == CombatBodyPart.LeftArm);
         Require(Mathf.Approximately(restoredArm.currentHealth, injuredArm.currentHealth),
@@ -440,7 +445,8 @@ public static class OffenseBattleDebugScenarios
             DungeonDifficulty.Normal,
             new[] { ally, enemy },
             new FixedCombatResolutionService(
-                Hit(CombatBodyPart.Torso, damage: 1f, bleeding: 0f, suppression: 80f)));
+                Hit(CombatBodyPart.Torso, damage: 1f, bleeding: 0f, suppression: 80f)),
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
 
         Require(session.TryExecuteCommand(
             new OffenseBattleCommand(
@@ -468,13 +474,23 @@ public static class OffenseBattleDebugScenarios
             "target:test",
             "Test",
             DungeonDifficulty.Normal,
-            combatants);
+            combatants,
+            OffenseEditorTestDependencies.CreateCombatResolution(),
+            OffenseEditorTestDependencies.CreateCombatEquipmentRuntime());
     }
 
     private static bool VerifyEquipmentReservation()
     {
-        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog();
-        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(catalog);
+        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        WorldItemRepository itemRepository =
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore());
+        CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
+            catalog,
+            itemRepository,
+            new CharacterCarryInventoryRegistry(),
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
         CombatEquipmentInstance weapon = runtime.CreateInstance(
             "weapon:dagger",
             CombatEquipmentQuality.Good);
@@ -489,8 +505,13 @@ public static class OffenseBattleDebugScenarios
             "Could not equip the available armor.");
 
         string json = JsonUtility.ToJson(runtime.Capture());
-        CombatEquipmentRuntime restored = new CombatEquipmentRuntime(catalog);
-        restored.Restore(JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(json));
+        CombatEquipmentRuntime restored = CombatEquipmentEditorTestFactory.Create(
+            catalog,
+            itemRepository,
+            new CharacterCarryInventoryRegistry(),
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+        restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(
+            JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(json)));
         CharacterCombatLoadoutProfile restoredProfile =
             restored.GetActiveProfileSnapshot("staff:a");
         Require(restoredProfile != null
@@ -508,9 +529,16 @@ public static class OffenseBattleDebugScenarios
 
     private static bool VerifyEquipmentCraftQueuePersistence()
     {
-        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog();
-        CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(catalog);
-        runtime.Restore(new DungeonCombatEquipmentSaveData
+        ResourceCombatEquipmentCatalog catalog = new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+        CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
+            catalog,
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+        runtime.PublishRestoreCandidate(runtime.BuildRestoreCandidate(
+            new DungeonCombatEquipmentSaveData
         {
             craftOrders = new List<CombatEquipmentCraftOrderSaveData>
             {
@@ -520,14 +548,23 @@ public static class OffenseBattleDebugScenarios
                     definitionId = "weapon:dagger",
                     requiredWork = 6f,
                     completedWork = 2f,
-                    materialsReady = true
+                    materialsReady = true,
+                    materialDestinationId =
+                        "facility-input:qa:combat-craft"
                 }
             }
-        });
+        }));
 
         string json = JsonUtility.ToJson(runtime.Capture());
-        CombatEquipmentRuntime restored = new CombatEquipmentRuntime(catalog);
-        restored.Restore(JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(json));
+        CombatEquipmentRuntime restored = CombatEquipmentEditorTestFactory.Create(
+            catalog,
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+        restored.PublishRestoreCandidate(restored.BuildRestoreCandidate(
+            JsonUtility.FromJson<DungeonCombatEquipmentSaveData>(json)));
         Require(restored.CraftQueue.Count == 1
                 && Mathf.Approximately(restored.CraftQueue[0].RemainingWork, 4f),
             "Craft queue remaining work did not survive save/restore.");
@@ -548,9 +585,16 @@ public static class OffenseBattleDebugScenarios
         try
         {
             ResourceCombatEquipmentCatalog combatCatalog =
-                new ResourceCombatEquipmentCatalog();
-            CombatEquipmentRuntime runtime = new CombatEquipmentRuntime(combatCatalog);
-            runtime.Restore(new DungeonCombatEquipmentSaveData
+                new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader()));
+            CombatEquipmentRuntime runtime = CombatEquipmentEditorTestFactory.Create(
+                combatCatalog,
+                new WorldItemRepository(
+                    new GuidPersistentIdGenerator(),
+                    new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+                researchProvider: EditorAllResearchRuntimeProvider.Instance, materialCatalog: EmptyResourceEconomyContentCatalog.Instance, evolutionModules: EmptyEvolutionModuleRegistry.Instance, moduleCatalog: EmptyEquipmentModuleCatalog.Instance, itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+            runtime.PublishRestoreCandidate(runtime.BuildRestoreCandidate(
+                new DungeonCombatEquipmentSaveData
             {
                 craftOrders = new List<CombatEquipmentCraftOrderSaveData>
                 {
@@ -560,17 +604,19 @@ public static class OffenseBattleDebugScenarios
                         definitionId = "weapon:dagger",
                         requiredWork = 6f,
                         completedWork = 0f,
-                        materialsReady = true
+                        materialsReady = true,
+                        materialDestinationId =
+                            "facility-input:qa:building-craft"
                     }
                 }
-            });
+            }));
             data.id = -9811;
             data.objectName = "Test Forge";
             data.width = 1;
             data.height = 1;
             data.layer = GridLayer.Building;
             data.category = BuildingCategory.Shop;
-            data.type = typeof(BuildableObject);
+            data.runtimeArchetype = BuildingRuntimeArchetypeKind.Generic;
             data.Facility = new FacilityData
             {
                 requiredWorkers = 1
@@ -587,22 +633,24 @@ public static class OffenseBattleDebugScenarios
             });
 
             BuildableObject building = gameObject.AddComponent<BuildableObject>();
+            building.ConstructPersistentIdentity(new GuidPersistentIdGenerator());
             BuildingAbilityRuntimeDispatcher abilityDispatcher =
                 new BuildingAbilityRuntimeDispatcher(
                     new IBuildingAbilityWorkCompletedHandler[]
                     {
                         new EquipmentCraftingBuildingAbilityHandler(
                             runtime,
-                            combatCatalog)
+                            combatCatalog,
+                            NeutralCharacterEnvironmentStatusQuery.Instance)
                     },
                     Array.Empty<IBuildingWorkCompletionFallbackHandler>());
             building.ConstructBuildableObject(
-                new NoopBlueprintResearchWorkService(),
-                new NoopWorldInfoClickSelector(),
-                new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry),
+                new BuildingResearchWorkPortAdapter(
+                    new NoopBlueprintResearchWorkService()),
+                new FacilityCandidateCacheStore(CharacterAiEditorTestDependencies.WorldRegistry, frameWorkBudget: null),
                 new RoomFacilityPolicyService(RoomRegistry.EditorCache),
                 runtime,
-                abilityRuntimeDispatcher: abilityDispatcher);
+                abilityRuntimeDispatcher: abilityDispatcher, worldRegistry: null, worldItemStackRuntime: null, gameClock: null, paidFacilityContracts: null, evolutionState: new FacilityEvolutionStateComponentFactory());
             building.SetGrid(new Grid(4, 1));
             building.Initialization(data, new Vector2Int(1, 0));
 

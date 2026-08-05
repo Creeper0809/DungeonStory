@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05066ab4c677e98479a259133da49fde, type: 3}
+  m_Name: food_fresh_curd
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceItemDefinitionSO
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  id: 8318
+  itemId: food:fresh-curd
+  displayName: "\uC2E0\uC120 \uC751\uC720\uC2DD"
+  description: "\uC791\uC5C5\uC2E4\uC758 \uB2E4\uC74C \uACF5\uC815\uC73C\uB85C \uC2E4\uC81C
+    \uC6B4\uBC18\uB418\uB294 \uBB3C\uB9AC \uC911\uAC04\uC7AC."
+  stockCategory: 0
+  unitWeight: 0.45
+  maxStack: 50
+  sprite: {fileID: 0}
+  unitPrice: 9
+  features:
+  - rid: 7737211730889016278
+  - rid: 7737211730889016279
+  - rid: 7737211730889016280
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211730889016278
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:livestock
+    - rid: 7737211730889016279
+      type: {class: FoodItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        quality: 3
+        nutrition: 24
+        mood: 2
+        freshnessSeconds: 1440
+        preserved: 1
+    - rid: 7737211730889016280
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 2
+        ingredientTags: 4
+        sharedIntermediate: 0

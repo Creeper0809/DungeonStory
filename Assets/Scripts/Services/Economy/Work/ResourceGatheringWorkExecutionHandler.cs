@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -17,16 +18,17 @@ public sealed class ResourceGatheringWorkExecutionHandler :
 
     private readonly IWorldResourceRuntime worldResources;
     private readonly ICropPlotRuntime cropPlots;
-    private readonly IProductionBillRuntime productionBills;
+    private readonly IProductionBillWorkExecution productionBills;
 
     public ResourceGatheringWorkExecutionHandler(
         IWorldResourceRuntime worldResources,
         ICropPlotRuntime cropPlots,
-        IProductionBillRuntime productionBills = null)
+        IProductionBillWorkExecution productionBills)
     {
         this.worldResources = worldResources;
         this.cropPlots = cropPlots;
-        this.productionBills = productionBills;
+        this.productionBills = productionBills
+            ?? throw new ArgumentNullException(nameof(productionBills));
     }
 
     public IReadOnlyCollection<WorkTypeId> WorkTypeIds => Ids;
@@ -38,7 +40,7 @@ public sealed class ResourceGatheringWorkExecutionHandler :
         out string reason)
     {
         reason = string.Empty;
-        if (target is WorldResourceNode resourceNode
+        if (TryGetResourceNode(target, out WorldResourceNode resourceNode)
             && worldResources != null
             && worldResources.TryGetWork(
                 resourceNode,
@@ -59,11 +61,19 @@ public sealed class ResourceGatheringWorkExecutionHandler :
             return cropWork.Available;
         }
 
-        if (workTypeId == BuiltInWorkTypeIds.Quarry
-            && productionBills != null
-            && productionBills.HasWorkAvailable(target, workTypeId, out reason))
+        if (workTypeId == BuiltInWorkTypeIds.Quarry)
         {
-            return true;
+            ProductionWorkAvailabilityResult availability =
+                productionBills.CheckWorkAvailability(target, workTypeId);
+            if (availability.Available)
+            {
+                return true;
+            }
+            if (availability.Failure.IsFailure)
+            {
+                reason = availability.Failure.Code.ToString();
+                return false;
+            }
         }
 
         reason = workTypeId == BuiltInWorkTypeIds.Sow
@@ -78,7 +88,7 @@ public sealed class ResourceGatheringWorkExecutionHandler :
         CharacterActor actor,
         BuildableObject target)
     {
-        if (target is WorldResourceNode resourceNode
+        if (TryGetResourceNode(target, out WorldResourceNode resourceNode)
             && worldResources != null
             && worldResources.TryGetWork(
                 resourceNode,
@@ -86,7 +96,7 @@ public sealed class ResourceGatheringWorkExecutionHandler :
                 out WorldResourceWorkSnapshot snapshot)
             && snapshot.Available)
         {
-            return 18f + snapshot.ResourceRatio * 22f;
+            return resourceNode.GetLegacyWorkUrgency(workTypeId);
         }
 
         if (cropPlots != null
@@ -102,7 +112,7 @@ public sealed class ResourceGatheringWorkExecutionHandler :
         }
 
         return workTypeId == BuiltInWorkTypeIds.Quarry
-            && productionBills?.HasWorkAvailable(target, workTypeId, out _) == true
+            && productionBills.CheckWorkAvailability(target, workTypeId).Available
                 ? 32f
                 : 0f;
     }
@@ -111,7 +121,9 @@ public sealed class ResourceGatheringWorkExecutionHandler :
         WorkExecutionContext context,
         WorkExecutionResult result)
     {
-        if (context.Target is WorldResourceNode resourceNode
+        if (TryGetResourceNode(
+                context.Target,
+                out WorldResourceNode resourceNode)
             && worldResources != null
             && worldResources.TryGetWork(
                 resourceNode,
@@ -170,15 +182,19 @@ public sealed class ResourceGatheringWorkExecutionHandler :
             yield break;
         }
 
-        if (context.WorkTypeId == BuiltInWorkTypeIds.Quarry
-            && productionBills != null
-            && productionBills.TryBeginWork(
+        if (context.WorkTypeId == BuiltInWorkTypeIds.Quarry)
+        {
+            ProductionWorkBeginResult begin = productionBills.BeginWork(
                 context.Actor,
                 context.Target,
-                context.WorkTypeId,
-                out ProductionBillSnapshot bill,
-                out _))
-        {
+                context.WorkTypeId);
+            if (!begin.Succeeded)
+            {
+                result.CompletedSuccessfully = false;
+                yield break;
+            }
+
+            ProductionBillSnapshot bill = begin.Bill;
             bool progressApplied = true;
             bool completed = false;
             yield return context.ExecutePersistentWorkAmount(
@@ -187,16 +203,15 @@ public sealed class ResourceGatheringWorkExecutionHandler :
                 bill.RecipeName,
                 delta =>
                 {
-                    bool succeeded = productionBills.ApplyWork(
+                    ProductionWorkExecutionResult work =
+                        productionBills.ExecuteWork(
                         context.Actor,
                         context.Target,
                         bill.BillId,
-                        delta,
-                        out bool cycleCompleted,
-                        out _);
-                    progressApplied &= succeeded;
-                    completed |= cycleCompleted;
-                    return succeeded;
+                        delta);
+                    progressApplied &= work.Succeeded;
+                    completed |= work.CycleCompleted;
+                    return work.Succeeded;
                 });
             result.CompletedSuccessfully = progressApplied && completed;
             result.CompletionEffectsAlreadyApplied = completed;
@@ -204,5 +219,13 @@ public sealed class ResourceGatheringWorkExecutionHandler :
         }
 
         result.CompletedSuccessfully = false;
+    }
+
+    private static bool TryGetResourceNode(
+        BuildableObject target,
+        out WorldResourceNode node)
+    {
+        node = (target as IWorldResourceNodeHost)?.ResourceNode;
+        return node != null;
     }
 }

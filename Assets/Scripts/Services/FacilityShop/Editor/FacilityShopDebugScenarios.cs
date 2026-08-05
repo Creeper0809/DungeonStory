@@ -20,6 +20,7 @@ public static class FacilityShopDebugScenarios
     public static bool RunAll(bool logSuccess)
     {
         P1FacilityShopAssetBuilder.EnsureP1FacilityShopAssets();
+        FacilityShopDomainDebugScenarios.Validate();
 
         List<string> errors = new List<string>();
         RunScenario("일일 상품 시설/설계도 포함", VerifyDailyOffersContainBuildingAndBlueprint, errors);
@@ -31,6 +32,10 @@ public static class FacilityShopDebugScenarios
         RunScenario("새 상품 타입 다형 구매", VerifyCustomOfferPurchasesWithoutServiceBranch, errors);
         RunScenario("운영일 후 상점 갱신", VerifyRuntimeRefreshesAfterOperatingDay, errors);
         RunScenario("정산 보고서 시설 상점 항목", VerifySettlementReportIncludesFacilityShop, errors);
+        RunScenario(
+            "Discarded restore candidate preserves live facility shop",
+            VerifyDiscardedRestoreLeavesLiveFacilityShopUntouched,
+            errors);
 
         RunScenario("Day 1 strategy blueprint candidate", VerifyStartingBlueprintCandidateIsGuaranteed, errors);
         RunScenario("Run start refreshes Day 1 strategy offer", VerifyRunStartRefreshesStrategyOffer, errors);
@@ -96,6 +101,7 @@ public static class FacilityShopDebugScenarios
                 0,
                 DefaultBuildingCostMultiplier,
                 DefaultBlueprintCostMultiplier,
+                CharacterAiEditorTestDependencies.AuthoredGameplay,
                 new[] { strategyBlueprintId });
             if (!offers.OfType<FacilityBlueprintOffer>()
                 .Any((offer) => offer.Blueprint != null && offer.Blueprint.id == strategyBlueprintId))
@@ -138,7 +144,8 @@ public static class FacilityShopDebugScenarios
             new[] { oneStar, twoStar, threeStar },
             state,
             Array.Empty<int>(),
-            DefaultBuildingCostMultiplier);
+            DefaultBuildingCostMultiplier,
+            CharacterAiEditorTestDependencies.AuthoredGameplay);
 
         bool valid = oneUnlocked
             && twoUnlocked
@@ -159,7 +166,7 @@ public static class FacilityShopDebugScenarios
         BuildingSO building = Object.Instantiate(source);
         building.id = 9301;
         building.unlocked = false;
-        GameData gameData = CreateGameData(500);
+        GameSessionState gameData = CreateGameData(500);
         FacilityShopUnlockState state = new FacilityShopUnlockState();
         FacilityShopOffer offer = new FacilityBuildingOffer(
             building,
@@ -168,7 +175,13 @@ public static class FacilityShopDebugScenarios
             false,
             true);
 
-        bool success = FacilityShopService.TryPurchaseOffer(gameData, offer, state, out FacilityShopPurchaseResult result);
+        bool success = FacilityShopService.TryPurchaseOffer(
+            new EditorGameMoneyAccount(gameData),
+            offer,
+            state,
+            PurchaseContext("building"),
+            DisabledDungeonDebugRuleQuery.Instance,
+            out FacilityShopPurchaseResult result);
 
         bool valid = success
             && result.success
@@ -179,14 +192,13 @@ public static class FacilityShopDebugScenarios
             && result.message.Contains("구매 완료");
 
         Object.DestroyImmediate(building);
-        Object.DestroyImmediate(gameData);
         return valid;
     }
 
     private static bool VerifyBlueprintPurchaseUsesMoneyAndRecordsBlueprint()
     {
         FacilityBlueprintSO blueprint = LoadBlueprint("BP_CommercialBasics");
-        GameData gameData = CreateGameData(500);
+        GameSessionState gameData = CreateGameData(500);
         FacilityShopUnlockState state = new FacilityShopUnlockState();
         FacilityShopOffer offer = new FacilityBlueprintOffer(
             blueprint,
@@ -194,7 +206,13 @@ public static class FacilityShopDebugScenarios
             blueprint.rarity,
             true);
 
-        bool success = FacilityShopService.TryPurchaseOffer(gameData, offer, state, out FacilityShopPurchaseResult result);
+        bool success = FacilityShopService.TryPurchaseOffer(
+            new EditorGameMoneyAccount(gameData),
+            offer,
+            state,
+            PurchaseContext("blueprint"),
+            DisabledDungeonDebugRuleQuery.Instance,
+            out FacilityShopPurchaseResult result);
         bool valid = success
             && result.success
             && result.TryGetBlueprint(out FacilityBlueprintSO purchasedBlueprint)
@@ -202,7 +220,6 @@ public static class FacilityShopDebugScenarios
             && gameData.holdingMoney.Value == 400
             && state.IsBlueprintAcquired(blueprint);
 
-        Object.DestroyImmediate(gameData);
         return valid;
     }
 
@@ -222,13 +239,15 @@ public static class FacilityShopDebugScenarios
 
     private static bool VerifyCustomOfferPurchasesWithoutServiceBranch()
     {
-        GameData gameData = CreateGameData(100);
+        GameSessionState gameData = CreateGameData(100);
         DebugFacilityShopOffer offer = new DebugFacilityShopOffer(35);
 
         bool success = FacilityShopService.TryPurchaseOffer(
-            gameData,
+            new EditorGameMoneyAccount(gameData),
             offer,
             new FacilityShopUnlockState(),
+            PurchaseContext("custom"),
+            DisabledDungeonDebugRuleQuery.Instance,
             out FacilityShopPurchaseResult result);
 
         bool valid = success
@@ -237,7 +256,6 @@ public static class FacilityShopDebugScenarios
             && result.offerTypeId == DebugFacilityShopOffer.TypeId
             && gameData.holdingMoney.Value == 65;
 
-        Object.DestroyImmediate(gameData);
         return valid;
     }
 
@@ -249,7 +267,11 @@ public static class FacilityShopDebugScenarios
             new EditorFacilityShopCatalog(),
             new FixedBlueprintCandidateRunVariableReader(RunStrategyBlueprintIds.CommerceBasics),
             new NeutralMetaProgressionReader(),
-            new DungeonStory.Foundation.GameEventBus());
+            new DungeonStory.Foundation.GameEventBus(),
+            new EditorGameMoneyAccount(new GameSessionState()), autoProcurement: null,
+            buildingCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+            aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
+            debugRules: DisabledDungeonDebugRuleQuery.Instance);
 
         runtime.OnTriggerEvent(new RunStartVariablesSelectedEvent(null));
         bool valid = runtime.CurrentOfferDay == 1
@@ -269,7 +291,11 @@ public static class FacilityShopDebugScenarios
             new EditorFacilityShopCatalog(),
             new NeutralRunVariableReader(),
             new NeutralMetaProgressionReader(),
-            new DungeonStory.Foundation.GameEventBus());
+            new DungeonStory.Foundation.GameEventBus(),
+            new EditorGameMoneyAccount(new GameSessionState()), autoProcurement: null,
+            buildingCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+            aggregateRootStore: new DungeonRuntimeAggregateRootStore(),
+            debugRules: DisabledDungeonDebugRuleQuery.Instance);
         int refreshCount = 0;
         int lastRefreshDay = 0;
         void RecordRefresh(
@@ -298,15 +324,43 @@ public static class FacilityShopDebugScenarios
     {
         GameObject settlementObject = new GameObject("Settlement_FacilityShop_Test");
         OperatingDaySettlementRuntime settlement = settlementObject.AddComponent<OperatingDaySettlementRuntime>();
-        GameData gameData = CreateGameData(0);
+        GameSessionState gameData = CreateGameData(0);
         EmptyWorldQuery worldQuery = new EmptyWorldQuery();
+        DungeonStory.Foundation.GameEventBus gameEvents =
+            new DungeonStory.Foundation.GameEventBus();
+        FixedGameDataProvider gameDataProvider =
+            new FixedGameDataProvider(gameData);
+        EditorGameMoneyAccount moneyAccount =
+            new EditorGameMoneyAccount(gameData);
+        DungeonRuntimeAggregateRootStore aggregateRootStore =
+            new DungeonRuntimeAggregateRootStore();
+        TreasuryEconomyAggregateStateStore treasuryState =
+            new TreasuryEconomyAggregateStateStore(aggregateRootStore);
+        EmploymentContractRuntime employmentContracts =
+            new EmploymentContractRuntime(
+                worldQuery,
+                OffenseEditorTestDependencies.CreateCombatEquipmentRuntime(),
+                moneyAccount,
+                gameEvents,
+                treasuryState);
+        PaidFacilityContractRuntime paidFacilityContracts =
+            new PaidFacilityContractRuntime(
+                gameDataProvider,
+                moneyAccount,
+                treasuryState);
         settlement.Construct(
             worldQuery,
             worldQuery,
             new EditorFacilityShopCatalog(),
             new NeutralRunVariableReader(),
-            new FixedGameDataProvider(gameData),
-            new DungeonStory.Foundation.GameEventBus());
+            gameDataProvider,
+            gameEvents,
+            employmentContracts,
+            moneyAccount,
+            paidFacilityContracts,
+            stockCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+            buildingCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+            aggregateRootStore);
 
         settlement.OnTriggerEvent(new OperatingDayEndedEvent(1));
         OperatingDayReport report = settlement.LatestReport;
@@ -316,9 +370,338 @@ public static class FacilityShopDebugScenarios
             && report.refreshedFacilityShopOffers.Any((offer) => offer.offerTypeId == FacilityShopOfferTypeIds.Blueprint)
             && report.ToDetailText().Contains("시설 상점 갱신");
 
-        Object.DestroyImmediate(gameData);
         Object.DestroyImmediate(settlementObject);
         return valid;
+    }
+
+    private static bool VerifyDiscardedRestoreLeavesLiveFacilityShopUntouched()
+    {
+        BuildingSO building = LoadBuilding("P1_SpikeTrap");
+        FacilityBlueprintSO blueprint = LoadBlueprint("BP_CommercialBasics");
+        if (building == null || blueprint == null)
+        {
+            return FailFacilityShopDiscard(
+                "asset-load",
+                $"building={building != null}, blueprint={blueprint != null}");
+        }
+
+        EditorFacilityShopCatalog catalog = new EditorFacilityShopCatalog();
+        DungeonRuntimeAggregateRootStore sourceRoot =
+            new DungeonRuntimeAggregateRootStore();
+        GameObject sourceObject = new GameObject("FacilityShop_Discard_Source");
+        GameObject targetObject = new GameObject("FacilityShop_Discard_Target");
+        try
+        {
+            DailyFacilityShopRuntime source = CreateRuntime(
+                sourceObject,
+                catalog,
+                sourceRoot);
+            PublishState(
+                source,
+                9,
+                new[] { building.id },
+                new[] { blueprint.id });
+            string candidatePayload = new FacilityShopSaveSection(
+                source,
+                catalog).Capture();
+
+            DungeonRuntimeAggregateRootStore targetRoot =
+                new DungeonRuntimeAggregateRootStore();
+            DailyFacilityShopRuntime target = CreateRuntime(
+                targetObject,
+                catalog,
+                targetRoot);
+            PublishState(
+                target,
+                3,
+                Array.Empty<int>(),
+                Array.Empty<int>());
+            FacilityShopSaveSection targetSection = new FacilityShopSaveSection(
+                target,
+                catalog);
+            object sectionContract = targetSection;
+            bool hasPreflight = sectionContract is IDungeonSaveSectionPreflight;
+            bool isRollbackFree =
+                sectionContract is IDungeonRollbackFreeSaveSection;
+            bool isOptional = sectionContract is IOptionalDungeonSaveSection;
+            bool isStagedOptional =
+                sectionContract is IDungeonStagedOptionalSaveSection;
+            if (!hasPreflight
+                || !isRollbackFree
+                || isOptional
+                || isStagedOptional)
+            {
+                return FailFacilityShopDiscard(
+                    "section-contract",
+                    $"preflight={hasPreflight}, rollbackFree={isRollbackFree}, "
+                    + $"optional={isOptional}, stagedOptional={isStagedOptional}");
+            }
+
+            string beforeInvalid = targetSection.Capture();
+            DungeonFacilityShopSaveData legacy =
+                JsonUtility.FromJson<DungeonFacilityShopSaveData>(
+                    candidatePayload);
+            legacy.version = DungeonFacilityShopSaveData.CurrentVersion - 1;
+            if (!RejectsFacilityShopPayloadWithoutMutation(
+                    targetSection,
+                    legacy,
+                    beforeInvalid,
+                    out string legacyDetail))
+            {
+                return FailFacilityShopDiscard(
+                    "legacy-version-rejection",
+                    legacyDetail);
+            }
+
+            (string Stage, string PayloadJson)[] invalidUnlockLists =
+            {
+                (
+                    "null-basic-purchase-buildings",
+                    "{\"version\":"
+                    + DungeonFacilityShopSaveData.CurrentVersion
+                    + ",\"currentOfferDay\":9,"
+                    + "\"basicPurchaseBuildingIds\":null,"
+                    + $"\"acquiredBlueprintIds\":[{blueprint.id}]}}"),
+                (
+                    "missing-basic-purchase-buildings",
+                    "{\"version\":"
+                    + DungeonFacilityShopSaveData.CurrentVersion
+                    + ",\"currentOfferDay\":9,"
+                    + $"\"acquiredBlueprintIds\":[{blueprint.id}]}}"),
+                (
+                    "null-acquired-blueprints",
+                    "{\"version\":"
+                    + DungeonFacilityShopSaveData.CurrentVersion
+                    + ",\"currentOfferDay\":9,"
+                    + $"\"basicPurchaseBuildingIds\":[{building.id}],"
+                    + "\"acquiredBlueprintIds\":null}"),
+                (
+                    "missing-acquired-blueprints",
+                    "{\"version\":"
+                    + DungeonFacilityShopSaveData.CurrentVersion
+                    + ",\"currentOfferDay\":9,"
+                    + $"\"basicPurchaseBuildingIds\":[{building.id}]}}")
+            };
+            foreach ((string stage, string payloadJson) in invalidUnlockLists)
+            {
+                if (!RejectsFacilityShopPayloadWithoutMutation(
+                        targetSection,
+                        payloadJson,
+                        beforeInvalid,
+                        out string missingUnlocksDetail))
+                {
+                    return FailFacilityShopDiscard(
+                        stage,
+                        missingUnlocksDetail);
+                }
+            }
+
+            DungeonFacilityShopSaveData invalid =
+                JsonUtility.FromJson<DungeonFacilityShopSaveData>(
+                    candidatePayload);
+            invalid.basicPurchaseBuildingIds.Add(-1);
+            DungeonGameRestoreReport invalidReport =
+                new DungeonGameRestoreReport();
+            bool invalidRejected = false;
+            try
+            {
+                targetSection.Restore(
+                    JsonUtility.ToJson(invalid),
+                    targetSection.SectionVersion,
+                    invalidReport);
+            }
+            catch (InvalidOperationException)
+            {
+                invalidRejected = true;
+            }
+            if (!invalidRejected
+                || !string.Equals(
+                    targetSection.Capture(),
+                    beforeInvalid,
+                    StringComparison.Ordinal))
+            {
+                return FailFacilityShopDiscard(
+                    "invalid-id-rejection",
+                    $"rejected={invalidRejected}, liveUnchanged="
+                    + string.Equals(
+                        targetSection.Capture(),
+                        beforeInvalid,
+                        StringComparison.Ordinal));
+            }
+
+            FacilityShopFailureSection lateFailure =
+                new FacilityShopFailureSection
+                {
+                    RemainingCommitFailures = 1
+                };
+            int revisionBefore = targetRoot.PublishedRestoreRevision;
+            FacilityShopDiscardObserver observer =
+                new FacilityShopDiscardObserver(target, building.id, blueprint.id);
+            DungeonSaveSectionRegistry registry = new DungeonSaveSectionRegistry(
+                new IDungeonSaveSection[] { targetSection, lateFailure },
+                targetRoot,
+                new IDungeonRestoreTransactionParticipant[] { observer });
+            List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
+            envelopes.First(envelope => string.Equals(
+                    envelope.sectionId,
+                    FacilityShopSaveSection.Id,
+                    StringComparison.Ordinal))
+                .payloadJson = candidatePayload;
+
+            DungeonGameRestoreReport restoreReport =
+                new DungeonGameRestoreReport();
+            bool restored = registry.RestoreAll(envelopes, restoreReport);
+            string afterDiscard = targetSection.Capture();
+            (string Name, bool Passed)[] checks =
+            {
+                ("restore-rejected", !restored),
+                ("report-failed", !restoreReport.Success),
+                ("injected-failure-consumed",
+                    lateFailure.RemainingCommitFailures == 0),
+                ("injected-failure-reported", restoreReport.Errors.Any(error =>
+                    error.Contains(
+                        "Injected late facility-shop restore failure.",
+                        StringComparison.Ordinal))),
+                ("discard-once", observer.DiscardCount == 1),
+                ("observer-live-day", observer.ObservedOfferDay == 3),
+                ("observer-no-building", !observer.ObservedCandidateBuilding),
+                ("observer-no-blueprint", !observer.ObservedCandidateBlueprint),
+                ("live-day", target.CurrentOfferDay == 3),
+                ("live-no-building",
+                    !target.UnlockState.BasicPurchaseBuildingIds.Contains(
+                        building.id)),
+                ("live-no-blueprint",
+                    !target.UnlockState.AcquiredBlueprintIds.Contains(
+                        blueprint.id)),
+                ("live-json-unchanged", string.Equals(
+                    afterDiscard,
+                    beforeInvalid,
+                    StringComparison.Ordinal)),
+                ("staging-cleared", !targetRoot.IsRestoreStaging),
+                ("revision-unchanged",
+                    targetRoot.PublishedRestoreRevision == revisionBefore)
+            };
+            bool valid = checks.All(check => check.Passed);
+            if (!valid)
+            {
+                Debug.LogError(
+                    "Facility-shop discard detail: failedChecks="
+                    + string.Join(
+                        ",",
+                        checks
+                            .Where(check => !check.Passed)
+                            .Select(check => check.Name))
+                    + $", restored={restored}, "
+                    + $"reportSuccess={restoreReport.Success}, "
+                    + $"reportErrors={JoinErrors(restoreReport)}, "
+                    + $"remainingFailures={lateFailure.RemainingCommitFailures}, "
+                    + $"discard={observer.DiscardCount}, "
+                    + $"observedDay={observer.ObservedOfferDay}, "
+                    + $"observedBuilding={observer.ObservedCandidateBuilding}, "
+                    + $"observedBlueprint={observer.ObservedCandidateBlueprint}, "
+                    + $"liveDay={target.CurrentOfferDay}, "
+                    + $"liveBuilding={target.UnlockState.BasicPurchaseBuildingIds.Contains(building.id)}, "
+                    + $"liveBlueprint={target.UnlockState.AcquiredBlueprintIds.Contains(blueprint.id)}, "
+                    + $"liveJsonUnchanged={string.Equals(afterDiscard, beforeInvalid, StringComparison.Ordinal)}, "
+                    + $"staging={targetRoot.IsRestoreStaging}, "
+                    + $"revisionBefore={revisionBefore}, "
+                    + $"revisionAfter={targetRoot.PublishedRestoreRevision}");
+            }
+            return valid;
+        }
+        finally
+        {
+            Object.DestroyImmediate(sourceObject);
+            Object.DestroyImmediate(targetObject);
+        }
+    }
+
+    private static void PublishState(
+        DailyFacilityShopRuntime runtime,
+        int day,
+        IEnumerable<int> buildingIds,
+        IEnumerable<int> blueprintIds)
+    {
+        IFacilityShopPersistence persistence = runtime;
+        persistence.PublishRestoreCandidate(
+            persistence.BuildRestoreCandidate(new FacilityShopStateSnapshot(
+                day,
+                buildingIds,
+                blueprintIds)));
+    }
+
+    private static bool RejectsFacilityShopPayloadWithoutMutation(
+        FacilityShopSaveSection section,
+        DungeonFacilityShopSaveData payload,
+        string expectedLiveJson,
+        out string detail) =>
+        RejectsFacilityShopPayloadWithoutMutation(
+            section,
+            JsonUtility.ToJson(payload),
+            expectedLiveJson,
+            out detail);
+
+    private static bool RejectsFacilityShopPayloadWithoutMutation(
+        FacilityShopSaveSection section,
+        string payloadJson,
+        string expectedLiveJson,
+        out string detail)
+    {
+        try
+        {
+            section.Restore(
+                payloadJson,
+                section.SectionVersion,
+                new DungeonGameRestoreReport());
+            detail = "payload was accepted; liveUnchanged="
+                + string.Equals(
+                    section.Capture(),
+                    expectedLiveJson,
+                    StringComparison.Ordinal);
+            return false;
+        }
+        catch (InvalidOperationException exception)
+        {
+            bool liveUnchanged = string.Equals(
+                section.Capture(),
+                expectedLiveJson,
+                StringComparison.Ordinal);
+            detail = $"exception={exception.Message}, liveUnchanged={liveUnchanged}";
+            return liveUnchanged;
+        }
+    }
+
+    private static bool FailFacilityShopDiscard(string stage, string detail)
+    {
+        Debug.LogError(
+            $"Facility-shop discard precondition failed: stage={stage}, "
+            + $"detail={detail}");
+        return false;
+    }
+
+    private static string JoinErrors(DungeonGameRestoreReport report) =>
+        report == null || report.Errors.Count == 0
+            ? "none"
+            : string.Join(" | ", report.Errors);
+
+    private static DailyFacilityShopRuntime CreateRuntime(
+        GameObject host,
+        IFacilityShopCatalog catalog,
+        DungeonRuntimeAggregateRootStore rootStore)
+    {
+        DailyFacilityShopRuntime runtime =
+            host.AddComponent<DailyFacilityShopRuntime>();
+        runtime.ConstructDailyFacilityShopRuntime(
+            catalog,
+            new NeutralRunVariableReader(),
+            new NeutralMetaProgressionReader(),
+            new DungeonStory.Foundation.GameEventBus(),
+            new EditorGameMoneyAccount(new GameSessionState()),
+            autoProcurement: null,
+            buildingCategoryCatalog: CharacterAiEditorTestDependencies.AuthoredGameplay,
+            aggregateRootStore: rootStore,
+            debugRules: DisabledDungeonDebugRuleQuery.Instance);
+        return runtime;
     }
 
     private static BuildingSO LoadBuilding(string assetName)
@@ -339,7 +722,8 @@ public static class FacilityShopDebugScenarios
             LoadAllBlueprints(),
             0,
             DefaultBuildingCostMultiplier,
-            DefaultBlueprintCostMultiplier);
+            DefaultBlueprintCostMultiplier,
+            CharacterAiEditorTestDependencies.AuthoredGameplay);
     }
 
     private static IReadOnlyList<BuildingSO> LoadAllBuildings()
@@ -379,7 +763,7 @@ public static class FacilityShopDebugScenarios
         building.height = 1;
         building.layer = GridLayer.Building;
         building.category = BuildingCategory.Special;
-        building.type = typeof(DefenseFacility);
+        building.runtimeArchetype = BuildingRuntimeArchetypeKind.DefenseFacility;
         building.Defense = new DefenseFacilityData
         {
             enabled = true,
@@ -391,10 +775,17 @@ public static class FacilityShopDebugScenarios
         return building;
     }
 
-    private static GameData CreateGameData(int holdingMoney)
+    private static EconomyTransactionContext PurchaseContext(string targetId)
     {
-        GameData gameData = ScriptableObject.CreateInstance<GameData>();
-        gameData.holdingMoney = new Data<int>();
+        return new EconomyTransactionContext(
+            EconomyTransactionKind.ShopPurchase,
+            "facility-shop-debug",
+            targetId);
+    }
+
+    private static GameSessionState CreateGameData(int holdingMoney)
+    {
+        GameSessionState gameData = new GameSessionState();
         gameData.holdingMoney.Initialize(holdingMoney);
         return gameData;
     }
@@ -423,10 +814,129 @@ public static class FacilityShopDebugScenarios
         }
     }
 
-    private sealed class EditorFacilityShopCatalog : IFacilityShopCatalog
+    private sealed class FacilityShopFailureSection :
+        IDungeonSaveSection,
+        IDungeonSaveSectionPreflight,
+        IDungeonStagedSaveSection,
+        IDungeonRollbackFreeSaveSection
+    {
+        public string SectionId => "facility-shop.debug.late-failure";
+        public int SectionVersion => 1;
+        public DungeonSaveRestorePhase RestorePhase =>
+            DungeonSaveRestorePhase.Presentation;
+        public IReadOnlyList<string> DependsOn =>
+            new[] { FacilityShopSaveSection.Id };
+        public int RemainingCommitFailures { get; set; }
+
+        public string Capture() => "{}";
+
+        public void ValidatePayload(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            if (sectionVersion != SectionVersion)
+            {
+                throw new InvalidOperationException(
+                    "Facility-shop scenario version mismatch.");
+            }
+        }
+
+        public void Restore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            StageRestore(payloadJson, sectionVersion, report).Commit(report);
+        }
+
+        public IDungeonSaveRestoreStage StageRestore(
+            string payloadJson,
+            int sectionVersion,
+            DungeonGameRestoreReport report)
+        {
+            return new DungeonDelegateSaveRestoreStage(SectionId, _ =>
+            {
+                if (RemainingCommitFailures <= 0)
+                {
+                    return;
+                }
+
+                RemainingCommitFailures--;
+                throw new InvalidOperationException(
+                    "Injected late facility-shop restore failure.");
+            });
+        }
+    }
+
+    private sealed class FacilityShopDiscardObserver :
+        IDungeonRestoreTransactionParticipant
+    {
+        private readonly DailyFacilityShopRuntime runtime;
+        private readonly int candidateBuildingId;
+        private readonly int candidateBlueprintId;
+        private bool hasCandidate;
+
+        public FacilityShopDiscardObserver(
+            DailyFacilityShopRuntime runtime,
+            int candidateBuildingId,
+            int candidateBlueprintId)
+        {
+            this.runtime = runtime;
+            this.candidateBuildingId = candidateBuildingId;
+            this.candidateBlueprintId = candidateBlueprintId;
+        }
+
+        public string ParticipantId => "facility-shop.debug.discard-observer";
+        public int DiscardCount { get; private set; }
+        public int ObservedOfferDay { get; private set; }
+        public bool ObservedCandidateBuilding { get; private set; }
+        public bool ObservedCandidateBlueprint { get; private set; }
+
+        public void BeginRestoreCandidate()
+        {
+            hasCandidate = true;
+        }
+
+        public void PublishRestoreCandidate()
+        {
+            hasCandidate = false;
+        }
+
+        public void DiscardRestoreCandidate()
+        {
+            if (!hasCandidate)
+            {
+                return;
+            }
+
+            hasCandidate = false;
+            DiscardCount++;
+            ObservedOfferDay = runtime.CurrentOfferDay;
+            ObservedCandidateBuilding =
+                runtime.UnlockState.BasicPurchaseBuildingIds.Contains(
+                    candidateBuildingId);
+            ObservedCandidateBlueprint =
+                runtime.UnlockState.AcquiredBlueprintIds.Contains(
+                    candidateBlueprintId);
+        }
+    }
+
+    private sealed class EditorFacilityShopCatalog :
+        IFacilityShopCatalog,
+        IFacilityShopDefinitionCatalog
     {
         public IReadOnlyCollection<BuildingSO> Buildings => LoadAllBuildings();
         public IReadOnlyCollection<FacilityBlueprintSO> Blueprints => LoadAllBlueprints();
+        IReadOnlyCollection<FacilityShopCatalogDefinition>
+            IFacilityShopDefinitionCatalog.Buildings => Buildings
+                .Select(building => new FacilityShopCatalogDefinition(
+                    building.id,
+                    FacilityShopService.GetBuildingName(building),
+                    FacilityShopService.GetBuildingStar(building)))
+                .ToArray();
+        IReadOnlyCollection<int> IFacilityShopDefinitionCatalog.BlueprintIds =>
+            Blueprints.Select(blueprint => blueprint.id).ToArray();
 
         public BuildingSO FindBuildingById(int buildingId)
         {
@@ -444,6 +954,8 @@ public static class FacilityShopDebugScenarios
         public float GetBlueprintCostMultiplier(FacilityBlueprintSO blueprint) => 1f;
         public float GetThreatRiseMultiplier() => 1f;
         public float GetWarningThresholdMultiplier() => 1f;
+        public DungeonSurvivalPressure GetSurvivalPressure() =>
+            DungeonSurvivalPressure.Standard;
         public InvasionIntruderSettings ApplyInvasionSettings(InvasionIntruderSettings source) => source;
     }
 
@@ -481,6 +993,8 @@ public static class FacilityShopDebugScenarios
         public float GetBlueprintCostMultiplier(FacilityBlueprintSO blueprint) => 1f;
         public float GetThreatRiseMultiplier() => 1f;
         public float GetWarningThresholdMultiplier() => 1f;
+        public DungeonSurvivalPressure GetSurvivalPressure() =>
+            DungeonSurvivalPressure.Standard;
         public InvasionIntruderSettings ApplyInvasionSettings(InvasionIntruderSettings source) => source;
     }
 
@@ -494,16 +1008,16 @@ public static class FacilityShopDebugScenarios
         public IReadOnlyList<BuildableObject> Buildings => Array.Empty<BuildableObject>();
     }
 
-    private sealed class FixedGameDataProvider : IGameDataProvider
+    private sealed class FixedGameDataProvider : IGameSessionStateProvider
     {
-        private readonly GameData gameData;
+        private readonly GameSessionState gameData;
 
-        public FixedGameDataProvider(GameData gameData)
+        public FixedGameDataProvider(GameSessionState gameData)
         {
             this.gameData = gameData;
         }
 
-        public bool TryGetGameData(out GameData resolvedGameData)
+        public bool TryGetSessionState(out GameSessionState resolvedGameData)
         {
             resolvedGameData = gameData;
             return resolvedGameData != null;

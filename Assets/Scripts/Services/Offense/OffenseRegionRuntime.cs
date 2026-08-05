@@ -3,15 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public enum StrategicPressureAxis
-{
-    None = 0,
-    Logistics = 1,
-    Armament = 2,
-    Manpower = 3,
-    Intelligence = 4
-}
-
 [Serializable]
 public sealed class OffenseRegionState
 {
@@ -135,7 +126,16 @@ public interface IOffenseRegionRuntime
     OffenseStrategicPressureSnapshot GetPressureForTarget(OffenseTargetDefinition target);
     OffenseStrategicPressureSnapshot GetFactionPressure(string factionId);
     DungeonOffenseRegionSaveData Capture();
-    void Restore(DungeonOffenseRegionSaveData saveData, DungeonGameRestoreReport report = null);
+}
+
+public sealed class OffenseRegionRestoreCandidate
+{
+    internal OffenseRegionRestoreCandidate(List<OffenseRegionState> regions)
+    {
+        Regions = regions ?? throw new ArgumentNullException(nameof(regions));
+    }
+
+    internal List<OffenseRegionState> Regions { get; }
 }
 
 public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
@@ -148,16 +148,14 @@ public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
     public const string SealFactionId = "seal";
 
     private const float FactionSpilloverWeight = 0.25f;
-    private readonly List<OffenseRegionState> regions = new List<OffenseRegionState>();
-    private readonly IReadOnlyList<OffenseRegionState> regionsView;
+    private List<OffenseRegionState> regions = new List<OffenseRegionState>();
 
     public OffenseRegionRuntime()
     {
-        regionsView = regions.AsReadOnly();
         EnsureDefaultRegions();
     }
 
-    public IReadOnlyList<OffenseRegionState> Regions => regionsView;
+    public IReadOnlyList<OffenseRegionState> Regions => regions;
 
     public bool TryApplyTargetPressure(
         OffenseTargetDefinition target,
@@ -217,16 +215,23 @@ public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
 
     public OffenseStrategicPressureSnapshot GetPressureForTarget(OffenseTargetDefinition target)
     {
+        return CreatePressureForTarget(target, regions);
+    }
+
+    internal static OffenseStrategicPressureSnapshot CreatePressureForTarget(
+        OffenseTargetDefinition target,
+        IReadOnlyList<OffenseRegionState> sourceRegions)
+    {
         if (target == null)
         {
             return default;
         }
 
-        OffenseRegionState region = regions.FirstOrDefault(candidate =>
+        OffenseRegionState region = sourceRegions?.FirstOrDefault(candidate =>
             candidate != null
             && string.Equals(candidate.regionId, target.regionId, StringComparison.Ordinal));
         return region != null
-            ? CreateEffectiveSnapshot(region)
+            ? CreateEffectiveSnapshot(region, sourceRegions)
             : new OffenseStrategicPressureSnapshot(
                 target.regionId,
                 target.regionDisplayName,
@@ -270,51 +275,96 @@ public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
         };
     }
 
-    public void Restore(DungeonOffenseRegionSaveData saveData, DungeonGameRestoreReport report = null)
+    internal OffenseRegionRestoreCandidate PrepareRestore(
+        DungeonOffenseRegionSaveData saveData)
     {
-        regions.Clear();
+        List<OffenseRegionState> candidate = new List<OffenseRegionState>();
         if (saveData == null || saveData.version != DungeonOffenseRegionSaveData.CurrentVersion)
         {
             if (saveData != null)
             {
-                report?.AddWarning(
-                    $"지원하지 않는 지역 압력 데이터 버전 {saveData.version}입니다. 기본 지역 상태로 복원합니다.");
+                throw new InvalidOperationException(
+                    $"Unsupported offense region payload version {saveData.version}; expected {DungeonOffenseRegionSaveData.CurrentVersion}.");
             }
 
-            EnsureDefaultRegions();
-            return;
+            throw new InvalidOperationException(
+                "Offense region payload is null.");
         }
 
-        foreach (OffenseRegionState saved in saveData.regions ?? new List<OffenseRegionState>())
+        foreach (OffenseRegionState saved in saveData.regions)
         {
             if (saved == null || string.IsNullOrWhiteSpace(saved.regionId))
             {
-                continue;
+                throw new InvalidOperationException(
+                    "Offense region payload contains a null or empty region ID.");
             }
 
             OffenseRegionState restored = saved.Clone();
-            restored.logisticsDamage = Mathf.Clamp(restored.logisticsDamage, 0f, 100f);
-            restored.armamentDamage = Mathf.Clamp(restored.armamentDamage, 0f, 100f);
-            restored.manpowerDamage = Mathf.Clamp(restored.manpowerDamage, 0f, 100f);
-            restored.intelligenceDamage = Mathf.Clamp(restored.intelligenceDamage, 0f, 100f);
-            if (regions.Any(region => string.Equals(
+            if (!IsPressure(restored.logisticsDamage)
+                || !IsPressure(restored.armamentDamage)
+                || !IsPressure(restored.manpowerDamage)
+                || !IsPressure(restored.intelligenceDamage)
+                || string.IsNullOrWhiteSpace(restored.displayName)
+                || string.IsNullOrWhiteSpace(restored.factionId))
+            {
+                throw new InvalidOperationException(
+                    $"Offense region '{restored.regionId}' has invalid pressure or authored identity.");
+            }
+            if (candidate.Any(region => string.Equals(
                     region.regionId,
                     restored.regionId,
                     StringComparison.Ordinal)))
             {
-                report?.AddWarning($"중복 지역 압력 상태를 건너뜁니다: {restored.regionId}");
-                continue;
+                throw new InvalidOperationException(
+                    $"Duplicate offense region '{restored.regionId}'.");
             }
 
-            regions.Add(restored);
+            candidate.Add(restored);
         }
 
-        EnsureDefaultRegions();
+        string[] requiredRegionIds =
+        {
+            BorderTradeRegionId,
+            RivalOutpostRegionId,
+            SealedZoneRegionId
+        };
+        if (requiredRegionIds.Any(id => !candidate.Any(region =>
+                string.Equals(region.regionId, id, StringComparison.Ordinal))))
+        {
+            throw new InvalidOperationException(
+                "Offense region payload is missing a required authored region.");
+        }
+
+        return new OffenseRegionRestoreCandidate(candidate);
     }
 
-    private OffenseStrategicPressureSnapshot CreateEffectiveSnapshot(OffenseRegionState region)
+    public OffenseRegionRestoreCandidate BuildRestoreCandidate(
+        DungeonOffenseRegionSaveData saveData) =>
+        PrepareRestore(saveData);
+
+    internal void PublishRestore(OffenseRegionRestoreCandidate candidate)
     {
-        OffenseRegionState[] peers = regions
+        regions = (candidate ?? throw new ArgumentNullException(nameof(candidate)))
+            .Regions;
+    }
+
+    public void PublishRestoreCandidate(
+        OffenseRegionRestoreCandidate candidate) =>
+        PublishRestore(candidate);
+
+    private static bool IsPressure(float value)
+    {
+        return !float.IsNaN(value)
+            && !float.IsInfinity(value)
+            && value >= 0f
+            && value <= 100f;
+    }
+
+    private static OffenseStrategicPressureSnapshot CreateEffectiveSnapshot(
+        OffenseRegionState region,
+        IReadOnlyList<OffenseRegionState> sourceRegions)
+    {
+        OffenseRegionState[] peers = (sourceRegions ?? Array.Empty<OffenseRegionState>())
             .Where(candidate => candidate != null
                 && !ReferenceEquals(candidate, region)
                 && string.Equals(candidate.factionId, region.factionId, StringComparison.Ordinal))
@@ -394,44 +444,5 @@ public sealed class OffenseRegionRuntime : IOffenseRegionRuntime
         {
             existing.factionId = factionId;
         }
-    }
-}
-
-public sealed class OffenseRegionSaveSection : IDungeonSaveSection
-{
-    public const string Id = "offense.regions";
-    private readonly IOffenseRegionRuntime runtime;
-
-    public OffenseRegionSaveSection(IOffenseRegionRuntime runtime)
-    {
-        this.runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
-    }
-
-    public string SectionId => Id;
-    public int SectionVersion => 1;
-    public DungeonSaveRestorePhase RestorePhase => DungeonSaveRestorePhase.LateRuntimeState;
-    public IReadOnlyList<string> DependsOn => new[]
-    {
-        OffenseSaveSection.Id,
-        OffenseReturnArrivalSaveSection.Id,
-        ExteriorActivitySaveSection.Id
-    };
-    public string Capture() => JsonUtility.ToJson(runtime.Capture());
-
-    public void Restore(
-        string payloadJson,
-        int sectionVersion,
-        DungeonGameRestoreReport report)
-    {
-        if (sectionVersion != SectionVersion)
-        {
-            throw new InvalidOperationException(
-                $"Unsupported {Id} section version {sectionVersion}.");
-        }
-
-        runtime.Restore(
-            JsonUtility.FromJson<DungeonOffenseRegionSaveData>(payloadJson ?? string.Empty)
-            ?? new DungeonOffenseRegionSaveData(),
-            report);
     }
 }

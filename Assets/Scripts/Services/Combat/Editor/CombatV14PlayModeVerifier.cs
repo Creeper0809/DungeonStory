@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -96,11 +97,26 @@ public static class CombatV14PlayModeVerifier
         private CharacterActor patient;
         private CharacterActor secondSelected;
         private CharacterMedicalOrder medicalOrder;
-        private ICharacterMedicalRuntime medicalRuntime;
-        private ICharacterBodyHealthRuntime bodyHealthRuntime;
+        private ICharacterMedicalQuery medicalQuery;
+        private ICharacterMedicalPersistence medicalPersistence;
+        private CharacterBodyHealthRuntime bodyHealthRuntime;
         private ICharacterCombatCommandRuntime combatCommandRuntime;
+        private IDefenseTacticalCoordinator defenseTacticalRuntime;
         private ICombatEquipmentRuntime combatEquipmentRuntime;
-        private ISurvivalFoodRuntime survivalFoodRuntime;
+        private ICombatEquipmentMaintenanceRuntime equipmentMaintenanceRuntime;
+        private ICaptivityRuntime captivityRuntime;
+        private ICaptivityPersistence captivityPersistence;
+        private ICircusRuntime circusRuntime;
+        private ICircusPersistence circusPersistence;
+        private IDoorAccessQuery doorAccessRuntime;
+        private DungeonRuntimeAggregateRootStore aggregateRootStore;
+        private IWorldItemStackRuntime itemStackRuntime;
+        private IResourceEconomyContentCatalog resourceCatalog;
+        private IDungeonGameSaveService saveService;
+        private IDungeonSaveSectionRegistry saveRegistry;
+        private IGameEventBus gameEventBus;
+        private ICharacterAiWorldRegistry characterWorldRegistry;
+        private IRestoreWorldCandidateQuery restoreWorldCandidates;
         private Camera gameplayCamera;
         private bool sawStabilizing;
         private bool sawCarrying;
@@ -113,6 +129,11 @@ public static class CombatV14PlayModeVerifier
         private Keyboard originalKeyboard;
         private Mouse verificationMouse;
         private Keyboard verificationKeyboard;
+        private DungeonAutomationInputTestCapability automationInput;
+        private IDisposable rescueNoticeSubscription;
+        private IDisposable rescueTerminalSubscription;
+        private string lastRescueNotice = string.Empty;
+        private string lastRescueTerminal = string.Empty;
 
         public string DescribeRuntimeState()
         {
@@ -126,8 +147,8 @@ public static class CombatV14PlayModeVerifier
                 ? rescuer.GetComponent<AbilityRescue>()
                 : null;
             CharacterMedicalOrder current = medicalOrder != null
-                && medicalRuntime != null
-                && medicalRuntime.TryGetOrder(
+                && medicalQuery != null
+                && medicalQuery.TryGetOrder(
                     medicalOrder.orderId,
                     out CharacterMedicalOrder found)
                     ? found
@@ -139,10 +160,30 @@ public static class CombatV14PlayModeVerifier
                 ? $"exists/rescuing={rescue.IsRescuing}"
                 : "none";
             string orderText = current != null
-                ? $"{current.state}/{current.status}/rescuer={current.rescuerId}/"
+                ? $"{current.state}/{current.statusCode}/rescuer={current.rescuerId}/"
                     + $"stab={current.completedStabilizationWork:0.##}/"
                     + $"{current.requiredStabilizationWork:0.##}"
                 : "none";
+            string medicalOrders = medicalPersistence != null
+                ? string.Join(
+                    ",",
+                    medicalPersistence.Capture().orders.Select(order =>
+                        $"{order.orderId}:{order.state}:patient={order.patientId}:"
+                        + $"rescuer={order.rescuerId}:carried={order.carried}"))
+                : "unavailable";
+            CharacterBodyHealthSnapshot patientBody = patient != null
+                && bodyHealthRuntime != null
+                    ? bodyHealthRuntime.GetSnapshot(patient)
+                    : default;
+            string bodyText = patientBody.Parts != null
+                ? $"downed={patientBody.Downed}/c={patientBody.Consciousness:0.##}/"
+                    + $"m={patientBody.Mobility:0.##}/parts="
+                    + string.Join(
+                        ",",
+                        patientBody.Parts.Select(part =>
+                            $"{part.bodyPart}:{part.currentHealth:0.##}/{part.maxHealth:0.##}"))
+                : "none";
+            string registryText = DescribeCharacterRegistry(patient);
 
             return $"rescuer={GetName(rescuer)} cell={rescuer?.GetNowXY()} "
                 + $"active={rescuer?.CurrentLifecycleState} aiPaused={rescuer?.IsAiPaused()} "
@@ -151,7 +192,8 @@ public static class CombatV14PlayModeVerifier
                 + $"ability={abilityText}; "
                 + $"patient={GetName(patient)} cell={patient?.GetNowXY()} "
                 + $"state={patient?.CurrentLifecycleState}; "
-                + $"order={orderText}";
+                + $"order={orderText}; body={bodyText}; orders={medicalOrders}; "
+                + registryText;
         }
 
         private IEnumerator Start()
@@ -161,12 +203,25 @@ public static class CombatV14PlayModeVerifier
             originalGameViewSizeIndex = GameViewResolutionController.SelectedSizeIndex;
             GameViewResolutionController.Select(1600, 900);
             SetupInput();
-            DungeonAutomationInputState.Enable(
-                new DungeonStory.Foundation.UnityGameClock(),
-                new DungeonStory.Foundation.UnityUiClock());
+            automationInput = new DungeonAutomationInputTestCapability();
+            automationInput.Enable();
             Time.timeScale = 1f;
 
             yield return WaitForRuntime();
+            if (failures.Count > 0)
+            {
+                Finish();
+                yield break;
+            }
+
+            VerifyInvalidMedicalPreflightPreservesLiveOrders();
+            VerifyInvalidCombatCommandPreflightPreservesLiveCommands();
+            VerifyInvalidDefenseTacticalPreflightPreservesReservations();
+            VerifyInvalidEquipmentMaintenancePreflightPreservesState();
+            VerifyInvalidCaptivityPreflightPreservesState();
+            VerifyInvalidCircusPreflightPreservesState();
+            VerifyRestoreCandidatesDiscardedAfterPreflightFailure();
+            VerifyCombatCommandLateParticipantRollbackAndComplete();
             if (failures.Count > 0)
             {
                 Finish();
@@ -189,20 +244,53 @@ public static class CombatV14PlayModeVerifier
             float timeout = Time.realtimeSinceStartup + 15f;
             while (Time.realtimeSinceStartup < timeout)
             {
-                medicalRuntime ??= ResolveService<ICharacterMedicalRuntime>();
-                bodyHealthRuntime ??= ResolveService<ICharacterBodyHealthRuntime>();
+                medicalQuery ??= ResolveService<ICharacterMedicalQuery>();
+                medicalPersistence ??= ResolveService<ICharacterMedicalPersistence>();
+                bodyHealthRuntime ??= ResolveService<CharacterBodyHealthRuntime>();
                 combatCommandRuntime ??= ResolveService<ICharacterCombatCommandRuntime>();
+                defenseTacticalRuntime ??= ResolveService<IDefenseTacticalCoordinator>();
                 combatEquipmentRuntime ??= ResolveService<ICombatEquipmentRuntime>();
-                survivalFoodRuntime ??= ResolveService<ISurvivalFoodRuntime>();
+                equipmentMaintenanceRuntime ??=
+                    ResolveService<ICombatEquipmentMaintenanceRuntime>();
+                captivityRuntime ??= ResolveService<ICaptivityRuntime>();
+                captivityPersistence ??= ResolveService<ICaptivityPersistence>();
+                circusRuntime ??= ResolveService<ICircusRuntime>();
+                circusPersistence ??= ResolveService<ICircusPersistence>();
+                doorAccessRuntime ??= ResolveService<IDoorAccessQuery>();
+                aggregateRootStore ??=
+                    ResolveService<DungeonRuntimeAggregateRootStore>();
+                itemStackRuntime ??= ResolveService<IWorldItemStackRuntime>();
+                resourceCatalog ??= ResolveService<IResourceEconomyContentCatalog>();
+                saveService ??= ResolveService<IDungeonGameSaveService>();
+                saveRegistry ??= ResolveService<IDungeonSaveSectionRegistry>();
+                gameEventBus ??= ResolveService<IGameEventBus>();
+                characterWorldRegistry ??= ResolveService<ICharacterAiWorldRegistry>();
+                restoreWorldCandidates ??= ResolveService<IRestoreWorldCandidateQuery>();
                 commands = UnityEngine.Object.FindFirstObjectByType<OwnerCommandController>(
                     FindObjectsInactive.Include);
                 gameplayCamera = UnityEngine.Object.FindFirstObjectByType<Camera>(
                     FindObjectsInactive.Include);
                 CharacterActor[] staff = GetActiveStaff();
-                bool servicesReady = medicalRuntime != null
+                bool servicesReady = medicalQuery != null
+                    && medicalPersistence != null
                     && bodyHealthRuntime != null
                     && combatCommandRuntime != null
-                    && combatEquipmentRuntime != null;
+                    && defenseTacticalRuntime != null
+                    && combatEquipmentRuntime != null
+                    && equipmentMaintenanceRuntime != null
+                    && captivityRuntime != null
+                    && captivityPersistence != null
+                    && circusRuntime != null
+                    && circusPersistence != null
+                    && doorAccessRuntime != null
+                    && aggregateRootStore != null
+                    && itemStackRuntime != null
+                    && resourceCatalog != null
+                    && saveService != null
+                    && saveRegistry != null
+                    && gameEventBus != null
+                    && characterWorldRegistry != null
+                    && restoreWorldCandidates != null;
                 if (commands != null && gameplayCamera != null && servicesReady && staff.Length >= 2)
                 {
                     AssignActors(staff);
@@ -221,16 +309,432 @@ public static class CombatV14PlayModeVerifier
             }
 
             Check(false, "RUNTIME", $"commands={commands != null}; camera={gameplayCamera != null}; "
-                + $"medical={medicalRuntime != null}; "
+                + $"medicalQuery={medicalQuery != null}; "
+                + $"medicalPersistence={medicalPersistence != null}; "
                 + $"body={bodyHealthRuntime != null}; "
                 + $"combat={combatCommandRuntime != null}; "
+                    + $"defenseTactics={defenseTacticalRuntime != null}; "
+                    + $"maintenance={equipmentMaintenanceRuntime != null}; "
+                    + $"captivity={captivityRuntime != null}; "
+                    + $"save={saveService != null}; "
                 + $"actors={GetActiveStaff().Length}");
+        }
+
+        private void VerifyInvalidMedicalPreflightPreservesLiveOrders()
+        {
+            IReadOnlyList<CharacterMedicalOrder> beforeView =
+                medicalQuery.ActiveOrders;
+            string before = JsonUtility.ToJson(medicalPersistence.Capture());
+            DungeonGameSaveData invalid = saveService.Capture();
+            if (!DungeonSaveSectionPayload.TryRead(
+                    invalid,
+                    CharacterMedicalSaveSection.Id,
+                    out DungeonCharacterMedicalSaveData medical))
+            {
+                Check(
+                    false,
+                    "MEDICAL_PREFLIGHT_ATOMIC",
+                    "의료 저장 섹션을 찾지 못했습니다.");
+                return;
+            }
+
+            medical.version = DungeonCharacterMedicalSaveData.CurrentVersion - 1;
+            DungeonSaveSectionPayload.Write(
+                invalid,
+                CharacterMedicalSaveSection.Id,
+                DungeonCharacterMedicalSaveData.CurrentVersion,
+                DungeonSaveRestorePhase.RuntimeState,
+                medical);
+            invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+
+            bool restored = saveService.TryRestore(
+                invalid,
+                out DungeonGameRestoreReport restoreReport);
+            IReadOnlyList<CharacterMedicalOrder> afterView =
+                medicalQuery.ActiveOrders;
+            string after = JsonUtility.ToJson(medicalPersistence.Capture());
+            Check(
+                !restored
+                    && restoreReport != null
+                    && !restoreReport.Success
+                    && ReferenceEquals(beforeView, afterView)
+                    && string.Equals(before, after, StringComparison.Ordinal),
+                "MEDICAL_PREFLIGHT_ATOMIC",
+                restored
+                    ? "잘못된 의료 payload가 승인됐습니다."
+                    : $"orders={afterView.Count}; errors="
+                        + $"{string.Join(" | ", restoreReport?.Errors ?? Array.Empty<string>())}");
+        }
+
+        private void VerifyInvalidCombatCommandPreflightPreservesLiveCommands()
+        {
+            IReadOnlyList<CharacterCombatCommand> beforeView =
+                combatCommandRuntime.ActiveCommands;
+            string before = JsonUtility.ToJson(combatCommandRuntime.Capture());
+            DungeonGameSaveData invalid = saveService.Capture();
+            if (!DungeonSaveSectionPayload.TryRead(
+                    invalid,
+                    CharacterCombatCommandSaveSection.Id,
+                    out CharacterCombatCommandSaveData commands))
+            {
+                Check(false, "COMBAT_COMMAND_PREFLIGHT_ATOMIC",
+                    "전투 명령 저장 섹션을 찾지 못했습니다.");
+                return;
+            }
+
+            commands.commandSequence = -1;
+            DungeonSaveSectionPayload.Write(
+                invalid,
+                CharacterCombatCommandSaveSection.Id,
+                2,
+                DungeonSaveRestorePhase.LateRuntimeState,
+                commands);
+            invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+
+            bool restored = saveService.TryRestore(
+                invalid,
+                out DungeonGameRestoreReport restoreReport);
+            IReadOnlyList<CharacterCombatCommand> afterView =
+                combatCommandRuntime.ActiveCommands;
+            string after = JsonUtility.ToJson(combatCommandRuntime.Capture());
+            Check(
+                !restored
+                    && restoreReport != null
+                    && !restoreReport.Success
+                    && ReferenceEquals(beforeView, afterView)
+                    && string.Equals(before, after, StringComparison.Ordinal),
+                "COMBAT_COMMAND_PREFLIGHT_ATOMIC",
+                restored
+                    ? "잘못된 전투 명령 payload가 승인됐습니다."
+                    : $"commands={afterView.Count}; errors="
+                        + $"{string.Join(" | ", restoreReport?.Errors ?? Array.Empty<string>())}");
+        }
+
+        private void VerifyCombatCommandLateParticipantRollbackAndComplete()
+        {
+            IDungeonRestoreTransactionParticipant combatParticipant =
+                combatCommandRuntime as IDungeonRestoreTransactionParticipant;
+            IDungeonSaveSection combatSection = saveRegistry?.OrderedSections
+                .SingleOrDefault(section =>
+                    section.SectionId == CharacterCombatCommandSaveSection.Id);
+            if (combatParticipant == null
+                || combatSection == null
+                || rescuer == null
+                || rescuer.CurrentLifecycleState != CharacterLifecycleState.Active)
+            {
+                Check(
+                    false,
+                    "COMBAT_COMMAND_LATE_PARTICIPANT",
+                    $"participant={combatParticipant != null}; section={combatSection != null}; actor={rescuer != null}");
+                return;
+            }
+
+            DefenseCombatPresentation presentation =
+                DefenseCombatPresentation.Ensure(rescuer);
+            CombatActorProjectionProbe expected = new(rescuer, presentation);
+            IReadOnlyList<CharacterCombatCommand> previousView =
+                combatCommandRuntime.ActiveCommands;
+            string previousCapture = JsonUtility.ToJson(
+                combatCommandRuntime.Capture());
+            int previousRevision = aggregateRootStore.PublishedRestoreRevision;
+            LateCombatParticipantFaultProbe lateParticipant = new(
+                expected,
+                () => ReferenceEquals(
+                    previousView,
+                    combatCommandRuntime.ActiveCommands));
+            DungeonSaveSectionRegistry registry = new(
+                new IDungeonSaveSection[]
+                {
+                    new CombatDependencyMarkerSection(
+                        CharacterBodyHealthSaveSection.Id),
+                    new CombatDependencyMarkerSection(
+                        CombatEquipmentSaveSection.Id),
+                    new CombatDependencyMarkerSection(
+                        DefenseTacticalSaveSection.Id),
+                    combatSection
+                },
+                aggregateRootStore,
+                new[] { combatParticipant, lateParticipant });
+
+            List<DungeonSaveSectionEnvelope> envelopes = registry.CaptureAll();
+            DungeonSaveSectionEnvelope commandEnvelope = envelopes.Single(
+                envelope =>
+                    envelope.sectionId == CharacterCombatCommandSaveSection.Id);
+            CharacterCombatCommandSaveData candidate =
+                JsonUtility.FromJson<CharacterCombatCommandSaveData>(
+                    commandEnvelope.payloadJson);
+            string actorId = CharacterPersistentIdentity.Require(rescuer).Value;
+            bool candidateStance = !candidate.stanceCharacterIds.Contains(
+                actorId,
+                StringComparer.Ordinal);
+            candidate.stanceCharacterIds.RemoveAll(id => string.Equals(
+                id,
+                actorId,
+                StringComparison.Ordinal));
+            if (candidateStance)
+            {
+                candidate.stanceCharacterIds.Add(actorId);
+            }
+            commandEnvelope.payloadJson = JsonUtility.ToJson(candidate);
+
+            DungeonGameRestoreReport failureReport = new();
+            bool failedRestoreAccepted = registry.RestoreAll(
+                envelopes,
+                failureReport);
+            bool exactRollback = !failedRestoreAccepted
+                && !failureReport.Success
+                && failureReport.Errors.Any(error => error.Contains(
+                    LateCombatParticipantFaultProbe.FailureMessage,
+                    StringComparison.Ordinal))
+                && lateParticipant.PublishCount == 1
+                && lateParticipant.RollbackCount == 1
+                && lateParticipant.CompleteCount == 0
+                && lateParticipant.ObservedExactBeforeFailure
+                && expected.MatchesExact()
+                && ReferenceEquals(
+                    previousView,
+                    combatCommandRuntime.ActiveCommands)
+                && string.Equals(
+                    previousCapture,
+                    JsonUtility.ToJson(combatCommandRuntime.Capture()),
+                    StringComparison.Ordinal)
+                && aggregateRootStore.PublishedRestoreRevision
+                    == previousRevision
+                && !aggregateRootStore.IsRestoreStaging;
+            if (!exactRollback)
+            {
+                expected.RestoreForCleanup();
+                Check(
+                    false,
+                    "COMBAT_COMMAND_LATE_PARTICIPANT",
+                    $"accepted={failedRestoreAccepted}; errors={string.Join(" | ", failureReport.Errors)}; "
+                    + $"publish={lateParticipant.PublishCount}; rollback={lateParticipant.RollbackCount}; "
+                    + $"exactAtFault={lateParticipant.ObservedExactBeforeFailure}; exactAfter={expected.MatchesExact()}");
+                return;
+            }
+
+            DungeonGameRestoreReport successReport = new();
+            bool completed = registry.RestoreAll(envelopes, successReport);
+            DefenseCombatPresentation completedPresentation =
+                rescuer.GetComponent<DefenseCombatPresentation>();
+            bool successProjectedOnlyAfterCompletion = completed
+                && successReport.Success
+                && lateParticipant.PublishCount == 2
+                && lateParticipant.RollbackCount == 1
+                && lateParticipant.CompleteCount == 1
+                && lateParticipant.ObservedExactBeforeSuccessfulCompletion
+                && combatCommandRuntime.IsInCombatStance(rescuer)
+                    == candidateStance
+                && rescuer.IsAiPaused() == candidateStance
+                && completedPresentation != null
+                && completedPresentation.IsCombatActive == candidateStance
+                && (candidateStance
+                    ? !string.IsNullOrWhiteSpace(
+                        completedPresentation.CurrentStatus)
+                    : string.IsNullOrWhiteSpace(
+                        completedPresentation.CurrentStatus))
+                && aggregateRootStore.PublishedRestoreRevision
+                    == previousRevision + 1
+                && !aggregateRootStore.IsRestoreStaging;
+            Check(
+                successProjectedOnlyAfterCompletion,
+                "COMBAT_COMMAND_LATE_PARTICIPANT",
+                $"rollbackExact={exactRollback}; completed={completed}; candidateStance={candidateStance}; "
+                + $"aiPaused={rescuer.IsAiPaused()}; combatActive={completedPresentation?.IsCombatActive}; "
+                + $"publish={lateParticipant.PublishCount}; complete={lateParticipant.CompleteCount}; "
+                + $"errors={string.Join(" | ", successReport.Errors)}");
+        }
+
+        private void VerifyInvalidDefenseTacticalPreflightPreservesReservations()
+        {
+            IReadOnlyList<CombatPositionReservation> beforeView =
+                defenseTacticalRuntime.Reservations;
+            string before = JsonUtility.ToJson(defenseTacticalRuntime.Capture());
+            DungeonGameSaveData invalid = saveService.Capture();
+            if (!DungeonSaveSectionPayload.TryRead(
+                    invalid,
+                    DefenseTacticalSaveSection.Id,
+                    out DefenseTacticalCoordinatorSaveData tactics))
+            {
+                Check(false, "DEFENSE_TACTICAL_PREFLIGHT_ATOMIC",
+                    "방어 전술 저장 섹션을 찾지 못했습니다.");
+                return;
+            }
+
+            tactics.sequence = -1;
+            DungeonSaveSectionPayload.Write(
+                invalid,
+                DefenseTacticalSaveSection.Id,
+                2,
+                DungeonSaveRestorePhase.RuntimeState,
+                tactics);
+            invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+
+            bool restored = saveService.TryRestore(
+                invalid,
+                out DungeonGameRestoreReport restoreReport);
+            IReadOnlyList<CombatPositionReservation> afterView =
+                defenseTacticalRuntime.Reservations;
+            string after = JsonUtility.ToJson(defenseTacticalRuntime.Capture());
+            Check(
+                !restored
+                    && restoreReport != null
+                    && !restoreReport.Success
+                    && ReferenceEquals(beforeView, afterView)
+                    && string.Equals(before, after, StringComparison.Ordinal),
+                "DEFENSE_TACTICAL_PREFLIGHT_ATOMIC",
+                restored
+                    ? "잘못된 방어 전술 payload가 승인됐습니다."
+                    : $"reservations={afterView.Count}; errors="
+                        + $"{string.Join(" | ", restoreReport?.Errors ?? Array.Empty<string>())}");
+        }
+
+        private void VerifyInvalidEquipmentMaintenancePreflightPreservesState()
+        {
+            string before = JsonUtility.ToJson(equipmentMaintenanceRuntime.Capture());
+            DungeonGameSaveData invalid = saveService.Capture();
+            if (!DungeonSaveSectionPayload.TryRead(
+                    invalid,
+                    EquipmentMaintenanceSaveSection.Id,
+                    out CombatEquipmentMaintenanceSaveData maintenance))
+            {
+                Check(false, "EQUIPMENT_MAINTENANCE_PREFLIGHT_ATOMIC",
+                    "장비 정비 저장 섹션을 찾지 못했습니다.");
+                return;
+            }
+
+            maintenance.policySequence = -1;
+            DungeonSaveSectionPayload.Write(
+                invalid,
+                EquipmentMaintenanceSaveSection.Id,
+                2,
+                DungeonSaveRestorePhase.RuntimeState,
+                maintenance);
+            invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+
+            bool restored = saveService.TryRestore(
+                invalid,
+                out DungeonGameRestoreReport restoreReport);
+            string after = JsonUtility.ToJson(equipmentMaintenanceRuntime.Capture());
+            Check(
+                !restored
+                    && restoreReport != null
+                    && !restoreReport.Success
+                    && string.Equals(before, after, StringComparison.Ordinal),
+                "EQUIPMENT_MAINTENANCE_PREFLIGHT_ATOMIC",
+                restored
+                    ? "잘못된 장비 정비 payload가 승인됐습니다."
+                    : $"orders={equipmentMaintenanceRuntime.Orders.Count}; errors="
+                        + $"{string.Join(" | ", restoreReport?.Errors ?? Array.Empty<string>())}");
+        }
+
+        private void VerifyInvalidCaptivityPreflightPreservesState()
+        {
+            string before = JsonUtility.ToJson(captivityPersistence.Capture());
+            int beforeRevision = aggregateRootStore.PublishedRestoreRevision;
+            int beforeDoorVersion = doorAccessRuntime.DoorAccessVersion;
+            DungeonGameSaveData invalid = saveService.Capture();
+            if (!DungeonSaveSectionPayload.TryRead(
+                    invalid,
+                    CaptivitySaveSection.Id,
+                    out CaptivitySaveData captivity))
+            {
+                Check(false, "CAPTIVITY_PREFLIGHT_ATOMIC",
+                    "포로 저장 섹션을 찾지 못했습니다.");
+                return;
+            }
+
+            captivity.captureSequence = -1;
+            DungeonSaveSectionPayload.Write(
+                invalid,
+                CaptivitySaveSection.Id,
+                CaptivitySaveData.CurrentVersion,
+                DungeonSaveRestorePhase.LateRuntimeState,
+                captivity);
+            invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+
+            bool restored = saveService.TryRestore(
+                invalid,
+                out DungeonGameRestoreReport restoreReport);
+            string after = JsonUtility.ToJson(captivityPersistence.Capture());
+            Check(
+                !restored
+                    && restoreReport != null
+                    && !restoreReport.Success
+                    && aggregateRootStore.PublishedRestoreRevision
+                        == beforeRevision
+                    && doorAccessRuntime.DoorAccessVersion
+                        == beforeDoorVersion
+                    && string.Equals(before, after, StringComparison.Ordinal),
+                "CAPTIVITY_PREFLIGHT_ATOMIC",
+                restored
+                    ? "잘못된 포로 payload가 승인됐습니다."
+                    : $"captives={captivityRuntime.Captives.Count}; revision="
+                        + $"{aggregateRootStore.PublishedRestoreRevision}; errors="
+                        + $"{string.Join(" | ", restoreReport?.Errors ?? Array.Empty<string>())}");
+        }
+
+        private void VerifyInvalidCircusPreflightPreservesState()
+        {
+            string before = JsonUtility.ToJson(circusPersistence.Capture());
+            int beforeRevision = aggregateRootStore.PublishedRestoreRevision;
+            int beforeDoorVersion = doorAccessRuntime.DoorAccessVersion;
+            DungeonGameSaveData invalid = saveService.Capture();
+            if (!DungeonSaveSectionPayload.TryRead(
+                    invalid,
+                    CircusSaveSection.Id,
+                    out CircusSaveData circus))
+            {
+                Check(false, "CIRCUS_PREFLIGHT_ATOMIC",
+                    "서커스 저장 섹션을 찾지 못했습니다.");
+                return;
+            }
+
+            circus.nextOrderSequence = -1;
+            DungeonSaveSectionPayload.Write(
+                invalid,
+                CircusSaveSection.Id,
+                CircusSaveData.CurrentVersion,
+                DungeonSaveRestorePhase.LateRuntimeState,
+                circus);
+            invalid.manifest = DungeonSaveManifest.Capture(invalid.sections);
+
+            bool restored = saveService.TryRestore(
+                invalid,
+                out DungeonGameRestoreReport restoreReport);
+            string after = JsonUtility.ToJson(circusPersistence.Capture());
+            Check(
+                !restored
+                    && restoreReport != null
+                    && !restoreReport.Success
+                    && aggregateRootStore.PublishedRestoreRevision
+                        == beforeRevision
+                    && doorAccessRuntime.DoorAccessVersion
+                        == beforeDoorVersion
+                    && string.Equals(before, after, StringComparison.Ordinal),
+                "CIRCUS_PREFLIGHT_ATOMIC",
+                restored
+                    ? "잘못된 서커스 payload가 승인됐습니다."
+                    : $"orders={circusRuntime.Orders.Count}; revision="
+                        + $"{aggregateRootStore.PublishedRestoreRevision}; errors="
+                        + $"{string.Join(" | ", restoreReport?.Errors ?? Array.Empty<string>())}");
+        }
+
+        private void VerifyRestoreCandidatesDiscardedAfterPreflightFailure()
+        {
+            bool hasCharacterCandidate = restoreWorldCandidates.TryGetCharacters(out _);
+            Check(
+                !aggregateRootStore.IsRestoreStaging && !hasCharacterCandidate,
+                "RESTORE_CANDIDATE_CLEANUP",
+                $"aggregateStaging={aggregateRootStore.IsRestoreStaging}; "
+                    + $"characterCandidate={hasCharacterCandidate}");
         }
 
         private void AssignActors(IReadOnlyList<CharacterActor> staff)
         {
             CharacterActor[] available = staff
                 .Where(actor => actor != null)
+                .OrderBy(GetId, StringComparer.Ordinal)
                 .ToArray();
             int bestDistance = int.MaxValue;
             for (int first = 0; first < available.Length; first++)
@@ -266,8 +770,23 @@ public static class CombatV14PlayModeVerifier
                 yield break;
             }
 
-            yield return ClickActor(rescuer, additive: false);
-            yield return ClickActor(secondSelected, additive: true);
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                yield return ClickActor(rescuer, additive: false);
+                yield return ClickActor(secondSelected, additive: true);
+                HashSet<string> observed = commands.SelectedActors
+                    .Select(GetId)
+                    .ToHashSet(StringComparer.Ordinal);
+                if (observed.Contains(GetId(rescuer))
+                    && observed.Contains(GetId(secondSelected)))
+                {
+                    break;
+                }
+
+                yield return null;
+                yield return null;
+            }
+
             HashSet<string> selectedIds = commands.SelectedActors
                 .Select(GetId)
                 .ToHashSet(StringComparer.Ordinal);
@@ -379,11 +898,26 @@ public static class CombatV14PlayModeVerifier
                     && !actor.IsDead)
                 .Select(actor => actor.GetNowXY())
                 .ToHashSet();
+            BuildableObject[] medicalFacilities = UnityEngine.Object
+                .FindObjectsByType<BuildableObject>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .Where(building => building != null
+                    && !building.isDestroy
+                    && building.BuildingData?.GetAbility<BuildingMedicalAbility>() != null)
+                .ToArray();
+            HashSet<Vector2Int> facilityCells = medicalFacilities
+                .SelectMany(building => building.buildPoses)
+                .ToHashSet();
             List<Vector2Int> candidates = grid.GetCells()
                 .Where(cell => cell != null
                     && cell.AreaType == GridCellAreaType.DungeonInterior
                     && grid.IsWalkable(cell.Position)
-                    && !occupiedByOthers.Contains(cell.Position))
+                    && !occupiedByOthers.Contains(cell.Position)
+                    && !facilityCells.Contains(cell.Position)
+                    && medicalFacilities.All(building =>
+                        Mathf.Abs(cell.Position.x - building.centerPos.x)
+                            + Mathf.Abs(cell.Position.y - building.centerPos.y) >= 3))
                 .Select(cell => cell.Position)
                 .OrderBy(position => position.y)
                 .ThenBy(position => position.x)
@@ -462,11 +996,20 @@ public static class CombatV14PlayModeVerifier
             DungeonRuntimeLifetimeScope scope =
                 UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>(
                     FindObjectsInactive.Include);
-            if (scope == null || scope.Container == null)
+            BlueprintResearchRuntime research =
+                UnityEngine.Object.FindFirstObjectByType<BlueprintResearchRuntime>(
+                    FindObjectsInactive.Include);
+            if (scope == null || scope.Container == null || research == null)
             {
-                Check(false, "RANGED_LOADOUT", "DungeonRuntimeLifetimeScope 없음");
+                Check(
+                    false,
+                    "RANGED_LOADOUT",
+                    $"scope={scope != null}; container={scope?.Container != null}; research={research != null}");
                 return;
             }
+
+            research.State.Projects.Complete(
+                new ResearchProjectId("research:equipment:bowyery"));
 
             IDungeonItemCatalogProvider itemCatalog =
                 scope.Container.Resolve<IDungeonItemCatalogProvider>();
@@ -475,9 +1018,21 @@ public static class CombatV14PlayModeVerifier
             foreach (CharacterActor actor in new[] { rescuer, secondSelected }.Distinct())
             {
                 string actorId = GetId(actor);
-                CombatEquipmentInstance bow = combatEquipmentRuntime.CreateInstance(
-                    "weapon:shortbow",
-                    CombatEquipmentQuality.Normal);
+                CombatEquipmentInstance bow;
+                try
+                {
+                    bow = combatEquipmentRuntime.CreateInstance(
+                        "weapon:shortbow",
+                        CombatEquipmentQuality.Normal);
+                }
+                catch (Exception exception)
+                {
+                    Check(
+                        false,
+                        "RANGED_LOADOUT",
+                        $"{GetName(actor)}: {exception.GetType().Name}: {exception.Message}");
+                    continue;
+                }
                 bool assigned = combatEquipmentRuntime.TryAssignToCharacter(
                     actorId,
                     bow.instanceId,
@@ -549,6 +1104,24 @@ public static class CombatV14PlayModeVerifier
             ArrangeActorsForPointerTest();
             rescuer.SetAiPaused(true);
             patient.SetAiPaused(true);
+            foreach (CharacterActor other in UnityEngine.Object
+                         .FindObjectsByType<CharacterActor>(
+                             FindObjectsInactive.Exclude,
+                             FindObjectsSortMode.None)
+                         .Select(CharacterActorCollection.GetCanonical)
+                         .Where(actor => actor != null
+                             && actor != rescuer
+                             && actor != patient
+                             && !actor.IsDead
+                             && actor.characterType is not CharacterType.Customer
+                                 and not CharacterType.Intruder)
+                         .Distinct())
+            {
+                other.SetAiPaused(true);
+                other.GetComponent<AbilityRescue>()?.StopRescue(
+                    CharacterMedicalStatusCode.ReservationReleased);
+            }
+
             yield return null;
             yield return null;
 
@@ -597,7 +1170,7 @@ public static class CombatV14PlayModeVerifier
             yield return null;
             yield return null;
 
-            medicalOrder = medicalRuntime.ActiveOrders.FirstOrDefault(order =>
+            medicalOrder = medicalQuery.ActiveOrders.FirstOrDefault(order =>
                 order != null
                 && order.IsActive
                 && string.Equals(order.patientId, GetId(patient), StringComparison.Ordinal));
@@ -613,31 +1186,100 @@ public static class CombatV14PlayModeVerifier
                 yield break;
             }
 
-            yield return ClickActor(rescuer, additive: false);
-            Button stanceButton = FindRuntimeButton("CombatStanceButton");
-            yield return ClickButton(stanceButton);
-            Button rescueButton = FindRuntimeButton("CombatMode_Rescue");
+            bool rescueStarted = false;
+            int rescueAttempts = 0;
+            Button rescueButton = null;
+            lastRescueNotice = string.Empty;
+            lastRescueTerminal = string.Empty;
+            rescueNoticeSubscription?.Dispose();
+            rescueNoticeSubscription = gameEventBus.Subscribe<NoticeFeedEvent>(notice =>
+            {
+                lastRescueNotice = notice.notice ?? string.Empty;
+            });
+            rescueTerminalSubscription?.Dispose();
+            rescueTerminalSubscription = gameEventBus.Subscribe<
+                CharacterCombatCommandTerminatedEvent>(gameEvent =>
+            {
+                if (gameEvent.Type == CombatCommandType.Rescue
+                    && string.Equals(
+                        gameEvent.ActorId,
+                        GetId(rescuer),
+                        StringComparison.Ordinal))
+                {
+                    lastRescueTerminal = $"{gameEvent.FinalState}:{gameEvent.Status}";
+                }
+            });
+            for (int attempt = 0; attempt < 3 && !rescueStarted; attempt++)
+            {
+                rescueAttempts = attempt + 1;
+                yield return ClickActor(rescuer, additive: false);
+                bool selectedOnlyRescuer = commands.SelectedActors.Count == 1
+                    && string.Equals(
+                        GetId(commands.SelectedActors[0]),
+                        GetId(rescuer),
+                        StringComparison.Ordinal);
+                if (!selectedOnlyRescuer)
+                {
+                    yield return null;
+                    yield return null;
+                    continue;
+                }
+
+                if (!combatCommandRuntime.IsInCombatStance(rescuer))
+                {
+                    Button stanceButton = FindRuntimeButton("CombatStanceButton");
+                    yield return ClickButton(stanceButton);
+                }
+
+                rescueButton = FindRuntimeButton("CombatMode_Rescue");
+                if (rescueButton == null)
+                {
+                    break;
+                }
+
+                yield return ClickButton(rescueButton);
+                yield return RightClickActor(patient);
+                yield return null;
+                yield return null;
+                rescueStarted = rescuer.GetComponent<AbilityRescue>()?.IsRescuing == true
+                    || combatCommandRuntime.TryGetCommand(rescuer, out _);
+            }
+
+            rescueNoticeSubscription.Dispose();
+            rescueNoticeSubscription = null;
+            rescueTerminalSubscription.Dispose();
+            rescueTerminalSubscription = null;
+
             Check(rescueButton != null, "RESCUE_BUTTON", "구조 명령 버튼 표시");
             if (rescueButton == null)
             {
                 yield break;
             }
 
-            yield return ClickButton(rescueButton);
-            yield return RightClickActor(patient);
-            yield return null;
+            int seededMedicine = SeedTreatmentSupplyForOrder(medicalOrder);
             Check(
-                rescuer.GetComponent<AbilityRescue>()?.IsRescuing == true
-                    || combatCommandRuntime.TryGetCommand(rescuer, out _),
+                seededMedicine > 0,
+                "MEDICINE",
+                $"physical-buffered={seededMedicine}");
+            Check(
+                rescueStarted,
                 "POINTER_RESCUE_COMMAND",
-                "구조 버튼과 쓰러진 환자 정확 클릭으로 명령 시작");
+                $"attempts={rescueAttempts}; selected="
+                    + $"{string.Join(",", commands.SelectedActors.Select(GetName))}; "
+                    + $"mode={commands.CombatInputMode}; "
+                    + $"stance={combatCommandRuntime.IsInCombatStance(rescuer)}; "
+                    + $"notice={lastRescueNotice}; terminal={lastRescueTerminal}");
+            if (!rescueStarted)
+            {
+                yield break;
+            }
 
             Time.timeScale = 4f;
             float timeout = Time.realtimeSinceStartup + 60f;
             while (Time.realtimeSinceStartup < timeout)
             {
                 FillSafeConditions(rescuer);
-                CharacterMedicalOrder current = medicalRuntime.ActiveOrders
+                CharacterMedicalOrder current = medicalQuery.ActiveOrders
                     .FirstOrDefault(order => order != null
                         && string.Equals(order.orderId, medicalOrder.orderId, StringComparison.Ordinal));
                 if (current != null)
@@ -665,7 +1307,7 @@ public static class CombatV14PlayModeVerifier
                         yield return Capture(TreatmentCapturePath);
                     }
 
-                    report = $"RUNNING: {current.state} · {current.status} · "
+                    report = $"RUNNING: {current.state} · {current.statusCode} · "
                         + $"안정화 {Percent(current.completedStabilizationWork, current.requiredStabilizationWork)}% · "
                         + $"치료 {Percent(current.completedTreatmentWork, current.requiredTreatmentWork)}%";
                 }
@@ -677,6 +1319,14 @@ public static class CombatV14PlayModeVerifier
 
                 yield return null;
             }
+
+            yield return null;
+            yield return null;
+            Check(
+                !combatCommandRuntime.TryGetCommand(rescuer, out _)
+                    && rescuer.GetComponent<AbilityRescue>()?.IsRescuing != true,
+                "RESCUE_COMMAND_RELEASED",
+                "회복 이벤트에서 구조 명령과 구조 코루틴 정리");
 
             CharacterBodyHealthSnapshot after =
                 bodyHealthRuntime.GetSnapshot(patient);
@@ -716,10 +1366,10 @@ public static class CombatV14PlayModeVerifier
             yield return null;
 
             Vector3 screen = gameplayCamera.WorldToScreenPoint(collider.bounds.center);
-            DungeonAutomationInputState.MovePointer(screen);
+            automationInput.MovePointer(screen);
             ApplyMouseState(new MouseState { position = screen });
             yield return null;
-            DungeonAutomationInputState.ClickPointer(1);
+            automationInput.ClickPointer(1);
             ApplyMouseState(
                 new MouseState { position = screen }.WithButton(MouseButton.Right, true));
             yield return null;
@@ -755,12 +1405,12 @@ public static class CombatV14PlayModeVerifier
             }
 
             Vector3 screen = gameplayCamera.WorldToScreenPoint(collider.bounds.center);
-            DungeonAutomationInputState.MovePointer(screen);
+            automationInput.MovePointer(screen);
             ApplyMouseState(new MouseState { position = screen });
             yield return null;
             if (additive)
             {
-                DungeonAutomationInputState.HoldKey(KeyCode.LeftShift, 0.35f);
+                automationInput.HoldKey(KeyCode.LeftShift, 0.35f);
                 QueueKeyboard(new KeyboardState(Key.LeftShift));
             }
 
@@ -775,7 +1425,7 @@ public static class CombatV14PlayModeVerifier
             if (additive)
             {
                 QueueKeyboard(new KeyboardState());
-                DungeonAutomationInputState.ReleaseKey(KeyCode.LeftShift);
+                automationInput.ReleaseKey(KeyCode.LeftShift);
             }
         }
 
@@ -816,20 +1466,42 @@ public static class CombatV14PlayModeVerifier
             BuildableObject[] buildings = UnityEngine.Object.FindObjectsByType<BuildableObject>(
                 FindObjectsInactive.Exclude,
                 FindObjectsSortMode.None);
-            foreach (IWarehouseFacility warehouse in buildings.OfType<IWarehouseFacility>())
-            {
-                warehouse?.Inventory?.AddStock(StockCategory.Medicine, 12);
-            }
-
             int beds = buildings.Count(building =>
                 building != null
                 && !building.isDestroy
                 && building.BuildingData?.GetAbility<BuildingMedicalAbility>() != null);
             Check(beds > 0, "MEDICAL_FACILITY", $"available={beds}");
-            Check(
-                survivalFoodRuntime?.GetStoredStockCount(StockCategory.Medicine) > 0,
-                "MEDICINE",
-                $"stored={survivalFoodRuntime?.GetStoredStockCount(StockCategory.Medicine) ?? 0}");
+        }
+
+        private int SeedTreatmentSupplyForOrder(CharacterMedicalOrder order)
+        {
+            if (order == null || itemStackRuntime == null || resourceCatalog == null)
+            {
+                return 0;
+            }
+
+            string destinationId = WorldItemStackRuntime.FacilityInputDestinationPrefix
+                + $"medical:{order.orderId}";
+            int spawnedTotal = 0;
+            foreach (ResourceItemDefinitionSO medicine in resourceCatalog.Items
+                         .Where(item => item != null
+                             && item.Kind == ResourceItemKind.Medicine
+                             && item.SupportsInjuryTreatment)
+                         .OrderBy(item => item.ItemId, StringComparer.Ordinal))
+            {
+                if (itemStackRuntime.SpawnItemAt(
+                        medicine.ItemId,
+                        1,
+                        order.BedPosition,
+                        WorldItemStackState.FacilityBuffer,
+                        destinationId,
+                        out int spawned))
+                {
+                    spawnedTotal += spawned;
+                }
+            }
+
+            return spawnedTotal;
         }
 
         private static void FillSafeConditions(CharacterActor actor)
@@ -875,7 +1547,8 @@ public static class CombatV14PlayModeVerifier
         private void Finish()
         {
             Time.timeScale = 0f;
-            DungeonAutomationInputState.Disable();
+            automationInput?.Dispose();
+            automationInput = null;
             TeardownInput();
             Application.logMessageReceived -= OnLogMessageReceived;
             Check(capturedErrors.Count == 0, "CONSOLE_ERRORS", string.Join(" | ", capturedErrors));
@@ -907,8 +1580,13 @@ public static class CombatV14PlayModeVerifier
 
         private void OnDestroy()
         {
+            rescueNoticeSubscription?.Dispose();
+            rescueNoticeSubscription = null;
+            rescueTerminalSubscription?.Dispose();
+            rescueTerminalSubscription = null;
             Application.logMessageReceived -= OnLogMessageReceived;
-            DungeonAutomationInputState.Disable();
+            automationInput?.Dispose();
+            automationInput = null;
             TeardownInput();
             if (!completed)
             {
@@ -956,6 +1634,46 @@ public static class CombatV14PlayModeVerifier
                     && actor.CurrentLifecycleState == CharacterLifecycleState.Active)
                 .Distinct()
                 .ToArray();
+        }
+
+        private string DescribeCharacterRegistry(CharacterActor target)
+        {
+            if (target == null || characterWorldRegistry == null)
+            {
+                return "registry=unavailable";
+            }
+
+            string targetId = GetId(target);
+            string active = DescribeCharacterMatches(
+                characterWorldRegistry.Characters,
+                targetId);
+            string lifetime = DescribeCharacterMatches(
+                characterWorldRegistry.AllCharacters,
+                targetId);
+            bool hasCandidate = restoreWorldCandidates?.TryGetCharacters(out _) == true;
+            return $"registryTarget={target.GetType().Name}@{target.GetInstanceID()}; "
+                + $"active=[{active}]; lifetime=[{lifetime}]; "
+                + $"candidate={hasCandidate}; "
+                + $"aggregateStaging={aggregateRootStore?.IsRestoreStaging}";
+        }
+
+        private static string DescribeCharacterMatches(
+            IEnumerable<CharacterActor> actors,
+            string targetId)
+        {
+            return string.Join(
+                ",",
+                (actors ?? Array.Empty<CharacterActor>())
+                    .Where(actor => actor != null
+                        && string.Equals(GetId(actor), targetId, StringComparison.Ordinal))
+                    .Select(actor =>
+                    {
+                        CharacterActor canonical = CharacterActorCollection.GetCanonical(actor);
+                        return $"{actor.GetType().Name}@{actor.GetInstanceID()}:"
+                            + $"{actor.CurrentLifecycleState}:canonical="
+                            + $"{canonical?.GetType().Name}@{canonical?.GetInstanceID()}:"
+                            + $"{canonical?.CurrentLifecycleState}";
+                    }));
         }
 
         private static CharacterBodyPartHealthState ClonePart(CharacterBodyPartHealthState part)
@@ -1021,6 +1739,172 @@ public static class CombatV14PlayModeVerifier
             {
                 message = $"{exception.GetType().Name}: {exception.Message}";
                 return false;
+            }
+        }
+
+        private sealed class CombatDependencyMarkerSection :
+            DungeonDebugStagedSaveSection,
+            IDungeonRollbackFreeSaveSection
+        {
+            private readonly string id;
+
+            internal CombatDependencyMarkerSection(string id)
+            {
+                this.id = id ?? throw new ArgumentNullException(nameof(id));
+            }
+
+            public override string SectionId => id;
+            public override DungeonSaveRestorePhase RestorePhase =>
+                DungeonSaveRestorePhase.RuntimeState;
+
+            protected override void CommitMarker(
+                DungeonGameRestoreReport report)
+            {
+            }
+        }
+
+        private sealed class LateCombatParticipantFaultProbe :
+            IDungeonRestoreTransactionParticipant
+        {
+            internal const string FailureMessage =
+                "Intentional later participant failure after combat-command publication.";
+
+            private readonly CombatActorProjectionProbe expected;
+            private readonly Func<bool> viewIsExact;
+            private bool failNextPublish = true;
+
+            internal LateCombatParticipantFaultProbe(
+                CombatActorProjectionProbe expected,
+                Func<bool> viewIsExact)
+            {
+                this.expected = expected
+                    ?? throw new ArgumentNullException(nameof(expected));
+                this.viewIsExact = viewIsExact
+                    ?? throw new ArgumentNullException(nameof(viewIsExact));
+            }
+
+            public string ParticipantId =>
+                "999.debug.combat-command-late-participant";
+            internal int PublishCount { get; private set; }
+            internal int RollbackCount { get; private set; }
+            internal int CompleteCount { get; private set; }
+            internal bool ObservedExactBeforeFailure { get; private set; }
+            internal bool ObservedExactBeforeSuccessfulCompletion
+            {
+                get;
+                private set;
+            }
+
+            public void BeginRestoreCandidate()
+            {
+            }
+
+            public void PublishRestoreCandidate()
+            {
+                PublishCount++;
+                bool exact = expected.MatchesExact() && viewIsExact();
+                if (failNextPublish)
+                {
+                    ObservedExactBeforeFailure = exact;
+                    failNextPublish = false;
+                    throw new InvalidOperationException(FailureMessage);
+                }
+
+                ObservedExactBeforeSuccessfulCompletion = exact;
+            }
+
+            public void RollbackPublishedRestoreCandidate()
+            {
+                RollbackCount++;
+            }
+
+            public void CompleteRestoreCandidate()
+            {
+                CompleteCount++;
+            }
+
+            public void DiscardRestoreCandidate()
+            {
+            }
+        }
+
+        private sealed class CombatActorProjectionProbe
+        {
+            private readonly CharacterActor actor;
+            private readonly DefenseCombatPresentation presentation;
+            private readonly CharacterLifecycleState lifecycleState;
+            private readonly bool aiPaused;
+            private readonly CharacterDecisionState decisionState;
+            private readonly AIAction bestAction;
+            private readonly bool isExecuted;
+            private readonly bool isBestActionEnd;
+            private readonly string phase;
+            private readonly string phaseDetail;
+            private readonly int brainDebugVersion;
+            private readonly string presentationStatus;
+            private readonly bool presentationCombatActive;
+
+            internal CombatActorProjectionProbe(
+                CharacterActor actor,
+                DefenseCombatPresentation presentation)
+            {
+                this.actor = actor
+                    ?? throw new ArgumentNullException(nameof(actor));
+                this.presentation = presentation
+                    ?? throw new ArgumentNullException(nameof(presentation));
+                lifecycleState = actor.CurrentLifecycleState;
+                aiPaused = actor.IsAiPaused();
+                decisionState = actor.State;
+                bestAction = actor.Brain?.bestAction;
+                isExecuted = actor.Brain?.isExecuted == true;
+                isBestActionEnd = actor.Brain?.isBestActionEnd == true;
+                phase = actor.Brain?.CurrentActionPhase ?? string.Empty;
+                phaseDetail = actor.Brain?.CurrentActionPhaseDetail
+                    ?? string.Empty;
+                brainDebugVersion = actor.Brain?.DebugVersion ?? 0;
+                presentationStatus = presentation.CurrentStatus;
+                presentationCombatActive = presentation.IsCombatActive;
+            }
+
+            internal bool MatchesExact()
+            {
+                AIBrain brain = actor.Brain;
+                return actor.CurrentLifecycleState == lifecycleState
+                    && actor.IsAiPaused() == aiPaused
+                    && actor.State == decisionState
+                    && ReferenceEquals(brain?.bestAction, bestAction)
+                    && (brain?.isExecuted == true) == isExecuted
+                    && (brain?.isBestActionEnd == true) == isBestActionEnd
+                    && (brain?.CurrentActionPhase ?? string.Empty) == phase
+                    && (brain?.CurrentActionPhaseDetail ?? string.Empty)
+                        == phaseDetail
+                    && (brain?.DebugVersion ?? 0) == brainDebugVersion
+                    && presentation.CurrentStatus == presentationStatus
+                    && presentation.IsCombatActive
+                        == presentationCombatActive;
+            }
+
+            internal void RestoreForCleanup()
+            {
+                if (actor.CurrentLifecycleState != lifecycleState)
+                {
+                    actor.SetLifecycleState(lifecycleState);
+                }
+                if (actor.IsAiPaused() != aiPaused)
+                {
+                    actor.SetAiPaused(aiPaused);
+                }
+                actor.state = decisionState;
+                if (actor.Brain != null)
+                {
+                    actor.Brain.bestAction = bestAction;
+                    actor.Brain.isExecuted = isExecuted;
+                    actor.Brain.isBestActionEnd = isBestActionEnd;
+                    actor.Brain.SetActionPhase(phase, detail: phaseDetail);
+                }
+                presentation.SetStatus(
+                    presentationStatus,
+                    presentationCombatActive);
             }
         }
 

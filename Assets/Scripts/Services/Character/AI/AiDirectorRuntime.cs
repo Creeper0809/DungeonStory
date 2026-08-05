@@ -44,6 +44,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
     private ICharacterAiFacilityLookup facilityLookup;
     private IGameClock gameClock;
     private IUiClock uiClock;
+    private ICharacterNeedDefinitionCatalog needDefinitionCatalog;
 
     public string LastRequestDebug => lastRequestDebug;
     public CharacterMacroGoalType LastAppliedMacroGoalType => lastAppliedMacroGoalType;
@@ -64,7 +65,8 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         ICharacterAiSchedulingService aiSchedulingService,
         ICharacterAiFacilityLookup facilityLookup,
         IGameClock gameClock,
-        IUiClock uiClock = null)
+        IUiClock uiClock,
+        ICharacterNeedDefinitionCatalog needDefinitionCatalog)
     {
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
@@ -77,6 +79,8 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         this.gameClock = gameClock
             ?? throw new ArgumentNullException(nameof(gameClock));
         this.uiClock = uiClock;
+        this.needDefinitionCatalog = needDefinitionCatalog
+            ?? throw new ArgumentNullException(nameof(needDefinitionCatalog));
     }
 
     public void SetWarningLogsSuppressedForDebug(bool value)
@@ -213,7 +217,7 @@ public sealed class AiDirectorRuntime : SerializedMonoBehaviour
         }
 
         IReadOnlyList<CharacterNeedDefinition> needs =
-            CharacterNeedCatalog.All;
+            needDefinitionCatalog.All;
         for (int index = 0; index < needs.Count; index++)
         {
             CharacterNeedDefinition definition = needs[index];

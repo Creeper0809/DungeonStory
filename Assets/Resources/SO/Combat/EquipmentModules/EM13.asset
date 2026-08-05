@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7df167050aa2bbe4696f5a14fc406e5a, type: 3}
+  m_Name: EM13
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentModuleDefinitionSO
+  moduleId: module:armor:mobility-joint
+  displayName: "\uAE30\uB3D9 \uAD00\uC808"
+  description: "\uC6D0\uC815\uC5D0\uC11C \uD68C\uC218\uD558\uB294 \uAE30\uB3D9 \uAD00\uC808
+    \uAC1C\uB7C9 \uBD80\uD488"
+  lineageKind: 1
+  minimumEra: 2
+  powerPerGrade: 0.035
+  utilityPerGrade: 0.025

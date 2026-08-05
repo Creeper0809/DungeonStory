@@ -1,0 +1,14 @@
+{
+  "name": "DungeonStory.Defense",
+  "rootNamespace": "DungeonStory.Defense",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": true
+}

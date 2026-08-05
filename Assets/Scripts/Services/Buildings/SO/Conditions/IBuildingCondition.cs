@@ -1,32 +1,70 @@
-using System.Collections.Generic;
-using UnityEngine;
-
-public interface IBuildingCondition
+public readonly struct BuildingConditionContext : IBuildingConditionContextPort
 {
-    public bool IsSatisfy(
-        Grid grid,
-        List<Vector2Int> buildPos,
-        BuildingConditionContext context,
-        out string errorMessage);
+    public static readonly BuildingConditionContext Empty =
+        new BuildingConditionContext(
+            null,
+            null,
+            null,
+            DisabledDungeonDebugRuleQuery.Instance);
 
-    public void OnBuild(BuildingConditionContext context);
-}
-
-public readonly struct BuildingConditionContext
-{
-    public static readonly BuildingConditionContext Empty = new BuildingConditionContext(null);
-
-    public BuildingConditionContext(GameData gameData)
-        : this(gameData, null)
+    public BuildingConditionContext(GameSessionState gameData)
+        : this(gameData, null, null, DisabledDungeonDebugRuleQuery.Instance)
     {
     }
 
-    public BuildingConditionContext(GameData gameData, IBuildingUnlockStateView buildingUnlockState)
+    public BuildingConditionContext(GameSessionState gameData, IBuildingUnlockStateView buildingUnlockState)
+        : this(
+            gameData,
+            buildingUnlockState,
+            null,
+            DisabledDungeonDebugRuleQuery.Instance)
     {
-        GameData = gameData;
+    }
+
+    public BuildingConditionContext(
+        GameSessionState gameData,
+        IBuildingUnlockStateView buildingUnlockState,
+        IGameMoneyAccount moneyAccount)
+        : this(
+            gameData,
+            buildingUnlockState,
+            moneyAccount,
+            DisabledDungeonDebugRuleQuery.Instance)
+    {
+    }
+
+    public BuildingConditionContext(
+        GameSessionState gameData,
+        IBuildingUnlockStateView buildingUnlockState,
+        IGameMoneyAccount moneyAccount,
+        IDungeonDebugRuleQuery debugRules)
+    {
+        GameSessionState = gameData;
         BuildingUnlockState = buildingUnlockState;
+        MoneyAccount = moneyAccount;
+        DebugRules = debugRules ?? throw new System.ArgumentNullException(nameof(debugRules));
     }
 
-    public GameData GameData { get; }
+    public GameSessionState GameSessionState { get; }
     public IBuildingUnlockStateView BuildingUnlockState { get; }
+    public IGameMoneyAccount MoneyAccount { get; }
+    public IDungeonDebugRuleQuery DebugRules { get; }
+    public bool ShouldSkipConstructionCosts =>
+        DebugRules.ShouldSkipCosts()
+        || DebugRules.IsEnabled(DungeonDebugCheat.FreeConstruction);
+
+    public bool CanSpendConstruction(int amount) =>
+        MoneyAccount != null && MoneyAccount.CanSpend(amount);
+
+    public bool TrySpendConstruction(int amount)
+    {
+        return MoneyAccount != null
+            && MoneyAccount.TrySpend(
+                amount,
+                new EconomyTransactionContext(
+                    EconomyTransactionKind.LegacyExpense,
+                    "building-construction",
+                    description: "시설 건설"),
+                out _);
+    }
 }

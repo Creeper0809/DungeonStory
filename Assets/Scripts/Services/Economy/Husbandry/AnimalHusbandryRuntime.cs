@@ -5,60 +5,65 @@ using DungeonStory.Foundation;
 using Unity.Profiling;
 using UnityEngine;
 using VContainer.Unity;
+using static AnimalHusbandryWorkRules;
 
 public sealed class AnimalHusbandryRuntime :
-    IAnimalHusbandryRuntime,
+    IAnimalHusbandryQuery,
+    IAnimalHusbandryCommand,
+    IAnimalHusbandryPersistence,
+    IAnimalHusbandryCommandState,
     ITickable
 {
     private static readonly ProfilerMarker TickProfilerMarker =
         new ProfilerMarker("AnimalHusbandryRuntime.Tick");
     private const float SecondsPerGameDay = 180f;
     private const float TickIntervalSeconds = 5f;
-    private const string ManureItemId = "resource:manure";
+    private static readonly ItemDefinitionId ManureItemId =
+        new("resource:manure");
 
     private readonly IWildlifeCaptureRuntime captureRuntime;
     private readonly IWildlifeRuntime wildlifeRuntime;
     private readonly IWildlifeSpeciesCatalogProvider speciesCatalog;
+    private readonly IItemDefinitionCatalog itemCatalog;
     private readonly IWorldItemStackRuntime itemRuntime;
     private readonly IWildlifeCarcassService carcassService;
     private readonly IGameClock clock;
-    private readonly Dictionary<string, HusbandryAnimalState> animals =
-        new Dictionary<string, HusbandryAnimalState>(StringComparer.Ordinal);
-    private readonly Dictionary<string, AnimalPenPolicyData> policies =
-        new Dictionary<string, AnimalPenPolicyData>(StringComparer.Ordinal);
-    private readonly HashSet<string> synchronizedAnimalIds =
-        new HashSet<string>(StringComparer.Ordinal);
-    private readonly List<string> staleAnimalIds = new List<string>();
-    private readonly Dictionary<string, CapturedWildlifeState> capturedById =
-        new Dictionary<string, CapturedWildlifeState>(StringComparer.Ordinal);
-    private readonly Dictionary<string, List<HusbandryAnimalState>> animalsByPen =
-        new Dictionary<string, List<HusbandryAnimalState>>(StringComparer.Ordinal);
-    private readonly Dictionary<string, float> compatibilityRiskByPen =
-        new Dictionary<string, float>(StringComparer.Ordinal);
+    private readonly DungeonRuntimeAggregateRootStore aggregateRootStore;
+    private readonly HashSet<WildlifeInstanceId> synchronizedAnimalIds = new();
+    private readonly List<WildlifeInstanceId> staleAnimalIds = new();
+    private readonly Dictionary<WildlifeInstanceId, CapturedWildlifeState> capturedById =
+        new();
+    private readonly Dictionary<BuildingInstanceId, List<HusbandryAnimalState>> animalsByPen =
+        new();
+    private readonly Dictionary<BuildingInstanceId, float> compatibilityRiskByPen =
+        new();
     private readonly List<HusbandryAnimalState> animalIterationBuffer =
         new List<HusbandryAnimalState>();
     private readonly List<CapturedWildlifeState> capturedAnimalBuffer =
         new List<CapturedWildlifeState>();
-    private readonly Dictionary<(string PenId, string SpeciesId), List<HusbandryAnimalState>>
-        slaughterGroups =
-            new Dictionary<(string PenId, string SpeciesId), List<HusbandryAnimalState>>();
-    private readonly List<HusbandryAnimalState> femaleSlaughterCandidates =
-        new List<HusbandryAnimalState>();
-    private readonly List<HusbandryAnimalState> maleSlaughterCandidates =
-        new List<HusbandryAnimalState>();
-    private readonly List<HusbandryAnimalState> juvenileSlaughterCandidates =
-        new List<HusbandryAnimalState>();
-    private static readonly Comparison<HusbandryAnimalState> OldestFirst =
-        CompareOldestFirst;
-    private float nextTickAt;
+    private readonly AnimalHusbandryPolicyEvaluator policyEvaluator;
+    private readonly AnimalHusbandryCommandService commandService;
+    private int projectedRestoreRevision;
+
+    private AnimalHusbandryAggregateState State =>
+        aggregateRootStore.GetOrCreate(() => new AnimalHusbandryAggregateState());
+    private Dictionary<WildlifeInstanceId, HusbandryAnimalState> animals => State.Animals;
+    private Dictionary<BuildingInstanceId, AnimalPenPolicyData> policies => State.Policies;
+    private float nextTickAt
+    {
+        get => State.NextTickAt;
+        set => State.NextTickAt = value;
+    }
 
     public AnimalHusbandryRuntime(
         IWildlifeCaptureRuntime captureRuntime,
         IWildlifeRuntime wildlifeRuntime,
         IWildlifeSpeciesCatalogProvider speciesCatalog,
+        IItemDefinitionCatalog itemCatalog,
         IWorldItemStackRuntime itemRuntime,
         IWildlifeCarcassService carcassService,
-        IGameClock clock)
+        IGameClock clock,
+        DungeonRuntimeAggregateRootStore aggregateRootStore)
     {
         this.captureRuntime = captureRuntime
             ?? throw new ArgumentNullException(nameof(captureRuntime));
@@ -66,24 +71,34 @@ public sealed class AnimalHusbandryRuntime :
             ?? throw new ArgumentNullException(nameof(wildlifeRuntime));
         this.speciesCatalog = speciesCatalog
             ?? throw new ArgumentNullException(nameof(speciesCatalog));
+        this.itemCatalog = itemCatalog
+            ?? throw new ArgumentNullException(nameof(itemCatalog));
+        this.itemCatalog.GetRequired(ManureItemId);
+        policyEvaluator = new AnimalHusbandryPolicyEvaluator(this.speciesCatalog);
+        commandService = new AnimalHusbandryCommandService(
+            this,
+            this.captureRuntime,
+            this.speciesCatalog);
         this.itemRuntime = itemRuntime
             ?? throw new ArgumentNullException(nameof(itemRuntime));
         this.carcassService = carcassService
             ?? throw new ArgumentNullException(nameof(carcassService));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
+        this.aggregateRootStore = aggregateRootStore
+            ?? throw new ArgumentNullException(nameof(aggregateRootStore));
     }
 
     public IReadOnlyList<HusbandryAnimalState> Animals =>
         animals.Values
-            .OrderBy(state => state.penId, StringComparer.Ordinal)
-            .ThenBy(state => state.speciesId, StringComparer.Ordinal)
-            .ThenBy(state => state.wildlifeId, StringComparer.Ordinal)
+            .OrderBy(state => state.PenId.Value, StringComparer.Ordinal)
+            .ThenBy(state => state.SpeciesId.Value, StringComparer.Ordinal)
+            .ThenBy(state => state.AnimalId.Value, StringComparer.Ordinal)
             .Select(state => state.Clone())
             .ToArray();
 
     public IReadOnlyList<AnimalPenPolicyData> PenPolicies =>
         policies.Values
-            .OrderBy(policy => policy.penId, StringComparer.Ordinal)
+            .OrderBy(policy => policy.PenId.Value, StringComparer.Ordinal)
             .Select(policy => policy.Clone())
             .ToArray();
 
@@ -91,6 +106,7 @@ public sealed class AnimalHusbandryRuntime :
     {
         using (TickProfilerMarker.Auto())
         {
+            EnsureRestoreProjectionCurrent();
             if (clock.IsPaused
                 || clock.DeltaTime <= 0f
                 || clock.Time + 0.001f < nextTickAt)
@@ -109,16 +125,19 @@ public sealed class AnimalHusbandryRuntime :
             AdvanceAnimals(
                 elapsed / SecondsPerGameDay,
                 capturedAnimalBuffer);
-            RefreshAutoSlaughterDesignations();
+            policyEvaluator.RefreshAutoSlaughterDesignations(
+                animals.Values,
+                GetPolicyInternal,
+                IsAdult);
         }
     }
 
     public bool TryGetAnimal(
-        string wildlifeId,
+        WildlifeInstanceId animalId,
         out HusbandryAnimalState state)
     {
-        string id = wildlifeId?.Trim() ?? string.Empty;
-        if (animals.TryGetValue(id, out HusbandryAnimalState found))
+        if (animalId.IsValid
+            && animals.TryGetValue(animalId, out HusbandryAnimalState found))
         {
             state = found.Clone();
             return true;
@@ -128,103 +147,40 @@ public sealed class AnimalHusbandryRuntime :
         return false;
     }
 
-    public AnimalPenPolicyData GetOrCreatePenPolicy(string penId)
+    public AnimalPenPolicyData GetPenPolicy(BuildingInstanceId penId)
     {
-        string id = penId?.Trim() ?? string.Empty;
-        if (id.Length == 0)
+        if (!penId.IsValid)
         {
             return new AnimalPenPolicyData();
         }
 
-        if (!policies.TryGetValue(id, out AnimalPenPolicyData policy))
+        if (!policies.TryGetValue(penId, out AnimalPenPolicyData policy))
         {
-            policy = new AnimalPenPolicyData { penId = id };
-            policies.Add(id, policy);
+            policy = new AnimalPenPolicyData { PenId = penId };
+            policies.Add(penId, policy);
         }
 
         return policy.Clone();
     }
 
-    public int GetEffectivePenCapacity(string penId)
+    public int GetEffectivePenCapacity(BuildingInstanceId penId)
     {
         AnimalPenPolicyData policy = GetPolicyInternal(penId);
-        return captureRuntime.TryGetPenCapacity(penId, out int physicalCapacity)
+        return captureRuntime.TryGetPenCapacity(penId.Value, out int physicalCapacity)
             ? Mathf.Min(policy.maximumAnimals, physicalCapacity)
             : policy.maximumAnimals;
     }
 
     public bool SetPenPolicy(
         AnimalPenPolicyData policy,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        string penId = policy?.penId?.Trim() ?? string.Empty;
-        if (penId.Length == 0)
-        {
-            failureReason = "우리 정책에는 유효한 우리 ID가 필요합니다.";
-            return false;
-        }
-
-        AnimalPenPolicyData normalized = policy.Clone();
-        normalized.penId = penId;
-        normalized.maximumAnimals = Mathf.Max(1, normalized.maximumAnimals);
-        if (captureRuntime.TryGetPenCapacity(penId, out int physicalCapacity))
-        {
-            normalized.maximumAnimals = Mathf.Min(
-                normalized.maximumAnimals,
-                physicalCapacity);
-        }
-        normalized.adultFemaleLimit = Mathf.Max(0, normalized.adultFemaleLimit);
-        normalized.adultMaleLimit = Mathf.Max(0, normalized.adultMaleLimit);
-        normalized.juvenileLimit = Mathf.Max(0, normalized.juvenileLimit);
-        normalized.minimumBreedingFemales = Mathf.Max(
-            0,
-            normalized.minimumBreedingFemales);
-        normalized.minimumBreedingMales = Mathf.Max(
-            0,
-            normalized.minimumBreedingMales);
-        normalized.allowedSpeciesIds = (normalized.allowedSpeciesIds
-                ?? new List<string>())
-            .Select(value => value?.Trim() ?? string.Empty)
-            .Where(value => value.Length > 0)
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-        policies[penId] = normalized;
-        RefreshAutoSlaughterDesignations();
-        return true;
-    }
+        out AnimalHusbandryFailure failure) =>
+        commandService.SetPenPolicy(policy, out failure);
 
     public bool DesignateSlaughter(
-        string wildlifeId,
+        WildlifeInstanceId animalId,
         bool designated,
-        out string failureReason)
-    {
-        failureReason = string.Empty;
-        string id = wildlifeId?.Trim() ?? string.Empty;
-        if (!animals.TryGetValue(id, out HusbandryAnimalState state))
-        {
-            failureReason = "축산 개체를 찾을 수 없습니다.";
-            return false;
-        }
-
-        if (designated && state.pregnant)
-        {
-            AnimalPenPolicyData policy = GetPolicyInternal(state.penId);
-            if (policy.protectPregnant)
-            {
-                failureReason = "현재 우리 정책이 임신 개체를 보호합니다.";
-                return false;
-            }
-        }
-
-        state.slaughterDesignated = designated;
-        if (!designated)
-        {
-            state.autoSlaughterDesignated = false;
-        }
-        state.lastStatus = designated ? "도축 지정" : "도축 지정 해제";
-        return true;
-    }
+        out AnimalHusbandryFailure failure) =>
+        commandService.DesignateSlaughter(animalId, designated, out failure);
 
     public bool TryGetWork(
         BuildableObject pen,
@@ -236,22 +192,24 @@ public sealed class AnimalHusbandryRuntime :
             pen?.BuildingData.GetBeastPenAbility();
         if (pen == null || ability == null || !ability.IsValid)
         {
-            work = Unavailable("동물 돌봄 능력이 있는 우리가 아닙니다.");
+            work = Unavailable(
+                new AnimalHusbandryFailure(
+                    AnimalHusbandryFailureCode.InvalidPen));
             return false;
         }
 
-        string penId = GetPenId(pen);
+        BuildingInstanceId penId = GetPenId(pen);
         HusbandryAnimalState selected = animals.Values
-            .Where(state => string.Equals(
-                state.penId,
-                penId,
-                StringComparison.Ordinal))
+            .Where(state => state.PenId.Equals(penId))
             .OrderByDescending(GetWorkPriority)
-            .ThenBy(state => state.wildlifeId, StringComparer.Ordinal)
+            .ThenBy(state => state.AnimalId.Value, StringComparer.Ordinal)
             .FirstOrDefault(state => GetWorkPriority(state) > 0);
         if (selected == null)
         {
-            work = Unavailable("현재 돌볼 동물이 없습니다.");
+            work = Unavailable(
+                new AnimalHusbandryFailure(
+                    AnimalHusbandryFailureCode.NoPendingWork,
+                    penId.Value));
             return false;
         }
 
@@ -261,19 +219,18 @@ public sealed class AnimalHusbandryRuntime :
         float completed = GetCompletedWork(selected, kind, required);
         work = new AnimalHusbandryWorkSnapshot(
             true,
-            selected.wildlifeId,
+            selected.AnimalId,
             kind,
-            GetWorkLabel(selected, kind),
             required,
             completed,
-            string.Empty);
+            AnimalHusbandryFailure.None);
         return true;
     }
 
     public bool ApplyWork(
         BuildableObject pen,
         CharacterActor worker,
-        string wildlifeId,
+        WildlifeInstanceId animalId,
         AnimalHusbandryWorkKind kind,
         float amount,
         out bool completed)
@@ -281,13 +238,9 @@ public sealed class AnimalHusbandryRuntime :
         completed = false;
         if (pen == null
             || amount <= 0f
-            || !animals.TryGetValue(
-                wildlifeId?.Trim() ?? string.Empty,
-                out HusbandryAnimalState state)
-            || !string.Equals(
-                state.penId,
-                GetPenId(pen),
-                StringComparison.Ordinal))
+            || !animalId.IsValid
+            || !animals.TryGetValue(animalId, out HusbandryAnimalState state)
+            || !state.PenId.Equals(GetPenId(pen)))
         {
             return false;
         }
@@ -304,16 +257,16 @@ public sealed class AnimalHusbandryRuntime :
         switch (kind)
         {
             case AnimalHusbandryWorkKind.Tame:
-                state.tamingProgress = Mathf.Clamp01(
-                    state.tamingProgress + amount / required);
-                completed = state.tamingProgress >= 0.999f;
+                state.TamingProgress = Mathf.Clamp01(
+                    state.TamingProgress + amount / required);
+                completed = state.TamingProgress >= 0.999f;
                 if (completed)
                 {
-                    state.tamed = true;
-                    state.tamingProgress = 1f;
-                    state.lastStatus = "길들임 완료";
+                    state.Tamed = true;
+                    state.TamingProgress = 1f;
+                    SetStatus(state, AnimalHusbandryStatusCode.TamingCompleted);
                     captureRuntime.TrySetTamed(
-                        state.wildlifeId,
+                        state.AnimalId.Value,
                         true,
                         out _);
                     ResetPendingWork(state);
@@ -321,37 +274,40 @@ public sealed class AnimalHusbandryRuntime :
                 return true;
 
             case AnimalHusbandryWorkKind.CollectProduct:
-                AnimalProductProgressState product = state.products
-                    .FirstOrDefault(item => item != null && item.readyCycles > 0);
+                AnimalProductProgressState product = state.Products
+                    .FirstOrDefault(item => item != null && item.ReadyCycles > 0);
                 if (product == null
                     || !TryGetProductDefinition(
                         state,
-                        product.itemId,
+                        product.ItemId,
                         out WildlifeHusbandryProductDefinition definition))
                 {
                     return false;
                 }
 
-                state.pendingWorkCompleted = Mathf.Min(
+                state.PendingWorkCompleted = Mathf.Min(
                     required,
-                    state.pendingWorkCompleted + amount);
-                if (state.pendingWorkCompleted + 0.001f < required)
+                    state.PendingWorkCompleted + amount);
+                if (state.PendingWorkCompleted + 0.001f < required)
                 {
                     return true;
                 }
 
-                product.readyCycles = Mathf.Max(0, product.readyCycles - 1);
+                product.ReadyCycles = Mathf.Max(0, product.ReadyCycles - 1);
                 completed = itemRuntime.SpawnItemAt(
-                    definition.ItemId,
+                    new ItemDefinitionId(definition.ItemId).Value,
                     definition.Amount,
                     pen.centerPos,
                     WorldItemStackState.Loose,
                     string.Empty,
                     out int spawned)
                     && spawned > 0;
-                state.lastStatus = completed
-                    ? $"{definition.ItemId} 산출물 수거"
-                    : "산출물을 놓을 수 없음";
+                SetStatus(
+                    state,
+                    completed
+                        ? AnimalHusbandryStatusCode.ProductCollected
+                        : AnimalHusbandryStatusCode.ProductStorageUnavailable,
+                    definition.ItemId);
                 if (completed)
                 {
                     ResetPendingWork(state);
@@ -359,26 +315,30 @@ public sealed class AnimalHusbandryRuntime :
                 return completed;
 
             case AnimalHusbandryWorkKind.CollectManure:
-                state.pendingWorkCompleted = Mathf.Min(
+                state.PendingWorkCompleted = Mathf.Min(
                     required,
-                    state.pendingWorkCompleted + amount);
-                if (state.pendingWorkCompleted + 0.001f < required)
+                    state.PendingWorkCompleted + amount);
+                if (state.PendingWorkCompleted + 0.001f < required)
                 {
                     return true;
                 }
 
-                state.readyManureCycles = Mathf.Max(
+                state.ReadyManureCycles = Mathf.Max(
                     0,
-                    state.readyManureCycles - 1);
+                    state.ReadyManureCycles - 1);
                 completed = itemRuntime.SpawnItemAt(
-                    ManureItemId,
+                    ManureItemId.Value,
                     1,
                     pen.centerPos,
                     WorldItemStackState.Loose,
                     string.Empty,
                     out int manureSpawned)
                     && manureSpawned > 0;
-                state.lastStatus = completed ? "분뇨 수거" : "분뇨를 놓을 수 없음";
+                SetStatus(
+                    state,
+                    completed
+                        ? AnimalHusbandryStatusCode.ManureCollected
+                        : AnimalHusbandryStatusCode.ManureStorageUnavailable);
                 if (completed)
                 {
                     ResetPendingWork(state);
@@ -386,15 +346,15 @@ public sealed class AnimalHusbandryRuntime :
                 return completed;
 
             case AnimalHusbandryWorkKind.Slaughter:
-                state.pendingWorkCompleted = Mathf.Min(
+                state.PendingWorkCompleted = Mathf.Min(
                     required,
-                    state.pendingWorkCompleted + amount);
-                if (state.pendingWorkCompleted + 0.001f < required)
+                    state.PendingWorkCompleted + amount);
+                if (state.PendingWorkCompleted + 0.001f < required)
                 {
                     return true;
                 }
 
-                WildlifeActor actor = FindActor(state.wildlifeId);
+                WildlifeActor actor = FindActor(state.AnimalId);
                 if (actor == null || !actor.IsAlive)
                 {
                     return false;
@@ -402,9 +362,9 @@ public sealed class AnimalHusbandryRuntime :
 
                 actor.ApplyDamage(actor.CurrentHealth, worker);
                 carcassService.SpawnCarcass(actor);
-                captureRuntime.TryRelease(state.wildlifeId, out _);
-                wildlifeRuntime.TryRemoveArrival(state.wildlifeId);
-                animals.Remove(state.wildlifeId);
+                captureRuntime.TryRelease(state.AnimalId.Value, out _);
+                wildlifeRuntime.TryRemoveArrival(state.AnimalId.Value);
+                RemoveAnimal(state.AnimalId);
                 completed = true;
                 return true;
 
@@ -413,9 +373,9 @@ public sealed class AnimalHusbandryRuntime :
         }
     }
 
-    public AnimalPenCompatibilityResult EvaluatePen(string penId)
+    public AnimalPenCompatibilityResult EvaluatePen(BuildingInstanceId penId)
     {
-        string id = penId?.Trim() ?? string.Empty;
+        BuildingInstanceId id = penId;
         List<HusbandryAnimalState> occupants =
             new List<HusbandryAnimalState>();
         Dictionary<string, WildlifeSpeciesDefinition> speciesById =
@@ -427,7 +387,7 @@ public sealed class AnimalHusbandryRuntime :
         bool hasMeatEater = false;
         foreach (HusbandryAnimalState state in animals.Values)
         {
-            if (!string.Equals(state.penId, id, StringComparison.Ordinal))
+            if (!state.PenId.Equals(id))
             {
                 continue;
             }
@@ -438,7 +398,7 @@ public sealed class AnimalHusbandryRuntime :
                 continue;
             }
 
-            string speciesId = state.speciesId ?? string.Empty;
+            string speciesId = state.SpeciesId.Value;
             speciesById[speciesId] = species;
             speciesCounts.TryGetValue(speciesId, out int count);
             speciesCounts[speciesId] = count + 1;
@@ -459,7 +419,7 @@ public sealed class AnimalHusbandryRuntime :
             issues.Add(new AnimalPenCompatibilityIssue(
                 AnimalPenCompatibilityIssueKind.Overcrowding,
                 severity,
-                $"수용 정책보다 {occupants.Count - policy.maximumAnimals}마리 많음"));
+                (occupants.Count - policy.maximumAnimals).ToString()));
             weightedSeverity += severity;
         }
 
@@ -497,7 +457,8 @@ public sealed class AnimalHusbandryRuntime :
                     issues.Add(new AnimalPenCompatibilityIssue(
                         AnimalPenCompatibilityIssueKind.PredatorPrey,
                         severity,
-                        $"{left.DisplayName}과 {right.DisplayName}의 포식 위험"));
+                        left.SpeciesId,
+                        right.SpeciesId));
                     weightedSeverity += severity * pairCount;
                 }
 
@@ -508,7 +469,8 @@ public sealed class AnimalHusbandryRuntime :
                     issues.Add(new AnimalPenCompatibilityIssue(
                         AnimalPenCompatibilityIssueKind.Aggression,
                         severity,
-                        $"{left.DisplayName}과 {right.DisplayName}의 공격성 충돌"));
+                        left.SpeciesId,
+                        right.SpeciesId));
                     weightedSeverity += severity * pairCount;
                 }
 
@@ -526,7 +488,8 @@ public sealed class AnimalHusbandryRuntime :
                     issues.Add(new AnimalPenCompatibilityIssue(
                         AnimalPenCompatibilityIssueKind.BodySize,
                         severity,
-                        $"{left.DisplayName}과 {right.DisplayName}의 체급 차이"));
+                        left.SpeciesId,
+                        right.SpeciesId));
                     weightedSeverity += severity * pairCount;
                 }
             }
@@ -537,8 +500,7 @@ public sealed class AnimalHusbandryRuntime :
             const float severity = 0.55f;
             issues.Add(new AnimalPenCompatibilityIssue(
                 AnimalPenCompatibilityIssueKind.FeedConflict,
-                severity,
-                "초식과 육식 사료를 같은 우리에서 관리 중"));
+                severity));
             weightedSeverity += severity;
         }
 
@@ -557,41 +519,45 @@ public sealed class AnimalHusbandryRuntime :
 
     public DungeonAnimalHusbandrySaveData Capture()
     {
-        return new DungeonAnimalHusbandrySaveData
-        {
-            animals = animals.Values.Select(state => state.Clone()).ToList(),
-            penPolicies = policies.Values.Select(policy => policy.Clone()).ToList()
-        };
+        return AnimalHusbandryStateCodec.Capture(State);
     }
 
-    public void Restore(DungeonAnimalHusbandrySaveData saveData)
+    public AnimalHusbandryRestoreCandidate BuildRestore(
+        DungeonAnimalHusbandrySaveData saveData)
     {
-        animals.Clear();
-        policies.Clear();
-        DungeonAnimalHusbandrySaveData source =
-            saveData ?? new DungeonAnimalHusbandrySaveData();
-        foreach (HusbandryAnimalState state in source.animals
-                     ?? new List<HusbandryAnimalState>())
+        return AnimalHusbandryStateCodec.BuildRestore(
+            saveData,
+            clock.Time + TickIntervalSeconds,
+            id => speciesCatalog.TryGetSpecies(
+                id.Value,
+                out WildlifeSpeciesDefinition species)
+                    ? species.Husbandry.Products
+                        .Select(product => new ItemDefinitionId(product.ItemId))
+                        .ToArray()
+                    : null,
+            id => itemCatalog.TryGet(id, out _));
+    }
+
+    public void Restore(AnimalHusbandryRestoreCandidate candidate)
+    {
+        aggregateRootStore.Replace(
+            (candidate ?? throw new ArgumentNullException(nameof(candidate))).State);
+        if (!aggregateRootStore.IsRestoreStaging)
         {
-            string id = state?.wildlifeId?.Trim() ?? string.Empty;
-            if (id.Length > 0 && !animals.ContainsKey(id))
-            {
-                animals.Add(id, state.Clone());
-            }
+            SynchronizeCapturedAnimals();
+        }
+    }
+
+    private void EnsureRestoreProjectionCurrent()
+    {
+        int publishedRevision = aggregateRootStore.PublishedRestoreRevision;
+        if (projectedRestoreRevision == publishedRevision)
+        {
+            return;
         }
 
-        foreach (AnimalPenPolicyData policy in source.penPolicies
-                     ?? new List<AnimalPenPolicyData>())
-        {
-            string id = policy?.penId?.Trim() ?? string.Empty;
-            if (id.Length > 0 && !policies.ContainsKey(id))
-            {
-                policies.Add(id, policy.Clone());
-            }
-        }
-
+        projectedRestoreRevision = publishedRevision;
         SynchronizeCapturedAnimals();
-        nextTickAt = clock.Time + TickIntervalSeconds;
     }
 
     private void SynchronizeCapturedAnimals()
@@ -615,10 +581,14 @@ public sealed class AnimalHusbandryRuntime :
                 continue;
             }
 
-            string id = captured.wildlifeId?.Trim() ?? string.Empty;
-            if (id.Length == 0)
+            WildlifeInstanceId id = new(captured.wildlifeId);
+            WildlifeSpeciesId speciesId = new(captured.speciesId);
+            BuildingInstanceId penId = new(captured.penId);
+            if (!id.IsValid || !speciesId.IsValid || !penId.IsValid
+                || !speciesCatalog.TryGetSpecies(speciesId.Value, out _))
             {
-                continue;
+                throw new InvalidOperationException(
+                    $"Penned wildlife '{captured.wildlifeId}' has an invalid instance, species, or pen reference.");
             }
 
             synchronizedAnimalIds.Add(id);
@@ -628,14 +598,15 @@ public sealed class AnimalHusbandryRuntime :
                 animals.Add(id, state);
             }
 
-            state.penId = captured.penId?.Trim() ?? string.Empty;
-            state.tamed |= captured.isTamed;
+            state.PenId = penId;
+            state.SpeciesId = speciesId;
+            state.Tamed |= captured.isTamed;
             EnsureProductStates(state);
-            GetPolicyInternal(state.penId);
+            GetPolicyInternal(state.PenId);
         }
 
         staleAnimalIds.Clear();
-        foreach (string id in animals.Keys)
+        foreach (WildlifeInstanceId id in animals.Keys)
         {
             if (!synchronizedAnimalIds.Contains(id))
             {
@@ -645,7 +616,7 @@ public sealed class AnimalHusbandryRuntime :
 
         for (int index = 0; index < staleAnimalIds.Count; index++)
         {
-            animals.Remove(staleAnimalIds[index]);
+            RemoveAnimal(staleAnimalIds[index]);
         }
     }
 
@@ -654,21 +625,28 @@ public sealed class AnimalHusbandryRuntime :
     {
         uint hash = StableHash(captured.wildlifeId);
         float ageRatio = 0.25f + ((hash >> 1) % 70) / 100f;
-        WildlifeHusbandryProfile profile = speciesCatalog.TryGetSpecies(
-                captured.speciesId,
-                out WildlifeSpeciesDefinition species)
-            ? species.Husbandry
-            : WildlifeHusbandryProfile.CreateDefault(0f, 8f);
+        WildlifeSpeciesId speciesId = new(captured.speciesId);
+        BuildingInstanceId penId = new(captured.penId);
+        if (!speciesCatalog.TryGetSpecies(
+                speciesId.Value,
+                out WildlifeSpeciesDefinition species))
+        {
+            throw new InvalidOperationException(
+                $"Captured animal '{captured.wildlifeId}' references unknown authored species '{speciesId.Value}'.");
+        }
+        WildlifeHusbandryProfile profile = species.Husbandry;
         HusbandryAnimalState state = new HusbandryAnimalState
         {
-            wildlifeId = captured.wildlifeId,
-            speciesId = captured.speciesId,
-            penId = captured.penId,
-            sex = (hash & 1) == 0 ? AnimalSex.Female : AnimalSex.Male,
-            ageDays = Mathf.Max(0.1f, profile.AdultAgeDays * ageRatio),
-            tamed = captured.isTamed,
-            tamingProgress = captured.isTamed ? 1f : 0f,
-            lastStatus = captured.isTamed ? "길들인 가축" : "길들이기 대기"
+            AnimalId = new WildlifeInstanceId(captured.wildlifeId),
+            SpeciesId = speciesId,
+            PenId = penId,
+            Sex = (hash & 1) == 0 ? AnimalSex.Female : AnimalSex.Male,
+            AgeDays = Mathf.Max(0.1f, profile.AdultAgeDays * ageRatio),
+            Tamed = captured.isTamed,
+            TamingProgress = captured.isTamed ? 1f : 0f,
+            StatusCode = captured.isTamed
+                ? AnimalHusbandryStatusCode.TamedAnimal
+                : AnimalHusbandryStatusCode.AwaitingTaming
         };
         EnsureProductStates(state);
         return state;
@@ -691,7 +669,11 @@ public sealed class AnimalHusbandryRuntime :
             if (captured != null
                 && !string.IsNullOrWhiteSpace(captured.wildlifeId))
             {
-                capturedById[captured.wildlifeId] = captured;
+                WildlifeInstanceId animalId = new(captured.wildlifeId);
+                if (animalId.IsValid)
+                {
+                    capturedById[animalId] = captured;
+                }
             }
         }
 
@@ -704,7 +686,7 @@ public sealed class AnimalHusbandryRuntime :
         foreach (HusbandryAnimalState state in animals.Values)
         {
             animalIterationBuffer.Add(state);
-            string penId = state.penId ?? string.Empty;
+            BuildingInstanceId penId = state.PenId;
             if (!animalsByPen.TryGetValue(
                     penId,
                     out List<HusbandryAnimalState> penAnimals))
@@ -726,11 +708,11 @@ public sealed class AnimalHusbandryRuntime :
             }
 
             WildlifeHusbandryProfile profile = species.Husbandry;
-            state.ageDays += elapsedDays;
-            state.breedingCooldownDays = Mathf.Max(
+            state.AgeDays += elapsedDays;
+            state.BreedingCooldownDays = Mathf.Max(
                 0f,
-                state.breedingCooldownDays - elapsedDays);
-            string penId = state.penId ?? string.Empty;
+                state.BreedingCooldownDays - elapsedDays);
+            BuildingInstanceId penId = state.PenId;
             if (!compatibilityRiskByPen.TryGetValue(
                     penId,
                     out float compatibilityRisk))
@@ -738,9 +720,9 @@ public sealed class AnimalHusbandryRuntime :
                 animalsByPen.TryGetValue(
                     penId,
                     out List<HusbandryAnimalState> penAnimals);
-                compatibilityRisk = CalculatePenCompatibilityRisk(
-                    penId,
-                    penAnimals);
+                compatibilityRisk = policyEvaluator.CalculatePenCompatibilityRisk(
+                    penAnimals,
+                    GetPolicyInternal(penId));
                 compatibilityRiskByPen.Add(penId, compatibilityRisk);
             }
             float comfortMultiplier = Mathf.Lerp(
@@ -748,7 +730,7 @@ public sealed class AnimalHusbandryRuntime :
                 0.45f,
                 compatibilityRisk);
             if (capturedById.TryGetValue(
-                    state.wildlifeId,
+                    state.AnimalId,
                     out CapturedWildlifeState care))
             {
                 comfortMultiplier *= Mathf.Lerp(
@@ -757,26 +739,26 @@ public sealed class AnimalHusbandryRuntime :
                     Mathf.Clamp01(care.feedSicknessSeverity / 100f));
             }
 
-            if (state.tamed && GetGrowthStage(state, profile) == AnimalGrowthStage.Adult)
+            if (state.Tamed && GetGrowthStage(state, profile) == AnimalGrowthStage.Adult)
             {
                 AdvanceProducts(
                     state,
                     profile,
                     elapsedDays * comfortMultiplier);
-                state.manureProgressDays += elapsedDays;
-                while (state.manureProgressDays >= profile.ManureIntervalDays)
+                state.ManureProgressDays += elapsedDays;
+                while (state.ManureProgressDays >= profile.ManureIntervalDays)
                 {
-                    state.manureProgressDays -= profile.ManureIntervalDays;
-                    state.readyManureCycles = Mathf.Min(
+                    state.ManureProgressDays -= profile.ManureIntervalDays;
+                    state.ReadyManureCycles = Mathf.Min(
                         4,
-                        state.readyManureCycles + 1);
+                        state.ReadyManureCycles + 1);
                 }
             }
 
-            if (state.pregnant)
+            if (state.Pregnant)
             {
-                state.pregnancyProgressDays += elapsedDays * comfortMultiplier;
-                if (state.pregnancyProgressDays >= profile.GestationDays)
+                state.PregnancyProgressDays += elapsedDays * comfortMultiplier;
+                if (state.PregnancyProgressDays >= profile.GestationDays)
                 {
                     TryCompleteBirth(state, profile);
                 }
@@ -800,21 +782,21 @@ public sealed class AnimalHusbandryRuntime :
         {
             WildlifeHusbandryProductDefinition definition =
                 definitions[definitionIndex];
-            if (definition.FemaleOnly && state.sex != AnimalSex.Female)
+            if (definition.FemaleOnly && state.Sex != AnimalSex.Female)
             {
                 continue;
             }
 
             AnimalProductProgressState progress = null;
             for (int progressIndex = 0;
-                 progressIndex < state.products.Count;
+                 progressIndex < state.Products.Count;
                  progressIndex++)
             {
                 AnimalProductProgressState candidate =
-                    state.products[progressIndex];
+                    state.Products[progressIndex];
                 if (candidate != null
                     && string.Equals(
-                        candidate.itemId,
+                        candidate.ItemId.Value,
                         definition.ItemId,
                         StringComparison.Ordinal))
                 {
@@ -828,11 +810,11 @@ public sealed class AnimalHusbandryRuntime :
                 continue;
             }
 
-            progress.progressDays += elapsedDays;
-            while (progress.progressDays >= definition.IntervalDays)
+            progress.ProgressDays += elapsedDays;
+            while (progress.ProgressDays >= definition.IntervalDays)
             {
-                progress.progressDays -= definition.IntervalDays;
-                progress.readyCycles = Mathf.Min(4, progress.readyCycles + 1);
+                progress.ProgressDays -= definition.IntervalDays;
+                progress.ReadyCycles = Mathf.Min(4, progress.ReadyCycles + 1);
             }
         }
     }
@@ -842,16 +824,16 @@ public sealed class AnimalHusbandryRuntime :
         WildlifeHusbandryProfile profile,
         float compatibilityRisk)
     {
-        if (!female.tamed
-            || female.sex != AnimalSex.Female
-            || female.breedingCooldownDays > 0f
+        if (!female.Tamed
+            || female.Sex != AnimalSex.Female
+            || female.BreedingCooldownDays > 0f
             || compatibilityRisk >= 0.8f
             || GetGrowthStage(female, profile) != AnimalGrowthStage.Adult)
         {
             return;
         }
 
-        AnimalPenPolicyData policy = GetPolicyInternal(female.penId);
+        AnimalPenPolicyData policy = GetPolicyInternal(female.PenId);
         if (!policy.breedingAllowed
             || !IsAllowedByPolicy(female, profile, policy))
         {
@@ -861,19 +843,16 @@ public sealed class AnimalHusbandryRuntime :
         HusbandryAnimalState male = null;
         int population = 0;
         if (animalsByPen.TryGetValue(
-                female.penId ?? string.Empty,
+                female.PenId,
                 out List<HusbandryAnimalState> penAnimals))
         {
             population = penAnimals.Count;
             for (int index = 0; index < penAnimals.Count; index++)
             {
                 HusbandryAnimalState candidate = penAnimals[index];
-                if (candidate.tamed
-                    && candidate.sex == AnimalSex.Male
-                    && string.Equals(
-                        candidate.speciesId,
-                        female.speciesId,
-                        StringComparison.Ordinal)
+                if (candidate.Tamed
+                    && candidate.Sex == AnimalSex.Male
+                    && candidate.SpeciesId.Equals(female.SpeciesId)
                     && TryGetSpecies(
                         candidate,
                         out WildlifeSpeciesDefinition maleSpecies)
@@ -892,16 +871,20 @@ public sealed class AnimalHusbandryRuntime :
             return;
         }
 
-        if (population >= GetEffectivePenCapacity(female.penId))
+        if (population >= GetEffectivePenCapacity(female.PenId))
         {
             return;
         }
 
-        female.pregnant = true;
-        female.pregnancyProgressDays = 0f;
-        female.otherParentId = male.wildlifeId;
-        female.breedingCooldownDays = profile.GestationDays + 2f;
-        female.lastStatus = profile.LaysEggs ? "알을 품는 중" : "임신 중";
+        female.Pregnant = true;
+        female.PregnancyProgressDays = 0f;
+        female.OtherParentId = male.AnimalId;
+        female.BreedingCooldownDays = profile.GestationDays + 2f;
+        SetStatus(
+            female,
+            profile.LaysEggs
+                ? AnimalHusbandryStatusCode.Brooding
+                : AnimalHusbandryStatusCode.Pregnant);
     }
 
     private void TryCompleteBirth(
@@ -909,18 +892,18 @@ public sealed class AnimalHusbandryRuntime :
         WildlifeHusbandryProfile profile)
     {
         capturedById.TryGetValue(
-            mother.wildlifeId ?? string.Empty,
+            mother.AnimalId,
             out CapturedWildlifeState captured);
         WildlifeActor newborn = null;
         if (captured == null
             || !wildlifeRuntime.TrySpawnDomesticBirth(
-                mother.speciesId,
+                mother.SpeciesId.Value,
                 captured.penPosition,
                 out newborn,
                 out _)
             || !captureRuntime.TryRegisterPenBorn(
                 newborn,
-                mother.penId,
+                mother.PenId.Value,
                 captured.penPosition,
                 out _))
         {
@@ -928,239 +911,38 @@ public sealed class AnimalHusbandryRuntime :
             {
                 wildlifeRuntime.TryRemoveArrival(newborn.WildlifeId);
             }
-            mother.lastStatus = "새끼를 수용할 자리가 없어 출산 대기";
+            SetStatus(
+                mother,
+                AnimalHusbandryStatusCode.BirthWaitingForPenCapacity,
+                mother.PenId.Value);
             return;
         }
 
         HusbandryAnimalState child = new HusbandryAnimalState
         {
-            wildlifeId = newborn.WildlifeId,
-            speciesId = mother.speciesId,
-            penId = mother.penId,
-            sex = (StableHash(newborn.WildlifeId) & 1) == 0
+            AnimalId = new WildlifeInstanceId(newborn.WildlifeId),
+            SpeciesId = mother.SpeciesId,
+            PenId = mother.PenId,
+            Sex = (StableHash(newborn.WildlifeId) & 1) == 0
                 ? AnimalSex.Female
                 : AnimalSex.Male,
-            ageDays = 0f,
-            tamed = true,
-            tamingProgress = 1f,
-            lastStatus = profile.LaysEggs ? "부화한 새끼" : "막 태어난 새끼"
+            AgeDays = 0f,
+            Tamed = true,
+            TamingProgress = 1f,
+            StatusCode = profile.LaysEggs
+                ? AnimalHusbandryStatusCode.HatchedJuvenile
+                : AnimalHusbandryStatusCode.NewbornJuvenile
         };
         EnsureProductStates(child);
-        animals[child.wildlifeId] = child;
-        mother.pregnant = false;
-        mother.pregnancyProgressDays = 0f;
-        mother.otherParentId = string.Empty;
-        mother.lastStatus = profile.LaysEggs ? "부화 완료" : "출산 완료";
-    }
-
-    private void RefreshAutoSlaughterDesignations()
-    {
-        foreach (HusbandryAnimalState state in animals.Values)
-        {
-            if (state.autoSlaughterDesignated)
-            {
-                state.slaughterDesignated = false;
-                state.autoSlaughterDesignated = false;
-            }
-        }
-
-        foreach (List<HusbandryAnimalState> group in slaughterGroups.Values)
-        {
-            group.Clear();
-        }
-
-        foreach (HusbandryAnimalState state in animals.Values)
-        {
-            var key = (state.penId ?? string.Empty, state.speciesId ?? string.Empty);
-            if (!slaughterGroups.TryGetValue(
-                    key,
-                    out List<HusbandryAnimalState> group))
-            {
-                group = new List<HusbandryAnimalState>();
-                slaughterGroups.Add(key, group);
-            }
-
-            group.Add(state);
-        }
-
-        foreach (KeyValuePair<(string PenId, string SpeciesId), List<HusbandryAnimalState>>
-                 entry in slaughterGroups)
-        {
-            List<HusbandryAnimalState> members = entry.Value;
-            if (members.Count == 0)
-            {
-                continue;
-            }
-
-            AnimalPenPolicyData policy = GetPolicyInternal(entry.Key.PenId);
-            femaleSlaughterCandidates.Clear();
-            maleSlaughterCandidates.Clear();
-            juvenileSlaughterCandidates.Clear();
-            for (int index = 0; index < members.Count; index++)
-            {
-                HusbandryAnimalState member = members[index];
-                if (!IsAdult(member))
-                {
-                    juvenileSlaughterCandidates.Add(member);
-                }
-                else if (member.sex == AnimalSex.Female)
-                {
-                    femaleSlaughterCandidates.Add(member);
-                }
-                else if (member.sex == AnimalSex.Male)
-                {
-                    maleSlaughterCandidates.Add(member);
-                }
-            }
-
-            femaleSlaughterCandidates.Sort(OldestFirst);
-            maleSlaughterCandidates.Sort(OldestFirst);
-            juvenileSlaughterCandidates.Sort(OldestFirst);
-            MarkExcess(
-                femaleSlaughterCandidates,
-                policy.adultFemaleLimit,
-                policy.minimumBreedingFemales,
-                policy.protectPregnant);
-            MarkExcess(
-                maleSlaughterCandidates,
-                policy.adultMaleLimit,
-                policy.minimumBreedingMales,
-                false);
-            MarkExcess(
-                juvenileSlaughterCandidates,
-                policy.juvenileLimit,
-                0,
-                false);
-        }
-    }
-
-    private float CalculatePenCompatibilityRisk(
-        string penId,
-        IReadOnlyList<HusbandryAnimalState> occupants)
-    {
-        int occupantCount = occupants?.Count ?? 0;
-        if (occupantCount == 0)
-        {
-            return 0f;
-        }
-
-        AnimalPenPolicyData policy = GetPolicyInternal(penId);
-        float weightedSeverity = 0f;
-        float maximumSeverity = 0f;
-        bool hasPlantEater = false;
-        bool hasMeatEater = false;
-        if (occupantCount > policy.maximumAnimals)
-        {
-            float severity = Mathf.Clamp01(
-                (occupantCount - policy.maximumAnimals)
-                / (float)Mathf.Max(1, policy.maximumAnimals));
-            weightedSeverity += severity;
-            maximumSeverity = Mathf.Max(maximumSeverity, severity);
-        }
-
-        for (int leftIndex = 0; leftIndex < occupantCount; leftIndex++)
-        {
-            HusbandryAnimalState leftState = occupants[leftIndex];
-            if (!TryGetSpecies(
-                    leftState,
-                    out WildlifeSpeciesDefinition left))
-            {
-                continue;
-            }
-
-            hasPlantEater |= left.Diet == WildlifeDietType.Herbivore;
-            hasMeatEater |= left.Diet == WildlifeDietType.Carnivore;
-            for (int rightIndex = leftIndex + 1;
-                 rightIndex < occupantCount;
-                 rightIndex++)
-            {
-                if (!TryGetSpecies(
-                        occupants[rightIndex],
-                        out WildlifeSpeciesDefinition right))
-                {
-                    continue;
-                }
-
-                bool predatorPrey =
-                    left.Diet == WildlifeDietType.Carnivore
-                    && right.Diet == WildlifeDietType.Herbivore
-                    || right.Diet == WildlifeDietType.Carnivore
-                    && left.Diet == WildlifeDietType.Herbivore;
-                if (predatorPrey)
-                {
-                    const float severity = 0.9f;
-                    weightedSeverity += severity;
-                    maximumSeverity = Mathf.Max(maximumSeverity, severity);
-                }
-
-                float aggression = Mathf.Max(
-                    left.Aggression,
-                    right.Aggression);
-                if (aggression >= 0.5f)
-                {
-                    float severity = Mathf.Clamp01(aggression * 0.6f);
-                    weightedSeverity += severity;
-                    maximumSeverity = Mathf.Max(maximumSeverity, severity);
-                }
-
-                float sizeRatio = Mathf.Max(
-                    left.Husbandry.BodySize,
-                    right.Husbandry.BodySize)
-                    / Mathf.Max(
-                        0.1f,
-                        Mathf.Min(
-                            left.Husbandry.BodySize,
-                            right.Husbandry.BodySize));
-                if (sizeRatio >= 3f)
-                {
-                    float severity = Mathf.InverseLerp(3f, 8f, sizeRatio);
-                    weightedSeverity += severity;
-                    maximumSeverity = Mathf.Max(maximumSeverity, severity);
-                }
-            }
-        }
-
-        if (hasPlantEater && hasMeatEater)
-        {
-            const float severity = 0.55f;
-            weightedSeverity += severity;
-            maximumSeverity = Mathf.Max(maximumSeverity, severity);
-        }
-
-        float risk = maximumSeverity <= 0f
-            ? 0f
-            : Mathf.Clamp01(maximumSeverity + weightedSeverity * 0.08f);
-        return policy.allowRiskyMixing ? risk * 0.75f : risk;
-    }
-
-    private static int CompareOldestFirst(
-        HusbandryAnimalState left,
-        HusbandryAnimalState right)
-    {
-        return (right?.ageDays ?? 0f).CompareTo(left?.ageDays ?? 0f);
-    }
-
-    private static void MarkExcess(
-        IReadOnlyList<HusbandryAnimalState> candidates,
-        int limit,
-        int protectedMinimum,
-        bool protectPregnant)
-    {
-        int maximum = Mathf.Max(limit, protectedMinimum);
-        int excess = Mathf.Max(0, candidates.Count - maximum);
-        for (int index = 0; index < candidates.Count && excess > 0; index++)
-        {
-            HusbandryAnimalState state = candidates[index];
-            if (protectPregnant && state.pregnant)
-            {
-                continue;
-            }
-
-            state.slaughterDesignated = true;
-            state.autoSlaughterDesignated = true;
-            state.lastStatus = "자동 도축 정책 대상";
-            excess--;
-        }
+        animals[child.AnimalId] = child;
+        mother.Pregnant = false;
+        mother.PregnancyProgressDays = 0f;
+        mother.OtherParentId = default;
+        SetStatus(
+            mother,
+            profile.LaysEggs
+                ? AnimalHusbandryStatusCode.HatchingCompleted
+                : AnimalHusbandryStatusCode.BirthCompleted);
     }
 
     private void EnsureProductStates(HusbandryAnimalState state)
@@ -1170,7 +952,7 @@ public sealed class AnimalHusbandryRuntime :
             return;
         }
 
-        state.products ??= new List<AnimalProductProgressState>();
+        state.Products ??= new List<AnimalProductProgressState>();
         IReadOnlyList<WildlifeHusbandryProductDefinition> definitions =
             species.Husbandry.Products;
         for (int definitionIndex = 0;
@@ -1181,14 +963,14 @@ public sealed class AnimalHusbandryRuntime :
                 definitions[definitionIndex];
             bool found = false;
             for (int productIndex = 0;
-                 productIndex < state.products.Count;
+                 productIndex < state.Products.Count;
                  productIndex++)
             {
                 AnimalProductProgressState product =
-                    state.products[productIndex];
+                    state.Products[productIndex];
                 if (product != null
                     && string.Equals(
-                        product.itemId,
+                        product.ItemId.Value,
                         definition.ItemId,
                         StringComparison.Ordinal))
                 {
@@ -1199,10 +981,10 @@ public sealed class AnimalHusbandryRuntime :
 
             if (!found)
             {
-                state.products.Add(
+                state.Products.Add(
                     new AnimalProductProgressState
                     {
-                        itemId = definition.ItemId
+                        ItemId = new ItemDefinitionId(definition.ItemId)
                     });
             }
         }
@@ -1213,16 +995,14 @@ public sealed class AnimalHusbandryRuntime :
         WildlifeHusbandryProfile profile,
         AnimalPenPolicyData policy)
     {
-        if (policy.allowedSpeciesIds.Count > 0
-            && !policy.allowedSpeciesIds.Contains(
-                state.speciesId,
-                StringComparer.Ordinal))
+        if (policy.AllowedSpeciesIds.Count > 0
+            && !policy.AllowedSpeciesIds.Contains(state.SpeciesId))
         {
             return false;
         }
 
-        if (state.sex == AnimalSex.Female && !policy.allowFemales
-            || state.sex == AnimalSex.Male && !policy.allowMales)
+        if (state.Sex == AnimalSex.Female && !policy.allowFemales
+            || state.Sex == AnimalSex.Male && !policy.allowMales)
         {
             return false;
         }
@@ -1248,13 +1028,17 @@ public sealed class AnimalHusbandryRuntime :
         };
     }
 
-    private AnimalPenPolicyData GetPolicyInternal(string penId)
+    private AnimalPenPolicyData GetPolicyInternal(BuildingInstanceId penId)
     {
-        string id = penId?.Trim() ?? string.Empty;
-        if (!policies.TryGetValue(id, out AnimalPenPolicyData policy))
+        if (!penId.IsValid)
         {
-            policy = new AnimalPenPolicyData { penId = id };
-            policies[id] = policy;
+            throw new InvalidOperationException(
+                "Animal husbandry requires a valid BuildingInstanceId.");
+        }
+        if (!policies.TryGetValue(penId, out AnimalPenPolicyData policy))
+        {
+            policy = new AnimalPenPolicyData { PenId = penId };
+            policies[penId] = policy;
         }
 
         return policy;
@@ -1264,12 +1048,14 @@ public sealed class AnimalHusbandryRuntime :
         HusbandryAnimalState state,
         out WildlifeSpeciesDefinition species)
     {
-        return speciesCatalog.TryGetSpecies(state?.speciesId, out species);
+        species = null;
+        return state != null
+            && speciesCatalog.TryGetSpecies(state.SpeciesId.Value, out species);
     }
 
     private bool TryGetProductDefinition(
         HusbandryAnimalState state,
-        string itemId,
+        ItemDefinitionId itemId,
         out WildlifeHusbandryProductDefinition definition)
     {
         definition = null;
@@ -1285,7 +1071,7 @@ public sealed class AnimalHusbandryRuntime :
             WildlifeHusbandryProductDefinition candidate = products[index];
             if (string.Equals(
                     candidate.ItemId,
-                    itemId,
+                    itemId.Value,
                     StringComparison.Ordinal))
             {
                 definition = candidate;
@@ -1296,13 +1082,13 @@ public sealed class AnimalHusbandryRuntime :
         return false;
     }
 
-    private WildlifeActor FindActor(string wildlifeId)
+    private WildlifeActor FindActor(WildlifeInstanceId animalId)
     {
         return wildlifeRuntime.Wildlife.FirstOrDefault(actor =>
             actor != null
             && string.Equals(
                 actor.WildlifeId,
-                wildlifeId,
+                animalId.Value,
                 StringComparison.Ordinal));
     }
 
@@ -1312,54 +1098,45 @@ public sealed class AnimalHusbandryRuntime :
             && GetGrowthStage(state, species.Husbandry) != AnimalGrowthStage.Juvenile;
     }
 
-    private static AnimalGrowthStage GetGrowthStage(
-        HusbandryAnimalState state,
-        WildlifeHusbandryProfile profile)
-    {
-        if (state.ageDays < profile.AdultAgeDays)
-        {
-            return AnimalGrowthStage.Juvenile;
-        }
+    bool IAnimalHusbandryCommandState.TryGetMutableAnimal(
+        WildlifeInstanceId animalId,
+        out HusbandryAnimalState state) =>
+        animals.TryGetValue(animalId, out state);
 
-        return state.ageDays >= profile.MaximumAgeDays * 0.8f
-            ? AnimalGrowthStage.Elder
-            : AnimalGrowthStage.Adult;
+    AnimalPenPolicyData IAnimalHusbandryCommandState.GetMutablePolicy(
+        BuildingInstanceId penId) =>
+        GetPolicyInternal(penId);
+
+    void IAnimalHusbandryCommandState.StorePolicy(
+        AnimalPenPolicyData policy)
+    {
+        if (policy == null || !policy.PenId.IsValid)
+        {
+            throw new ArgumentException(
+                "Animal husbandry policy requires a valid pen.",
+                nameof(policy));
+        }
+        policies[policy.PenId] = policy;
     }
 
-    private int GetWorkPriority(HusbandryAnimalState state)
+    void IAnimalHusbandryCommandState.RefreshAutoSlaughterDesignations()
     {
-        return ResolveWorkKind(state) switch
-        {
-            AnimalHusbandryWorkKind.Slaughter => 100,
-            AnimalHusbandryWorkKind.CollectProduct => 80,
-            AnimalHusbandryWorkKind.CollectManure => 70,
-            AnimalHusbandryWorkKind.Tame => 60,
-            _ => 0
-        };
+        policyEvaluator.RefreshAutoSlaughterDesignations(
+            animals.Values,
+            GetPolicyInternal,
+            IsAdult);
     }
 
-    private static AnimalHusbandryWorkKind ResolveWorkKind(
-        HusbandryAnimalState state)
+    private void RemoveAnimal(WildlifeInstanceId animalId)
     {
-        if (state.slaughterDesignated)
+        animals.Remove(animalId);
+        foreach (HusbandryAnimalState remaining in animals.Values)
         {
-            return AnimalHusbandryWorkKind.Slaughter;
+            if (remaining.OtherParentId.Equals(animalId))
+            {
+                remaining.OtherParentId = default;
+            }
         }
-
-        if (state.products?.Any(product =>
-                product != null && product.readyCycles > 0) == true)
-        {
-            return AnimalHusbandryWorkKind.CollectProduct;
-        }
-
-        if (state.readyManureCycles > 0)
-        {
-            return AnimalHusbandryWorkKind.CollectManure;
-        }
-
-        return !state.tamed
-            ? AnimalHusbandryWorkKind.Tame
-            : AnimalHusbandryWorkKind.None;
     }
 
     private float GetRequiredWork(
@@ -1384,99 +1161,10 @@ public sealed class AnimalHusbandryRuntime :
         };
     }
 
-    private static float GetCompletedWork(
-        HusbandryAnimalState state,
-        AnimalHusbandryWorkKind kind,
-        float required)
-    {
-        return kind switch
-        {
-            AnimalHusbandryWorkKind.Tame =>
-                state.tamingProgress * required,
-            _ => Mathf.Clamp(state.pendingWorkCompleted, 0f, required)
-        };
-    }
-
-    private static void PreparePendingWork(
-        HusbandryAnimalState state,
-        AnimalHusbandryWorkKind kind)
-    {
-        string productId = kind == AnimalHusbandryWorkKind.CollectProduct
-            ? state.products?.FirstOrDefault(product =>
-                product != null && product.readyCycles > 0)?.itemId ?? string.Empty
-            : string.Empty;
-        if (state.pendingWorkKind == kind
-            && string.Equals(
-                state.pendingProductItemId,
-                productId,
-                StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        state.pendingWorkKind = kind;
-        state.pendingProductItemId = productId;
-        state.pendingWorkCompleted = 0f;
-    }
-
-    private static void ResetPendingWork(HusbandryAnimalState state)
-    {
-        state.pendingWorkKind = AnimalHusbandryWorkKind.None;
-        state.pendingProductItemId = string.Empty;
-        state.pendingWorkCompleted = 0f;
-    }
-
-    private string GetWorkLabel(
-        HusbandryAnimalState state,
-        AnimalHusbandryWorkKind kind)
-    {
-        string name = TryGetSpecies(
-            state,
-            out WildlifeSpeciesDefinition species)
-                ? species.DisplayName
-                : state.speciesId;
-        return kind switch
-        {
-            AnimalHusbandryWorkKind.Tame => $"{name} 길들이기",
-            AnimalHusbandryWorkKind.CollectProduct => $"{name} 산출물 수거",
-            AnimalHusbandryWorkKind.CollectManure => $"{name} 분뇨 수거",
-            AnimalHusbandryWorkKind.Slaughter => $"{name} 도축",
-            _ => "동물 돌봄"
-        };
-    }
-
-    private static AnimalHusbandryWorkSnapshot Unavailable(string reason)
-    {
-        return new AnimalHusbandryWorkSnapshot(
-            false,
-            string.Empty,
-            AnimalHusbandryWorkKind.None,
-            "동물 돌봄",
-            1f,
-            0f,
-            reason);
-    }
-
-    private static string GetPenId(BuildableObject pen)
+    private static BuildingInstanceId GetPenId(BuildableObject pen)
     {
         return pen == null
-            ? string.Empty
-            : $"pen:{pen.id}:{pen.centerPos.x}:{pen.centerPos.y}";
-    }
-
-    private static uint StableHash(string value)
-    {
-        unchecked
-        {
-            uint hash = 2166136261;
-            string source = value ?? string.Empty;
-            for (int index = 0; index < source.Length; index++)
-            {
-                hash ^= source[index];
-                hash *= 16777619;
-            }
-
-            return hash;
-        }
+            ? default
+            : pen.RequirePersistentInstanceId();
     }
 }

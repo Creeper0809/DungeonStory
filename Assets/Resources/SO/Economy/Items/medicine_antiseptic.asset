@@ -26,21 +26,37 @@ MonoBehaviour:
   displayName: "\uC18C\uB3C5\uC81C"
   description: "\uAC10\uC5FC \uC704\uD5D8\uC744 \uB0AE\uCD94\uB294 \uC678\uC6A9 \uC57D\uD488."
   stockCategory: 5
-  kind: 3
-  ingredientTags: 1
-  unitPrice: 12
-  marketSaleRate: 0.6
   unitWeight: 0.18
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:antiseptic
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 1
-  treatmentPotency: 0.82
-  infectionReduction: 16
-  detoxReduction: 0
-  painReduction: 2
+  unitPrice: 12
+  features:
+  - rid: 7737211674039681201
+  - rid: 7737211674039681202
+  - rid: 7737211674039681203
+  - rid: 7737211674039681204
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681201
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:antiseptic
+    - rid: 7737211674039681202
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 3
+        ingredientTags: 1
+        sharedIntermediate: 0
+    - rid: 7737211674039681203
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211674039681204
+      type: {class: MedicineItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        supportsInjuryTreatment: 1
+        treatmentPotency: 0.82
+        infectionReduction: 16
+        detoxReduction: 0
+        painReduction: 2

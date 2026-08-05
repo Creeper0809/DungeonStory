@@ -17,25 +17,16 @@ public static class CharacterStatDebugScenarios
 
     public static void RunAll()
     {
-        try
-        {
-            VerifyBuiltInCatalog();
-            VerifyCustomStatComposition();
-            VerifyMigratedAssets();
-            VerifyGenericPurchaseNeedEffect();
-            VerifyRuntimeStatAuthorityIsolation();
-            Debug.Log("CharacterStatDebugScenarios passed: keyed storage, custom composition, asset migration, generic purchase effects, and immutable runtime snapshots.");
-        }
-        finally
-        {
-            CharacterStatCatalog.ResetToBuiltIns();
-            CharacterNeedCatalog.ResetToBuiltIns();
-        }
+        VerifyBuiltInCatalog();
+        VerifyCustomStatComposition();
+        VerifyMigratedAssets();
+        VerifyGenericPurchaseNeedEffect();
+        VerifyRuntimeStatAuthorityIsolation();
+        Debug.Log("CharacterStatDebugScenarios passed: keyed storage, custom composition, asset migration, generic purchase effects, and immutable runtime snapshots.");
     }
 
     private static void VerifyBuiltInCatalog()
     {
-        CharacterStatCatalog.ResetToBuiltIns();
         Require(CharacterStatCatalog.All.Count == 12, "Expected twelve built-in character stat definitions.");
         foreach (CharacterStatType type in Enum.GetValues(typeof(CharacterStatType)))
         {
@@ -53,16 +44,11 @@ public static class CharacterStatDebugScenarios
 
     private static void VerifyCustomStatComposition()
     {
-        CharacterStatCatalog.Register(new CharacterStatDefinition(
-            CustomStatId,
-            "연금",
-            95));
-
         CharacterStatBlock defaultBlock = CharacterStatBlock.CreateDefault(5);
-        Require(defaultBlock.Get(CustomStatId) == 5,
-            "CreateDefault did not enumerate a custom stat definition.");
+        Require(defaultBlock.Get(CustomStatId) == 0,
+            "CreateDefault fabricated an unauthored stat definition.");
         defaultBlock.Add(CustomStatId, 2);
-        Require(defaultBlock.Get(CustomStatId) == 7,
+        Require(defaultBlock.Get(CustomStatId) == 2,
             "Keyed stat addition failed.");
 
         CharacterSO data = ScriptableObject.CreateInstance<CharacterSO>();
@@ -95,7 +81,6 @@ public static class CharacterStatDebugScenarios
 
     private static void VerifyMigratedAssets()
     {
-        CharacterStatCatalog.ResetToBuiltIns();
         int validated = 0;
         validated += ValidateAssets<CharacterSO>(asset => asset.baseStats);
         validated += ValidateAssets<CharacterSpeciesSO>(asset => asset.statBonus);
@@ -143,20 +128,6 @@ public static class CharacterStatDebugScenarios
 
     private static void VerifyGenericPurchaseNeedEffect()
     {
-        CharacterNeedCatalog.ResetToBuiltIns();
-        CharacterCondition customCondition = (CharacterCondition)950;
-        CharacterNeedCatalog.Register(new CharacterNeedDefinition(
-            "need:focus",
-            customCondition,
-            "집중",
-            95,
-            defaultValue: 30f,
-            workerInitialValue: 30f,
-            relatedFacilityRole: FacilityRole.Research,
-            tags: CharacterNeedTag.None,
-            survivalWeight: 0f,
-            moodProfile: null));
-
         GameObject actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(
             "Generic Purchase Need Scenario Actor");
         CharacterSO characterData = ScriptableObject.CreateInstance<CharacterSO>();
@@ -169,13 +140,13 @@ public static class CharacterStatDebugScenarios
             CharacterActor actor = actorObject.GetComponent<CharacterActor>();
             actor.Initialize(characterData);
 
-            effect.needId = "need:focus";
+            effect.needId = "need:hunger";
             effect.value = 17;
-            float before = actor.Stats.Stats[customCondition];
-            effect.Onbuy(actor);
-            float after = actor.Stats.Stats[customCondition];
-            Require(Mathf.Approximately(before, 30f) && Mathf.Approximately(after, 47f),
-                $"Generic purchase effect changed focus from {before} to {after}.");
+            float before = actor.Stats.Stats[CharacterCondition.HUNGER];
+            effect.Onbuy(actor.BuildingVisitor);
+            float after = actor.Stats.Stats[CharacterCondition.HUNGER];
+            Require(Mathf.Approximately(after, Mathf.Clamp(before + 17f, 0f, 100f)),
+                $"Authored purchase effect changed hunger from {before} to {after}.");
 
             StatChange hamburger = AssetDatabase.LoadAssetAtPath<StatChange>(
                 "Assets/Resources/SO/Stock/Item/Onbuy/Hamburger.asset");
@@ -190,7 +161,7 @@ public static class CharacterStatDebugScenarios
         }
     }
 
-    private static void VerifyRuntimeStatAuthorityIsolation()
+    public static void VerifyRuntimeStatAuthorityIsolation()
     {
         GameObject actorObject = CharacterAiPlanDebugFixtures.CreateActorObject(
             "Runtime Stat Authority Scenario Actor");

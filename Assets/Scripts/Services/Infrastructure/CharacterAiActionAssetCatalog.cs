@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Linq;
 
 public interface ICharacterAiActionAssetCatalog
 {
@@ -7,12 +9,11 @@ public interface ICharacterAiActionAssetCatalog
 
 public sealed class ResourceCharacterAiActionAssetCatalog : ICharacterAiActionAssetCatalog
 {
-    private readonly IResourcesAssetLoader resourcesAssetLoader;
+    private readonly IGameContentCatalog content;
 
-    public ResourceCharacterAiActionAssetCatalog(IResourcesAssetLoader resourcesAssetLoader)
+    public ResourceCharacterAiActionAssetCatalog(IGameContentCatalog content)
     {
-        this.resourcesAssetLoader = resourcesAssetLoader
-            ?? throw new ArgumentNullException(nameof(resourcesAssetLoader));
+        this.content = content ?? throw new ArgumentNullException(nameof(content));
     }
 
     public AIActionSet GetRequiredAction(string resourcePath, CharacterAiBranch expectedBranch)
@@ -22,7 +23,18 @@ public sealed class ResourceCharacterAiActionAssetCatalog : ICharacterAiActionAs
             throw new ArgumentException("AI action resource path is required.", nameof(resourcePath));
         }
 
-        AIActionSet actionSet = resourcesAssetLoader.LoadRequired<AIActionSet>(resourcePath);
+        string assetName = Path.GetFileName(resourcePath.Trim());
+        AIActionSet[] matches = content.GetAll<AIActionSet>()
+            .Where(candidate => candidate != null
+                && string.Equals(candidate.name, assetName, StringComparison.Ordinal))
+            .ToArray();
+        if (matches.Length != 1)
+        {
+            throw new InvalidOperationException(
+                $"Required AI action '{assetName}' must occur exactly once in the root content catalog; found {matches.Length}.");
+        }
+
+        AIActionSet actionSet = matches[0];
         if (actionSet.Branch != expectedBranch)
         {
             throw new InvalidOperationException(

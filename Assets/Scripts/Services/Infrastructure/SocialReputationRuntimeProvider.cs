@@ -1,41 +1,22 @@
 using System;
 
-public interface ISocialReputationRuntimeProvider
-{
-    bool TryGetRuntime(out SocialReputationRuntime runtime);
-}
-
 public interface ISocialReputationBiasService
 {
     float GetFacilityUtilityBias(CharacterActor actor, BuildableObject building);
 }
 
-public sealed class SocialReputationRuntimeProvider :
-    ISocialReputationRuntimeProvider
-{
-    private readonly CharacterSceneRuntimeReferences runtimeReferences;
-
-    public SocialReputationRuntimeProvider(
-        CharacterSceneRuntimeReferences runtimeReferences)
-    {
-        this.runtimeReferences = runtimeReferences
-            ?? throw new ArgumentNullException(nameof(runtimeReferences));
-    }
-
-    public bool TryGetRuntime(out SocialReputationRuntime resolvedRuntime)
-    {
-        resolvedRuntime = runtimeReferences.SocialReputation;
-        return resolvedRuntime != null;
-    }
-}
-
 public sealed class SocialReputationBiasService : ISocialReputationBiasService
 {
-    private readonly ISocialReputationRuntimeProvider provider;
+    private readonly SocialReputationRuntime runtime;
 
-    public SocialReputationBiasService(ISocialReputationRuntimeProvider provider)
+    public SocialReputationBiasService(
+        CharacterSceneRuntimeReferences runtimeReferences)
     {
-        this.provider = provider ?? throw new ArgumentNullException(nameof(provider));
+        runtime = (runtimeReferences
+                ?? throw new ArgumentNullException(nameof(runtimeReferences)))
+            .SocialReputation
+            ?? throw new InvalidOperationException(
+                $"{nameof(SocialReputationBiasService)} requires a loaded {nameof(SocialReputationRuntime)}.");
     }
 
     public float GetFacilityUtilityBias(CharacterActor actor, BuildableObject building)
@@ -43,11 +24,6 @@ public sealed class SocialReputationBiasService : ISocialReputationBiasService
         if (actor == null || building == null)
         {
             return 0f;
-        }
-
-        if (!provider.TryGetRuntime(out SocialReputationRuntime runtime))
-        {
-            throw new InvalidOperationException($"{nameof(SocialReputationBiasService)} requires a loaded {nameof(SocialReputationRuntime)}.");
         }
 
         return runtime.GetFacilityUtilityBias(actor, building);

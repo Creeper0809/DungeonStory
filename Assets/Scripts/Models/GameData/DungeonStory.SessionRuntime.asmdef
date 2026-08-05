@@ -1,0 +1,16 @@
+{
+  "name": "DungeonStory.SessionRuntime",
+  "rootNamespace": "DungeonStory.SessionRuntime",
+  "references": [
+    "DungeonStory.CoreSession"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

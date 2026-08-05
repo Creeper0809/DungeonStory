@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 2,
+  "maxMutableStatic": 0,
+  "MutableStaticSetHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "maxOversizedType": 0,
+  "OversizedTypeSetHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "maxLargeConstructor": 0,
+  "LargeConstructorSetHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "maxContentEscape": 0,
+  "ContentEscapeSetHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "maxDirectSessionMutation": 0,
+  "DirectSessionMutationSetHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "maxRootCatalogReference": 3,
+  "RootCatalogReferenceSetHash": "8b65679ef1544b5695005dfdd409cae0af2bb2714902cd995dac8b87d90a5084"
+}

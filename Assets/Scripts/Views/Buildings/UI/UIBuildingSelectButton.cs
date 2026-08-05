@@ -15,29 +15,36 @@ public class UIBuildingSelectButton : MonoBehaviour
 
     public int id;
     private IDungeonGridBuildingControllerProvider buildingControllerProvider;
-    private IGameDataProvider gameDataProvider;
-    private IBlueprintResearchRuntimeProvider researchRuntimeProvider;
+    private IGameSessionStateProvider gameDataProvider;
+    private BlueprintResearchRuntime research;
     private IGameEventBus gameEventBus;
+    private IDungeonDebugRuleQuery debugRules;
     private IDisposable researchCompletedSubscription;
     private BuildingSO buildingData;
-    private GameData observedGameData;
+    private GameSessionState observedGameData;
+    private Action collapseForPlacement;
     private bool isDisposed;
 
     [Inject]
     public void Construct(
         IDungeonGridBuildingControllerProvider buildingControllerProvider,
-        IGameDataProvider gameDataProvider,
-        IBlueprintResearchRuntimeProvider researchRuntimeProvider,
-        IGameEventBus gameEventBus)
+        IGameSessionStateProvider gameDataProvider,
+        ProgressionSceneRuntimeReferences progressionRuntimes,
+        IGameEventBus gameEventBus,
+        IDungeonDebugRuleQuery debugRules)
     {
         this.buildingControllerProvider = buildingControllerProvider
             ?? throw new ArgumentNullException(nameof(buildingControllerProvider));
         this.gameDataProvider = gameDataProvider
             ?? throw new ArgumentNullException(nameof(gameDataProvider));
-        this.researchRuntimeProvider = researchRuntimeProvider
-            ?? throw new ArgumentNullException(nameof(researchRuntimeProvider));
+        research = (progressionRuntimes
+                ?? throw new ArgumentNullException(nameof(progressionRuntimes)))
+            .BlueprintResearch
+            ?? throw new InvalidOperationException(
+                $"{nameof(UIBuildingSelectButton)} requires a loaded {nameof(BlueprintResearchRuntime)}.");
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
+        this.debugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
         SubscribeToScopedEvents();
     }
 
@@ -58,6 +65,11 @@ public class UIBuildingSelectButton : MonoBehaviour
         Initialization(so);
     }
 
+    public void BindPlacementCollapse(Action collapseAction)
+    {
+        collapseForPlacement = collapseAction;
+    }
+
     public void OnClick()
     {
         if (!IsAvailable())
@@ -70,7 +82,7 @@ public class UIBuildingSelectButton : MonoBehaviour
         DungeonStoryGridBuildingController controller = RequireBuildingController();
         controller.SetGridModeBuild();
         controller.SelectBuildingById(id);
-        GetComponentInParent<GridConstructTab>()?.CollapseForPlacement();
+        collapseForPlacement?.Invoke();
     }
 
     public void ActiveDestroyMode()
@@ -90,6 +102,7 @@ public class UIBuildingSelectButton : MonoBehaviour
     {
         researchCompletedSubscription?.Dispose();
         researchCompletedSubscription = null;
+        collapseForPlacement = null;
         StopObservingGameData();
     }
 
@@ -115,7 +128,7 @@ public class UIBuildingSelectButton : MonoBehaviour
     {
         if (observedGameData != null
             || gameDataProvider == null
-            || !gameDataProvider.TryGetGameData(out observedGameData)
+            || !gameDataProvider.TryGetSessionState(out observedGameData)
             || observedGameData?.day == null)
         {
             return;
@@ -138,13 +151,14 @@ public class UIBuildingSelectButton : MonoBehaviour
     private bool IsAvailable()
     {
         ObserveGameData();
-        BlueprintResearchState unlockState = researchRuntimeProvider != null
-            && researchRuntimeProvider.TryGetRuntime(out BlueprintResearchRuntime runtime)
-                ? runtime.State
-                : null;
+        BlueprintResearchState unlockState = research.State;
         return buildingData == null
             || observedGameData == null
-            || FacilityProgression.IsUnlocked(buildingData, observedGameData, unlockState);
+            || FacilityProgression.IsUnlocked(
+                buildingData,
+                observedGameData,
+                unlockState,
+                debugRules);
     }
 
     public void OnTriggerEvent(BlueprintResearchCompletedEvent eventType)

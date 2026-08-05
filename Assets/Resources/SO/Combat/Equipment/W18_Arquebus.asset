@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa401bda1083a0a49abbc7ea825b25a0, type: 3}
+  m_Name: W18_Arquebus
+  m_EditorClassIdentifier: Assembly-CSharp::CombatWeaponSO
+  equipmentId: weapon:arquebus
+  displayName: "\uC544\uCFFC\uBC84\uC2A4"
+  description: "\uC544\uCFFC\uBC84\uC2A4 \uC804\uD22C \uC7A5\uBE44"
+  itemId: equipment-item:weapon:arquebus
+  weight: 5.6
+  occupiedHands: 2
+  maxDurability: 100
+  requiredCraftWork: 6
+  defaultMaterialId: material:iron
+  primaryMaterialAmount: 5
+  allowedMaterialFamilies: 03000000
+  craftMaterials: []
+  requiredComponentInputs:
+  - itemId: component:machine-parts
+    amount: 1
+  - itemId: component:precision-parts
+    amount: 1
+  - itemId: component:engineering-drawing
+    amount: 1
+  requiredResearchId: research:equipment:ballistics
+  era: 2
+  tier: 2
+  slotProfile: 1
+  lineageKind: 0
+  growthEquipment: 0
+  growthBaseStatMultiplier: 1
+  verbs:
+  - rid: 7737211765905949114
+  rangeProfiles:
+  - band: 1
+    accuracyMultiplier: 0.82
+    damageMultiplier: 1.15
+  - band: 2
+    accuracyMultiplier: 1
+    damageMultiplier: 1.2
+  - band: 3
+    accuracyMultiplier: 0.7
+    damageMultiplier: 1
+  maximumRange: 24
+  compatibleAmmunitionItemIds:
+  - ammo:paper-cartridge
+  magazineCapacity: 1
+  reloadSeconds: 8.5
+  supportsAimed: 1
+  supportsRapid: 0
+  supportsSuppressive: 1
+  gunpowderWeapon: 1
+  maximumMisfireChance: 0.2
+  smokeExposure: 10
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211765905949114
+      type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
+      data:
+        attackTime: 1.7
+        baseDamage: 34
+        penetration: 31
+        damageType: 1
+        tracking: 0.018
+        projectileSpeed: 18

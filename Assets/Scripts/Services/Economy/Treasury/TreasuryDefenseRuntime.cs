@@ -47,23 +47,25 @@ public sealed class TreasuryDefenseRuntime : ITreasuryDefenseRuntime
 {
     private const int MaxRememberedInvasions = 32;
 
-    private readonly IGameMoneyRuntime money;
+    private readonly IGameMoneyAccount money;
     private readonly IAutoProcurementRuntime procurement;
     private readonly IFacilityOverclockRuntime overclock;
     private readonly IFacilityEvolutionStateComponentFactory facilityStates;
-    private readonly Dictionary<string, TreasuryDefensePolicy> policies =
-        new Dictionary<string, TreasuryDefensePolicy>(StringComparer.Ordinal);
-    private readonly Dictionary<string, TreasuryDefenseInvasionSpendState> spending =
-        new Dictionary<string, TreasuryDefenseInvasionSpendState>(
-            StringComparer.Ordinal);
-    private readonly Dictionary<string, string> failureReasons =
-        new Dictionary<string, string>(StringComparer.Ordinal);
+    private readonly TreasuryEconomyAggregateStateStore stateStore;
+
+    private Dictionary<string, TreasuryDefensePolicy> policies =>
+        stateStore.Current.DefensePolicies;
+    private Dictionary<string, TreasuryDefenseInvasionSpendState> spending =>
+        stateStore.Current.DefenseSpending;
+    private Dictionary<string, string> failureReasons =>
+        stateStore.Current.DefenseFailures;
 
     public TreasuryDefenseRuntime(
-        IGameMoneyRuntime money,
+        IGameMoneyAccount money,
         IAutoProcurementRuntime procurement,
         IFacilityOverclockRuntime overclock,
-        IFacilityEvolutionStateComponentFactory facilityStates)
+        IFacilityEvolutionStateComponentFactory facilityStates,
+        TreasuryEconomyAggregateStateStore stateStore)
     {
         this.money = money ?? throw new ArgumentNullException(nameof(money));
         this.procurement = procurement
@@ -72,6 +74,8 @@ public sealed class TreasuryDefenseRuntime : ITreasuryDefenseRuntime
             ?? throw new ArgumentNullException(nameof(overclock));
         this.facilityStates = facilityStates
             ?? throw new ArgumentNullException(nameof(facilityStates));
+        this.stateStore = stateStore
+            ?? throw new ArgumentNullException(nameof(stateStore));
     }
 
     public IReadOnlyList<TreasuryDefensePolicy> Policies => policies.Values
@@ -119,11 +123,7 @@ public sealed class TreasuryDefenseRuntime : ITreasuryDefenseRuntime
                 nameof(policy));
         }
 
-        TreasuryDefensePolicy normalized = policy.Clone();
-        normalized.facilityPersistentId = facilityId;
-        normalized.minimumThreat = Mathf.Max(0, normalized.minimumThreat);
-        normalized.invasionBudget = Mathf.Max(0, normalized.invasionBudget);
-        normalized.protectedFunds = Mathf.Max(-1, normalized.protectedFunds);
+        TreasuryDefensePolicy normalized = NormalizePolicy(policy, facilityId);
         policies[facilityId] = normalized;
     }
 
@@ -255,9 +255,19 @@ public sealed class TreasuryDefenseRuntime : ITreasuryDefenseRuntime
 
     public void Restore(TreasuryDefenseSaveData saveData)
     {
-        policies.Clear();
-        spending.Clear();
-        failureReasons.Clear();
+        TreasuryEconomyAggregateState restored = stateStore.Current.Copy();
+        PopulateRestoreState(restored, saveData);
+        stateStore.Replace(restored);
+    }
+
+    internal void PopulateRestoreState(
+        TreasuryEconomyAggregateState target,
+        TreasuryDefenseSaveData saveData)
+    {
+        target = target ?? throw new ArgumentNullException(nameof(target));
+        target.DefensePolicies.Clear();
+        target.DefenseSpending.Clear();
+        target.DefenseFailures.Clear();
 
         foreach (TreasuryDefensePolicy source in saveData?.policies
                      ?? new List<TreasuryDefensePolicy>())
@@ -268,7 +278,8 @@ public sealed class TreasuryDefenseRuntime : ITreasuryDefenseRuntime
                 continue;
             }
 
-            UpsertPolicy(source);
+            string facilityId = Normalize(source.facilityPersistentId);
+            target.DefensePolicies[facilityId] = NormalizePolicy(source, facilityId);
         }
 
         foreach (TreasuryDefenseInvasionSpendState source in
@@ -286,10 +297,10 @@ public sealed class TreasuryDefenseRuntime : ITreasuryDefenseRuntime
             state.invasionId = invasionId;
             state.facilityPersistentId = facilityId;
             state.spent = Mathf.Max(0, state.spent);
-            spending[SpendKey(invasionId, facilityId)] = state;
+            target.DefenseSpending[SpendKey(invasionId, facilityId)] = state;
         }
 
-        PruneSpending();
+        PruneSpending(target.DefenseSpending);
     }
 
     private string Validate(
@@ -354,7 +365,13 @@ public sealed class TreasuryDefenseRuntime : ITreasuryDefenseRuntime
 
     private void PruneSpending()
     {
-        string[] retainedInvasions = spending.Values
+        PruneSpending(spending);
+    }
+
+    private static void PruneSpending(
+        Dictionary<string, TreasuryDefenseInvasionSpendState> spendingByKey)
+    {
+        string[] retainedInvasions = spendingByKey.Values
             .Select(state => state.invasionId)
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .Distinct(StringComparer.Ordinal)
@@ -363,13 +380,25 @@ public sealed class TreasuryDefenseRuntime : ITreasuryDefenseRuntime
             .ToArray();
         HashSet<string> retained =
             new HashSet<string>(retainedInvasions, StringComparer.Ordinal);
-        foreach (string key in spending
+        foreach (string key in spendingByKey
                      .Where(pair => !retained.Contains(pair.Value.invasionId))
                      .Select(pair => pair.Key)
                      .ToArray())
         {
-            spending.Remove(key);
+            spendingByKey.Remove(key);
         }
+    }
+
+    private static TreasuryDefensePolicy NormalizePolicy(
+        TreasuryDefensePolicy policy,
+        string facilityId)
+    {
+        TreasuryDefensePolicy normalized = policy.Clone();
+        normalized.facilityPersistentId = facilityId;
+        normalized.minimumThreat = Mathf.Max(0, normalized.minimumThreat);
+        normalized.invasionBudget = Mathf.Max(0, normalized.invasionBudget);
+        normalized.protectedFunds = Mathf.Max(-1, normalized.protectedFunds);
+        return normalized;
     }
 
     private static string SpendKey(string invasionId, string facilityId)

@@ -4,58 +4,6 @@ using System.Linq;
 using UnityEngine;
 using VContainer;
 
-public enum StaffDiscontentStage
-{
-    Stable,
-    LowSatisfaction,
-    EfficiencyDrop,
-    WorkDisruption,
-    Departure,
-    LocalRebellion
-}
-
-public enum StaffDiscontentOutcome
-{
-    None,
-    Warning,
-    EfficiencyPenalty,
-    WorkDisruption,
-    PermanentDeparture,
-    LocalRebellion,
-    OwnerThreat
-}
-
-public enum StaffRebellionResponseType
-{
-    AutoSuppress,
-    SuppressCommand,
-    Isolate,
-    Calm
-}
-
-[Serializable]
-public class StaffDiscontentRules
-{
-    public float lowMoodThreshold = 50f;
-    public float efficiencyDropMoodThreshold = 35f;
-    public float workDisruptionMoodThreshold = 25f;
-    public float departureMoodThreshold = 15f;
-    public float rebellionMoodThreshold = 8f;
-    public int sustainedLowMoodForEfficiencyDrop = 2;
-    public int sustainedLowMoodForWorkDisruption = 3;
-    public int sustainedLowMoodForDeparture = 4;
-    public int ownerThreatEscalationDays = 2;
-    public float calmMoodRecovery = 25f;
-    public float lowSatisfactionMultiplier = 0.95f;
-    public float efficiencyDropMultiplier = 0.8f;
-    public float workDisruptionMultiplier = 0.6f;
-
-    public static StaffDiscontentRules CreateDefault()
-    {
-        return new StaffDiscontentRules();
-    }
-}
-
 public sealed class StaffDiscontentSnapshot
 {
     public StaffDiscontentSnapshot(
@@ -72,12 +20,56 @@ public sealed class StaffDiscontentSnapshot
         bool isolated,
         bool suppressed)
     {
-        this.staffId = staffId?.Trim() ?? string.Empty;
-        this.displayName = displayName ?? string.Empty;
+        CharacterId typedStaffId = new CharacterId(staffId);
+        if (!typedStaffId.IsValid
+            || !string.Equals(
+                typedStaffId.Value,
+                staffId,
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Staff ID must be non-empty and canonical.",
+                nameof(staffId));
+        }
+        if (string.IsNullOrWhiteSpace(displayName)
+            || !string.Equals(
+                displayName,
+                displayName.Trim(),
+                StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "Display name must be non-empty and canonical.",
+                nameof(displayName));
+        }
+        if (!Enum.IsDefined(typeof(StaffDiscontentStage), stage)
+            || !Enum.IsDefined(typeof(StaffDiscontentOutcome), outcome))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(stage),
+                "Staff-discontent stage and outcome must be defined values.");
+        }
+        if (float.IsNaN(mood)
+            || float.IsInfinity(mood)
+            || mood < 0f
+            || mood > 100f)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(mood),
+                "Mood must be finite and between 0 and 100.");
+        }
+        if (lowMoodDays < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(lowMoodDays),
+                "Low-mood day count cannot be negative.");
+        }
+
+        this.staffId = staffId;
+        this.displayName = displayName;
         this.stage = stage;
         this.outcome = outcome;
-        this.mood = Mathf.Clamp(mood, 0f, 100f);
-        this.lowMoodDays = Mathf.Max(0, lowMoodDays);
+        this.mood = mood;
+        this.lowMoodDays = lowMoodDays;
         this.permanentLoss = permanentLoss;
         this.departed = departed;
         this.localRebellion = localRebellion;
@@ -115,19 +107,17 @@ public sealed class StaffDiscontentRecord
 
     public static StaffDiscontentRecord FromSnapshot(StaffDiscontentSnapshot snapshot)
     {
-        if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.staffId))
+        if (snapshot == null)
         {
-            return null;
+            throw new ArgumentNullException(nameof(snapshot));
         }
 
         StaffDiscontentRecord record = new StaffDiscontentRecord(snapshot.staffId, null)
         {
-            DisplayName = string.IsNullOrWhiteSpace(snapshot.displayName)
-                ? StaffDiscontentService.GetStaffDisplayName(null, snapshot.staffId)
-                : snapshot.displayName,
+            DisplayName = snapshot.displayName,
             Stage = snapshot.stage,
-            LastMood = Mathf.Clamp(snapshot.mood, 0f, 100f),
-            LowMoodDays = Mathf.Max(0, snapshot.lowMoodDays),
+            LastMood = snapshot.mood,
+            LowMoodDays = snapshot.lowMoodDays,
             IsPermanentLoss = snapshot.permanentLoss,
             IsDeparted = snapshot.departed,
             IsInLocalRebellion = snapshot.localRebellion,
@@ -320,7 +310,7 @@ public readonly struct StaffRebellionResponseResult
 
 public sealed class StaffDiscontentState
 {
-    private readonly Dictionary<string, StaffDiscontentRecord> records =
+    private Dictionary<string, StaffDiscontentRecord> records =
         new Dictionary<string, StaffDiscontentRecord>(StringComparer.Ordinal);
 
     public IReadOnlyCollection<StaffDiscontentRecord> Records => records.Values;
@@ -365,7 +355,6 @@ public sealed class StaffDiscontentState
     public IReadOnlyList<StaffDiscontentSnapshot> CaptureSnapshots()
     {
         return records.Values
-            .Where(record => record != null && !string.IsNullOrWhiteSpace(record.StaffId))
             .OrderBy(record => record.StaffId, StringComparer.Ordinal)
             .Select(record => record.ToSnapshot())
             .ToList();
@@ -373,23 +362,23 @@ public sealed class StaffDiscontentState
 
     public void Restore(IEnumerable<StaffDiscontentSnapshot> savedRecords)
     {
-        records.Clear();
-        HashSet<string> ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (StaffDiscontentSnapshot snapshot in savedRecords ?? Array.Empty<StaffDiscontentSnapshot>())
+        if (savedRecords == null)
+        {
+            throw new ArgumentNullException(nameof(savedRecords));
+        }
+
+        Dictionary<string, StaffDiscontentRecord> restored =
+            new Dictionary<string, StaffDiscontentRecord>(StringComparer.Ordinal);
+        foreach (StaffDiscontentSnapshot snapshot in savedRecords)
         {
             StaffDiscontentRecord record = StaffDiscontentRecord.FromSnapshot(snapshot);
-            if (record == null)
-            {
-                continue;
-            }
-
-            if (!ids.Add(record.StaffId))
+            if (!restored.TryAdd(record.StaffId, record))
             {
                 throw new InvalidOperationException($"Duplicate staff discontent ID '{record.StaffId}'.");
             }
-
-            records[record.StaffId] = record;
         }
+
+        records = restored;
     }
 
     private StaffDiscontentRecord GetOrCreate(string staffId, CharacterActor staff)
@@ -524,314 +513,5 @@ public static class StaffDiscontentService
             StaffDiscontentStage.LocalRebellion => "반란",
             _ => string.Empty
         };
-    }
-}
-
-public class StaffDiscontentRuntime : MonoBehaviour
-{
-    [SerializeField] private StaffDiscontentRules rules = StaffDiscontentRules.CreateDefault();
-
-    private readonly StaffDiscontentState state = new StaffDiscontentState();
-    private ICharacterWorldQuery characterWorldQuery;
-    private DungeonStory.Foundation.IGameEventBus gameEventBus;
-    private IDisposable operatingDayEndedSubscription;
-
-    public StaffDiscontentState State => state;
-    public StaffDiscontentRules Rules => rules;
-
-    [Inject]
-    public void Construct(
-        ICharacterWorldQuery characterWorldQuery,
-        DungeonStory.Foundation.IGameEventBus gameEventBus)
-    {
-        this.characterWorldQuery = characterWorldQuery
-            ?? throw new ArgumentNullException(nameof(characterWorldQuery));
-        this.gameEventBus = gameEventBus
-            ?? throw new ArgumentNullException(nameof(gameEventBus));
-        SubscribeToScopedEvents();
-    }
-
-    public void OnTriggerEvent(OperatingDayEndedEvent eventType)
-    {
-        ProcessAllStaff();
-    }
-
-    public StaffDiscontentRecord ProcessStaff(CharacterActor staff, out StaffDiscontentOutcome outcome)
-    {
-        StaffDiscontentRecord record = state.ProcessStaff(staff, rules, out outcome);
-        if (record == null)
-        {
-            return null;
-        }
-
-        ApplyOutcome(staff, record, outcome);
-        if (record.IsInLocalRebellion && !record.IsIsolated && !record.IsSuppressed)
-        {
-            DispatchAutoSuppress(staff);
-        }
-        return record;
-    }
-
-    public IReadOnlyList<StaffDiscontentSnapshot> CaptureSnapshots()
-    {
-        return state.CaptureSnapshots();
-    }
-
-    public void RestoreSnapshots(IEnumerable<StaffDiscontentSnapshot> savedRecords)
-    {
-        state.Restore(savedRecords);
-    }
-
-    public void ProcessAllStaff()
-    {
-        IReadOnlyList<CharacterActor> actors = RequireCharacterWorldQuery().Characters;
-        foreach (CharacterActor staff in actors)
-        {
-            ProcessStaff(staff, out _);
-        }
-    }
-
-    public float GetWorkEfficiencyMultiplier(CharacterActor staff)
-    {
-        if (!StaffDiscontentService.IsTrackableStaff(staff))
-        {
-            return 1f;
-        }
-
-        StaffDiscontentStage stage = state.TryGetRecord(staff, out StaffDiscontentRecord record)
-            ? record.Stage
-            : StaffDiscontentService.EvaluateStage(StaffDiscontentService.GetMood(staff), 0, rules);
-        return StaffDiscontentService.GetWorkEfficiencyMultiplier(stage, rules);
-    }
-
-    public bool ShouldBlockWork(CharacterActor staff, out string reason)
-    {
-        reason = string.Empty;
-        if (!StaffDiscontentService.IsTrackableStaff(staff))
-        {
-            return false;
-        }
-
-        StaffDiscontentStage stage = state.TryGetRecord(staff, out StaffDiscontentRecord record)
-            ? record.Stage
-            : StaffDiscontentService.EvaluateStage(StaffDiscontentService.GetMood(staff), 0, rules);
-        if (!StaffDiscontentService.ShouldBlockWork(stage))
-        {
-            return false;
-        }
-
-        reason = StaffDiscontentService.GetBlockReason(stage);
-        return true;
-    }
-
-    public bool IsRebellionTarget(CharacterActor target)
-    {
-        return state.TryGetRecord(target, out StaffDiscontentRecord record)
-            && record.IsInLocalRebellion
-            && !record.IsDeparted
-            && !record.IsSuppressed;
-    }
-
-    public int DispatchAutoSuppress(CharacterActor rebel)
-    {
-        if (!IsRebellionTarget(rebel))
-        {
-            return 0;
-        }
-
-        IReadOnlyList<CharacterActor> characters = RequireCharacterWorldQuery().Characters;
-        int assignedCount = 0;
-        foreach (CharacterActor candidate in characters)
-        {
-            if (candidate == null
-                || candidate == rebel
-                || (candidate.Stats != null && candidate.Stats.IsDead)
-                || !candidate.TryGetAbility(out AbilityWork work)
-                || work.HasPrioritySuppressTarget
-                || !work.WorkPriorities.IsEnabled(BuiltInWorkTypeIds.Guard))
-            {
-                continue;
-            }
-
-            if (!WorkCommandResolver.TryResolveSuppressCommand(candidate, rebel, IsRebellionTarget, out _))
-            {
-                continue;
-            }
-
-            if (!work.TrySetPrioritySuppressTarget(rebel, null, out _))
-            {
-                continue;
-            }
-
-            assignedCount++;
-        }
-
-        if (assignedCount > 0 && state.TryGetRecord(rebel, out StaffDiscontentRecord record))
-        {
-            StaffRebellionResponseResult result = new StaffRebellionResponseResult(
-                true,
-                StaffRebellionResponseType.AutoSuppress,
-                record.ToSnapshot(),
-                null,
-                $"자동 제압 배정: {assignedCount}명");
-            gameEventBus.RaiseStaffComplaint(
-                $"{record.DisplayName}: 자동 제압 {assignedCount}명 배정",
-                EventAlertImportance.Medium);
-        }
-
-        return assignedCount;
-    }
-
-    public bool TryIsolateRebel(CharacterActor rebel, CharacterActor actor, out StaffRebellionResponseResult result)
-    {
-        if (!state.TryGetRecord(rebel, out StaffDiscontentRecord record)
-            || !record.IsInLocalRebellion)
-        {
-            result = new StaffRebellionResponseResult(false, StaffRebellionResponseType.Isolate, null, actor, "격리할 반란 대상이 없습니다");
-            return false;
-        }
-
-        if (!record.MarkIsolated())
-        {
-            result = new StaffRebellionResponseResult(false, StaffRebellionResponseType.Isolate, record.ToSnapshot(), actor, "격리할 수 없습니다");
-            return false;
-        }
-
-        RecordSocial(rebel, CharacterActivityOutcomes.Completed, "반란 대응: 격리", "rebellion-isolated", 0.1f);
-        result = new StaffRebellionResponseResult(true, StaffRebellionResponseType.Isolate, record.ToSnapshot(), actor, "격리 완료");
-        gameEventBus.RaiseStaffComplaint($"{record.DisplayName}: 격리", EventAlertImportance.Medium);
-        return true;
-    }
-
-    public bool TryCalmStaff(CharacterActor staff, CharacterActor actor, out StaffRebellionResponseResult result)
-    {
-        if (!state.TryGetRecord(staff, out StaffDiscontentRecord record))
-        {
-            result = new StaffRebellionResponseResult(false, StaffRebellionResponseType.Calm, null, actor, "진정할 직원 기록이 없습니다");
-            return false;
-        }
-
-        if (!record.TryCalm(staff, rules, out string failureReason))
-        {
-            result = new StaffRebellionResponseResult(false, StaffRebellionResponseType.Calm, record.ToSnapshot(), actor, failureReason);
-            return false;
-        }
-
-        RecordSocial(staff, CharacterActivityOutcomes.Completed, "반란 대응: 진정", "rebellion-calmed", 0.35f);
-        result = new StaffRebellionResponseResult(true, StaffRebellionResponseType.Calm, record.ToSnapshot(), actor, "진정 완료");
-        gameEventBus.RaiseStaffComplaint($"{record.DisplayName}: 진정", EventAlertImportance.Low);
-        return true;
-    }
-
-    public bool ResolveSuppressedRebel(CharacterActor rebel, CharacterActor defender)
-    {
-        if (!state.TryGetRecord(rebel, out StaffDiscontentRecord record))
-        {
-            return false;
-        }
-
-        if (!record.MarkSuppressed())
-        {
-            return false;
-        }
-
-        StaffRebellionResponseResult result = new StaffRebellionResponseResult(
-            true,
-            StaffRebellionResponseType.SuppressCommand,
-            record.ToSnapshot(),
-            defender,
-            "제압 완료");
-        gameEventBus.RaiseStaffComplaint($"{record.DisplayName}: 제압 완료", EventAlertImportance.Medium);
-        return true;
-    }
-
-    private void ApplyOutcome(CharacterActor staff, StaffDiscontentRecord record, StaffDiscontentOutcome outcome)
-    {
-        if (outcome == StaffDiscontentOutcome.None)
-        {
-            return;
-        }
-
-        StaffDiscontentSnapshot snapshot = record.ToSnapshot(outcome);
-
-        switch (outcome)
-        {
-            case StaffDiscontentOutcome.Warning:
-                RecordSocial(staff, CharacterActivityOutcomes.Changed, "직원 불만: 만족도 낮음", "low-satisfaction", -0.45f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 만족도 낮음", EventAlertImportance.Low);
-                break;
-            case StaffDiscontentOutcome.EfficiencyPenalty:
-                RecordSocial(staff, CharacterActivityOutcomes.Changed, "직원 불만: 효율 저하", "efficiency-penalty", -0.55f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 효율 저하", EventAlertImportance.Medium);
-                break;
-            case StaffDiscontentOutcome.WorkDisruption:
-                RecordSocial(staff, CharacterActivityOutcomes.Blocked, "직원 불만: 태업/결근", "work-disruption", -0.7f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 태업/결근", EventAlertImportance.Medium);
-                break;
-            case StaffDiscontentOutcome.PermanentDeparture:
-                RecordSocial(staff, CharacterActivityOutcomes.Departed, "직원 이탈: 영구 손실", "permanent-departure", -1f);
-                staff?.Lifecycle?.SetLifecycleState(CharacterLifecycleState.Despawned);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 이탈", EventAlertImportance.High);
-                break;
-            case StaffDiscontentOutcome.LocalRebellion:
-                RecordSocial(staff, CharacterActivityOutcomes.Started, "국지 반란: 주변 피해 시작", "local-rebellion", -1f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 국지 반란", EventAlertImportance.High);
-                DispatchAutoSuppress(staff);
-                break;
-            case StaffDiscontentOutcome.OwnerThreat:
-                RecordSocial(staff, CharacterActivityOutcomes.Changed, "반란 확산: 사장 위협", "owner-threat", -1f);
-                gameEventBus.RaiseStaffComplaint($"{snapshot.displayName}: 반란 확산", EventAlertImportance.High);
-                break;
-        }
-    }
-
-    private static void RecordSocial(
-        CharacterActor actor,
-        string outcomeId,
-        string factText,
-        string reasonCode,
-        float sentiment)
-    {
-        actor?.AddActivity(CharacterActivityEvent.Create(
-            CharacterActivityKinds.Social,
-            outcomeId,
-            factText,
-            actionId: "staff-discontent",
-            reasonCode: reasonCode,
-            sentiment: sentiment,
-            bubbleEligible: true));
-    }
-
-    private ICharacterWorldQuery RequireCharacterWorldQuery()
-    {
-        if (characterWorldQuery == null)
-        {
-            throw new InvalidOperationException(
-                $"{nameof(StaffDiscontentRuntime)} requires {nameof(ICharacterWorldQuery)} injection.");
-        }
-
-        return characterWorldQuery;
-    }
-
-    private void OnEnable()
-    {
-        SubscribeToScopedEvents();
-    }
-
-    private void OnDisable()
-    {
-        operatingDayEndedSubscription?.Dispose();
-        operatingDayEndedSubscription = null;
-    }
-
-    private void SubscribeToScopedEvents()
-    {
-        if (!isActiveAndEnabled || gameEventBus == null)
-        {
-            return;
-        }
-
-        operatingDayEndedSubscription ??=
-            gameEventBus.Subscribe<OperatingDayEndedEvent>(OnTriggerEvent);
     }
 }

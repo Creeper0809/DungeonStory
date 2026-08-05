@@ -21,14 +21,27 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes: []
-  id: 9130
+  id: 9161
   recipeId: recipe:loot-appraisal
   displayName: "\uC6D0\uC815 \uC804\uB9AC\uD488 \uAC10\uC815"
   description: "\uC6D0\uC815 \uC804\uB9AC\uD488 \uAC10\uC815 \uC0DD\uC0B0 \uC8FC\uBB38"
-  facilityTag: loot-appraisal
+  facilityTag: workstation:v3:appraisal
+  workstationTag: workstation:v3:appraisal
+  requiredSupportTags: []
+  batchSupportTag:
+  processKind: 0
   workTypeId: work:craft
-  requiredResearchId: 
+  requiredResearchId: research:equipment:relic-appraisal
   requiredWork: 8
+  preparationWork: 0
+  finishingWork: 0
+  processingGameHours: 0
+  optimalTemperatureC: {x: 12, y: 24}
+  warningTemperatureC: {x: 4, y: 32}
+  cleanWaterPerCycle: 0
+  wastewaterPerCycle: 0
+  allowsManualWaterFallback: 0
+  spoilageItemId: waste:mixed-rot
   inputs:
   - itemId: offense:unappraised-loot
     amount: 10

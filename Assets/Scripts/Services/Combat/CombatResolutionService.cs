@@ -41,23 +41,28 @@ public sealed class CombatResolutionService : ICombatResolutionService
     private readonly IEquipmentEvolutionRuntime evolution;
     private readonly IEquipmentOverclockRuntime overclock;
     private readonly ICharacterEnvironmentStatusQuery environmentStatus;
-    private readonly IEnvironmentalFieldRuntime environmentalField;
+    private readonly IEnvironmentalFieldQuery environmentalField;
     private readonly ICharacterWorldQuery characters;
+    private readonly ICharacterEnvironmentExposureCommand environmentExposure;
 
     public CombatResolutionService(
         ICombatRandomSource random,
-        IEquipmentEvolutionRuntime evolution = null,
-        IEquipmentOverclockRuntime overclock = null,
-        ICharacterEnvironmentStatusQuery environmentStatus = null,
-        IEnvironmentalFieldRuntime environmentalField = null,
-        ICharacterWorldQuery characters = null)
+        IEquipmentEvolutionRuntime evolution,
+        IEquipmentOverclockRuntime overclock,
+        ICharacterEnvironmentStatusQuery environmentStatus,
+        IEnvironmentalFieldQuery environmentalField,
+        ICharacterWorldQuery characters,
+        ICharacterEnvironmentExposureCommand environmentExposure)
     {
         this.random = random ?? throw new ArgumentNullException(nameof(random));
         this.evolution = evolution;
         this.overclock = overclock;
         this.environmentStatus = environmentStatus;
-        this.environmentalField = environmentalField;
+        this.environmentalField = environmentalField
+            ?? throw new ArgumentNullException(nameof(environmentalField));
         this.characters = characters;
+        this.environmentExposure = environmentExposure
+            ?? throw new ArgumentNullException(nameof(environmentExposure));
     }
 
     public CombatAttackResult Resolve(CombatAttackRequest request)
@@ -94,6 +99,25 @@ public sealed class CombatResolutionService : ICombatResolutionService
         if (weapon.RequiresAmmo && weapon.LoadedAmmo <= 0)
         {
             return Record(request, Failure("탄약 없음"));
+        }
+
+        if (weapon.GunpowderWeapon
+            && weapon.MisfireChance > 0f
+            && random.Next01() < weapon.MisfireChance)
+        {
+            return Record(request, new CombatAttackResult(
+                true,
+                false,
+                false,
+                false,
+                CombatBodyPart.Torso,
+                0f,
+                0f,
+                0f,
+                0f,
+                0f,
+                string.Empty,
+                "오발"));
         }
 
         float rangeAccuracy = weapon.GetAccuracyMultiplier(band);
@@ -213,6 +237,29 @@ public sealed class CombatResolutionService : ICombatResolutionService
         CombatAttackRequest request,
         CombatAttackResult result)
     {
+        CombatWeaponSnapshot resolvedWeapon = request.Weapon;
+        if (result.Executed
+            && resolvedWeapon?.GunpowderWeapon == true
+            && resolvedWeapon.SmokeExposure > 0f)
+        {
+            bool misfire = !result.Hit
+                && !result.CoverBlocked
+                && !result.ShieldBlocked
+                && !result.Evaded
+                && result.RawDamage <= 0f
+                && result.AppliedDamage <= 0f
+                && !string.IsNullOrWhiteSpace(result.FailureReason);
+            result = result.WithSmokeExposure(
+                resolvedWeapon.SmokeExposure,
+                clearSuppression: misfire);
+        }
+        if (result.SmokeExposure > 0f)
+        {
+            environmentExposure.AddAirborneExposure(
+                new CharacterId(request.AttackerId),
+                result.SmokeExposure);
+        }
+
         if (evolution == null)
         {
             return result;
@@ -437,9 +484,9 @@ public sealed class CombatResolutionService : ICombatResolutionService
         bool isRanged)
     {
         float penaltyPoints =
-            environmentStatus?.GetAccuracyPenaltyPoints(attackerId) ?? 0f;
+            environmentStatus?.GetAccuracyPenaltyPoints(
+                new CharacterId(attackerId)) ?? 0f;
         if (isRanged
-            && environmentalField != null
             && characters != null)
         {
             CharacterActor attacker = characters.Characters

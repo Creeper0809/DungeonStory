@@ -69,7 +69,7 @@ public sealed class CharacterAiIntentState
         branch = newBranch;
         intention = newIntention;
         label = string.IsNullOrWhiteSpace(newLabel)
-            ? CharacterAiUtilityText.GetBranchLabel(newBranch)
+            ? CharacterAiUtilityText.GetBranchDisplayToken(newBranch)
             : newLabel;
         targetGridId = target != null ? target.GridId : -1;
         startedAt = now;
@@ -142,62 +142,49 @@ public sealed class CharacterAiIntentState
         if (!IsActive(now))
         {
             return string.IsNullOrWhiteSpace(lastBreakReason)
-                ? "의도 유지 없음"
-                : $"의도 유지 없음 · 마지막 중단 {lastBreakReason}";
+                ? CharacterAiDiagnosticsTextQuery.Get(
+                    "CharacterAI.Intent.Inactive")
+                : CharacterAiDiagnosticsTextQuery.Get(
+                    "CharacterAI.Intent.InactiveWithBreak",
+                    lastBreakReason);
         }
 
-        string target = targetGridId >= 0 ? $"대상 {targetGridId}" : "대상 없음";
+        string target = targetGridId >= 0
+            ? CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Intent.Target",
+                targetGridId)
+            : CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Intent.NoTarget");
         string minimum = IsWithinMinimum(now)
-            ? $"최소 {Mathf.Max(0f, minUntil - now):0.0}s"
-            : "중단 가능";
-        string expiry = expiresAt > 0f ? $"만료 {Mathf.Max(0f, expiresAt - now):0.0}s" : "만료 없음";
-        return $"{CharacterAiUtilityText.GetBranchLabel(branch)} · {label} · {target} · {minimum} · {expiry}";
+            ? CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Intent.Minimum",
+                Mathf.Max(0f, minUntil - now))
+            : CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Intent.Interruptible");
+        string expiry = expiresAt > 0f
+            ? CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Intent.Expiry",
+                Mathf.Max(0f, expiresAt - now))
+            : CharacterAiDiagnosticsTextQuery.Get(
+                "CharacterAI.Intent.NoExpiry");
+        return CharacterAiDiagnosticsTextQuery.Get(
+            "CharacterAI.Intent.Active",
+            CharacterAiUtilityText.GetBranchLabel(branch),
+            CharacterAiUtilityText.ResolveDisplayToken(label),
+            target,
+            minimum,
+            expiry);
     }
 }
 
-[CreateAssetMenu(menuName = "DungeonStory/AI/Naturalness Settings", order = 10)]
-public sealed class CharacterAiNaturalnessSettingsSO : ScriptableObject
+public static class CharacterAiNaturalnessSettingsResolver
 {
-    private static CharacterAiNaturalnessSettingsSO defaults;
-
-    [Header("Soft Lock")]
-    [SerializeField, Min(0f)] private float softLockMinimumSeconds = 1.15f;
-    [SerializeField, Min(0f)] private float softLockMaximumSeconds = 4.5f;
-    [SerializeField, Range(0f, 0.5f)] private float softLockScoreBonus = 0.14f;
-
-    [Header("Signals")]
-    [SerializeField, Min(1f)] private float nearbyCharacterRadius = 4f;
-    [SerializeField, Min(1f)] private float wildlifeThreatRadius = 7f;
-    [SerializeField, Min(0f)] private float signalCacheSeconds = 0.25f;
-
-    [Header("Micro Behavior")]
-    [SerializeField, Range(0f, 1f)] private float queueWaitThreshold = 0.35f;
-    [SerializeField, Range(0f, 1f)] private float shelterWeatherThreshold = 0.55f;
-    [SerializeField, Range(0f, 1f)] private float stepAsideFailureThreshold = 0.35f;
-
-    public static CharacterAiNaturalnessSettingsSO Defaults
+    public static CharacterAiNaturalnessSettingsSO Require(CharacterActor actor)
     {
-        get
-        {
-            if (defaults == null)
-            {
-                defaults = CreateInstance<CharacterAiNaturalnessSettingsSO>();
-                defaults.hideFlags = HideFlags.HideAndDontSave;
-            }
-
-            return defaults;
-        }
+        return actor?.NaturalnessSettings
+            ?? throw new InvalidOperationException(
+                "Character AI naturalness settings were not injected from the root content catalog.");
     }
-
-    public float SoftLockMinimumSeconds => Mathf.Max(0f, softLockMinimumSeconds);
-    public float SoftLockMaximumSeconds => Mathf.Max(SoftLockMinimumSeconds, softLockMaximumSeconds);
-    public float SoftLockScoreBonus => Mathf.Clamp(softLockScoreBonus, 0f, 0.5f);
-    public float NearbyCharacterRadius => Mathf.Max(1f, nearbyCharacterRadius);
-    public float WildlifeThreatRadius => Mathf.Max(1f, wildlifeThreatRadius);
-    public float SignalCacheSeconds => Mathf.Max(0f, signalCacheSeconds);
-    public float QueueWaitThreshold => Mathf.Clamp01(queueWaitThreshold);
-    public float ShelterWeatherThreshold => Mathf.Clamp01(shelterWeatherThreshold);
-    public float StepAsideFailureThreshold => Mathf.Clamp01(stepAsideFailureThreshold);
 }
 
 public readonly struct CharacterAiWorldSignalSnapshot
@@ -301,23 +288,25 @@ public readonly struct CharacterAiWorldSignalSnapshot
 
     public string ToCompactString()
     {
-        return $"시간 {FormatTime(TimeOfDay)}"
-            + $" · 구역 {FormatArea(AreaType)}"
-            + $" · 대기 {QueuePressure * 100f:0}%"
-            + $" · 경로 {PathConfidence * 100f:0}%"
-            + $" · 날씨 {WeatherPressure * 100f:0}%"
-            + $" · 주변 {NearbyCharacters}";
+        return CharacterAiDiagnosticsTextQuery.Get(
+            "CharacterAI.WorldSignals.Compact",
+            FormatTime(TimeOfDay),
+            FormatArea(AreaType),
+            QueuePressure * 100f,
+            PathConfidence * 100f,
+            WeatherPressure * 100f,
+            NearbyCharacters);
     }
 
     private static string FormatTime(TimeOfDay timeOfDay)
     {
         return timeOfDay switch
         {
-            TimeOfDay.Morning => "아침",
-            TimeOfDay.Noon => "낮",
-            TimeOfDay.Evening => "저녁",
-            TimeOfDay.Night => "밤",
-            _ => "모름"
+            TimeOfDay.Morning => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Time.Morning"),
+            TimeOfDay.Noon => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Time.Noon"),
+            TimeOfDay.Evening => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Time.Evening"),
+            TimeOfDay.Night => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Time.Night"),
+            _ => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Time.Unknown")
         };
     }
 
@@ -325,12 +314,12 @@ public readonly struct CharacterAiWorldSignalSnapshot
     {
         return areaType switch
         {
-            GridCellAreaType.DungeonInterior => "던전",
-            GridCellAreaType.Entrance => "입구",
-            GridCellAreaType.DropZone => "하차장",
-            GridCellAreaType.ExteriorPath => "외부길",
-            GridCellAreaType.BlockedExterior => "막힌 외부",
-            _ => "모름"
+            GridCellAreaType.DungeonInterior => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Area.DungeonInterior"),
+            GridCellAreaType.Entrance => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Area.Entrance"),
+            GridCellAreaType.DropZone => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Area.DropZone"),
+            GridCellAreaType.ExteriorPath => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Area.ExteriorPath"),
+            GridCellAreaType.BlockedExterior => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Area.BlockedExterior"),
+            _ => CharacterAiDiagnosticsTextQuery.Get("CharacterAI.Area.Unknown")
         };
     }
 }
@@ -408,7 +397,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
     private readonly Dictionary<int, WildlifeSpatialEntry> wildlifeEntries =
         new Dictionary<int, WildlifeSpatialEntry>();
     private readonly ICharacterAiWorldRegistry worldRegistry;
-    private readonly ISurvivalFoodRuntime survivalFoodRuntime;
+    private readonly ISurvivalFoodQuery survivalFoodRuntime;
     private readonly ISurvivalEnvironmentQuery survivalEnvironment;
     private readonly ICharacterAiPerformanceRecorder performanceRecorder;
     private readonly IGameClock gameClock;
@@ -422,9 +411,9 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
     public DefaultCharacterAiWorldSignalQuery(
         ICharacterAiWorldRegistry worldRegistry,
         IGameClock gameClock,
-        ISurvivalFoodRuntime survivalFoodRuntime = null,
-        ISurvivalEnvironmentQuery survivalEnvironment = null,
-        ICharacterAiPerformanceRecorder performanceRecorder = null)
+        ISurvivalFoodQuery survivalFoodRuntime,
+        ISurvivalEnvironmentQuery survivalEnvironment,
+        ICharacterAiPerformanceRecorder performanceRecorder)
     {
         this.worldRegistry = worldRegistry
             ?? throw new ArgumentNullException(nameof(worldRegistry));
@@ -473,7 +462,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         Vector2Int actorPosition = actor.GetNowXY();
         int cacheKey = BuildCacheKey(actor, actorPosition);
         float now = gameClock.Time;
-        float cacheSeconds = CharacterAiNaturalnessSettingsSO.Defaults.SignalCacheSeconds;
+        float cacheSeconds = CharacterAiNaturalnessSettingsResolver.Require(actor).SignalCacheSeconds;
         CharacterAiWorldSignalSnapshot snapshot;
         if (cache.TryGetValue(cacheKey, out CachedSignal cached)
             && now - cached.Time <= cacheSeconds)
@@ -522,7 +511,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
             out int nearbyCharacters,
             out int nearbyWorkers,
             out int nearbyVisitors);
-        float wildlifeThreat = ResolveWildlifeThreat(actorPosition);
+        float wildlifeThreat = ResolveWildlifeThreat(actor, actorPosition);
         RecordDetailedTiming(
             AiPerformanceCategory.WorldSignalProximity,
             proximityStarted);
@@ -624,7 +613,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
 
     private TimeOfDay ResolveTimeOfDay()
     {
-        return worldRegistry.TryGetGameData(out GameData data) && data.timeOfDay != null
+        return worldRegistry.TryGetSessionState(out GameSessionState data) && data.timeOfDay != null
             ? data.timeOfDay.Value
             : TimeOfDay.None;
     }
@@ -656,7 +645,7 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         nearbyCharacters = 0;
         nearbyWorkers = 0;
         nearbyVisitors = 0;
-        float radius = CharacterAiNaturalnessSettingsSO.Defaults.NearbyCharacterRadius;
+        float radius = CharacterAiNaturalnessSettingsResolver.Require(actor).NearbyCharacterRadius;
         int maxDistance = Mathf.CeilToInt(radius);
         RefreshSpatialBucketsIfNeeded(actor);
         int centerBucket = FloorDiv(actorPosition.x, SpatialBucketWidth);
@@ -782,9 +771,11 @@ public sealed class DefaultCharacterAiWorldSignalQuery : ICharacterAiWorldSignal
         return Mathf.Clamp01(1f - Mathf.Max(0, distance - 4) / 26f);
     }
 
-    private float ResolveWildlifeThreat(Vector2Int actorPosition)
+    private float ResolveWildlifeThreat(
+        CharacterActor actor,
+        Vector2Int actorPosition)
     {
-        float radius = CharacterAiNaturalnessSettingsSO.Defaults.WildlifeThreatRadius;
+        float radius = CharacterAiNaturalnessSettingsResolver.Require(actor).WildlifeThreatRadius;
         int maxDistance = Mathf.CeilToInt(radius);
         float threat = 0f;
         RefreshSpatialBucketsIfNeeded(null);

@@ -1,0 +1,15 @@
+{
+    "schemaVersion": 1,
+    "mutableRuntimeStaticCount": 15,
+    "mutableRuntimeStaticSetHash": "b9563b31635d78b05e4bfcf2aacbf3687971619cb8b103893b30e9a87135561e",
+    "largeRuntimeConstructorCount": 81,
+    "largeRuntimeConstructorSetHash": "1035af98342bb4cad38117ae5f2e9b770efd0062c21d46af603216753b17127b",
+    "defaultAssemblyMonoScriptCount": 818,
+    "defaultAssemblyMonoScriptSetHash": "3d78f29fe7a77dfd28b67467a5d8d71132883c171d54e249d73ea387b68e8da1",
+    "optionalRuntimeInterfaceDependencyCount": 0,
+    "optionalRuntimeInterfaceDependencySetHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "rootCatalogValidationErrorCount": 0,
+    "rootCatalogValidationErrorSetHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "assetGraphBrokenReferenceCount": 0,
+    "assetGraphBrokenReferenceSetHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

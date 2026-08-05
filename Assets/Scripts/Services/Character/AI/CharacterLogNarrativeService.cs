@@ -14,7 +14,8 @@ public interface ICharacterLogNarrativeService
 
 public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
 {
-    public const int MaxLineCharacters = 60;
+    public const int MaxLineCharacters =
+        CharacterRecordNarrativeRules.MaxLineCharacters;
     private const int MaxPendingRequestsPerCharacter = 3;
     private const int MaxRecentLines = 3;
     private const int MaxCorrectionAttempts = 2;
@@ -62,12 +63,20 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         "이리저리", "갈팡질팡", "괜히"
     };
     private readonly ILocalLlmRuntimeProvider llmRuntimeProvider;
+    private readonly CharacterRecordTemplateBank templateBank;
+    private readonly ICharacterNarrativeTextQuery text;
     private readonly Dictionary<int, int> pendingRequestsByLog = new Dictionary<int, int>();
 
-    public CharacterLogNarrativeService(ILocalLlmRuntimeProvider llmRuntimeProvider)
+    public CharacterLogNarrativeService(
+        ILocalLlmRuntimeProvider llmRuntimeProvider,
+        CharacterRecordTemplateBank templateBank,
+        ICharacterNarrativeTextQuery text)
     {
         this.llmRuntimeProvider = llmRuntimeProvider
             ?? throw new ArgumentNullException(nameof(llmRuntimeProvider));
+        this.templateBank = templateBank
+            ?? throw new ArgumentNullException(nameof(templateBank));
+        this.text = text ?? throw new ArgumentNullException(nameof(text));
     }
 
     public int RequestedCount { get; private set; }
@@ -86,7 +95,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             return false;
         }
 
-        if (!CharacterRecordTemplateBank.TryBuildLine(characterLog, entry, out line))
+        if (!templateBank.TryBuildLine(characterLog, entry, out line))
         {
             return false;
         }
@@ -120,7 +129,12 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
 
         CharacterActor actor = characterLog.GetComponent<CharacterActor>();
         string requiredSubject = BuildRequiredSubject(ResolveDisplayName(actor, characterLog));
-        string prompt = BuildPrompt(actor, characterLog, entry, requiredSubject);
+        string prompt = BuildPrompt(
+            actor,
+            characterLog,
+            entry,
+            requiredSubject,
+            text);
         LastPrompt = prompt;
         LastResponse = string.Empty;
         LastError = string.Empty;
@@ -159,17 +173,19 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
     public static string BuildPrompt(
         CharacterActor actor,
         CharacterLog characterLog,
-        CharacterLogEntry entry)
+        CharacterLogEntry entry,
+        ICharacterNarrativeTextQuery text)
     {
         string requiredSubject = BuildRequiredSubject(ResolveDisplayName(actor, characterLog));
-        return BuildPrompt(actor, characterLog, entry, requiredSubject);
+        return BuildPrompt(actor, characterLog, entry, requiredSubject, text);
     }
 
     private static string BuildPrompt(
         CharacterActor actor,
         CharacterLog characterLog,
         CharacterLogEntry entry,
-        string requiredSubject)
+        string requiredSubject,
+        ICharacterNarrativeTextQuery text)
     {
         CustomerPersonaData persona = actor != null && actor.PersonaRuntime != null
             ? actor.PersonaRuntime.Persona
@@ -186,8 +202,11 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             ? persona.flavorText
             : "unknown";
         int styleSeed = Math.Abs(entry.EntryId % 4);
-        string sentenceShape = GetPreferredSentenceShape(entry.OriginalMessage, styleSeed);
-        string styleBrief = GetStyleBrief(styleSeed);
+        string sentenceShape = GetPreferredSentenceShape(
+            entry.OriginalMessage,
+            styleSeed,
+            text);
+        string styleBrief = GetStyleBrief(styleSeed, text);
 
         StringBuilder builder = new StringBuilder(1200);
         builder.AppendLine("Rewrite one DungeonStory character activity record in natural Korean.");
@@ -217,7 +236,7 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         builder.AppendLine("Avoid generic stiff filler such as 업무, 활동, 자신의, 수행, and 진행되었습니다.");
         builder.AppendLine($"styleSeed: {styleSeed}");
         builder.AppendLine($"styleBrief: {styleBrief}");
-        builder.AppendLine($"situationBrief: {GetSituationBrief(styleSeed)}");
+        builder.AppendLine($"situationBrief: {GetSituationBrief(styleSeed, text)}");
         builder.AppendLine($"sentenceShape: {sentenceShape}");
         builder.AppendLine("Character:");
         builder.AppendLine($"name: {name}");
@@ -423,7 +442,10 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             return;
         }
 
-        string fallbackLine = BuildControlledFallbackLine(entry, requiredSubject);
+        string fallbackLine = BuildControlledFallbackLine(
+            entry,
+            requiredSubject,
+            text);
         if (characterLog == null
             || !characterLog.TryUpdateDisplayLine(
                 entry.EntryId,
@@ -460,7 +482,8 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             entry,
             requiredSubject,
             rejectedResponse,
-            rejectionReason);
+            rejectionReason,
+            text);
         LastPrompt = prompt;
         LastError = $"Retrying rejected character record: {rejectionReason}";
         pendingRequestsByLog[logId] = GetPendingCount(logId) + 1;
@@ -487,23 +510,31 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
     public static string BuildCorrectionPrompt(
         CharacterLogEntry entry,
         string rejectedResponse,
-        string rejectionReason)
+        string rejectionReason,
+        ICharacterNarrativeTextQuery text)
     {
-        return BuildCorrectionPrompt(entry, string.Empty, rejectedResponse, rejectionReason);
+        return BuildCorrectionPrompt(
+            entry,
+            string.Empty,
+            rejectedResponse,
+            rejectionReason,
+            text);
     }
 
     public static string BuildCorrectionPrompt(
         CharacterLogEntry entry,
         string requiredSubject,
         string rejectedResponse,
-        string rejectionReason)
+        string rejectionReason,
+        ICharacterNarrativeTextQuery text)
     {
         return BuildCorrectionPrompt(
             null,
             entry,
             requiredSubject,
             rejectedResponse,
-            rejectionReason);
+            rejectionReason,
+            text);
     }
 
     private static string BuildCorrectionPrompt(
@@ -511,19 +542,24 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         CharacterLogEntry entry,
         string requiredSubject,
         string rejectedResponse,
-        string rejectionReason)
+        string rejectionReason,
+        ICharacterNarrativeTextQuery text)
     {
         CustomerPersonaData persona = actor != null && actor.PersonaRuntime != null
             ? actor.PersonaRuntime.Persona
             : null;
         IReadOnlyList<string> phrases = ExtractRequiredPhrases(entry.OriginalMessage);
         int styleSeed = Math.Abs(entry.EntryId % 4);
-        string sentenceShape = GetPreferredSentenceShape(entry.OriginalMessage, styleSeed);
+        string sentenceShape = GetPreferredSentenceShape(
+            entry.OriginalMessage,
+            styleSeed,
+            text);
         string groundedExample = BuildGroundedSentenceExample(
             entry.OriginalMessage,
             phrases,
             requiredSubject,
-            styleSeed);
+            styleSeed,
+            text);
 
         StringBuilder builder = new StringBuilder(800);
         builder.AppendLine("The previous Korean activity record was rejected.");
@@ -549,8 +585,8 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         builder.AppendLine($"Species: {(actor != null ? actor.SpeciesTag : "unknown")}");
         builder.AppendLine($"Persona trait: {(persona != null ? persona.traitName : "unknown")}");
         builder.AppendLine($"Persona flavor: {(persona != null ? persona.flavorText : "unknown")}");
-        builder.AppendLine($"Keep this rhythm and verb family: {GetStyleBrief(styleSeed)}");
-        builder.AppendLine($"Create this kind of harmless moment: {GetSituationBrief(styleSeed)}");
+        builder.AppendLine($"Keep this rhythm and verb family: {GetStyleBrief(styleSeed, text)}");
+        builder.AppendLine($"Create this kind of harmless moment: {GetSituationBrief(styleSeed, text)}");
         builder.AppendLine($"Use this sentence shape with the source phrases: {sentenceShape}");
         if (!string.IsNullOrWhiteSpace(groundedExample))
         {
@@ -562,14 +598,16 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
 
     public static string BuildControlledFallbackLine(
         CharacterLogEntry entry,
-        string requiredSubject)
+        string requiredSubject,
+        ICharacterNarrativeTextQuery text)
     {
         IReadOnlyList<string> phrases = ExtractRequiredPhrases(entry.OriginalMessage);
         return BuildGroundedSentenceExample(
             entry.OriginalMessage,
             phrases,
             requiredSubject,
-            entry.EntryId % 4);
+            entry.EntryId % 4,
+            text);
     }
 
     public bool TryApplyFallback(CharacterLog characterLog, CharacterLogEntry entry)
@@ -586,7 +624,10 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         CharacterLogEntry entry,
         string requiredSubject)
     {
-        string fallback = BuildControlledFallbackLine(entry, requiredSubject);
+        string fallback = BuildControlledFallbackLine(
+            entry,
+            requiredSubject,
+            text);
         if (string.IsNullOrWhiteSpace(fallback))
         {
             return false;
@@ -947,46 +988,31 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         return false;
     }
 
-    private static string GetPreferredSentenceShape(string source, int styleSeed)
+    private static string GetPreferredSentenceShape(
+        string source,
+        int styleSeed,
+        ICharacterNarrativeTextQuery text)
     {
         int variant = Math.Abs(styleSeed % 4);
         if (!string.IsNullOrWhiteSpace(source)
             && source.StartsWith("비번 시작", StringComparison.Ordinal))
         {
-            return "<subject> <reason>으로 비번을 시작했다.";
+            return text.Get("Prompt.Shape.OffDuty");
         }
 
         if (ContainsAny(source, "종료", "완료", "복귀", "마침"))
         {
-            return variant switch
-            {
-                0 => "<subject> <place>에서 <work>를 마치고 <result>도 끝냈다.",
-                1 => "<subject> <place>에서 <work>와 <result>를 마쳤다.",
-                2 => "<subject> <place>에서 <result>를 끝내고 <work>도 마쳤다.",
-                _ => "<subject> <place>에서 <work>와 <result>를 마쳤다."
-            };
+            return text.Get("Prompt.Shape.Completed." + variant);
         }
 
         if (ContainsAny(source, "실패", "없음", "부족", "중단", "취소"))
         {
-            return variant switch
-            {
-                0 => "<subject> <place>에서 <action>을 시도했지만 <reason>으로 멈췄다.",
-                1 => "<subject> <action>에 나섰지만 <place>에서 <reason>에 막혔다.",
-                2 => "<subject> <place>에서 <reason>에 막혀 <action>을 멈췄다.",
-                _ => "<subject> <action>을 이어가려 했지만 <place>에서 <reason>으로 중단했다."
-            };
+            return text.Get("Prompt.Shape.Failed." + variant);
         }
 
         if (ContainsAny(source, "시작", "출발", "착수"))
         {
-            return variant switch
-            {
-                0 => "<subject> <place>에서 <action>을 시작했다.",
-                1 => "<subject> <place>에서 <action>에 착수했다.",
-                2 => "<subject> <place>로 향해 <action>에 착수했다.",
-                _ => "<subject> <place>에서 <action>을 시작했다."
-            };
+            return text.Get("Prompt.Shape.Started." + variant);
         }
 
         return Math.Abs(styleSeed % 4) switch
@@ -1002,14 +1028,17 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         string source,
         IReadOnlyList<string> phrases,
         string requiredSubject,
-        int styleSeed)
+        int styleSeed,
+        ICharacterNarrativeTextQuery text)
     {
         if (phrases == null || phrases.Count == 0)
         {
             return string.Empty;
         }
 
-        string storySubject = PrefixSubject(requiredSubject, GetGroundedSituationLead(styleSeed));
+        string storySubject = PrefixSubject(
+            requiredSubject,
+            GetGroundedSituationLead(styleSeed, text));
 
         if (!string.IsNullOrWhiteSpace(source)
             && source.StartsWith("비번 시작", StringComparison.Ordinal)
@@ -1017,7 +1046,10 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         {
             return PrefixSubject(
                 storySubject,
-                $"{WithDirectionalParticle(phrases[1])} {WithObjectParticle(phrases[0])} 시작했다.");
+                text.Get(
+                    "Fallback.OffDuty",
+                    WithDirectionalParticle(phrases[1]),
+                    WithObjectParticle(phrases[0])));
         }
 
         if (ContainsAny(source, "종료", "완료", "복귀", "마침") && phrases.Count >= 2)
@@ -1026,74 +1058,63 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
             {
                 string work = WithObjectParticle(phrases[0]);
                 string result = WithObjectParticle(phrases[2]);
-                return Math.Abs(styleSeed % 4) switch
-                {
-                    0 => PrefixSubject(
-                        storySubject,
-                        $"{phrases[1]}에서 {work} 마치고 {phrases[2]}도 끝냈다."),
-                    1 => PrefixSubject(
-                        storySubject,
-                        $"{phrases[1]}에서 {WithConjunctionParticle(phrases[0])} {result} 마쳤다."),
-                    2 => PrefixSubject(
-                        storySubject,
-                        $"{phrases[1]}에서 {result} 끝내고 {phrases[0]}도 마쳤다."),
-                    _ => PrefixSubject(
-                        storySubject,
-                        $"{phrases[1]}에서 {WithConjunctionParticle(phrases[0])} {result} 마쳤다.")
-                };
+                int variant = Math.Abs(styleSeed % 4);
+                return PrefixSubject(
+                    storySubject,
+                    text.Get(
+                        "Fallback.CompletedThree." + variant,
+                        phrases[1],
+                        work,
+                        phrases[2],
+                        WithConjunctionParticle(phrases[0]),
+                        result,
+                        phrases[0]));
             }
 
             return PrefixSubject(
                 storySubject,
-                $"{phrases[1]}에서 {WithObjectParticle(phrases[0])} 마무리했다.");
+                text.Get(
+                    "Fallback.CompletedTwo",
+                    phrases[1],
+                    WithObjectParticle(phrases[0])));
         }
 
         if (ContainsAny(source, "시작", "출발", "착수") && phrases.Count >= 2)
         {
             string action = WithObjectParticle(phrases[0]);
-            return Math.Abs(styleSeed % 4) switch
-            {
-                0 => PrefixSubject(storySubject, $"{phrases[1]}에서 {action} 시작했다."),
-                1 => PrefixSubject(storySubject, $"{phrases[1]}에서 {phrases[0]}에 착수했다."),
-                2 => PrefixSubject(storySubject, $"{WithDirectionalParticle(phrases[1])} 향해 {phrases[0]}에 착수했다."),
-                _ => PrefixSubject(storySubject, $"{phrases[1]}에서 {action} 시작했다.")
-            };
+            int variant = Math.Abs(styleSeed % 4);
+            return PrefixSubject(
+                storySubject,
+                text.Get(
+                    "Fallback.Started." + variant,
+                    phrases[1],
+                    action,
+                    phrases[0],
+                    WithDirectionalParticle(phrases[1])));
         }
 
         return string.Empty;
     }
 
-    private static string GetStyleBrief(int styleSeed)
+    private static string GetStyleBrief(
+        int styleSeed,
+        ICharacterNarrativeTextQuery text)
     {
-        return Math.Abs(styleSeed % 4) switch
-        {
-            0 => "담백한 현장 기록: 장소에서 행동으로 이어지는 짧고 또렷한 문장.",
-            1 => "행동 중심 기록: 행동을 먼저 꺼내고 착수·끝냄을 경쾌하게 표현.",
-            2 => "이동감 있는 기록: 향하다·들어가다·마무리하다를 자연스럽게 연결.",
-            _ => "결과 중심 기록: 결과나 변화를 먼저 세우고 마지막에 장소와 행동을 매듭."
-        };
+        return text.Get("Prompt.StyleBrief." + Math.Abs(styleSeed % 4));
     }
 
-    private static string GetSituationBrief(int styleSeed)
+    private static string GetSituationBrief(
+        int styleSeed,
+        ICharacterNarrativeTextQuery text)
     {
-        return Math.Abs(styleSeed % 4) switch
-        {
-            0 => "엉뚱한 길로 샜다가 금세 돌아오는 실수.",
-            1 => "잠깐 허둥댄 뒤 태연한 척하는 버릇.",
-            2 => "한 박자 멈칫했다가 머쓱하게 다시 나서는 반응.",
-            _ => "딴생각에서 퍼뜩 깨어나 원래 행동을 잇는 반전."
-        };
+        return text.Get("Prompt.SituationBrief." + Math.Abs(styleSeed % 4));
     }
 
-    private static string GetGroundedSituationLead(int styleSeed)
+    private static string GetGroundedSituationLead(
+        int styleSeed,
+        ICharacterNarrativeTextQuery text)
     {
-        return Math.Abs(styleSeed % 4) switch
-        {
-            0 => "엉뚱한 길로 샜다가 돌아와",
-            1 => "잠깐 허둥댄 뒤 태연한 척하고",
-            2 => "한 박자 멈칫했다가 머쓱하게",
-            _ => "딴생각에서 퍼뜩 깨어나"
-        };
+        return text.Get("Fallback.SituationLead." + Math.Abs(styleSeed % 4));
     }
 
     public static string BuildRequiredSubject(string displayName)
@@ -1189,29 +1210,5 @@ public sealed class CharacterLogNarrativeService : ICharacterLogNarrativeService
         {
             pendingRequestsByLog.Remove(logId);
         }
-    }
-}
-
-[Serializable]
-public sealed class CharacterRecordJsonDto : ILlmJsonPayload
-{
-    public string line;
-
-    public bool Validate(out string error)
-    {
-        error = string.Empty;
-        if (string.IsNullOrWhiteSpace(line))
-        {
-            error = "line is required.";
-            return false;
-        }
-
-        if (line.Length > CharacterLogNarrativeService.MaxLineCharacters)
-        {
-            error = $"line must be {CharacterLogNarrativeService.MaxLineCharacters} characters or shorter.";
-            return false;
-        }
-
-        return true;
     }
 }

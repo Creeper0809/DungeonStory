@@ -21,15 +21,6 @@ MonoBehaviour:
     PrefabModificationsReferencedUnityObjects: []
     PrefabModifications: []
     SerializationNodes:
-    - Name: type
-      Entry: 7
-      Data: 0|System.RuntimeType, mscorlib
-    - Name: 
-      Entry: 1
-      Data: DefenseFacility, Assembly-CSharp
-    - Name: 
-      Entry: 8
-      Data: 
     - Name: tiles
       Entry: 6
       Data: 
@@ -37,20 +28,22 @@ MonoBehaviour:
       Entry: 6
       Data: 
   id: 30
-  objectName: "1\uC131 \uAC00\uC2DC \uD568\uC815"
-  sprite: {fileID: 21300000, guid: 01db5f714be6fe488b5fc39cab46891c, type: 3}
-  icon: {fileID: 21300000, guid: 01db5f714be6fe488b5fc39cab46891c, type: 3}
+  objectName: "1\uC131 \uC0B0\uD0C4 \uAC00\uC2DC \uD568\uC815"
+  sprite: {fileID: 21300000, guid: 50baa802835434f46903f2baa314c765, type: 3}
+  icon: {fileID: 21300000, guid: 50baa802835434f46903f2baa314c765, type: 3}
   abilityModules:
     items:
+    - rid: 8800000000000000030
     - rid: 7302562995605602973
-    - rid: 7302563313672520008
-    - rid: 7302563313672520009
+    - rid: 7737211765905949285
+    - rid: 7737211765905949286
   width: 2
   height: 1
   layer: 5
   category: 3
   horizontalDraggable: 0
   verticalDraggable: 0
+  runtimeArchetype: 7
   movementAnchorOffset: {x: 0, y: 0}
   movementTravelTime: 2
   facilityAnchors:
@@ -60,7 +53,7 @@ MonoBehaviour:
     version: 2
     RefIds:
     - rid: 7302562995605602973
-      type: {class: BuildingEconomyAbility, ns: , asm: Assembly-CSharp}
+      type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
         constructionValue: 80
@@ -68,7 +61,7 @@ MonoBehaviour:
         maintenance: 2
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7302563313672520008
+    - rid: 7737211765905949285
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -79,7 +72,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7302563313672520009
+    - rid: 7737211765905949286
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility
@@ -92,13 +85,13 @@ MonoBehaviour:
           periodicIntervalSeconds: 0
           range: 0
           star: 1
-          combatLogText: "1\uC131 \uAC00\uC2DC \uD568\uC815"
+          combatLogText: "1\uC131 \uC0B0\uD0C4 \uAC00\uC2DC \uD568\uC815"
           effectAssets:
           - {fileID: 11400000, guid: 825869659e9d81cd68cd14b542018f1e, type: 2}
-          supplyKind: 1
-          supplyItemId: material:iron-ingot
-          supplyCategory: 1
-          supplyCapacity: 3
+          supplyKind: 4
+          supplyItemId: ammo:trap-canister
+          supplyCategory: 7
+          supplyCapacity: 6
           supplyPerActivation: 1
           initialSupply: 1
           requiresPower: 0
@@ -106,9 +99,9 @@ MonoBehaviour:
           conditionLossPerActivation: 1
           baseJamChance: 0.01
           baseMisfireChance: 0.005
-          facilityFamilyId: defense:mechanical-trap
+          facilityFamilyId: defense:scatter-trap
           affinityTags:
-          - defense:mechanical
+          - defense:scatter
           - species:kobold
           - species:orc
           growth:
@@ -118,3 +111,15 @@ MonoBehaviour:
             detectionRangeLevel: 0
             identificationLevel: 0
             outageResistanceLevel: 0
+    - rid: 8800000000000000030
+      type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
+      data:
+        abilityId: BuildingWorkAmountAbility
+        constructionWorkRequired: 25.6
+        repairWorkRequired: 12
+        cleanWorkRequired: 7.5
+        researchWorkRequired: 6
+        operateWorkRequired: 10
+        constructionMaterials:
+        - itemId: material:steel-ingot
+          amount: 4

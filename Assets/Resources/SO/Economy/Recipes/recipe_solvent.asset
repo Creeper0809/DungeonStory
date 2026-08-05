@@ -43,8 +43,8 @@ MonoBehaviour:
   allowsManualWaterFallback: 0
   spoilageItemId: waste:mixed-rot
   inputs:
-  - itemId: material:alcohol
-    amount: 1
+  - itemId: resource:dark-resin
+    amount: 2
   - itemId: resource:coal
     amount: 1
   - itemId: resource:cave-mushroom

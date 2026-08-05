@@ -26,21 +26,37 @@ MonoBehaviour:
   displayName: "\uC57D\uCD08 \uCC1C\uC9C8\uC57D"
   description: "\uAC00\uBCBC\uC6B4 \uBD80\uC0C1\uC5D0 \uC4F0\uB294 \uAE30\uBCF8 \uC57D\uD488."
   stockCategory: 5
-  kind: 3
-  ingredientTags: 1
-  unitPrice: 8
-  marketSaleRate: 0.6
   unitWeight: 0.2
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:herbalism
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 1
-  treatmentPotency: 0.72
-  infectionReduction: 2
-  detoxReduction: 0
-  painReduction: 4
+  unitPrice: 8
+  features:
+  - rid: 7737211674039681233
+  - rid: 7737211674039681234
+  - rid: 7737211674039681235
+  - rid: 7737211674039681236
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681233
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:herbalism
+    - rid: 7737211674039681234
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 3
+        ingredientTags: 1
+        sharedIntermediate: 0
+    - rid: 7737211674039681235
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211674039681236
+      type: {class: MedicineItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        supportsInjuryTreatment: 1
+        treatmentPotency: 0.72
+        infectionReduction: 2
+        detoxReduction: 0
+        painReduction: 4

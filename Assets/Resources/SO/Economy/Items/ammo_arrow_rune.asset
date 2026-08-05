@@ -26,21 +26,33 @@ MonoBehaviour:
   displayName: "\uB8EC\uCD09 \uD654\uC0B4"
   description: "\uB9C8\uB098\uC640 \uBFD4\uC744 \uC0C8\uAE34 \uBE44\uC804 \uD654\uC0B4."
   stockCategory: 7
-  kind: 7
-  ingredientTags: 1280
-  unitPrice: 9
-  marketSaleRate: 0.6
   unitWeight: 0.08
   maxStack: 75
   sprite: {fileID: 0}
-  requiredResearchId: research:arcane:advanced
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 9
+  features:
+  - rid: 7737211674039681190
+  - rid: 7737211674039681191
+  - rid: 7737211674039681192
+  - rid: 7737211674039681193
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681190
+      type: {class: AmmunitionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        ammunitionKindId: ammo:arrow-rune
+    - rid: 7737211674039681191
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:arcane:advanced
+    - rid: 7737211674039681192
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 7
+        ingredientTags: 1280
+        sharedIntermediate: 0
+    - rid: 7737211674039681193
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6

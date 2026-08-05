@@ -27,21 +27,42 @@ MonoBehaviour:
   description: "\uC804\uD22C\uB825\uC744 \uB04C\uC5B4\uC62C\uB9AC\uC9C0\uB9CC \uC911\uB3C5\uACFC
     \uACFC\uB2E4 \uBCF5\uC6A9 \uC704\uD5D8\uC774 \uB192\uB2E4."
   stockCategory: 5
-  kind: 4
-  ingredientTags: 4128
-  unitPrice: 28
-  marketSaleRate: 0.6
   unitWeight: 0.1
   maxStack: 25
   sprite: {fileID: 0}
-  requiredResearchId: research:pharmacology:stimulants
-  mealQuality: 0
-  nutrition: 0
-  mealMood: 0
-  freshnessSeconds: 0
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 28
+  features:
+  - rid: 7737211674039681240
+  - rid: 7737211674039681241
+  - rid: 7737211674039681242
+  - rid: 7737211674039681243
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681240
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:pharmacology:stimulants
+    - rid: 7737211674039681241
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 4
+        ingredientTags: 4128
+        sharedIntermediate: 0
+    - rid: 7737211674039681242
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211674039681243
+      type: {class: SubstanceItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        substanceId: substance:blood-stimulant
+        useClass: 2
+        addictionChance: 0.14
+        overdoseChance: 0.06
+        toleranceGain: 0.18
+        withdrawalPerHour: 0.03
+        moodEffect: 1
+        workSpeedEffect: 0.16
+        combatEffect: 0.2
+        durationSeconds: 150

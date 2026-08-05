@@ -4,57 +4,13 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public enum WorkPriorityLevel
-{
-    Off = 0,
-    Priority1 = 1,
-    Priority2 = 2,
-    Priority3 = 3
-}
-
-public static class WorkPriorityLevelExtensions
-{
-    public static WorkPriorityLevel Next(this WorkPriorityLevel priority)
-    {
-        return priority switch
-        {
-            WorkPriorityLevel.Priority1 => WorkPriorityLevel.Priority2,
-            WorkPriorityLevel.Priority2 => WorkPriorityLevel.Priority3,
-            WorkPriorityLevel.Priority3 => WorkPriorityLevel.Off,
-            _ => WorkPriorityLevel.Priority1
-        };
-    }
-
-    public static float GetBaseScore(this WorkPriorityLevel priority)
-    {
-        return priority switch
-        {
-            WorkPriorityLevel.Priority1 => 300f,
-            WorkPriorityLevel.Priority2 => 200f,
-            WorkPriorityLevel.Priority3 => 100f,
-            _ => float.NegativeInfinity
-        };
-    }
-
-    public static string ToDisplayText(this WorkPriorityLevel priority)
-    {
-        return priority switch
-        {
-            WorkPriorityLevel.Priority1 => "1",
-            WorkPriorityLevel.Priority2 => "2",
-            WorkPriorityLevel.Priority3 => "3",
-            _ => "꺼짐"
-        };
-    }
-}
-
 public static class WorkTaskCatalog
 {
     public static IReadOnlyList<WorkTypeDefinition> Definitions => WorkTypeCatalog.All;
 
     internal static string GetLegacyDisplayName(FacilityWorkType workType)
     {
-        return WorkTypeCatalog.TryGet(workType, out WorkTypeDefinition definition)
+        return FacilityWorkTypeMap.TryGet(workType, out WorkTypeDefinition definition)
             ? definition.DisplayName
             : workType.ToString();
     }
@@ -86,7 +42,7 @@ public static class WorkCommandResolver
             return false;
         }
 
-        if (!WorkTypeCatalog.TryGet(workType, out WorkTypeDefinition definition))
+        if (!FacilityWorkTypeMap.TryGet(workType, out WorkTypeDefinition definition))
         {
             failureReason = "명령할 작업 종류를 해석할 수 없습니다.";
             return false;
@@ -119,7 +75,9 @@ public static class WorkCommandResolver
 
         if (target is ConstructionSite constructionSite)
         {
-            if (!constructionSite.CanAssignWorker(actor, out failureReason))
+            if (!constructionSite.CanAssignWorker(
+                    actor?.BuildingVisitor,
+                    out failureReason))
             {
                 return false;
             }
@@ -161,18 +119,12 @@ public static class WorkCommandResolver
 
         int assignableTypeCount = 0;
         FacilityWorkType assignableType = FacilityWorkType.None;
-        IReadOnlyList<WorkTypeDefinition> definitions = WorkTypeCatalog.All;
-        for (int definitionIndex = 0;
-            definitionIndex < definitions.Count;
-            definitionIndex++)
+        foreach (WorkTypeDefinition definition in
+                 FacilityWorkTypeMap.Enumerate(supportedTypes))
         {
-            WorkTypeDefinition definition = definitions[definitionIndex];
-            if ((supportedTypes & definition.Type) == 0)
-            {
-                continue;
-            }
+            FacilityWorkType legacyType = FacilityWorkTypeMap.GetRequired(definition);
 
-            if (TryUse(target, supportedTypes, definition.Type, out workType))
+            if (TryUse(target, supportedTypes, legacyType, out workType))
             {
                 assignableType = workType;
                 assignableTypeCount++;
@@ -202,7 +154,7 @@ public static class WorkCommandResolver
         return target != null
             && ((identity != null && identity.CharacterType == CharacterType.Intruder)
                 || (isRebellionTarget != null && isRebellionTarget(target))
-                || (target.DeprivationRuntime?.IsSuppressible(target) ?? false));
+                || (target.DeprivationQuery?.IsSuppressible(target) ?? false));
     }
 
     public static bool TryResolveSuppressCommand(
@@ -264,7 +216,7 @@ public static class WorkCommandResolver
             return false;
         }
 
-        if (!WorkTypeCatalog.TryGet(candidate, out WorkTypeDefinition definition)
+        if (!FacilityWorkTypeMap.TryGet(candidate, out WorkTypeDefinition definition)
             || !target.CanAssignWork(definition.WorkTypeId, out _))
         {
             return false;
@@ -486,7 +438,9 @@ public class WorkPriorityProfile : ISerializationCallbackReceiver
             {
                 priorities.Add(new WorkPriorityEntry(
                     definition.WorkTypeId,
-                    GetLegacyPriority(definition.Type, definition.DefaultPriority)));
+                    GetLegacyPriority(
+                        FacilityWorkTypeMap.GetRequired(definition),
+                        definition.DefaultPriority)));
             }
         }
         else
@@ -497,7 +451,9 @@ public class WorkPriorityProfile : ISerializationCallbackReceiver
                 {
                     priorities.Add(new WorkPriorityEntry(
                         definition.WorkTypeId,
-                        GetLegacyPriority(definition.Type, definition.DefaultPriority)));
+                        GetLegacyPriority(
+                            FacilityWorkTypeMap.GetRequired(definition),
+                            definition.DefaultPriority)));
                 }
             }
         }

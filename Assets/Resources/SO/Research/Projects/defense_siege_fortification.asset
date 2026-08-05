@@ -28,21 +28,44 @@ MonoBehaviour:
     \uACF5\uC131 \uC7A5\uBE44\uC640 \uC911\uC7A5\uAC11 \uCE68\uC785\uC790\uC5D0 \uB9DE\uAC8C
     \uBCF4\uAC15\uD55C\uB2E4."
   field: 2
-  requiredWork: 258
+  requiredWork: 252
   prerequisites:
   - {fileID: 11400000, guid: e955f0b01ce59194e85a72b3de7d1c30, type: 2}
   - {fileID: 11400000, guid: 6f3e58b7b201b544682f1db3ef11d54e, type: 2}
   - {fileID: 11400000, guid: 4736dc67de517194bba2ecc8eb663cc3, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:defense:ranged-positions
+    prerequisite: {fileID: 11400000, guid: e955f0b01ce59194e85a72b3de7d1c30, type: 2}
+    kind: 2
+    reason: "\uC0AC\uACA9 \uBC29\uCC45\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uACF5\uC131 \uC694\uC0C8\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:defense:remote-control
+    prerequisite: {fileID: 11400000, guid: 6f3e58b7b201b544682f1db3ef11d54e, type: 2}
+    kind: 2
+    reason: "\uC6D0\uACA9 \uD1B5\uC81C\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uACF5\uC131 \uC694\uC0C8\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:metallurgy:steel
+    prerequisite: {fileID: 11400000, guid: 4736dc67de517194bba2ecc8eb663cc3, type: 2}
+    kind: 2
+    reason: "\uC81C\uAC15\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00) \uACF5\uC131
+      \uC694\uC0C8\uD654 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563312817144287
+    - rid: 7737211730927812790
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
+  - capability: 6
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563312817144287
+    - rid: 7737211730927812790
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1805

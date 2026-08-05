@@ -13,7 +13,7 @@ public class FacilityEvolutionPanel :
     [SerializeField] private TMP_Text summaryText;
     [SerializeField] private bool showRejectedHints = true;
 
-    private IFacilityEvolutionRuntimeProvider runtimeProvider;
+    private FacilityFeatureSceneRuntimeReferences runtimeReferences;
     private IGameEventBus gameEventBus;
     private IDisposable researchCompletedSubscription;
     private IDisposable infoFeedSubscription;
@@ -24,11 +24,11 @@ public class FacilityEvolutionPanel :
 
     [Inject]
     public void Construct(
-        IFacilityEvolutionRuntimeProvider runtimeProvider,
+        FacilityFeatureSceneRuntimeReferences runtimeReferences,
         IGameEventBus gameEventBus)
     {
-        this.runtimeProvider = runtimeProvider
-            ?? throw new System.ArgumentNullException(nameof(runtimeProvider));
+        this.runtimeReferences = runtimeReferences
+            ?? throw new System.ArgumentNullException(nameof(runtimeReferences));
         this.gameEventBus = gameEventBus
             ?? throw new System.ArgumentNullException(nameof(gameEventBus));
         SubscribeToScopedEvents();
@@ -252,9 +252,11 @@ public class FacilityEvolutionPanel :
     {
         if (runtime != null) return runtime;
 
-        return (runtimeProvider
-                ?? throw new System.InvalidOperationException($"{nameof(FacilityEvolutionPanel)} requires {nameof(IFacilityEvolutionRuntimeProvider)} injection or an explicit runtime binding."))
-            .Runtime;
+        return (runtimeReferences
+                ?? throw new System.InvalidOperationException($"{nameof(FacilityEvolutionPanel)} requires {nameof(FacilityFeatureSceneRuntimeReferences)} injection or an explicit runtime binding."))
+            .Evolution
+            ?? throw new System.InvalidOperationException(
+                $"{nameof(FacilityEvolutionPanel)} requires a loaded {nameof(FacilityEvolutionRuntime)}.");
     }
 
     private void OnEnable()
@@ -279,7 +281,7 @@ public class FacilityEvolutionPanel :
             return;
         }
 
-        runtime ??= runtimeProvider?.Runtime;
+        runtime ??= runtimeReferences?.Evolution;
         if (runtime != null)
         {
             runtime.Completed -= OnEvolutionCompleted;

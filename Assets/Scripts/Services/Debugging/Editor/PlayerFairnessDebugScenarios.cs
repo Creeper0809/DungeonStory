@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using DungeonStory.CoreSession;
 using UnityEditor;
 using UnityEngine;
 
@@ -50,7 +51,7 @@ public static class PlayerFairnessDebugScenarios
         float x1 = 60f;
         for (int index = 0; index < 59; index++)
         {
-            x1 = ExternalInfluenceRuntime.AdvanceEcologyRaidCountdown(
+            x1 = ExternalInfluenceDomainRules.AdvanceEcologyRaidCountdown(
                 x1,
                 1f,
                 paused: false);
@@ -58,7 +59,7 @@ public static class PlayerFairnessDebugScenarios
 
         Require(Mathf.Approximately(x1, 1f),
             $"X1 countdown ended early: {x1}");
-        x1 = ExternalInfluenceRuntime.AdvanceEcologyRaidCountdown(
+        x1 = ExternalInfluenceDomainRules.AdvanceEcologyRaidCountdown(
             x1,
             1f,
             paused: false);
@@ -68,7 +69,7 @@ public static class PlayerFairnessDebugScenarios
         float x5 = 60f;
         for (int index = 0; index < 12; index++)
         {
-            x5 = ExternalInfluenceRuntime.AdvanceEcologyRaidCountdown(
+            x5 = ExternalInfluenceDomainRules.AdvanceEcologyRaidCountdown(
                 x5,
                 5f,
                 paused: false);
@@ -76,7 +77,7 @@ public static class PlayerFairnessDebugScenarios
 
         Require(Mathf.Approximately(x5, 0f),
             $"X5 countdown did not consume 60 game seconds: {x5}");
-        float paused = ExternalInfluenceRuntime.AdvanceEcologyRaidCountdown(
+        float paused = ExternalInfluenceDomainRules.AdvanceEcologyRaidCountdown(
             37f,
             5f,
             paused: true);
@@ -117,17 +118,20 @@ public static class PlayerFairnessDebugScenarios
 
     private static string VerifySavePayloads()
     {
-        Require(DungeonExternalInfluenceSaveData.CurrentVersion == 2,
-            "external.influence version is not V2");
+        Require(DungeonExternalInfluenceSaveData.CurrentVersion == 3,
+            "external.influence version is not V3");
         Require(DungeonWildlifeSaveData.CurrentVersion == 3,
             "wildlife.population version is not V3");
-        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 2,
-            "environment.exposure version is not V2");
+        Require(DungeonCharacterEnvironmentSaveData.CurrentVersion == 3,
+            "environment.exposure version is not V3");
 
         DungeonExternalInfluenceSaveData external = new()
         {
+            ecologyWarningIssued = true,
             ecologyRaidScheduled = true,
             ecologyRaidRemainingSeconds = 23.5f,
+            ecologyRaidSequence = 1,
+            currentOperatingDay = 7,
             lastRumorMitigationDay = 7
         };
         DungeonExternalInfluenceSaveData restoredExternal =
@@ -157,12 +161,17 @@ public static class PlayerFairnessDebugScenarios
             "wildlife raid order did not round trip");
 
         DungeonCharacterEnvironmentSaveData exposure = new();
-        exposure.exposures.Add(new CharacterEnvironmentExposure
+        exposure.exposures = new[]
         {
-            characterId = "worker:test",
-            coldExposure = 14f,
-            coldWorkCooldownActive = true
-        });
+            new CharacterEnvironmentExposure
+            {
+                characterId = "worker:test",
+                coldExposure = 14f,
+                coldWorkCooldownActive = true
+            }
+        };
+        exposure.equippedWorkwear =
+            Array.Empty<EnvironmentalWorkwearSaveData>();
         DungeonCharacterEnvironmentSaveData restoredExposure =
             JsonUtility.FromJson<DungeonCharacterEnvironmentSaveData>(
                 JsonUtility.ToJson(exposure));
@@ -176,7 +185,12 @@ public static class PlayerFairnessDebugScenarios
             state = SurgeryOrderState.EnvironmentWaiting,
             environmentResumeStage = SurgeryOrderState.Procedure,
             environmentStableSeconds = 3.25f,
-            environmentWaitReason = "test"
+            environmentWait = new SurgeryStatusData
+            {
+                code = SurgeryStatusCode.EnvironmentUnsafe,
+                primaryId = "test",
+                stage = SurgeryOrderState.Procedure
+            }
         });
         DungeonSurgerySaveData restoredSurgery =
             JsonUtility.FromJson<DungeonSurgerySaveData>(
@@ -189,7 +203,7 @@ public static class PlayerFairnessDebugScenarios
                     restoredSurgery.orders[0].environmentStableSeconds,
                     3.25f),
             "surgery environment wait did not round trip");
-        return "V2/V3 fairness state payloads round trip without losing active orders";
+        return "V3 fairness state payloads round trip without losing active orders";
     }
 
     private static string VerifySurgeryThresholds()
@@ -227,17 +241,17 @@ public static class PlayerFairnessDebugScenarios
 
     private static string VerifyIntelExpiration()
     {
-        Require(ExternalInfluenceRuntime.IsIntelSiteActive(
+        Require(ExternalInfluenceDomainRules.IsIntelSiteActive(
                 fixedBoss: true,
                 expiresDay: 0,
                 currentDay: 999),
             "fixed boss site expired");
-        Require(ExternalInfluenceRuntime.IsIntelSiteActive(
+        Require(ExternalInfluenceDomainRules.IsIntelSiteActive(
                 fixedBoss: false,
                 expiresDay: 8,
                 currentDay: 7),
             "dynamic site expired before its expiry day");
-        Require(!ExternalInfluenceRuntime.IsIntelSiteActive(
+        Require(!ExternalInfluenceDomainRules.IsIntelSiteActive(
                 fixedBoss: false,
                 expiresDay: 8,
                 currentDay: 8),

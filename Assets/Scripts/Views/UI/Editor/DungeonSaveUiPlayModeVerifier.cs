@@ -120,12 +120,12 @@ public sealed class DungeonSaveUiVerificationRunner : MonoBehaviour
             }
 
             slotService = scope.Container.Resolve<IDungeonGameSaveSlotService>();
-            IGameDataProvider gameDataProvider = scope.Container.Resolve<IGameDataProvider>();
+            IGameSessionStateProvider gameDataProvider = scope.Container.Resolve<IGameSessionStateProvider>();
             BackupRunSlots();
 
             Button saveMenuButton = FindSceneComponent<Button>("SaveMenuButton");
             Check(saveMenuButton != null, "MENU_BUTTON", "upper-right save button exists");
-            if (saveMenuButton == null || !gameDataProvider.TryGetGameData(out GameData gameData))
+            if (saveMenuButton == null || !gameDataProvider.TryGetSessionState(out GameSessionState gameData))
             {
                 yield break;
             }

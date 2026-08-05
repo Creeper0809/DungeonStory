@@ -28,20 +28,36 @@ MonoBehaviour:
     \uB300\uC0C1\uC744 \uB354 \uC815\uD655\uD558\uAC8C \uAD6C\uBD84\uD558\uB3C4\uB85D
     \uB8EC \uC2DD\uBCC4 \uADDC\uCE59\uC744 \uC0C8\uAE34\uB2E4."
   field: 2
-  requiredWork: 176
+  requiredWork: 184
   prerequisites:
   - {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
   - {fileID: 11400000, guid: a5c90fba9f8b65141a148ebbd954b803, type: 2}
+  prerequisiteLinks:
+  - prerequisiteId: research:arcane:advanced
+    prerequisite: {fileID: 11400000, guid: e352d43e288d89f45b1bc8be3bf62967, type: 2}
+    kind: 0
+    reason: "\uBE44\uC804 \uC5F0\uAD6C\uC758 \uC774\uB860\uC774(\uAC00) \uB8EC \uC2DD\uBCC4
+      \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
+  - prerequisiteId: research:defense:corridor-mechanisms
+    prerequisite: {fileID: 11400000, guid: a5c90fba9f8b65141a148ebbd954b803, type: 2}
+    kind: 2
+    reason: "\uBCF5\uB3C4 \uAE30\uAD6C\uD559\uC758 \uACF5\uD559 \uC6D0\uB9AC\uC774(\uAC00)
+      \uB8EC \uC2DD\uBCC4 \uAD6C\uD604\uC5D0 \uC9C1\uC811 \uD544\uC694\uD558\uB2E4."
   blueprintRule: 0
   blueprint: {fileID: 0}
   unlocks:
     items:
-    - rid: 7302563312817144285
+    - rid: 7737211730927813107
+  facilityRequirements:
+  - capability: 0
+    requiredCount: 2
+  - capability: 3
+    requiredCount: 1
   icon: {fileID: 0}
   references:
     version: 2
     RefIds:
-    - rid: 7302563312817144285
+    - rid: 7737211730927813107
       type: {class: BlueprintBuildingUnlock, ns: , asm: Assembly-CSharp}
       data:
         buildingId: 1800

@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcca63f2797ab044394fea5c9effe41b, type: 3}
+  m_Name: WorldInteractionPresentationCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::WorldInteractionPresentationCatalogSO
+  walkFrameSeconds: 0.11
+  maximumImpactRotation: 5
+  impactDuration: 0.1
+  worldWaterTile: {fileID: 11400000, guid: 86447a79140ba3e42833190c4cbe8279, type: 2}
+  worldFilthTile: {fileID: 11400000, guid: 86447a79140ba3e42833190c4cbe8279, type: 2}
+  propProfiles:
+  - speciesOrAnatomyId: default
+    carryKind: 1
+    rightFacingOffsetPixels: {x: 6, y: 7}
+    mirrorOffsetX: 1
+    synchronizeFlipX: 1
+    sortingMode: 0
+    sortingOrderOffset: 1
+    minimumBodyOverlapPixels: 1
+    lightLoadScale: {x: 0.82, y: 0.82, z: 1}
+    normalLoadScale: {x: 1, y: 1, z: 1}
+    overloadedScale: {x: 1.12, y: 1.12, z: 1}
+  - speciesOrAnatomyId: default
+    carryKind: 2
+    rightFacingOffsetPixels: {x: 5, y: 7}
+    mirrorOffsetX: 1
+    synchronizeFlipX: 1
+    sortingMode: 0
+    sortingOrderOffset: 1
+    minimumBodyOverlapPixels: 1
+    lightLoadScale: {x: 0.82, y: 0.82, z: 1}
+    normalLoadScale: {x: 1, y: 1, z: 1}
+    overloadedScale: {x: 1.12, y: 1.12, z: 1}
+  - speciesOrAnatomyId: default
+    carryKind: 3
+    rightFacingOffsetPixels: {x: 5, y: 6}
+    mirrorOffsetX: 1
+    synchronizeFlipX: 1
+    sortingMode: 0
+    sortingOrderOffset: 1
+    minimumBodyOverlapPixels: 1
+    lightLoadScale: {x: 0.82, y: 0.82, z: 1}
+    normalLoadScale: {x: 1, y: 1, z: 1}
+    overloadedScale: {x: 1.12, y: 1.12, z: 1}
+  - speciesOrAnatomyId: default
+    carryKind: 4
+    rightFacingOffsetPixels: {x: -4, y: 7}
+    mirrorOffsetX: 1
+    synchronizeFlipX: 1
+    sortingMode: 1
+    sortingOrderOffset: -1
+    minimumBodyOverlapPixels: 1
+    lightLoadScale: {x: 0.82, y: 0.82, z: 1}
+    normalLoadScale: {x: 1, y: 1, z: 1}
+    overloadedScale: {x: 1.12, y: 1.12, z: 1}
+  - speciesOrAnatomyId: Slime
+    carryKind: 2
+    rightFacingOffsetPixels: {x: 4, y: 5}
+    mirrorOffsetX: 1
+    synchronizeFlipX: 1
+    sortingMode: 0
+    sortingOrderOffset: 1
+    minimumBodyOverlapPixels: 2
+    lightLoadScale: {x: 0.82, y: 0.82, z: 1}
+    normalLoadScale: {x: 1, y: 1, z: 1}
+    overloadedScale: {x: 1.12, y: 1.12, z: 1}

@@ -1,0 +1,12 @@
+# Unity MCP is intentionally not auto-registered here. Every Codex worker reads
+# this project config, so auto-registration would create one Unity client per
+# sub-agent even when those agents only perform offline source work. The root
+# worker uses tools/unity-mcp/Invoke-ProjectUnityMcp.ps1 for explicit, serialized
+# Unity calls instead.
+
+[mcp_servers.dungeon-player]
+command = "python"
+args = ["F:/01_Programming/01_Project/02_Unity/DungeonStory/tools/player-automation/dungeon_player_mcp.py"]
+
+[mcp_servers.dungeon-player.tools.dungeon_player_status]
+approval_mode = "approve"

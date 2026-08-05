@@ -2,8 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DungeonStory.Factions;
+using DungeonStory.Foundation;
 using UnityEditor;
 using UnityEngine;
+using VContainer;
 
 public static class CharacterProgressionDebugScenarios
 {
@@ -28,6 +31,7 @@ public static class CharacterProgressionDebugScenarios
         Run("module response validation", VerifyModuleValidation, errors);
         Run("LLM retry and request-key resume", VerifyRetryAndRequestKeyResume, errors);
         Run("ultimate domain use limits", VerifyUltimateUseLimits, errors);
+        Run("independent scoped transient roots", VerifyIndependentTransientRoots, errors);
         Run("management and defense runtime effects", VerifySkillRuntimeEffects, errors);
         Run("training experience", VerifyTrainingExperience, errors);
 
@@ -46,7 +50,7 @@ public static class CharacterProgressionDebugScenarios
 
     private static bool VerifyPotentialAndRarityRules()
     {
-        CharacterSkillSystemSettingsSO settings = CharacterSkillSystemSettingsSO.CreateRuntimeDefaults();
+        CharacterSkillSystemSettingsSO settings = EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
         try
         {
             const int Samples = 100000;
@@ -97,6 +101,120 @@ public static class CharacterProgressionDebugScenarios
         {
             UnityEngine.Object.DestroyImmediate(settings);
         }
+    }
+
+    private static bool VerifyIndependentTransientRoots()
+    {
+        const string CharacterKey = "character:transient-root-proof";
+        CharacterId characterId = (CharacterId)CharacterKey;
+        GameObject actorObject = new GameObject("TransientRootProofActor");
+        CharacterCarryInventory inventory = null;
+        ICharacterCarryInventoryRegistry firstCarry = null;
+        ICharacterSkillTransientStateRegistry firstSkills = null;
+        try
+        {
+            CharacterActor actor = actorObject.AddComponent<CharacterActor>();
+            actor.EnsureRuntimeState();
+            actor.Identity.SetPersistentId(CharacterKey);
+            inventory = actorObject.AddComponent<CharacterCarryInventory>();
+
+            using (IObjectResolver firstRoot = BuildTransientStateRoot())
+            {
+                firstCarry = firstRoot.Resolve<ICharacterCarryInventoryRegistry>();
+                firstSkills = firstRoot.Resolve<ICharacterSkillTransientStateRegistry>();
+                Require(
+                    ReferenceEquals(firstCarry, firstSkills),
+                    "Carry and skill transient state did not share one scoped owner.");
+                firstCarry.Register(inventory);
+                Require(
+                    ReferenceEquals(firstCarry.Find(characterId), inventory),
+                    "First root did not index its active carry inventory.");
+                Require(
+                    firstSkills.TryEnter(characterId, "event:base"),
+                    "First root rejected a fresh execution key.");
+                firstSkills.Exit(characterId, "event:base");
+                Require(
+                    !firstSkills.TryEnter(characterId, "event:base"),
+                    "First root executed the same event key twice.");
+                firstSkills.BeginWork(characterId, BuiltInWorkTypeIds.Operate, 1.4f);
+                Require(
+                    Mathf.Approximately(
+                        firstSkills.GetWorkSpeedMultiplier(characterId),
+                        1.4f),
+                    "First root did not retain its work-speed snapshot.");
+
+                for (int index = 0; index < 512; index++)
+                {
+                    string key = $"event:fifo:{index}";
+                    Require(
+                        firstSkills.TryEnter(characterId, key),
+                        $"FIFO key {index} was unexpectedly rejected.");
+                    firstSkills.Exit(characterId, key);
+                }
+
+                Require(
+                    !firstSkills.TryEnter(characterId, "event:fifo:510"),
+                    "The run-scoped owner forgot a recent executed-event key.");
+                Require(
+                    !firstSkills.TryEnter(characterId, "event:base"),
+                    "The run-scoped owner evicted an earlier exactly-once key.");
+            }
+
+            Require(
+                firstCarry.Find(characterId) == null,
+                "Disposed first root retained an active carry inventory.");
+            bool firstSkillOwnerDisposed = false;
+            try
+            {
+                firstSkills.GetWorkSpeedMultiplier(characterId);
+            }
+            catch (ObjectDisposedException)
+            {
+                firstSkillOwnerDisposed = true;
+            }
+            Require(
+                firstSkillOwnerDisposed,
+                "Disposed first root still accepted skill-state queries.");
+
+            using IObjectResolver secondRoot = BuildTransientStateRoot();
+            ICharacterCarryInventoryRegistry secondCarry =
+                secondRoot.Resolve<ICharacterCarryInventoryRegistry>();
+            ICharacterSkillTransientStateRegistry secondSkills =
+                secondRoot.Resolve<ICharacterSkillTransientStateRegistry>();
+            Require(
+                ReferenceEquals(secondCarry, secondSkills),
+                "Second root did not resolve one composite transient owner.");
+            Require(
+                secondCarry.Find(characterId) == null,
+                "Second root inherited the first root's carry inventory.");
+            Require(
+                Mathf.Approximately(
+                    secondSkills.GetWorkSpeedMultiplier(characterId),
+                    1f),
+                "Second root inherited the first root's work-speed snapshot.");
+            Require(
+                secondSkills.TryEnter(characterId, "event:fifo:510"),
+                "Second root inherited the first root's executed-event keys.");
+            secondSkills.Exit(characterId, "event:fifo:510");
+            return true;
+        }
+        finally
+        {
+            if (actorObject != null)
+            {
+                UnityEngine.Object.DestroyImmediate(actorObject);
+            }
+        }
+    }
+
+    private static IObjectResolver BuildTransientStateRoot()
+    {
+        ContainerBuilder builder = new ContainerBuilder();
+        builder.Register<CharacterCarryInventoryRegistry>(Lifetime.Singleton)
+            .As<ICharacterCarryInventoryRegistry>()
+            .As<ICharacterSkillTransientStateRegistry>()
+            .As<ICharacterRuntimeTransientStateRegistry>();
+        return builder.Build();
     }
 
     private static bool VerifyStatsAndLevelGrowth()
@@ -169,7 +287,8 @@ public static class CharacterProgressionDebugScenarios
         using ActorFixture fixture = new ActorFixture(81002, "Milestone", "Slime");
         CharacterProgression progression = fixture.Actor.Progression;
         Require(progression.PassiveSkills.Count == 1,
-            "The identity passive was not granted at level 1.");
+            "The identity passive was not granted at level 1. "
+            + DescribeDraftState(progression));
         Require(ChooseActive(progression, 1, 0), "The level-1 active could not be chosen.");
 
         progression.AddExperience(GetExperienceToReach(5));
@@ -213,10 +332,14 @@ public static class CharacterProgressionDebugScenarios
         CharacterProgression progression = fixture.Actor.Progression;
         progression.AddExperience(GetExperienceToReach(50));
         CharacterSkillInstance ultimate = progression.Ultimate;
-        Require(ultimate != null, "The level-50 ultimate was not available for use-limit checks.");
+        Require(ultimate != null,
+            "The level-50 ultimate was not available for use-limit checks. "
+            + DescribeDraftState(progression));
 
         ultimate.ultimateDomain = CharacterUltimateDomain.Offense;
-        CharacterCombatAbilityDefinition combatAbility = CharacterSkillRuntimeEffects.ToCombatAbility(ultimate);
+        CharacterCombatAbilityDefinition combatAbility = CharacterSkillRuntimeEffects.ToCombatAbility(
+            ultimate,
+            progression.SkillSettings);
         Require(combatAbility != null && combatAbility.CooldownTurns >= 999,
             "The offense ultimate was not restricted to one use per battle.");
         Require(progression.TryMarkUltimateUsed(CharacterUltimateDomain.Offense, 101),
@@ -400,15 +523,39 @@ public static class CharacterProgressionDebugScenarios
             OffenseBattleTeam.Enemies,
             new OffenseBattleStats(100f, 4f, 2f, 1f, 2f, 2f),
             100f);
+        CombatEquipmentRuntime battleEquipment = CombatEquipmentEditorTestFactory.Create(
+            new ResourceCombatEquipmentCatalog(new ResourceGameContentCatalog(new UnityGameContentRootLoader())),
+            new WorldItemRepository(
+                new GuidPersistentIdGenerator(),
+                new DungeonRuntimeAggregateRootStore()),
+            new CharacterCarryInventoryRegistry(),
+            materialCatalog: EmptyResourceEconomyContentCatalog.Instance,
+            evolutionModules: EmptyEvolutionModuleRegistry.Instance,
+            researchProvider: EditorAllResearchRuntimeProvider.Instance,
+            moduleCatalog: EmptyEquipmentModuleCatalog.Instance,
+            itemStackRuntime: UnavailableEquipmentPhysicalItemGateway.Instance);
+        CombatResolutionService battleResolution = new CombatResolutionService(
+            new UnityCombatRandomSource(new DungeonStory.Foundation.RandomStreamProvider(40405)),
+            evolution: null,
+            overclock: null,
+            environmentStatus: null,
+            environmentalField: NoEnvironmentalFieldQuery.Instance,
+            characters: null,
+            environmentExposure:
+                NoOpCharacterEnvironmentExposureCommand.Instance);
         OffenseBattleSession passiveSession = new OffenseBattleSession(
             "qa-battle-passive-session",
             "qa-expedition",
             "qa-target",
             "QA Passive Battle",
             DungeonDifficulty.Normal,
-            new[] { ally, enemy });
+            new[] { ally, enemy },
+            battleResolution,
+            battleEquipment);
         CharacterCombatAbilityDefinition convertedPassive =
-            CharacterSkillRuntimeEffects.ToCombatAbility(growth.passiveSkills[0]);
+            CharacterSkillRuntimeEffects.ToCombatAbility(
+                growth.passiveSkills[0],
+                worker.Progression.SkillSettings);
         float enemyHealthBefore = enemy.CurrentHealth;
         CharacterSkillRuntimeEffects.ApplyTriggeredPassives(new CharacterSkillExecutionContext(
             worker,
@@ -481,7 +628,9 @@ public static class CharacterProgressionDebugScenarios
             targetPositions = targetPositions,
             modules = new List<CharacterSkillModuleSelection> { module }
         };
-        CharacterCombatAbilityDefinition ability = CharacterSkillRuntimeEffects.ToCombatAbility(skill);
+        CharacterCombatAbilityDefinition ability = CharacterSkillRuntimeEffects.ToCombatAbility(
+            skill,
+            EditorCharacterSkillSettingsFactory.CreateTransientDefaults());
         Require(ability != null
                 && ability.UsableFrom == expectedUsableFrom
                 && ability.TargetPositions == expectedTargets,
@@ -501,7 +650,8 @@ public static class CharacterProgressionDebugScenarios
     {
         using ActorFixture source = new ActorFixture(81003, "Source", "Vampire");
         CharacterProgression progression = source.Actor.Progression;
-        Require(ChooseActive(progression, 1, 2), "Initial active selection failed.");
+        Require(ChooseActive(progression, 1, 2),
+            "Initial active selection failed. " + DescribeDraftState(progression));
         string selectedId = progression.ActiveSkills[0].id;
         Require(!progression.TryChooseActiveSkill(1, 0, confirmed: true, out _),
             "A permanently selected active could be replaced.");
@@ -544,7 +694,7 @@ public static class CharacterProgressionDebugScenarios
 
     private static bool VerifyModuleValidation()
     {
-        CharacterSkillSystemSettingsSO settings = CharacterSkillSystemSettingsSO.CreateRuntimeDefaults();
+        CharacterSkillSystemSettingsSO settings = EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
         GameObject preview = new GameObject("SkillValidationPreview");
         try
         {
@@ -554,6 +704,12 @@ public static class CharacterProgressionDebugScenarios
                 new MissingLlmRuntimeProvider(),
                 CharacterAiEditorTestDependencies.UiClock);
             CharacterProgression progression = preview.AddComponent<CharacterProgression>();
+            progression.ConfigurePreview(
+                service,
+                settingsProvider,
+                new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(
+                        new UnityGameContentRootLoader())));
             progression.ApplyPreparedIdentity(
                 "검증자",
                 "테스트",
@@ -689,7 +845,7 @@ public static class CharacterProgressionDebugScenarios
 
     private static bool VerifyRetryAndRequestKeyResume()
     {
-        CharacterSkillSystemSettingsSO settings = CharacterSkillSystemSettingsSO.CreateRuntimeDefaults();
+        CharacterSkillSystemSettingsSO settings = EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
         settings.initialRetrySeconds = 0f;
         settings.maximumRetrySeconds = 0f;
         GameObject sourceObject = new GameObject("SkillRetrySource");
@@ -703,6 +859,12 @@ public static class CharacterProgressionDebugScenarios
                 new TestLlmRuntimeProvider(runtime),
                 CharacterAiEditorTestDependencies.UiClock);
             CharacterProgression source = sourceObject.AddComponent<CharacterProgression>();
+            source.ConfigurePreview(
+                service,
+                settingsProvider,
+                new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(
+                        new UnityGameContentRootLoader())));
             source.ApplyPreparedIdentity(
                 "재시도 원본",
                 "테스트",
@@ -750,7 +912,13 @@ public static class CharacterProgressionDebugScenarios
             service.CancelRequests(source);
 
             CharacterProgression restored = restoredObject.AddComponent<CharacterProgression>();
-            restored.ConstructCharacterProgression(service, settingsProvider);
+            restored.ConstructCharacterProgression(
+                service,
+                settingsProvider,
+                gameEventBus: new GameEventBus(),
+                profileProjector: new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(
+                        new UnityGameContentRootLoader())));
             restored.RestorePersistentState(new CharacterProgressionSnapshot(
                 1,
                 0,
@@ -879,6 +1047,18 @@ public static class CharacterProgressionDebugScenarios
         }
     }
 
+    private static string DescribeDraftState(CharacterProgression progression)
+    {
+        return progression == null
+            ? "progression=null"
+            : $"initialized={progression.GrowthState.initialized}; "
+                + $"level={progression.Level}; active={progression.ActiveSkills.Count}; "
+                + $"passive={progression.PassiveSkills.Count}; drafts="
+                + string.Join(",", progression.Drafts.Select(draft => draft == null
+                    ? "null"
+                    : $"{draft.kind}@{draft.unlockLevel}:ready={draft.isReady}:candidates={draft.candidates?.Count ?? 0}:chosen={draft.permanentlyChosen}"));
+    }
+
     private sealed class ActorFixture : IDisposable
     {
         private readonly CharacterSO data;
@@ -887,7 +1067,7 @@ public static class CharacterProgressionDebugScenarios
 
         public ActorFixture(int id, string displayName, string speciesTag)
         {
-            settings = CharacterSkillSystemSettingsSO.CreateRuntimeDefaults();
+            settings = EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
             species = ScriptableObject.CreateInstance<CharacterSpeciesSO>();
             species.speciesTag = speciesTag;
             species.displayName = speciesTag;
@@ -909,13 +1089,17 @@ public static class CharacterProgressionDebugScenarios
             actorObject.AddComponent<AbilityMove>();
             actorObject.AddComponent<AbilityWork>();
             Actor.EnsureRuntimeState();
+            CharacterAiEditorTestDependencies.Inject(actorObject);
             Actor.Progression.ConstructCharacterProgression(
                 new ImmediateSkillGenerationService(),
-                new TestSettingsProvider(settings));
+                new TestSettingsProvider(settings),
+                gameEventBus: new GameEventBus(),
+                profileProjector: new CharacterProgressionProfileProjector(
+                    new ResourceGameContentCatalog(
+                        new UnityGameContentRootLoader())));
             Actor.RefreshAbilityCache();
-            CharacterAiEditorTestDependencies.Inject(actorObject);
-            Actor.Initialization(data);
             Actor.Identity.SetPersistentId($"qa-{id}");
+            Actor.Initialization(data);
             System.Random random = new System.Random(id);
             Actor.Progression.ApplyPreparedIdentity(
                 displayName,
@@ -1258,6 +1442,7 @@ public static class CharacterPopulationDebugScenarios
             actorObject.AddComponent<AbilityWork>();
             actor.EnsureRuntimeState();
             CharacterAiEditorTestDependencies.Inject(actorObject);
+            actor.Identity.SetPersistentId(profile.persistentId);
             actor.Initialize(fixture.Customers[0]);
             fixture.Service.BindActor(profile, actor);
             fixture.Service.PromoteToStaff(actor);
@@ -1343,20 +1528,32 @@ public static class CharacterPopulationDebugScenarios
         if (!condition) throw new InvalidOperationException(message);
     }
 
+    private sealed class MissingFactionContractQuery : IFactionContractQuery
+    {
+        public bool IsContractUnlocked(
+            string factionId,
+            FactionContractKind contract) => false;
+    }
+
     private sealed class PopulationFixture : IDisposable
     {
         public PopulationFixture()
         {
-            Settings = CharacterSkillSystemSettingsSO.CreateRuntimeDefaults();
+            Settings = EditorCharacterSkillSettingsFactory.CreateTransientDefaults();
             Settings.guestReadyTarget = 8;
             Settings.guestReadyLowWatermark = 4;
             Settings.maximumAliveNonStaffGuests = 24;
-            UnityResourcesAssetLoader loader = new UnityResourcesAssetLoader();
-            Service = new CharacterPopulationService(
+            UnityGameContentRootLoader loader = new UnityGameContentRootLoader();
+            ResourceGameContentCatalog content = new ResourceGameContentCatalog(loader);
+            CharacterPopulationApplicationAdapter adapter = new(
                 new PopulationSettingsProvider(Settings),
-                loader,
-                new ImmediateSkillGenerationService());
-            Customers = loader.LoadAllRequired<CharacterSO>("SO/Character")
+                content,
+                new ImmediateSkillGenerationService(),
+                EditorRuntimeReferenceFixtures.DungeonWithRunVariables,
+                new MissingFactionContractQuery(),
+                new ResourceRunCharacterCatalog(content));
+            Service = new CharacterPopulationService(adapter);
+            Customers = content.GetAll<CharacterSO>()
                 .Where(candidate => candidate != null && candidate.characterType == CharacterType.Customer)
                 .OrderBy(candidate => candidate.id)
                 .ToArray();

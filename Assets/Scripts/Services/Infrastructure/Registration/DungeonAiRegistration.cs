@@ -29,22 +29,35 @@ public static class DungeonAiRegistration
             .As<IAiDirectorContextSceneQuery>();
         builder.Register<ResourceCharacterAiPerfSettingsProvider>(Lifetime.Singleton)
             .As<ICharacterAiPerfSettingsProvider>();
+        builder.Register<CharacterAiPerformanceCaptureScope>(Lifetime.Singleton)
+            .As<ICharacterAiPerformanceCaptureScope>();
         builder.Register<CharacterAiPerformanceRecorder>(Lifetime.Singleton)
-            .As<ICharacterAiPerformanceRecorder>();
+            .As<ICharacterAiPerformanceRecorder>()
+            .As<IGridPathPerformanceRecorder>();
         builder.Register<CharacterAiFacilityLookup>(Lifetime.Singleton)
             .As<ICharacterAiFacilityLookup>();
         builder.Register<DefaultCharacterAiWorldSignalQuery>(Lifetime.Singleton)
             .As<ICharacterAiWorldSignalQuery>();
         builder.Register<FacilityCandidateCacheStore>(Lifetime.Singleton)
-            .As<IFacilityCandidateCache>();
+            .As<IFacilityCandidateCache>()
+            .As<IBuildingFacilityStateChangePort>();
 
         builder.Register<RoomLayoutCache>(Lifetime.Singleton)
             .As<IRoomLayoutCache>();
+        builder.Register<BuildingDoorCharacterWildlifeAdapter>(Lifetime.Singleton)
+            .As<IBuildingDoorTraversalSubjectPort>()
+            .As<IBuildingDoorAccessSubjectPort>()
+            .As<IBuildingDoorPolicyInvalidationPort>();
+        builder.Register<BuildingDoorRoomPolicyAdapter>(Lifetime.Singleton)
+            .As<IBuildingDoorRoomPolicyPort>();
         builder.Register<DoorAccessService>(Lifetime.Singleton)
+            .AsSelf();
+        builder.Register<DoorAccessUnityAdapter>(Lifetime.Singleton)
             .As<IDoorAccessQuery>()
             .As<IDoorAccessCommandService>()
             .As<IDoorAccessSubjectRegistry>()
-            .As<IDoorAccessStateChangeSink>();
+            .As<IDoorAccessStateChangeSink>()
+            .As<IGridTraversalAccessQuery>();
         builder.Register<ResourceRoomEnvironmentSettingsProvider>(Lifetime.Singleton)
             .As<IRoomEnvironmentSettingsProvider>();
         builder.Register<RoomEnvironmentEvaluator>(Lifetime.Singleton)
@@ -53,9 +66,13 @@ public static class DungeonAiRegistration
             .As<IRoomEnvironmentQuery>();
         builder.Register<RoomEnvironmentExperienceService>(Lifetime.Singleton)
             .As<IRoomEnvironmentExperienceService>();
-        builder.RegisterEntryPoint<RoomInspectionRuntime>(Lifetime.Singleton);
+        builder.Register<RoomInspectionInteractionContext>(Lifetime.Singleton)
+            .As<IRoomInspectionInteractionContext>();
+        builder.RegisterEntryPoint<RoomInspectionRuntime>(Lifetime.Singleton)
+            .AsSelf();
         builder.Register<RoomFacilityPolicyService>(Lifetime.Singleton)
-            .As<IRoomFacilityPolicy>();
+            .As<IRoomFacilityPolicy>()
+            .As<IBuildingRoomPolicyPort>();
 
         builder.Register<CharacterBehaviorTreeRuntimeConfigurator>(Lifetime.Singleton)
             .As<ICharacterBehaviorTreeRuntimeConfigurator>();
@@ -68,6 +85,8 @@ public static class DungeonAiRegistration
             .As<ICharacterSocialMemoryFactory>();
         builder.Register<CharacterFeedbackBubbleFactory>(Lifetime.Singleton)
             .As<ICharacterFeedbackBubbleFactory>();
+        builder.Register<DungeonRuntimeWorldUiHierarchyAdapter>(Lifetime.Singleton)
+            .As<IWorldUiHierarchy>();
         builder.Register<CharacterFeedbackBubbleViewFactory>(Lifetime.Singleton)
             .As<ICharacterFeedbackBubbleViewFactory>();
         builder.Register<CharacterDialogueBubbleFactory>(Lifetime.Singleton)
@@ -78,24 +97,25 @@ public static class DungeonAiRegistration
             .As<ICharacterAiDecisionPipeline>();
         builder.Register<ResourceCharacterAiActionAssetCatalog>(Lifetime.Singleton)
             .As<ICharacterAiActionAssetCatalog>();
+        builder.Register<AIBrainDecisionServices>(Lifetime.Singleton);
+        builder.Register<AIBrainExecutionServices>(Lifetime.Singleton);
 
-        builder.Register<SocialReputationRuntimeProvider>(Lifetime.Singleton)
-            .As<ISocialReputationRuntimeProvider>();
         builder.Register<SocialReputationBiasService>(Lifetime.Singleton)
             .As<ISocialReputationBiasService>();
-        builder.Register<RegularCustomerRuntimeProvider>(Lifetime.Singleton)
-            .As<IRegularCustomerRuntimeProvider>();
-
         RegularCustomerRuntime sceneRuntime = runtimeReferences.RegularCustomers;
         if (sceneRuntime != null)
         {
             builder.RegisterComponent(sceneRuntime);
-            return;
         }
-
-        builder.RegisterComponentOnNewGameObject<RegularCustomerRuntime>(
+        else
+        {
+            builder.RegisterComponentOnNewGameObject<RegularCustomerRuntime>(
                 Lifetime.Singleton,
                 nameof(RegularCustomerRuntime))
-            .UnderTransform(runtimeRoot);
+                .UnderTransform(runtimeRoot);
+        }
+        builder.Register<RegularCustomerPersistenceAdapter>(Lifetime.Singleton)
+            .As<IRegularCustomerPersistence>()
+            .As<IRecruitmentCharacterDefinitionCatalog>();
     }
 }

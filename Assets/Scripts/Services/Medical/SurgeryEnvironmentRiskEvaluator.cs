@@ -4,12 +4,12 @@ using UnityEngine;
 public sealed class SurgeryEnvironmentRiskEvaluator :
     ISurgeryEnvironmentRiskEvaluator
 {
-    private readonly IEnvironmentalFieldRuntime field;
+    private readonly IEnvironmentalFieldQuery field;
     private readonly ICharacterEnvironmentStatusQuery status;
     private readonly ICharacterWorldQuery characters;
 
     public SurgeryEnvironmentRiskEvaluator(
-        IEnvironmentalFieldRuntime field,
+        IEnvironmentalFieldQuery field,
         ICharacterEnvironmentStatusQuery status,
         ICharacterWorldQuery characters)
     {
@@ -76,7 +76,7 @@ public sealed class SurgeryEnvironmentRiskEvaluator :
 
         EnvironmentalExposureBand doctorBand =
             status.GetPhysiologicalBand(
-                doctor?.Identity?.PersistentId);
+                new CharacterId(doctor?.Identity?.PersistentId));
         successPenalty += doctorBand switch
         {
             EnvironmentalExposureBand.Critical
@@ -90,7 +90,7 @@ public sealed class SurgeryEnvironmentRiskEvaluator :
             subject?.subjectId);
         EnvironmentalExposureBand patientBand =
             status.GetPhysiologicalBand(
-                patient?.Identity?.PersistentId);
+                new CharacterId(patient?.Identity?.PersistentId));
         float instability = patientBand switch
         {
             EnvironmentalExposureBand.Critical
@@ -102,11 +102,6 @@ public sealed class SurgeryEnvironmentRiskEvaluator :
 
         bool normal = IsNormalEnvironment(environment);
         bool extreme = extremeTemperature || extremeAir || extremeLight;
-        string summary =
-            $"현재 환경: {environment.TemperatureC:0.#}°C, 공기 {environment.AirQuality:0.#}, "
-            + $"조명 {environment.LightLevel:0.#}; 성공 -{successPenalty * 100f:0.#}%p, "
-            + $"감염 +{infection * 100f:0.#}%p, 출혈 +{bleeding * 100f:0.#}%p, "
-            + $"장기 손상 +{organDamage * 100f:0.#}%p";
         return new SurgeryEnvironmentRiskSnapshot(
             environment,
             doctorBand,
@@ -117,8 +112,7 @@ public sealed class SurgeryEnvironmentRiskEvaluator :
             organDamage,
             instability,
             extreme,
-            normal,
-            summary);
+            normal);
     }
 
     public SurgeryRiskBreakdown Apply(
@@ -154,11 +148,7 @@ public sealed class SurgeryEnvironmentRiskEvaluator :
         result.organDamageChance = Mathf.Clamp01(
             result.organDamageChance
                 + snapshot.OrganDamageAdded * weight);
-        result.summary =
-            $"{result.summary} | 환경 누적: 성공 -{result.environmentSuccessPenalty * 100f:0.#}%p, "
-            + $"감염 +{result.environmentInfectionPenalty * 100f:0.#}%p, "
-            + $"출혈 +{result.environmentBleedingPenalty * 100f:0.#}%p, "
-            + $"장기 손상 +{result.environmentOrganDamagePenalty * 100f:0.#}%p";
+        result.summaryCode = SurgeryRiskSummaryCode.SurgeryRiskEnvironmentAdjusted;
         return result;
     }
 

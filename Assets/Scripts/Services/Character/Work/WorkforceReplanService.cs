@@ -1,9 +1,29 @@
 using System;
+using DungeonStory.Foundation;
 using UnityEngine;
 
-public interface IWorkforceReplanService
+public sealed class WorkOrderExecutionServices
 {
-    void RequestIdleWorkersToReplan(bool clearFailures = true);
+    public WorkOrderExecutionServices(
+        IWorkforceReplanService workforce,
+        IGameClock gameClock,
+        IUiClock uiClock,
+        IDungeonDebugRuleQuery debugRules)
+    {
+        Workforce = workforce ?? throw new ArgumentNullException(nameof(workforce));
+        GameClock = gameClock ?? throw new ArgumentNullException(nameof(gameClock));
+        UiClock = uiClock ?? throw new ArgumentNullException(nameof(uiClock));
+        DebugRules = debugRules ?? throw new ArgumentNullException(nameof(debugRules));
+    }
+
+    public IWorkforceReplanService Workforce { get; }
+    public IGameClock GameClock { get; }
+    public IUiClock UiClock { get; }
+    public IDungeonDebugRuleQuery DebugRules { get; }
+}
+
+public interface IWorkforceReplanService : IBuildingWorkforceReplanPort
+{
     void RequestOneWorkerToReplanFor(
         WorkTypeId workTypeId,
         bool clearFailures = true,
@@ -20,7 +40,7 @@ public sealed class DungeonWorkforceReplanService : IWorkforceReplanService
 
     public DungeonWorkforceReplanService(
         ICharacterWorldQuery characterWorld,
-        IFacilityCandidateCache facilityCandidateCache = null)
+        IFacilityCandidateCache facilityCandidateCache)
     {
         this.characterWorld = characterWorld
             ?? throw new ArgumentNullException(nameof(characterWorld));

@@ -26,21 +26,37 @@ MonoBehaviour:
   displayName: "\uD669\uD63C\uACE1\uC8FD"
   description: "\uAC12\uC2F8\uACE0 \uC18D\uC774 \uD3B8\uD55C \uBE44\uAC74 \uB2E8\uC21C\uC2DD."
   stockCategory: 0
-  kind: 2
-  ingredientTags: 1
-  unitPrice: 5
-  marketSaleRate: 0.6
   unitWeight: 0.6
   maxStack: 50
   sprite: {fileID: 0}
-  requiredResearchId: research:cuisine:crops
-  mealQuality: 0
-  nutrition: 35
-  mealMood: 2
-  freshnessSeconds: 360
-  preserved: 0
-  supportsInjuryTreatment: 0
-  treatmentPotency: 1
-  infectionReduction: 0
-  detoxReduction: 0
-  painReduction: 0
+  unitPrice: 5
+  features:
+  - rid: 7737211674039681171
+  - rid: 7737211674039681172
+  - rid: 7737211674039681173
+  - rid: 7737211674039681174
+  references:
+    version: 2
+    RefIds:
+    - rid: 7737211674039681171
+      type: {class: ResearchGateItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        requiredResearchId: research:cuisine:crops
+    - rid: 7737211674039681172
+      type: {class: ProductionItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        kind: 2
+        ingredientTags: 1
+        sharedIntermediate: 0
+    - rid: 7737211674039681173
+      type: {class: MarketItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        saleRate: 0.6
+    - rid: 7737211674039681174
+      type: {class: FoodItemFeature, ns: , asm: Assembly-CSharp}
+      data:
+        quality: 0
+        nutrition: 35
+        mood: 2
+        freshnessSeconds: 360
+        preserved: 0
