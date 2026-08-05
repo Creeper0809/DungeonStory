@@ -6251,6 +6251,15 @@ public static class RuntimeAuthorityV18Validator
             }
         }
 
+        if (!CharacterId.Owner.IsValid
+            || !((CharacterId)"character:validator").IsValid
+            || ((CharacterId)"Named Hero").IsValid
+            || ((CharacterId)"building:validator").IsValid)
+        {
+            errors.Add(
+                "CharacterId must accept only 'owner' or a non-empty 'character:*' ID.");
+        }
+
         const string habitatPath =
             "Assets/Scripts/Models/Wildlife/Core/WildlifeHabitatRuntime.cs";
         if (File.ReadAllText(habitatPath).Contains(

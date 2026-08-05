@@ -34,11 +34,15 @@ public readonly struct ItemStackId : IPersistentEntityId, IEquatable<ItemStackId
 
 public readonly struct CharacterId : IPersistentEntityId, IEquatable<CharacterId>
 {
-    public static readonly CharacterId Owner = new("owner");
+    private const string Kind = "character";
+    private const string OwnerValue = "owner";
+    public static readonly CharacterId Owner = new(OwnerValue);
     private readonly string value;
     public CharacterId(string value) => this.value = PersistentEntityId.Normalize(value);
     public string Value => value ?? string.Empty;
-    public bool IsValid => !string.IsNullOrWhiteSpace(Value);
+    public bool IsValid =>
+        PersistentEntityId.Equals(Value, OwnerValue)
+        || PersistentEntityId.IsKind(Value, Kind);
     public bool Equals(CharacterId other) => PersistentEntityId.Equals(Value, other.Value);
     public override bool Equals(object obj) => obj is CharacterId other && Equals(other);
     public override int GetHashCode() => PersistentEntityId.GetHashCode(Value);

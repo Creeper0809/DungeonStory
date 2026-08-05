@@ -340,7 +340,7 @@ public static class CombatSystemDebugScenarios
             characters: null,
             environmentExposure: misfireExposure).Resolve(new CombatAttackRequest(
                 "gunpowder:worn",
-                "combat-role:gunner",
+                "character:combat-role:gunner",
                 "combat-role:target",
                 attacker,
                 defender,
@@ -361,7 +361,7 @@ public static class CombatSystemDebugScenarios
                 wornGun.SmokeExposure)
             || misfireExposure.CallCount != 1
             || !misfireExposure.CharacterId.Equals(
-                new CharacterId("combat-role:gunner"))
+                new CharacterId("character:combat-role:gunner"))
             || !Mathf.Approximately(
                 misfireExposure.Amount,
                 wornGun.SmokeExposure))
@@ -380,7 +380,7 @@ public static class CombatSystemDebugScenarios
             environmentExposure: hitExposure);
         CombatAttackResult gunHit = resolution.Resolve(new CombatAttackRequest(
             "gunpowder:hit",
-            "combat-role:gunner",
+            "character:combat-role:gunner",
             "combat-role:target",
             attacker,
             defender,
@@ -397,7 +397,7 @@ public static class CombatSystemDebugScenarios
                 reliableGun.SmokeExposure)
             || hitExposure.CallCount != 1
             || !hitExposure.CharacterId.Equals(
-                new CharacterId("combat-role:gunner"))
+                new CharacterId("character:combat-role:gunner"))
             || !Mathf.Approximately(
                 hitExposure.Amount,
                 reliableGun.SmokeExposure)
@@ -418,7 +418,7 @@ public static class CombatSystemDebugScenarios
             characters: null,
             environmentExposure: missExposure).Resolve(new CombatAttackRequest(
                 "gunpowder:miss",
-                "combat-role:gunner",
+                "character:combat-role:gunner",
                 "combat-role:target",
                 attacker,
                 defender,
@@ -433,7 +433,7 @@ public static class CombatSystemDebugScenarios
                 reliableGun.SmokeExposure)
             || missExposure.CallCount != 1
             || !missExposure.CharacterId.Equals(
-                new CharacterId("combat-role:gunner"))
+                new CharacterId("character:combat-role:gunner"))
             || !Mathf.Approximately(
                 missExposure.Amount,
                 reliableGun.SmokeExposure))

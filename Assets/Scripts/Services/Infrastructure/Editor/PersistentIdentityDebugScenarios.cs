@@ -19,6 +19,11 @@ public static class PersistentIdentityDebugScenarios
             "Item stack IDs are invalid or duplicated.");
         Require(item.IsValid && character.IsValid && buildingId.IsValid,
             "A typed persistent ID was invalid.");
+        Require(CharacterId.Owner.IsValid
+                && ((CharacterId)"character:fixture").IsValid
+                && !((CharacterId)"Named Hero").IsValid
+                && !((CharacterId)"building:fixture").IsValid,
+            "CharacterId accepted a name-like or foreign typed persistent ID.");
 
         GameObject characterObject = new("V18 Character Identity Contract");
         GameObject buildingObject = new("V18 Building Identity Contract");

@@ -285,6 +285,28 @@ public static class CharacterProgressionSavePlayModeFacade
             return false;
         }
 
+        if (!RejectsInvalidCharacterId(
+                saveService,
+                ownerProvider,
+                liveOwner,
+                baseline,
+                candidates,
+                "Named Hero",
+                "name-like",
+                out failure)
+            || !RejectsInvalidCharacterId(
+                saveService,
+                ownerProvider,
+                liveOwner,
+                baseline,
+                candidates,
+                "building:fixture",
+                "building-prefix",
+                out failure))
+        {
+            return false;
+        }
+
         DungeonGameSaveData ownerless = saveService.FromJson(
             saveService.ToJson(baseline));
         DungeonCharacterWorldSaveData ownerlessCharacters =
@@ -345,6 +367,49 @@ public static class CharacterProgressionSavePlayModeFacade
                 candidates,
                 out failure))
         {
+            return false;
+        }
+
+        failure = string.Empty;
+        return true;
+    }
+
+    private static bool RejectsInvalidCharacterId(
+        IDungeonGameSaveService saveService,
+        IOwnerRunManagerProvider ownerProvider,
+        CharacterActor liveOwner,
+        DungeonGameSaveData baseline,
+        IRestoreWorldCandidateQuery candidates,
+        string invalidId,
+        string label,
+        out string failure)
+    {
+        DungeonGameSaveData invalidSave = saveService.FromJson(
+            saveService.ToJson(baseline));
+        DungeonCharacterWorldSaveData characters =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
+                invalidSave,
+                CharacterWorldSaveSection.Id);
+        DungeonCharacterSaveData owner = characters.actors
+            .Single(actor => actor != null && actor.isOwner);
+        owner.persistentId = invalidId;
+        DungeonSaveSectionPayload.Write(
+            invalidSave,
+            CharacterWorldSaveSection.Id,
+            1,
+            DungeonSaveRestorePhase.Characters,
+            characters);
+
+        if (saveService.TryRestore(
+                invalidSave,
+                out DungeonGameRestoreReport report)
+            || !report.Errors.Any(error => error.Contains(
+                "no valid persistent ID",
+                StringComparison.Ordinal))
+            || !OwnerIsUnchanged(ownerProvider, liveOwner)
+            || candidates.TryGetCharacters(out _))
+        {
+            failure = $"Character world accepted a {label} CharacterId '{invalidId}'.";
             return false;
         }
 
