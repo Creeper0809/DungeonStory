@@ -38,7 +38,7 @@ public sealed class ProductionBillsSaveSection :
         DungeonGameRestoreReport report)
     {
         RequireVersion(sectionVersion);
-        persistence.BuildRestore(Parse(payloadJson));
+        persistence.BuildRestore(Parse(payloadJson, report));
     }
 
     public void Restore(
@@ -63,7 +63,7 @@ public sealed class ProductionBillsSaveSection :
     {
         RequireVersion(sectionVersion);
         ProductionBillRestoreCandidate candidate =
-            persistence.BuildRestore(Parse(payloadJson));
+            persistence.BuildRestore(Parse(payloadJson, report));
         return new DungeonDelegateSaveRestoreStage(
             SectionId,
             _ => persistence.Restore(candidate));
@@ -78,7 +78,9 @@ public sealed class ProductionBillsSaveSection :
         }
     }
 
-    private DungeonProductionBillSaveData Parse(string payloadJson)
+    private DungeonProductionBillSaveData Parse(
+        string payloadJson,
+        DungeonGameRestoreReport report)
     {
         if (string.IsNullOrWhiteSpace(payloadJson))
         {
@@ -87,9 +89,20 @@ public sealed class ProductionBillsSaveSection :
         }
         try
         {
-            return JsonUtility.FromJson<DungeonProductionBillSaveData>(payloadJson)
+            DungeonProductionBillSaveData payload =
+                JsonUtility.FromJson<DungeonProductionBillSaveData>(payloadJson)
                 ?? throw new InvalidOperationException(
                     $"{SectionId} payload deserialized to null.");
+            V18WorkProductionCharacterReferenceRestoreNormalizer.Normalize(
+                payload,
+                (value, path) =>
+                    V18TypedCharacterReferenceRestoreNormalizer
+                        .RewriteLegacyReference(
+                            value,
+                            report,
+                            SectionId,
+                            path));
+            return payload;
         }
         catch (Exception exception) when (exception is not InvalidOperationException)
         {

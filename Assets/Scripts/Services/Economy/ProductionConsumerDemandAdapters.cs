@@ -500,3 +500,79 @@ public sealed class ProductionSurgeryConsumerDemandProvider :
         }
     }
 }
+
+public sealed class ProductionMarketSaleConsumerDemandProvider :
+    IProductionConsumerDemandProvider
+{
+    private const string ConsumerPrefix = "market-sale:";
+    private const string DestinationPrefix = "stock-policy:sell:";
+
+    private readonly IResourceStockPolicyQuery stockPolicies;
+    private readonly IProductionItemGateway items;
+
+    public ProductionMarketSaleConsumerDemandProvider(
+        IResourceStockPolicyQuery stockPolicies,
+        IProductionItemGateway items)
+    {
+        this.stockPolicies = stockPolicies
+            ?? throw new ArgumentNullException(nameof(stockPolicies));
+        this.items = items ?? throw new ArgumentNullException(nameof(items));
+    }
+
+    public bool Supports(ProductionConsumerKind kind) =>
+        kind == ProductionConsumerKind.MarketSale;
+
+    public void Collect(
+        ProductionConsumerDemandContext context,
+        ICollection<ProductionConsumerDemandTarget> destination)
+    {
+        string consumerId = context.Link.consumerId?.Trim() ?? string.Empty;
+        if (destination == null
+            || !Supports(context.Link.kind)
+            || !consumerId.StartsWith(ConsumerPrefix, StringComparison.Ordinal)
+            || !string.Equals(
+                consumerId.Substring(ConsumerPrefix.Length),
+                context.ItemId,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        ResourceStockPolicyData policy = stockPolicies.Policies
+            .FirstOrDefault(candidate => candidate != null
+                && candidate.enabled
+                && candidate.surplusDisposition == StockSurplusDisposition.Sell
+                && string.Equals(
+                    candidate.itemId,
+                    context.ItemId,
+                    StringComparison.Ordinal));
+        if (policy == null)
+        {
+            return;
+        }
+
+        int demand = Mathf.Max(
+            0,
+            stockPolicies.CountOwned(context.ItemId) - policy.maximumStock);
+        if (demand <= 0)
+        {
+            return;
+        }
+
+        string destinationId = DestinationPrefix + context.ItemId;
+        destination.Add(new ProductionConsumerDemandTarget
+        {
+            RuntimeConsumerId = consumerId,
+            DestinationId = destinationId,
+            DemandQuantity = demand,
+            ReservedQuantity = items.CountPending(
+                context.ItemId,
+                destinationId),
+            ReservationLimit = demand,
+            // ResourceStockPolicyRuntime owns market hauling and settlement.
+            // Distribution exposes its live demand but must not issue a
+            // second delivery command for the same physical stock.
+            RoutingOwnedExternally = true
+        });
+    }
+}

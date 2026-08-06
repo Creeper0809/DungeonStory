@@ -169,9 +169,17 @@ namespace DungeonStory.Tests.Architecture
                 "complete: () =>",
                 "FinalizeProjectionBestEffort();");
             Assert.That(finalize, Does.Contain("EndManagedCarry("));
+            Assert.That(finalize, Does.Contain(
+                "HashSet<string> activelyCapturedIds"));
+            Assert.That(finalize, Does.Contain(
+                "actor.State == WildlifeState.Captured"));
             Assert.That(finalize, Does.Contain("SetCaptured(false)"));
             Assert.That(finalize, Does.Contain(
-                "actor.SetCaptured(!restored.escaped);"));
+                "!= shouldBeCaptured"));
+            Assert.That(finalize, Does.Contain(
+                "actor.SetCaptured(shouldBeCaptured);"));
+            Assert.That(finalize, Does.Contain(
+                "actor.GridPosition != target"));
             Assert.That(finalize, Does.Contain("WarpTo("));
             Assert.That(finalize, Does.Contain(
                 "ReplaceCapturedWildlifeSubjects("));

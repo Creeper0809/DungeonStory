@@ -44,11 +44,17 @@ public sealed class GameDomainContentCatalogSO : ScriptableObject
     public IReadOnlyList<string> ValidateCatalog()
     {
         List<string> errors = new();
+        HashSet<ScriptableObject> uniqueDefinitions = new();
         for (int index = 0; index < definitions.Count; index++)
         {
             if (definitions[index] == null)
             {
                 errors.Add($"Domain content reference {index} is missing.");
+            }
+            else if (!uniqueDefinitions.Add(definitions[index]))
+            {
+                errors.Add(
+                    $"Domain content reference '{definitions[index].name}' is duplicated.");
             }
             else if (string.Equals(
                          definitions[index].GetType().Name,

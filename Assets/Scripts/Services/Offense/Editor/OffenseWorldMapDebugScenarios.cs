@@ -284,7 +284,7 @@ public static class OffenseWorldMapDebugScenarios
     private static bool VerifyPanelCreation()
     {
         using ScenarioRuntime scenario = new ScenarioRuntime();
-        OffenseWorldMapPanel panel = scenario.Runtime.ShowWorldMap();
+        OffenseWorldMapPanel panel = scenario.PanelService.ShowWorldMap();
 
         bool valid = panel != null
             && panel.gameObject.activeSelf
@@ -304,15 +304,16 @@ public static class OffenseWorldMapDebugScenarios
 
         public OffenseWorldMapRuntime Runtime { get; }
         public DungeonStory.Foundation.IGameEventBus GameEvents { get; }
+        public IOffensePanelService PanelService { get; }
 
         public ScenarioRuntime(IOffenseCampaignCatalog catalog = null)
         {
             GameEvents = new DungeonStory.Foundation.GameEventBus();
             runtimeObject = new GameObject("Offense World Map Scenario Runtime");
             Runtime = runtimeObject.AddComponent<OffenseWorldMapRuntime>();
+            PanelService = new TestPanelService();
             OffenseCampaignRuntime campaign = new OffenseCampaignRuntime();
             Runtime.Construct(
-                new TestPanelService(),
                 GameEvents,
                 externalInfluence: null,
                 campaign,

@@ -24,7 +24,6 @@ public static class CaptivityCircusDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
-        CaptivityFacilityAssetBuilder.BuildAll();
         Directory.CreateDirectory("Temp");
         List<string> lines = new List<string> { "case\tresult\tdetails" };
         List<string> errors = new List<string>();
@@ -105,7 +104,7 @@ public static class CaptivityCircusDebugScenarios
     {
         CaptiveState state = new CaptiveState
         {
-            captiveId = "captive:test",
+            captiveId = "character:captive:test",
             status = CaptivityStatus.Confined,
             compliance = 49f,
             health = 100f,
@@ -203,7 +202,7 @@ public static class CaptivityCircusDebugScenarios
             {
                 new CaptiveState
                 {
-                    captiveId = "captive:test",
+                    captiveId = "character:captive:test",
                     displayName = "테스트 포로",
                     speciesTag = "human",
                     status = CaptivityStatus.AwaitingCapture,
@@ -241,7 +240,7 @@ public static class CaptivityCircusDebugScenarios
         CaptivitySaveData escort = CloneCaptivityPayload(payload);
         CaptiveState escortState = escort.captives[0];
         escortState.status = CaptivityStatus.Escorting;
-        escortState.reservedCarrierId = "staff:carrier";
+        escortState.reservedCarrierId = "character:staff:carrier";
         escortState.housingBuildingId = "building:test-cell";
         escortState.restraintStackId = "stack:restraint";
         escortState.restraintItemId = CaptivityItemDefinitions.RestraintsItemId;
@@ -314,13 +313,13 @@ public static class CaptivityCircusDebugScenarios
         CircusShowOrder order = new CircusShowOrder
         {
             orderId = "show:test",
-            performerIds = new List<string> { "captive:one" },
+            performerIds = new List<string> { "character:captive:one" },
             wildlifeIds = new List<string> { "wildlife:one" },
             audienceIds = new List<string> { "customer:one" },
             performerPositions = new List<Vector2Int> { new Vector2Int(1, 2) }
         };
         CircusShowOrder clone = order.Clone();
-        clone.performerIds.Add("captive:two");
+        clone.performerIds.Add("character:captive:two");
         Require(order.performerIds.Count == 1, "circus order clone shared performer list");
 
         CapturedWildlifeState wildlife = new CapturedWildlifeState
@@ -610,8 +609,8 @@ public static class CaptivityCircusDebugScenarios
     {
         DungeonRuntimeAggregateRootStore aggregateRootStore = new();
         TrackingEscortRestoreLifecycle escort = new();
-        escort.SetParent("captive:one", "housing:old");
-        escort.SetParent("captive:two", "carrier:old");
+        escort.SetParent("character:captive:one", "housing:old");
+        escort.SetParent("character:captive:two", "carrier:old");
         string originalParents = escort.CaptureParents();
         EscortProjectionRestoreParticipant escortParticipant = new(escort);
         LateFailingRestoreParticipant lateParticipant = new();

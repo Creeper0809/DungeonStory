@@ -19,7 +19,6 @@ public static class FacilityShopDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
-        P1FacilityShopAssetBuilder.EnsureP1FacilityShopAssets();
         FacilityShopDomainDebugScenarios.Validate();
 
         List<string> errors = new List<string>();

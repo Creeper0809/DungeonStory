@@ -361,7 +361,8 @@ public sealed class StartPartyPreparationService : IStartPartyPreparationService
             .Skip(1)
             .Select((member, index) => CreateSnapshotMember(
                 member,
-                persistentId: $"staff:{runSeed}:{index + 1:D2}"))
+                persistentId: CharacterId.FromStableSuffix(
+                    $"staff:{runSeed}:{index + 1:D2}").Value))
             .ToList();
         snapshot = new PreparedStartPartySnapshot
         {

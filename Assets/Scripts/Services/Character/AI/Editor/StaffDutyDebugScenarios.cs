@@ -1116,7 +1116,7 @@ public static class StaffDutyDebugScenarios
             string idSource = string.IsNullOrWhiteSpace(data != null ? data.characterName : null)
                 ? obj.name
                 : data.characterName;
-            character.Identity.SetPersistentId($"staff-duty-test:{idSource}");
+            character.Identity.SetPersistentId($"character:staff-duty-test:{idSource}");
         }
         character.SetLifecycleState(CharacterLifecycleState.Active);
         return character;

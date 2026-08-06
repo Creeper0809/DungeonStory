@@ -42,6 +42,13 @@ public sealed class ModularFacilityWorldSaveSection :
         return worldSaveService.CreateSnapshot(grid, gameData);
     }
 
+    protected override void NormalizeRestorePayload(
+        ModularFacilityWorldSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18WorldEconomyCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override void ValidateParsedPayload(
         ModularFacilityWorldSaveData payload)
     {
@@ -124,6 +131,13 @@ public sealed class CharacterWorldSaveSection :
     {
         return saveService.Capture(ResolveGrid());
     }
+
+    protected override void NormalizeRestorePayload(
+        DungeonCharacterWorldSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18WorldEconomyCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
 
     protected override void ValidateParsedPayload(
         DungeonCharacterWorldSaveData payload)

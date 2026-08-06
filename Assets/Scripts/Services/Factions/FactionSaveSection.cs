@@ -40,6 +40,13 @@ public sealed class FactionSaveSection :
         return runtime.Capture();
     }
 
+    protected override void NormalizeRestorePayload(
+        DungeonFactionSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override FactionRestoreCandidate BuildRestoreCandidate(
         DungeonFactionSaveData payload)
     {

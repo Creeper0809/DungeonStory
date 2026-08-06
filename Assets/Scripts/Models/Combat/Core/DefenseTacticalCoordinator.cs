@@ -264,7 +264,13 @@ public sealed class DefenseTacticalCoordinator :
         out string failureReason)
     {
         failureReason = string.Empty;
-        if (string.IsNullOrWhiteSpace(actorId))
+        string rawActorId = actorId ?? string.Empty;
+        CharacterId typedActorId = (CharacterId)rawActorId;
+        if (!typedActorId.IsValid
+            || !string.Equals(
+                typedActorId.Value,
+                rawActorId,
+                StringComparison.Ordinal))
         {
             failureReason = "전술 위치를 예약할 캐릭터가 없습니다.";
             return false;
@@ -288,14 +294,23 @@ public sealed class DefenseTacticalCoordinator :
             return false;
         }
 
-        if (!byActor.TryGetValue(actorId, out CombatPositionReservation reservation))
+        CombatPositionReservation reservation;
+        if (!aggregateState.ByActor.ContainsKey(actorId))
         {
+            if (!TryTakeNextSequence(out int nextSequence, out failureReason))
+            {
+                return false;
+            }
             reservation = new CombatPositionReservation
             {
-                reservationId = $"combat-position:{++sequence}",
+                reservationId = $"combat-position:{nextSequence}",
                 actorId = actorId
             };
             byActor[actorId] = reservation;
+        }
+        else
+        {
+            reservation = byActor[actorId];
         }
 
         reservation.targetId = targetId ?? string.Empty;
@@ -303,6 +318,23 @@ public sealed class DefenseTacticalCoordinator :
         reservation.kind = kind;
         reservation.targetScore = targetScore;
         viewDirty = true;
+        return true;
+    }
+
+    private bool TryTakeNextSequence(
+        out int nextSequence,
+        out string failureReason)
+    {
+        nextSequence = 0;
+        if (sequence == int.MaxValue)
+        {
+            failureReason = "전술 위치 예약 ID를 더 발급할 수 없습니다.";
+            return false;
+        }
+
+        nextSequence = checked(sequence + 1);
+        sequence = nextSequence;
+        failureReason = string.Empty;
         return true;
     }
 

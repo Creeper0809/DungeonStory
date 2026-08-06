@@ -412,10 +412,17 @@ public sealed class RegularCustomerState
 
         foreach (RegularCustomerRecord record in savedRecords)
         {
-            if (record == null || string.IsNullOrWhiteSpace(record.CustomerId))
+            if (record == null)
             {
                 throw new InvalidOperationException(
                     "Regular-customer restore contains an invalid record.");
+            }
+
+            CharacterId customerId = (CharacterId)record.CustomerId;
+            if (!customerId.IsValid || customerId.Equals(CharacterId.Owner))
+            {
+                throw new InvalidOperationException(
+                    $"Regular-customer restore contains invalid character ID '{record.CustomerId}'.");
             }
 
             if (!restored.Records.TryAdd(

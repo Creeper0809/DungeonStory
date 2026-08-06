@@ -25,7 +25,8 @@ public enum ProductionConsumerKind
     Installation = 7,
     EquipmentUse = 8,
     MarketSale = 9,
-    LineageTransfer = 10
+    LineageTransfer = 10,
+    EquipmentProcessing = 11
 }
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]

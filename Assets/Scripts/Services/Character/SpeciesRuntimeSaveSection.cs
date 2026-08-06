@@ -33,7 +33,7 @@ public sealed class SpeciesRuntimeSaveSection :
         DungeonGameRestoreReport report)
     {
         RequireVersion(sectionVersion);
-        persistence.BuildRestore(Parse(payloadJson));
+        persistence.BuildRestore(Parse(payloadJson, report));
     }
 
     public void Restore(
@@ -58,7 +58,7 @@ public sealed class SpeciesRuntimeSaveSection :
     {
         RequireVersion(sectionVersion);
         CharacterSpeciesRestoreCandidate candidate =
-            persistence.BuildRestore(Parse(payloadJson));
+            persistence.BuildRestore(Parse(payloadJson, report));
         return Stage(candidate);
     }
 
@@ -77,7 +77,9 @@ public sealed class SpeciesRuntimeSaveSection :
         }
     }
 
-    private CharacterSpeciesRuntimeSaveData Parse(string payloadJson)
+    private CharacterSpeciesRuntimeSaveData Parse(
+        string payloadJson,
+        DungeonGameRestoreReport report)
     {
         if (string.IsNullOrWhiteSpace(payloadJson))
         {
@@ -86,9 +88,20 @@ public sealed class SpeciesRuntimeSaveSection :
         }
         try
         {
-            return JsonUtility.FromJson<CharacterSpeciesRuntimeSaveData>(payloadJson)
+            CharacterSpeciesRuntimeSaveData payload =
+                JsonUtility.FromJson<CharacterSpeciesRuntimeSaveData>(payloadJson)
                 ?? throw new InvalidOperationException(
                     $"{SectionId} payload deserialized to null.");
+            V18SurvivalEnvironmentCharacterReferenceRestoreNormalizer.Normalize(
+                payload,
+                (value, path) =>
+                    V18TypedCharacterReferenceRestoreNormalizer
+                        .RewriteLegacyReference(
+                            value,
+                            report,
+                            SectionId,
+                            path));
+            return payload;
         }
         catch (Exception exception) when (exception is not InvalidOperationException)
         {

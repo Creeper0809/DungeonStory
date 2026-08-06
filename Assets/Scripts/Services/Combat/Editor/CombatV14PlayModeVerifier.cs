@@ -98,6 +98,7 @@ public static class CombatV14PlayModeVerifier
         private CharacterActor secondSelected;
         private CharacterMedicalOrder medicalOrder;
         private ICharacterMedicalQuery medicalQuery;
+        private ICharacterMedicalCommand medicalCommands;
         private ICharacterMedicalPersistence medicalPersistence;
         private CharacterBodyHealthRuntime bodyHealthRuntime;
         private ICharacterCombatCommandRuntime combatCommandRuntime;
@@ -236,6 +237,7 @@ public static class CombatV14PlayModeVerifier
             }
 
             yield return VerifyDownedRescueTreatment();
+            VerifySequenceOverflowGuards();
             Finish();
         }
 
@@ -245,6 +247,7 @@ public static class CombatV14PlayModeVerifier
             while (Time.realtimeSinceStartup < timeout)
             {
                 medicalQuery ??= ResolveService<ICharacterMedicalQuery>();
+                medicalCommands ??= ResolveService<ICharacterMedicalCommand>();
                 medicalPersistence ??= ResolveService<ICharacterMedicalPersistence>();
                 bodyHealthRuntime ??= ResolveService<CharacterBodyHealthRuntime>();
                 combatCommandRuntime ??= ResolveService<ICharacterCombatCommandRuntime>();
@@ -272,6 +275,7 @@ public static class CombatV14PlayModeVerifier
                     FindObjectsInactive.Include);
                 CharacterActor[] staff = GetActiveStaff();
                 bool servicesReady = medicalQuery != null
+                    && medicalCommands != null
                     && medicalPersistence != null
                     && bodyHealthRuntime != null
                     && combatCommandRuntime != null
@@ -309,15 +313,302 @@ public static class CombatV14PlayModeVerifier
             }
 
             Check(false, "RUNTIME", $"commands={commands != null}; camera={gameplayCamera != null}; "
-                + $"medicalQuery={medicalQuery != null}; "
-                + $"medicalPersistence={medicalPersistence != null}; "
+                    + $"medicalQuery={medicalQuery != null}; "
+                    + $"medicalCommands={medicalCommands != null}; "
+                    + $"medicalPersistence={medicalPersistence != null}; "
                 + $"body={bodyHealthRuntime != null}; "
                 + $"combat={combatCommandRuntime != null}; "
                     + $"defenseTactics={defenseTacticalRuntime != null}; "
                     + $"maintenance={equipmentMaintenanceRuntime != null}; "
                     + $"captivity={captivityRuntime != null}; "
                     + $"save={saveService != null}; "
-                + $"actors={GetActiveStaff().Length}");
+                    + $"actors={GetActiveStaff().Length}");
+        }
+
+        private void VerifySequenceOverflowGuards()
+        {
+            VerifyCombatCommandSequenceOverflow();
+            VerifyDefenseTacticalSequenceOverflow();
+            VerifyCharacterMedicalSequenceOverflow();
+        }
+
+        private void VerifyCombatCommandSequenceOverflow()
+        {
+            IDungeonRestoreTransactionParticipant participant =
+                combatCommandRuntime as IDungeonRestoreTransactionParticipant;
+            DungeonSaveSectionRegistry registry = CreateIsolatedRegistry(
+                CharacterCombatCommandSaveSection.Id,
+                participant);
+            List<DungeonSaveSectionEnvelope> original = registry.CaptureAll();
+            string actorId = GetId(rescuer);
+            try
+            {
+                CharacterCombatCommandSaveData exhausted = new()
+                {
+                    commandSequence = int.MaxValue,
+                    stanceCharacterIds = new List<string> { actorId },
+                    revisions = new List<CharacterCombatCommandRevisionSaveData>
+                    {
+                        new()
+                        {
+                            actorId = actorId,
+                            revision = 1
+                        }
+                    },
+                    commands = new List<CharacterCombatCommand>
+                    {
+                        new()
+                        {
+                            commandId = $"combat-command:{int.MaxValue}",
+                            actorId = actorId,
+                            type = CombatCommandType.Move,
+                            state = CharacterCombatCommandState.Queued,
+                            hasTargetCell = true,
+                            targetX = rescuer.GetNowXY().x,
+                            targetY = rescuer.GetNowXY().y,
+                            revision = 1
+                        }
+                    }
+                };
+                List<DungeonSaveSectionEnvelope> candidate =
+                    registry.CaptureAll();
+                DungeonSaveSectionEnvelope envelope = candidate.Single(item =>
+                    item.sectionId == CharacterCombatCommandSaveSection.Id);
+                envelope.payloadJson = JsonUtility.ToJson(exhausted);
+                DungeonGameRestoreReport restoreReport = new();
+                bool restoredMax = registry.RestoreAll(
+                    candidate,
+                    restoreReport);
+                IReadOnlyList<CharacterCombatCommand> beforeView =
+                    combatCommandRuntime.ActiveCommands;
+                string before = JsonUtility.ToJson(
+                    combatCommandRuntime.Capture());
+
+                bool issued = combatCommandRuntime.TryIssueForceFireAtCell(
+                    rescuer,
+                    rescuer.GetNowXY(),
+                    out string failureReason);
+
+                IReadOnlyList<CharacterCombatCommand> afterView =
+                    combatCommandRuntime.ActiveCommands;
+                string after = JsonUtility.ToJson(
+                    combatCommandRuntime.Capture());
+                Check(restoredMax
+                        && restoreReport.Success
+                        && !issued
+                        && !string.IsNullOrWhiteSpace(failureReason)
+                        && ReferenceEquals(beforeView, afterView)
+                        && string.Equals(before, after, StringComparison.Ordinal)
+                        && combatCommandRuntime.Capture().commandSequence
+                            == int.MaxValue,
+                    "COMBAT_COMMAND_SEQUENCE_EXHAUSTED_ATOMIC",
+                    $"restored={restoredMax}; issued={issued}; "
+                        + $"reason={failureReason}; "
+                        + $"sequence={combatCommandRuntime.Capture().commandSequence}");
+            }
+            finally
+            {
+                DungeonGameRestoreReport cleanupReport = new();
+                registry.RestoreAll(original, cleanupReport);
+            }
+        }
+
+        private void VerifyDefenseTacticalSequenceOverflow()
+        {
+            DefenseTacticalCoordinatorSaveData original =
+                defenseTacticalRuntime.Capture();
+            string existingActorId = GetId(rescuer);
+            string nextActorId = GetId(patient);
+            Vector2Int existingCell = rescuer.GetNowXY();
+            Vector2Int nextCell = patient.GetNowXY();
+            try
+            {
+                DefenseTacticalCoordinatorSaveData lastAvailable = new()
+                {
+                    sequence = int.MaxValue - 1
+                };
+                defenseTacticalRuntime.PublishRestore(
+                    defenseTacticalRuntime.PrepareRestore(lastAvailable));
+                bool reachedIssuancePath = defenseTacticalRuntime.TryReserve(
+                    nextActorId,
+                    string.Empty,
+                    nextCell,
+                    CombatPositionReservationKind.Move,
+                    0f,
+                    out string setupFailure);
+
+                DefenseTacticalCoordinatorSaveData exhausted = new()
+                {
+                    sequence = int.MaxValue,
+                    reservations = new List<CombatPositionReservation>
+                    {
+                        new()
+                        {
+                            reservationId =
+                                $"combat-position:{int.MaxValue}",
+                            actorId = existingActorId,
+                            targetId = string.Empty,
+                            kind = CombatPositionReservationKind.Move,
+                            x = existingCell.x,
+                            y = existingCell.y
+                        }
+                    }
+                };
+                defenseTacticalRuntime.PublishRestore(
+                    defenseTacticalRuntime.PrepareRestore(exhausted));
+                IReadOnlyList<CombatPositionReservation> beforeView =
+                    defenseTacticalRuntime.Reservations;
+                string before = JsonUtility.ToJson(
+                    defenseTacticalRuntime.Capture());
+
+                bool reserved = defenseTacticalRuntime.TryReserve(
+                    nextActorId,
+                    string.Empty,
+                    nextCell,
+                    CombatPositionReservationKind.Move,
+                    0f,
+                    out string failureReason);
+
+                IReadOnlyList<CombatPositionReservation> afterView =
+                    defenseTacticalRuntime.Reservations;
+                string after = JsonUtility.ToJson(
+                    defenseTacticalRuntime.Capture());
+                Check(reachedIssuancePath
+                        && !reserved
+                        && !string.IsNullOrWhiteSpace(failureReason)
+                        && ReferenceEquals(beforeView, afterView)
+                        && string.Equals(before, after, StringComparison.Ordinal)
+                        && defenseTacticalRuntime.Capture().sequence
+                            == int.MaxValue,
+                    "DEFENSE_TACTICAL_SEQUENCE_EXHAUSTED_ATOMIC",
+                    $"setup={reachedIssuancePath}/{setupFailure}; "
+                        + $"reserved={reserved}; reason={failureReason}; "
+                        + $"sequence={defenseTacticalRuntime.Capture().sequence}");
+            }
+            finally
+            {
+                defenseTacticalRuntime.PublishRestore(
+                    defenseTacticalRuntime.PrepareRestore(original));
+            }
+        }
+
+        private void VerifyCharacterMedicalSequenceOverflow()
+        {
+            IDungeonRestoreTransactionParticipant participant =
+                medicalPersistence as IDungeonRestoreTransactionParticipant;
+            DungeonSaveSectionRegistry registry = CreateIsolatedRegistry(
+                CharacterMedicalSaveSection.Id,
+                participant);
+            List<DungeonSaveSectionEnvelope> original = registry.CaptureAll();
+            CharacterBodyHealthSnapshot originalBody =
+                bodyHealthRuntime.GetSnapshot(patient);
+            try
+            {
+                bodyHealthRuntime.ApplySnapshot(
+                    patient,
+                    new CharacterBodyHealthSnapshot(
+                        originalBody.Parts.Select(ClonePart).ToList(),
+                        5f,
+                        0f,
+                        1f,
+                        1f,
+                        0.08f,
+                        true),
+                    "medical sequence overflow fixture");
+
+                DungeonCharacterMedicalSaveData exhausted = new()
+                {
+                    version = DungeonCharacterMedicalSaveData.CurrentVersion,
+                    orderSequence = int.MaxValue,
+                    orders = new List<CharacterMedicalOrder>
+                    {
+                        new()
+                        {
+                            orderId = $"medical:{int.MaxValue}",
+                            patientId = GetId(rescuer),
+                            state = CharacterMedicalOrderState.Completed,
+                            statusCode =
+                                CharacterMedicalStatusCode.TreatmentCompleted
+                        }
+                    }
+                };
+                List<DungeonSaveSectionEnvelope> candidate =
+                    registry.CaptureAll();
+                DungeonSaveSectionEnvelope envelope = candidate.Single(item =>
+                    item.sectionId == CharacterMedicalSaveSection.Id);
+                envelope.payloadJson = JsonUtility.ToJson(exhausted);
+                DungeonGameRestoreReport restoreReport = new();
+                bool restoredMax = registry.RestoreAll(
+                    candidate,
+                    restoreReport);
+                IReadOnlyList<CharacterMedicalOrder> beforeView =
+                    medicalQuery.ActiveOrders;
+                string before = JsonUtility.ToJson(
+                    medicalPersistence.Capture());
+                CharacterLifecycleState lifecycleBefore =
+                    patient.CurrentLifecycleState;
+                bool aiPausedBefore = patient.IsAiPaused();
+                bool failedExplicitly = false;
+                try
+                {
+                    medicalCommands.NotifyCharacterDowned(patient);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    failedExplicitly = exception.Message.Contains(
+                        "sequence is exhausted",
+                        StringComparison.Ordinal);
+                }
+
+                IReadOnlyList<CharacterMedicalOrder> afterView =
+                    medicalQuery.ActiveOrders;
+                string after = JsonUtility.ToJson(
+                    medicalPersistence.Capture());
+                Check(restoredMax
+                        && restoreReport.Success
+                        && failedExplicitly
+                        && ReferenceEquals(beforeView, afterView)
+                        && string.Equals(before, after, StringComparison.Ordinal)
+                        && medicalPersistence.Capture().orderSequence
+                            == int.MaxValue
+                        && patient.CurrentLifecycleState == lifecycleBefore
+                        && patient.IsAiPaused() == aiPausedBefore,
+                    "CHARACTER_MEDICAL_SEQUENCE_EXHAUSTED_ATOMIC",
+                    $"restored={restoredMax}; failed={failedExplicitly}; "
+                        + $"sequence={medicalPersistence.Capture().orderSequence}; "
+                        + $"lifecycle={lifecycleBefore}->{patient.CurrentLifecycleState}; "
+                        + $"aiPaused={aiPausedBefore}->{patient.IsAiPaused()}");
+            }
+            finally
+            {
+                DungeonGameRestoreReport cleanupReport = new();
+                registry.RestoreAll(original, cleanupReport);
+                bodyHealthRuntime.ApplySnapshot(
+                    patient,
+                    originalBody,
+                    "medical sequence overflow cleanup");
+            }
+        }
+
+        private DungeonSaveSectionRegistry CreateIsolatedRegistry(
+            string sectionId,
+            IDungeonRestoreTransactionParticipant participant)
+        {
+            IDungeonSaveSection section = saveRegistry.OrderedSections.Single(
+                candidate => candidate.SectionId == sectionId);
+            List<IDungeonSaveSection> sections = section.DependsOn
+                .Distinct(StringComparer.Ordinal)
+                .Select(dependency =>
+                    (IDungeonSaveSection)new CombatDependencyMarkerSection(
+                        dependency))
+                .Append(section)
+                .ToList();
+            return new DungeonSaveSectionRegistry(
+                sections,
+                aggregateRootStore,
+                participant != null
+                    ? new[] { participant }
+                    : Array.Empty<IDungeonRestoreTransactionParticipant>());
         }
 
         private void VerifyInvalidMedicalPreflightPreservesLiveOrders()

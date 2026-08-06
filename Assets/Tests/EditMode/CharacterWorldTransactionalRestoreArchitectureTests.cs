@@ -12,6 +12,14 @@ namespace DungeonStory.Tests.Architecture
         {
             string source = ReadScript(
                 "Services/Infrastructure/CharacterWorldSaveService.cs");
+            string identityResolver = ReadScript(
+                "Services/Infrastructure/CharacterV18RestoreIdentityResolver.cs");
+            string aggregatePreflight = ReadScript(
+                "Services/Infrastructure/Save/DungeonAggregateReferencePreflight.cs");
+            string tryResolve = ExtractMethod(
+                identityResolver,
+                "public static bool TryResolve(",
+                "public static CharacterId RequireCharacterId(");
             string prepare = ExtractMethod(
                 source,
                 "public CharacterWorldRestoreCandidate PrepareRestoreCandidate(",
@@ -26,6 +34,24 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(prepare, Does.Not.Contain("PublishDetachedInactive("));
             Assert.That(prepare, Does.Not.Contain("BeginRestoreCandidatePublication("));
             Assert.That(prepare, Does.Not.Contain("restoredActorsById ="));
+            Assert.That(prepare, Does.Contain(
+                "CharacterV18RestoreIdentityResolver.BuildCanonicalActorIds("));
+            Assert.That(identityResolver, Does.Contain(
+                "CharacterId.TryCanonicalizeV18Restore("));
+            Assert.That(identityResolver, Does.Contain(
+                "public static void AddCandidate("));
+            AssertInOrder(
+                tryResolve,
+                "direct.IsValid",
+                "direct.Value,",
+                "value,",
+                "StringComparison.Ordinal");
+            Assert.That(identityResolver, Does.Not.Contain(
+                "string normalized = persistentId.Trim();"));
+            Assert.That(aggregatePreflight, Does.Contain(
+                "RequireUniqueCharacterId("));
+            Assert.That(aggregatePreflight, Does.Not.Contain(
+                "profile?.persistentId?.Trim()"));
         }
 
         [Test]
@@ -110,15 +136,20 @@ namespace DungeonStory.Tests.Architecture
                 publishEntry,
                 "new CharacterWorldPublication(",
                 "stagedCandidate,",
-                "restoredActorsById);");
+                "restoredActorsById,",
+                "restoredLegacyActorIds);");
             Assert.That(publicationType, Does.Contain(
                 "PreviousActorIndex = previousActorIndex"));
+            Assert.That(publicationType, Does.Contain(
+                "PreviousLegacyActorIds = previousLegacyActorIds"));
             Assert.That(publicationType, Does.Not.Contain(
                 "new Dictionary<string, CharacterActor>(previousActorIndex"));
+            Assert.That(publicationType, Does.Not.Contain(
+                "new Dictionary<string, string>(previousLegacyActorIds"));
         }
 
         [Test]
-        public void CompletionAloneActivatesCandidatesRetiresOldWorldAndReplenishes()
+        public void CompletionActivatesCandidatesAndRetiresOldWorldWithoutChangingSavedPopulation()
         {
             string source = ReadScript(
                 "Services/Infrastructure/CharacterWorldSaveService.cs");
@@ -137,7 +168,7 @@ namespace DungeonStory.Tests.Architecture
             string complete = ExtractMethod(
                 source,
                 "private void CompleteCharacterPublication(",
-                "private static void AddCandidateIdentity(");
+                "private static void EnsureRestoredStaffWorkAbility(");
 
             AssertInOrder(
                 complete,
@@ -149,10 +180,11 @@ namespace DungeonStory.Tests.Architecture
                 "oldStaff.gameObject.SetActive(false);",
                 "characterObjectFactory.CompleteDetachedPublication(",
                 "characterObjectFactory.Destroy(oldStaff.gameObject);",
-                "characterPopulationService.ReplenishPreparedPoolBestEffort();",
                 "CompleteRestoreCandidatePublication(");
             Assert.That(complete, Does.Not.Contain(
                 "characterWorldQuery.Characters"));
+            Assert.That(complete, Does.Not.Contain(
+                "ReplenishPreparedPoolBestEffort("));
 
             string completionOnlyOperations = prepare + publish + rollback;
             Assert.That(completionOnlyOperations, Does.Not.Contain(
@@ -160,7 +192,7 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(completionOnlyOperations, Does.Not.Contain(
                 "CompleteRestoreCandidatePublication("));
             Assert.That(completionOnlyOperations, Does.Not.Contain(
-                "ReplenishPreparedPoolBestEffort("));
+                "EnsurePreparedPool("));
         }
 
         [Test]

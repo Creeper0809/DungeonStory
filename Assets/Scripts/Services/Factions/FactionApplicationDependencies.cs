@@ -21,6 +21,17 @@ public sealed class ResourceDungeonFactionCatalogApplicationAdapter
                 "The root content catalog contains no authored faction definitions.");
         }
 
+        string[] duplicateIds = loaded
+            .GroupBy(value => value.StableId, StringComparer.Ordinal)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
+        if (duplicateIds.Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"The root content catalog contains duplicate faction definition IDs: {string.Join(", ", duplicateIds)}.");
+        }
+
         definitions = loaded.Select(value => value.ToSnapshot()).ToArray();
     }
 

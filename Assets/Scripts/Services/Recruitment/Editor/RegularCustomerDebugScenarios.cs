@@ -329,7 +329,7 @@ public static class RegularCustomerDebugScenarios
             source.ReplaceStateForDebug(new[]
             {
                 new RegularCustomerRecord(
-                    "customer:save-fixture",
+                    "character:customer:save-fixture",
                     "Save Fixture Customer",
                     "Slime",
                     customer.data,
@@ -583,7 +583,7 @@ public static class RegularCustomerDebugScenarios
         CharacterAiEditorTestDependencies.Inject(obj);
         character.data = data;
         character.characterType = CharacterType.Customer;
-        character.Identity.SetPersistentId($"world:test:{id:D6}");
+        character.Identity.SetPersistentId($"character:world:test:{id:D6}");
         character.stats ??= new Dictionary<CharacterCondition, float>();
         character.stats[CharacterCondition.HUNGER] = 100f;
         character.stats[CharacterCondition.SLEEP] = 100f;

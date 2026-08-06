@@ -48,6 +48,7 @@ public sealed class ResearchTreeWindow :
     private TMP_Text fieldFilterLabel;
     private TMP_Text feedbackText;
     private TMP_Text detailText;
+    private ResearchTreeDetailScrollView detailScrollView;
     private Button projectActionButton;
     private TMP_Text projectActionLabel;
     private Button detailTabButton;
@@ -62,6 +63,8 @@ public sealed class ResearchTreeWindow :
     private bool showQueueOnPortrait;
     private Vector2 lastScreenSize;
     private bool queueDragActive;
+
+    internal bool IsConstructed => pauseScope != null;
 
     [Inject]
     public void Construct(
@@ -203,6 +206,7 @@ public sealed class ResearchTreeWindow :
         selectedProject = project;
         RebuildNodesAndConnections();
         RebuildInspector();
+        detailScrollView?.ScrollToTop();
     }
 
     public bool CenterProject(ResearchProjectSO project)
@@ -366,9 +370,10 @@ public sealed class ResearchTreeWindow :
         detailRoot.offsetMin = new Vector2(14f, 14f);
         detailRoot.offsetMax = new Vector2(-14f, -54f);
 
-        detailText = viewFactory.CreateText(detailRoot, "DetailText", string.Empty, 17f, TextAlignmentOptions.TopLeft);
-        detailText.textWrappingMode = TextWrappingModes.Normal;
-        SetRect(detailText.rectTransform, new Vector2(0f, 0.17f), Vector2.one, 0f, 0f, 0f, 0f);
+        detailScrollView = ResearchTreeDetailScrollView.Create(
+            viewFactory,
+            detailRoot);
+        detailText = detailScrollView.Text;
 
         projectActionButton = viewFactory.CreateButton(detailRoot, "ProjectAction", "연구 예약", ToggleSelectedProjectQueue);
         SetRect(projectActionButton.GetComponent<RectTransform>(),
@@ -628,6 +633,7 @@ public sealed class ResearchTreeWindow :
             $"<b>수용력</b>  {facilityCapacity}\n" +
             $"<b>해금</b>  {unlocks}" +
             (string.IsNullOrWhiteSpace(blocker) ? string.Empty : $"\n\n<color=#D2A449><b>중단 사유</b>  {blocker}</color>");
+        detailScrollView?.RefreshLayout();
 
         bool queued = runtime.State.Projects.ContainsInQueue(selectedProject.ProjectId);
         projectActionLabel.text = queued ? "연구 큐에서 제거" : "연구 예약";

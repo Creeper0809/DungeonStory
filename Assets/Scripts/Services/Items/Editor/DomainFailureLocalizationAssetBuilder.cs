@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.AddressableAssets;
+using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.Localization;
 using UnityEngine;
 using UnityEngine.Localization;
@@ -661,44 +663,390 @@ public static class DomainFailureLocalizationAssetBuilder
     [MenuItem("Tools/DungeonStory/Content/Update Domain Failure Localization")]
     public static void Rebuild()
     {
+        RequireNoDirtyAssets(GetPotentialOutputPathsForPreflight());
+        HashSet<string> touchedPaths = new(StringComparer.Ordinal);
+        try
+        {
+            IReadOnlyList<string> outputPaths = RebuildWithoutSaving(
+                path => touchedPaths.Add(path));
+            SaveOwnedOutputs(outputPaths);
+            AssetDatabase.Refresh();
+            ReleaseRuntimeTableAfterSave();
+            Debug.Log(
+                $"DomainFailures localization synchronized: {GetRequiredKeys().Length} keys, ko/en parity complete.");
+        }
+        catch (Exception exception)
+        {
+            string touched = touchedPaths.Count == 0
+                ? "<none recorded>"
+                : string.Join(", ", touchedPaths.OrderBy(path => path, StringComparer.Ordinal));
+            Debug.LogError(
+                "DomainFailures localization synchronization failed. Changed or created "
+                + $"outputs may require review. Recorded outputs=[{touched}]. "
+                + $"Failure={exception.GetType().Name}: {exception.Message}");
+            throw;
+        }
+    }
+
+    internal static IReadOnlyList<string> RebuildWithoutSaving(
+        Action<string> recordTouchedOutput = null)
+    {
         ValidateAuthoredContracts();
 
+        HashSet<string> changedOutputPaths = new(StringComparer.Ordinal);
         StringTableCollection collection =
             LocalizationEditorSettings.GetStringTableCollection(CollectionName)
             ?? throw new InvalidOperationException(
                 $"String Table collection '{CollectionName}' is missing.");
         Locale koreanLocale = LocalizationEditorSettings.GetLocale("ko")
             ?? throw new InvalidOperationException("Korean locale is missing.");
-        Locale englishLocale = EnsureEnglishLocale();
         StringTable korean = collection.GetTable(koreanLocale.Identifier)
             as StringTable
             ?? throw new InvalidOperationException(
                 "DomainFailures Korean String Table is missing.");
-        StringTable english = collection.GetTable(englishLocale.Identifier)
-            as StringTable
-            ?? collection.AddNewTable(
-                englishLocale.Identifier,
-                EnglishTablePath) as StringTable;
+        Locale englishLocale = EnsureEnglishLocale(
+            koreanLocale,
+            changedOutputPaths,
+            recordTouchedOutput,
+            out bool englishLocaleCreated);
+        StringTable english = collection.GetTable(englishLocale.Identifier) as StringTable;
+        bool englishTableCreated = english == null;
+        if (englishTableCreated)
+        {
+            ReportPotentialTouched(recordTouchedOutput, collection);
+            ReportPotentialTouched(recordTouchedOutput, EnglishTablePath);
+            ReportPotentialAddressableOutputs(
+                recordTouchedOutput,
+                collection.SharedData,
+                korean,
+                englishLocale);
+            try
+            {
+                english = collection.AddNewTable(
+                    englishLocale.Identifier,
+                    EnglishTablePath) as StringTable;
+            }
+            catch
+            {
+                ReportPotentialTouched(recordTouchedOutput, collection);
+                ReportPotentialTouched(recordTouchedOutput, EnglishTablePath);
+                ReportPotentialAddressableOutputs(
+                    recordTouchedOutput,
+                    collection.SharedData,
+                    korean,
+                    AssetDatabase.LoadMainAssetAtPath(EnglishTablePath),
+                    englishLocale);
+                throw;
+            }
+            if (english == null)
+            {
+                throw new InvalidOperationException(
+                    "DomainFailures English String Table could not be created.");
+            }
+
+            RecordChangedOutput(changedOutputPaths, recordTouchedOutput, collection);
+            EditorUtility.SetDirty(collection);
+            RecordChangedOutput(changedOutputPaths, recordTouchedOutput, english);
+            RecordDirtyAddressableOutputs(
+                changedOutputPaths,
+                recordTouchedOutput,
+                collection.SharedData,
+                korean,
+                english,
+                englishLocale);
+        }
 
         string[] requiredKeys = GetRequiredKeys();
         foreach (string key in requiredKeys)
         {
-            EnsureEntry(korean, key, RequireAuthored(Korean, key, "ko"));
-            EnsureEntry(english, key, RequireAuthored(English, key, "en"));
+            bool sharedKeyMissing =
+                collection.SharedData.GetId(key) == SharedTableData.EmptyId;
+            bool koreanChanged = EnsureEntry(
+                korean,
+                key,
+                RequireAuthored(Korean, key, "ko"),
+                () =>
+                {
+                    RecordChangedOutput(
+                        changedOutputPaths,
+                        recordTouchedOutput,
+                        korean);
+                    if (sharedKeyMissing)
+                    {
+                        RecordChangedOutput(
+                            changedOutputPaths,
+                            recordTouchedOutput,
+                            collection.SharedData);
+                    }
+                });
+            bool englishChanged = EnsureEntry(
+                english,
+                key,
+                RequireAuthored(English, key, "en"),
+                () =>
+                {
+                    RecordChangedOutput(
+                        changedOutputPaths,
+                        recordTouchedOutput,
+                        english);
+                    if (sharedKeyMissing)
+                    {
+                        RecordChangedOutput(
+                            changedOutputPaths,
+                            recordTouchedOutput,
+                            collection.SharedData);
+                    }
+                });
+
+            if (koreanChanged)
+            {
+                EditorUtility.SetDirty(korean);
+            }
+            if (englishChanged)
+            {
+                EditorUtility.SetDirty(english);
+            }
+            if (sharedKeyMissing && (koreanChanged || englishChanged))
+            {
+                EditorUtility.SetDirty(collection.SharedData);
+            }
         }
         ValidateTablesOrThrow(korean, english);
 
-        EditorUtility.SetDirty(collection.SharedData);
-        EditorUtility.SetDirty(korean);
-        EditorUtility.SetDirty(english);
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
+        if (englishLocaleCreated || englishTableCreated)
+        {
+            RecordDirtyAddressableOutputs(
+                changedOutputPaths,
+                recordTouchedOutput,
+                collection.SharedData,
+                korean,
+                english,
+                englishLocale);
+        }
+
+        return changedOutputPaths
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    internal static IReadOnlyList<string> GetPotentialOutputPathsForPreflight()
+    {
+        StringTableCollection collection =
+            LocalizationEditorSettings.GetStringTableCollection(CollectionName)
+            ?? throw new InvalidOperationException(
+                $"String Table collection '{CollectionName}' is missing.");
+        Locale koreanLocale = LocalizationEditorSettings.GetLocale("ko")
+            ?? throw new InvalidOperationException("Korean locale is missing.");
+        Locale englishLocale = LocalizationEditorSettings.GetLocale("en");
+        StringTable korean = collection.GetTable(koreanLocale.Identifier)
+            as StringTable
+            ?? throw new InvalidOperationException(
+                "DomainFailures Korean String Table is missing.");
+        StringTable english = englishLocale == null
+            ? null
+            : collection.GetTable(englishLocale.Identifier) as StringTable;
+
+        HashSet<string> paths = new(StringComparer.Ordinal);
+        AddOutputPath(paths, collection.SharedData);
+        AddOutputPath(paths, korean);
+        AddOutputPath(paths, english);
+        if (englishLocale == null || english == null)
+        {
+            AddOutputPath(paths, collection);
+            AddAddressableOutputs(
+                paths,
+                collection.SharedData,
+                korean,
+                englishLocale,
+                koreanLocale);
+        }
+        return paths.OrderBy(path => path, StringComparer.Ordinal).ToArray();
+    }
+
+    internal static string GetCanonicalProvenanceInput()
+    {
+        ValidateAuthoredContracts();
+        return string.Join(
+            "\n",
+            GetRequiredKeys().Select(key =>
+                key
+                + "\tko=" + RequireAuthored(Korean, key, "ko")
+                + "\ten=" + RequireAuthored(English, key, "en")));
+    }
+
+    private static void RequireNoDirtyAssets(IEnumerable<string> candidatePaths)
+    {
+        string[] dirtyPaths = candidatePaths
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.Ordinal)
+            .Select(path => new
+            {
+                Path = path,
+                Asset = AssetDatabase.LoadMainAssetAtPath(path)
+            })
+            .Where(entry => entry.Asset != null && EditorUtility.IsDirty(entry.Asset))
+            .Select(entry => entry.Path)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        if (dirtyPaths.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Localization migration-owned assets already have unsaved changes. "
+                + "Save or revert them before rebuilding localization:\n"
+                + string.Join("\n", dirtyPaths));
+        }
+    }
+
+    private static void SaveOwnedOutputs(IEnumerable<string> outputPaths)
+    {
+        foreach (string path in outputPaths
+                     .Where(path => !string.IsNullOrWhiteSpace(path))
+                     .Distinct(StringComparer.Ordinal)
+                     .OrderBy(path => path, StringComparer.Ordinal))
+        {
+            UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(path);
+            if (asset != null)
+            {
+                AssetDatabase.SaveAssetIfDirty(asset);
+            }
+        }
+    }
+
+    private static void AddAddressableOutputs(
+        ICollection<string> outputPaths,
+        params UnityEngine.Object[] localizedAssets)
+    {
+        AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+        if (settings == null)
+        {
+            return;
+        }
+
+        AddOutputPath(outputPaths, settings);
+        foreach (UnityEngine.Object localizedAsset in localizedAssets)
+        {
+            string assetPath = AssetDatabase.GetAssetPath(localizedAsset);
+            string guid = string.IsNullOrWhiteSpace(assetPath)
+                ? string.Empty
+                : AssetDatabase.AssetPathToGUID(assetPath);
+            AddressableAssetEntry entry = string.IsNullOrWhiteSpace(guid)
+                ? null
+                : settings.FindAssetEntry(guid);
+            AddressableAssetGroup group = entry?.parentGroup;
+            AddOutputPath(outputPaths, group);
+            if (group == null)
+            {
+                continue;
+            }
+
+            foreach (AddressableAssetGroupSchema schema in group.Schemas)
+            {
+                AddOutputPath(outputPaths, schema);
+            }
+        }
+    }
+
+    private static void ReportPotentialAddressableOutputs(
+        Action<string> recordTouchedOutput,
+        params UnityEngine.Object[] localizedAssets)
+    {
+        if (recordTouchedOutput == null)
+        {
+            return;
+        }
+        HashSet<string> paths = new(StringComparer.Ordinal);
+        AddAddressableOutputs(paths, localizedAssets);
+        foreach (string path in paths)
+        {
+            recordTouchedOutput(path);
+        }
+    }
+
+    private static void RecordDirtyAddressableOutputs(
+        ICollection<string> changedOutputPaths,
+        Action<string> recordTouchedOutput,
+        params UnityEngine.Object[] localizedAssets)
+    {
+        HashSet<string> candidates = new(StringComparer.Ordinal);
+        AddAddressableOutputs(candidates, localizedAssets);
+        foreach (string path in candidates)
+        {
+            UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(path);
+            if (asset != null && EditorUtility.IsDirty(asset))
+            {
+                RecordChangedOutput(
+                    changedOutputPaths,
+                    recordTouchedOutput,
+                    path);
+            }
+        }
+    }
+
+    private static void AddOutputPath(
+        ICollection<string> outputPaths,
+        UnityEngine.Object asset)
+    {
+        if (asset == null)
+        {
+            return;
+        }
+
+        string path = AssetDatabase.GetAssetPath(asset);
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            outputPaths.Add(path.Replace('\\', '/'));
+        }
+    }
+
+    private static void RecordChangedOutput(
+        ICollection<string> changedOutputPaths,
+        Action<string> recordTouchedOutput,
+        UnityEngine.Object asset)
+    {
+        string path = asset == null ? string.Empty : AssetDatabase.GetAssetPath(asset);
+        RecordChangedOutput(changedOutputPaths, recordTouchedOutput, path);
+    }
+
+    private static void RecordChangedOutput(
+        ICollection<string> changedOutputPaths,
+        Action<string> recordTouchedOutput,
+        string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+        string normalized = path.Replace('\\', '/');
+        changedOutputPaths.Add(normalized);
+        recordTouchedOutput?.Invoke(normalized);
+    }
+
+    private static void ReportPotentialTouched(
+        Action<string> recordTouchedOutput,
+        UnityEngine.Object asset)
+    {
+        if (asset != null)
+        {
+            ReportPotentialTouched(recordTouchedOutput, AssetDatabase.GetAssetPath(asset));
+        }
+    }
+
+    private static void ReportPotentialTouched(
+        Action<string> recordTouchedOutput,
+        string path)
+    {
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            recordTouchedOutput?.Invoke(path.Replace('\\', '/'));
+        }
+    }
+
+    internal static void ReleaseRuntimeTableAfterSave()
+    {
         if (LocalizationSettings.HasSettings)
         {
             LocalizationSettings.StringDatabase.ReleaseTable(CollectionName);
         }
-        Debug.Log(
-            $"DomainFailures localization synchronized: {requiredKeys.Length} keys, ko/en parity complete.");
     }
 
     public static string[] GetRequiredKeys() =>
@@ -731,34 +1079,64 @@ public static class DomainFailureLocalizationAssetBuilder
             .OrderBy(key => key, StringComparer.Ordinal)
             .ToArray();
 
-    private static Locale EnsureEnglishLocale()
+    private static Locale EnsureEnglishLocale(
+        Locale koreanLocale,
+        ICollection<string> changedOutputPaths,
+        Action<string> recordTouchedOutput,
+        out bool createdLocale)
     {
         Locale existing = LocalizationEditorSettings.GetLocale("en");
         if (existing != null)
         {
+            createdLocale = false;
             return existing;
         }
 
+        createdLocale = true;
         Locale created = Locale.CreateLocale(SystemLanguage.English);
         created.name = "Locale_en";
+        ReportPotentialTouched(recordTouchedOutput, EnglishLocalePath);
         AssetDatabase.CreateAsset(created, EnglishLocalePath);
-        LocalizationEditorSettings.AddLocale(created);
+        RecordChangedOutput(changedOutputPaths, recordTouchedOutput, created);
+        ReportPotentialAddressableOutputs(recordTouchedOutput, koreanLocale, created);
+        try
+        {
+            LocalizationEditorSettings.AddLocale(created);
+        }
+        catch
+        {
+            ReportPotentialAddressableOutputs(recordTouchedOutput, koreanLocale, created);
+            throw;
+        }
+        RecordDirtyAddressableOutputs(
+            changedOutputPaths,
+            recordTouchedOutput,
+            koreanLocale,
+            created);
         return created;
     }
 
-    private static void EnsureEntry(StringTable table, string key, string value)
+    private static bool EnsureEntry(
+        StringTable table,
+        string key,
+        string value,
+        Action beforeMutation)
     {
         StringTableEntry existing = table.GetEntry(key);
         if (existing == null)
         {
+            beforeMutation?.Invoke();
             table.AddEntry(key, value);
-            return;
+            return true;
         }
 
         if (!string.Equals(existing.Value, value, StringComparison.Ordinal))
         {
+            beforeMutation?.Invoke();
             existing.Value = value;
+            return true;
         }
+        return false;
     }
 
     public static void ValidateAuthoredContracts()

@@ -151,14 +151,22 @@ public sealed class CharacterConsumablesRuntime :
                 characterId,
                 facilityId,
                 candidates[0].Stack.StackId),
+            automaticOperation: true,
             out result);
     }
 
     public bool TryConsumeMeal(
         ConsumeMealCommand command,
+        out CharacterConsumablesMealResult result) =>
+        TryConsumeMeal(command, automaticOperation: false, out result);
+
+    private bool TryConsumeMeal(
+        ConsumeMealCommand command,
+        bool automaticOperation,
         out CharacterConsumablesMealResult result)
     {
-        if (!command.IsValid)
+        if (!command.IsValid
+            || !IsAllowedOperationId(command.OperationId, automaticOperation))
         {
             result = CharacterConsumablesMealResult.Failed(
                 CharacterConsumablesFailureCode.InvalidCommand,
@@ -346,14 +354,22 @@ public sealed class CharacterConsumablesRuntime :
                 stack.StackId,
                 medicalContext,
                 combatContext),
+            automaticOperation: true,
             out result);
     }
 
     public bool TryConsumeSubstance(
         ConsumeSubstanceByIdCommand command,
+        out CharacterConsumablesSubstanceResult result) =>
+        TryConsumeSubstance(command, automaticOperation: false, out result);
+
+    private bool TryConsumeSubstance(
+        ConsumeSubstanceByIdCommand command,
+        bool automaticOperation,
         out CharacterConsumablesSubstanceResult result)
     {
-        if (!command.IsValid)
+        if (!command.IsValid
+            || !IsAllowedOperationId(command.OperationId, automaticOperation))
         {
             result = CharacterConsumablesSubstanceResult.Failed(
                 CharacterConsumablesFailureCode.InvalidCommand,
@@ -869,10 +885,39 @@ public sealed class CharacterConsumablesRuntime :
         params string[] parameters) =>
         new(false, code, substance, stackId, 0f, 0f, false, false, parameters);
 
-    private ConsumableOperationId NewOperationId() =>
-        new($"consumable-operation:{WriteState.NextOperationSequence++:D16}");
-    private ConsumableDeliveryId NewDeliveryId() =>
-        new($"consumable-delivery:{WriteState.NextDeliverySequence++:D16}");
+    private static bool IsAllowedOperationId(
+        ConsumableOperationId operationId,
+        bool automaticOperation) =>
+        automaticOperation
+            ? CharacterConsumableIdContract.IsCurrentAutomaticOperation(
+                operationId.Value)
+            : CharacterConsumableIdContract.IsExternalOperation(operationId.Value);
+
+    private ConsumableOperationId NewOperationId()
+    {
+        CharacterConsumablesAggregateState state = WriteState;
+        long sequence = state.NextOperationSequence;
+        if (sequence < 1L || sequence == long.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Character consumables operation sequence is exhausted.");
+        }
+        state.NextOperationSequence = sequence + 1L;
+        return CharacterConsumableIdContract.CreateAutomaticOperation(sequence);
+    }
+
+    private ConsumableDeliveryId NewDeliveryId()
+    {
+        CharacterConsumablesAggregateState state = WriteState;
+        long sequence = state.NextDeliverySequence;
+        if (sequence < 1L || sequence == long.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Character consumables delivery sequence is exhausted.");
+        }
+        state.NextDeliverySequence = sequence + 1L;
+        return CharacterConsumableIdContract.CreateAutomaticDelivery(sequence);
+    }
 
     private CharacterConsumablesStackSnapshot FindStack(ItemStackId stackId) =>
         stackId.IsValid

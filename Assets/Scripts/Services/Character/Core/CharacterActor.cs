@@ -144,12 +144,8 @@ public class CharacterActor : SerializedMonoBehaviour,
     public bool HasBeenPublished => lifecycleCoordinator.HasBeenPublished;
     internal bool IsRuntimeBridgeConfigured => runtimeBridge?.IsConfigured == true;
     public float InjurySeverity => characterStats != null ? characterStats.InjurySeverity : 0f;
-    public CharacterMoodSnapshot Mood => characterStats != null
-        ? characterStats.GetMoodSnapshot()
-        : new CharacterMoodSnapshot(
-            CharacterMoodRules.DefaultBaseMood,
-            CharacterMoodRules.DefaultBaseMood,
-            Array.Empty<CharacterMoodFactorSnapshot>());
+    public CharacterMoodSnapshot Mood =>
+        CharacterActorRuntimeFacade.GetMood(characterStats);
     public IReadOnlyList<string> Log
     {
         get

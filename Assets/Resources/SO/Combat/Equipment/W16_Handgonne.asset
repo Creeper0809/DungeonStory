@@ -39,7 +39,7 @@ MonoBehaviour:
   growthEquipment: 0
   growthBaseStatMultiplier: 1
   verbs:
-  - rid: 7737211765905949112
+  - rid: 7737211772876620160
   rangeProfiles:
   - band: 1
     accuracyMultiplier: 0.72
@@ -61,7 +61,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211765905949112
+    - rid: 7737211772876620160
       type: {class: ProjectileVerb, ns: , asm: DungeonStory.Combat}
       data:
         attackTime: 1.6

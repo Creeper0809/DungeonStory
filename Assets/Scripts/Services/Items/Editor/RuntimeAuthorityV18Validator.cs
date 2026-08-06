@@ -1493,9 +1493,14 @@ public static class RuntimeAuthorityV18Validator
             "Character restore must never preserve or mix live actors into an authored save candidate.");
         ForbidSourceContract(
             errors,
-            "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs",
+            "Assets/Scripts/Services/Infrastructure/CharacterV18RestoreIdentityResolver.cs",
             "AddWarning(",
             "Character restore must reject malformed state instead of warning and defaulting.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs",
+            "V18 legacy CharacterId normalized in 'characters.world'",
+            "Supported V18 character-ID normalization must remain visible in the restore report.");
         ForbidSourceContract(
             errors,
             "Assets/Scripts/Services/Infrastructure/CharacterWorldSaveService.cs",
@@ -2324,6 +2329,36 @@ public static class RuntimeAuthorityV18Validator
             "Assets/Scripts/Models/Economy/Content/ProductionBillStateCodec.cs",
             "ProductionAggregateStateStore",
             "Production orders and stock sensors must share one replaceable state root.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Models/Economy/Content/ProductionBillStateCodec.cs",
+            "rawBillId = saved.billId ?? string.Empty",
+            "Production-bill restore must retain the raw bill ID for exact typed-ID validation.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Models/Economy/Content/ProductionBillStateCodec.cs",
+            "rawBuildingId = saved.buildingInstanceId ?? string.Empty",
+            "Production-bill restore must retain the raw building ID for exact typed-ID validation.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Models/Economy/Content/ProductionBillRuntime.cs",
+            "nextBillSequence == int.MaxValue",
+            "Production-bill creation must fail before the persistent ID sequence overflows.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Combat/EquipmentMaintenanceSaveValidation.cs",
+            "TryParseRepairOrderId",
+            "Equipment repair restore must validate the runtime-authored padded ID grammar.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Combat/EquipmentMaintenanceSaveValidation.cs",
+            "ToString(\"D6\", CultureInfo.InvariantCulture)",
+            "Equipment repair restore must accept exactly the runtime-authored D6 suffix.");
+        RequireSourceContract(
+            errors,
+            "Assets/Scripts/Services/Combat/EquipmentMaintenanceRuntime.cs",
+            "orderSequence == int.MaxValue",
+            "Equipment repair creation must fail before the persistent ID sequence overflows.");
         RequireSourceContract(
             errors,
             "Assets/Scripts/Services/Combat/CombatEquipmentStateServices.cs",

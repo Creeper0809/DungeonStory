@@ -209,7 +209,7 @@ public static class StaffRebellionResponseDebugScenarios
             obj.transform.position = Grid.GetWorldPos(position);
             character.RefreshAbilityCache();
             character.Initialization(data);
-            character.Identity.SetPersistentId($"staff-rebellion-test:{id}");
+            character.Identity.SetPersistentId($"character:staff-rebellion-test:{id}");
             character.SetLifecycleState(CharacterLifecycleState.Active);
             character.stats[CharacterCondition.SLEEP] = 50f;
             character.stats[CharacterCondition.HUNGER] = 50f;

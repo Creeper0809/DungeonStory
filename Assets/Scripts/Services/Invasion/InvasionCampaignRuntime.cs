@@ -392,7 +392,10 @@ public sealed class InvasionCampaignRuntime :
             displayName = supportSite.displayName,
             q = supportSite.q,
             r = supportSite.r,
-            regionId = "region:human-campaign",
+            // The strategic-world registration owns the region assignment.
+            // Leaving this empty makes the site inherit the region of its tile
+            // instead of persisting a synthetic region that the world does not define.
+            regionId = string.Empty,
             factionId = OffenseRegionRuntime.HumanFactionId,
             state = OffenseWorldSiteState.Revealed,
             fixedBoss = false,

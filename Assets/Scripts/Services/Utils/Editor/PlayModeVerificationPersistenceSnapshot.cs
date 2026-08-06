@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -14,6 +16,7 @@ public static class PlayModeVerificationPersistenceSnapshot
     private sealed class SnapshotManifest
     {
         public bool rootExisted;
+        public List<string> directories = new List<string>();
         public List<SnapshotEntry> entries = new List<SnapshotEntry>();
     }
 
@@ -22,6 +25,8 @@ public static class PlayModeVerificationPersistenceSnapshot
     {
         public string relativePath;
         public long lastWriteTimeUtcTicks;
+        public long length;
+        public string sha256;
     }
 
     static PlayModeVerificationPersistenceSnapshot()
@@ -52,7 +57,18 @@ public static class PlayModeVerificationPersistenceSnapshot
         };
         if (manifest.rootExisted)
         {
-            foreach (string source in Directory.GetFiles(persistentRoot, "*", SearchOption.AllDirectories))
+            manifest.directories = Directory.GetDirectories(
+                    persistentRoot,
+                    "*",
+                    SearchOption.AllDirectories)
+                .Select(path => GetSafeRelativePath(persistentRoot, path))
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .ToList();
+            foreach (string source in Directory.GetFiles(
+                         persistentRoot,
+                         "*",
+                         SearchOption.AllDirectories)
+                     .OrderBy(path => path, StringComparer.Ordinal))
             {
                 string relativePath = GetSafeRelativePath(persistentRoot, source);
                 string destination = GetSafeSnapshotFilePath(filesPath, relativePath);
@@ -63,10 +79,13 @@ public static class PlayModeVerificationPersistenceSnapshot
                 }
 
                 File.Copy(source, destination, true);
+                FileInfo snapshotFile = new FileInfo(destination);
                 manifest.entries.Add(new SnapshotEntry
                 {
                     relativePath = relativePath,
-                    lastWriteTimeUtcTicks = File.GetLastWriteTimeUtc(source).Ticks
+                    lastWriteTimeUtcTicks = File.GetLastWriteTimeUtc(source).Ticks,
+                    length = snapshotFile.Length,
+                    sha256 = ComputeSha256(destination)
                 });
             }
         }
@@ -89,24 +108,28 @@ public static class PlayModeVerificationPersistenceSnapshot
         SnapshotManifest manifest = JsonUtility.FromJson<SnapshotManifest>(File.ReadAllText(manifestPath))
             ?? new SnapshotManifest();
         string persistentRoot = ValidatePersistentRoot(Application.persistentDataPath);
+        string filesPath = Path.Combine(snapshotPath, "files");
+        ValidateSnapshotManifest(manifest, filesPath);
+
         if (Directory.Exists(persistentRoot))
         {
-            foreach (string currentPath in Directory.GetFiles(
-                         persistentRoot,
-                         "*",
-                         SearchOption.AllDirectories))
-            {
-                GetSafeRelativePath(persistentRoot, currentPath);
-                File.Delete(currentPath);
-            }
+            Directory.Delete(persistentRoot, true);
         }
 
-        if (manifest.rootExisted || manifest.entries.Count > 0)
+        if (manifest.rootExisted)
         {
             Directory.CreateDirectory(persistentRoot);
         }
 
-        string filesPath = Path.Combine(snapshotPath, "files");
+        foreach (string relativeDirectory in manifest.directories)
+        {
+            string directory = Path.GetFullPath(Path.Combine(
+                persistentRoot,
+                relativeDirectory));
+            GetSafeRelativePath(persistentRoot, directory);
+            Directory.CreateDirectory(directory);
+        }
+
         foreach (SnapshotEntry entry in manifest.entries)
         {
             string source = GetSafeSnapshotFilePath(filesPath, entry.relativePath);
@@ -122,8 +145,199 @@ public static class PlayModeVerificationPersistenceSnapshot
             File.SetLastWriteTimeUtc(destination, new DateTime(entry.lastWriteTimeUtcTicks, DateTimeKind.Utc));
         }
 
+        VerifyRestoredState(persistentRoot, manifest);
         Directory.Delete(snapshotPath, true);
         return true;
+    }
+
+    private static void ValidateSnapshotManifest(
+        SnapshotManifest manifest,
+        string filesPath)
+    {
+        manifest.directories ??= new List<string>();
+        manifest.entries ??= new List<SnapshotEntry>();
+        if (!manifest.rootExisted
+            && (manifest.directories.Count > 0 || manifest.entries.Count > 0))
+        {
+            throw new InvalidDataException(
+                "A persistence snapshot for an absent root contains entries.");
+        }
+
+        var directoryPaths = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string relativeDirectory in manifest.directories)
+        {
+            RequireSafeRelativePath(
+                filesPath,
+                relativeDirectory,
+                "snapshot directory");
+            if (!directoryPaths.Add(relativeDirectory))
+            {
+                throw new InvalidDataException(
+                    $"Duplicate persistence snapshot directory '{relativeDirectory}'.");
+            }
+        }
+
+        var filePaths = new HashSet<string>(StringComparer.Ordinal);
+        foreach (SnapshotEntry entry in manifest.entries)
+        {
+            if (entry == null)
+            {
+                throw new InvalidDataException(
+                    "Persistence snapshot contains a null file entry.");
+            }
+            RequireSafeRelativePath(
+                filesPath,
+                entry.relativePath,
+                "snapshot file");
+            if (!filePaths.Add(entry.relativePath))
+            {
+                throw new InvalidDataException(
+                    $"Duplicate persistence snapshot file '{entry.relativePath}'.");
+            }
+            if (directoryPaths.Contains(entry.relativePath))
+            {
+                throw new InvalidDataException(
+                    $"Persistence snapshot path '{entry.relativePath}' is both a file and directory.");
+            }
+            if (entry.lastWriteTimeUtcTicks < DateTime.MinValue.Ticks
+                || entry.lastWriteTimeUtcTicks > DateTime.MaxValue.Ticks
+                || entry.length < 0
+                || string.IsNullOrWhiteSpace(entry.sha256))
+            {
+                throw new InvalidDataException(
+                    $"Persistence snapshot metadata is invalid for '{entry.relativePath}'.");
+            }
+
+            string snapshotFile = GetSafeSnapshotFilePath(
+                filesPath,
+                entry.relativePath);
+            if (!File.Exists(snapshotFile))
+            {
+                throw new InvalidDataException(
+                    $"Persistence snapshot file is missing: '{entry.relativePath}'.");
+            }
+            FileInfo file = new FileInfo(snapshotFile);
+            string hash = ComputeSha256(snapshotFile);
+            if (file.Length != entry.length
+                || !string.Equals(
+                    hash,
+                    entry.sha256,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException(
+                    $"Persistence snapshot file failed hash validation: '{entry.relativePath}'.");
+            }
+        }
+    }
+
+    private static void VerifyRestoredState(
+        string persistentRoot,
+        SnapshotManifest manifest)
+    {
+        if (!manifest.rootExisted)
+        {
+            if (Directory.Exists(persistentRoot))
+            {
+                throw new IOException(
+                    "Persistence root still exists after restoring an originally absent root.");
+            }
+            return;
+        }
+
+        if (!Directory.Exists(persistentRoot))
+        {
+            throw new IOException(
+                "Persistence root is missing after snapshot restoration.");
+        }
+
+        HashSet<string> expectedDirectories = manifest.directories
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> actualDirectories = Directory.GetDirectories(
+                persistentRoot,
+                "*",
+                SearchOption.AllDirectories)
+            .Select(path => GetSafeRelativePath(persistentRoot, path))
+            .ToHashSet(StringComparer.Ordinal);
+        if (!actualDirectories.SetEquals(expectedDirectories))
+        {
+            throw new IOException(
+                "Persistence directory topology does not match the snapshot.");
+        }
+
+        Dictionary<string, SnapshotEntry> expectedFiles = manifest.entries
+            .ToDictionary(entry => entry.relativePath, StringComparer.Ordinal);
+        string[] actualFiles = Directory.GetFiles(
+            persistentRoot,
+            "*",
+            SearchOption.AllDirectories);
+        HashSet<string> actualRelativeFiles = actualFiles
+            .Select(path => GetSafeRelativePath(persistentRoot, path))
+            .ToHashSet(StringComparer.Ordinal);
+        if (!actualRelativeFiles.SetEquals(expectedFiles.Keys))
+        {
+            throw new IOException(
+                "Persistence file set does not match the snapshot.");
+        }
+
+        foreach (string filePath in actualFiles)
+        {
+            string relativePath = GetSafeRelativePath(
+                persistentRoot,
+                filePath);
+            SnapshotEntry expected = expectedFiles[relativePath];
+            FileInfo actual = new FileInfo(filePath);
+            if (actual.Length != expected.length
+                || actual.LastWriteTimeUtc.Ticks
+                    != expected.lastWriteTimeUtcTicks
+                || !string.Equals(
+                    ComputeSha256(filePath),
+                    expected.sha256,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new IOException(
+                    $"Restored persistence file does not match its manifest: '{relativePath}'.");
+            }
+        }
+    }
+
+    private static void RequireSafeRelativePath(
+        string root,
+        string relativePath,
+        string label)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath)
+            || Path.IsPathRooted(relativePath))
+        {
+            throw new InvalidDataException(
+                $"Persistence {label} has an invalid relative path.");
+        }
+
+        string combined = Path.GetFullPath(Path.Combine(root, relativePath));
+        string normalized = GetSafeRelativePath(
+            Path.GetFullPath(root),
+            combined);
+        if (normalized.Equals(".", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException(
+                $"Persistence {label} cannot refer to the snapshot root.");
+        }
+    }
+
+    private static string ComputeSha256(string path)
+    {
+        using SHA256 sha256 = SHA256.Create();
+        using FileStream stream = File.Open(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read);
+        byte[] hash = sha256.ComputeHash(stream);
+        StringBuilder builder = new StringBuilder(hash.Length * 2);
+        foreach (byte value in hash)
+        {
+            builder.Append(value.ToString("x2"));
+        }
+        return builder.ToString();
     }
 
     private static void OnPlayModeStateChanged(PlayModeStateChange change)

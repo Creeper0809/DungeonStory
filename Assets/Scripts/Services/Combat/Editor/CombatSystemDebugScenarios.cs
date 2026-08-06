@@ -17,11 +17,67 @@ public static class CombatSystemDebugScenarios
         }
     }
 
+    [MenuItem("DungeonStory/Debug/Combat/Run V18 BodyHealth Strict Save")]
+    public static void RunV18BodyHealthFromMenu()
+    {
+        try
+        {
+            bool ok = VerifyBodyHealthStrictSave();
+            if (!ok)
+            {
+                Debug.LogError("V18 BodyHealth Strict Save failed.");
+            }
+            else
+            {
+                Debug.Log("V18 BodyHealth Strict Save passed.");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogException(e);
+        }
+    }
+
+    [MenuItem("DungeonStory/Debug/Combat/Run V18 Medical Strict Save")]
+    public static void RunV18MedicalFromMenu()
+    {
+        try
+        {
+            bool ok = VerifyCharacterMedicalStrictSave();
+            if (!ok)
+            {
+                Debug.LogError("V18 Medical Strict Save failed.");
+            }
+            else
+            {
+                Debug.Log("V18 Medical Strict Save passed.");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogException(e);
+        }
+    }
+
     public static bool RunAll(bool logSuccess)
     {
-        CombatEquipmentAssetBuilder.BuildAll();
-        CombatCoverAssetBuilder.BuildAll();
+        IReadOnlyList<string> failures = ValidateAll();
 
+        foreach (string failure in failures)
+        {
+            Debug.LogError($"Combat scenario failed: {failure}");
+        }
+
+        if (failures.Count == 0 && logSuccess)
+        {
+            Debug.Log("V14 combat scenarios passed.");
+        }
+
+        return failures.Count == 0;
+    }
+
+    public static IReadOnlyList<string> ValidateAll()
+    {
         List<string> failures = new List<string>();
         Verify("거리 구간", VerifyRangeBands, failures);
         Verify("장비 품질", VerifyQualityMultipliers, failures);
@@ -52,17 +108,7 @@ public static class CombatSystemDebugScenarios
             VerifyGunpowderSmokeMisfireAndRangedRoles,
             failures);
 
-        foreach (string failure in failures)
-        {
-            Debug.LogError($"Combat scenario failed: {failure}");
-        }
-
-        if (failures.Count == 0 && logSuccess)
-        {
-            Debug.Log("V14 combat scenarios passed.");
-        }
-
-        return failures.Count == 0;
+        return failures;
     }
 
     private static void Verify(string name, Func<bool> scenario, ICollection<string> failures)
@@ -849,7 +895,7 @@ public static class CombatSystemDebugScenarios
             CharacterActor actor = actorObject.AddComponent<CharacterActor>();
             CharacterAiEditorTestDependencies.Inject(actorObject);
             actor.EnsureRuntimeState();
-            actor.Identity.SetPersistentId("combat:death:test");
+            actor.Identity.SetPersistentId("character:combat:death:test");
 
             CombatEquipmentInstance first = runtime.CreateInstance(
                 "weapon:dagger",
@@ -1140,7 +1186,69 @@ public static class CombatSystemDebugScenarios
             && catalog.TryGetDefinition(CombatItemDefinitions.ArrowItemId, out DungeonItemDefinition arrow)
             && catalog.TryGetDefinition(CombatItemDefinitions.BoltItemId, out DungeonItemDefinition bolt)
             && arrow.StockCategory == StockCategory.Ammunition
-            && bolt.StockCategory == StockCategory.Ammunition;
+            && bolt.StockCategory == StockCategory.Ammunition
+            && VerifyCanonicalPositiveIdParser(
+                typeof(CharacterCombatCommandSaveValidation),
+                "TryParseCommandId",
+                "combat-command:")
+            && VerifyCanonicalPositiveIdParser(
+                typeof(DefenseTacticalCoordinator).Assembly.GetType(
+                    "DefenseTacticalSaveValidation",
+                    throwOnError: true),
+                "TryParseReservationId",
+                "combat-position:")
+            && VerifyCanonicalPositiveIdParser(
+                typeof(CharacterMedicalRuntime).Assembly.GetType(
+                    "CharacterMedicalSaveValidation",
+                    throwOnError: true),
+                "TryParseOrderId",
+                "medical:")
+            && VerifyCanonicalPositiveIdParser(
+                typeof(CharacterMedicalRuntime).Assembly.GetType(
+                    "EquipmentMaintenanceSaveValidation",
+                    throwOnError: true),
+                "TryParseRepairOrderId",
+                "equipment-repair:",
+                canonicalSuffix: "000001")
+            && VerifyCanonicalPositiveIdParser(
+                typeof(CharacterMedicalRuntime).Assembly.GetType(
+                    "EquipmentMaintenanceSaveValidation",
+                    throwOnError: true),
+                "TryParsePositiveSequence",
+                "equipment-maintenance:custom:",
+                passesPrefixArgument: true);
+    }
+
+    private static bool VerifyCanonicalPositiveIdParser(
+        Type validatorType,
+        string methodName,
+        string prefix,
+        bool passesPrefixArgument = false,
+        string canonicalSuffix = "1")
+    {
+        System.Reflection.MethodInfo parser = validatorType.GetMethod(
+            methodName,
+            System.Reflection.BindingFlags.NonPublic
+            | System.Reflection.BindingFlags.Static)
+            ?? throw new MissingMethodException(validatorType.FullName, methodName);
+
+        return Parse(prefix + canonicalSuffix)
+            && (canonicalSuffix == "1"
+                || !Parse(prefix + "1")
+                && !Parse(prefix + "000000")
+                && !Parse(prefix + "0000001"))
+            && !Parse(prefix + "+1")
+            && !Parse(prefix + "01")
+            && !Parse(prefix + "0")
+            && !Parse(prefix + " 1");
+
+        bool Parse(string value)
+        {
+            object[] arguments = passesPrefixArgument
+                ? new object[] { value, prefix, 0 }
+                : new object[] { value, 0 };
+            return (bool)parser.Invoke(null, arguments);
+        }
     }
 
     private static bool VerifyBodyHealthStrictSave()
@@ -1217,6 +1325,7 @@ public static class CombatSystemDebugScenarios
             {
                 legacySectionRejected = true;
             }
+
             return invalidRejected
                 && directRejected
                 && legacySectionRejected
@@ -1240,7 +1349,7 @@ public static class CombatSystemDebugScenarios
                 new CharacterMedicalOrder
                 {
                     orderId = "medical:1",
-                    patientId = "worker:downed",
+                    patientId = "character:worker:downed",
                     state = CharacterMedicalOrderState.AwaitingRescue,
                     stabilized = true,
                     statusCode = CharacterMedicalStatusCode.AwaitingRescue
@@ -1294,6 +1403,61 @@ public static class CombatSystemDebugScenarios
         DungeonGameRestoreReport duplicateReport = new();
         ValidateCharacterMedicalSave(duplicateOrder, duplicateReport);
 
+        DungeonCharacterMedicalSaveData whitespacePatient =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        whitespacePatient.orders[0].patientId =
+            " character:worker:downed ";
+        DungeonGameRestoreReport whitespacePatientReport = new();
+        ValidateCharacterMedicalSave(
+            whitespacePatient,
+            whitespacePatientReport);
+
+        DungeonCharacterMedicalSaveData whitespaceRescuer =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        whitespaceRescuer.orders[0].rescuerId =
+            " character:worker:rescuer ";
+        DungeonGameRestoreReport whitespaceRescuerReport = new();
+        ValidateCharacterMedicalSave(
+            whitespaceRescuer,
+            whitespaceRescuerReport);
+
+        DungeonCharacterMedicalSaveData whitespaceOrderId =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        whitespaceOrderId.orders[0].orderId = " medical:1 ";
+        DungeonGameRestoreReport whitespaceOrderReport = new();
+        ValidateCharacterMedicalSave(
+            whitespaceOrderId,
+            whitespaceOrderReport);
+
+        DungeonCharacterMedicalSaveData whitespaceFacility =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        whitespaceFacility.orders[0].treatmentFacilityId =
+            " building:medical:fixture ";
+        DungeonGameRestoreReport whitespaceFacilityReport = new();
+        ValidateCharacterMedicalSave(
+            whitespaceFacility,
+            whitespaceFacilityReport);
+
+        DungeonCharacterMedicalSaveData signedOrderId =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        signedOrderId.orders[0].orderId = "medical:+1";
+        DungeonGameRestoreReport signedOrderReport = new();
+        ValidateCharacterMedicalSave(signedOrderId, signedOrderReport);
+
+        DungeonCharacterMedicalSaveData leadingZeroOrderId =
+            JsonUtility.FromJson<DungeonCharacterMedicalSaveData>(
+                JsonUtility.ToJson(canonical));
+        leadingZeroOrderId.orders[0].orderId = "medical:01";
+        DungeonGameRestoreReport leadingZeroOrderReport = new();
+        ValidateCharacterMedicalSave(
+            leadingZeroOrderId,
+            leadingZeroOrderReport);
+
         return canonicalReport.Success
             && roundTrip.version == DungeonCharacterMedicalSaveData.CurrentVersion
             && roundTrip.orders.Single().statusCode
@@ -1317,7 +1481,13 @@ public static class CombatSystemDebugScenarios
             && string.Equals(
                 duplicateBefore,
                 JsonUtility.ToJson(duplicateOrder),
-                StringComparison.Ordinal);
+                StringComparison.Ordinal)
+            && !whitespacePatientReport.Success
+            && !whitespaceRescuerReport.Success
+            && !whitespaceOrderReport.Success
+            && !whitespaceFacilityReport.Success
+            && !signedOrderReport.Success
+            && !leadingZeroOrderReport.Success;
     }
 
     private static void ValidateCharacterMedicalSave(
@@ -1351,8 +1521,8 @@ public static class CombatSystemDebugScenarios
                 new CharacterMedicalOrder
                 {
                     orderId = "medical:3",
-                    patientId = "worker:downed",
-                    rescuerId = "worker:rescuer",
+                    patientId = "character:worker:downed",
+                    rescuerId = "character:worker:rescuer",
                     stabilized = true,
                     carried = true,
                     state = CharacterMedicalOrderState.Carrying,
@@ -1362,7 +1532,7 @@ public static class CombatSystemDebugScenarios
                 }
             }
         });
-        DungeonSaveSectionPayload.Write(
+            DungeonSaveSectionPayload.Write(
             source,
             CharacterCombatCommandSaveSection.Id,
             2,
@@ -1370,12 +1540,12 @@ public static class CombatSystemDebugScenarios
             new CharacterCombatCommandSaveData
         {
             commandSequence = 1,
-            stanceCharacterIds = new List<string> { "worker:rescuer" },
+            stanceCharacterIds = new List<string> { "character:worker:rescuer" },
             revisions = new List<CharacterCombatCommandRevisionSaveData>
             {
                 new CharacterCombatCommandRevisionSaveData
                 {
-                    actorId = "worker:rescuer",
+                    actorId = "character:worker:rescuer",
                     revision = 1
                 }
             },
@@ -1384,9 +1554,9 @@ public static class CombatSystemDebugScenarios
                 new CharacterCombatCommand
                 {
                     commandId = "combat-command:1",
-                    actorId = "worker:rescuer",
+                    actorId = "character:worker:rescuer",
                     type = CombatCommandType.Rescue,
-                    targetId = "worker:downed",
+                    targetId = "character:worker:downed",
                     state = CharacterCombatCommandState.Executing,
                     revision = 1
                 }
@@ -1405,8 +1575,8 @@ public static class CombatSystemDebugScenarios
                 new CombatPositionReservation
                 {
                     reservationId = "combat-position:1",
-                    actorId = "worker:rescuer",
-                    targetId = "worker:downed",
+                    actorId = "character:worker:rescuer",
+                    targetId = "character:worker:downed",
                     kind = CombatPositionReservationKind.Rescue,
                     x = 4,
                     y = 2
@@ -1453,7 +1623,7 @@ public static class CombatSystemDebugScenarios
             {
                 new CombatEquipmentRepairOrder
                 {
-                    orderId = "equipment-repair:1",
+                    orderId = "equipment-repair:000001",
                     equipmentInstanceId = "item-instance:test-armor",
                     facilityBuildingId = "building:test-maintenance",
                     materialItemId = "material:test-metal",

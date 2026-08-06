@@ -121,7 +121,8 @@ public static class OffenseJourneyPlayModeFacade
         OffenseWorldMapRuntime worldMap = UnityEngine.Object.FindFirstObjectByType<OffenseWorldMapRuntime>();
         DungeonRuntimeLifetimeScope scope = UnityEngine.Object.FindFirstObjectByType<DungeonRuntimeLifetimeScope>();
         IOffenseBattleRuntime battle = scope?.Container?.Resolve<IOffenseBattleRuntime>();
-        if (runtime == null || worldMap == null || battle == null)
+        IOffensePanelService panelService = scope?.Container?.Resolve<IOffensePanelService>();
+        if (runtime == null || worldMap == null || battle == null || panelService == null)
         {
             return "FAIL: offense runtime is missing.";
         }
@@ -169,7 +170,7 @@ public static class OffenseJourneyPlayModeFacade
             .Where(value => value != null)
             .OrderBy(value => value.campaignOrder))
         {
-            worldMap.ShowWorldMap();
+            panelService.ShowWorldMap();
             int reconSafety = 0;
             while (!HasActiveButtonContaining(target.title)
                 && reconSafety++ < OffenseWorldMapService.MaxReconLevel)

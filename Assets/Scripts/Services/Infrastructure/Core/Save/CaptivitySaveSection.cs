@@ -37,6 +37,45 @@ public sealed class CaptivitySaveSection :
     protected override CaptivitySaveData CapturePayload() =>
         persistence.Capture();
 
+    protected override void NormalizeRestorePayload(
+        CaptivitySaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload?.captives == null)
+        {
+            return;
+        }
+
+        bool captiveIdsChanged = false;
+        for (int index = 0; index < payload.captives.Count; index++)
+        {
+            CaptiveState captive = payload.captives[index];
+            if (captive == null)
+            {
+                continue;
+            }
+
+            string path = $"captives[{index}]";
+            string previousCaptiveId = captive.captiveId;
+            captive.captiveId = NormalizeV18CharacterReference(
+                previousCaptiveId, report, path + ".captiveId");
+            captiveIdsChanged |= !string.Equals(
+                previousCaptiveId,
+                captive.captiveId,
+                StringComparison.Ordinal);
+            captive.reservedCarrierId = NormalizeV18CharacterReference(
+                captive.reservedCarrierId, report, path + ".reservedCarrierId");
+            captive.reservedWardenId = NormalizeV18CharacterReference(
+                captive.reservedWardenId, report, path + ".reservedWardenId");
+        }
+        if (captiveIdsChanged)
+        {
+            payload.captives.Sort((left, right) => string.CompareOrdinal(
+                left?.captiveId,
+                right?.captiveId));
+        }
+    }
+
     protected override CaptivityRestoreCandidate BuildRestoreCandidate(
         CaptivitySaveData payload) =>
         persistence.BuildRestore(payload);

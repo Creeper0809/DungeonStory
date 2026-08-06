@@ -33,12 +33,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 31db8b43a5abfb245aaf0cca5b3a1f9f, type: 3}
   abilityModules:
     items:
-    - rid: 7737211765905949250
-    - rid: 7737211765905949251
-    - rid: 7737211765905949252
-    - rid: 7737211765905949253
-    - rid: 7737211765905949254
-    - rid: 7737211765905949255
+    - rid: 7737211772876620292
+    - rid: 7737211772876620293
+    - rid: 7737211772876620294
+    - rid: 7737211772876620295
+    - rid: 7737211772876620296
+    - rid: 7737211772876620297
   width: 2
   height: 1
   layer: 1
@@ -54,12 +54,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211765905949250
+    - rid: 7737211772876620292
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CT01
-    - rid: 7737211765905949251
+    - rid: 7737211772876620293
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -68,7 +68,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211765905949252
+    - rid: 7737211772876620294
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -80,7 +80,7 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 5
-    - rid: 7737211765905949253
+    - rid: 7737211772876620295
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -91,11 +91,11 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 0
           disabledWhenDamaged: 1
-    - rid: 7737211765905949254
+    - rid: 7737211772876620296
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211765905949255
+    - rid: 7737211772876620297
       type: {class: BuildingCircusTicketBoothAbility, ns: , asm: DungeonStory.Captivity}
       data:
         abilityId: BuildingCircusTicketBoothAbility

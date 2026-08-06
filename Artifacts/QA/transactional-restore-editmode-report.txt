@@ -1,9 +1,11 @@
 transactional-restore-editmode
+TRANSACTIONAL_RESTORE RESULT=PASS
+expectedTestCases=33
 started=true
-startedAtUtc=2026-08-05T04:55:27.7086187Z
-startedTestCases=136
+startedAtUtc=2026-08-06T05:08:23.4816449Z
+startedTestCases=33
 completed=true
-completedAtUtc=2026-08-05T04:55:29.1769353Z
+completedAtUtc=2026-08-06T05:08:23.5003158Z
 pass=33
 fail=0
 skip=0

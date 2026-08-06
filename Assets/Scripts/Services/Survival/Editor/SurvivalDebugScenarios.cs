@@ -241,7 +241,7 @@ public static class SurvivalDebugScenarios
             characterData.characterType = CharacterType.NPC;
             actor.data = characterData;
             actor.characterType = CharacterType.NPC;
-            actor.Identity.SetPersistentId("survival:meal:test");
+            actor.Identity.SetPersistentId("character:survival:meal:test");
 
             facilityObject = new GameObject("SurvivalMealFacility_Test");
             BuildableObject facility = facilityObject.AddComponent<BuildableObject>();
@@ -1049,6 +1049,352 @@ public static class SurvivalDebugScenarios
                     && root.PublishedRestoreRevision == 0,
                 "invalid consumables restore mutated live aggregate state");
 
+            DungeonCharacterConsumablesSaveData whitespaceCharacterId =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    validJson);
+            whitespaceCharacterId.dietPolicies[0].characterId =
+                " character:consumables-restore ";
+            bool whitespaceRejected = false;
+            try
+            {
+                runtime.BuildRestoreCandidate(whitespaceCharacterId);
+            }
+            catch (InvalidOperationException)
+            {
+                whitespaceRejected = true;
+            }
+            Require(
+                whitespaceRejected,
+                "consumables restore accepted a whitespace-padded CharacterId");
+
+            void RequireSequenceRejected(
+                DungeonCharacterConsumablesSaveData candidate,
+                string expectedError,
+                string message)
+            {
+                string sourceBefore = JsonUtility.ToJson(candidate);
+                string liveBefore = JsonUtility.ToJson(runtime.Capture());
+                string failure = string.Empty;
+                try
+                {
+                    runtime.BuildRestoreCandidate(candidate);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    failure = exception.Message;
+                }
+                Require(
+                    failure.IndexOf(expectedError, StringComparison.Ordinal) >= 0
+                    && string.Equals(
+                        sourceBefore,
+                        JsonUtility.ToJson(candidate),
+                        StringComparison.Ordinal)
+                    && string.Equals(
+                        liveBefore,
+                        JsonUtility.ToJson(runtime.Capture()),
+                        StringComparison.Ordinal)
+                    && root.PublishedRestoreRevision == 0,
+                    message);
+            }
+
+            CharacterConsumableOperationState GeneratedOperation(long sequence) =>
+                new()
+                {
+                    operationId = $"consumable-operation:auto:v1:{sequence:D16}",
+                    characterId = "character:consumables-restore",
+                    itemDefinitionId = "food:preserved-ration",
+                    itemStackId = "stack:sequence-fixture",
+                    meal = true,
+                    completedAt = 1f
+                };
+            CharacterConsumableOperationState LegacyGeneratedOperation(long sequence) =>
+                new()
+                {
+                    operationId = $"consumable-operation:{sequence:D16}",
+                    characterId = "character:consumables-restore",
+                    itemDefinitionId = "food:preserved-ration",
+                    itemStackId = "stack:sequence-fixture",
+                    meal = true,
+                    completedAt = 1f
+                };
+            CharacterConsumableOperationState ExternalOperation(string operationId) =>
+                new()
+                {
+                    operationId = operationId,
+                    characterId = "character:consumables-restore",
+                    itemDefinitionId = "food:preserved-ration",
+                    itemStackId = "stack:sequence-fixture",
+                    meal = true,
+                    completedAt = 1f
+                };
+
+            DungeonCharacterConsumablesSaveData validWatermark =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    validJson);
+            validWatermark.completedOperations.Add(LegacyGeneratedOperation(6));
+            validWatermark.completedOperations.Add(GeneratedOperation(7));
+            validWatermark.nextOperationSequence = 8;
+            string validWatermarkBefore = JsonUtility.ToJson(validWatermark);
+            Require(
+                runtime.BuildRestoreCandidate(validWatermark) != null
+                && string.Equals(
+                    validWatermarkBefore,
+                    JsonUtility.ToJson(validWatermark),
+                    StringComparison.Ordinal),
+                "consumables restore rejected or mutated a valid generated-ID watermark");
+
+            DungeonCharacterConsumablesSaveData externalOperationIds =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    validJson);
+            externalOperationIds.completedOperations.Add(
+                ExternalOperation("consumable-operation:+partner-key"));
+            externalOperationIds.completedOperations.Add(
+                ExternalOperation("consumable-operation:123"));
+            string externalOperationIdsBefore = JsonUtility.ToJson(externalOperationIds);
+            Require(
+                runtime.BuildRestoreCandidate(externalOperationIds) != null
+                && externalOperationIds.nextOperationSequence == 1L
+                && string.Equals(
+                    externalOperationIdsBefore,
+                    JsonUtility.ToJson(externalOperationIds),
+                    StringComparison.Ordinal),
+                "consumables restore rejected, counted, or mutated external idempotency IDs");
+
+            string operationIngressBefore = JsonUtility.ToJson(runtime.Capture());
+            bool externalOperationSucceeded = runtime.TryConsumeMeal(
+                new ConsumeMealCommand(
+                    new ConsumableOperationId("consumable-operation:123"),
+                    new CharacterId("character:consumables-restore"),
+                    new BuildingInstanceId("building:missing"),
+                    new ItemStackId("stack:sequence-fixture")),
+                out CharacterConsumablesMealResult externalOperationResult);
+            bool automaticOperationSucceeded = runtime.TryConsumeMeal(
+                new ConsumeMealCommand(
+                    new ConsumableOperationId(
+                        "consumable-operation:auto:v1:0000000000000001"),
+                    new CharacterId("character:consumables-restore"),
+                    new BuildingInstanceId("building:missing"),
+                    new ItemStackId("stack:sequence-fixture")),
+                out CharacterConsumablesMealResult automaticOperationResult);
+            Require(
+                !externalOperationSucceeded
+                && externalOperationResult.FailureCode
+                    == CharacterConsumablesFailureCode.FacilityMissing
+                && !automaticOperationSucceeded
+                && automaticOperationResult.FailureCode
+                    == CharacterConsumablesFailureCode.InvalidCommand
+                && string.Equals(
+                    operationIngressBefore,
+                    JsonUtility.ToJson(runtime.Capture()),
+                    StringComparison.Ordinal),
+                "consumables public ingress did not distinguish external and reserved automatic operation IDs");
+
+            DungeonRuntimeAggregateRootStore captureRoot = new();
+            CharacterConsumablesRuntime captureRuntime =
+                new CharacterConsumablesRuntime(
+                    ports,
+                    ports,
+                    ports,
+                    new UnityGameClock(),
+                    new RandomStreamProvider(8),
+                    captureRoot);
+            captureRuntime.PublishRestoreCandidate(
+                runtime.BuildRestoreCandidate(validWatermark));
+            System.Reflection.PropertyInfo writeStateProperty =
+                typeof(CharacterConsumablesRuntime).GetProperty(
+                    "WriteState",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new MissingMemberException(
+                    typeof(CharacterConsumablesRuntime).FullName,
+                    "WriteState");
+            object captureState = writeStateProperty.GetValue(captureRuntime);
+            System.Reflection.FieldInfo nextOperationField =
+                captureState.GetType().GetField(
+                    "NextOperationSequence",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new MissingFieldException(
+                    captureState.GetType().FullName,
+                    "NextOperationSequence");
+            nextOperationField.SetValue(captureState, 7L);
+            long captureRevisionBefore = captureRoot.PublishedRestoreRevision;
+            string captureFailure = string.Empty;
+            try
+            {
+                captureRuntime.Capture();
+            }
+            catch (InvalidOperationException exception)
+            {
+                captureFailure = exception.Message;
+            }
+            Require(
+                captureFailure.IndexOf(
+                    "does not exceed existing generated sequence 7",
+                    StringComparison.Ordinal) >= 0
+                && (long)nextOperationField.GetValue(captureState) == 7L
+                && captureRoot.PublishedRestoreRevision == captureRevisionBefore,
+                "consumables capture accepted or mutated a stale operation watermark");
+            nextOperationField.SetValue(captureState, 8L);
+            Require(
+                captureRuntime.Capture().nextOperationSequence == 8L,
+                "consumables capture did not recover after fixture state restoration");
+            System.Reflection.MethodInfo newOperationId =
+                typeof(CharacterConsumablesRuntime).GetMethod(
+                    "NewOperationId",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(
+                    typeof(CharacterConsumablesRuntime).FullName,
+                    "NewOperationId");
+            ConsumableOperationId generatedOperationId =
+                (ConsumableOperationId)newOperationId.Invoke(captureRuntime, null);
+            Require(
+                string.Equals(
+                    generatedOperationId.Value,
+                    "consumable-operation:auto:v1:0000000000000008",
+                    StringComparison.Ordinal)
+                && (long)nextOperationField.GetValue(captureState) == 9L,
+                "consumables runtime did not emit the versioned automatic operation ID");
+            nextOperationField.SetValue(captureState, 8L);
+            nextOperationField.SetValue(captureState, long.MaxValue);
+            bool generationOverflowRejected = false;
+            try
+            {
+                newOperationId.Invoke(captureRuntime, null);
+            }
+            catch (System.Reflection.TargetInvocationException exception)
+                when (exception.InnerException is InvalidOperationException)
+            {
+                generationOverflowRejected = true;
+            }
+            Require(
+                generationOverflowRejected
+                && (long)nextOperationField.GetValue(captureState)
+                    == long.MaxValue,
+                "consumables generated an overflowing operation ID or mutated its sequence");
+            nextOperationField.SetValue(captureState, 8L);
+
+            System.Reflection.FieldInfo nextDeliveryField =
+                captureState.GetType().GetField(
+                    "NextDeliverySequence",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new MissingFieldException(
+                    captureState.GetType().FullName,
+                    "NextDeliverySequence");
+            System.Reflection.MethodInfo newDeliveryId =
+                typeof(CharacterConsumablesRuntime).GetMethod(
+                    "NewDeliveryId",
+                    System.Reflection.BindingFlags.Instance
+                    | System.Reflection.BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(
+                    typeof(CharacterConsumablesRuntime).FullName,
+                    "NewDeliveryId");
+            nextDeliveryField.SetValue(captureState, 1L);
+            ConsumableDeliveryId generatedDeliveryId =
+                (ConsumableDeliveryId)newDeliveryId.Invoke(captureRuntime, null);
+            Require(
+                string.Equals(
+                    generatedDeliveryId.Value,
+                    "consumable-delivery:auto:v1:0000000000000001",
+                    StringComparison.Ordinal)
+                && (long)nextDeliveryField.GetValue(captureState) == 2L,
+                "consumables runtime did not emit the versioned automatic delivery ID");
+            nextDeliveryField.SetValue(captureState, long.MaxValue);
+            bool deliveryGenerationOverflowRejected = false;
+            try
+            {
+                newDeliveryId.Invoke(captureRuntime, null);
+            }
+            catch (System.Reflection.TargetInvocationException exception)
+                when (exception.InnerException is InvalidOperationException)
+            {
+                deliveryGenerationOverflowRejected = true;
+            }
+            Require(
+                deliveryGenerationOverflowRejected
+                && (long)nextDeliveryField.GetValue(captureState)
+                    == long.MaxValue,
+                "consumables generated an overflowing delivery ID or mutated its sequence");
+            nextDeliveryField.SetValue(captureState, 1L);
+
+            DungeonCharacterConsumablesSaveData staleOperationWatermark =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    validWatermarkBefore);
+            staleOperationWatermark.nextOperationSequence = 7;
+            RequireSequenceRejected(
+                staleOperationWatermark,
+                "does not exceed existing generated sequence 7",
+                "consumables restore accepted or mutated a stale operation sequence");
+
+            DungeonCharacterConsumablesSaveData staleDeliveryWatermark =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    validJson);
+            staleDeliveryWatermark.pendingMealDeliveries.Add(
+                new CharacterMealDeliveryState
+                {
+                    deliveryId = "consumable-delivery:0000000000000009",
+                    characterId = "character:consumables-restore",
+                    buildingInstanceId = "building:sequence-fixture",
+                    itemDefinitionId = "food:preserved-ration"
+                });
+            staleDeliveryWatermark.nextDeliverySequence = 9;
+            RequireSequenceRejected(
+                staleDeliveryWatermark,
+                "does not exceed existing generated sequence 9",
+                "consumables restore accepted or mutated a stale delivery sequence");
+
+            DungeonCharacterConsumablesSaveData malformedGeneratedId =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    validJson);
+            malformedGeneratedId.completedOperations.Add(GeneratedOperation(1));
+            malformedGeneratedId.completedOperations[0].operationId =
+                "consumable-operation:auto:v1:0001";
+            RequireSequenceRejected(
+                malformedGeneratedId,
+                "malformed or overflowing generated sequence",
+                "consumables restore accepted or mutated a malformed generated ID");
+
+            DungeonCharacterConsumablesSaveData overflowingGeneratedId =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    validJson);
+            overflowingGeneratedId.pendingMealDeliveries.Add(
+                new CharacterMealDeliveryState
+                {
+                    deliveryId =
+                        "consumable-delivery:auto:v1:999999999999999999999999",
+                    characterId = "character:consumables-restore",
+                    buildingInstanceId = "building:sequence-fixture",
+                    itemDefinitionId = "food:preserved-ration"
+                });
+            RequireSequenceRejected(
+                overflowingGeneratedId,
+                "malformed or overflowing generated sequence",
+                "consumables restore accepted or mutated an overflowing generated ID");
+
+            DungeonCharacterConsumablesSaveData duplicateGeneratedId =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    validJson);
+            duplicateGeneratedId.completedOperations.Add(GeneratedOperation(3));
+            duplicateGeneratedId.completedOperations.Add(GeneratedOperation(3));
+            duplicateGeneratedId.nextOperationSequence = 4;
+            RequireSequenceRejected(
+                duplicateGeneratedId,
+                "is duplicated",
+                "consumables restore accepted or mutated a duplicate generated ID");
+
+            DungeonCharacterConsumablesSaveData exhaustedSequence =
+                JsonUtility.FromJson<DungeonCharacterConsumablesSaveData>(
+                    validJson);
+            exhaustedSequence.completedOperations.Add(
+                GeneratedOperation(long.MaxValue));
+            exhaustedSequence.nextOperationSequence = long.MaxValue;
+            RequireSequenceRejected(
+                exhaustedSequence,
+                $"does not exceed existing generated sequence {long.MaxValue}",
+                "consumables restore accepted or mutated an exhausted sequence");
+
             DungeonCharacterConsumablesSaveData legacy = JsonUtility.FromJson<
                 DungeonCharacterConsumablesSaveData>(validJson);
             legacy.version = DungeonCharacterConsumablesSaveData.CurrentVersion - 1;
@@ -1081,7 +1427,7 @@ public static class SurvivalDebugScenarios
                 && typeof(ICharacterSubstanceRuntime)
                     .IsAssignableFrom(typeof(CharacterConsumablesCompatibilityAdapter)),
                 "consumables core/adapter facets are not separated correctly");
-            return "roundtrip=canonical; invalid=no-mutation; legacy=rejected; catalog=item-definition; facets=split";
+            return "roundtrip=canonical; invalid=no-mutation; sequences=guarded; legacy=rejected; catalog=item-definition; facets=split";
         }
         finally
         {

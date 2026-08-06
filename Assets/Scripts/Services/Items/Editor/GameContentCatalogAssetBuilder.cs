@@ -1,12 +1,47 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
 public static class GameContentCatalogAssetBuilder
 {
+    private const int GenerationManifestVersion = 2;
+    private const string GeneratorVersion = "v18-content-authority-2";
+    private const string GenerationManifestPath =
+        "Artifacts/QA/game-content-catalog-generation-manifest.json";
+    private const string GeneratorSourcePath =
+        "Assets/Scripts/Services/Items/Editor/GameContentCatalogAssetBuilder.cs";
+    private const string LocalizationGeneratorSourcePath =
+        "Assets/Scripts/Services/Items/Editor/DomainFailureLocalizationAssetBuilder.cs";
+    private static readonly string[] GeneratorDependencySourcePaths =
+    {
+        GeneratorSourcePath,
+        LocalizationGeneratorSourcePath,
+        "Assets/Scripts/Content/GameContentCatalogSO.cs",
+        "Assets/Scripts/Content/GameDomainContentCatalogSO.cs",
+        "Assets/Scripts/Content/GameMediaCatalogSO.cs",
+        "Assets/Scripts/Models/Buildings/Core/BuildingCoreAbilityDefinitions.cs",
+        "Assets/Scripts/Models/Buildings/Core/BuildingPrimitives.cs",
+        "Assets/Scripts/Models/Economy/Content/DataScriptableObject.cs",
+        "Assets/Scripts/Models/Economy/Content/ItemDefinitionCatalogSO.cs",
+        "Assets/Scripts/Models/Economy/Content/ItemDefinitionSO.cs",
+        "Assets/Scripts/Models/Economy/Content/ResourceEconomyModels.cs",
+        "Assets/Scripts/Models/Economy/Content/WasteProcessingRulesSO.cs",
+        "Assets/Scripts/Models/Economy/Content/WasteProcessingValueContracts.cs",
+        "Assets/Scripts/Models/FacilityShop/Core/FacilityBlueprintSO.cs",
+        "Assets/Scripts/Models/Items/Core/ItemPrimitives.cs",
+        "Assets/Scripts/Models/Wildlife/Core/WildlifePrimitives.cs",
+        "Assets/Scripts/Services/Buildings/Abilities/BuildingAbilityAccessors.cs",
+        "Assets/Scripts/Services/Buildings/SO/BuildingSO.cs",
+        "Assets/Scripts/Services/Combat/EquipmentEvolutionContracts.cs",
+        "Assets/Scripts/Services/Evolution/EvolutionCatalystEconomyRuntime.cs",
+        "Assets/Scripts/Services/FacilityShop/FacilityShopSystem.cs"
+    };
     private const string ContentFolder = "Assets/Resources/SO/Content";
     private const string ItemCatalogPath = ContentFolder + "/ItemDefinitionCatalog.asset";
     private const string DomainCatalogPath = ContentFolder + "/GameDomainContentCatalog.asset";
@@ -16,15 +51,66 @@ public static class GameContentCatalogAssetBuilder
     private const string LegacySubstanceRoot =
         "Assets/Resources/SO/Economy/Substances";
     private const string RootCatalogPath = "Assets/Resources/SO/GameContentCatalog.asset";
+    private static HashSet<string> activeOutputPaths;
+    private static HashSet<string> activeTouchedOutputPaths;
 
-    [MenuItem("Tools/DungeonStory/Content/Rebuild Explicit Content Catalog")]
+    [MenuItem("Tools/DungeonStory/Content/Migrate/Rebuild Explicit Content Catalog...")]
     public static void Rebuild()
     {
-        EnsureFolder("Assets/Resources/SO", "Content");
-        ValidateNoLegacySubstanceAssets();
-        EnsurePhysicalOfferDefinitions();
-        WasteProcessingRulesSO wasteRules = EnsureWasteProcessingRules();
-        DomainFailureLocalizationAssetBuilder.Rebuild();
+        string invocationKind;
+        if (Application.isBatchMode)
+        {
+            if (!IsExplicitBatchModeInvocation())
+            {
+                throw new InvalidOperationException(
+                    "Batchmode content migration must be invoked explicitly with "
+                    + "'-executeMethod GameContentCatalogAssetBuilder.Rebuild'.");
+            }
+            invocationKind = "batchmode-explicit-execute-method";
+        }
+        else
+        {
+            bool confirmed = EditorUtility.DisplayDialog(
+                "Rebuild generated game content?",
+                "This migration rewrites generated item definitions, localization, "
+                + "and root catalog assets. Ensure unrelated Inspector changes are saved "
+                + "or reverted before continuing.",
+                "Rebuild generated content",
+                "Cancel");
+            if (!confirmed)
+            {
+                Debug.Log("Game content catalog migration cancelled before any asset write.");
+                return;
+            }
+            invocationKind = "editor-confirmed-migration";
+        }
+
+        ExecuteConfirmedMigration(invocationKind);
+    }
+
+    private static void ExecuteConfirmedMigration(string invocationKind)
+    {
+        RequireNoDirtyOwnedAssets();
+        string[] inputPaths = GetDeterministicInputPaths();
+        string localizationProjection =
+            DomainFailureLocalizationAssetBuilder.GetCanonicalProvenanceInput();
+        string localizationContractHash = ComputeHash(
+            Encoding.UTF8.GetBytes(localizationProjection));
+        string inputHash = ComputeAggregateHash(inputPaths, localizationProjection);
+        activeOutputPaths = new HashSet<string>(StringComparer.Ordinal);
+        activeTouchedOutputPaths = new HashSet<string>(StringComparer.Ordinal);
+        try
+        {
+            EnsureFolder("Assets/Resources/SO", "Content");
+            ValidateNoLegacySubstanceAssets();
+            EnsurePhysicalOfferDefinitions();
+            WasteProcessingRulesSO wasteRules = EnsureWasteProcessingRules();
+            foreach (string localizationOutput in
+                     DomainFailureLocalizationAssetBuilder.RebuildWithoutSaving(
+                         RecordTouchedOutput))
+            {
+                RecordOutput(localizationOutput);
+            }
 
         ItemDefinitionSO[] definitions = AssetDatabase
             .FindAssets("t:ItemDefinitionSO", new[] { "Assets/Resources/SO" })
@@ -94,18 +180,61 @@ public static class GameContentCatalogAssetBuilder
             new ScriptableObject[] { domainCatalog });
         EditorUtility.SetDirty(root);
 
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
+            ValidateGeneratedCatalogsBeforeSave(
+                root,
+                itemCatalog,
+                domainCatalog,
+                wasteRules);
+            SaveOwnedOutputs();
+            DomainFailureLocalizationAssetBuilder.ReleaseRuntimeTableAfterSave();
 
-        if (itemCatalog.ValidateCatalog().Count > 0)
-        {
-            throw new InvalidOperationException(
-                string.Join("\n", itemCatalog.ValidateCatalog()));
+            WriteGenerationManifest(
+                invocationKind,
+                inputPaths,
+                inputHash,
+                localizationContractHash);
+            Debug.Log(
+                $"Explicit content catalog rebuilt: {definitions.Length} item definitions, "
+                + $"{domainDefinitions.Length} domain definitions, one required Resources root. "
+                + $"Provenance={GenerationManifestPath}");
         }
+        catch (Exception exception)
+        {
+            string touched = activeTouchedOutputPaths == null
+                || activeTouchedOutputPaths.Count == 0
+                ? "<none recorded>"
+                : string.Join(", ", activeTouchedOutputPaths.OrderBy(
+                    path => path,
+                    StringComparer.Ordinal));
+            Debug.LogError(
+                "Game content migration failed before completion. No unrelated dirty "
+                + "assets were saved. Migration-owned assets may remain dirty or newly "
+                + $"created and require review. Recorded outputs=[{touched}]. "
+                + $"Failure={exception.GetType().Name}: {exception.Message}");
+            throw;
+        }
+        finally
+        {
+            activeOutputPaths = null;
+            activeTouchedOutputPaths = null;
+        }
+    }
 
-        Debug.Log(
-            $"Explicit content catalog rebuilt: {definitions.Length} item definitions, "
-            + $"{domainDefinitions.Length} domain definitions, one required Resources root.");
+    private static bool IsExplicitBatchModeInvocation()
+    {
+        string[] arguments = Environment.GetCommandLineArgs();
+        for (int index = 0; index < arguments.Length - 1; index++)
+        {
+            if (string.Equals(arguments[index], "-executeMethod", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(
+                    arguments[index + 1],
+                    nameof(GameContentCatalogAssetBuilder) + "." + nameof(Rebuild),
+                    StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void ValidateNoLegacySubstanceAssets()
@@ -123,6 +252,7 @@ public static class GameContentCatalogAssetBuilder
 
     private static WasteProcessingRulesSO EnsureWasteProcessingRules()
     {
+        RecordOutput(WasteRulesPath);
         WasteProcessingRulesSO existing =
             AssetDatabase.LoadAssetAtPath<WasteProcessingRulesSO>(WasteRulesPath);
         if (existing != null)
@@ -327,8 +457,6 @@ public static class GameContentCatalogAssetBuilder
             EditorUtility.SetDirty(item);
         }
 
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
     }
 
     private static void EnsureEvolutionCatalystDefinitions()
@@ -422,6 +550,7 @@ public static class GameContentCatalogAssetBuilder
         string fileName = string.Concat((itemId ?? string.Empty).Select(character =>
             char.IsLetterOrDigit(character) ? character : '_'));
         string path = $"{generatedFolder}/{fileName}.asset";
+        RecordOutput(path);
         GenericItemDefinitionSO asset =
             AssetDatabase.LoadAssetAtPath<GenericItemDefinitionSO>(path);
         if (asset != null)
@@ -436,6 +565,7 @@ public static class GameContentCatalogAssetBuilder
 
     private static T GetOrCreate<T>(string path) where T : ScriptableObject
     {
+        RecordOutput(path);
         T asset = AssetDatabase.LoadAssetAtPath<T>(path);
         if (asset != null)
         {
@@ -461,6 +591,253 @@ public static class GameContentCatalogAssetBuilder
         {
             AssetDatabase.CreateFolder(parent, child);
         }
+    }
+
+    private static void ValidateGeneratedCatalogsBeforeSave(
+        GameContentCatalogSO root,
+        ItemDefinitionCatalogSO itemCatalog,
+        GameDomainContentCatalogSO domainCatalog,
+        WasteProcessingRulesSO wasteRules)
+    {
+        List<string> errors = new();
+        errors.AddRange(root.ValidateCatalog());
+        errors.AddRange(itemCatalog.ValidateCatalog());
+        errors.AddRange(domainCatalog.ValidateCatalog());
+        errors.AddRange(wasteRules.ValidateDefinition());
+        if (errors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Generated content validation failed before owned assets were saved:\n"
+                + string.Join("\n", errors));
+        }
+    }
+
+    private static void RequireNoDirtyOwnedAssets()
+    {
+        string[] dirtyPaths = AssetDatabase.GetAllAssetPaths()
+            .Where(IsPotentialOwnedOutputPath)
+            .Concat(
+                DomainFailureLocalizationAssetBuilder
+                    .GetPotentialOutputPathsForPreflight())
+            .Distinct(StringComparer.Ordinal)
+            .Select(path => new
+            {
+                Path = path,
+                Asset = AssetDatabase.LoadMainAssetAtPath(path)
+            })
+            .Where(entry => entry.Asset != null && EditorUtility.IsDirty(entry.Asset))
+            .Select(entry => entry.Path)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        if (dirtyPaths.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Content migration-owned assets already have unsaved changes. "
+                + "Save or revert them before running the explicit migration:\n"
+                + string.Join("\n", dirtyPaths));
+        }
+    }
+
+    private static bool IsPotentialOwnedOutputPath(string path)
+    {
+        return path.StartsWith(
+                "Assets/Resources/SO/Items/Definitions/",
+                StringComparison.Ordinal)
+            || string.Equals(path, ItemCatalogPath, StringComparison.Ordinal)
+            || string.Equals(path, DomainCatalogPath, StringComparison.Ordinal)
+            || string.Equals(path, MediaCatalogPath, StringComparison.Ordinal)
+            || string.Equals(path, WasteRulesPath, StringComparison.Ordinal)
+            || string.Equals(path, RootCatalogPath, StringComparison.Ordinal);
+    }
+
+    private static void RecordOutput(string path)
+    {
+        activeOutputPaths?.Add(path);
+        activeTouchedOutputPaths?.Add(path);
+    }
+
+    private static void RecordTouchedOutput(string path) =>
+        activeTouchedOutputPaths?.Add(path);
+
+    private static void SaveOwnedOutputs()
+    {
+        foreach (string path in activeOutputPaths.OrderBy(value => value, StringComparer.Ordinal))
+        {
+            UnityEngine.Object asset = AssetDatabase.LoadMainAssetAtPath(path);
+            if (asset != null)
+            {
+                AssetDatabase.SaveAssetIfDirty(asset);
+            }
+        }
+        AssetDatabase.Refresh();
+    }
+
+    private static string[] GetDeterministicInputPaths()
+    {
+        string[] missingDependencies = GeneratorDependencySourcePaths
+            .Where(path => !File.Exists(path))
+            .ToArray();
+        if (missingDependencies.Length > 0)
+        {
+            throw new InvalidOperationException(
+                "Generated-content provenance dependency is missing:\n"
+                + string.Join("\n", missingDependencies));
+        }
+
+        HashSet<string> generatorDependencies = new(
+            GeneratorDependencySourcePaths,
+            StringComparer.Ordinal);
+        return AssetDatabase.GetAllAssetPaths()
+            .Where(path => path.StartsWith("Assets/Resources/", StringComparison.Ordinal)
+                || generatorDependencies.Contains(path))
+            .Where(path => File.Exists(path) && !IsGeneratedOutputPath(path))
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static bool IsGeneratedOutputPath(string path)
+    {
+        return path.StartsWith(
+                "Assets/Resources/SO/Items/Definitions/",
+                StringComparison.Ordinal)
+            || string.Equals(path, ItemCatalogPath, StringComparison.Ordinal)
+            || string.Equals(path, DomainCatalogPath, StringComparison.Ordinal)
+            || string.Equals(path, MediaCatalogPath, StringComparison.Ordinal)
+            || string.Equals(path, WasteRulesPath, StringComparison.Ordinal)
+            || string.Equals(path, RootCatalogPath, StringComparison.Ordinal);
+    }
+
+    private static string ComputeAggregateHash(
+        IEnumerable<string> paths,
+        string canonicalLocalizationProjection = null)
+    {
+        StringBuilder fingerprint = new StringBuilder();
+        foreach (string path in paths)
+        {
+            fingerprint.Append(path)
+                .Append('|').Append(ComputeFileHash(path))
+                .Append('|').Append(AssetDatabase.AssetPathToGUID(path))
+                .Append('|').Append(ComputeMetaFileHash(path))
+                .Append('\n');
+        }
+        if (canonicalLocalizationProjection != null)
+        {
+            fingerprint.Append("@canonical/domain-failure-localization")
+                .Append('|')
+                .Append(ComputeHash(Encoding.UTF8.GetBytes(
+                    canonicalLocalizationProjection)))
+                .Append('\n');
+        }
+        return ComputeHash(Encoding.UTF8.GetBytes(fingerprint.ToString()));
+    }
+
+    private static string ComputeFileHash(string path) =>
+        ComputeHash(File.ReadAllBytes(path));
+
+    private static string ComputeMetaFileHash(string assetPath)
+    {
+        string metaPath = assetPath + ".meta";
+        return File.Exists(metaPath) ? ComputeFileHash(metaPath) : string.Empty;
+    }
+
+    private static string ComputeHash(byte[] bytes)
+    {
+        using SHA256 sha256 = SHA256.Create();
+        return BitConverter.ToString(sha256.ComputeHash(bytes))
+            .Replace("-", string.Empty)
+            .ToLowerInvariant();
+    }
+
+    private static void WriteGenerationManifest(
+        string invocationKind,
+        IReadOnlyCollection<string> inputPaths,
+        string inputHash,
+        string localizationContractHash)
+    {
+        string[] outputPaths = activeOutputPaths
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        GenerationManifest manifest = new GenerationManifest
+        {
+            manifestVersion = GenerationManifestVersion,
+            generator = nameof(GameContentCatalogAssetBuilder),
+            generatorVersion = GeneratorVersion,
+            unityVersion = Application.unityVersion,
+            invocationKind = invocationKind,
+            hashAlgorithm =
+                "SHA-256(path|file-sha256|asset-guid|meta-sha256, ordinal path order; canonical localization projection)",
+            generatorSourceHashSha256 = ComputeAggregateHash(
+                GeneratorDependencySourcePaths),
+            inputCount = inputPaths.Count,
+            inputHashSha256 = inputHash,
+            localizationContractHashSha256 = localizationContractHash,
+            outputPaths = outputPaths,
+            outputHashes = outputPaths
+                .Where(File.Exists)
+                .Select(path => new GeneratedOutputHash
+                {
+                    path = path,
+                    sha256 = ComputeFileHash(path),
+                    guid = AssetDatabase.AssetPathToGUID(path),
+                    metaSha256 = ComputeMetaFileHash(path)
+                })
+                .ToArray()
+        };
+
+        string directory = Path.GetDirectoryName(GenerationManifestPath);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+        string temporaryPath = GenerationManifestPath + ".tmp";
+        try
+        {
+            File.WriteAllText(
+                temporaryPath,
+                JsonUtility.ToJson(manifest, true) + Environment.NewLine,
+                new UTF8Encoding(false));
+            if (File.Exists(GenerationManifestPath))
+            {
+                File.Replace(temporaryPath, GenerationManifestPath, null);
+            }
+            else
+            {
+                File.Move(temporaryPath, GenerationManifestPath);
+            }
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+    }
+
+    [Serializable]
+    private sealed class GenerationManifest
+    {
+        public int manifestVersion;
+        public string generator;
+        public string generatorVersion;
+        public string unityVersion;
+        public string invocationKind;
+        public string hashAlgorithm;
+        public string generatorSourceHashSha256;
+        public int inputCount;
+        public string inputHashSha256;
+        public string localizationContractHashSha256;
+        public string[] outputPaths;
+        public GeneratedOutputHash[] outputHashes;
+    }
+
+    [Serializable]
+    private sealed class GeneratedOutputHash
+    {
+        public string path;
+        public string sha256;
+        public string guid;
+        public string metaSha256;
     }
 }
 #endif

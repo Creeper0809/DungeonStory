@@ -20,7 +20,7 @@ public static class DungeonStoryFinalAcceptanceRunner
     {
         List<AcceptanceStep> steps = new List<AcceptanceStep>();
 
-        Run("Localization assets", SynchronizeAndValidateLocalization, steps);
+        Run("Localization assets", ValidateLocalizationAssets, steps);
         Run("V18 runtime authority", () => RuntimeAuthorityV18Validator.ValidateOrThrow(), steps);
         Run("Batch A architecture metrics", () => BatchAArchitectureMetricsValidator.ValidateOrThrow(), steps);
         Run("Runtime composition", () => Require(DungeonRuntimeCompositionDebugScenarios.RunAll(false)), steps);
@@ -43,7 +43,7 @@ public static class DungeonStoryFinalAcceptanceRunner
         Run("Operating-day settlement authority", () => Require(OperatingDaySettlementDebugScenarios.RunAll(false)), steps);
         Run("Experience pacing authority", ExperiencePacingDebugScenarios.Run, steps);
         Run("Service-room session authority", () => RequireNoErrors(ServiceRoomDebugScenarios.Validate()), steps);
-        Run("Combat system", () => Require(CombatSystemDebugScenarios.RunAll(false)), steps);
+        Run("Combat system", () => RequireNoErrors(CombatSystemDebugScenarios.ValidateAll()), steps);
         Run("Strict combat save", () => Require(StrictProgressionCombatSaveDebugScenarios.RunAll(false)), steps);
         Run("Surgery", () => Require(SurgeryDebugScenarios.RunAll(false)), steps);
         Run("Character anatomy/medical integration", () => RequireNoErrors(CharacterAnatomyMedicalIntegrationDebugScenarios.RunAll()), steps);
@@ -77,18 +77,8 @@ public static class DungeonStoryFinalAcceptanceRunner
         return success;
     }
 
-    private static void SynchronizeAndValidateLocalization()
+    private static void ValidateLocalizationAssets()
     {
-        ProductionUiLocalizationAssetBuilder.Synchronize();
-        DefenseUiLocalizationAssetBuilder.Synchronize();
-        CharacterCombatUiLocalizationAssetBuilder.Synchronize();
-        WildlifeUiLocalizationAssetBuilder.Synchronize();
-        CharacterNarrativeLocalizationAssetBuilder.Synchronize();
-        CharacterAiDiagnosticsLocalizationAssetBuilder.Synchronize();
-        BuildingSummaryUiLocalizationAssetBuilder.Synchronize();
-        CharacterSummaryUiLocalizationAssetBuilder.Synchronize();
-        DomainFailureLocalizationAssetBuilder.Rebuild();
-
         ProductionUiLocalizationAssetBuilder.Validate();
         DefenseUiLocalizationAssetBuilder.Validate();
         CharacterCombatUiLocalizationAssetBuilder.Validate();
@@ -97,8 +87,6 @@ public static class DungeonStoryFinalAcceptanceRunner
         CharacterAiDiagnosticsLocalizationAssetBuilder.Validate();
         BuildingSummaryUiLocalizationAssetBuilder.Validate();
         CharacterSummaryUiLocalizationAssetBuilder.Validate();
-
-        AssetDatabase.SaveAssets();
     }
 
     private static void ValidateResearchEquipmentOverhaul()

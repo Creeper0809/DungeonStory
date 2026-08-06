@@ -151,8 +151,7 @@ public sealed class ProductionInputLogisticsService :
                 < requirement.Value)
             {
                 failure = new DomainFailure(
-                    FailureCode.ProductionMaterialsMissing,
-                    requirement.Key);
+                    FailureCode.ProductionMaterialsMissing);
                 return false;
             }
         }

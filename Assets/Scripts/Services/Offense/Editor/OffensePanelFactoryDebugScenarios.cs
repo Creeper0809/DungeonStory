@@ -31,7 +31,7 @@ public static class OffensePanelFactoryDebugScenarios
             return false;
         }
 
-        OffenseWorldMapPanel worldMapPanel = factory.CreateWorldMapPanel();
+        OffenseWorldMapPanel worldMapPanel = service.ShowWorldMap();
         OffenseExpeditionPanel expeditionPanel = factory.CreateExpeditionPanel();
         bool worldValid = ValidatePanel(worldMapPanel, "OffenseWorldMapCanvas", 420, out string worldReport);
         bool expeditionValid = ValidatePanel(expeditionPanel, "OffenseExpeditionCanvas", 430, out string expeditionReport);

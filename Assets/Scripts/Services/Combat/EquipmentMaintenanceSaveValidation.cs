@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 internal static class EquipmentMaintenanceSaveValidation
@@ -219,10 +220,7 @@ internal static class EquipmentMaintenanceSaveValidation
         foreach (CombatEquipmentRepairOrder order in payload.orders)
         {
             string orderId = order?.orderId ?? string.Empty;
-            bool validId = TryParsePositiveSequence(
-                orderId,
-                RepairOrderPrefix,
-                out int sequence);
+            bool validId = TryParseRepairOrderId(orderId, out int sequence);
             bool activeState = order != null
                 && Enum.IsDefined(typeof(CombatEquipmentRepairOrderState), order.state)
                 && order.state is not CombatEquipmentRepairOrderState.Completed
@@ -290,10 +288,46 @@ internal static class EquipmentMaintenanceSaveValidation
         out int sequence)
     {
         sequence = 0;
-        return value != null
-            && value.StartsWith(prefix, StringComparison.Ordinal)
-            && int.TryParse(value.Substring(prefix.Length), out sequence)
-            && sequence > 0;
+        if (value == null || !value.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string suffix = value.Substring(prefix.Length);
+        return int.TryParse(
+                suffix,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequence)
+            && sequence > 0
+            && string.Equals(
+                suffix,
+                sequence.ToString(CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
+    }
+
+    private static bool TryParseRepairOrderId(
+        string value,
+        out int sequence)
+    {
+        sequence = 0;
+        if (value == null
+            || !value.StartsWith(RepairOrderPrefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string suffix = value.Substring(RepairOrderPrefix.Length);
+        return int.TryParse(
+                suffix,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequence)
+            && sequence > 0
+            && string.Equals(
+                suffix,
+                sequence.ToString("D6", CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
     }
 
     private static bool IsCanonical(string value) =>

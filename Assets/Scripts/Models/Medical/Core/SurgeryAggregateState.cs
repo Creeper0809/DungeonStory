@@ -1,9 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 public sealed class SurgeryAggregateState
 {
+    public const string OrderSequenceExhaustedReason =
+        "order-sequence-exhausted";
+    public const string PartSequenceExhaustedReason =
+        "part-sequence-exhausted";
+    private const string OrderSequenceInvalidReason =
+        "order-sequence-invalid";
+    private const string PartSequenceInvalidReason =
+        "part-sequence-invalid";
+
     public readonly List<SurgeryOrder> Orders = new();
     public readonly List<SurgicalPartInstance> Parts = new();
     public readonly Dictionary<string, SurgicalOrganStorageState> OrganStorage =
@@ -18,6 +28,32 @@ public sealed class SurgeryAggregateState
         new(StringComparer.Ordinal);
     public int OrderSequence;
     public int PartSequence;
+
+    public bool TryPrepareNextOrderIdentity(
+        out int nextSequence,
+        out string orderId,
+        out DomainFailure failure) =>
+        TryPrepareNextIdentity(
+            OrderSequence,
+            "surgery:",
+            OrderSequenceInvalidReason,
+            OrderSequenceExhaustedReason,
+            out nextSequence,
+            out orderId,
+            out failure);
+
+    public bool TryPrepareNextPartIdentity(
+        out int nextSequence,
+        out string partInstanceId,
+        out DomainFailure failure) =>
+        TryPrepareNextIdentity(
+            PartSequence,
+            "surgical-part:",
+            PartSequenceInvalidReason,
+            PartSequenceExhaustedReason,
+            out nextSequence,
+            out partInstanceId,
+            out failure);
 
     public SurgeryAggregateState Clone()
     {
@@ -53,6 +89,39 @@ public sealed class SurgeryAggregateState
                 SurgeryStateCloner.CloneWildlifeAnatomy(pair.Value));
         }
         return clone;
+    }
+
+    private static bool TryPrepareNextIdentity(
+        int currentSequence,
+        string prefix,
+        string invalidReason,
+        string exhaustedReason,
+        out int nextSequence,
+        out string identity,
+        out DomainFailure failure)
+    {
+        nextSequence = currentSequence;
+        identity = string.Empty;
+        failure = DomainFailure.None;
+        if (currentSequence < 0)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryEffectFailed,
+                invalidReason);
+            return false;
+        }
+        if (currentSequence == int.MaxValue)
+        {
+            failure = new DomainFailure(
+                FailureCode.SurgeryEffectFailed,
+                exhaustedReason);
+            return false;
+        }
+
+        nextSequence = currentSequence + 1;
+        identity = prefix
+            + nextSequence.ToString(CultureInfo.InvariantCulture);
+        return true;
     }
 }
 

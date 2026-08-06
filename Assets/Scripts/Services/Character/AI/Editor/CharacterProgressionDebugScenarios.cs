@@ -1098,7 +1098,7 @@ public static class CharacterProgressionDebugScenarios
                     new ResourceGameContentCatalog(
                         new UnityGameContentRootLoader())));
             Actor.RefreshAbilityCache();
-            Actor.Identity.SetPersistentId($"qa-{id}");
+            Actor.Identity.SetPersistentId($"character:qa-{id}");
             Actor.Initialization(data);
             System.Random random = new System.Random(id);
             Actor.Progression.ApplyPreparedIdentity(

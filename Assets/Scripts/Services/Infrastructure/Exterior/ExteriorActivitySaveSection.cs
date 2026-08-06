@@ -38,6 +38,13 @@ public sealed class ExteriorActivitySaveSection :
         return runtime.Capture();
     }
 
+    protected override void NormalizeRestorePayload(
+        DungeonExteriorActivitySaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override void ValidateParsedPayload(
         DungeonExteriorActivitySaveData payload) =>
         runtime.ValidateRestorePayload(payload);

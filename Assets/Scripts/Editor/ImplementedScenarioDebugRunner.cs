@@ -74,8 +74,6 @@ public static class ImplementedScenarioDebugRunner
 
     public static bool RunAll(bool logSummary)
     {
-        EnsureGeneratedAssets();
-
         List<ScenarioSuiteResult> results = new List<ScenarioSuiteResult>();
 
         Run("P0 Grid foundation", GridFoundationDebugScenarios.RunAll, results);
@@ -118,15 +116,6 @@ public static class ImplementedScenarioDebugRunner
         }
 
         return success;
-    }
-
-    private static void EnsureGeneratedAssets()
-    {
-        P1DefenseFacilityAssetBuilder.EnsureP1DefenseAssets();
-        P1FacilityShopAssetBuilder.EnsureP1FacilityShopAssets();
-        P1FacilitySynthesisAssetBuilder.EnsureP1SynthesisAssets();
-        P1FacilityEvolutionAssetBuilder.EnsureP1EvolutionAssets();
-        CaptivityFacilityAssetBuilder.BuildAll();
     }
 
     private static void Run(

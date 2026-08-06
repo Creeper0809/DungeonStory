@@ -84,6 +84,10 @@ public static class OffensePanelUiFactory
         text.color = DungeonUiThemePalette.TextPrimary(highContrast: false);
         text.alignment = alignment;
         text.textWrappingMode = TextWrappingModes.Normal;
+        // Generated labels are presentation only. Leaving them raycastable
+        // lets oversized responsive text rects steal clicks from the action
+        // buttons beneath them, especially in portrait layouts.
+        text.raycastTarget = false;
         return textObject;
     }
 

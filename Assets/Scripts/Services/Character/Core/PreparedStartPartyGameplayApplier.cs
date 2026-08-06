@@ -638,7 +638,7 @@ public sealed class PreparedStartPartyGameplayApplier :
 
             string persistentId = actor.Identity?.PersistentId ?? string.Empty;
             bool retainedActor = retainedGameObjectIds.Contains(actor.gameObject.GetInstanceID());
-            if (persistentId.StartsWith("staff:", StringComparison.Ordinal))
+            if (persistentId.StartsWith("character:staff:", StringComparison.Ordinal))
             {
                 diagnostics?.Add(
                     $"scan:name={actor.name};go={actor.gameObject.GetInstanceID()};id={persistentId};active={actor.gameObject.activeInHierarchy};retained={retainedActor}");
@@ -646,7 +646,7 @@ public sealed class PreparedStartPartyGameplayApplier :
 
             if (retainedActor
                 || !retainedIds.Contains(persistentId)
-                || !persistentId.StartsWith("staff:", StringComparison.Ordinal))
+                || !persistentId.StartsWith("character:staff:", StringComparison.Ordinal))
             {
                 continue;
             }

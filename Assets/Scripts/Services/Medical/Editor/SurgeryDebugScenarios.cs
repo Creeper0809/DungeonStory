@@ -47,6 +47,11 @@ public static class SurgeryDebugScenarios
         Run("unique_part_save_data", VerifyUniquePartSaveData, lines, errors);
         Run("strict_v6_payload", VerifyStrictV6Payload, lines, errors);
         Run(
+            "identifier_sequence_exhaustion",
+            VerifyIdentifierSequenceExhaustion,
+            lines,
+            errors);
+        Run(
             "restore_late_participant_rollback",
             VerifyRestoreLateParticipantRollback,
             lines,
@@ -600,6 +605,74 @@ public static class SurgeryDebugScenarios
             anatomyProfiles,
             "negative order sequence");
 
+        DungeonSurgerySaveData canonicalNumericIds = CloneSaveData(valid);
+        canonicalNumericIds.orderSequence = 1;
+        canonicalNumericIds.partSequence = 1;
+        canonicalNumericIds.orders.Add(new SurgeryOrder
+        {
+            orderId = "surgery:1",
+            procedureId = "procedure:emergency-suture",
+            subject = new SurgicalSubjectRef
+            {
+                kind = SurgicalSubjectKind.Character,
+                subjectId = "character:contract-patient"
+            },
+            state = SurgeryOrderState.Completed
+        });
+        canonicalNumericIds.parts.Add(new SurgicalPartInstance
+        {
+            partInstanceId = "surgical-part:1",
+            kind = SurgicalPartKind.NaturalOrgan,
+            nodeId = "heart",
+            displayName = "contract organ"
+        });
+        DungeonGameRestoreReport canonicalNumericReport = new();
+        SurgerySaveValidation.Validate(
+            canonicalNumericIds,
+            procedures,
+            anatomyProfiles,
+            canonicalNumericReport);
+        Require(
+            canonicalNumericReport.Success,
+            "canonical positive surgery IDs were rejected: "
+                + string.Join(" | ", canonicalNumericReport.Errors));
+
+        foreach (string malformedOrderId in new[]
+                 {
+                     "surgery:+1",
+                     "surgery:01",
+                     "surgery:0",
+                     "surgery:test"
+                 })
+        {
+            DungeonSurgerySaveData malformed = CloneSaveData(
+                canonicalNumericIds);
+            malformed.orders[0].orderId = malformedOrderId;
+            RequireRejected(
+                malformed,
+                procedures,
+                anatomyProfiles,
+                $"noncanonical order ID {malformedOrderId}");
+        }
+
+        foreach (string malformedPartId in new[]
+                 {
+                     "surgical-part:+1",
+                     "surgical-part:01",
+                     "surgical-part:0",
+                     "surgical-part:test"
+                 })
+        {
+            DungeonSurgerySaveData malformed = CloneSaveData(
+                canonicalNumericIds);
+            malformed.parts[0].partInstanceId = malformedPartId;
+            RequireRejected(
+                malformed,
+                procedures,
+                anatomyProfiles,
+                $"noncanonical part ID {malformedPartId}");
+        }
+
         DungeonSurgerySaveData duplicatePolicy = CloneSaveData(valid);
         duplicatePolicy.policies.Add(new SurgerySubjectPolicyState
         {
@@ -617,7 +690,106 @@ public static class SurgeryDebugScenarios
             anatomyProfiles,
             "duplicate subject policy");
 
-        return "strict V6 accepts canonical state and rejects legacy, unknown status, missing, sequence, and duplicate corruption";
+        return "strict V6 accepts canonical state and rejects legacy, unknown status, missing, sequence, duplicate, and noncanonical numeric ID corruption";
+    }
+
+    private static string VerifyIdentifierSequenceExhaustion()
+    {
+        ResourceSurgicalProcedureCatalog procedures = new(
+            LoadAssets<SurgicalProcedureSO>(
+                "Assets/Resources/SO/Medical/Procedures"));
+        ResourceAnatomyProfileCatalog anatomyProfiles = new(
+            LoadAssets<AnatomyProfileSO>(
+                "Assets/Resources/SO/Medical/Anatomy"));
+        string maximumSequence = int.MaxValue.ToString(
+            System.Globalization.CultureInfo.InvariantCulture);
+        string maximumOrderId = "surgery:" + maximumSequence;
+        string maximumPartId = "surgical-part:" + maximumSequence;
+        DungeonSurgerySaveData maximum = new()
+        {
+            orderSequence = int.MaxValue,
+            partSequence = int.MaxValue,
+            orders = new List<SurgeryOrder>
+            {
+                new()
+                {
+                    orderId = maximumOrderId,
+                    procedureId = "procedure:emergency-suture",
+                    subject = new SurgicalSubjectRef
+                    {
+                        kind = SurgicalSubjectKind.Character,
+                        subjectId = "character:sequence-limit-patient"
+                    },
+                    state = SurgeryOrderState.Completed
+                }
+            },
+            parts = new List<SurgicalPartInstance>
+            {
+                new()
+                {
+                    partInstanceId = maximumPartId,
+                    kind = SurgicalPartKind.NaturalOrgan,
+                    nodeId = "heart",
+                    displayName = "sequence limit organ"
+                }
+            }
+        };
+        DungeonGameRestoreReport validation = new();
+        SurgerySaveValidation.Validate(
+            maximum,
+            procedures,
+            anatomyProfiles,
+            validation);
+        Require(
+            validation.Success,
+            "maximum canonical surgery identities/watermarks were rejected: "
+                + string.Join(" | ", validation.Errors));
+
+        SurgeryAggregateState state = SurgerySaveValidation.CreateState(maximum);
+        SurgeryOrder preservedOrder = state.Orders.Single();
+        SurgicalPartInstance preservedPart = state.Parts.Single();
+        int orderCount = state.Orders.Count;
+        int partCount = state.Parts.Count;
+
+        bool orderPrepared = state.TryPrepareNextOrderIdentity(
+            out int nextOrderSequence,
+            out string nextOrderId,
+            out DomainFailure orderFailure);
+        bool partPrepared = state.TryPrepareNextPartIdentity(
+            out int nextPartSequence,
+            out string nextPartId,
+            out DomainFailure partFailure);
+
+        Require(
+            !orderPrepared
+            && orderFailure.Code == FailureCode.SurgeryEffectFailed
+            && orderFailure.Parameters.Length == 1
+            && orderFailure.Parameters[0]
+                == SurgeryAggregateState.OrderSequenceExhaustedReason
+            && nextOrderSequence == int.MaxValue
+            && string.IsNullOrEmpty(nextOrderId),
+            "maximum restored surgery order sequence did not fail explicitly");
+        Require(
+            !partPrepared
+            && partFailure.Code == FailureCode.SurgeryEffectFailed
+            && partFailure.Parameters.Length == 1
+            && partFailure.Parameters[0]
+                == SurgeryAggregateState.PartSequenceExhaustedReason
+            && nextPartSequence == int.MaxValue
+            && string.IsNullOrEmpty(nextPartId),
+            "maximum restored surgical part sequence did not fail explicitly");
+        Require(
+            state.OrderSequence == int.MaxValue
+            && state.PartSequence == int.MaxValue
+            && state.Orders.Count == orderCount
+            && state.Parts.Count == partCount
+            && ReferenceEquals(state.Orders.Single(), preservedOrder)
+            && ReferenceEquals(state.Parts.Single(), preservedPart)
+            && preservedOrder.orderId == maximumOrderId
+            && preservedPart.partInstanceId == maximumPartId,
+            "failed next-identity preparation mutated restored surgery state");
+
+        return "canonical maximum IDs restore with matching watermarks; next order and part creation fail without mutation";
     }
 
     private static string VerifyWorkAndStatContract()

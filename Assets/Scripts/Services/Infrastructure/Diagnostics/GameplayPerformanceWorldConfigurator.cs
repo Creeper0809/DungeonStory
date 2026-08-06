@@ -548,7 +548,7 @@ private IEnumerator SpawnStressCharacters(
         actor.RefreshAbilityCache();
         actor.Initialize(stressDefinition);
         skillGenerationService.CancelRequests(actor.Progression);
-        actor.Identity?.SetPersistentId($"perf:{options.ProfileId}:{created:D5}");
+        actor.Identity?.SetPersistentId($"character:perf:{options.ProfileId}:{created:D5}");
         actor.Identity?.SetCharacterType(CharacterType.NPC);
         actor.Brain?.UseStaffWorkActions();
         actor.transform.position = grid.GetWorldPos(GetStressActorPosition(

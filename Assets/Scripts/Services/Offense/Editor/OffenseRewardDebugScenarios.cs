@@ -696,7 +696,6 @@ public static class OffenseRewardDebugScenarios
             Runtime = obj.AddComponent<OffenseWorldMapRuntime>();
             OffenseCampaignRuntime campaign = new OffenseCampaignRuntime();
             Runtime.Construct(
-                new EmptyPanelService(),
                 gameEventBus,
                 externalInfluence: null,
                 campaign,

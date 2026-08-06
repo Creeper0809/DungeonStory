@@ -1068,7 +1068,7 @@ public static class CharacterAiPlanDebugScenarios
             speaker.Initialize(speakerData);
             listener.Initialize(listenerData);
             target.Initialize(targetData);
-            target.Identity.SetPersistentId("world:test:target");
+            target.Identity.SetPersistentId("character:world:test:target");
             speaker.SetLifecycleState(CharacterLifecycleState.Active);
             listener.SetLifecycleState(CharacterLifecycleState.Active);
             target.SetLifecycleState(CharacterLifecycleState.Active);
@@ -1957,7 +1957,7 @@ public static class CharacterAiPlanDebugScenarios
             speaker.Initialize(speakerData);
             listener.Initialize(listenerData);
             target.Initialize(targetData);
-            target.Identity.SetPersistentId("world:test:target-playmode");
+            target.Identity.SetPersistentId("character:world:test:target-playmode");
             speaker.SetLifecycleState(CharacterLifecycleState.Active);
             listener.SetLifecycleState(CharacterLifecycleState.Active);
             target.SetLifecycleState(CharacterLifecycleState.Active);

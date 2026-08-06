@@ -145,6 +145,7 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
     private ICombatEquipmentRuntime equipment;
     private IWorldItemStackRuntime physicalItems;
     private IEquipmentCraftingPanelPresenter equipmentPresenter;
+    private TMP_FontAsset equipmentFont;
     private BlueprintResearchRuntime research;
     private OffenseExpeditionRuntime offenseExpeditions;
     private IOffenseBattleRuntime offenseBattle;
@@ -300,6 +301,8 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
         physicalItems = scope.Container.Resolve<IWorldItemStackRuntime>();
         equipmentPresenter =
             scope.Container.Resolve<IEquipmentCraftingPanelPresenter>();
+        equipmentFont = scope.Container.Resolve<ITmpKoreanFontService>()
+            .Resolve();
         research = scope.Container.Resolve<ProgressionSceneRuntimeReferences>()
             .BlueprintResearch;
         offenseExpeditions = FindFirstObjectByType<OffenseExpeditionRuntime>();
@@ -428,7 +431,7 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
     {
         SelectEquipmentFacility("appraisal");
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         Canvas.ForceUpdateCanvases();
 
         CheckFacilityCommandVisibility(
@@ -436,7 +439,8 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             new[] { "EquipmentModuleAppraise_" },
             resolution);
         bool appraised = ClickExactName(
-            "EquipmentModuleAppraise_" + Sanitize(appraiseModuleId));
+            "EquipmentModuleAppraise_" + Sanitize(appraiseModuleId),
+            $"MODULE_APPRAISAL_POINTER_{Key(resolution)}");
         EquipmentModuleInstance appraisedState = FindModule(appraiseModuleId);
         bool appraisedTransition = appraisedState?.state
             == EquipmentModuleProcessState.IdentifiedDamaged;
@@ -451,13 +455,14 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             $"MODULE_ROUTE_RESTORATION_{Key(resolution)}");
         SelectEquipmentFacility("restoration");
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         CheckFacilityCommandVisibility(
             "restoration",
             new[] { "EquipmentModuleRestore_" },
             resolution);
         bool restored = ClickExactName(
-            "EquipmentModuleRestore_" + Sanitize(restoreModuleId));
+            "EquipmentModuleRestore_" + Sanitize(restoreModuleId),
+            $"MODULE_RESTORATION_POINTER_{Key(resolution)}");
         EquipmentModuleInstance restoredState = FindModule(restoreModuleId);
         bool restoredTransition = restoredState?.state
             == EquipmentModuleProcessState.Restored;
@@ -472,13 +477,14 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             $"MODULE_ROUTE_RUNE_TUNING_{Key(resolution)}");
         SelectEquipmentFacility("rune-tuning");
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         CheckFacilityCommandVisibility(
             "rune-tuning",
             new[] { "EquipmentModuleTune_" },
             resolution);
         bool tuned = ClickExactName(
-            "EquipmentModuleTune_" + Sanitize(tuneModuleId));
+            "EquipmentModuleTune_" + Sanitize(tuneModuleId),
+            $"MODULE_RUNE_TUNING_POINTER_{Key(resolution)}");
         EquipmentModuleInstance tunedState = FindModule(tuneModuleId);
         bool tunedTransition = tunedState?.state
                 == EquipmentModuleProcessState.Tuned
@@ -498,7 +504,7 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             $"EQUIPMENT_ROUTE_PRECISION_FITTING_{Key(resolution)}");
         SelectEquipmentFacility("precision-fitting");
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         CheckFacilityCommandVisibility(
             "precision-fitting",
             new[] { "EquipmentModuleInstall_" },
@@ -507,7 +513,8 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             ?? string.Empty;
         bool installed = ClickExactName(
             "EquipmentModuleInstall_" + Sanitize(installModuleId)
-            + "_" + Sanitize(installTargetId) + "_0");
+            + "_" + Sanitize(installTargetId) + "_0",
+            $"MODULE_INSTALL_POINTER_{Key(resolution)}");
         EquipmentModuleInstance installedState = FindModule(installModuleId);
         bool physicalStackAbsorbed = installedState?.state
                 == EquipmentModuleProcessState.Installed
@@ -515,13 +522,14 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             && !physicalItems.GetAllStacks().Any(stack =>
                 stack.StackId == absorbedStackId);
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         CheckFacilityCommandVisibility(
             "precision-fitting",
             new[] { "EquipmentModuleRemove_" },
             resolution);
         bool removed = ClickExactName(
-            "EquipmentModuleRemove_" + Sanitize(installTargetId) + "_0");
+            "EquipmentModuleRemove_" + Sanitize(installTargetId) + "_0",
+            $"MODULE_REMOVE_POINTER_{Key(resolution)}");
         EquipmentModuleInstance removedState = FindModule(installModuleId);
         bool physicalStackRecreated = removedState?.state
                 == EquipmentModuleProcessState.IdentifiedDamaged
@@ -534,17 +542,17 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             "precision-fitting",
             $"MODULE_REMOVAL_BUFFER_{Key(resolution)}");
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
 
         SelectEquipmentFacility("wrong");
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         CheckFacilityCommandVisibility("wrong", Array.Empty<string>(), resolution);
 
         SelectEquipmentFacility("lineage");
         RouteLineageInputsToFacility();
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         CheckFacilityCommandVisibility(
             "lineage",
             new[]
@@ -556,20 +564,26 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             },
             resolution);
         bool sourceSelected = ClickExactName(
-            "EquipmentLineageSource_" + Sanitize(lineageSourceId));
+            "EquipmentLineageSource_" + Sanitize(lineageSourceId),
+            $"LINEAGE_SOURCE_POINTER_{Key(resolution)}");
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         bool targetSelected = ClickExactName(
-            "EquipmentLineageTarget_" + Sanitize(lineageTargetId));
+            "EquipmentLineageTarget_" + Sanitize(lineageTargetId),
+            $"LINEAGE_TARGET_POINTER_{Key(resolution)}");
         RebuildEquipmentSurface();
-        yield return null;
-        bool sealSelected = ClickByPrefix("EquipmentLineageSeal_");
+        yield return PlayModeVerificationFrameWait.CaptureReady();
+        bool sealSelected = ClickByPrefix(
+            "EquipmentLineageSeal_",
+            $"LINEAGE_SEAL_POINTER_{Key(resolution)}");
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         int ordersBefore = equipment.HistoryTransferOrders.Count;
-        bool lineageConfirmed = ClickByPrefix("EquipmentLineageConfirm");
+        bool lineageConfirmed = ClickByPrefix(
+            "EquipmentLineageConfirm",
+            $"LINEAGE_CONFIRM_POINTER_{Key(resolution)}");
         RebuildEquipmentSurface();
-        yield return null;
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         bool lineageQueued = equipment.HistoryTransferOrders.Count > ordersBefore;
 
         bool moduleTransitions = appraisedTransition
@@ -664,6 +678,7 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
     {
         PrepareIsolatedExpeditionState();
         string setup = OffenseJourneyPlayModeFacade.Setup();
+        yield return PlayModeVerificationFrameWait.CaptureReady();
         bool setupPassed = setup.StartsWith("PASS:", StringComparison.Ordinal);
         OffenseExpeditionRuntime runtime =
             FindFirstObjectByType<OffenseExpeditionRuntime>();
@@ -681,7 +696,9 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
                     && candidate.interactable
                     && !IsCloseButton(candidate))
             : null;
-        bool pointerClicked = ClickPointer(action);
+        bool pointerClicked = ClickPointer(
+            action,
+            $"EXPEDITION_ACTION_POINTER_{Key(resolution)}");
         yield return null;
         Canvas.ForceUpdateCanvases();
 
@@ -1199,7 +1216,8 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             Destroy(child);
         }
 
-        TMP_FontAsset font = TMP_Settings.defaultFontAsset
+        TMP_FontAsset font = equipmentFont
+            ?? TMP_Settings.defaultFontAsset
             ?? FindObjectsByType<TMP_Text>(
                     FindObjectsInactive.Include,
                     FindObjectsSortMode.None)
@@ -1259,7 +1277,7 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
         }
     }
 
-    private bool ClickByPrefix(string prefix)
+    private bool ClickByPrefix(string prefix, string checkId)
     {
         Button button = FindObjectsByType<Button>(
                 FindObjectsInactive.Exclude,
@@ -1268,10 +1286,10 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
                 && candidate.gameObject.activeInHierarchy
                 && candidate.interactable
                 && candidate.name.StartsWith(prefix, StringComparison.Ordinal));
-        return ClickPointer(button);
+        return ClickPointer(button, checkId);
     }
 
-    private bool ClickExactName(string objectName)
+    private bool ClickExactName(string objectName, string checkId)
     {
         Button button = FindObjectsByType<Button>(
                 FindObjectsInactive.Exclude,
@@ -1283,7 +1301,7 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
                     candidate.name,
                     objectName,
                     StringComparison.Ordinal));
-        return ClickPointer(button);
+        return ClickPointer(button, checkId);
     }
 
     private static string Sanitize(string value)
@@ -1293,43 +1311,212 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
             : value.Replace(':', '_').Replace('/', '_').Replace(' ', '_');
     }
 
-    private static bool ClickPointer(Button button)
+    private bool ClickPointer(Button button, string checkId)
     {
         EventSystem eventSystem = EventSystem.current;
-        if (button == null || eventSystem == null || !button.interactable)
+        bool targetAvailable = button != null
+            && eventSystem != null
+            && button.gameObject.activeInHierarchy
+            && button.IsInteractable();
+        Check(
+            targetAvailable,
+            checkId + "_TARGET",
+            $"button={button?.name ?? "<missing>"}; "
+            + $"active={button != null && button.gameObject.activeInHierarchy}; "
+            + $"interactable={button != null && button.IsInteractable()}; "
+            + $"eventSystem={eventSystem != null}");
+        if (!targetAvailable)
         {
             return false;
         }
+
         RectTransform rect = button.transform as RectTransform;
+        bool visibleInViewports = TryBringIntoScrollViewports(
+            rect,
+            out string viewportDiagnostic);
+        Check(
+            visibleInViewports,
+            checkId + "_VIEWPORT",
+            viewportDiagnostic);
+        if (!visibleInViewports)
+        {
+            return false;
+        }
+
+        Canvas.ForceUpdateCanvases();
+        Camera eventCamera = GetEventCamera(button);
         Vector2 position = RectTransformUtility.WorldToScreenPoint(
-            null,
-            rect != null
-                ? rect.TransformPoint(rect.rect.center)
-                : button.transform.position);
+            eventCamera,
+            rect.TransformPoint(rect.rect.center));
         PointerEventData pointer = new(eventSystem)
         {
             button = PointerEventData.InputButton.Left,
             position = position,
-            pointerPress = button.gameObject,
-            pointerEnter = button.gameObject
+            pressPosition = position
         };
-        ExecuteEvents.Execute(
-            button.gameObject,
-            pointer,
-            ExecuteEvents.pointerEnterHandler);
-        ExecuteEvents.Execute(
-            button.gameObject,
-            pointer,
-            ExecuteEvents.pointerDownHandler);
-        ExecuteEvents.Execute(
-            button.gameObject,
-            pointer,
-            ExecuteEvents.pointerUpHandler);
-        ExecuteEvents.Execute(
-            button.gameObject,
-            pointer,
-            ExecuteEvents.pointerClickHandler);
+        List<RaycastResult> hits = new();
+        eventSystem.RaycastAll(pointer, hits);
+        RaycastResult top = hits.FirstOrDefault(hit =>
+            hit.gameObject != null && hit.gameObject.activeInHierarchy);
+        GameObject topHandler = top.gameObject != null
+            ? ExecuteEvents.GetEventHandler<IPointerClickHandler>(top.gameObject)
+            : null;
+        bool targetIsTop = top.gameObject != null
+            && (top.gameObject == button.gameObject
+                || top.gameObject.transform.IsChildOf(button.transform))
+            && topHandler == button.gameObject
+            && RectTransformUtility.RectangleContainsScreenPoint(
+                rect,
+                position,
+                eventCamera);
+        Check(
+            targetIsTop,
+            checkId + "_HIT_TEST",
+            $"point={position}; hits={hits.Count}; "
+            + $"top={top.gameObject?.name ?? "<none>"}; "
+            + $"handler={topHandler?.name ?? "<none>"}; expected={button.name}");
+        if (!targetIsTop)
+        {
+            return false;
+        }
+
+        bool dispatched = PlayModeVerificationFrameWait.DispatchPointerClick(
+            top.gameObject,
+            position);
+        Check(
+            dispatched,
+            checkId + "_DISPATCH",
+            dispatched
+                ? $"top={top.gameObject.name}; point={position}"
+                : "pointer dispatch failed");
+        return dispatched;
+    }
+
+    private static bool TryBringIntoScrollViewports(
+        RectTransform target,
+        out string diagnostic)
+    {
+        if (target == null)
+        {
+            diagnostic = "target RectTransform missing";
+            return false;
+        }
+
+        ScrollRect[] scrolls = target.GetComponentsInParent<ScrollRect>(false)
+            .Where(scroll => scroll != null
+                && scroll.content != null
+                && target.IsChildOf(scroll.content))
+            .ToArray();
+        List<string> states = new();
+        foreach (ScrollRect scroll in scrolls)
+        {
+            RectTransform viewport = scroll.viewport
+                ?? scroll.transform as RectTransform;
+            if (viewport == null)
+            {
+                diagnostic = $"scroll={scroll.name}; viewport=<missing>";
+                return false;
+            }
+
+            scroll.StopMovement();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
+            Canvas.ForceUpdateCanvases();
+            for (int pass = 0; pass < 3; pass++)
+            {
+                Bounds bounds =
+                    RectTransformUtility.CalculateRelativeRectTransformBounds(
+                        viewport,
+                        target);
+                Vector2 adjustment = CalculateViewportAdjustment(
+                    scroll,
+                    viewport.rect,
+                    bounds);
+                if (adjustment.sqrMagnitude < 0.25f)
+                {
+                    break;
+                }
+
+                scroll.content.anchoredPosition += adjustment;
+                scroll.velocity = Vector2.zero;
+                Canvas.ForceUpdateCanvases();
+            }
+
+            Bounds finalBounds =
+                RectTransformUtility.CalculateRelativeRectTransformBounds(
+                    viewport,
+                    target);
+            bool visible = IsFullyInside(finalBounds, viewport.rect);
+            states.Add(
+                $"{scroll.name}:visible={visible}:"
+                + $"target={FormatBounds(finalBounds)}:"
+                + $"viewport={viewport.rect}");
+            if (!visible)
+            {
+                diagnostic = string.Join(" | ", states);
+                return false;
+            }
+        }
+
+        diagnostic = scrolls.Length == 0
+            ? "no containing ScrollRect; target does not require viewport scrolling"
+            : string.Join(" | ", states);
         return true;
+    }
+
+    private static Vector2 CalculateViewportAdjustment(
+        ScrollRect scroll,
+        Rect viewport,
+        Bounds target)
+    {
+        const float tolerance = 0.5f;
+        Vector2 adjustment = Vector2.zero;
+        if (scroll.horizontal)
+        {
+            if (target.min.x < viewport.xMin - tolerance)
+            {
+                adjustment.x = viewport.xMin - target.min.x;
+            }
+            else if (target.max.x > viewport.xMax + tolerance)
+            {
+                adjustment.x = viewport.xMax - target.max.x;
+            }
+        }
+        if (scroll.vertical)
+        {
+            if (target.min.y < viewport.yMin - tolerance)
+            {
+                adjustment.y = viewport.yMin - target.min.y;
+            }
+            else if (target.max.y > viewport.yMax + tolerance)
+            {
+                adjustment.y = viewport.yMax - target.max.y;
+            }
+        }
+        return adjustment;
+    }
+
+    private static bool IsFullyInside(Bounds target, Rect viewport)
+    {
+        const float tolerance = 0.5f;
+        return target.min.x >= viewport.xMin - tolerance
+            && target.max.x <= viewport.xMax + tolerance
+            && target.min.y >= viewport.yMin - tolerance
+            && target.max.y <= viewport.yMax + tolerance;
+    }
+
+    private static string FormatBounds(Bounds bounds) =>
+        $"({bounds.min.x:0.#},{bounds.min.y:0.#})-"
+        + $"({bounds.max.x:0.#},{bounds.max.y:0.#})";
+
+    private static Camera GetEventCamera(Button button)
+    {
+        Canvas canvas = button != null
+            ? button.GetComponentInParent<Canvas>()
+            : null;
+        canvas = canvas != null ? canvas.rootCanvas : null;
+        return canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? canvas.worldCamera ?? Camera.main
+            : null;
     }
 
     private static bool IsCloseButton(Button button)
@@ -1375,7 +1562,7 @@ public sealed class EquipmentExpeditionUiMatrixRunner : MonoBehaviour
                 && candidate.name.StartsWith("OwnerOption_", StringComparison.Ordinal));
         if (owner != null)
         {
-            ClickPointer(owner);
+            ClickPointer(owner, "OWNER_SELECTION_POINTER");
             yield return null;
             yield return null;
         }

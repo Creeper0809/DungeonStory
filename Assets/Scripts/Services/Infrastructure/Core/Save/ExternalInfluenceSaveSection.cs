@@ -34,6 +34,37 @@ public sealed class ExternalInfluenceSaveSection :
     protected override DungeonExternalInfluenceSaveData CapturePayload() =>
         runtime.Capture();
 
+    protected override void NormalizeRestorePayload(
+        DungeonExternalInfluenceSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload?.dreadAffectedIntruderIds == null)
+        {
+            return;
+        }
+
+        bool changed = false;
+        for (int index = 0;
+             index < payload.dreadAffectedIntruderIds.Count;
+             index++)
+        {
+            string previous = payload.dreadAffectedIntruderIds[index];
+            payload.dreadAffectedIntruderIds[index] =
+                NormalizeV18CharacterReference(
+                    previous,
+                    report,
+                    $"dreadAffectedIntruderIds[{index}]");
+            changed |= !string.Equals(
+                previous,
+                payload.dreadAffectedIntruderIds[index],
+                StringComparison.Ordinal);
+        }
+        if (changed)
+        {
+            payload.dreadAffectedIntruderIds.Sort(StringComparer.Ordinal);
+        }
+    }
+
     protected override ExternalInfluenceRestoreCandidate BuildRestoreCandidate(
         DungeonExternalInfluenceSaveData payload)
     {

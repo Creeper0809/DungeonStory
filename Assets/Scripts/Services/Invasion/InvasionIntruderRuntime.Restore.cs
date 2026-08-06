@@ -187,7 +187,8 @@ internal sealed class InvasionIntruderRestoreCoordinator
         port.Transform.position = source.WorldPosition;
         port.Actor.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
         port.Actor.Initialize(data);
-        port.Actor.Identity?.SetPersistentId(source.RuntimeId);
+        port.Actor.Identity?.SetPersistentId(
+            CharacterId.FromStableSuffix(source.RuntimeId));
         port.Actor.ScaleMaxHealth(port.Settings.healthMultiplier);
         port.Actor.Stats.RestorePersistentState(
             source.Conditions,

@@ -46,9 +46,9 @@
   <Project Path="DungeonStory.Defense.csproj" />
   <Project Path="DungeonStory.FacilityShop.csproj" />
   <Project Path="DungeonStory.Synthesis.Editor.csproj" />
+  <Project Path="DungeonStory.Foundation.Tests.csproj" />
   <Project Path="DungeonStory.Buildings.Editor.csproj" />
   <Project Path="DungeonStory.Items.csproj" />
   <Project Path="DungeonStory.ServiceRooms.csproj" />
   <Project Path="DungeonStory.Recruitment.csproj" />
-  <Project Path="DungeonStory.Foundation.Tests.csproj" />
 </Solution>

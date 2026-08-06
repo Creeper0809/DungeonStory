@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 internal static class DefenseTacticalSaveValidation
 {
@@ -36,10 +37,16 @@ internal static class DefenseTacticalSaveValidation
         foreach (CombatPositionReservation reservation in payload.reservations)
         {
             string id = reservation?.reservationId ?? string.Empty;
+            string rawActorId = reservation?.actorId ?? string.Empty;
+            CharacterId actorId = (CharacterId)rawActorId;
             if (reservation == null
                 || !TryParseReservationId(id, out int sequence)
                 || !ids.Add(id)
-                || !((CharacterId)(reservation.actorId ?? string.Empty)).IsValid
+                || !actorId.IsValid
+                || !string.Equals(
+                    actorId.Value,
+                    rawActorId,
+                    StringComparison.Ordinal)
                 || !actors.Add(reservation.actorId)
                 || reservation.targetId == null
                 || !Enum.IsDefined(
@@ -124,8 +131,21 @@ internal static class DefenseTacticalSaveValidation
     {
         const string prefix = "combat-position:";
         sequence = 0;
-        return value.StartsWith(prefix, StringComparison.Ordinal)
-            && int.TryParse(value.Substring(prefix.Length), out sequence)
-            && sequence > 0;
+        if (value == null || !value.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string suffix = value.Substring(prefix.Length);
+        return int.TryParse(
+                suffix,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequence)
+            && sequence > 0
+            && string.Equals(
+                suffix,
+                sequence.ToString(CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
     }
 }

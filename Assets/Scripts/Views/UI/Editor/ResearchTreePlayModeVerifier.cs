@@ -18,6 +18,7 @@ using DungeonStory.Foundation;
 public static class ResearchTreePlayModeVerifier
 {
     public const string RequestPath = "Temp/research-tree-playmode.request";
+    public const string ProgressPath = "Temp/research-tree-playmode-progress.txt";
     public const string ReportPath = "Artifacts/QA/research-tree-playmode-report.txt";
     public const string DesktopCapturePath = "Artifacts/QA/research-tree-1600x900.png";
     public const string PortraitDetailCapturePath = "Artifacts/QA/research-tree-900x1600-detail.png";
@@ -39,6 +40,7 @@ public static class ResearchTreePlayModeVerifier
         Directory.CreateDirectory("Temp");
         Directory.CreateDirectory("Artifacts/QA");
         File.Delete(ReportPath);
+        File.Delete(ProgressPath);
         File.Delete(DesktopCapturePath);
         File.Delete(PortraitDetailCapturePath);
         File.Delete(PortraitQueueCapturePath);
@@ -76,6 +78,10 @@ public static class ResearchTreePlayModeVerifier
 
 public sealed class ResearchTreeVerificationRunner : MonoBehaviour
 {
+    private const string DetailContractProjectId =
+        "research:equipment:powered-armor";
+    private const float EffectiveWorkPerGameDay = 180f * 0.55f;
+
     private readonly List<string> report = new List<string>();
     private readonly List<string> failures = new List<string>();
     private readonly List<string> errors = new List<string>();
@@ -90,6 +96,7 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
     private int originalGameViewSizeIndex = -1;
     private IDungeonUserSettingsService settings;
     private IGameTimeScaleController timeScaleController;
+    private IGameSpeedController gameSpeedController;
     private GameManager gameManager;
 
     private IEnumerator Start()
@@ -125,7 +132,10 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         IObjectResolver container = scope.Container;
         settings = container.Resolve<IDungeonUserSettingsService>();
         timeScaleController = container.Resolve<IGameTimeScaleController>();
+        gameSpeedController = container.Resolve<IGameSpeedController>();
         IResearchProjectCatalog catalog = container.Resolve<IResearchProjectCatalog>();
+        IResearchRewardCatalog rewardCatalog =
+            container.Resolve<IResearchRewardCatalog>();
         BlueprintResearchRuntime runtime = container
             .Resolve<ProgressionSceneRuntimeReferences>()
             .BlueprintResearch;
@@ -145,6 +155,18 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
             Finish();
             yield break;
         }
+
+        catalog.TryGet(
+            new ResearchProjectId(DetailContractProjectId),
+            out ResearchProjectSO detailContractProject);
+        Check(detailContractProject != null,
+            "DETAIL_MODEL_PROJECT",
+            detailContractProject != null
+                ? detailContractProject.ProjectId.Value
+                : $"missing={DetailContractProjectId}");
+        Check(rewardCatalog != null,
+            "DETAIL_REWARD_CATALOG",
+            rewardCatalog != null ? "resolved" : "missing");
 
         settings.Update(data => data.pauseOnResearchTree = false);
         SetRunningState(1f);
@@ -170,6 +192,16 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
                 && FindChild(window.transform, "Inspector") != null,
             "SURFACE_STRUCTURE",
             "graph and inspector are present");
+
+        if (detailContractProject != null && rewardCatalog != null)
+        {
+            yield return SelectAndVerifyDetailContract(
+                window,
+                detailContractProject,
+                runtime,
+                rewardCatalog,
+                "DESKTOP");
+        }
 
         yield return Capture(
             ResearchTreePlayModeVerifier.DesktopCapturePath,
@@ -270,7 +302,9 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
                 && (gameManager == null || gameManager.isPause),
             "OPTIONAL_PAUSE",
             $"timeScale={Time.timeScale:0.##}; paused={gameManager != null && gameManager.isPause}");
-        yield return Click(FindButton("Close"));
+        ClickWhilePaused(FindButton("Close"));
+        yield return null;
+        yield return null;
         Check(Mathf.Approximately(Time.timeScale, 5f)
                 && (gameManager == null || !gameManager.isPause),
             "PAUSE_STATE_RESTORE",
@@ -290,6 +324,15 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         Check(FindButton("DetailTab") != null && FindButton("QueueTab") != null,
             "PORTRAIT_TABS",
             "detail and queue tabs visible");
+        if (detailContractProject != null && rewardCatalog != null)
+        {
+            yield return SelectAndVerifyDetailContract(
+                window,
+                detailContractProject,
+                runtime,
+                rewardCatalog,
+                "PORTRAIT");
+        }
         yield return Capture(
             ResearchTreePlayModeVerifier.PortraitDetailCapturePath,
             900,
@@ -307,6 +350,159 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
         settings.Update(data => data.pauseOnResearchTree = false);
         SetRunningState(1f);
         Finish();
+    }
+
+    private IEnumerator SelectAndVerifyDetailContract(
+        ResearchTreeWindow window,
+        ResearchProjectSO project,
+        BlueprintResearchRuntime runtime,
+        IResearchRewardCatalog rewardCatalog,
+        string surface)
+    {
+        RectTransform viewport =
+            FindChild(window.transform, "GraphViewport") as RectTransform;
+        bool centered = window.CenterProject(project);
+        yield return null;
+        yield return null;
+        Button node = FindButton($"Node_{project.ProjectId.Value}");
+        Check(centered
+                && node != null
+                && IsButtonVisibleInGraph(node, viewport),
+            $"{surface}_DETAIL_NODE_VISIBLE",
+            $"project={project.ProjectId.Value}; centered={centered}; "
+                + $"node={node != null}; viewport={DescribeRect(viewport)}");
+        yield return Click(node);
+        Canvas.ForceUpdateCanvases();
+        yield return null;
+
+        TMP_Text detail = FindChild(window.transform, "DetailText")
+            ?.GetComponent<TMP_Text>();
+        RectTransform detailViewport =
+            FindChild(window.transform, "DetailViewport") as RectTransform;
+        ScrollRect detailScroll =
+            FindChild(window.transform, "DetailScroll")?.GetComponent<ScrollRect>();
+        RectTransform inspector =
+            FindChild(window.transform, "Inspector") as RectTransform;
+        string actual = detail?.text ?? string.Empty;
+        ResearchNodeState state = runtime.GetNodeState(project, out string blocker);
+        ResearchProjectProgressState progress =
+            runtime.State.Projects.GetProgress(project.ProjectId);
+        IReadOnlyList<ResearchRewardEntry> rewards =
+            rewardCatalog.GetRewards(project.ProjectId);
+        float prerequisiteWork = CalculateRemainingPrerequisiteWork(
+            project,
+            runtime);
+        float totalRemainingWork = prerequisiteWork
+            + Mathf.Max(0f, project.RequiredWork - progress.Progress);
+        float expectedDays = totalRemainingWork / EffectiveWorkPerGameDay;
+        int expectedShifts = Mathf.CeilToInt(expectedDays);
+        string expectedUnlockCards = string.Join(", ", rewards.Select(reward =>
+            $"[{reward.Kind}] {reward.DisplayName}"));
+
+        detail?.ForceMeshUpdate();
+        bool detailVisible = detail != null
+            && detail.gameObject.activeInHierarchy
+            && detail.enabled
+            && detail.canvasRenderer.GetInheritedAlpha() > 0.01f
+            && detail.rectTransform.rect.width > 1f
+            && detail.rectTransform.rect.height > 1f
+            && detailViewport != null
+            && IsInsideScreen(detailViewport)
+            && detailScroll != null
+            && detailScroll.vertical
+            && detailScroll.viewport == detailViewport
+            && detailScroll.content == detail.rectTransform
+            && detail.transform.IsChildOf(inspector)
+            && detail.textInfo.characterCount > 0
+            && detail.preferredHeight <= detail.rectTransform.rect.height + 1f;
+        Check(detailVisible,
+            $"{surface}_DETAIL_VISIBLE",
+            detail != null
+                ? $"active={detail.gameObject.activeInHierarchy}; "
+                    + $"characters={detail.textInfo.characterCount}; "
+                    + $"preferredHeight={detail.preferredHeight:0.#}; "
+                    + $"rect={DescribeRect(detail.rectTransform)}"
+                : "DetailText missing");
+
+        bool modelReady = state == ResearchNodeState.Locked
+            && !string.IsNullOrWhiteSpace(blocker)
+            && project.RequiredWork > 0f
+            && prerequisiteWork > 0f
+            && rewards.Count > 0
+            && rewards.All(reward =>
+                !string.IsNullOrWhiteSpace(reward.RewardId)
+                && !string.IsNullOrWhiteSpace(reward.DisplayName));
+        Check(modelReady,
+            $"{surface}_DETAIL_MODEL_READY",
+            $"project={project.ProjectId.Value}; state={state}; "
+                + $"required={project.RequiredWork:0.#}; "
+                + $"prerequisite={prerequisiteWork:0.#}; "
+                + $"rewards={rewards.Count}; blocker={blocker}");
+
+        Check(actual.StartsWith(
+                $"<b>{project.DisplayName}</b>",
+                StringComparison.Ordinal),
+            $"{surface}_DETAIL_SELECTION_BOUND",
+            $"project={project.ProjectId.Value}; textLength={actual.Length}");
+        Check(actual.Contains(
+                $"<b>진행</b>  {progress.Progress:0.#} / {project.RequiredWork:0.#}",
+                StringComparison.Ordinal),
+            $"{surface}_DETAIL_REQUIRED_WORK",
+            $"progress={progress.Progress:0.#}; required={project.RequiredWork:0.#}");
+        Check(actual.Contains(
+                $"<b>잔여 선행 작업량</b> {prerequisiteWork:0.#} (중복 제거)",
+                StringComparison.Ordinal),
+            $"{surface}_DETAIL_PREREQUISITE_WORK",
+            $"deduplicated={prerequisiteWork:0.#}");
+        Check(actual.Contains(
+                $"<b>예상</b> {expectedShifts}교대 · {expectedDays:0.0}게임일",
+                StringComparison.Ordinal),
+            $"{surface}_DETAIL_ESTIMATE",
+            $"shifts={expectedShifts}; gameDays={expectedDays:0.0}");
+        Check(!string.IsNullOrWhiteSpace(expectedUnlockCards)
+                && actual.Contains(
+                    $"<b>해금</b>  {expectedUnlockCards}",
+                    StringComparison.Ordinal),
+            $"{surface}_DETAIL_REWARD_CARDS",
+            $"cards={rewards.Count}; text={expectedUnlockCards}");
+        Check(!string.IsNullOrWhiteSpace(blocker)
+                && actual.Contains(
+                    $"<b>중단 사유</b>  {blocker}",
+                    StringComparison.Ordinal),
+            $"{surface}_DETAIL_LOCK_REASON",
+            $"state={state}; blocker={blocker}");
+    }
+
+    private static float CalculateRemainingPrerequisiteWork(
+        ResearchProjectSO project,
+        BlueprintResearchRuntime runtime)
+    {
+        HashSet<string> visited = new HashSet<string>(StringComparer.Ordinal);
+        float total = 0f;
+
+        void Visit(ResearchProjectSO current)
+        {
+            foreach (ResearchProjectSO prerequisite in current?.Prerequisites
+                         ?? Array.Empty<ResearchProjectSO>())
+            {
+                if (prerequisite == null
+                    || !visited.Add(prerequisite.ProjectId.Value)
+                    || runtime.State.Projects.IsCompleted(prerequisite.ProjectId))
+                {
+                    continue;
+                }
+
+                ResearchProjectProgressState progress =
+                    runtime.State.Projects.GetProgress(prerequisite.ProjectId);
+                total += Mathf.Max(
+                    0f,
+                    prerequisite.RequiredWork - progress.Progress);
+                Visit(prerequisite);
+            }
+        }
+
+        Visit(project);
+        return total;
     }
 
     private IEnumerator CompleteOwnerSelectionIfVisible()
@@ -377,17 +573,25 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
 
     private void SetRunningState(float scale)
     {
-        if (gameManager != null)
+        int speed = Mathf.Clamp(Mathf.RoundToInt(scale), 1, 5);
+        if (gameSpeedController != null)
         {
-            gameManager.isPause = false;
+            gameSpeedController.SetSpeed(speed);
+            gameSpeedController.SetPaused(false);
+            return;
         }
+
         if (timeScaleController != null)
         {
-            timeScaleController.Scale = scale;
+            timeScaleController.Scale = speed;
         }
         else
         {
-            Time.timeScale = scale;
+            Time.timeScale = speed;
+        }
+        if (gameManager != null)
+        {
+            gameManager.isPause = false;
         }
     }
 
@@ -412,14 +616,45 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
             yield break;
         }
 
+        string selectableName = selectable.name;
+        RectTransform rect = selectable.transform as RectTransform;
+        Vector2 point = ScreenCenter(rect);
+        bool dispatched = false;
+        for (int attempt = 0; attempt < 3 && !dispatched; attempt++)
+        {
+            QueueMouse(new MouseState { position = point });
+            Canvas.ForceUpdateCanvases();
+            yield return null;
+            dispatched = DispatchPointerClick(point);
+            if (!dispatched)
+            {
+                yield return null;
+            }
+        }
+        Check(dispatched,
+            "POINTER_DISPATCH",
+            $"target={selectableName}; point={point}");
+        yield return null;
+        yield return null;
+    }
+
+    private void ClickWhilePaused(Selectable selectable)
+    {
+        Check(selectable != null && selectable.gameObject.activeInHierarchy,
+            "POINTER_" + (selectable != null ? selectable.name : "missing"),
+            selectable != null ? selectable.name : "missing");
+        if (selectable == null)
+        {
+            return;
+        }
+
         RectTransform rect = selectable.transform as RectTransform;
         Vector2 point = ScreenCenter(rect);
         QueueMouse(new MouseState { position = point });
-        yield return null;
         bool dispatched = DispatchPointerClick(point);
-        Check(dispatched, "POINTER_DISPATCH", $"target={selectable.name}; point={point}");
-        yield return null;
-        yield return null;
+        Check(dispatched,
+            "POINTER_DISPATCH",
+            $"target={selectable.name}; point={point}");
     }
 
     private IEnumerator Drag(RectTransform from, RectTransform to)
@@ -653,7 +888,11 @@ public sealed class ResearchTreeVerificationRunner : MonoBehaviour
 
     private void Check(bool passed, string key, string detail)
     {
-        report.Add($"{key}={(passed ? "PASS" : "FAIL")}; {detail}");
+        string line = $"{key}={(passed ? "PASS" : "FAIL")}; {detail}";
+        report.Add(line);
+        File.WriteAllText(
+            ResearchTreePlayModeVerifier.ProgressPath,
+            $"steps={report.Count}\nlast={line}\n");
         if (!passed)
         {
             failures.Add(key + ": " + detail);

@@ -30,7 +30,10 @@ public sealed class ResearchTreeWindowFactory : IResearchTreeWindowFactory
             window = panelObject.AddComponent<ResearchTreeWindow>();
         }
 
-        objectResolver.Inject(window);
+        if (!window.IsConstructed)
+        {
+            objectResolver.Inject(window);
+        }
         window.ConfigureHost();
         return window;
     }

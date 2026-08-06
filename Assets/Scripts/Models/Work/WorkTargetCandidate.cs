@@ -11,9 +11,6 @@ public readonly struct WorkTargetCandidate
         string breakdownSummary = "")
     {
         Building = building;
-        WorkType = definition != null
-            ? FacilityWorkTypeMap.GetRequired(definition)
-            : FacilityWorkType.None;
         WorkTypeId = definition != null ? definition.WorkTypeId : default;
         DisplayName = definition != null ? definition.DisplayName : string.Empty;
         Priority = priority;
@@ -26,7 +23,6 @@ public readonly struct WorkTargetCandidate
     }
 
     public IBuildingWorldEntryPort Building { get; }
-    public FacilityWorkType WorkType { get; }
     public WorkTypeId WorkTypeId { get; }
     public string DisplayName { get; }
     public WorkPriorityLevel Priority { get; }

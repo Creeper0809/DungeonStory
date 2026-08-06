@@ -27,6 +27,13 @@ public sealed class CombatEquipmentSaveSection :
     protected override DungeonCombatEquipmentSaveData CapturePayload() =>
         runtime.Capture();
 
+    protected override void NormalizeRestorePayload(
+        DungeonCombatEquipmentSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override CombatEquipmentRestoreCandidate BuildRestoreCandidate(
         DungeonCombatEquipmentSaveData payload) =>
         runtime.BuildRestoreCandidate(payload);
@@ -98,6 +105,13 @@ public sealed class CharacterBodyHealthSaveSection :
     protected override DungeonCharacterBodyHealthSaveData CapturePayload() =>
         persistence.Capture();
 
+    protected override void NormalizeRestorePayload(
+        DungeonCharacterBodyHealthSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override CharacterBodyHealthRestoreCandidate
         BuildRestoreCandidate(DungeonCharacterBodyHealthSaveData payload) =>
         persistence.PrepareRestore(payload);
@@ -137,6 +151,13 @@ public sealed class CharacterMedicalSaveSection :
 
     protected override DungeonCharacterMedicalSaveData CapturePayload() =>
         persistence.Capture();
+
+    protected override void NormalizeRestorePayload(
+        DungeonCharacterMedicalSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
 
     protected override CharacterMedicalRestoreCandidate BuildRestoreCandidate(
         DungeonCharacterMedicalSaveData payload) =>
@@ -185,6 +206,13 @@ public sealed class SurgerySaveSection :
     protected override DungeonSurgerySaveData CapturePayload() =>
         persistence.Capture();
 
+    protected override void NormalizeRestorePayload(
+        DungeonSurgerySaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override SurgeryRestoreCandidate BuildRestoreCandidate(
         DungeonSurgerySaveData payload) =>
         restoreCoordinator.PrepareRestore(payload);
@@ -222,6 +250,13 @@ public sealed class DefenseTacticalSaveSection :
 
     protected override DefenseTacticalCoordinatorSaveData CapturePayload() =>
         runtime.Capture();
+
+    protected override void NormalizeRestorePayload(
+        DefenseTacticalCoordinatorSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
 
     protected override DefenseTacticalRestoreCandidate BuildRestoreCandidate(
         DefenseTacticalCoordinatorSaveData payload) =>
@@ -264,6 +299,13 @@ public sealed class EquipmentMaintenanceSaveSection :
     protected override CombatEquipmentMaintenanceSaveData CapturePayload() =>
         runtime.Capture();
 
+    protected override void NormalizeRestorePayload(
+        CombatEquipmentMaintenanceSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override EquipmentMaintenanceRestoreCandidate
         BuildRestoreCandidate(CombatEquipmentMaintenanceSaveData payload) =>
         runtime.PrepareRestore(payload);
@@ -303,6 +345,13 @@ public sealed class CharacterCombatCommandSaveSection :
 
     protected override CharacterCombatCommandSaveData CapturePayload() =>
         runtime.Capture();
+
+    protected override void NormalizeRestorePayload(
+        CharacterCombatCommandSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
 
     protected override CharacterCombatCommandRestoreCandidate
         BuildRestoreCandidate(CharacterCombatCommandSaveData payload) =>

@@ -1,5 +1,12 @@
 # DungeonStory Progress
 
+## 2026-08-05 - Post-Copilot final closure resumed
+
+- Resumed the active completion goal with three non-overlapping offline workers: final PlayMode gate hardening, authored equipment-module dependency links, and the five failing architecture contracts. Only the root agent may use the project-scoped Unity MCP relay.
+- Fresh Unity import exposed five compile errors hidden by the older acceptance reports: one removed `DungeonItemCatalog` reference in the branched-production fixture and four writes to the read-only `DungeonGameRestoreReport.Success` property in Copilot diagnostic code.
+- Removed the temporary one-test combat menu override and the unsafe report mutation/catch scaffolding. The full combat menu owns the complete suite again. Combat validation now exposes its concrete failing scenario names to Batch B and the 33-step final acceptance report instead of collapsing to `Scenario returned false`.
+- The architecture worker resolved the 803-line CharacterActor violation by moving mood projection to its existing facade, and replaced four stale literal-string ratchets with semantic ownership/injection/signature contracts. Full Unity execution remains pending after all source lanes merge.
+
 ## 2026-08-04 - Phase 117 ownership-classifier precision pass
 
 - Corrected the default-assembly ownership classifier so transient mutable view/input/camera/audio/VFX state and presentation-only enums/delegates are not mistaken for gameplay authority.
@@ -2302,3 +2309,89 @@
 - Completed the underlying physical-module authority rather than limiting the change to UI filtering: authored `item:equipment-module`, strict standalone component persistence, detached/attached duplicate rejection, stack-link restore checks, destructive-loss transitions, installation-only absorption, and same-instance removal/replacement rematerialization are all covered by synchronous regressions.
 - Updated all removed facility-less API callers. Fresh Foundation → Items → Combat → default Runtime → Editor Roslyn compilation passes with zero output; ArchitectureMetrics passes at `1,384 files / 4,314 types` with every hard gate and cross-domain cycle candidate count at `0`. Asset audit reports `6,240` non-meta assets with missing meta `0` and `6,864` unique parsed GUIDs with duplicate groups `0`.
 - Unity-loaded execution remains pending because PID 80780 still owns a visible `Scene(s) Have Been Modified` modal for the dirty TitleScene. No operating-system input was used; the user must dismiss it before project-local Unity MCP can reload and run the final gates.
+
+## 2026-08-05 Copilot handoff checkpoint
+
+- Stopped all Codex sub-agent work before the Copilot handoff; no background agent remains editing the workspace.
+- Confirmed the strict `CharacterId` contract is present: only `owner` or `character:*` is valid, with name-like and foreign-prefix restore regressions added.
+- Confirmed exact-count guards are present for Architecture `131`, Transactional Restore `33`, and synchronous Final Acceptance `33`.
+- Confirmed the remaining source work is the fail-closed connection in `DungeonFinalPlayModeAcceptanceRequestFacade`: invoke the three prerequisite gates, freeze the target/capture contract at `7/30`, and capture coordinator-wide Console warnings/errors across scene and domain transitions.
+- Current architecture report is missing, the transactional report is stale (`startedTestCases=136`), the synchronous final report predates the latest guards, and the final PlayMode report is an older ResolutionMatrix failure. None is accepted as final evidence.
+- Added `COPILOT_HANDOFF.md` with exact files, invariants, Unity MCP safety rules, execution order, expected report contents, and a ready-to-paste Copilot prompt.
+## 2026-08-06 Phase 120 started
+
+- Re-ran the current loaded-source gates before repair: Architecture `131/131`, Transactional Restore `33/33`, and synchronous Final Acceptance `33/33` all passed.
+- A three-lane read-only review then found two current-run self-unrestorable CharacterId contracts plus broader early-V18 mixed-section reference gaps and a fail-open final report parser.
+- Added Phase 120 to the authoritative plan and assigned non-overlapping fixes to the three existing offline subagents. Root retains Unity MCP, integration, and final evidence ownership.
+- Confirmed through project-scoped Unity MCP that the loaded source compiles and the active Title scene remains `dirty=True`; no scene was saved, discarded, unloaded, or changed.
+## 2026-08-06 Phase 121 current-source integration closure started
+
+- Copilot provenance was removed from the active scope; the current worktree and fresh evidence are authoritative.
+- Three offline subagent lanes are active: aggregate-preflight normalization order, exhaustive typed save-reference coverage, and compile/contract review. Unity MCP remains root-only.
+- Confirmed current risk: aggregate cross-reference preflight reads raw section payloads before section-local normalization, so mixed early-V18 references can fail before detached section staging.
+- Root added exact restore-only legacy grammar for generated invasion, faction reinforcement, return-prisoner, and exterior-incident CharacterIds. Fresh Unity compilation and all final gates remain pending.
+
+## 2026-08-06 Phase 122 V18 and final-gate hardening complete
+
+- Replaced heuristic CharacterId restore behavior with section/type-scoped exact normalization, including invasion, faction-route, return-prisoner, and incident actors; union fields now rewrite operational characters while preserving wildlife, building, transaction, and invasion runtime keys where those contracts require them.
+- Closed whitespace and non-canonical numeric ID acceptance in combat, defense, medical, maintenance, surgery, production, and consumables persistence. Equipment repair validation now matches the runtime-authored `D6` grammar.
+- Added fail-before-mutation exhaustion handling for all audited int/long ID generators. Consumables now use `auto:v1` internal IDs, retain legacy V18 D16 watermarks, and keep external idempotency IDs saveable.
+- Hardened final UI evidence: equipment/module/lineage/expedition clicks require viewport visibility plus the actual EventSystem top raycast target; research detail checks model-bound work, deduplicated prerequisite work, estimated shifts/days, rewards, and blocker text at both resolutions.
+- Fresh ArchitectureMetrics passes with mutable statics `0`, oversized types `0`, large constructors `0`, cross-domain candidates `0`, content escapes `0`, and direct session mutations `0`.
+- Project-scoped Unity MCP compilation is clean. Fresh reports pass architecture `131/131`, transactional restore `33/33`, and synchronous final acceptance `33/33` at 02:40-02:42 local time.
+- Final PlayMode remains pending only because `Assets/Scenes/TitleScene.unity` is dirty in Editor memory. No scene was saved or reverted automatically.
+
+## 2026-08-06 Phase 122 final PlayMode resumed
+
+- The user explicitly saved the scene. A root-only project-scoped Unity MCP readback confirmed `Assets/Scenes/TitleScene.unity`, `dirty=False`, `playing=False`, `compiling=False`, and `updating=False` before the final coordinator request.
+- Final acceptance is now running under the fixed seven-target / 30-capture / 54-section contract. No operating-system mouse or keyboard automation is used.
+- The first request regenerated Architecture `131/131`, Transactional Restore `33/33`, and synchronous Final Acceptance `33/33`, but then failed its own scene preflight because those synchronous regressions left the initially clean Title scene dirty. This is a coordinator isolation defect, not a failed domain gate.
+- The coordinator now validates scene safety before executing gates, runs all synchronous regressions in an owned empty scratch scene, forcibly discards only that scratch scene, restores the original saved scene setup, and validates scene safety again. The user scene is never automatically saved or discarded.
+- Unity performed a clean forced compile of the isolation fix (`Assembly-CSharp-Editor.dll` newer than source; Tundra build success), and the focused `PlayModePersistenceCaptureFailsClosedAndFinalFacadeOwnsCaptureTiming` architecture contract passes on the loaded assembly.
+- The first failed preflight left `TitleScene.unity` dirty before the isolation fix was compiled. A second explicit user save is required once; after that the isolated preflight should no longer re-dirty the user scene.
+
+## 2026-08-06 Phase 122 final PlayMode integration follow-up
+
+- After the second user save, the isolated preflight passed with Architecture `131/131`, Transactional Restore `33/33`, synchronous Final Acceptance `33/33`, target count `7`, capture count `30`, and Console `0/0`.
+- `ResolutionMatrix` passed with all 15 required captures and persistence restoration. `FullWorldRoundTrip` then exposed a real VContainer cycle: `OffenseWorldMapRuntime -> IOffensePanelService -> IOffenseCampaignQuery/IOffenseCampaignCommands -> OffenseWorldMapRuntime`; the failed report had `0/0/0` sections and cascading scene-injection errors.
+- Removed the runtime-to-presentation edge. World-map UI opening now belongs to `OffenseApplication`, while `OffenseWorldMapRuntime` remains the campaign query/command adapter. Editor fixtures and QA callers were migrated, the panel smoke now calls the real service, and Unity compiled the change cleanly.
+- Hardened the Full World request transition so opening `GameplayScene` and entering PlayMode cannot happen in the same editor update. The first standalone retry used the unsafe same-update implementation and left Unity PID 35800 unresponsive at `Entering Playmode`; the safer next-update source is on disk but requires one Editor restart before it can compile and run.
+- Correction after the editor recovered without restart: the standalone Full World runner completed and removed its request. It reached `registeredSections=54`, `capturedSections=54`, and `postRoundTripSections=54`; the remaining failure is data-contract restoration (`baselineRestored=False`, six Console errors), not a stuck editor or missing section registration.
+- Fixed the four narrowed contract causes: faction capture now follows authored catalog order, faction homes inherit the actual strategic tile region, legacy character projection derives injury from current/max health, the save-QA customer uses a canonical CharacterId, and the invalid-ID PlayMode assertion accepts either validator layer's explicit rejection wording.
+- Unity compiled the current runtime/editor assemblies cleanly at 06:06. A fresh standalone Full World verification is in progress from a clean Gameplay scene; this project spends several minutes unresponsive in Unity's `Entering Playmode` transition before the runner starts.
+- The second standalone Full World run again reached `54/54/54`, proving registration and capture remain stable. It narrowed the remaining failures to a duplicated authored faction ID, a synthetic human-support region, an empty-settlement QA fixture still passing null collections, and an invalid-CharacterId assertion coupled to one validator message.
+- Removed the six obsolete duplicate faction assets from the root catalog while retaining the six richer authored definitions, added fail-fast duplicate StableId validation, made human-support sites inherit their strategic tile region, supplied explicit empty settlement collections, and hardened the invalid-ID test around failed restore, exact offending value, atomic live-owner preservation, and no staged candidate.
+- The first retry after that edit aborted during composition because four retained faction YAML entries lost their list indentation, which caused Unity to deserialize the later core-session reference as null. PlayMode was exited through project-scoped Unity MCP; the malformed indentation was corrected before retrying.
+- Unity imported the corrected domain catalog with 1,086 definitions and zero catalog errors. The next Full World run again reached `54/54/54` with zero warnings and narrowed the result to two fixture/diagnostic defects: the invalid CharacterId error omitted its offending value, and the research marker rewrite hardcoded obsolete section version 3 while the live manifest is version 5.
+- Aggregate preflight errors now include the exact invalid serialized ID, and the full-game QA scenario rewrites research payloads using the registered section's live version and restore phase instead of duplicated constants.
+- The next 54-section run passed those fixes and exposed three more stale QA assumptions: a synthetic research recipe marker, an operation variable activated on future day 3 while the run was on day 1, and a reflected invasion damage count without the corresponding canonical damaged-building ID. The fixture now uses the authored research reward, the live run day, and a real persistent building ID through the invasion restore port.
+- Legacy/canonical CharacterId collision verification now accepts the aggregate preflight's earlier duplicate-ID rejection as long as it identifies the exact canonical collision and proves no live or staged mutation.
+- The following 54-section run passed all previous fixtures and exposed one remaining pre-V18 research migration injection (`recipe_battlefield_dining_2`) plus an ownerless-character assertion coupled to the downstream character-section wording. The unsupported recipe rewrite was removed entirely, and ownerless rejection now accepts the earlier aggregate missing-owner reference failure while still proving atomicity.
+- Unity compiled the no-legacy fixture changes cleanly at 07:07. The next retry could not start because `Assets/Scenes/GameplayScene.unity` became dirty after the previous PlayMode/compile cycle. The earlier run began from a clean scene, but project policy forbids automatically saving or discarding even test-induced scene dirtiness; one explicit user save is required before the next focused run.
+
+## 2026-08-06 Full World physical-authority and restore-report follow-up
+
+- After the user saved `GameplayScene`, project-scoped Unity MCP confirmed `dirty=False` and validated the root domain catalog with 1,087 definitions. Added the missing authored NPC staff definition `Staff_Generic:1101`; the full Character V18 progression/work-state contract now passes.
+- Removed the Full World fixture's runtime `CharacterSO.CreateInstance` fallback. The fixture now fails closed when no authored NPC staff definition exists.
+- Materialized the stored QA dagger as a real max-stack-one physical item and linked its equipment instance through `IItemInstanceRepository.TryLinkEquipmentToStack`; the former stackless stored-equipment restore failure is cleared.
+- Corrected aggregate preflight so a stack projection and its unique-item component projection may share the same `ItemInstanceId`, while duplicate stack IDs and duplicate unique-item entries remain rejected independently.
+- Two fresh focused runs retained `registeredSections=54`, `capturedSections=54`, `postRoundTripSections=54`, Character V18 contracts passed, and Console warnings stayed at zero. The latest run restored one active route-choice expedition with one member but exposed missing restore-report contributors (`RestoredExpeditionCount=0`).
+- Added restore-result reporting to the offense aggregate candidate and proactively to the invasion candidate, using the staged active-expedition and active-intruder counts. Unity compilation is clean; the next focused Full World run is pending.
+- The next Full World request was correctly rejected before mutation because the preceding PlayMode/compile cycle marked `Assets/Scenes/GameplayScene.unity` dirty again. No automatic save, discard, or scene switch was performed; one explicit user save is required before rerunning.
+
+## 2026-08-06 validation workflow correction
+
+- Replaced repeated full-suite reruns with a validation ladder: focused compile/EditMode checks, then the affected single PlayMode target, then one complete seven-target/30-capture coordinator only after focused evidence is green.
+- The currently running coordinator is retained as the final integration attempt. If a target fails, only that target will be repaired and rerun until it passes; the whole coordinator will not be restarted between target-specific fixes.
+- Corrected the earlier manual-save workflow. The latest `GameplayScene` dirtiness was traced to test-only camera orthographic-size residue, restored through project-scoped Unity MCP, and verified against a save-as-copy that was byte-identical to the on-disk scene. No user scene was saved or discarded.
+- The final preflight now passes with Architecture `131/131`, Transactional Restore `33/33`, seven targets, 30 captures, and Console Error/Warning `0/0`. `ResolutionMatrix` passed; `FullWorldRoundTrip` is the active second target.
+
+## 2026-08-06 final integration complete
+
+- Closed the production material-failure localization mismatch and added an actual market-sale demand projection without giving production routing a second write authority. `ResourceStockPolicyRuntime` remains the sole owner of sale hauling and settlement.
+- Corrected Character World restore so publication no longer replenishes population during restore; save -> restore -> capture now preserves the canonical snapshot.
+- Corrected equipment/expedition pointer verification: generated static TMP labels no longer intercept raycasts, dynamically rebuilt surfaces receive a capture-ready frame wait, and Korean verification uses the project font service instead of the incomplete TMP default font.
+- Fresh focused reports pass for Production, Service Room, Character Summary/Medical, and Equipment/Expedition at both `1600x900` and `900x1600`.
+- Final project-scoped Unity MCP coordinator passed all seven targets with 30 fresh captures. Full World registered, captured, and recaptured `54/54/54` sections; canonical baseline restoration passed.
+- Final Console capture is warnings `0`, errors `0`, exceptions `0`, asserts `0`. Fresh ArchitectureMetrics reports 1,388 runtime files / 4,330 types and zero mutable statics, oversized types, large constructors, cross-domain cycle candidates, content escapes, and direct session mutations.
+- Final test-only camera and layout residues were reset only for exact known values and cleared after a save-as-copy byte comparison proved the active Gameplay scene identical to the on-disk original. No operating-system input was used and no user scene was saved or overwritten.

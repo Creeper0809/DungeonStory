@@ -26,14 +26,18 @@ public sealed class CharacterWorldRestoreCandidate :
     internal CharacterWorldRestoreCandidate(
         CharacterWorldSaveService owner,
         CharacterWorldSaveService.DetachedCharacterWorldCandidate world,
-        int restoredCount)
+        int restoredCount,
+        IReadOnlyDictionary<string, string> legacyCharacterIds)
     {
         this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
         this.world = world ?? throw new ArgumentNullException(nameof(world));
         RestoredCount = restoredCount;
+        LegacyCharacterIds = legacyCharacterIds
+            ?? throw new ArgumentNullException(nameof(legacyCharacterIds));
     }
 
     public int RestoredCount { get; }
+    private IReadOnlyDictionary<string, string> LegacyCharacterIds { get; }
 
     internal CharacterWorldSaveService.DetachedCharacterWorldCandidate Take(
         CharacterWorldSaveService expectedOwner)
@@ -62,6 +66,13 @@ public sealed class CharacterWorldRestoreCandidate :
     {
         (report ?? throw new ArgumentNullException(nameof(report)))
             .RecordRestoredCharacters(RestoredCount);
+        foreach (KeyValuePair<string, string> mapping in LegacyCharacterIds
+                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            report.AddWarning(
+                $"V18 legacy CharacterId normalized in 'characters.world': "
+                + $"'{mapping.Key}' -> '{mapping.Value}'.");
+        }
     }
 }
 
@@ -118,6 +129,8 @@ public sealed class CharacterWorldSaveService :
     private readonly IRestoreWorldCandidatePublisher restoreWorldCandidates;
     private IReadOnlyDictionary<string, CharacterActor> restoredActorsById =
         new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
+    private IReadOnlyDictionary<string, string> restoredLegacyActorIds =
+        new Dictionary<string, string>(StringComparer.Ordinal);
     private bool restoreTransactionActive;
     private DetachedCharacterWorldCandidate preparedCandidate;
     private DetachedCharacterWorldCandidate stagedCandidate;
@@ -204,16 +217,20 @@ public sealed class CharacterWorldSaveService :
             result.actors.Add(actorSave);
         }
 
-        EnsureUniqueIds(result.actors.Select(actor => actor.persistentId), "save capture");
-        EnsureUniqueIds(result.populationProfiles.Select(profile => profile.persistentId), "population capture");
-        EnsureUniqueIds(
+        CharacterV18RestoreIdentityResolver.EnsureUniqueIds(
+            result.actors.Select(actor => actor.persistentId),
+            "save capture");
+        CharacterV18RestoreIdentityResolver.EnsureUniqueIds(
+            result.populationProfiles.Select(profile => profile.persistentId),
+            "population capture");
+        CharacterV18RestoreIdentityResolver.EnsureUniqueIds(
             result.actors.Select(actor => actor.persistentId)
                 .Concat(result.populationProfiles.Select(profile => profile.persistentId)),
             "character world capture",
             allowActorProfileOverlap: true);
 
         DungeonGameRestoreReport validation = new DungeonGameRestoreReport();
-        ValidateRestore(grid, result, validation);
+        ValidateRestore(grid, result, validation, allowLegacyCharacterIds: false);
         if (!validation.Success)
         {
             throw new InvalidOperationException(
@@ -235,20 +252,23 @@ public sealed class CharacterWorldSaveService :
 
     public bool TryGetRestoredActor(string persistentId, out CharacterActor actor)
     {
-        actor = null;
-        if (string.IsNullOrWhiteSpace(persistentId))
-        {
-            return false;
-        }
-
         IReadOnlyDictionary<string, CharacterActor> source =
             preparedCandidate != null
                 ? preparedCandidate.ActorsById
                 : stagedCandidate != null
                     ? stagedCandidate.ActorsById
                     : restoredActorsById;
-        return source.TryGetValue(persistentId, out actor)
-            && actor != null;
+        IReadOnlyDictionary<string, string> aliases =
+            preparedCandidate != null
+                ? preparedCandidate.LegacyActorIds
+                : stagedCandidate != null
+                    ? stagedCandidate.LegacyActorIds
+                    : restoredLegacyActorIds;
+        return CharacterV18RestoreIdentityResolver.TryGetActor(
+            source,
+            aliases,
+            persistentId,
+            out actor);
     }
 
     public void BeginRestoreCandidate()
@@ -275,7 +295,8 @@ public sealed class CharacterWorldSaveService :
 
         CharacterWorldPublication publication = new CharacterWorldPublication(
             stagedCandidate,
-            restoredActorsById);
+            restoredActorsById,
+            restoredLegacyActorIds);
         activePublication = publication;
         PublishCharacterCandidate(publication);
     }
@@ -383,164 +404,15 @@ public sealed class CharacterWorldSaveService :
     private void ValidateRestore(
         Grid grid,
         DungeonCharacterWorldSaveData source,
-        DungeonGameRestoreReport report)
+        DungeonGameRestoreReport report,
+        bool allowLegacyCharacterIds)
     {
-        if (grid == null)
-        {
-            throw new ArgumentNullException(nameof(grid));
-        }
-
-        if (report == null)
-        {
-            throw new ArgumentNullException(nameof(report));
-        }
-
-        if (source == null)
-        {
-            report.AddError("Character world payload is missing.");
-            return;
-        }
-
-        if (source.actors == null)
-        {
-            report.AddError("Character world actor collection is missing.");
-        }
-
-        if (source.populationProfiles == null)
-        {
-            report.AddError("Character world population profile collection is missing.");
-        }
-
-        if (source.globalFacilityReputation == null)
-        {
-            report.AddError("Character world reputation snapshot is missing.");
-        }
-
-        List<DungeonCharacterSaveData> actors = source.actors
-            ?? new List<DungeonCharacterSaveData>();
-        List<WorldCharacterProfile> profiles = source.populationProfiles
-            ?? new List<WorldCharacterProfile>();
-        if (actors.Any(actor => actor == null))
-        {
-            report.AddError("Character world payload contains a null actor entry.");
-        }
-
-        if (profiles.Any(profile => profile == null))
-        {
-            report.AddError("Character world payload contains a null population profile.");
-        }
-
-        DungeonCharacterSaveData[] concreteActors = actors
-            .Where(actor => actor != null)
-            .ToArray();
-        WorldCharacterProfile[] concreteProfiles = profiles
-            .Where(profile => profile != null)
-            .ToArray();
-        ValidateUniquePersistentIds(
-            concreteActors.Select(actor => actor.persistentId),
-            "character actor",
-            report);
-        ValidateUniquePersistentIds(
-            concreteProfiles.Select(profile => profile.persistentId),
-            "population profile",
-            report);
-
-        int ownerCount = concreteActors.Count(actor => actor.isOwner);
-        if (ownerCount != 1)
-        {
-            report.AddError(
-                $"Character world payload requires exactly one owner actor, but contains {ownerCount}.");
-        }
-
-        Dictionary<int, CharacterSO> charactersById = characterCatalog.Characters
-            .Where(data => data != null)
-            .GroupBy(data => data.id)
-            .ToDictionary(group => group.Key, group => group.First());
-
-        foreach (DungeonCharacterSaveData actor in concreteActors)
-        {
-            CharacterId id = (CharacterId)actor.persistentId;
-            if (!id.IsValid)
-            {
-                report.AddError(
-                    $"Character data {actor.dataId} has no valid persistent ID.");
-            }
-            else if (actor.isOwner && !id.Equals(CharacterId.Owner))
-            {
-                report.AddError(
-                    $"Owner character uses persistent ID '{id.Value}' instead of '{CharacterId.Owner.Value}'.");
-            }
-            else if (!actor.isOwner && id.Equals(CharacterId.Owner))
-            {
-                report.AddError(
-                    "A non-owner character uses the reserved owner persistent ID.");
-            }
-
-            if (!charactersById.TryGetValue(actor.dataId, out CharacterSO definition))
-            {
-                report.AddError(
-                    $"Character definition {actor.dataId} does not exist in the run catalog.");
-            }
-            else if (actor.role != definition.role)
-            {
-                report.AddError(
-                    $"Character '{id.Value}' role '{actor.role}' does not match authored role '{definition.role}'.");
-            }
-
-            if (!Enum.IsDefined(typeof(CharacterType), actor.characterType)
-                || !Enum.IsDefined(typeof(CharacterRole), actor.role)
-                || !Enum.IsDefined(
-                    typeof(CharacterLifecycleState),
-                    actor.lifecycleState)
-                || !Enum.IsDefined(
-                    typeof(AbilityWork.DutyState),
-                    actor.dutyState))
-            {
-                report.AddError(
-                    $"Character '{id.Value}' contains an unknown enum value.");
-            }
-
-            if (!IsFinite(actor.currentHealth)
-                || !IsFinite(actor.injurySeverity)
-                || !IsFinite(actor.baseMood))
-            {
-                report.AddError(
-                    $"Character '{id.Value}' contains a non-finite health or mood value.");
-            }
-
-            Vector2Int position = new Vector2Int(actor.gridX, actor.gridY);
-            if (RequiresWalkableRestoreCell(actor.lifecycleState)
-                && (!grid.IsValidGridPos(position) || !grid.IsWalkable(position)))
-            {
-                report.AddError(
-                    $"Character '{id.Value}' restore cell ({actor.gridX}, {actor.gridY}) is not walkable in the candidate grid.");
-            }
-
-            CharacterWorldSaveValidation.ValidateActor(actor, id.Value, report);
-        }
-
-        foreach (WorldCharacterProfile profile in concreteProfiles)
-        {
-            CharacterId id = (CharacterId)profile.persistentId;
-            if (!id.IsValid)
-            {
-                report.AddError(
-                    $"Population profile {profile.characterDataId} has no valid persistent ID.");
-            }
-
-            if (!charactersById.ContainsKey(profile.characterDataId))
-            {
-                report.AddError(
-                    $"Population profile '{id.Value}' references missing character definition {profile.characterDataId}.");
-            }
-        }
-
-        CharacterWorldSaveValidation.ValidatePopulationProfiles(
-            concreteProfiles,
-            report);
-        CharacterWorldSaveValidation.ValidateReputation(
-            source.globalFacilityReputation,
-            report);
+        CharacterWorldRestorePayloadValidator.Validate(
+            grid,
+            source,
+            report,
+            allowLegacyCharacterIds,
+            characterCatalog.Characters);
     }
 
     public void ValidateRestorePayload(
@@ -548,7 +420,7 @@ public sealed class CharacterWorldSaveService :
         DungeonCharacterWorldSaveData source)
     {
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
-        ValidateRestore(grid, source, report);
+        ValidateRestore(grid, source, report, allowLegacyCharacterIds: true);
         if (!report.Success)
         {
             throw new InvalidOperationException(
@@ -572,7 +444,7 @@ public sealed class CharacterWorldSaveService :
         }
 
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
-        ValidateRestore(grid, source, report);
+        ValidateRestore(grid, source, report, allowLegacyCharacterIds: true);
         if (!report.Success)
         {
             throw new InvalidOperationException(
@@ -581,9 +453,20 @@ public sealed class CharacterWorldSaveService :
         }
 
         List<DungeonCharacterSaveData> savedActors = source.actors;
-        EnsureUniqueIds(savedActors.Select(actor => actor.persistentId), "character restore");
-        EnsureUniqueIds(
-            source.populationProfiles.Select(profile => profile.persistentId),
+        Dictionary<DungeonCharacterSaveData, CharacterId> canonicalActorIds =
+            CharacterV18RestoreIdentityResolver.BuildCanonicalActorIds(savedActors);
+        List<WorldCharacterProfile> canonicalProfiles =
+            CharacterV18RestoreIdentityResolver.CloneCanonicalProfiles(
+                source.populationProfiles);
+        IReadOnlyDictionary<string, string> legacyCharacterIds =
+            CharacterV18RestoreIdentityResolver.BuildLegacyMappings(
+                savedActors,
+                source.populationProfiles);
+        CharacterV18RestoreIdentityResolver.EnsureUniqueIds(
+            canonicalActorIds.Values.Select(id => id.Value),
+            "character restore");
+        CharacterV18RestoreIdentityResolver.EnsureUniqueIds(
+            canonicalProfiles.Select(profile => profile.persistentId),
             "population restore");
 
         Dictionary<int, CharacterSO> charactersById = characterCatalog.Characters
@@ -596,6 +479,8 @@ public sealed class CharacterWorldSaveService :
             new List<CharacterRestoreCandidate>();
         Dictionary<string, CharacterActor> candidateActorsById =
             new Dictionary<string, CharacterActor>(StringComparer.Ordinal);
+        Dictionary<string, string> candidateLegacyActorIds =
+            new Dictionary<string, string>(StringComparer.Ordinal);
         OwnerRunManager ownerManager = null;
         CharacterRestoreCandidate ownerCandidate = null;
         DungeonCharacterSaveData ownerSave = savedActors.Single(actor => actor.isOwner);
@@ -617,9 +502,11 @@ public sealed class CharacterWorldSaveService :
             candidates.Add(ownerCandidate);
             owner.PrepareForPersistentRestore();
             ApplyActorState(grid, owner, ownerSave);
-            AddCandidateIdentity(
+            CharacterV18RestoreIdentityResolver.AddCandidate(
                 candidateActorsById,
+                candidateLegacyActorIds,
                 ownerSave,
+                canonicalActorIds[ownerSave],
                 owner);
 
             List<DungeonCharacterSaveData> staffSaves = savedActors
@@ -663,9 +550,11 @@ public sealed class CharacterWorldSaveService :
                 staff.Initialize(staffData);
                 staff.characterType = staffSave.characterType;
                 ApplyActorState(grid, staff, staffSave);
-                AddCandidateIdentity(
+                CharacterV18RestoreIdentityResolver.AddCandidate(
                     candidateActorsById,
+                    candidateLegacyActorIds,
                     staffSave,
+                    canonicalActorIds[staffSave],
                     staff);
             }
 
@@ -680,10 +569,11 @@ public sealed class CharacterWorldSaveService :
                 new DetachedCharacterWorldCandidate(
                     candidates,
                     candidateActorsById,
+                    candidateLegacyActorIds,
                     existingStaff,
                     ownerManager,
                     characterPopulationService.BuildRestoreCandidate(
-                        source.populationProfiles),
+                        canonicalProfiles),
                     socialReputation.BuildRestoreCandidate(
                         source.globalFacilityReputation));
             restoreWorldCandidates.SetCharacterCandidate(
@@ -692,7 +582,8 @@ public sealed class CharacterWorldSaveService :
             return new CharacterWorldRestoreCandidate(
                 this,
                 worldCandidate,
-                candidates.Count);
+                candidates.Count,
+                legacyCharacterIds);
         }
         catch (Exception exception)
         {
@@ -788,6 +679,7 @@ public sealed class CharacterWorldSaveService :
         }
 
         restoredActorsById = candidate.ActorsById;
+        restoredLegacyActorIds = candidate.LegacyActorIds;
         publication.ActorIndexPublished = true;
     }
 
@@ -810,6 +702,7 @@ public sealed class CharacterWorldSaveService :
         if (publication.ActorIndexPublished)
         {
             restoredActorsById = publication.PreviousActorIndex;
+            restoredLegacyActorIds = publication.PreviousLegacyActorIds;
             publication.ActorIndexPublished = false;
         }
 
@@ -905,44 +798,11 @@ public sealed class CharacterWorldSaveService :
             characterObjectFactory.Destroy(oldStaff.gameObject);
         }
 
-        characterPopulationService.ReplenishPreparedPoolBestEffort();
-
         if (publication.OwnerPublication != null)
         {
             candidate.OwnerManager.CompleteRestoreCandidatePublication(
                 publication.OwnerPublication);
         }
-    }
-
-    private static void AddCandidateIdentity(
-        IDictionary<string, CharacterActor> actorsById,
-        DungeonCharacterSaveData source,
-        CharacterActor actor)
-    {
-        if (source == null)
-        {
-            throw new ArgumentNullException(nameof(source));
-        }
-
-        if (actor == null)
-        {
-            throw new ArgumentNullException(nameof(actor));
-        }
-
-        if (string.IsNullOrWhiteSpace(source.persistentId))
-        {
-            throw new InvalidOperationException(
-                "A restore candidate cannot be indexed without a persistent character ID.");
-        }
-
-        if (actorsById.ContainsKey(source.persistentId))
-        {
-            throw new InvalidOperationException(
-                $"Duplicate persistent character ID '{source.persistentId}' encountered during restore.");
-        }
-
-        actor.Identity?.SetPersistentId(source.persistentId);
-        actorsById.Add(source.persistentId, actor);
     }
 
     private static void EnsureRestoredStaffWorkAbility(GameObject staffObject)
@@ -984,61 +844,6 @@ public sealed class CharacterWorldSaveService :
                     && actor.TryGetAbility(out AbilityWork _)));
     }
 
-    private static void EnsureUniqueIds(
-        IEnumerable<string> ids,
-        string operation,
-        bool allowActorProfileOverlap = false)
-    {
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (string rawId in ids ?? Enumerable.Empty<string>())
-        {
-            string id = rawId?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(id))
-            {
-                throw new InvalidOperationException($"A character without a persistent ID was found during {operation}.");
-            }
-
-            if (!seen.Add(id) && !allowActorProfileOverlap)
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate persistent character ID '{id}' was found during {operation}.");
-            }
-        }
-    }
-
-    private static void ValidateUniquePersistentIds(
-        IEnumerable<string> ids,
-        string label,
-        DungeonGameRestoreReport report)
-    {
-        HashSet<string> seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (string rawId in ids ?? Enumerable.Empty<string>())
-        {
-            string id = rawId?.Trim() ?? string.Empty;
-            if (id.Length == 0)
-            {
-                report.AddError($"A {label} has an empty persistent ID.");
-            }
-            else if (!seen.Add(id))
-            {
-                report.AddError(
-                    $"Duplicate {label} persistent ID '{id}'.");
-            }
-        }
-    }
-
-    private static bool IsFinite(float value)
-    {
-        return !float.IsNaN(value) && !float.IsInfinity(value);
-    }
-
-    private static bool RequiresWalkableRestoreCell(
-        CharacterLifecycleState lifecycleState)
-    {
-        return lifecycleState == CharacterLifecycleState.Active
-            || lifecycleState == CharacterLifecycleState.Downed;
-    }
-
     private static DungeonCharacterSaveData CaptureActor(Grid grid, CharacterActor actor)
     {
         CharacterIdentity identity = actor.Identity;
@@ -1067,7 +872,12 @@ public sealed class CharacterWorldSaveService :
                 .Select(pair => new DungeonCharacterConditionSaveData
                 {
                     condition = pair.Key,
-                    value = pair.Value
+                    // MOOD is a derived projection of the base value, needs,
+                    // and active interaction factors. Persist the projection
+                    // captured above instead of a possibly stale backing entry.
+                    value = pair.Key == CharacterCondition.MOOD
+                        ? mood.Value
+                        : pair.Value
                 })
                 .ToList(),
             moodFactors = mood.Factors
@@ -1131,7 +941,8 @@ public sealed class CharacterWorldSaveService :
         DungeonCharacterSaveData source)
     {
         Vector2Int requestedPosition = new Vector2Int(source.gridX, source.gridY);
-        if (RequiresWalkableRestoreCell(source.lifecycleState)
+        if (CharacterWorldRestorePayloadValidator.RequiresWalkableRestoreCell(
+                source.lifecycleState)
             && (!grid.IsValidGridPos(requestedPosition)
                 || !grid.IsWalkable(requestedPosition)))
         {
@@ -1151,12 +962,6 @@ public sealed class CharacterWorldSaveService :
                 CharacterMoodFactorKind.Interaction,
                 factor.remainingSeconds))
             .ToList();
-        actor.Stats.RestorePersistentState(
-            conditions,
-            source.currentHealth,
-            source.injurySeverity,
-            source.baseMood,
-            moodFactors);
         actor.Lifecycle?.RestoreExpeditionRecovery(source.expeditionRecovery);
         actor.SetLifecycleState(source.lifecycleState);
 
@@ -1214,6 +1019,17 @@ public sealed class CharacterWorldSaveService :
         CharacterCarryInventory.Ensure(actor).Restore(source.carryInventory);
         actor.SocialMemory?.RestoreSnapshot(source.socialMemory);
         actor.LogComponent?.RestoreVisibleEntries(source.recentLogEntries);
+
+        // Stats depend on the restored progression profile and can also be
+        // touched by initialization callbacks from the other character
+        // modules. Apply the saved condition projection last so neither mood
+        // effects nor maximum-health modifiers are double-applied.
+        actor.Stats.RestorePersistentState(
+            conditions,
+            source.currentHealth,
+            source.injurySeverity,
+            source.baseMood,
+            moodFactors);
         actor.state = CharacterDecisionState.DECIDE;
         actor.Brain?.RequestImmediateReplan(clearFailures: true);
     }
@@ -1244,6 +1060,7 @@ public sealed class CharacterWorldSaveService :
         public DetachedCharacterWorldCandidate(
             IReadOnlyList<CharacterRestoreCandidate> characters,
             IReadOnlyDictionary<string, CharacterActor> actorsById,
+            IReadOnlyDictionary<string, string> legacyActorIds,
             IReadOnlyList<CharacterActor> existingStaff,
             OwnerRunManager ownerManager,
             CharacterPopulationRestoreCandidate populationCandidate,
@@ -1253,6 +1070,8 @@ public sealed class CharacterWorldSaveService :
                 ?? throw new ArgumentNullException(nameof(characters));
             ActorsById = actorsById
                 ?? throw new ArgumentNullException(nameof(actorsById));
+            LegacyActorIds = legacyActorIds
+                ?? throw new ArgumentNullException(nameof(legacyActorIds));
             ExistingStaff = existingStaff
                 ?? throw new ArgumentNullException(nameof(existingStaff));
             OwnerManager = ownerManager;
@@ -1270,6 +1089,7 @@ public sealed class CharacterWorldSaveService :
 
         public IReadOnlyList<CharacterRestoreCandidate> Characters { get; }
         public IReadOnlyDictionary<string, CharacterActor> ActorsById { get; }
+        public IReadOnlyDictionary<string, string> LegacyActorIds { get; }
         public IReadOnlyList<CharacterActor> ExistingStaff { get; }
         public OwnerRunManager OwnerManager { get; }
         public CharacterPopulationRestoreCandidate PopulationCandidate { get; }
@@ -1280,16 +1100,20 @@ public sealed class CharacterWorldSaveService :
     {
         public CharacterWorldPublication(
             DetachedCharacterWorldCandidate candidate,
-            IReadOnlyDictionary<string, CharacterActor> previousActorIndex)
+            IReadOnlyDictionary<string, CharacterActor> previousActorIndex,
+            IReadOnlyDictionary<string, string> previousLegacyActorIds)
         {
             Candidate = candidate
                 ?? throw new ArgumentNullException(nameof(candidate));
             PreviousActorIndex = previousActorIndex
                 ?? throw new ArgumentNullException(nameof(previousActorIndex));
+            PreviousLegacyActorIds = previousLegacyActorIds
+                ?? throw new ArgumentNullException(nameof(previousLegacyActorIds));
         }
 
         public DetachedCharacterWorldCandidate Candidate { get; }
         public IReadOnlyDictionary<string, CharacterActor> PreviousActorIndex { get; }
+        public IReadOnlyDictionary<string, string> PreviousLegacyActorIds { get; }
         public List<DetachedCharacterPublication> PublishedStaff { get; } =
             new List<DetachedCharacterPublication>();
         public CharacterPopulationRestoreTransaction PopulationTransaction { get; set; }

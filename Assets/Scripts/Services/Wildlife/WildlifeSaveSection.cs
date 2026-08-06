@@ -35,6 +35,13 @@ public sealed class WildlifeSaveSection :
         return runtime.Capture();
     }
 
+    protected override void NormalizeRestorePayload(
+        DungeonWildlifeSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18SurvivalEnvironmentCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override void ValidateParsedPayload(
         DungeonWildlifeSaveData payload) =>
         runtime.ValidateRestorePayload(payload);

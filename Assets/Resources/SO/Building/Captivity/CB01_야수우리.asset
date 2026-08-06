@@ -33,12 +33,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 63fe001860c3cc344ac763e22973f274, type: 3}
   abilityModules:
     items:
-    - rid: 7737211765905949269
-    - rid: 7737211765905949270
-    - rid: 7737211765905949271
-    - rid: 7737211765905949272
-    - rid: 7737211765905949273
-    - rid: 7737211765905949274
+    - rid: 7737211772876620317
+    - rid: 7737211772876620318
+    - rid: 7737211772876620319
+    - rid: 7737211772876620320
+    - rid: 7737211772876620321
+    - rid: 7737211772876620322
   width: 1
   height: 1
   layer: 1
@@ -54,12 +54,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211765905949269
+    - rid: 7737211772876620317
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CB01
-    - rid: 7737211765905949270
+    - rid: 7737211772876620318
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -68,7 +68,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211765905949271
+    - rid: 7737211772876620319
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -80,7 +80,7 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 5
-    - rid: 7737211765905949272
+    - rid: 7737211772876620320
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -91,11 +91,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 33554432
           disabledWhenDamaged: 1
-    - rid: 7737211765905949273
+    - rid: 7737211772876620321
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211765905949274
+    - rid: 7737211772876620322
       type: {class: BuildingBeastPenAbility, ns: , asm: DungeonStory.Captivity}
       data:
         abilityId: BuildingBeastPenAbility

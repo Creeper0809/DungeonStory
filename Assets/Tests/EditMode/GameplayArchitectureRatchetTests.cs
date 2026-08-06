@@ -29,6 +29,9 @@ namespace DungeonStory.Tests.Architecture
         [Test]
         public void PersistentCharacterSchedulingUsesCanonicalCharacterIds()
         {
+            RuntimeCharacterIdentityPathContract
+                .AssertOperationalCharacterCreationPathsUseTypedCharacterScope();
+
             SourceFile workTargetSelector = SourceBySuffix(
                 "Character/Work/WorkTargetSelector.cs");
             SourceFile decisionCadence = SourceBySuffix(
@@ -721,7 +724,12 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("float expiry = Now + Mathf.Max(0.1f, seconds)"));
             Assert.That(occupancy.Text, Does.Contain("visitReservations[visitor] = expiry"));
             Assert.That(buildable.Text, Does.Not.Match(@"\bTime\."));
-            Assert.That(filth.Text, Does.Contain("gameClock: gameClock"));
+            Assert.That(buildable.Text, Does.Contain("this.gameClock = gameClock"));
+            Assert.That(filth.Text, Does.Contain("gameClock = runtime.GameClock"));
+            Assert.That(
+                filth.Text,
+                Does.Match(
+                    @"target\.ConstructBuildableObject\s*\([\s\S]*?\bgameClock\b[\s\S]*?\);"));
         }
 
         [Test]
@@ -837,6 +845,12 @@ namespace DungeonStory.Tests.Architecture
         {
             SourceFile registration = SourceBySuffix(
                 "Infrastructure/Registration/DungeonCoreInfrastructureRegistration.cs");
+            SourceFile rootCatalog = SourceBySuffix(
+                "Content/GameContentCatalogSO.cs");
+            SourceFile contentBuilder = SourceBySuffixIncludingEditor(
+                "Items/Editor/GameContentCatalogAssetBuilder.cs");
+            SourceFile localizationBuilder = SourceBySuffixIncludingEditor(
+                "Items/Editor/DomainFailureLocalizationAssetBuilder.cs");
             SourceFile[] directRegistrations = ProductSources()
                 .Where(source => source.Text.Contains(
                     "Register<ResourceGameContentCatalog>"))
@@ -884,6 +898,157 @@ namespace DungeonStory.Tests.Architecture
                     Does.Not.Contain("Register<ResourceGameContentCatalog>"),
                     $"Composition root '{callerPath}' must not duplicate the catalog contract set.");
             }
+
+            Assert.That(contentBuilder.Text, Does.Contain("EditorUtility.DisplayDialog("));
+            Assert.That(contentBuilder.Text, Does.Contain("IsExplicitBatchModeInvocation()"));
+            Assert.That(contentBuilder.Text, Does.Contain("WriteGenerationManifest("));
+            Assert.That(contentBuilder.Text, Does.Contain("AssetDatabase.SaveAssetIfDirty(asset)"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("RecordTouchedOutput)"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("activeTouchedOutputPaths"));
+            Assert.That(contentBuilder.Text, Does.Contain("ValidateGeneratedCatalogsBeforeSave("));
+            Assert.That(contentBuilder.Text, Does.Contain("RequireNoDirtyOwnedAssets()"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("GetPotentialOutputPathsForPreflight()"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Not.Contain("path.StartsWith(\n                \"Assets/AddressableAssetsData/\""));
+            Assert.That(contentBuilder.Text, Does.Not.Contain("AssetDatabase.SaveAssets()"));
+            Assert.That(
+                localizationBuilder.Text,
+                Does.Contain("internal static IReadOnlyList<string> RebuildWithoutSaving("));
+            Assert.That(
+                localizationBuilder.Text,
+                Does.Contain("Action<string> recordTouchedOutput = null"));
+            Assert.That(
+                localizationBuilder.Text,
+                Does.Contain("RecordChangedOutput(changedOutputPaths, recordTouchedOutput, collection)"));
+            Assert.That(
+                localizationBuilder.Text,
+                Does.Not.Contain("AddOutputPath(outputPaths, koreanLocale)"));
+            Assert.That(
+                localizationBuilder.Text,
+                Does.Contain("AssetDatabase.SaveAssetIfDirty(asset)"));
+            Assert.That(
+                localizationBuilder.Text,
+                Does.Not.Contain("AssetDatabase.SaveAssets()"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("Artifacts/QA/game-content-catalog-generation-manifest.json"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("GetCanonicalProvenanceInput()"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("localizationContractHashSha256"));
+            Assert.That(contentBuilder.Text, Does.Contain("ComputeMetaFileHash("));
+            Assert.That(contentBuilder.Text, Does.Contain("AssetPathToGUID(path)"));
+            Assert.That(contentBuilder.Text, Does.Contain("File.Replace("));
+            Assert.That(contentBuilder.Text, Does.Contain("GenerationManifestPath + \".tmp\""));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("GeneratorDependencySourcePaths"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("Services/Combat/EquipmentEvolutionContracts.cs"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("Services/Evolution/EvolutionCatalystEconomyRuntime.cs"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("Services/FacilityShop/FacilityShopSystem.cs"));
+            Assert.That(
+                contentBuilder.Text,
+                Does.Contain("Generated-content provenance dependency is missing"));
+            Assert.That(
+                rootCatalog.Text,
+                Does.Contain("domainCatalogs == null"));
+            Assert.That(
+                rootCatalog.Text,
+                Does.Contain("Array.Empty<ScriptableObject>()"));
+            Assert.That(
+                rootCatalog.Text,
+                Does.Contain("ItemDefinitionsTypeName = \"ItemDefinitionCatalogSO\""));
+            Assert.That(
+                rootCatalog.Text,
+                Does.Contain(
+                    "WorldInteractionPresentationCatalogSO"));
+            Assert.That(
+                rootCatalog.Text,
+                Does.Contain("CharacterSkillSystemSettingsSO"));
+
+            Type rootCatalogType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType(
+                    "GameContentCatalogSO",
+                    throwOnError: false))
+                .FirstOrDefault(type => type != null);
+            Assert.That(rootCatalogType, Is.Not.Null);
+            System.Reflection.MethodInfo validateCatalog = rootCatalogType.GetMethod(
+                "ValidateCatalog",
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public);
+            System.Reflection.MethodInfo configureCatalog = rootCatalogType.GetMethod(
+                "Configure",
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.Public);
+            Assert.That(validateCatalog, Is.Not.Null);
+            Assert.That(configureCatalog, Is.Not.Null);
+
+            ScriptableObject emptyRoot = ScriptableObject.CreateInstance(rootCatalogType);
+            ScriptableObject invalidDomain =
+                ScriptableObject.CreateInstance(rootCatalogType);
+            ScriptableObject wrongRootReference =
+                ScriptableObject.CreateInstance(rootCatalogType);
+            try
+            {
+                IReadOnlyList<string> emptyErrors = null;
+                Assert.DoesNotThrow(() => emptyErrors =
+                    (IReadOnlyList<string>)validateCatalog.Invoke(emptyRoot, null));
+                Assert.That(emptyErrors, Is.Not.Null);
+                Assert.That(emptyErrors, Has.Count.GreaterThanOrEqualTo(5));
+
+                configureCatalog.Invoke(
+                    emptyRoot,
+                    new object[]
+                    {
+                        wrongRootReference,
+                        wrongRootReference,
+                        wrongRootReference,
+                        wrongRootReference,
+                        new ScriptableObject[] { invalidDomain }
+                    });
+                IReadOnlyList<string> typeErrors =
+                    (IReadOnlyList<string>)validateCatalog.Invoke(emptyRoot, null);
+                Assert.That(
+                    typeErrors.Count(error => error.Contains("expected")),
+                    Is.GreaterThanOrEqualTo(5),
+                    "Wrong root and domain SO types must fail catalog validation.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(emptyRoot);
+                UnityEngine.Object.DestroyImmediate(invalidDomain);
+                UnityEngine.Object.DestroyImmediate(wrongRootReference);
+            }
+
+            string[] forbiddenBuilderCallers =
+            {
+                "Editor/DungeonStoryFinalAcceptanceRunner.cs",
+                "Editor/DungeonFinalPlayModeAcceptanceRequestFacade.cs",
+                "Items/Editor/RuntimeAuthorityV18Validator.cs",
+                "Items/Editor/ItemArchitectureV6Validator.cs"
+            };
+            foreach (string callerPath in forbiddenBuilderCallers)
+            {
+                Assert.That(
+                    SourceBySuffixIncludingEditor(callerPath).Text,
+                    Does.Not.Contain("GameContentCatalogAssetBuilder"),
+                    $"Acceptance or validation path '{callerPath}' must remain read-only.");
+            }
         }
 
         [Test]
@@ -912,6 +1077,10 @@ namespace DungeonStory.Tests.Architecture
                 "Run/RunVariableSystem.cs");
             SourceFile saveSection = SourceBySuffix(
                 "Services/Infrastructure/Core/Save/RandomStreamSaveSection.cs");
+            SourceFile sectionIds = SourceBySuffix(
+                "Foundation/Save/DungeonSaveSectionIds.cs");
+            SourceFile runVariableSaveSection = SourceBySuffix(
+                "Run/RunVariableSaveSection.cs");
             SourceFile registration = SourceBySuffix(
                 "Infrastructure/Registration/DungeonSaveRegistration.cs");
 
@@ -934,7 +1103,19 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("foundation.random-streams"));
             Assert.That(
                 saveSection.Text,
-                Does.Contain("new[] { RunVariableSaveSection.Id }"));
+                Does.Match(
+                    @"DependsOn\s*=>\s*new\[\]\s*\{\s*DungeonSaveSectionIds\.RunVariables\s*\}"));
+            Assert.That(
+                sectionIds.Text,
+                Does.Match(
+                    @"public\s+const\s+string\s+RunVariables\s*=\s*""run\.variables""\s*;"));
+            Assert.That(
+                runVariableSaveSection.Text,
+                Does.Match(
+                    @"public\s+const\s+string\s+Id\s*=\s*DungeonSaveSectionIds\.RunVariables\s*;"));
+            Assert.That(
+                saveSection.Text,
+                Does.Not.Contain("RunVariableSaveSection.Id"));
             Assert.That(
                 registration.Text,
                 Does.Contain("Register<RandomStreamSaveSection>"));
@@ -1196,6 +1377,8 @@ namespace DungeonStory.Tests.Architecture
                 "Character/Work/WorkTaskExecutor.cs");
             SourceFile workAmount = SourceBySuffix(
                 "Character/Work/WorkAmountSystem.cs");
+            SourceFile workOrderContracts = SourceBySuffix(
+                "Character/Work/WorkOrderContracts.cs");
             SourceFile abilityWork = SourceBySuffix(
                 "Character/Ability/AbilityWork.cs");
             SourceFile priorities = SourceBySuffix(
@@ -1213,20 +1396,20 @@ namespace DungeonStory.Tests.Architecture
             SourceFile aiWorkAction = SourceBySuffix(
                 "Character/AI/Action/AIWork.cs");
             SourceFile aiWaitAction = SourceBySuffix(
-                "Models/AI/Core/AIWait.cs");
+                "Infrastructure/AI/Actions/AIWaitAdapter.cs");
             SourceFile aiHaul = SourceBySuffix("Character/AI/Action/AIHaul.cs");
             SourceFile aiHunt = SourceBySuffix("Character/AI/Action/AIHunt.cs");
             SourceFile aiRescue = SourceBySuffix("Character/AI/Action/AIRescue.cs");
             SourceFile considerationWorkNeed = SourceBySuffix(
-                "Models/AI/Core/ConsiderationWorkNeed.cs");
+                "Infrastructure/AI/Considerations/ConsiderationWorkNeedAdapter.cs");
             SourceFile combatLoadout = SourceBySuffix(
                 "Combat/CombatLoadoutPreparationRuntime.cs");
             SourceFile staffDiscontent = SourceBySuffix(
-                "Character/Work/StaffDiscontentSystem.cs");
+                "Character/Work/StaffDiscontentRuntime.cs");
             SourceFile deprivation = SourceBySuffix(
                 "Survival/CharacterDeprivationRuntime.cs");
             SourceFile defenseUi = SourceBySuffix(
-                "UI/DefenseFeatureSurfacePresenter.cs");
+                "UI/DefenseFeatureQueryService.cs");
             SourceFile researchUi = SourceBySuffix(
                 "Character/AI/CharacterAiUtilityModels.cs");
             SourceFile defenseEngagement = SourceBySuffix(
@@ -1251,6 +1434,8 @@ namespace DungeonStory.Tests.Architecture
                 "Character/Core/CharacterStats.cs");
             SourceFile characterModelData = SourceBySuffix(
                 "Character/SO/CharacterModelData.cs");
+            SourceFile characterAuthoredModel = SourceBySuffix(
+                "Models/Characters/CharacterAuthoredModel.cs");
             SourceFile characterSo = SourceBySuffix(
                 "Character/SO/CharacterSO.cs");
             SourceFile equipmentCrafting = SourceBySuffix(
@@ -1261,6 +1446,8 @@ namespace DungeonStory.Tests.Architecture
                 "Models/Work/WorkTargetCandidate.cs");
             SourceFile workTargetSelector = SourceBySuffix(
                 "Character/Work/WorkTargetSelector.cs");
+            SourceFile workTargetEvaluator = SourceBySuffix(
+                "Character/Work/WorkTargetEvaluator.cs");
             SourceFile workCommandHandler = SourceBySuffix(
                 "Character/Work/WorkCommandHandler.cs");
             SourceFile constructionSite = SourceBySuffix(
@@ -1281,6 +1468,8 @@ namespace DungeonStory.Tests.Architecture
                 "Buildings/Abilities/BuildingAbility.cs");
             SourceFile codexFormatter = SourceBySuffix(
                 "Models/Codex/Core/CodexTextFormatter.cs");
+            SourceFile codexDomainFormatter = SourceBySuffix(
+                "Codex/CodexRuntimeApplicationAdapter.cs");
             SourceFile cleanWork = SourceBySuffix(
                 "Survival/Work/CleanWorkExecutionHandler.cs");
             SourceFile survivalFood = SourceBySuffix(
@@ -1288,7 +1477,7 @@ namespace DungeonStory.Tests.Architecture
             SourceFile survivalFacilityUtility = SourceBySuffix(
                 "Survival/SurvivalFacilityUtility.cs");
             SourceFile researchWork = SourceBySuffix(
-                "Models/Work/ResearchWorkExecutionHandler.cs");
+                "Infrastructure/ResearchWorkExecutionAdapter.cs");
             SourceFile wildlifeModels = SourceBySuffix(
                 "Wildlife/WildlifeModels.cs");
             SourceFile buildableObject = SourceBySuffix(
@@ -1374,13 +1563,15 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("float GetStatMultiplier(\n        FacilityWorkType legacyWorkType"));
             Assert.That(
                 executionRegistry.Text,
-                Does.Contain("float CalculateWorkPerSecond(\n        CharacterActor actor,\n        BuildableObject target,\n        WorkTypeId workTypeId"));
+                Does.Match(
+                    @"float\s+CalculateWorkPerSecond\s*\(\s*CharacterActor\s+actor\s*,\s*BuildableObject\s+target\s*,\s*WorkTypeId\s+workTypeId\b"));
             Assert.That(
                 executionRegistry.Text,
                 Does.Not.Contain("FacilityWorkType legacyWorkType,\n        float environmentDurationMultiplier"));
             Assert.That(
                 executionRegistry.Text,
-                Does.Contain("bool IsAvailable(\n        WorkTypeId workTypeId"));
+                Does.Match(
+                    @"bool\s+IsAvailable\s*\(\s*WorkTypeId\s+workTypeId\b"));
             Assert.That(
                 executionRegistry.Text,
                 Does.Not.Contain("bool IsAvailable(\n        FacilityWorkType"));
@@ -1389,10 +1580,12 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("provider.IsAvailable(definition.Type"));
             Assert.That(
                 executionRegistry.Text,
-                Does.Contain("float GetAdditionalUrgency(\n        WorkTypeId workTypeId"));
+                Does.Match(
+                    @"float\s+GetAdditionalUrgency\s*\(\s*WorkTypeId\s+workTypeId\b"));
             Assert.That(
                 executionRegistry.Text,
-                Does.Contain("float GetUrgency(\n        WorkTypeId workTypeId"));
+                Does.Match(
+                    @"float\s+GetUrgency\s*\(\s*WorkTypeId\s+workTypeId\b"));
             Assert.That(
                 executionRegistry.Text,
                 Does.Not.Contain("float GetUrgency(\n        FacilityWorkType"));
@@ -1431,18 +1624,21 @@ namespace DungeonStory.Tests.Architecture
                 Does.Match(@"executionHandlers\.TryGet\s*\(\s*workTypeId"));
             Assert.That(
                 executor.Text,
-                Does.Contain("WorkExecutionRules.CalculateWorkPerSecond(\n                    workAmountCalculator,\n                    actor,\n                    target,\n                    workTypeId"));
+                Does.Match(
+                    @"WorkExecutionRules\.CalculateWorkPerSecond\s*\(\s*workAmountCalculator\s*,\s*actor\s*,\s*target\s*,\s*workTypeId\b"));
             Assert.That(
                 workAmount.Text,
-                Does.Contain("bool TryGetOrderFor(BuildableObject target, WorkTypeId workTypeId"));
+                Does.Match(
+                    @"bool\s+TryGetOrderFor\s*\(\s*BuildableObject\s+target\s*,\s*WorkTypeId\s+workTypeId"));
             Assert.That(
                 workAmount.Text,
-                Does.Contain("bool ApplyWork(CharacterActor worker, BuildableObject target, WorkTypeId workTypeId"));
+                Does.Match(
+                    @"bool\s+ApplyWork\s*\(\s*CharacterActor\s+worker\s*,\s*BuildableObject\s+target\s*,\s*WorkTypeId\s+workTypeId"));
             Assert.That(
-                workAmount.Text,
+                workOrderContracts.Text,
                 Does.Contain("public string workTypeId"));
             Assert.That(
-                workAmount.Text,
+                workOrderContracts.Text,
                 Does.Contain("public WorkTypeId WorkTypeId { get; set; }"));
             Assert.That(
                 workAmount.Text,
@@ -1467,7 +1663,8 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("workOrderRuntime.TryGetOrderFor(assignedTarget, workTypeId"));
             Assert.That(
                 executor.Text,
-                Does.Contain("workOrderRuntime.ApplyWork(\n                    actor,\n                    target,\n                    workTypeId"));
+                Does.Match(
+                    @"workOrderRuntime\.ApplyWork\s*\(\s*actor\s*,\s*target\s*,\s*workTypeId\b"));
             Assert.That(
                 executor.Text,
                 Does.Not.Contain("workOrderRuntime.ApplyWork(\n                    actor,\n                    target,\n                    workType,"));
@@ -1479,7 +1676,8 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("TryGetOrderFor(this, FacilityWorkType.Construct"));
             Assert.That(
                 buildingSummaryFormatter.Text,
-                Does.Contain("TryGetOrderFor(site, BuiltInWorkTypeIds.Construct"));
+                Does.Match(
+                    @"workOrderSummaryQuery\.TryGetOrder\s*\(\s*site\s*,\s*BuiltInWorkTypeIds\.Construct"));
             Assert.That(
                 buildingSummaryFormatter.Text,
                 Does.Not.Contain("TryGetOrderFor(site, FacilityWorkType.Construct"));
@@ -1517,11 +1715,14 @@ namespace DungeonStory.Tests.Architecture
                 buildingAbility.Text,
                 Does.Not.Contain("SupportsExteriorWork(FacilityWorkType"));
             Assert.That(
-                codexFormatter.Text,
+                codexDomainFormatter.Text,
                 Does.Contain("public static string FormatWorkTypes(IEnumerable<WorkTypeId> workTypeIds)"));
             Assert.That(
-                codexFormatter.Text,
+                codexDomainFormatter.Text,
                 Does.Not.Contain("public static string FormatWorkTypes(FacilityWorkType"));
+            Assert.That(
+                codexFormatter.Text,
+                Does.Not.Contain("FacilityWorkType"));
             Assert.That(
                 buildingAbilityAccessors.Text,
                 Does.Contain("GetRequiredWork(this BuildingSO building, WorkTypeId workTypeId"));
@@ -1542,10 +1743,12 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("public FacilityWorkType WorkType { get; }"));
             Assert.That(
                 buildingAbilityHandlers.Text,
-                Does.Contain("public BuildingAbilityWorkContext(\n        CharacterActor actor,\n        BuildableObject building,\n        WorkTypeId workTypeId"));
+                Does.Match(
+                    @"public\s+BuildingAbilityWorkContext\s*\(\s*IBuildingVisitorPort\s+actor\s*,\s*BuildableObject\s+building\s*,\s*WorkTypeId\s+workTypeId"));
             Assert.That(
                 buildingAbilityHandlers.Text,
-                Does.Not.Contain("public BuildingAbilityWorkContext(\n        CharacterActor actor,\n        BuildableObject building,\n        FacilityWorkType"));
+                Does.Not.Match(
+                    @"public\s+BuildingAbilityWorkContext\s*\([^)]*FacilityWorkType"));
             Assert.That(
                 buildingAbilityHandlers.Text,
                 Does.Not.Contain("int ApplyWorkCompleted(\n        CharacterActor actor,\n        BuildableObject building,\n        FacilityWorkType"));
@@ -1563,13 +1766,15 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("public bool SupportsWork(FacilityWorkType"));
             Assert.That(
                 buildableObject.Text,
-                Does.Contain("public bool CanAssignWork(WorkTypeId workTypeId"));
+                Does.Match(
+                    @"public\s+bool\s+CanAssignWork\s*\(\s*WorkTypeId\s+workTypeId"));
             Assert.That(
                 buildableObject.Text,
                 Does.Not.Contain("public bool CanAssignWork(FacilityWorkType"));
             Assert.That(
                 buildableObject.Text,
-                Does.Contain("public FacilityAssignmentStatus GetWorkAssignmentStatus(WorkTypeId workTypeId)"));
+                Does.Match(
+                    @"public\s+FacilityAssignmentStatus\s+GetWorkAssignmentStatus\s*\(\s*WorkTypeId\s+workTypeId\s*\)"));
             Assert.That(
                 buildableObject.Text,
                 Does.Not.Contain("public FacilityAssignmentStatus GetWorkAssignmentStatus(FacilityWorkType"));
@@ -1638,13 +1843,15 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("building.GetRequiredWork(BuiltInWorkTypeIds.Construct"));
             Assert.That(
                 repairWork.Text,
-                Does.Contain("GetRequiredWork(BuiltInWorkTypeIds.Repair"));
+                Does.Match(
+                    @"GetRequiredWork\s*\(\s*BuiltInWorkTypeIds\.Repair\s*\)"));
             Assert.That(
                 cleanWork.Text,
                 Does.Contain("GetRequiredWork(BuiltInWorkTypeIds.Clean"));
             Assert.That(
                 researchWork.Text,
-                Does.Contain("GetRequiredWork(BuiltInWorkTypeIds.Research"));
+                Does.Match(
+                    @"GetRequiredWork\s*\(\s*BuiltInWorkTypeIds\.Research\s*\)"));
             Assert.That(
                 executor.Text,
                 Does.Contain("GetWorkEnvironmentDurationMultiplier(BuiltInWorkTypeIds.Restock"));
@@ -1719,7 +1926,8 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("BeginRoutineWorkCooldown(WorkTypeId workTypeId)"));
             Assert.That(
                 abilityWork.Text,
-                Does.Contain("TryGetBestWorkCandidate(\n        WorkTypeId requestedWorkTypeId"));
+                Does.Match(
+                    @"TryGetBestWorkCandidate\s*\(\s*WorkTypeId\s+requestedWorkTypeId\b"));
             Assert.That(
                 abilityWork.Text,
                 Does.Not.Contain("public bool TryGetBestWorkCandidate(\n        FacilityWorkType"));
@@ -1755,25 +1963,29 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("public void StartAnyWork(BuildableObject preferredTarget = null)"));
             Assert.That(
                 abilityWork.Text,
-                Does.Contain("public void StartWorking(\n        WorkTypeId requestedWorkTypeId"));
+                Does.Match(
+                    @"public\s+void\s+StartWorking\s*\(\s*WorkTypeId\s+requestedWorkTypeId\b"));
             Assert.That(
                 abilityWork.Text,
                 Does.Not.Contain("public void StartWorking(\n        FacilityWorkType"));
             Assert.That(
                 abilityWork.Text,
-                Does.Contain("public bool TryAssignWorkTarget(\n        BuildableObject target,\n        WorkTypeId requestedWorkTypeId"));
+                Does.Match(
+                    @"public\s+bool\s+TryAssignWorkTarget\s*\(\s*BuildableObject\s+target\s*,\s*WorkTypeId\s+requestedWorkTypeId\b"));
             Assert.That(
                 abilityWork.Text,
                 Does.Not.Contain("public bool TryAssignWorkTarget(\n        BuildableObject target,\n        FacilityWorkType"));
             Assert.That(
                 abilityWork.Text,
-                Does.Contain("public bool TrySetPriorityWorkTarget(\n        BuildableObject building,\n        WorkTypeId preferredWorkTypeId"));
+                Does.Match(
+                    @"public\s+bool\s+TrySetPriorityWorkTarget\s*\(\s*BuildableObject\s+building\s*,\s*WorkTypeId\s+preferredWorkTypeId\b"));
             Assert.That(
                 abilityWork.Text,
                 Does.Not.Contain("public bool TrySetPriorityWorkTarget(\n        BuildableObject building,\n        FacilityWorkType"));
             Assert.That(
                 workCommandHandler.Text,
-                Does.Contain("public bool TrySetPriorityWorkTarget(\n        BuildableObject building,\n        WorkTypeId preferredWorkTypeId"));
+                Does.Match(
+                    @"public\s+bool\s+TrySetPriorityWorkTarget\s*\(\s*BuildableObject\s+building\s*,\s*WorkTypeId\s+preferredWorkTypeId\b"));
             Assert.That(
                 workCommandHandler.Text,
                 Does.Not.Contain("public bool TrySetPriorityWorkTarget(\n        BuildableObject building,\n        FacilityWorkType"));
@@ -1782,19 +1994,22 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("TryAssignAnyWork(GridPathSearchResult searchResult"));
             Assert.That(
                 workTargetSelector.Text,
-                Does.Contain("TryAssignWork(\n        GridPathSearchResult searchResult,\n        WorkTypeId requestedWorkTypeId"));
+                Does.Match(
+                    @"TryAssignWork\s*\(\s*GridPathSearchResult\s+searchResult\s*,\s*WorkTypeId\s+requestedWorkTypeId\b"));
             Assert.That(
                 workTargetSelector.Text,
                 Does.Not.Contain("public bool TryAssignWork(\n        GridPathSearchResult searchResult = null,\n        FacilityWorkType"));
             Assert.That(
                 workTargetSelector.Text,
-                Does.Contain("HasUrgentAvailableWork(\n        GridPathSearchResult searchResult,\n        WorkTypeId requestedWorkTypeId"));
+                Does.Match(
+                    @"HasUrgentAvailableWork\s*\(\s*GridPathSearchResult\s+searchResult\s*,\s*WorkTypeId\s+requestedWorkTypeId\b"));
             Assert.That(
                 workTargetSelector.Text,
                 Does.Not.Contain("public bool HasUrgentAvailableWork(\n        GridPathSearchResult searchResult,\n        FacilityWorkType"));
             Assert.That(
                 workTargetSelector.Text,
-                Does.Contain("TryGetBestCandidate(\n        WorkTypeId requestedWorkTypeId"));
+                Does.Match(
+                    @"TryGetBestCandidate\s*\(\s*WorkTypeId\s+requestedWorkTypeId\b"));
             Assert.That(
                 workTargetSelector.Text,
                 Does.Not.Contain("public bool TryGetBestCandidate(\n        FacilityWorkType"));
@@ -1824,7 +2039,7 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("public FacilityWorkType WorkType"));
             Assert.That(
                 aiWorkAction.Text,
-                Does.Contain("work.GetAnyWorkUtilityScore(searchResult"));
+                Does.Match(@"work\.GetAnyWorkUtilityScore\s*\("));
             Assert.That(
                 aiWorkAction.Text,
                 Does.Not.Contain("work.GetWorkUtilityScore(FacilityWorkType.None"));
@@ -1833,7 +2048,7 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("work.CanStartWorkAction(workTypeId"));
             Assert.That(
                 aiWorkAction.Text,
-                Does.Contain("work.CanStartAnyWorkAction(searchResult"));
+                Does.Match(@"work\.CanStartAnyWorkAction\s*\("));
             Assert.That(
                 aiWorkAction.Text,
                 Does.Not.Contain("work.CanStartWorkAction(FacilityWorkType.None"));
@@ -1848,13 +2063,13 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("work.TryGetBestWorkCandidate(FacilityWorkType.None"));
             Assert.That(
                 aiWaitAction.Text,
-                Does.Contain("work.GetAnyWorkUtilityScore(searchResult"));
+                Does.Match(@"work\.GetAnyWorkUtilityScore\s*\("));
             Assert.That(
                 aiWaitAction.Text,
                 Does.Not.Contain("work.GetWorkUtilityScore(FacilityWorkType.None"));
             Assert.That(
                 considerationWorkNeed.Text,
-                Does.Contain("work.GetAnyWorkUtilityScore(searchResult"));
+                Does.Match(@"work\.GetAnyWorkUtilityScore\s*\("));
             Assert.That(
                 considerationWorkNeed.Text,
                 Does.Contain("public WorkTypeId WorkTypeId"));
@@ -1869,7 +2084,8 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("work.CanStartWorkAction(requestedWorkTypeId"));
             Assert.That(
                 workforceReplan.Text,
-                Does.Contain("work.TryGetBestWorkCandidate(requestedWorkTypeId"));
+                Does.Match(
+                    @"work\.TryGetBestWorkCandidate\s*\(\s*requestedWorkTypeId\b"));
             Assert.That(
                 workforceReplan.Text,
                 Does.Not.Contain("work.CanStartWorkAction(workType"));
@@ -1904,7 +2120,8 @@ namespace DungeonStory.Tests.Architecture
             Assert.That(aiMemory.Text, Does.Contain("public string workTypeId"));
             Assert.That(
                 aiMemory.Text,
-                Does.Contain("public void RecordWork(\n        WorkTypeId workTypeId"));
+                Does.Match(
+                    @"public\s+void\s+RecordWork\s*\(\s*WorkTypeId\s+workTypeId\b"));
             Assert.That(
                 aiMemory.Text,
                 Does.Not.Contain("public FacilityWorkType workType"));
@@ -1913,7 +2130,8 @@ namespace DungeonStory.Tests.Architecture
                 Does.Not.Contain("public void RecordWork(\n        FacilityWorkType"));
             Assert.That(
                 characterActivity.Text,
-                Does.Contain("public static CharacterActivityEvent Work(\n        WorkTypeId workTypeId"));
+                Does.Match(
+                    @"public\s+static\s+CharacterActivityEvent\s+Work\s*\(\s*WorkTypeId\s+workTypeId\b"));
             Assert.That(
                 characterActivity.Text,
                 Does.Not.Contain("public static CharacterActivityEvent Work(\n        FacilityWorkType"));
@@ -2015,7 +2233,8 @@ namespace DungeonStory.Tests.Architecture
                 Does.Contain("assignedWorkTypeId"));
             Assert.That(
                 workforceReplan.Text,
-                Does.Contain("void RequestOneWorkerToReplanFor(WorkTypeId workTypeId"));
+                Does.Match(
+                    @"void\s+RequestOneWorkerToReplanFor\s*\(\s*WorkTypeId\s+workTypeId\b"));
             Assert.That(
                 workforceReplan.Text,
                 Does.Not.Contain("RequestOneWorkerToReplanFor(FacilityWorkType"));
@@ -2089,23 +2308,27 @@ namespace DungeonStory.Tests.Architecture
                 characterSo.Text,
                 Does.Contain("public IEnumerable<WorkTypeId> OwnerPreferredWorkTypeIds"));
             Assert.That(
-                characterModelData.Text,
+                characterAuthoredModel.Text,
                 Does.Not.Contain("public FacilityWorkType preferredWorkTypes"));
             Assert.That(
-                characterModelData.Text,
+                characterAuthoredModel.Text,
                 Does.Not.Contain("public FacilityWorkType dislikedWorkTypes"));
             Assert.That(
-                characterModelData.Text,
-                Does.Contain("public IEnumerable<WorkTypeId> PreferredWorkTypeIds"));
+                characterAuthoredModel.Text,
+                Does.Match(
+                    @"public\s+IEnumerable<WorkTypeId>\s+PreferredWorkTypeIds\b"));
             Assert.That(
-                characterModelData.Text,
-                Does.Contain("public IEnumerable<WorkTypeId> DislikedWorkTypeIds"));
+                characterAuthoredModel.Text,
+                Does.Match(
+                    @"public\s+IEnumerable<WorkTypeId>\s+DislikedWorkTypeIds\b"));
             Assert.That(
                 equipmentCrafting.Text,
-                Does.Contain("GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Craft"));
+                Does.Match(
+                    @"workTypeId\s*!=\s*BuiltInWorkTypeIds\.Craft\b"));
             Assert.That(
                 equipmentCrafting.Text,
-                Does.Not.Contain("GetWorkSpeedMultiplier(FacilityWorkType.Craft"));
+                Does.Not.Match(
+                    @"workTypeId\s*!=\s*FacilityWorkType\.Craft\b"));
             Assert.That(
                 abilityRescue.Text,
                 Does.Contain("GetWorkSpeedMultiplier(BuiltInWorkTypeIds.Treat"));
@@ -2161,14 +2384,20 @@ namespace DungeonStory.Tests.Architecture
                 workTargetSelector.Text,
                 Does.Not.Contain("GetRecentTargetWorkFatigue(building, workType)"));
             Assert.That(
-                workTargetSelector.Text,
+                workTargetEvaluator.Text,
                 Does.Not.Contain("priorities.GetPriority(workType)"));
             Assert.That(
-                workTargetSelector.Text,
-                Does.Contain("priorities.GetPriority(workTypeId)"));
+                workTargetEvaluator.Text,
+                Does.Match(
+                    @"priorities\.GetPriority\s*\(\s*workTypeId\s*\)"));
             Assert.That(
-                workTargetSelector.Text,
-                Does.Contain("workPolicyRegistry.IsAvailable(\n                    workTypeId"));
+                workTargetEvaluator.Text,
+                Does.Match(
+                    @"workPolicyRegistry\.IsAvailable\s*\(\s*workTypeId\b"));
+            Assert.That(
+                workTargetEvaluator.Text,
+                Does.Not.Match(
+                    @"workPolicyRegistry\.IsAvailable\s*\(\s*workType\b"));
             Assert.That(
                 workTargetSelector.Text,
                 Does.Contain("workPolicyRegistry?.GetAdditionalUrgency(workTypeId"));
@@ -3249,26 +3478,41 @@ namespace DungeonStory.Tests.Architecture
                 "Character/AI/AIBrainServices.cs");
             SourceFile lookAround = SourceBySuffix(
                 "Models/AI/Core/AILookAround.cs");
+            SourceFile lookAroundAdapter = SourceBySuffix(
+                "Infrastructure/AI/Actions/AILookAroundAdapter.cs");
             SourceFile wait = SourceBySuffix(
                 "Models/AI/Core/AIWait.cs");
+            SourceFile waitAdapter = SourceBySuffix(
+                "Infrastructure/AI/Actions/AIWaitAdapter.cs");
             SourceFile consideration = SourceBySuffix(
                 "Models/AI/Core/ConsiderationRandom.cs");
+            SourceFile considerationAdapter = SourceBySuffix(
+                "Infrastructure/AI/Considerations/ConsiderationRandomAdapter.cs");
 
             Assert.That(
                 brainServices.Text,
                 Does.Contain(".Get(\"character-ai\")"));
             Assert.That(
-                lookAround.Text,
-                Does.Contain("brain.NextRandomIndex"));
+                lookAroundAdapter.Text,
+                Does.Match(@"\bbrain\.NextRandomIndex\s*\("));
             Assert.That(
                 lookAround.Text,
-                Does.Not.Contain("OrderBy((_) => Random.value)"));
+                Does.Not.Match(@"\b(?:UnityEngine\.)?Random\."));
+            Assert.That(
+                lookAroundAdapter.Text,
+                Does.Not.Match(@"\b(?:UnityEngine\.)?Random\."));
+            Assert.That(
+                waitAdapter.Text,
+                Does.Contain("actor.Brain.NextRandom"));
+            Assert.That(
+                considerationAdapter.Text,
+                Does.Contain("actor.Brain.NextRandom"));
             Assert.That(
                 wait.Text,
-                Does.Contain("actor.Brain.NextRandom"));
+                Does.Not.Match(@"\b(?:UnityEngine\.)?Random\."));
             Assert.That(
                 consideration.Text,
-                Does.Contain("actor.Brain.NextRandom"));
+                Does.Not.Match(@"\b(?:UnityEngine\.)?Random\."));
         }
 
         [Test]
@@ -3912,10 +4156,116 @@ namespace DungeonStory.Tests.Architecture
         [Test]
         public void PlayModePersistenceCaptureFailsClosedAndFinalFacadeOwnsCaptureTiming()
         {
+            Type reportPolicyType = AppDomain.CurrentDomain.GetAssemblies()
+                .Select(assembly => assembly.GetType(
+                    "FinalAcceptanceReportPolicy",
+                    throwOnError: false))
+                .FirstOrDefault(type => type != null);
+            Assert.That(reportPolicyType, Is.Not.Null);
+            System.Reflection.MethodInfo isFreshPassMethod =
+                reportPolicyType.GetMethod(
+                    "IsFreshPass",
+                    System.Reflection.BindingFlags.Static
+                    | System.Reflection.BindingFlags.NonPublic);
+            Assert.That(isFreshPassMethod, Is.Not.Null);
+            Func<string, long, long, bool> isFreshPass =
+                (report, writtenTicks, startedTicks) => (bool)isFreshPassMethod.Invoke(
+                    null,
+                    new object[] { report, writtenTicks, startedTicks });
+
+            const long targetStartedUtcTicks = 100;
+            const long freshReportWrittenUtcTicks = 101;
+            Assert.That(
+                isFreshPass(
+                    "RESULT=PASS",
+                    freshReportWrittenUtcTicks,
+                    targetStartedUtcTicks),
+                Is.True);
+            Assert.That(
+                isFreshPass(
+                    "header\nRESULT=PASS; failures=0\nfooter",
+                    freshReportWrittenUtcTicks,
+                    targetStartedUtcTicks),
+                Is.True);
+            Assert.That(
+                isFreshPass(
+                    "RESULT=PASS",
+                    targetStartedUtcTicks - 1,
+                    targetStartedUtcTicks),
+                Is.False,
+                "A passing declaration from a stale report must fail closed.");
+            Assert.That(
+                isFreshPass(
+                    "No final result was written.",
+                    freshReportWrittenUtcTicks,
+                    targetStartedUtcTicks),
+                Is.False,
+                "A fresh report without a result declaration must fail closed.");
+            Assert.That(
+                isFreshPass(
+                    "RESULT=FAIL; failures=1",
+                    freshReportWrittenUtcTicks,
+                    targetStartedUtcTicks),
+                Is.False);
+            Assert.That(
+                isFreshPass(
+                    "RESULT=PASS\nRESULT=PASS",
+                    freshReportWrittenUtcTicks,
+                    targetStartedUtcTicks),
+                Is.False,
+                "Duplicate result declarations are ambiguous and must fail closed.");
+            Assert.That(
+                isFreshPass(
+                    "RESULT=PASS\nRESULT=FAIL; failures=1",
+                    freshReportWrittenUtcTicks,
+                    targetStartedUtcTicks),
+                Is.False,
+                "Conflicting result declarations must fail closed.");
+            Assert.That(
+                isFreshPass(
+                    "RESULT=PASSENGER",
+                    freshReportWrittenUtcTicks,
+                    targetStartedUtcTicks),
+                Is.False,
+                "Only the exact PASS result token is valid.");
+
             SourceFile snapshot = SourceBySuffixIncludingEditor(
                 "Utils/Editor/PlayModeVerificationPersistenceSnapshot.cs");
             SourceFile facade = SourceBySuffixIncludingEditor(
                 "Editor/DungeonFinalPlayModeAcceptanceRequestFacade.cs");
+            SourceFile fullWorld = SourceBySuffixIncludingEditor(
+                "Infrastructure/Editor/DungeonFullWorldRoundTripPlayModeFacade.cs");
+            SourceFile architectureRunner = SourceByAssetsRelativePath(
+                "Tests/EditMode/ArchitectureTestBatchRunner.cs");
+            SourceFile transactionalRunner = SourceByAssetsRelativePath(
+                "Tests/EditMode/TransactionalRestoreTestRunner.cs");
+            SourceFile synchronousAcceptance = SourceBySuffixIncludingEditor(
+                "Editor/DungeonStoryFinalAcceptanceRunner.cs");
+
+            Assert.That(
+                architectureRunner.Text,
+                Does.Contain("public const int ExpectedTestCount = 131"));
+            Assert.That(
+                architectureRunner.Text,
+                Does.Match(
+                    @"tests\.Length\s*==\s*ExpectedTestCount[\s\S]*?"
+                        + @"passed\s*==\s*ExpectedTestCount"));
+            Assert.That(
+                transactionalRunner.Text,
+                Does.Contain("public const int ExpectedTestCount = 33"));
+            Assert.That(
+                transactionalRunner.Text,
+                Does.Match(
+                    @"startedTestCases\s*==\s*ExpectedTestCount[\s\S]*?"
+                        + @"passed\s*==\s*ExpectedTestCount"));
+            Assert.That(
+                synchronousAcceptance.Text,
+                Does.Contain("public const int ExpectedAcceptanceStepCount = 33"));
+            Assert.That(
+                synchronousAcceptance.Text,
+                Does.Match(
+                    @"steps\.Count\s*==\s*ExpectedAcceptanceStepCount[\s\S]*?"
+                        + @"steps\.All\(step\s*=>\s*step\.Success\)"));
 
             Match captureCurrent = Regex.Match(
                 snapshot.Text,
@@ -3934,6 +4284,15 @@ namespace DungeonStory.Tests.Architecture
                 captureCurrent.Groups["body"].Value,
                 Does.Not.Contain("Restore(id)"),
                 "Capture must never mutate persistence by implicitly restoring an old snapshot.");
+            Assert.That(snapshot.Text, Does.Contain("public List<string> directories"));
+            Assert.That(snapshot.Text, Does.Contain("public string sha256"));
+            Assert.That(snapshot.Text, Does.Contain("ValidateSnapshotManifest"));
+            Assert.That(snapshot.Text, Does.Contain("VerifyRestoredState"));
+            Assert.That(snapshot.Text, Does.Contain("ComputeSha256"));
+            Assert.That(
+                snapshot.Text,
+                Does.Contain("Directory.Delete(persistentRoot, true)"),
+                "Restore must remove extra files, directories, and an originally absent root before rebuilding the exact snapshot.");
 
             Match requestRun = Regex.Match(
                 facade.Text,
@@ -3946,6 +4305,136 @@ namespace DungeonStory.Tests.Architecture
                 requestRun.Groups["body"].Value,
                 Does.Not.Contain("CaptureCurrent"),
                 "The queued request must not create a duplicate persistence snapshot.");
+            string requestBody = requestRun.Groups["body"].Value;
+            int beginConsoleIndex = requestBody.IndexOf(
+                "TryBeginConsoleCapture",
+                StringComparison.Ordinal);
+            int cleanupIndex = requestBody.IndexOf(
+                "CleanupAllKnownMarkers",
+                StringComparison.Ordinal);
+            int preflightIndex = requestBody.IndexOf(
+                "RunSynchronousPreflightForMcp",
+                StringComparison.Ordinal);
+            Assert.That(beginConsoleIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(cleanupIndex, Is.GreaterThan(beginConsoleIndex));
+            Assert.That(preflightIndex, Is.GreaterThan(cleanupIndex));
+            Assert.That(
+                facade.Text,
+                Does.Contain(
+                    "Application.logMessageReceivedThreaded += OnLogMessage"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("Application.logMessageReceived -= OnLogMessage"));
+            Assert.That(
+                facade.Text,
+                Does.Not.Contain("Application.logMessageReceived += OnLogMessage"));
+            Assert.That(facade.Text, Does.Contain("lock (ConsoleIoSync)"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("Interlocked.Increment(ref activeConsoleCallbacks)"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("Interlocked.Decrement(ref activeConsoleCallbacks)"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("ConsoleCallbackDrainTimeoutMilliseconds"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("ReadConsoleEvidence(requireActiveMarker: false)"));
+
+            Match validateTargets = Regex.Match(
+                facade.Text,
+                @"private static string ValidateTargetsAndCaptures\(\)"
+                    + @"(?<body>.*?)"
+                    + @"private static void EnsureSceneCanOpenWithoutPrompt",
+                RegexOptions.Singleline);
+            Assert.That(validateTargets.Success, Is.True);
+            string targetContract = validateTargets.Groups["body"].Value;
+            Assert.That(
+                targetContract,
+                Does.Match(@"Targets\.Length\s*!=\s*expected\.Count"));
+            Assert.That(
+                targetContract,
+                Does.Contain("if (totalCaptures != 30)"));
+            Assert.That(targetContract, Does.Contain("target.CaptureArtifacts"));
+            Assert.That(targetContract, Does.Contain("capture.Width == 1600"));
+            Assert.That(targetContract, Does.Contain("capture.Height == 1600"));
+            string[] expectedTargetNames =
+            {
+                "ResolutionMatrix",
+                "FullWorldRoundTrip",
+                "ResearchTree",
+                "Production",
+                "ServiceRoom",
+                "CharacterSummaryMedical",
+                "EquipmentExpeditionUiMatrix"
+            };
+            foreach (string targetName in expectedTargetNames)
+            {
+                Assert.That(
+                    targetContract,
+                    Does.Contain("{ \"" + targetName + "\", new[]"),
+                    targetName);
+            }
+            Assert.That(facade.Text, Does.Contain("AreFreshPngArtifacts"));
+            Assert.That(facade.Text, Does.Contain("TryReadPngDimensions"));
+            Assert.That(facade.Text, Does.Contain("IHDR chunk"));
+            Assert.That(facade.Text, Does.Contain("wrongDimensions="));
+            foreach (string fullWorldMarker in new[]
+                     {
+                         "registeredSections=54",
+                         "capturedSections=54",
+                         "postRoundTripSections=54",
+                         "baselineRestored=True",
+                         "canonicalBaselineMatched=True"
+                     })
+            {
+                Assert.That(facade.Text, Does.Contain(fullWorldMarker));
+            }
+            Assert.That(
+                facade.Text,
+                Does.Contain("reportLines.Contains(marker)"),
+                "Required report markers must match complete lines rather than substrings.");
+            Assert.That(
+                fullWorld.Text,
+                Does.Contain("\"postRoundTripSections=\" + postRoundTripSections"));
+            Assert.That(
+                facade.Text,
+                Does.Contain(
+                    "Artifacts/QA/final-playmode-acceptance-preflight-report.txt"));
+            Assert.That(facade.Text, Does.Contain("consoleCaptureHealthy="));
+            Assert.That(facade.Text, Does.Contain("consoleWarnings="));
+            Assert.That(facade.Text, Does.Contain("consoleErrors="));
+            Assert.That(facade.Text, Does.Contain("consoleExceptions="));
+            Assert.That(facade.Text, Does.Contain("consoleAsserts="));
+            Assert.That(facade.Text, Does.Contain("offendingLogPreview:"));
+            Assert.That(
+                facade.Text,
+                Does.Contain("ValidateCompletedTargetProgress(progress"));
+            Assert.That(facade.Text, Does.Contain("targetCount="));
+            Assert.That(facade.Text, Does.Contain("captureCount="));
+            Assert.That(facade.Text, Does.Contain("completedTargetCount="));
+
+            Match completeFinish = Regex.Match(
+                facade.Text,
+                @"private static void CompleteFinish\("
+                    + @"(?<body>.*?)"
+                    + @"private static void CleanupAllKnownMarkers",
+                RegexOptions.Singleline);
+            Assert.That(completeFinish.Success, Is.True);
+            string finishBody = completeFinish.Groups["body"].Value;
+            int endConsoleIndex = finishBody.IndexOf(
+                "TryEndConsoleCapture",
+                StringComparison.Ordinal);
+            int reportWriteIndex = finishBody.IndexOf(
+                "File.WriteAllText(ReportPath",
+                StringComparison.Ordinal);
+            int summaryLogIndex = finishBody.IndexOf(
+                "Debug.Log(summary)",
+                StringComparison.Ordinal);
+            Assert.That(endConsoleIndex, Is.GreaterThanOrEqualTo(0));
+            Assert.That(reportWriteIndex, Is.GreaterThan(endConsoleIndex));
+            Assert.That(summaryLogIndex, Is.GreaterThan(reportWriteIndex));
 
             Match startTarget = Regex.Match(
                 facade.Text,
@@ -4077,6 +4566,15 @@ namespace DungeonStory.Tests.Architecture
                 .Single(source => source.RelativePath.EndsWith(
                     suffix,
                     StringComparison.Ordinal));
+        }
+
+        private static SourceFile SourceByAssetsRelativePath(string relativePath)
+        {
+            string assetsRoot = Path.GetFullPath(Application.dataPath);
+            string path = Path.GetFullPath(Path.Combine(
+                assetsRoot,
+                relativePath.Replace('/', Path.DirectorySeparatorChar)));
+            return new SourceFile(assetsRoot, path);
         }
 
         private static IReadOnlyList<SourceFile> ProductSources()

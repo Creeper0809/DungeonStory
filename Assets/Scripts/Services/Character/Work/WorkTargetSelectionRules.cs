@@ -3,11 +3,11 @@ using UnityEngine;
 
 internal static class WorkTargetSelectionRules
 {
-    public static CharacterAiIntentionType GetIntention(FacilityWorkType workType)
+    public static CharacterAiIntentionType GetIntention(WorkTypeId workTypeId)
     {
-        return workType == FacilityWorkType.Rescue
-            || workType == FacilityWorkType.Haul
-            || workType == FacilityWorkType.Restock
+        return workTypeId == BuiltInWorkTypeIds.Rescue
+            || workTypeId == BuiltInWorkTypeIds.Haul
+            || workTypeId == BuiltInWorkTypeIds.Restock
                 ? CharacterAiIntentionType.Survive
                 : CharacterAiIntentionType.Work;
     }

@@ -28,6 +28,40 @@ public sealed class RegularCustomerSaveSection :
     protected override DungeonRegularCustomerSaveData CapturePayload() =>
         persistence.CaptureState();
 
+    protected override void NormalizeRestorePayload(
+        DungeonRegularCustomerSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload?.records == null)
+        {
+            return;
+        }
+
+        bool changed = false;
+        for (int index = 0; index < payload.records.Count; index++)
+        {
+            DungeonRegularCustomerRecordSaveData record = payload.records[index];
+            if (record != null)
+            {
+                string previous = record.customerId;
+                record.customerId = NormalizeV18CharacterReference(
+                    previous,
+                    report,
+                    $"records[{index}].customerId");
+                changed |= !string.Equals(
+                    previous,
+                    record.customerId,
+                    StringComparison.Ordinal);
+            }
+        }
+        if (changed)
+        {
+            payload.records.Sort((left, right) => string.CompareOrdinal(
+                left?.customerId,
+                right?.customerId));
+        }
+    }
+
     protected override void ValidateRawPayload(string payloadJson) =>
         RequireTopLevelArrayFields(payloadJson, "records");
 

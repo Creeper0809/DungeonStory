@@ -35,6 +35,13 @@ public sealed class ServiceRoomsSaveSection :
     protected override ServiceRoomsSaveData CapturePayload() =>
         runtime.Capture();
 
+    protected override void NormalizeRestorePayload(
+        ServiceRoomsSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18WorkProductionCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override void ValidateParsedPayload(ServiceRoomsSaveData payload)
     {
         ValidatePayloadOrThrow(payload);

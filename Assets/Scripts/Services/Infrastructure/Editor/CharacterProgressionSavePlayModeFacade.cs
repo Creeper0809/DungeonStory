@@ -8,8 +8,9 @@ using VContainer;
 
 public static class CharacterProgressionSavePlayModeFacade
 {
-    private const string StaffWorkRoundTripId =
-        "staff:character-world-work-round-trip";
+    private const string LegacyStaffWorkRoundTripId = "staff:24680:01";
+    private const string CanonicalStaffWorkRoundTripId =
+        "character:staff:24680:01";
 
     [MenuItem("DungeonStory/Debug/Character/Run Progression Save Round Trip")]
     public static void RunFromMenu()
@@ -46,6 +47,8 @@ public static class CharacterProgressionSavePlayModeFacade
             return false;
         }
 
+        scope.Container.Resolve<ICharacterBodyHealthQuery>()
+            .GetSnapshot(ownerManager.CurrentOwnerActor);
         DungeonGameSaveData baseline = saveService.Capture();
         try
         {
@@ -117,7 +120,7 @@ public static class CharacterProgressionSavePlayModeFacade
             DungeonCharacterSaveData staffContract =
                 JsonUtility.FromJson<DungeonCharacterSaveData>(
                     JsonUtility.ToJson(savedOwner));
-            staffContract.persistentId = StaffWorkRoundTripId;
+            staffContract.persistentId = LegacyStaffWorkRoundTripId;
             staffContract.dataId = staffData.id;
             staffContract.isOwner = false;
             staffContract.displayName = "Character World Work Round Trip";
@@ -140,7 +143,64 @@ public static class CharacterProgressionSavePlayModeFacade
                 DungeonSaveRestorePhase.Characters,
                 savedCharacters);
 
+            DungeonCharacterBodyHealthSaveData bodyHealth =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterBodyHealthSaveData>(
+                    captured,
+                    CharacterBodyHealthSaveSection.Id);
+            CharacterBodyHealthState ownerBodyHealth = bodyHealth.characters
+                .FirstOrDefault(state => state != null
+                    && string.Equals(
+                        state.characterId,
+                        savedOwner.persistentId,
+                        StringComparison.Ordinal));
+            if (ownerBodyHealth == null)
+            {
+                message = "Legacy V18 integration fixture requires captured owner body-health state.";
+                return false;
+            }
+            CharacterBodyHealthState staffBodyHealth =
+                JsonUtility.FromJson<CharacterBodyHealthState>(
+                    JsonUtility.ToJson(ownerBodyHealth));
+            staffBodyHealth.characterId = LegacyStaffWorkRoundTripId;
+            bodyHealth.characters.Add(staffBodyHealth);
+            bodyHealth.characters = bodyHealth.characters
+                .OrderBy(
+                    state => ReferenceEquals(state, staffBodyHealth)
+                        ? CanonicalStaffWorkRoundTripId
+                        : state?.characterId,
+                    StringComparer.Ordinal)
+                .ToList();
+            DungeonSaveSectionPayload.Write(
+                captured,
+                CharacterBodyHealthSaveSection.Id,
+                DungeonCharacterBodyHealthSaveData.CurrentVersion,
+                DungeonSaveRestorePhase.RuntimeState,
+                bodyHealth);
+
+            ICharacterWorldSaveService directWorldSave =
+                scope.Container.Resolve<ICharacterWorldSaveService>();
+            IGridSystemProvider directGridProvider =
+                scope.Container.Resolve<IGridSystemProvider>();
+            if (!directGridProvider.TryGetGrid(out Grid directGrid))
+            {
+                message = "Legacy V18 input mutation fixture has no live grid.";
+                return false;
+            }
+            string characterPayloadBeforePrepare = JsonUtility.ToJson(savedCharacters);
+            CharacterWorldRestoreCandidate inputMutationCandidate =
+                directWorldSave.PrepareRestoreCandidate(directGrid, savedCharacters);
+            inputMutationCandidate.Discard();
+            if (!string.Equals(
+                    characterPayloadBeforePrepare,
+                    JsonUtility.ToJson(savedCharacters),
+                    StringComparison.Ordinal))
+            {
+                message = "Character-world candidate preparation mutated its legacy input DTO.";
+                return false;
+            }
+
             DungeonGameSaveData parsed = saveService.FromJson(saveService.ToJson(captured, prettyPrint: true));
+            string parsedInputJson = saveService.ToJson(parsed, prettyPrint: false);
             DungeonGameSaveData incompatible = saveService.FromJson(saveService.ToJson(captured));
             incompatible.version = DungeonGameSaveData.CurrentVersion - 1;
             if (saveService.TryRestore(incompatible, out DungeonGameRestoreReport incompatibleReport)
@@ -157,6 +217,30 @@ public static class CharacterProgressionSavePlayModeFacade
             if (!saveService.TryRestore(parsed, out DungeonGameRestoreReport report))
             {
                 message = "Progression game-save restore failed: " + string.Join(" | ", report.Errors);
+                return false;
+            }
+            if (!string.Equals(
+                    parsedInputJson,
+                    saveService.ToJson(parsed, prettyPrint: false),
+                    StringComparison.Ordinal))
+            {
+                message = "Full legacy V18 restore mutated the input save DTO graph.";
+                return false;
+            }
+            if (!report.Warnings.Any(warning => warning.Contains(
+                    "characters.world",
+                    StringComparison.Ordinal)
+                    && warning.Contains(
+                        $"'{LegacyStaffWorkRoundTripId}' -> '{CanonicalStaffWorkRoundTripId}'",
+                        StringComparison.Ordinal))
+                || !report.Warnings.Any(warning => warning.Contains(
+                    CharacterBodyHealthSaveSection.Id,
+                    StringComparison.Ordinal)
+                    && warning.Contains(
+                        $"'{LegacyStaffWorkRoundTripId}' -> '{CanonicalStaffWorkRoundTripId}'",
+                        StringComparison.Ordinal)))
+            {
+                message = "Legacy V18 restore did not report exact source-to-canonical mappings.";
                 return false;
             }
 
@@ -183,10 +267,37 @@ public static class CharacterProgressionSavePlayModeFacade
             ICharacterWorldSaveService worldSave =
                 scope.Container.Resolve<ICharacterWorldSaveService>();
             if (!worldSave.TryGetRestoredActor(
-                    StaffWorkRoundTripId,
-                    out CharacterActor restoredStaff))
+                    LegacyStaffWorkRoundTripId,
+                    out CharacterActor restoredStaff)
+                || !worldSave.TryGetRestoredActor(
+                    CanonicalStaffWorkRoundTripId,
+                    out CharacterActor restoredStaffByCanonicalId)
+                || !ReferenceEquals(restoredStaff, restoredStaffByCanonicalId))
             {
-                message = "Restored staff work-state contract actor is missing.";
+                message = "Restored legacy staff actor is not available through both legacy and canonical lookup.";
+                return false;
+            }
+
+            if (!string.Equals(
+                    restoredStaff.Identity?.PersistentId,
+                    CanonicalStaffWorkRoundTripId,
+                    StringComparison.Ordinal))
+            {
+                message = "Legacy V18 staff restore did not assign a canonical CharacterId to the actor.";
+                return false;
+            }
+
+            DungeonCharacterWorldSaveData parsedCharactersAfterRestore =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
+                    parsed,
+                    CharacterWorldSaveSection.Id);
+            if (!parsedCharactersAfterRestore.actors.Any(actor => actor != null
+                    && string.Equals(
+                        actor.persistentId,
+                        LegacyStaffWorkRoundTripId,
+                        StringComparison.Ordinal)))
+            {
+                message = "Legacy V18 restore mutated its input save payload.";
                 return false;
             }
 
@@ -208,7 +319,7 @@ public static class CharacterProgressionSavePlayModeFacade
                     .SingleOrDefault(actor => actor != null
                         && string.Equals(
                             actor.persistentId,
-                            StaffWorkRoundTripId,
+                            CanonicalStaffWorkRoundTripId,
                             StringComparison.Ordinal));
             if (recapturedStaff == null
                 || recapturedStaff.dutyState != AbilityWork.DutyState.OffDuty
@@ -224,7 +335,26 @@ public static class CharacterProgressionSavePlayModeFacade
                 return false;
             }
 
-            message = $"CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.{restored.Level} XP={restored.CurrentExperience} active={restored.ActiveSkills.Count} passive={restored.PassiveSkills.Count} staffWorkRoundTrip=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true legacyRejected=true warnings={report.Warnings.Count}";
+            DungeonCharacterBodyHealthSaveData recapturedBodyHealth =
+                DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterBodyHealthSaveData>(
+                    saveService.Capture(),
+                    CharacterBodyHealthSaveSection.Id);
+            if (!recapturedBodyHealth.characters.Any(state => state != null
+                    && string.Equals(
+                        state.characterId,
+                        CanonicalStaffWorkRoundTripId,
+                        StringComparison.Ordinal))
+                || recapturedBodyHealth.characters.Any(state => state != null
+                    && string.Equals(
+                        state.characterId,
+                        LegacyStaffWorkRoundTripId,
+                        StringComparison.Ordinal)))
+            {
+                message = "Legacy staff body-health state was not canonical after recapture.";
+                return false;
+            }
+
+            message = $"CHARACTER_WORLD_V18_CONTRACTS_PASSED Lv.{restored.Level} XP={restored.CurrentExperience} active={restored.ActiveSkills.Count} passive={restored.PassiveSkills.Count} staffWorkRoundTrip=true legacyNormalized=true inputUnchanged=true directRejected=true ownerlessRejected=true invalidCellRejected=true rollbackFreeLateFailure=true preV18Rejected=true warnings={report.Warnings.Count}";
             return true;
         }
         finally
@@ -307,6 +437,17 @@ public static class CharacterProgressionSavePlayModeFacade
             return false;
         }
 
+        if (!RejectsLegacyCanonicalCollision(
+                saveService,
+                ownerProvider,
+                liveOwner,
+                baseline,
+                candidates,
+                out failure))
+        {
+            return false;
+        }
+
         DungeonGameSaveData ownerless = saveService.FromJson(
             saveService.ToJson(baseline));
         DungeonCharacterWorldSaveData ownerlessCharacters =
@@ -320,14 +461,30 @@ public static class CharacterProgressionSavePlayModeFacade
             1,
             DungeonSaveRestorePhase.Characters,
             ownerlessCharacters);
-        if (saveService.TryRestore(ownerless, out DungeonGameRestoreReport ownerlessReport)
-            || !ownerlessReport.Errors.Any(error => error.Contains(
-                "exactly one owner actor",
-                StringComparison.Ordinal))
-            || !OwnerIsUnchanged(ownerProvider, liveOwner)
-            || candidates.TryGetCharacters(out _))
+        bool ownerlessRestored = saveService.TryRestore(
+            ownerless,
+            out DungeonGameRestoreReport ownerlessReport);
+        bool identifiedOwnerless = ownerlessReport.Errors.Any(error =>
+            error.Contains("owner", StringComparison.OrdinalIgnoreCase)
+            && (error.Contains("missing", StringComparison.OrdinalIgnoreCase)
+                || error.Contains(
+                    "exactly one owner actor",
+                    StringComparison.Ordinal)));
+        bool ownerlessOwnerUnchanged = OwnerIsUnchanged(
+            ownerProvider,
+            liveOwner);
+        bool ownerlessStagedCharacters = candidates.TryGetCharacters(out _);
+        if (ownerlessRestored
+            || !identifiedOwnerless
+            || !ownerlessOwnerUnchanged
+            || ownerlessStagedCharacters)
         {
-            failure = "Ownerless character payload did not fail atomically.";
+            failure =
+                "Ownerless character payload did not fail atomically. "
+                + $"restored={ownerlessRestored}, identifiedOwnerless={identifiedOwnerless}, "
+                + $"ownerUnchanged={ownerlessOwnerUnchanged}, "
+                + $"stagedCharacters={ownerlessStagedCharacters}, "
+                + $"errors={string.Join(" | ", ownerlessReport.Errors)}";
             return false;
         }
 
@@ -400,16 +557,83 @@ public static class CharacterProgressionSavePlayModeFacade
             DungeonSaveRestorePhase.Characters,
             characters);
 
-        if (saveService.TryRestore(
-                invalidSave,
-                out DungeonGameRestoreReport report)
-            || !report.Errors.Any(error => error.Contains(
-                "no valid persistent ID",
-                StringComparison.Ordinal))
-            || !OwnerIsUnchanged(ownerProvider, liveOwner)
-            || candidates.TryGetCharacters(out _))
+        bool restored = saveService.TryRestore(
+            invalidSave,
+            out DungeonGameRestoreReport report);
+        bool identifiesInvalidValue = report.Errors.Any(error =>
+            error.Contains(invalidId, StringComparison.Ordinal));
+        bool ownerUnchanged = OwnerIsUnchanged(ownerProvider, liveOwner);
+        bool stagedCharacters = candidates.TryGetCharacters(out _);
+        if (restored
+            || !identifiesInvalidValue
+            || !ownerUnchanged
+            || stagedCharacters)
         {
-            failure = $"Character world accepted a {label} CharacterId '{invalidId}'.";
+            failure =
+                $"Character world did not atomically reject the {label} CharacterId '{invalidId}'. "
+                + $"restored={restored}, identifiedInvalidValue={identifiesInvalidValue}, "
+                + $"ownerUnchanged={ownerUnchanged}, stagedCharacters={stagedCharacters}, "
+                + $"errors={string.Join(" | ", report.Errors)}";
+            return false;
+        }
+
+        failure = string.Empty;
+        return true;
+    }
+
+    private static bool RejectsLegacyCanonicalCollision(
+        IDungeonGameSaveService saveService,
+        IOwnerRunManagerProvider ownerProvider,
+        CharacterActor liveOwner,
+        DungeonGameSaveData baseline,
+        IRestoreWorldCandidateQuery candidates,
+        out string failure)
+    {
+        const string legacyId = "staff:13579:01";
+        const string canonicalId = "character:staff:13579:01";
+        DungeonGameSaveData collision = saveService.FromJson(
+            saveService.ToJson(baseline));
+        DungeonCharacterWorldSaveData characters =
+            DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
+                collision,
+                CharacterWorldSaveSection.Id);
+        DungeonCharacterSaveData owner = characters.actors
+            .Single(actor => actor != null && actor.isOwner);
+        DungeonCharacterSaveData legacy = JsonUtility.FromJson<DungeonCharacterSaveData>(
+            JsonUtility.ToJson(owner));
+        legacy.isOwner = false;
+        legacy.persistentId = legacyId;
+        DungeonCharacterSaveData canonical = JsonUtility.FromJson<DungeonCharacterSaveData>(
+            JsonUtility.ToJson(owner));
+        canonical.isOwner = false;
+        canonical.persistentId = canonicalId;
+        characters.actors.Add(legacy);
+        characters.actors.Add(canonical);
+        DungeonSaveSectionPayload.Write(
+            collision,
+            CharacterWorldSaveSection.Id,
+            1,
+            DungeonSaveRestorePhase.Characters,
+            characters);
+
+        bool restored = saveService.TryRestore(
+            collision,
+            out DungeonGameRestoreReport report);
+        bool identifiedCollision = report.Errors.Any(error =>
+            error.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
+            && error.Contains(canonicalId, StringComparison.Ordinal));
+        bool ownerUnchanged = OwnerIsUnchanged(ownerProvider, liveOwner);
+        bool stagedCharacters = candidates.TryGetCharacters(out _);
+        if (restored
+            || !identifiedCollision
+            || !ownerUnchanged
+            || stagedCharacters)
+        {
+            failure =
+                "Legacy/canonical CharacterId collision did not fail atomically. "
+                + $"restored={restored}, identifiedCollision={identifiedCollision}, "
+                + $"ownerUnchanged={ownerUnchanged}, stagedCharacters={stagedCharacters}, "
+                + $"errors={string.Join(" | ", report.Errors)}";
             return false;
         }
 

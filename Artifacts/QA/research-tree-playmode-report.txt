@@ -1,14 +1,31 @@
+POINTER_OwnerOption_1001=PASS; OwnerOption_1001
+POINTER_DISPATCH=PASS; target=OwnerOption_1001; point=(385.47, 503.00)
+PLAYABLE_RUN_READY=PASS; owner=Leon
+RUN_OVERLAYS_CLEARED=PASS; owner selection overlays cleared
 RESOLUTION_1600x900=PASS; actual=1600x900
 SCOPE=PASS; gameplay lifetime scope resolved
 CATALOG_COUNT=PASS; projects=168
 RUNTIME=PASS; research runtime resolved
+DETAIL_MODEL_PROJECT=PASS; research:equipment:powered-armor
+DETAIL_REWARD_CATALOG=PASS; resolved
 POINTER_TopTabButton_Research_연구=PASS; TopTabButton_Research_연구
 POINTER_DISPATCH=PASS; target=TopTabButton_Research_연구; point=(1233.41, 26.67)
 WINDOW_OPEN=PASS; research tree opened by pointer
 DEFAULT_NO_PAUSE=PASS; timeScale=1; paused=False
 ALL_NODES_VISIBLE=PASS; nodes=168
 SURFACE_STRUCTURE=PASS; graph and inspector are present
-DESKTOP_CAPTURE=PASS; size=1600x900; visible=1439995
+DESKTOP_DETAIL_NODE_VISIBLE=PASS; project=research:equipment:powered-armor; centered=True; node=True; viewport=GraphViewport:(0.00, 53.33)->(1266.67, 783.33)
+POINTER_Node_research:equipment:powered-armor=PASS; Node_research:equipment:powered-armor
+POINTER_DISPATCH=PASS; target=Node_research:equipment:powered-armor; point=(633.33, 418.33)
+DESKTOP_DETAIL_VISIBLE=PASS; active=True; characters=488; preferredHeight=441.6; rect=DetailText:(1278.33, 370.33)->(1588.33, 738.33)
+DESKTOP_DETAIL_MODEL_READY=PASS; project=research:equipment:powered-armor; state=Locked; required=1200; prerequisite=5308; rewards=3; blocker=Missing prerequisite research: 관절식 판금, 정밀 부품 장착, 배전
+DESKTOP_DETAIL_SELECTION_BOUND=PASS; project=research:equipment:powered-armor; textLength=574
+DESKTOP_DETAIL_REQUIRED_WORK=PASS; progress=0; required=1200
+DESKTOP_DETAIL_PREREQUISITE_WORK=PASS; deduplicated=5308
+DESKTOP_DETAIL_ESTIMATE=PASS; shifts=66; gameDays=65.7
+DESKTOP_DETAIL_REWARD_CARDS=PASS; cards=3; text=[ProductionItem] 동력 갑주 관절, [ProductionRecipe] 동력 갑주 관절, [CombatEquipment] 동력 보조 갑주
+DESKTOP_DETAIL_LOCK_REASON=PASS; state=Locked; blocker=Missing prerequisite research: 관절식 판금, 정밀 부품 장착, 배전
+DESKTOP_CAPTURE=PASS; size=1600x900; visible=1439997
 QUEUE_CANDIDATE_1=PASS; research:agriculture:gathering
 POINTER_Node_research:agriculture:gathering=PASS; Node_research:agriculture:gathering
 POINTER_DISPATCH=PASS; target=Node_research:agriculture:gathering; point=(633.33, 418.33)
@@ -48,7 +65,18 @@ POINTER_DISPATCH=PASS; target=TopTabButton_Research_연구; point=(1233.41, 26.6
 RESOLUTION_900x1600=PASS; actual=900x1600
 PORTRAIT_BOUNDS=PASS; graph=GraphViewport:(0.00, 496.63)->(900.00, 1483.33); inspector=Inspector:(0.00, 53.33)->(900.00, 496.63)
 PORTRAIT_TABS=PASS; detail and queue tabs visible
-PORTRAIT_DETAIL_CAPTURE=PASS; size=900x1600; visible=1440000
+PORTRAIT_DETAIL_NODE_VISIBLE=PASS; project=research:equipment:powered-armor; centered=True; node=True; viewport=GraphViewport:(0.00, 496.63)->(900.00, 1483.33)
+POINTER_Node_research:equipment:powered-armor=PASS; Node_research:equipment:powered-armor
+POINTER_DISPATCH=PASS; target=Node_research:equipment:powered-armor; point=(450.00, 989.98)
+PORTRAIT_DETAIL_VISIBLE=PASS; active=True; characters=488; preferredHeight=327.9; rect=DetailText:(11.67, 126.58)->(888.33, 451.63)
+PORTRAIT_DETAIL_MODEL_READY=PASS; project=research:equipment:powered-armor; state=Locked; required=1200; prerequisite=5308; rewards=3; blocker=Missing prerequisite research: 관절식 판금, 정밀 부품 장착, 배전
+PORTRAIT_DETAIL_SELECTION_BOUND=PASS; project=research:equipment:powered-armor; textLength=574
+PORTRAIT_DETAIL_REQUIRED_WORK=PASS; progress=0; required=1200
+PORTRAIT_DETAIL_PREREQUISITE_WORK=PASS; deduplicated=5308
+PORTRAIT_DETAIL_ESTIMATE=PASS; shifts=66; gameDays=65.7
+PORTRAIT_DETAIL_REWARD_CARDS=PASS; cards=3; text=[ProductionItem] 동력 갑주 관절, [ProductionRecipe] 동력 갑주 관절, [CombatEquipment] 동력 보조 갑주
+PORTRAIT_DETAIL_LOCK_REASON=PASS; state=Locked; blocker=Missing prerequisite research: 관절식 판금, 정밀 부품 장착, 배전
+PORTRAIT_DETAIL_CAPTURE=PASS; size=900x1600; visible=1439992
 POINTER_QueueTab=PASS; QueueTab
 POINTER_DISPATCH=PASS; target=QueueTab; point=(674.17, 477.47)
 PORTRAIT_QUEUE_CAPTURE=PASS; size=900x1600; visible=1440000

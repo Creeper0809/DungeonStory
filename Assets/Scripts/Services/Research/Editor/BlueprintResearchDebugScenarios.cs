@@ -20,8 +20,6 @@ public static class BlueprintResearchDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
-        P1FacilityShopAssetBuilder.EnsureP1FacilityShopAssets();
-
         List<string> errors = new List<string>();
         RunScenario("설계도 연구 데이터", VerifyBlueprintResearchData, errors);
         RunScenario("설계도 해금 Inspector 목록", VerifyUnlockAuthoringList, errors);

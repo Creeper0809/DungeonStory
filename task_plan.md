@@ -1,5 +1,76 @@
 # DungeonStory Active Plan
 
+## Phase 121 - Current-source integration closure (authoritative)
+
+> Copilot provenance is no longer part of the scope. The current worktree is the
+> authority; completion is based only on fresh compile, restore, gameplay, UI,
+> capture, and Console evidence.
+
+- [x] Complete early-V18 `CharacterId` compatibility before aggregate cross-reference preflight without mutating the input save or live world.
+- [x] Replace the partial field-name/reflection compatibility path with exhaustive typed save-DTO normalization and exact legacy grammar.
+- [x] Restore a fresh loaded Unity compile and pass Architecture `131/131`, Transactional Restore `33/33`, and synchronous Final Acceptance `33/33`.
+- [x] With a clean loaded scene, run the project-scoped Unity MCP coordinator and prove 7 targets, 30 fresh captures, `1600x900`, `900x1600`, Full World `54/54`, `FACILITY_FLOW=RF42,RF43,RF44,I17,I18`, persistence restoration, and Console Error `0` / Warning `0`.
+- [x] Synchronize QA artifacts and planning records only from the final fresh evidence.
+
+### Final evidence — 2026-08-06
+
+- Final PlayMode coordinator: `PASS`, seven of seven targets, 30 fresh captures, both required resolutions.
+- Full World round trip: `54/54/54`, canonical baseline matched and restored.
+- Console capture: warnings `0`, errors `0`, exceptions `0`, asserts `0`.
+- ArchitectureMetrics: 1,388 runtime files / 4,330 types; every hard gate and cross-domain cycle candidate count is `0`.
+- Test-only camera/layout dirtiness was removed only after byte-identical comparison against the on-disk Gameplay scene. The user's scene was not saved or overwritten.
+
+### Current constraints
+
+- Unity MCP is root-only; subagents perform source/offline work only.
+- Do not save or discard a dirty Unity scene without explicit user authorization.
+- Do not broaden completion back into mechanical `Assembly-CSharp` zero or another save-system redesign.
+
+### Validation execution policy
+
+- Use the smallest focused compile, EditMode gate, or single PlayMode target that covers each source change.
+- Do not restart the seven-target PlayMode coordinator while another target-specific failure remains unresolved.
+- After a full-suite failure, reproduce and close only the failed target; retain fresh PASS evidence from unaffected targets.
+- Run the complete seven-target / 30-capture coordinator only as the final integration gate after all focused targets pass.
+- Never ask the user to save or click for test-only residue. Diagnose through project-scoped Unity MCP, preserve real user changes, and clear only dirtiness proven byte-identical to the saved scene.
+
+
+## Phase 120 - CharacterId save-contract repair and final evidence (authoritative)
+
+- [ ] Make faction reinforcement and offense return-prisoner captures restoreable with canonical `CharacterId` values.
+- [ ] Replace global field-name guessing for V18 character references with explicit typed/section-scoped normalization, including combat, defense, surgery, exterior, faction, offense, and invasion references.
+- [ ] Preserve early-V18 operational actor IDs or explicitly reject unsupported shapes without partial live-state mutation; add creation -> capture -> restore regressions.
+- [ ] Make final target report parsing fail closed on conflicting or duplicate result declarations.
+- [ ] Close content provenance/type-validation gaps without reintroducing broad asset saves or runtime SO mutation.
+- [ ] Recompile in the loaded Unity Editor and pass Architecture 131, Transactional Restore 33, and synchronous Final Acceptance 33 on the repaired source.
+- [ ] After the user saves or reverts the dirty Title scene, run the project-scoped Unity MCP PlayMode coordinator and prove 7 targets, 30 fresh captures, both required resolutions, Full World 54/54, facility-flow marker, persistence restoration, and Console Error 0 / Warning 0.
+- [ ] Synchronize planning and QA artifacts only from the final fresh evidence.
+
+### Parallel ownership
+
+- Root: integration, cross-domain compatibility policy, Unity compile/gates, PlayMode, and final documentation.
+- `copilot_diff_review`: faction/offense canonical save contracts and focused regressions; no Unity/MCP.
+- `architecture_quality_review`: typed V18 character-reference normalization and mixed-section regressions; no Unity/MCP.
+- `acceptance_quality_review`: fail-closed report parser and content provenance/type-validation hardening; no Unity/MCP.
+
+## Phase 119 - Post-Copilot final acceptance closure (authoritative)
+
+- [x] Audit Copilot changes against fresh reports and a fresh Unity import.
+- [ ] Restore a clean Unity compile after removing diagnostic-code regressions.
+- [ ] Pass the exact Architecture 131, Transactional Restore 33, and synchronous Final Acceptance 33 gates.
+- [ ] Keep equipment modules non-craftable while indexing real expedition-reward producers and real processing/installation consumers.
+- [ ] Harden the final coordinator to fail closed on console-capture failure and require the exact seven target identities and 30 target-specific captures.
+- [ ] Run the final PlayMode coordinator through the project-scoped Unity MCP relay only; prove seven targets, 30 fresh captures, both required resolutions, and Console Error 0 / Warning 0.
+- [ ] Synchronize `task_plan.md`, `findings.md`, `progress.md`, and QA artifacts with the final evidence.
+
+### Parallel ownership
+
+- Root: combat/survival diagnostics, merge, Unity compile, all final runtime gates, and documentation.
+- `final_gate_hardening`: final coordinator only; no Unity/MCP.
+- `equipment_module_graph`: dependency catalog and production fixture only; no Unity/MCP.
+- `architecture_failures`: CharacterActor/facade and architecture tests only; no Unity/MCP.
+
+
 ## Phase 118 - 기능 중심 최종 마감 계획 (현재 권위 계획)
 
 이 단계는 아래의 두 가지 기계적 목표를 폐기한다.
@@ -1110,3 +1181,13 @@ physical production and meals -> persistent characters/items/equipment
 - [x] Replace the invalid legacy owner-doctrine fallback fixture with strict current-version rejection and canonical live-state non-mutation proof.
 - [x] Pass named Combat, focused smoke consumer, isolated full-world facade, GUID/meta, and scoped diff gates.
 - [ ] After Unity refreshes stale Bee artifacts, run the loaded synchronous runner and `DungeonFullWorldRoundTripPlayModeFacade`, require fresh `RESULT=PASS`, and finish Console Error 0 / Warning 0.
+
+#### Phase 122 V18 identity, sequence, and final-evidence closure
+
+- [x] Normalize every recognized early-V18 operational CharacterId before aggregate cross-reference validation while preserving non-character runtime keys.
+- [x] Enforce exact raw typed IDs and canonical numeric ID grammar across combat, defense, medical, maintenance, surgery, production, and consumables restore paths.
+- [x] Separate consumables external idempotency IDs from `auto:v1` generated IDs, preserve legacy V18 D16 watermarks, and reject generated-ID injection at public command ingress.
+- [x] Prevent combat, defense, medical, maintenance, surgery, surgical-part, production-bill, and consumables sequence overflow before mutating runtime state.
+- [x] Remove final UI false passes by requiring real EventSystem top-hit/viewport pointer flow and model-bound research detail fields at both resolutions.
+- [x] Pass fresh Unity compilation, ArchitectureMetrics hard gates, architecture `131/131`, transactional restore `33/33`, and synchronous final acceptance `33/33`.
+- [ ] After the user explicitly saves or reverts the dirty Title scene, run the root-only Unity MCP final matrix and require seven targets, 30 valid captures, `54/54/54` full-world sections, canonical baseline restoration, and Console Error/Warning `0/0`.

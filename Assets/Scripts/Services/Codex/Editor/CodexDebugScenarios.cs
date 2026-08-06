@@ -34,10 +34,6 @@ public static class CodexDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
-        P1FacilityShopAssetBuilder.EnsureP1FacilityShopAssets();
-        P1FacilitySynthesisAssetBuilder.EnsureP1SynthesisAssets();
-        P1FacilityEvolutionAssetBuilder.EnsureP1EvolutionAssets();
-
         List<string> errors = new List<string>();
         RunScenario("도감 기준 데이터", VerifyReferenceCodexData, errors);
         RunScenario("특수 조합식 힌트와 연구 해금", VerifySpecialRecipeHintAndResearchReveal, errors);

@@ -162,7 +162,8 @@ namespace DungeonStory.Characters
         public string NextPersistentId(int runSeed)
         {
             creationSerial++;
-            return $"world:{runSeed}:{creationSerial:D6}";
+            return CharacterId.FromStableSuffix(
+                $"world:{runSeed}:{creationSerial:D6}").Value;
         }
 
         public bool ShouldReplenish(int target, int lowWatermark)

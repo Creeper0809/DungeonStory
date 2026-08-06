@@ -147,8 +147,18 @@ public sealed class ProductionBillRuntime :
                     facilityId.Value));
         }
 
+        if (nextBillSequence == int.MaxValue)
+        {
+            return ProductionBillCommandResult.Failed(
+                new DomainFailure(
+                    FailureCode.ProductionBillUnavailable,
+                    "id-sequence-exhausted"));
+        }
+
+        int sequence = nextBillSequence;
+        nextBillSequence = sequence + 1;
         ProductionBillId billId = (ProductionBillId)
-            $"production-bill:{nextBillSequence++}";
+            $"production-bill:{sequence}";
         ProductionBillRecord record = ProductionBillRecord.Create(
             billId,
             recipe.RecipeId,
@@ -439,7 +449,7 @@ public sealed class ProductionBillRuntime :
             && !items.ConsumeDelivered(
                 record.materialDestinationId,
                 ToCycleInputMap(record, recipe, facility),
-                out string materialFailure))
+                out _))
         {
             RequestMissingInputs(record, recipe, facility);
             return new ProductionWorkBeginResult(

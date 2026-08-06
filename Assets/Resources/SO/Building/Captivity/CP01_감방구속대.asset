@@ -33,11 +33,11 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 2e8bb37627d98644f84857f21f98e99d, type: 3}
   abilityModules:
     items:
-    - rid: 7737211765905949239
-    - rid: 7737211765905949240
-    - rid: 7737211765905949241
-    - rid: 7737211765905949242
-    - rid: 7737211765905949243
+    - rid: 7737211772876620287
+    - rid: 7737211772876620288
+    - rid: 7737211772876620289
+    - rid: 7737211772876620290
+    - rid: 7737211772876620291
   width: 2
   height: 1
   layer: 1
@@ -53,12 +53,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211765905949239
+    - rid: 7737211772876620287
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CP01
-    - rid: 7737211765905949240
+    - rid: 7737211772876620288
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -67,7 +67,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211765905949241
+    - rid: 7737211772876620289
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -79,7 +79,7 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 5
-    - rid: 7737211765905949242
+    - rid: 7737211772876620290
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -90,7 +90,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 262144
           disabledWhenDamaged: 1
-    - rid: 7737211765905949243
+    - rid: 7737211772876620291
       type: {class: BuildingCaptiveHousingAbility, ns: , asm: DungeonStory.Captivity}
       data:
         abilityId: BuildingCaptiveHousingAbility

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 public static class CharacterCombatCommandSaveValidation
 {
@@ -103,7 +104,7 @@ public static class CharacterCombatCommandSaveValidation
                 report.AddError($"Combat command '{commandId}' is missing its target entity.");
             }
             if (command.weaponInstanceId.Length > 0
-                && !((ItemInstanceId)command.weaponInstanceId).IsValid)
+                && !IsItemInstanceId(command.weaponInstanceId))
             {
                 report.AddError($"Combat command '{commandId}' has an invalid weapon instance ID.");
             }
@@ -146,16 +147,42 @@ public static class CharacterCombatCommandSaveValidation
     public static bool RequiresTargetId(CombatCommandType type) =>
         type is CombatCommandType.Attack or CombatCommandType.Rescue;
 
-    private static bool IsCharacterId(string value) =>
-        ((CharacterId)(value ?? string.Empty)).IsValid;
+    private static bool IsCharacterId(string value)
+    {
+        string raw = value ?? string.Empty;
+        CharacterId id = (CharacterId)raw;
+        return id.IsValid
+            && string.Equals(id.Value, raw, StringComparison.Ordinal);
+    }
+
+    private static bool IsItemInstanceId(string value)
+    {
+        string raw = value ?? string.Empty;
+        ItemInstanceId id = (ItemInstanceId)raw;
+        return id.IsValid
+            && string.Equals(id.Value, raw, StringComparison.Ordinal);
+    }
 
     private static bool TryParseCommandId(string value, out int sequence)
     {
         const string prefix = "combat-command:";
         sequence = 0;
-        return value.StartsWith(prefix, StringComparison.Ordinal)
-            && int.TryParse(value.Substring(prefix.Length), out sequence)
-            && sequence > 0;
+        if (value == null || !value.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string suffix = value.Substring(prefix.Length);
+        return int.TryParse(
+                suffix,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequence)
+            && sequence > 0
+            && string.Equals(
+                suffix,
+                sequence.ToString(CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
     }
 
     private static bool IsFiniteAtLeast(float value, float minimum) =>

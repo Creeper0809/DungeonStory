@@ -54,7 +54,6 @@ public interface IOffenseCampaignQuery
 
 public interface IOffenseCampaignCommands
 {
-    bool TryOpenWorldMap();
     bool TryUpgradeRecon(out string message);
     bool TrySelectTarget(
         string targetId,

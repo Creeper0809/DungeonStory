@@ -31,6 +31,13 @@ public sealed class SurvivalResourcesSaveSection :
     protected override DungeonSurvivalSaveData CapturePayload() =>
         runtime.Capture();
 
+    protected override void NormalizeRestorePayload(
+        DungeonSurvivalSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18SurvivalEnvironmentCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override SurvivalFoodRestoreCandidate BuildRestoreCandidate(
         DungeonSurvivalSaveData payload) =>
         runtime.BuildRestoreCandidate(payload);
@@ -69,6 +76,13 @@ public sealed class DarkSurvivalSaveSection :
 
     protected override DungeonDarkSurvivalSaveData CapturePayload() =>
         runtime.Capture();
+
+    protected override void NormalizeRestorePayload(
+        DungeonDarkSurvivalSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18SurvivalEnvironmentCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
 
     protected override DarkSurvivalRestoreCandidate BuildRestoreCandidate(
         DungeonDarkSurvivalSaveData payload) =>

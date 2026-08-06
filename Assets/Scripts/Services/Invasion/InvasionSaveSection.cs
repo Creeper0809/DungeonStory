@@ -36,9 +36,29 @@ public sealed class InvasionSaveSection :
         return saveService.Capture();
     }
 
+    protected override void NormalizeRestorePayload(
+        DungeonInvasionSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override InvasionRestoreCandidate BuildRestoreCandidate(
         DungeonInvasionSaveData payload) =>
         saveService.PrepareRestore(payload);
+
+    protected override void ValidateParsedPayload(
+        DungeonInvasionSaveData payload)
+    {
+        DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+        saveService.ValidateRestorePayload(payload, report);
+        if (!report.Success)
+        {
+            throw new InvalidOperationException(
+                "Invasion restore payload is invalid: "
+                + string.Join(" | ", report.Errors));
+        }
+    }
 
     protected override void PublishRestoreCandidate(
         InvasionRestoreCandidate candidate) =>

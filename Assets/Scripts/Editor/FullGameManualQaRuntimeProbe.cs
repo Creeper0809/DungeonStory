@@ -2344,7 +2344,8 @@ public static class FullGameManualQaRuntimeProbe
         bool selected = target != null
             && worldMap.TrySelectTarget(target.id, out selectedTarget, out selectMessage);
 
-        OffenseWorldMapPanel mapPanel = worldMap.ShowWorldMap();
+        OffenseWorldMapPanel mapPanel =
+            ResolveFromLifetimeScope<IOffensePanelService>()?.ShowWorldMap();
         OffenseExpeditionPanel expeditionPanel = expedition.ShowExpeditionPanel();
         IReadOnlyList<CharacterActor> members = expedition.GetAvailableMemberActors();
         IEnumerable<CharacterActor> party = target != null ? members.Take(target.requiredMembers) : Array.Empty<CharacterActor>();

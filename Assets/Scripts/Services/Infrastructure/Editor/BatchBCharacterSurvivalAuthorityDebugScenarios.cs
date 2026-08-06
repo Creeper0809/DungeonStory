@@ -20,9 +20,10 @@ public static class BatchBCharacterSurvivalAuthorityDebugScenarios
         {
             failures.Add("Wildlife authored-content fixture failed.");
         }
-        if (!CombatSystemDebugScenarios.RunAll(false))
+        IReadOnlyList<string> combatFailures = CombatSystemDebugScenarios.ValidateAll();
+        foreach (string combatFailure in combatFailures)
         {
-            failures.Add("Combat/body-health fixture failed.");
+            failures.Add($"Combat/body-health fixture failed: {combatFailure}");
         }
         if (!DungeonSaveSectionDebugScenarios.RunAll(false))
         {

@@ -69,6 +69,13 @@ public sealed class OffenseAggregateSaveSection :
         };
     }
 
+    protected override void NormalizeRestorePayload(
+        DungeonOffenseAggregateSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18CombatOffenseCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override void ValidateParsedPayload(
         DungeonOffenseAggregateSaveData payload)
     {
@@ -135,7 +142,8 @@ public sealed class OffenseAggregateSaveSection :
     }
 }
 
-public sealed class OffenseAggregateRuntimeRestoreCandidate
+public sealed class OffenseAggregateRuntimeRestoreCandidate :
+    IDungeonRestoreReportContributor
 {
     internal OffenseAggregateRuntimeRestoreCandidate(
         OffenseCampaignRestoreCandidate campaign,
@@ -159,4 +167,11 @@ public sealed class OffenseAggregateRuntimeRestoreCandidate
     internal OffenseRegionRestoreCandidate Regions { get; }
     internal OffenseWorldRuntimeRestoreCandidate World { get; }
     internal OffenseReturnArrivalRestoreCandidate ReturnArrivals { get; }
+
+    public void RecordRestoreResult(DungeonGameRestoreReport report)
+    {
+        (report ?? throw new ArgumentNullException(nameof(report)))
+            .RecordRestoredExpeditions(
+                Expedition.ActiveExpeditions?.Count ?? 0);
+    }
 }

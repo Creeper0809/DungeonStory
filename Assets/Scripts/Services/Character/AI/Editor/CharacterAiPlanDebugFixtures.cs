@@ -259,7 +259,7 @@ internal static class CharacterAiPlanDebugFixtures
         CharacterIdentity identity = actorObject.GetComponent<CharacterIdentity>();
         if (identity != null && string.IsNullOrWhiteSpace(identity.PersistentId))
         {
-            identity.SetPersistentId($"plan-debug:{SanitizeId(actorObject.name)}");
+            identity.SetPersistentId($"character:plan-debug:{SanitizeId(actorObject.name)}");
         }
 
         CharacterAiEditorTestDependencies.Inject(actorObject);

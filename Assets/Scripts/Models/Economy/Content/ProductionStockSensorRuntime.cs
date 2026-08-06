@@ -102,8 +102,7 @@ public sealed class ProductionStockSensorRuntime : IProductionStockSensorRuntime
             bridge.RequestOneHaulerToReplan(forceInterrupt: false);
             return ProductionBillCommandResult.Failed(
                 new DomainFailure(
-                    FailureCode.ProductionMaterialsMissing,
-                    itemId));
+                    FailureCode.ProductionMaterialsMissing));
         }
 
         if (!TryConsume(destinationId, itemId, out string consumeFailure))

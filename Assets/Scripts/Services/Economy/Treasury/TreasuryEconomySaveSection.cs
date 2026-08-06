@@ -35,6 +35,13 @@ public sealed class TreasuryEconomySaveSection :
     protected override TreasuryEconomySaveData CapturePayload() =>
         persistence.Capture();
 
+    protected override void NormalizeRestorePayload(
+        TreasuryEconomySaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18WorldEconomyCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override TreasuryEconomyRestoreCandidate BuildRestoreCandidate(
         TreasuryEconomySaveData payload) =>
         persistence.BuildRestore(payload);

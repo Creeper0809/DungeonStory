@@ -65,7 +65,6 @@ public static class FacilityEvolutionDebugScenarios
 
     private static bool VerifyP1EvolutionAssets()
     {
-        P1FacilityEvolutionAssetBuilder.EnsureP1EvolutionAssets();
         FacilityEvolutionRecipeSO[] recipes = AssetDatabase
             .FindAssets(
                 "t:FacilityEvolutionRecipeSO",
@@ -852,7 +851,7 @@ public static class FacilityEvolutionDebugScenarios
         actor.EnsureRuntimeState();
         actor.data = data;
         actor.characterType = type;
-        actor.Identity.SetPersistentId($"facility-evolution-test:{data.id}");
+        actor.Identity.SetPersistentId($"character:facility-evolution-test:{data.id}");
         actor.stats = new Dictionary<CharacterCondition, float>
         {
             { CharacterCondition.SLEEP, 90f },

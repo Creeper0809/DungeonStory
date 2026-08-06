@@ -93,6 +93,15 @@ public sealed class SurgicalPartRuntime :
             return false;
         }
 
+        SurgeryAggregateState state = stateStore.State;
+        if (!state.TryPrepareNextPartIdentity(
+                out int nextPartSequence,
+                out string partInstanceId,
+                out failure))
+        {
+            return false;
+        }
+
         string itemId = kind == SurgicalPartKind.Prosthetic
             ? SurgeryItemDefinitions.GetProstheticItemId(nodeId)
             : SurgeryItemDefinitions.GetOrganItemId(nodeId);
@@ -109,7 +118,7 @@ public sealed class SurgicalPartRuntime :
 
         part = new SurgicalPartInstance
         {
-            partInstanceId = $"surgical-part:{++sequence}",
+            partInstanceId = partInstanceId,
             kind = kind,
             nodeId = nodeId.Trim(),
             displayName = items.CatalogProvider.GetDefinition(itemId).DisplayName,
@@ -129,6 +138,7 @@ public sealed class SurgicalPartRuntime :
                 : float.PositiveInfinity,
             worldStackId = stackId
         };
+        sequence = nextPartSequence;
         parts.Add(part);
         RequestOrganStorage(part, position);
         return true;
@@ -207,6 +217,15 @@ public sealed class SurgicalPartRuntime :
             return false;
         }
 
+        SurgeryAggregateState state = stateStore.State;
+        if (!state.TryPrepareNextPartIdentity(
+                out int nextPartSequence,
+                out string partInstanceId,
+                out failure))
+        {
+            return false;
+        }
+
         string itemId = SurgeryItemDefinitions.GetProstheticItemId(nodeId);
         if (!items.SpawnUniqueItemAt(
                 itemId,
@@ -222,7 +241,7 @@ public sealed class SurgicalPartRuntime :
         DungeonItemDefinition definition = items.CatalogProvider.GetDefinition(itemId);
         part = new SurgicalPartInstance
         {
-            partInstanceId = $"surgical-part:{++sequence}",
+            partInstanceId = partInstanceId,
             kind = kind,
             nodeId = nodeId.Trim(),
             displayName = string.IsNullOrWhiteSpace(displayName)
@@ -236,6 +255,7 @@ public sealed class SurgicalPartRuntime :
             freshnessSeconds = float.PositiveInfinity,
             worldStackId = stackId
         };
+        sequence = nextPartSequence;
         parts.Add(part);
         return true;
     }

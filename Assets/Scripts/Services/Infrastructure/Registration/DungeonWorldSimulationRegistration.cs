@@ -140,6 +140,11 @@ public static class DungeonWorldSimulationRegistration
         builder.Register<ProductionSurgeryConsumerDemandProvider>(
                 Lifetime.Singleton)
             .As<IProductionConsumerDemandProvider>();
+        builder.Register<ResourceStockPolicyQuery>(Lifetime.Singleton)
+            .As<IResourceStockPolicyQuery>();
+        builder.Register<ProductionMarketSaleConsumerDemandProvider>(
+                Lifetime.Singleton)
+            .As<IProductionConsumerDemandProvider>();
         builder.RegisterEntryPoint<ProductionDistributionRuntime>(
                 Lifetime.Singleton)
             .As<IProductionDistributionQuery>();

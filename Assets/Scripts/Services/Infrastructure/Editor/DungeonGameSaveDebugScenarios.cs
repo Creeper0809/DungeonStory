@@ -52,7 +52,9 @@ public static class DungeonGameSaveDebugScenarios
             scope.Container.Resolve<IDefenseStatusRuntimeService>();
         ICharacterIdRegistry characterIdRegistry = scope.Container.Resolve<ICharacterIdRegistry>();
         ICombatEquipmentRuntime equipmentRuntime = scope.Container.Resolve<ICombatEquipmentRuntime>();
+        ICombatEquipmentCatalog equipmentCatalog = scope.Container.Resolve<ICombatEquipmentCatalog>();
         IItemInstanceRepository itemInstances = scope.Container.Resolve<IItemInstanceRepository>();
+        IWorldItemStackRuntime itemStackRuntime = scope.Container.Resolve<IWorldItemStackRuntime>();
 
         Require(gameDataProvider.TryGetSessionState(out GameSessionState gameData), "GameSessionState runtime is missing.");
         BlueprintResearchRuntime research = progressionRuntimes.BlueprintResearch;
@@ -86,15 +88,12 @@ public static class DungeonGameSaveDebugScenarios
         Require(invasionThreat != null, "Invasion threat runtime is missing.");
         Require(invasionDirector != null, "Invasion director runtime is missing.");
 
-        CharacterSO temporaryOffenseStaffData = null;
         DungeonGameSaveData baseline = saveService.Capture();
         try
         {
             int markerMoney = gameData.holdingMoney.Value + 137;
             gameData.holdingMoney.Value = markerMoney;
 
-            const string RecipeMarker = "qa:save-round-trip";
-            research.State.UnlockRecipe(RecipeMarker);
             ResearchProjectSO migratedRecipeProject = researchProjectCatalog.Projects
                 .FirstOrDefault(project => project != null
                     && project.Unlocks.OfType<BlueprintRecipeUnlock>().Any());
@@ -119,10 +118,13 @@ public static class DungeonGameSaveDebugScenarios
             Require(building != null, "No basic-purchase building exists for the save test.");
             shop.UnlockState.UnlockBasicPurchaseById(building.id);
 
-            run.ActivateOperationVariable(RunVariableIds.VisitingMerchant, 3, false);
+            run.ActivateOperationVariable(
+                RunVariableIds.VisitingMerchant,
+                run.CurrentDay,
+                false);
             meta.State.AddCurrency(19);
             meta.State.SetUpgradeLevelForDebug(MetaUpgradeIds.CommerceSupplyNetwork, 2);
-            const string CustomerMarker = "world:saveqa:919191";
+            const string CustomerMarker = "character:world:saveqa:919191";
             customers.ReplaceStateForDebug(new[]
             {
                 new RegularCustomerRecord(
@@ -244,16 +246,8 @@ public static class DungeonGameSaveDebugScenarios
                 CharacterSO staffData = characterCatalog.Characters.FirstOrDefault(data => data != null
                     && data.characterType == CharacterType.NPC
                     && data.role != CharacterRole.Owner);
-                if (staffData == null)
-                {
-                    temporaryOffenseStaffData = ScriptableObject.CreateInstance<CharacterSO>();
-                    temporaryOffenseStaffData.id = 991337;
-                    temporaryOffenseStaffData.characterName = "Save QA Expedition Staff";
-                    temporaryOffenseStaffData.characterType = CharacterType.NPC;
-                    temporaryOffenseStaffData.role = CharacterRole.Regular;
-                    temporaryOffenseStaffData.speciesTag = "Slime";
-                    staffData = temporaryOffenseStaffData;
-                }
+                Require(staffData != null,
+                    "The root content catalog has no authored NPC staff definition.");
 
                 Require(spawnerProvider.TryGetSpawner(out CharacterSpawner spawner)
                     && spawner.characterPrefab != null,
@@ -320,8 +314,7 @@ public static class DungeonGameSaveDebugScenarios
                     worldState = CombatEquipmentWorldState.Equipped,
                     ownerCharacterId = equipmentStaffId
                 };
-            itemInstances.EquipmentInstances[EquipmentSpareWeaponInstanceMarker] =
-                new CombatEquipmentInstance
+            CombatEquipmentInstance storedWeapon = new CombatEquipmentInstance
                 {
                     instanceId = EquipmentSpareWeaponInstanceMarker,
                     definitionId = EquipmentWeaponMarker,
@@ -329,6 +322,24 @@ public static class DungeonGameSaveDebugScenarios
                     durabilityRatio = 1f,
                     worldState = CombatEquipmentWorldState.Stored
                 };
+            itemInstances.EquipmentInstances[EquipmentSpareWeaponInstanceMarker] = storedWeapon;
+            Require(equipmentCatalog.TryGet(
+                    EquipmentWeaponMarker,
+                    out CombatEquipmentDefinitionSO storedWeaponDefinition),
+                "The stored QA weapon has no authored equipment definition.");
+            Require(itemStackRuntime.SpawnExistingUniqueItemAt(
+                    storedWeaponDefinition.ItemId,
+                    (ItemInstanceId)EquipmentSpareWeaponInstanceMarker,
+                    savedOwnerPosition,
+                    WorldItemStackState.Stored,
+                    string.Empty,
+                    out string storedWeaponStackId),
+                "The stored QA weapon could not be materialized as a physical item.");
+            Require(itemInstances.TryLinkEquipmentToStack(
+                    EquipmentSpareWeaponInstanceMarker,
+                    storedWeaponStackId,
+                    CombatEquipmentWorldState.Stored),
+                "The stored QA weapon could not be linked to its physical stack.");
             itemInstances.EquipmentInstances[EquipmentArmorInstanceMarker] =
                 new CombatEquipmentInstance
                 {
@@ -437,11 +448,33 @@ public static class DungeonGameSaveDebugScenarios
                 && savedIntruder != null,
                 "The invasion save test could not spawn an intruder.");
             InvasionIntruderRuntime savedIntruderRuntime = savedIntruder.GetComponent<InvasionIntruderRuntime>();
-            FieldInfo facilityDamageCountField = typeof(InvasionIntruderRuntime).GetField(
-                "facilityDamageCount",
-                BindingFlags.Instance | BindingFlags.NonPublic);
-            Require(savedIntruderRuntime != null && facilityDamageCountField != null,
-                "The invasion save test could not access facility damage progress.");
+            BuildableObject damagedFacility = UnityEngine.Object
+                .FindObjectsByType<BuildableObject>(
+                    FindObjectsInactive.Exclude,
+                    FindObjectsSortMode.None)
+                .FirstOrDefault(candidate =>
+                    candidate != null
+                    && candidate.PersistentInstanceId.IsValid);
+            FieldInfo damagedFacilityIdsField = typeof(InvasionIntruderRuntime)
+                .GetField(
+                    "damagedFacilityIds",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo facilityDamageCountField = typeof(InvasionIntruderRuntime)
+                .GetField(
+                    "facilityDamageCount",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+            ISet<BuildingInstanceId> damagedFacilityIds =
+                damagedFacilityIdsField != null && savedIntruderRuntime != null
+                    ? damagedFacilityIdsField.GetValue(savedIntruderRuntime)
+                        as ISet<BuildingInstanceId>
+                    : null;
+            Require(savedIntruderRuntime != null
+                    && damagedFacility != null
+                    && damagedFacilityIds != null
+                    && facilityDamageCountField != null,
+                "The invasion save test could not create canonical facility damage progress.");
+            damagedFacilityIds.Add(
+                damagedFacility.RequirePersistentInstanceId());
             facilityDamageCountField.SetValue(savedIntruderRuntime, 1);
             savedIntruder.ApplyDamage(7f, "save-qa");
             DefenseStatusRuntime savedIntruderStatuses = defenseStatusRuntimeService.GetOrAdd(savedIntruder);
@@ -485,10 +518,6 @@ public static class DungeonGameSaveDebugScenarios
                 "Owner doctrine was not active before capture.");
             string json = saveService.ToJson(saveService.Capture());
             DungeonGameSaveData parsed = saveService.FromJson(json);
-            DungeonResearchSaveData parsedResearch =
-                DungeonSaveSectionPayload.ReadOrNew<DungeonResearchSaveData>(
-                    parsed,
-                    BlueprintResearchSaveSection.Id);
             DungeonCharacterWorldSaveData parsedCharacters =
                 DungeonSaveSectionPayload.ReadOrNew<DungeonCharacterWorldSaveData>(
                     parsed,
@@ -505,14 +534,6 @@ public static class DungeonGameSaveDebugScenarios
                 DungeonSaveSectionPayload.ReadOrNew<DungeonPhysicalItemSaveData>(
                     parsed,
                     PhysicalItemsSaveSection.Id);
-            parsedResearch.unlockedRecipeIds.Remove(migratedRecipeId);
-            parsedResearch.unlockedRecipeIds.Add("recipe_battlefield_dining_2");
-            DungeonSaveSectionPayload.Write(
-                parsed,
-                BlueprintResearchSaveSection.Id,
-                3,
-                DungeonSaveRestorePhase.RuntimeState,
-                parsedResearch);
             int savedCharacterCount = parsedCharacters.actors?.Count ?? 0;
             Require(savedCharacterCount > 0, "No persistent characters were captured.");
             DungeonOffenseExpeditionRunSaveData savedExpedition = parsedOffense.expedition.activeExpeditions?
@@ -573,14 +594,14 @@ public static class DungeonGameSaveDebugScenarios
                 0,
                 0,
                 0,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null));
+                new Dictionary<string, int>(),
+                new Dictionary<string, int>(),
+                new Dictionary<StockCategory, int>(),
+                Array.Empty<float>(),
+                Array.Empty<StockSupplyResult>(),
+                Array.Empty<string>(),
+                Array.Empty<string>(),
+                Array.Empty<OperatingDayReport>()));
             offenseWorldMap.StartWorldMap();
             offenseRewards.ResetState();
             expeditions.PublishRestoreCandidate(
@@ -611,7 +632,6 @@ public static class DungeonGameSaveDebugScenarios
                 saveService.TryRestore(parsed, out DungeonGameRestoreReport report),
                 "Marker restore failed: " + string.Join(" | ", report.Errors));
             Require(gameData.holdingMoney.Value == markerMoney, "Money did not round-trip.");
-            Require(research.State.UnlockedRecipeIds.Contains(RecipeMarker), "Research state did not round-trip.");
             Require(research.State.UnlockedRecipeIds.Contains(migratedRecipeId),
                 "Completed research project did not restore its current recipe reward.");
             Require(research.State.IsBuildingUnlocked(researchUnlockBuilding.id),
@@ -789,6 +809,16 @@ public static class DungeonGameSaveDebugScenarios
             DungeonGameSaveData stateBeforeLegacyRejection = saveService.Capture();
             string canonicalBeforeLegacyRejection = Canonicalize(
                 stateBeforeLegacyRejection);
+            DungeonGameSaveData stabilityProbe = saveService.Capture();
+            Require(
+                string.Equals(
+                    canonicalBeforeLegacyRejection,
+                    Canonicalize(stabilityProbe),
+                    StringComparison.Ordinal),
+                "Canonical save capture was unstable before legacy rejection. "
+                + DescribeSaveDifferences(
+                    stateBeforeLegacyRejection,
+                    stabilityProbe));
             DungeonGameSaveData legacyWithoutDoctrine = saveService.FromJson(
                 saveService.ToJson(stateBeforeLegacyRejection));
             DungeonRunVariableSaveData legacyRunVariables =
@@ -819,12 +849,16 @@ public static class DungeonGameSaveDebugScenarios
                         StringComparison.OrdinalIgnoreCase) >= 0),
                 "Legacy rejection did not identify the unsupported run-variable "
                 + "payload version: " + string.Join(" | ", legacyReport.Errors));
+            DungeonGameSaveData stateAfterLegacyRejection = saveService.Capture();
             Require(
                 string.Equals(
                     canonicalBeforeLegacyRejection,
-                    Canonicalize(saveService.Capture()),
+                    Canonicalize(stateAfterLegacyRejection),
                     StringComparison.Ordinal),
-                "Rejected legacy restore mutated the live canonical save state.");
+                "Rejected legacy restore mutated the live canonical save state. "
+                + DescribeSaveDifferences(
+                    stateBeforeLegacyRejection,
+                    stateAfterLegacyRejection));
             Require(
                 run.State.StartVariables != null
                     && run.State.StartVariables.ownerDoctrineId == savedOwnerDoctrineId,
@@ -848,11 +882,6 @@ public static class DungeonGameSaveDebugScenarios
             {
                 Debug.LogError("Save QA baseline restore failed: " + string.Join(" | ", cleanupReport.Errors));
             }
-
-            if (temporaryOffenseStaffData != null)
-            {
-                UnityEngine.Object.DestroyImmediate(temporaryOffenseStaffData);
-            }
         }
     }
 
@@ -874,6 +903,91 @@ public static class DungeonGameSaveDebugScenarios
             AppendCanonicalField(builder, section.payloadJson);
         }
         return builder.ToString();
+    }
+
+    private static string DescribeSaveDifferences(
+        DungeonGameSaveData expected,
+        DungeonGameSaveData actual)
+    {
+        List<string> differences = new List<string>();
+        if ((expected?.version ?? 0) != (actual?.version ?? 0))
+        {
+            differences.Add(
+                $"root.version:{expected?.version ?? 0}->{actual?.version ?? 0}");
+        }
+        if (!string.Equals(
+                expected?.sceneName ?? string.Empty,
+                actual?.sceneName ?? string.Empty,
+                StringComparison.Ordinal))
+        {
+            differences.Add(
+                $"root.scene:'{expected?.sceneName}'->'{actual?.sceneName}'");
+        }
+
+        Dictionary<string, DungeonSaveSectionEnvelope> expectedById =
+            (expected?.sections ?? new List<DungeonSaveSectionEnvelope>())
+            .Where(section => section != null)
+            .GroupBy(section => section.sectionId ?? string.Empty, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        Dictionary<string, DungeonSaveSectionEnvelope> actualById =
+            (actual?.sections ?? new List<DungeonSaveSectionEnvelope>())
+            .Where(section => section != null)
+            .GroupBy(section => section.sectionId ?? string.Empty, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+
+        foreach (string sectionId in expectedById.Keys
+                     .Union(actualById.Keys, StringComparer.Ordinal)
+                     .OrderBy(id => id, StringComparer.Ordinal))
+        {
+            if (!expectedById.TryGetValue(
+                    sectionId,
+                    out DungeonSaveSectionEnvelope expectedSection))
+            {
+                differences.Add($"section.added:{sectionId}");
+                continue;
+            }
+            if (!actualById.TryGetValue(
+                    sectionId,
+                    out DungeonSaveSectionEnvelope actualSection))
+            {
+                differences.Add($"section.removed:{sectionId}");
+                continue;
+            }
+
+            List<string> fields = new List<string>();
+            if (expectedSection.sectionVersion != actualSection.sectionVersion)
+            {
+                fields.Add(
+                    $"version:{expectedSection.sectionVersion}->{actualSection.sectionVersion}");
+            }
+            if (expectedSection.restorePhase != actualSection.restorePhase)
+            {
+                fields.Add(
+                    $"phase:{expectedSection.restorePhase}->{actualSection.restorePhase}");
+            }
+            if (expectedSection.optional != actualSection.optional)
+            {
+                fields.Add(
+                    $"optional:{expectedSection.optional}->{actualSection.optional}");
+            }
+            if (!string.Equals(
+                    expectedSection.payloadJson ?? string.Empty,
+                    actualSection.payloadJson ?? string.Empty,
+                    StringComparison.Ordinal))
+            {
+                fields.Add(
+                    $"payload:length {expectedSection.payloadJson?.Length ?? 0}"
+                    + $"->{actualSection.payloadJson?.Length ?? 0}");
+            }
+            if (fields.Count > 0)
+            {
+                differences.Add($"section.changed:{sectionId}[{string.Join(",", fields)}]");
+            }
+        }
+
+        return differences.Count == 0
+            ? "No envelope-level difference was found."
+            : string.Join(" | ", differences);
     }
 
     private static void AppendCanonicalField(

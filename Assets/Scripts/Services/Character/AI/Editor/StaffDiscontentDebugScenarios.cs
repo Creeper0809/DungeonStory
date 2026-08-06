@@ -243,7 +243,7 @@ public static class StaffDiscontentDebugScenarios
         source.Runtime.RestoreSnapshots(new[]
         {
             new StaffDiscontentSnapshot(
-                "staff-discontent-test:save-fixture",
+                "character:staff-discontent-test:save-fixture",
                 "Save Fixture Staff",
                 StaffDiscontentStage.LocalRebellion,
                 StaffDiscontentOutcome.None,
@@ -534,7 +534,7 @@ public static class StaffDiscontentDebugScenarios
             ?.Invoke(character, null);
         character.RefreshAbilityCache();
         character.Initialization(data);
-        character.Identity.SetPersistentId($"staff-discontent-test:{id}");
+        character.Identity.SetPersistentId($"character:staff-discontent-test:{id}");
         character.SetLifecycleState(CharacterLifecycleState.Active);
         character.stats[CharacterCondition.SLEEP] = 50f;
         character.stats[CharacterCondition.HUNGER] = 50f;

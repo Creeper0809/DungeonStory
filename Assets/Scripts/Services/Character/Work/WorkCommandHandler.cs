@@ -11,10 +11,9 @@ public sealed class WorkCommandHandler
     private BuildableObject priorityWorkTarget;
     private CharacterActor prioritySuppressTarget;
     private Grid prioritySuppressGrid;
-    private FacilityWorkType priorityWorkType = FacilityWorkType.None;
+    private WorkTypeId priorityWorkTypeId;
     private BuildableObject pendingEnvironmentRiskTarget;
-    private FacilityWorkType pendingEnvironmentRiskWorkType =
-        FacilityWorkType.None;
+    private WorkTypeId pendingEnvironmentRiskWorkTypeId;
 
     public WorkCommandHandler(
         AbilityWork work,
@@ -29,18 +28,16 @@ public sealed class WorkCommandHandler
     public BuildableObject PriorityWorkTarget => priorityWorkTarget != null ? priorityWorkTarget : null;
     public CharacterActor PrioritySuppressActor => prioritySuppressTarget != null ? prioritySuppressTarget : null;
     public bool HasPrioritySuppressTarget => prioritySuppressTarget != null && !prioritySuppressTarget.IsDead;
-    internal FacilityWorkType PriorityWorkType => priorityWorkType;
-    public WorkTypeId PriorityWorkTypeId => FacilityWorkTypeMap.TryGet(
-            priorityWorkType,
-            out WorkTypeDefinition definition)
-        ? definition.WorkTypeId
-        : default;
+    internal FacilityWorkType PriorityWorkType => priorityWorkTypeId.IsValid
+        ? FacilityWorkTypeMap.GetRequired(priorityWorkTypeId)
+        : FacilityWorkType.None;
+    public WorkTypeId PriorityWorkTypeId => priorityWorkTypeId;
 
     public bool TrySetPriorityWorkTarget(BuildableObject building, out string errorMessage)
     {
-        return TrySetPriorityWorkTargetWithLegacyType(
+        return TrySetPriorityWorkTargetById(
             building,
-            FacilityWorkType.None,
+            default,
             null,
             out errorMessage);
     }
@@ -51,21 +48,16 @@ public sealed class WorkCommandHandler
         GridPathSearchResult searchResult,
         out string errorMessage)
     {
-        FacilityWorkType preferredWorkType = WorkTypeCatalog.TryGet(
-                preferredWorkTypeId,
-                out WorkTypeDefinition definition)
-            ? FacilityWorkTypeMap.GetRequired(definition)
-            : FacilityWorkType.None;
-        return TrySetPriorityWorkTargetWithLegacyType(
+        return TrySetPriorityWorkTargetById(
             building,
-            preferredWorkType,
+            preferredWorkTypeId,
             searchResult,
             out errorMessage);
     }
 
-    private bool TrySetPriorityWorkTargetWithLegacyType(
+    private bool TrySetPriorityWorkTargetById(
         BuildableObject building,
-        FacilityWorkType preferredWorkType,
+        WorkTypeId preferredWorkTypeId,
         GridPathSearchResult searchResult,
         out string errorMessage)
     {
@@ -75,12 +67,20 @@ public sealed class WorkCommandHandler
             return false;
         }
 
-        bool forced = preferredWorkType != FacilityWorkType.None;
-        WorkTypeId preferredWorkTypeId = FacilityWorkTypeMap.TryGet(
-                preferredWorkType,
-                out WorkTypeDefinition preferredDefinition)
-            ? preferredDefinition.WorkTypeId
-            : default;
+        if (preferredWorkTypeId.IsValid
+            && !WorkTypeCatalog.TryGet(
+                preferredWorkTypeId,
+                out WorkTypeDefinition _))
+        {
+            errorMessage =
+                $"No work type definition is registered for '{preferredWorkTypeId}'.";
+            return false;
+        }
+
+        bool forced = preferredWorkTypeId.IsValid;
+        FacilityWorkType preferredWorkType = forced
+            ? FacilityWorkTypeMap.GetRequired(preferredWorkTypeId)
+            : FacilityWorkType.None;
         if (forced
             && targetSelector.RequiresForcedEnvironmentConfirmation(
                 building,
@@ -89,18 +89,18 @@ public sealed class WorkCommandHandler
                 out string environmentWarning))
         {
             bool confirmed = pendingEnvironmentRiskTarget == building
-                && pendingEnvironmentRiskWorkType == preferredWorkType;
+                && pendingEnvironmentRiskWorkTypeId == preferredWorkTypeId;
             if (!confirmed)
             {
                 pendingEnvironmentRiskTarget = building;
-                pendingEnvironmentRiskWorkType = preferredWorkType;
+                pendingEnvironmentRiskWorkTypeId = preferredWorkTypeId;
                 errorMessage = environmentWarning;
                 return false;
             }
         }
 
         pendingEnvironmentRiskTarget = null;
-        pendingEnvironmentRiskWorkType = FacilityWorkType.None;
+        pendingEnvironmentRiskWorkTypeId = default;
         if (!targetSelector.TryEvaluateWorkTarget(building, searchResult, preferredWorkType, forced, out WorkTargetCandidate candidate))
         {
             errorMessage = candidate.FailureReason;
@@ -110,11 +110,11 @@ public sealed class WorkCommandHandler
         priorityWorkTarget = building;
         prioritySuppressTarget = null;
         prioritySuppressGrid = null;
-        priorityWorkType = candidate.WorkType;
-        work.AssignWork(building, candidate.WorkType);
+        priorityWorkTypeId = candidate.WorkTypeId;
+        work.AssignWork(building, candidate.WorkTypeId);
         work.WorkerActor?.Brain?.RequestImmediateReplan(clearFailures: true);
         work.WorkerActor?.AddActivity(CharacterActivityEvent.Work(
-            candidate.WorkType,
+            candidate.WorkTypeId,
             CharacterActivityOutcomes.Changed,
             $"우선 작업 지정: {building.name} - {candidate.DisplayName}",
             building,
@@ -145,8 +145,8 @@ public sealed class WorkCommandHandler
         prioritySuppressTarget = target;
         prioritySuppressGrid = work.WorkGridResolver.ResolveActiveGrid(work, searchResult);
         priorityWorkTarget = null;
-        priorityWorkType = FacilityWorkType.Guard;
-        work.AssignWork(null, FacilityWorkType.Guard);
+        priorityWorkTypeId = BuiltInWorkTypeIds.Guard;
+        work.AssignWork(null, BuiltInWorkTypeIds.Guard);
         work.SetDutyState(AbilityWork.DutyState.OnDuty);
         work.WorkerActor?.Brain?.RequestImmediateReplan(clearFailures: true);
         work.WorkerActor?.AddActivity(CharacterActivityEvent.Create(
@@ -192,9 +192,9 @@ public sealed class WorkCommandHandler
         priorityWorkTarget = null;
         prioritySuppressTarget = null;
         prioritySuppressGrid = null;
-        priorityWorkType = FacilityWorkType.None;
+        priorityWorkTypeId = default;
         pendingEnvironmentRiskTarget = null;
-        pendingEnvironmentRiskWorkType = FacilityWorkType.None;
+        pendingEnvironmentRiskWorkTypeId = default;
     }
 
     public bool HasUrgentPriorityTarget()
@@ -204,7 +204,10 @@ public sealed class WorkCommandHandler
             return false;
         }
 
-        bool forced = priorityWorkType != FacilityWorkType.None;
+        bool forced = priorityWorkTypeId.IsValid;
+        FacilityWorkType priorityWorkType = forced
+            ? FacilityWorkTypeMap.GetRequired(priorityWorkTypeId)
+            : FacilityWorkType.None;
         return targetSelector.TryEvaluateWorkTarget(priorityWorkTarget, null, priorityWorkType, forced, out WorkTargetCandidate candidate)
             && candidate.UrgencyScore >= 60f;
     }

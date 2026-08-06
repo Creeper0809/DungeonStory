@@ -83,8 +83,6 @@ public static class DefenseFacilityDebugScenarios
 
     public static bool RunAll(bool logSuccess)
     {
-        P1DefenseFacilityAssetBuilder.EnsureP1DefenseAssets();
-
         List<string> errors = new List<string>();
         RunScenario("방어 시설 에셋", VerifyDefenseAssets, errors);
         RunScenario("함정 위 통행 경로", VerifyWalkableTrapRoute, errors);

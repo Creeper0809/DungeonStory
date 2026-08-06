@@ -457,13 +457,15 @@ public sealed class OffenseReturnArrivalRuntime :
             return false;
         }
 
-        actorId = $"{arrival.arrivalId}:prisoner:{arrival.materializedIds.Count + 1}";
+        CharacterId characterId = CharacterId.FromStableSuffix(
+            $"{arrival.arrivalId}:prisoner:{arrival.materializedIds.Count + 1}");
+        actorId = characterId.Value;
         characterObject.name = $"귀환 포로 {arrival.materializedIds.Count + 1}";
         characterObject.transform.position = grid.GetWorldPos(position);
         actor.Initialize(data);
         actor.characterType = CharacterType.Intruder;
         actor.Identity?.SetCharacterType(CharacterType.Intruder);
-        actor.Identity?.SetPersistentId(actorId);
+        actor.Identity?.SetPersistentId(characterId);
         ApplyDownedArrivalHealth(actor);
         actor.SetLifecycleState(CharacterLifecycleState.Downed);
         characterFactory.Publish(characterObject);

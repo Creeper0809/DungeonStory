@@ -82,6 +82,16 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                 saveData,
                 TreasuryEconomySaveSection.Id);
 
+        // ReadOrNew deserializes detached DTO graphs. Normalize only the explicitly
+        // typed early-V18 character-reference paths on those graphs before building
+        // the cross-section indexes. The source envelopes and live runtime remain
+        // untouched; section preflight still owns warning emission and publication.
+        NormalizeEarlyV18CharacterReferences(
+            characters,
+            offense,
+            combat,
+            treasury);
+
         PhysicalReferenceIndex physical = ValidatePhysicalItems(items, report);
         HashSet<string> characterIds = ValidateCharacters(characters, report);
         BuildingReferenceIndex buildingIds = ValidateBuildings(buildings, report);
@@ -113,6 +123,100 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
             buildingIds.InstanceIds,
             physical.EquipmentInstanceIds,
             report);
+    }
+
+    private static void NormalizeEarlyV18CharacterReferences(
+        DungeonCharacterWorldSaveData characters,
+        DungeonOffenseAggregateSaveData offense,
+        DungeonCombatEquipmentSaveData combat,
+        TreasuryEconomySaveData treasury)
+    {
+        NormalizeCharacterWorldReferences(characters);
+        V18TypedCharacterReferenceRestoreNormalizer.Normalize(
+            offense,
+            (value, _) => NormalizeCharacterReference(value));
+        V18TypedCharacterReferenceRestoreNormalizer.Normalize(
+            combat,
+            (value, _) => NormalizeCharacterReference(value));
+        NormalizeTreasuryCharacterReferences(treasury);
+    }
+
+    private static void NormalizeCharacterWorldReferences(
+        DungeonCharacterWorldSaveData source)
+    {
+        if (source?.actors != null)
+        {
+            foreach (DungeonCharacterSaveData actor in source.actors)
+            {
+                if (actor != null)
+                {
+                    actor.persistentId = NormalizeCharacterReference(
+                        actor.persistentId);
+                }
+            }
+        }
+
+        if (source?.populationProfiles == null)
+        {
+            return;
+        }
+
+        foreach (WorldCharacterProfile profile in source.populationProfiles)
+        {
+            if (profile != null)
+            {
+                profile.persistentId = NormalizeCharacterReference(
+                    profile.persistentId);
+            }
+        }
+    }
+
+    private static void NormalizeTreasuryCharacterReferences(
+        TreasuryEconomySaveData source)
+    {
+        if (source?.employment?.wageStates != null)
+        {
+            foreach (EmployeeWageState wage in source.employment.wageStates)
+            {
+                if (wage != null)
+                {
+                    wage.characterId = NormalizeCharacterReference(
+                        wage.characterId);
+                }
+            }
+        }
+
+        if (source?.employment?.mercenaryContracts == null)
+        {
+            return;
+        }
+
+        foreach (MercenaryContract contract in
+                 source.employment.mercenaryContracts)
+        {
+            if (contract != null)
+            {
+                contract.characterId = NormalizeCharacterReference(
+                    contract.characterId);
+            }
+        }
+    }
+
+    private static string NormalizeCharacterReference(string value)
+    {
+        if (value == null
+            || !string.Equals(value, value.Trim(), StringComparison.Ordinal))
+        {
+            return value;
+        }
+
+        return CharacterId.TryCanonicalizeV18Restore(
+                value,
+                out CharacterId canonical,
+                out bool wasLegacy)
+            && wasLegacy
+                ? canonical.Value
+                : value;
     }
 
     private PhysicalReferenceIndex ValidatePhysicalItems(
@@ -155,11 +259,22 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                 continue;
             }
 
+            // A physical stack and its unique-item component payload are two
+            // projections of the same item identity. Reject duplicates within
+            // the unique-item collection, but merge that identity into the
+            // aggregate reference index instead of treating the matching stack
+            // projection as a second item.
             RequireUniqueId(
                 unique.itemInstanceId,
-                "item instance",
-                result.ItemInstanceIds,
+                "unique item instance",
+                result.UniqueItemInstanceIds,
                 report);
+            string uniqueItemInstanceId = unique.itemInstanceId?.Trim()
+                ?? string.Empty;
+            if (uniqueItemInstanceId.Length > 0)
+            {
+                result.ItemInstanceIds.Add(uniqueItemInstanceId);
+            }
             RequireItemDefinition(unique.definitionId, report);
             ItemInstanceComponentSaveData equipmentComponent = unique.components?
                 .FirstOrDefault(component => component != null
@@ -213,7 +328,12 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
                 continue;
             }
 
-            RequireUniqueId(actor.persistentId, "character", ids, report);
+            RequireUniqueCharacterId(
+                actor.persistentId,
+                "character",
+                ids,
+                report,
+                rejectDuplicate: true);
             foreach (CharacterCarriedItemSaveData carried in actor.carryInventory?.items
                          ?? new List<CharacterCarriedItemSaveData>())
             {
@@ -227,15 +347,12 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         foreach (WorldCharacterProfile profile in source?.populationProfiles
                      ?? new List<WorldCharacterProfile>())
         {
-            string id = profile?.persistentId?.Trim() ?? string.Empty;
-            if (id.Length == 0)
-            {
-                report.AddError("Character population aggregate contains a profile without an ID.");
-            }
-            else
-            {
-                ids.Add(id);
-            }
+            RequireUniqueCharacterId(
+                profile?.persistentId,
+                "character population profile",
+                ids,
+                report,
+                rejectDuplicate: false);
         }
 
         return ids;
@@ -868,11 +985,43 @@ public sealed class DungeonAggregateReferencePreflight : IDungeonSavePreflightVa
         }
     }
 
+    private static void RequireUniqueCharacterId(
+        string rawId,
+        string kind,
+        ISet<string> ids,
+        DungeonGameRestoreReport report,
+        bool rejectDuplicate)
+    {
+        if (!CharacterV18RestoreIdentityResolver.TryResolve(
+                rawId,
+                allowLegacyCharacterIds: false,
+                out CharacterId characterId,
+                out _)
+            || !string.Equals(
+                rawId,
+                characterId.Value,
+                StringComparison.Ordinal))
+        {
+            report.AddError(
+                $"Save contains a {kind} without an exact canonical persistent ID: "
+                + $"'{rawId ?? "<null>"}'.");
+            return;
+        }
+
+        if (!ids.Add(characterId.Value) && rejectDuplicate)
+        {
+            report.AddError(
+                $"Save contains duplicate {kind} ID '{characterId.Value}'.");
+        }
+    }
+
     private sealed class PhysicalReferenceIndex
     {
         internal HashSet<string> StackIds { get; } =
             new HashSet<string>(StringComparer.Ordinal);
         internal HashSet<string> ItemInstanceIds { get; } =
+            new HashSet<string>(StringComparer.Ordinal);
+        internal HashSet<string> UniqueItemInstanceIds { get; } =
             new HashSet<string>(StringComparer.Ordinal);
         internal HashSet<string> EquipmentInstanceIds { get; } =
             new HashSet<string>(StringComparer.Ordinal);

@@ -33,10 +33,10 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 9c0748a666ffeb648a3657d3c1745bba, type: 3}
   abilityModules:
     items:
-    - rid: 7737211765905949119
-    - rid: 7737211765905949120
-    - rid: 7737211765905949121
-    - rid: 7737211765905949122
+    - rid: 7737211772876620167
+    - rid: 7737211772876620168
+    - rid: 7737211772876620169
+    - rid: 7737211772876620170
   width: 1
   height: 1
   layer: 1
@@ -52,7 +52,7 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211765905949119
+    - rid: 7737211772876620167
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -61,7 +61,7 @@ MonoBehaviour:
         maintenance: 0
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211765905949120
+    - rid: 7737211772876620168
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -72,7 +72,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 0
-    - rid: 7737211765905949121
+    - rid: 7737211772876620169
       type: {class: BuildingCoverAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingCoverAbility
@@ -81,7 +81,7 @@ MonoBehaviour:
         facingDirection: {x: -1, y: 0}
         allowsCornerPeek: 0
         coverHitPoints: 60
-    - rid: 7737211765905949122
+    - rid: 7737211772876620170
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility

@@ -742,11 +742,24 @@ public sealed partial class WildlifeCaptureRuntime :
         }
         carriedParents.Clear();
 
+        HashSet<string> activelyCapturedIds = stateSession.Values
+            .Where(state => state != null
+                && !state.escaped
+                && state.transportState
+                    != CapturedWildlifeTransportState.Released)
+            .Select(state => state.wildlifeId)
+            .ToHashSet(StringComparer.Ordinal);
+
         foreach (WildlifeActor actor in world.Wildlife.ToArray())
         {
             try
             {
-                actor?.SetCaptured(false);
+                if (actor != null
+                    && actor.State == WildlifeState.Captured
+                    && !activelyCapturedIds.Contains(actor.WildlifeId))
+                {
+                    actor.SetCaptured(false);
+                }
             }
             catch
             {
@@ -764,12 +777,22 @@ public sealed partial class WildlifeCaptureRuntime :
 
             try
             {
-                actor.SetCaptured(!restored.escaped);
-                actor.WarpTo(
-                    restored.transportState
-                        == CapturedWildlifeTransportState.Escaped
+                bool shouldBeCaptured = !restored.escaped
+                    && restored.transportState
+                        != CapturedWildlifeTransportState.Released;
+                if ((actor.State == WildlifeState.Captured) != shouldBeCaptured)
+                {
+                    actor.SetCaptured(shouldBeCaptured);
+                }
+
+                Vector2Int target = restored.transportState
+                    == CapturedWildlifeTransportState.Escaped
                         ? restored.escapeDestination
-                        : restored.penPosition);
+                        : restored.penPosition;
+                if (actor.GridPosition != target)
+                {
+                    actor.WarpTo(target);
+                }
             }
             catch
             {

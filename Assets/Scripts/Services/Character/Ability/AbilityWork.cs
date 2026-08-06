@@ -451,7 +451,7 @@ public class AbilityWork : CharacterAbility
         bool forced = requestedWorkType != FacilityWorkType.None;
         if (TargetSelector.TryEvaluateWorkTarget(target, searchResult, requestedWorkType, forced, out WorkTargetCandidate candidate))
         {
-            AssignWork(target, candidate.WorkType);
+            AssignWork(target, candidate.WorkTypeId);
             return true;
         }
 
@@ -610,7 +610,7 @@ public class AbilityWork : CharacterAbility
             return false;
         }
 
-        return bestCandidate.WorkType == workType
+        return bestCandidate.WorkTypeId == workTypeId
             && bestCandidate.Building == requestedCandidate.Building;
     }
 
@@ -750,6 +750,15 @@ public class AbilityWork : CharacterAbility
     {
         assignedShop = building;
         assignedWorkType = workType;
+    }
+
+    internal void AssignWork(BuildableObject building, WorkTypeId workTypeId)
+    {
+        AssignWork(
+            building,
+            workTypeId.IsValid
+                ? FacilityWorkTypeMap.GetRequired(workTypeId)
+                : FacilityWorkType.None);
     }
 
     internal void ReleaseAssignedWorkTarget()

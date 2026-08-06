@@ -35,8 +35,8 @@ MonoBehaviour:
     items:
     - rid: 8800000000000000031
     - rid: 7302562995605602985
-    - rid: 7737211765905949293
-    - rid: 7737211765905949294
+    - rid: 7737211772876620343
+    - rid: 7737211772876620344
   width: 2
   height: 1
   layer: 5
@@ -61,7 +61,7 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211765905949293
+    - rid: 7737211772876620343
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -72,7 +72,7 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 4
           disabledWhenDamaged: 1
-    - rid: 7737211765905949294
+    - rid: 7737211772876620344
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility

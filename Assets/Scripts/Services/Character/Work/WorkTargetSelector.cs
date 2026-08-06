@@ -154,7 +154,7 @@ public sealed class WorkTargetSelector
                     forced,
                     out WorkTargetCandidate priorityCandidate))
             {
-                work.AssignWork(work.PriorityWorkTarget, priorityCandidate.WorkType);
+                work.AssignWork(work.PriorityWorkTarget, priorityCandidate.WorkTypeId);
                 return true;
             }
 
@@ -177,7 +177,7 @@ public sealed class WorkTargetSelector
                 false,
                 out WorkTargetCandidate assignedCandidate))
         {
-            work.AssignWork(work.assignedShop, assignedCandidate.WorkType);
+            work.AssignWork(work.assignedShop, assignedCandidate.WorkTypeId);
             return true;
         }
 
@@ -189,7 +189,7 @@ public sealed class WorkTargetSelector
         TryGetBestCandidateWithLegacyType(requestedWorkType, searchResult, out WorkTargetCandidate best);
         work.AssignWork(
             WorkTargetCandidateRuntimeAdapter.ResolveBuilding(best),
-            best.WorkType);
+            best.WorkTypeId);
         return work.assignedShop != null;
     }
 
@@ -877,7 +877,7 @@ public sealed class WorkTargetSelector
         if (captureDetails)
         {
             CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
-                WorkTargetSelectionRules.GetIntention(workType),
+                WorkTargetSelectionRules.GetIntention(workTypeId),
                 $"{WorkTargetSelectionRules.GetBuildingLabel(building)} {definition.DisplayName}",
                 true);
             breakdown.Add(CharacterAiUtilityFactorKind.Priority, Mathf.Clamp01(priority.GetBaseScore() / 300f), 0.28f, priority.ToDisplayText());
@@ -939,7 +939,7 @@ public sealed class WorkTargetSelector
         lastRecordedBreakdownBuilding = building;
         lastRecordedBreakdownWorkTypeId = candidate.WorkTypeId;
         CharacterAiUtilityBreakdown breakdown = new CharacterAiUtilityBreakdown(
-            WorkTargetSelectionRules.GetIntention(candidate.WorkType),
+            WorkTargetSelectionRules.GetIntention(candidate.WorkTypeId),
             $"{WorkTargetSelectionRules.GetBuildingLabel(building)} {candidate.DisplayName}");
         breakdown.Add(CharacterAiUtilityFactorKind.Priority, Mathf.Clamp01(candidate.Priority.GetBaseScore() / 300f), 0.35f, candidate.Priority.ToDisplayText());
         breakdown.Add(CharacterAiUtilityFactorKind.Need, Mathf.Clamp01(candidate.UrgencyScore / 100f), 0.3f, "긴급도");

@@ -33,6 +33,49 @@ public sealed class DefenseFacilitySaveSection :
     protected override DefenseFacilitySaveData CapturePayload() =>
         persistence.CaptureState();
 
+    protected override void NormalizeRestorePayload(
+        DefenseFacilitySaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload?.facilities == null)
+        {
+            return;
+        }
+
+        for (int facilityIndex = 0;
+             facilityIndex < payload.facilities.Count;
+             facilityIndex++)
+        {
+            DefenseFacilityRecordSaveData facility =
+                payload.facilities[facilityIndex];
+            if (facility?.allowedPersistentIds == null)
+            {
+                continue;
+            }
+
+            bool changed = false;
+            for (int idIndex = 0;
+                 idIndex < facility.allowedPersistentIds.Count;
+                 idIndex++)
+            {
+                string previous = facility.allowedPersistentIds[idIndex];
+                facility.allowedPersistentIds[idIndex] =
+                    NormalizeV18CharacterReference(
+                        previous,
+                        report,
+                        $"facilities[{facilityIndex}].allowedPersistentIds[{idIndex}]");
+                changed |= !string.Equals(
+                    previous,
+                    facility.allowedPersistentIds[idIndex],
+                    StringComparison.Ordinal);
+            }
+            if (changed)
+            {
+                facility.allowedPersistentIds.Sort(StringComparer.Ordinal);
+            }
+        }
+    }
+
     protected override DefenseFacilityRestoreCandidate BuildRestoreCandidate(
         DefenseFacilitySaveData payload)
     {

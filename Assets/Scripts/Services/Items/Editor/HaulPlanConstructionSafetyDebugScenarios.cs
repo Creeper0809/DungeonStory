@@ -464,7 +464,7 @@ public static class HaulPlanConstructionSafetyDebugScenarios
         CharacterLifecycle lifecycle = actorObject.GetComponent<CharacterLifecycle>();
         actorObject.AddComponent<CharacterCarryInventory>();
         actorObject.AddComponent<AbilityHaul>();
-        actorObject.GetComponent<CharacterIdentity>().SetPersistentId($"worker:{name}");
+        actorObject.GetComponent<CharacterIdentity>().SetPersistentId($"character:worker:{name}");
         lifecycle.ConstructCharacterLifecycle(gridProvider);
         actorObject.transform.position = grid.GetWorldPos(position);
         actorObject.SetActive(true);

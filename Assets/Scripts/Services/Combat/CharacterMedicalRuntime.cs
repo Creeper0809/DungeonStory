@@ -756,19 +756,31 @@ public sealed partial class CharacterMedicalRuntime :
             return;
         }
 
+        string patientId = actorId;
+        CharacterMedicalOrder existingOrder = aggregateState.Orders
+            .FirstOrDefault(item =>
+                item.IsActive
+                && string.Equals(
+                    item.patientId,
+                    patientId,
+                    StringComparison.Ordinal));
+        int nextSequence = existingOrder == null
+            ? TakeNextOrderSequencePreview()
+            : 0;
+
         CancelCharacterActions(actor);
         actor.SetLifecycleState(CharacterLifecycleState.Downed);
         RegisterDownedOccupant(actor);
 
-        string patientId = actorId;
         CharacterMedicalOrder order = orders.FirstOrDefault(item =>
             item.IsActive
             && string.Equals(item.patientId, patientId, StringComparison.Ordinal));
         if (order == null)
         {
+            orderSequence = nextSequence;
             order = new CharacterMedicalOrder
             {
-                orderId = $"medical:{++orderSequence}",
+                orderId = $"medical:{nextSequence}",
                 patientId = patientId,
                 state = CharacterMedicalOrderState.AwaitingStabilization,
                 statusCode = CharacterMedicalStatusCode.AwaitingStabilization
@@ -789,6 +801,17 @@ public sealed partial class CharacterMedicalRuntime :
             ? CharacterMedicalStatusCode.AwaitingRescue
             : CharacterMedicalStatusCode.AwaitingStabilization);
         RequestRescueReplans(actor);
+    }
+
+    private int TakeNextOrderSequencePreview()
+    {
+        if (orderSequence == int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Character-medical order sequence is exhausted.");
+        }
+
+        return checked(orderSequence + 1);
     }
 
     public void NotifyCharacterRecovered(CharacterActor actor)

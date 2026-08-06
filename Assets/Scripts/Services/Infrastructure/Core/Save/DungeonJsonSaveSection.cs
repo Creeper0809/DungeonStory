@@ -35,7 +35,9 @@ public abstract class DungeonStrictJsonSaveSection<TPayload, TRestoreCandidate> 
     {
         RequireReport(report);
         RequireCurrentVersion(sectionVersion);
-        ValidateParsedPayload(ParsePayload(payloadJson));
+        TPayload payload = ParsePayload(payloadJson);
+        NormalizeRestorePayload(payload, report: null);
+        ValidateParsedPayload(payload);
     }
 
     protected virtual void ValidateParsedPayload(TPayload payload)
@@ -71,8 +73,9 @@ public abstract class DungeonStrictJsonSaveSection<TPayload, TRestoreCandidate> 
     {
         RequireReport(report);
         RequireCurrentVersion(sectionVersion);
-        TRestoreCandidate candidate = BuildRestoreCandidate(
-                ParsePayload(payloadJson))
+        TPayload payload = ParsePayload(payloadJson);
+        NormalizeRestorePayload(payload, report);
+        TRestoreCandidate candidate = BuildRestoreCandidate(payload)
             ?? throw new InvalidOperationException(
                 $"{SectionId} restore candidate builder returned null.");
         return new DungeonCandidateSaveRestoreStage<TRestoreCandidate>(
@@ -84,6 +87,68 @@ public abstract class DungeonStrictJsonSaveSection<TPayload, TRestoreCandidate> 
     protected abstract TPayload CapturePayload();
     protected abstract TRestoreCandidate BuildRestoreCandidate(TPayload payload);
     protected abstract void PublishRestoreCandidate(TRestoreCandidate candidate);
+
+    /// <summary>
+    /// Current-generation compatibility hook for explicitly typed character
+    /// references emitted by early V18 builds. Derived save sections must name
+    /// every supported DTO path; the base class deliberately performs no
+    /// reflection or field-name guessing.
+    /// </summary>
+    protected virtual void NormalizeRestorePayload(
+        TPayload payload,
+        DungeonGameRestoreReport report)
+    {
+    }
+
+    protected string NormalizeV18CharacterReference(
+        string value,
+        DungeonGameRestoreReport report,
+        string path)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        if (!CharacterId.TryCanonicalizeV18Restore(
+                value,
+                out CharacterId canonical,
+                out bool wasLegacy))
+        {
+            throw new InvalidOperationException(
+                $"Invalid CharacterId in '{SectionId}' at '{path}': "
+                + $"'{value}'.");
+        }
+
+        if (!wasLegacy)
+        {
+            return canonical.Value;
+        }
+
+        report?.AddWarning(
+            $"V18 legacy CharacterId normalized in '{SectionId}' at "
+            + $"'{path}': '{value}' -> '{canonical.Value}'.");
+        return canonical.Value;
+    }
+
+    protected void NormalizeV18CharacterReferences(
+        IList<string> values,
+        DungeonGameRestoreReport report,
+        string path)
+    {
+        if (values == null)
+        {
+            return;
+        }
+
+        for (int index = 0; index < values.Count; index++)
+        {
+            values[index] = NormalizeV18CharacterReference(
+                values[index],
+                report,
+                $"{path}[{index}]");
+        }
+    }
 
     /// <summary>
     /// Validates JSON shape that Unity's serializer cannot preserve. In

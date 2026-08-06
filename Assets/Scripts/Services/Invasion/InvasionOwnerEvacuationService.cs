@@ -121,6 +121,7 @@ public sealed class InvasionOwnerEvacuationService :
         OwnerRestoreCandidate candidate = new OwnerRestoreCandidate
         {
             Active = snapshot.active,
+            Target = new Vector2Int(snapshot.targetX, snapshot.targetY),
             UsedAdministrationRoom = snapshot.usedAdministrationRoom,
             StatusText = snapshot.statusText
         };
@@ -136,7 +137,7 @@ public sealed class InvasionOwnerEvacuationService :
                 return;
             }
 
-            Vector2Int target = new Vector2Int(snapshot.targetX, snapshot.targetY);
+            Vector2Int target = candidate.Target;
             if (!grid.IsValidGridPos(target) || !grid.IsWalkable(target))
             {
                 report.AddError(
@@ -194,6 +195,9 @@ public sealed class InvasionOwnerEvacuationService :
         previousProjectionRetired = false;
         if (!candidate.Active)
         {
+            TargetCell = candidate.Target;
+            usedAdministrationRoom = candidate.UsedAdministrationRoom;
+            StatusText = candidate.StatusText ?? string.Empty;
             return;
         }
 

@@ -6,6 +6,9 @@ using UnityEngine.Scripting.APIUpdating;
 public interface IInvasionSaveService
 {
     DungeonInvasionSaveData Capture();
+    void ValidateRestorePayload(
+        DungeonInvasionSaveData source,
+        DungeonGameRestoreReport report);
     InvasionRestoreCandidate PrepareRestore(DungeonInvasionSaveData source);
     void PublishRestore(InvasionRestoreCandidate candidate);
 }
@@ -30,22 +33,32 @@ public interface IInvasionSaveRuntimePort
 
 [MovedFrom(true, sourceAssembly: "Assembly-CSharp")]
 public sealed class InvasionRestoreCandidate :
-    IDungeonDiscardableRestoreCandidate
+    IDungeonDiscardableRestoreCandidate,
+    IDungeonRestoreReportContributor
 {
     private InvasionSaveService owner;
+    private readonly int restoredIntruderCount;
 
     internal InvasionRestoreCandidate(
         InvasionSaveService owner,
-        IInvasionPreparedRestoreRuntimeCandidate runtimeCandidate)
+        IInvasionPreparedRestoreRuntimeCandidate runtimeCandidate,
+        int restoredIntruderCount)
     {
         this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
         RuntimeCandidate = runtimeCandidate
             ?? throw new ArgumentNullException(nameof(runtimeCandidate));
+        this.restoredIntruderCount = Math.Max(0, restoredIntruderCount);
     }
 
     internal IInvasionPreparedRestoreRuntimeCandidate RuntimeCandidate { get; }
 
     public void Discard() => owner?.DiscardPreparedCandidate(this);
+
+    public void RecordRestoreResult(DungeonGameRestoreReport report)
+    {
+        (report ?? throw new ArgumentNullException(nameof(report)))
+            .RecordRestoredIntruders(restoredIntruderCount);
+    }
 
     internal void Detach() => owner = null;
 }
@@ -273,6 +286,18 @@ public sealed class InvasionSaveService :
 
     public DungeonInvasionSaveData Capture() => runtimePort.Capture();
 
+    public void ValidateRestorePayload(
+        DungeonInvasionSaveData source,
+        DungeonGameRestoreReport report)
+    {
+        if (report == null)
+        {
+            throw new ArgumentNullException(nameof(report));
+        }
+
+        InvasionSaveValidation.Validate(source, patternCatalog, report);
+    }
+
     public InvasionRestoreCandidate PrepareRestore(DungeonInvasionSaveData source)
     {
         if (preparedCandidate != null)
@@ -282,7 +307,7 @@ public sealed class InvasionSaveService :
         }
 
         DungeonGameRestoreReport report = new DungeonGameRestoreReport();
-        InvasionSaveValidation.Validate(source, patternCatalog, report);
+        ValidateRestorePayload(source, report);
         if (!report.Success)
         {
             throw new InvalidOperationException(
@@ -303,7 +328,10 @@ public sealed class InvasionSaveService :
                     + string.Join(" | ", report.Errors));
             }
 
-            preparedCandidate = new InvasionRestoreCandidate(this, runtimeCandidate);
+            preparedCandidate = new InvasionRestoreCandidate(
+                this,
+                runtimeCandidate,
+                source.activeIntruders?.Count ?? 0);
             return preparedCandidate;
         }
         catch

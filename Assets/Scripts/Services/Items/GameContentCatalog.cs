@@ -32,6 +32,13 @@ public sealed class ResourceGameContentCatalog :
         Root = rootLoader.LoadRequiredRoot() as GameContentCatalogSO
             ?? throw new InvalidOperationException(
                 "The root content asset is not a GameContentCatalogSO.");
+        IReadOnlyList<string> rootErrors = Root.ValidateCatalog();
+        if (rootErrors.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Game content root catalog is invalid:\n"
+                + string.Join("\n", rootErrors));
+        }
         Items = Root.GetItemDefinitions<ItemDefinitionCatalogSO>() != null
             ? Root.GetItemDefinitions<ItemDefinitionCatalogSO>()
             : throw new InvalidOperationException(

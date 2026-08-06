@@ -33,12 +33,12 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 81ce3e8fab81a91489855b8fbd6d9fa7, type: 3}
   abilityModules:
     items:
-    - rid: 7737211765905949263
-    - rid: 7737211765905949264
-    - rid: 7737211765905949265
-    - rid: 7737211765905949266
-    - rid: 7737211765905949267
-    - rid: 7737211765905949268
+    - rid: 7737211772876620311
+    - rid: 7737211772876620312
+    - rid: 7737211772876620313
+    - rid: 7737211772876620314
+    - rid: 7737211772876620315
+    - rid: 7737211772876620316
   width: 2
   height: 1
   layer: 5
@@ -54,12 +54,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211765905949263
+    - rid: 7737211772876620311
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CS01
-    - rid: 7737211765905949264
+    - rid: 7737211772876620312
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -68,7 +68,7 @@ MonoBehaviour:
         maintenance: 3
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211765905949265
+    - rid: 7737211772876620313
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -80,7 +80,7 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:iron-ingot
           amount: 9
-    - rid: 7737211765905949266
+    - rid: 7737211772876620314
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -91,11 +91,11 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 524288
           disabledWhenDamaged: 1
-    - rid: 7737211765905949267
+    - rid: 7737211772876620315
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211765905949268
+    - rid: 7737211772876620316
       type: {class: BuildingCircusStageAbility, ns: , asm: DungeonStory.Captivity}
       data:
         abilityId: BuildingCircusStageAbility

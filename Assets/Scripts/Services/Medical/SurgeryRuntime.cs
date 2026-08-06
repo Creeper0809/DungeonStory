@@ -802,7 +802,14 @@ public sealed class SurgeryRuntime :
             return false;
         }
 
-        string id = $"surgery:{++orderSequence}";
+        SurgeryAggregateState state = stateStore.State;
+        if (!state.TryPrepareNextOrderIdentity(
+                out int nextOrderSequence,
+                out string id,
+                out failure))
+        {
+            return false;
+        }
         if (planning.RequiresInstalledPart(procedure))
         {
             if (!planning.ValidateSelectedPart(
@@ -851,6 +858,7 @@ public sealed class SurgeryRuntime :
             },
             createdAt = clock.Time
         };
+        orderSequence = nextOrderSequence;
         orders.Add(order);
         surgeryLogistics.RequestMissingMaterials(order, facility.PrimaryFacility);
         surgeryLogistics.PrepareAdmission(order, facility.PrimaryFacility);

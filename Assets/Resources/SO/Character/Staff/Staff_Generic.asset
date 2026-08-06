@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 177cfc3b70256b84ca2f4f0975a0db84, type: 3}
+  m_Name: Staff_Generic
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterSO
+  characterType: 0
+  role: 0
+  id: 1101
+  characterName: "\uC77C\uBC18 \uC9C1\uC6D0"
+  speciesTag: Slime
+  species: {fileID: 11400000, guid: 4c9d840bdf77fa52c83d305b480c977f, type: 2}
+  baseStats:
+    entries:
+    - statId: stat:attack
+      value: 5
+    - statId: stat:sales
+      value: 5
+    - statId: stat:research
+      value: 5
+    - statId: stat:move-speed
+      value: 5
+    - statId: stat:strength
+      value: 5
+    - statId: stat:toughness
+      value: 5
+    - statId: stat:dexterity
+      value: 5
+    - statId: stat:cleaning
+      value: 5
+    - statId: stat:endurance
+      value: 5
+  traits:
+  - {fileID: 11400000, guid: 864136c3057790c98b0d70fe75cb56e5, type: 2}
+  defaultWorkPriorities:
+    schemaVersion: 1
+    priorities:
+    - workTypeId: work:operate
+      priority: 1
+    - workTypeId: work:restock
+      priority: 2
+    - workTypeId: work:repair
+      priority: 2
+    - workTypeId: work:clean
+      priority: 3
+    - workTypeId: work:research
+      priority: 2
+    - workTypeId: work:guard
+      priority: 3
+    - workTypeId: work:rescue
+      priority: 2
+    - workTypeId: work:rest
+      priority: 3
+    legacyOperate: 1
+    legacyRestock: 2
+    legacyRepair: 2
+    legacyClean: 3
+    legacyResearch: 2
+    legacyGuard: 3
+    legacyRescue: 2
+    legacyRest: 3
+  aiPersonality:
+    diligence: 1
+    curiosity: 1
+    selfCare: 1
+    patience: 1
+    shoppingInterest: 1
+  ownerSummary: 
+  ownerPreferredWorkTypes: 0
+  characterSprite: {fileID: -177130652, guid: 268b13836c8af3d408110e228f534b75, type: 3}
+  favoriteStore: []
+  frequencyVisitMax: 3
+  frequencyVisitMin: 1
+  maxHoldingMoney: 300
+  minHoldingMoney: 100
+  speedType: 4
+  respawnSpeedType: 13
+  basicBehaviorPatterns: {fileID: 0}

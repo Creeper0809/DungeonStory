@@ -48,6 +48,12 @@ public sealed class ResourceStockPolicyData
     }
 }
 
+public interface IResourceStockPolicyQuery
+{
+    IReadOnlyList<ResourceStockPolicyData> Policies { get; }
+    int CountOwned(string itemId);
+}
+
 public interface IResourceStockPolicyRuntime
 {
     int Version { get; }

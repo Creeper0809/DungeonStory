@@ -3,13 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public enum EquipmentExpeditionRewardKind
-{
-    RegionBoss = 0,
-    EliteCombat = 1,
-    FacilityRaid = 2
-}
-
 public readonly struct EquipmentExpeditionRewardRequest
 {
     public EquipmentExpeditionRewardRequest(

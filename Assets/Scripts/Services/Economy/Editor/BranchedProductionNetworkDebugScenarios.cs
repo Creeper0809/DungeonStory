@@ -57,6 +57,10 @@ public static class BranchedProductionNetworkDebugScenarios
             id => id,
             _ => new List<ProductionRecipeSO>(),
             StringComparer.Ordinal);
+        Dictionary<string, HashSet<string>> acquisitionProducers = byId.Keys.ToDictionary(
+            id => id,
+            _ => new HashSet<string>(StringComparer.Ordinal),
+            StringComparer.Ordinal);
         List<string> failures = new();
 
         string[] duplicateIds = items
@@ -258,6 +262,16 @@ public static class BranchedProductionNetworkDebugScenarios
             {
                 stockSensorLinks.Add($"production-stock-sensor:{building.id}");
             }
+            if (workstation != null
+                && EquipmentProgressionWorkstationTags.IsModuleProcess(
+                    workstation.WorkstationTag)
+                && consumers.TryGetValue(
+                    PhysicalItemIds.EquipmentModule,
+                    out HashSet<string> moduleProcessLinks))
+            {
+                moduleProcessLinks.Add(
+                    $"equipment-module-process:{building.id}:{workstation.WorkstationTag}");
+            }
 
             BuildingCropPlotAbility cropPlot =
                 building.GetAbility<BuildingCropPlotAbility>();
@@ -301,6 +315,18 @@ public static class BranchedProductionNetworkDebugScenarios
                 out HashSet<string> expeditionToolLinks))
         {
             expeditionToolLinks.Add("offense-supply:tools");
+        }
+
+        if (acquisitionProducers.TryGetValue(
+                PhysicalItemIds.EquipmentModule,
+                out HashSet<string> moduleRewardSources))
+        {
+            foreach (EquipmentExpeditionRewardKind kind in
+                     Enum.GetValues(typeof(EquipmentExpeditionRewardKind)))
+            {
+                moduleRewardSources.Add(
+                    EquipmentExpeditionRewardSourceIds.ForModule(kind));
+            }
         }
 
         foreach (ResourceItemDefinitionSO item in items.Where(value => value != null))
@@ -383,6 +409,7 @@ public static class BranchedProductionNetworkDebugScenarios
                 failures.Add($"{item.ItemId}: real consumers {count}, required {minimum}");
             }
             if (producers[item.ItemId].Count == 0
+                && acquisitionProducers[item.ItemId].Count == 0
                 && item.Kind != ResourceItemKind.Raw
                 && item.ItemId is not "offense:unappraised-loot"
                 && item.ItemId is not "resource:rune-dust"

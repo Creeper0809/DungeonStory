@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -17,6 +18,7 @@ public static class OffenseAggregateSaveV18DebugScenarios
         Require(!plan.Payload.expedition.hasActiveBattle
                 && plan.Payload.expedition.activeBattle == null,
             "JsonUtility null materialization leaked an empty battle into the restore plan.");
+        ValidateReturnArrivalCharacterIds();
         Require(typeof(DungeonOffenseAggregateSaveData).GetField("campaign")?.FieldType
                     == typeof(DungeonOffenseCampaignSaveData),
             "Offense campaign state is not owned by the aggregate payload.");
@@ -150,6 +152,90 @@ public static class OffenseAggregateSaveV18DebugScenarios
                 nextArrivalSequence = 1
             }
         };
+    }
+
+    private static void ValidateReturnArrivalCharacterIds()
+    {
+        const string legacyId = "return:1:prisoner:1";
+        string canonicalId = CharacterId.FromStableSuffix(legacyId).Value;
+        DungeonOffenseAggregateSaveData canonical = CreateCanonicalPayload();
+        canonical.campaign.knownTargetIds.Add("target:return-id-proof");
+        canonical.expedition.resultHistory.Add(
+            new DungeonOffenseExpeditionResultSaveData
+            {
+                expeditionId = "expedition:return-id-proof",
+                targetId = "target:return-id-proof",
+                targetTitle = "Return ID Proof"
+            });
+        canonical.returnArrivals = new DungeonOffenseReturnArrivalSaveData
+        {
+            version = DungeonOffenseReturnArrivalSaveData.CurrentVersion,
+            nextArrivalSequence = 2,
+            arrivals = new List<OffenseReturnArrivalState>
+            {
+                new OffenseReturnArrivalState
+                {
+                    arrivalId = "return:1",
+                    expeditionId = "expedition:return-id-proof",
+                    targetId = "target:return-id-proof",
+                    kind = OffenseReturnArrivalKind.Prisoner,
+                    requestedAmount = 1,
+                    stage = OffenseReturnArrivalStage.Escaped,
+                    materializedIds = new List<string> { canonicalId },
+                    escapedIds = new List<string> { canonicalId },
+                    lastStatus = "escaped"
+                }
+            }
+        };
+        OffenseAggregateRestorePlan canonicalPlan =
+            OffenseAggregateSaveValidation.BuildRestorePlan(canonical);
+        Require(string.Equals(
+                canonicalPlan.Payload.returnArrivals.arrivals[0]
+                    .materializedIds[0],
+                canonicalId,
+                StringComparison.Ordinal),
+            "Canonical return-prisoner CharacterId was rejected or changed by validation.");
+
+        DungeonOffenseAggregateSaveData legacy =
+            JsonUtility.FromJson<DungeonOffenseAggregateSaveData>(
+                JsonUtility.ToJson(canonical));
+        legacy.returnArrivals.arrivals[0].materializedIds[0] = legacyId;
+        legacy.returnArrivals.arrivals[0].escapedIds[0] = legacyId;
+        string legacyBefore = JsonUtility.ToJson(legacy);
+        OffenseAggregateSaveValidation.BuildRestorePlan(legacy);
+        Require(string.Equals(
+                    JsonUtility.ToJson(legacy),
+                    legacyBefore,
+                    StringComparison.Ordinal),
+            "Early-V18 return-prisoner ID was rejected or mutated at source.");
+
+        DungeonOffenseAggregateSaveData malformed =
+            JsonUtility.FromJson<DungeonOffenseAggregateSaveData>(legacyBefore);
+        malformed.returnArrivals.arrivals[0].materializedIds[0] =
+            "return:1:prisoner:01";
+        Require(RejectsOffenseAggregate(malformed),
+            "Return-prisoner compatibility accepted a non-exact legacy ID.");
+
+        DungeonOffenseAggregateSaveData duplicate =
+            JsonUtility.FromJson<DungeonOffenseAggregateSaveData>(legacyBefore);
+        duplicate.returnArrivals.arrivals[0].requestedAmount = 2;
+        duplicate.returnArrivals.arrivals[0].materializedIds.Add(canonicalId);
+        Require(RejectsOffenseAggregate(duplicate),
+            "Raw and canonical aliases bypassed duplicate return-prisoner detection.");
+    }
+
+    private static bool RejectsOffenseAggregate(
+        DungeonOffenseAggregateSaveData payload)
+    {
+        try
+        {
+            OffenseAggregateSaveValidation.BuildRestorePlan(payload);
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return true;
+        }
     }
 
     private static OffenseRegionState Region(

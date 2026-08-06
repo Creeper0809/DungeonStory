@@ -68,7 +68,13 @@ public sealed class FactionRuntimeApplicationAdapter :
     public IReadOnlyList<FactionDefinitionSnapshot> Definitions =>
         catalog.Definitions;
     public IReadOnlyList<DungeonFactionState> Factions =>
-        factions.OrderBy(value => value.factionId, StringComparer.Ordinal)
+        catalog.Definitions
+            .Select(definition => factions.FirstOrDefault(value =>
+                string.Equals(
+                    value.factionId,
+                    definition.StableId,
+                    StringComparison.Ordinal)))
+            .Where(value => value != null)
             .ToArray();
     public IReadOnlyList<FactionRouteState> Routes => routes;
 
@@ -528,7 +534,15 @@ public sealed class FactionRuntimeApplicationAdapter :
             DungeonFactionState clone = CloneFaction(savedFaction);
             restored.Factions.Add(clone.factionId, clone);
         }
-        restored.Routes.AddRange(saveData.routes.Select(CloneRoute));
+        foreach (FactionRouteState savedRoute in saveData.routes)
+        {
+            FactionRouteState clone = CloneRoute(savedRoute);
+            clone.reinforcementActorIds =
+                FactionPayloadValidation
+                    .CanonicalizeReinforcementActorIdsForRestore(savedRoute)
+                    .ToList();
+            restored.Routes.Add(clone);
+        }
         return new FactionRestoreCandidate(restored, saveData);
     }
 
@@ -672,7 +686,10 @@ public sealed class FactionRuntimeApplicationAdapter :
                         $"{definition?.DisplayName ?? faction.factionId} 본거지",
                     q = faction.homeQ,
                     r = faction.homeR,
-                    regionId = $"region:{faction.factionId}",
+                    // The strategic simulation owns authored regions. Leaving this
+                    // empty makes registration project the actual home tile region
+                    // instead of inventing an unrestorable faction-only region ID.
+                    regionId = string.Empty,
                     factionId = faction.factionId,
                     state = OffenseWorldSiteState.Revealed,
                     fixedBoss = false,
@@ -859,7 +876,8 @@ public sealed class FactionRuntimeApplicationAdapter :
                 continue;
             }
 
-            string actorId = $"{route.routeId}:ally:{index + 1}";
+            CharacterId actorId = CharacterId.FromStableSuffix(
+                $"{route.routeId}:ally:{index + 1}");
             instance.name =
                 $"{definition?.DisplayName ?? route.factionId} 지원군 {index + 1}";
             instance.transform.position =
@@ -881,7 +899,7 @@ public sealed class FactionRuntimeApplicationAdapter :
                 instance.GetComponent<FactionReinforcementMarker>()
                 ?? instance.AddComponent<FactionReinforcementMarker>();
             marker.Configure(route.routeId, route.factionId, route.strength);
-            domain.AddReinforcementActor(route, actorId);
+            domain.AddReinforcementActor(route, actorId.Value);
             characterFactory.Publish(instance);
 
             if (actor.TryGetAbility(out AbilityMove move))

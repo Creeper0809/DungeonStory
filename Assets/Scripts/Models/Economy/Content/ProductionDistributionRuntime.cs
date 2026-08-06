@@ -16,6 +16,7 @@ public sealed class ProductionConsumerDemandTarget
     public int ReservedQuantity { get; set; }
     public int ReservationLimit { get; set; }
     public string BlockedReason { get; set; } = string.Empty;
+    public bool RoutingOwnedExternally { get; set; }
 }
 
 public readonly struct ProductionConsumerDemandContext
@@ -447,6 +448,7 @@ public sealed class ProductionDistributionRuntime :
         }
         return evaluation.Targets
             .Where(target => target != null
+                && !target.RoutingOwnedExternally
                 && string.IsNullOrWhiteSpace(target.BlockedReason)
                 && (evaluation.State.stage
                         != ProductionDistributionStage.ActiveDemand

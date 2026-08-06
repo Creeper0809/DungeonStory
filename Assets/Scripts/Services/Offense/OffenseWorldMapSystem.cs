@@ -15,7 +15,6 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
     private IOffenseCampaignStateAuthority campaign;
     private IOffenseCampaignRuntime campaignPersistence;
     private List<OffenseTargetDefinition> targets;
-    private IOffensePanelService panelService;
     private IGameEventBus gameEventBus;
     private IExternalInfluenceRuntime externalInfluence;
     private IOffenseCampaignCatalog targetCatalog;
@@ -64,15 +63,12 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
 
     [Inject]
     public void Construct(
-        IOffensePanelService panelService,
         IGameEventBus gameEventBus,
         IExternalInfluenceRuntime externalInfluence,
         IOffenseCampaignStateAuthority campaign,
         IOffenseCampaignRuntime campaignPersistence,
         IOffenseCampaignCatalog targetCatalog)
     {
-        this.panelService = panelService
-            ?? throw new ArgumentNullException(nameof(panelService));
         this.gameEventBus = gameEventBus
             ?? throw new ArgumentNullException(nameof(gameEventBus));
         this.externalInfluence = externalInfluence;
@@ -276,14 +272,6 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         return true;
     }
 
-    public OffenseWorldMapPanel ShowWorldMap()
-    {
-        EnsureInitialized();
-        return ResolvePanelService().ShowWorldMap();
-    }
-
-    public bool TryOpenWorldMap() => ShowWorldMap() != null;
-
     public void SetPreciseIntelForDebug(bool value)
     {
         preciseIntel = value;
@@ -349,11 +337,6 @@ public class OffenseWorldMapRuntime : MonoBehaviour,
         Changed?.Invoke();
     }
 
-    private IOffensePanelService ResolvePanelService()
-    {
-        return panelService
-            ?? throw new InvalidOperationException($"{nameof(OffenseWorldMapRuntime)} requires {nameof(IOffensePanelService)} injection.");
-    }
 }
 
 public partial class OffenseWorldMapPanel : MonoBehaviour

@@ -416,7 +416,8 @@ public class InvasionIntruderRuntime :
         transform.position = outsidePosition;
         intruderActor.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
         intruderActor.Initialize(data);
-        intruderActor.Identity?.SetPersistentId(runtimeId);
+        intruderActor.Identity?.SetPersistentId(
+            CharacterId.FromStableSuffix(runtimeId));
         intruderActor.ScaleMaxHealth(this.settings.healthMultiplier);
         intruderActor.SetLifecycleState(CharacterLifecycleState.SpawningOutside);
     }

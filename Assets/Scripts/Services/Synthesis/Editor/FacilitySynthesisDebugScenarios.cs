@@ -23,8 +23,6 @@ public static class FacilitySynthesisDebugScenarios
     public static bool RunAll(bool logSuccess)
     {
         FacilitySynthesisRulesDebugScenarios.Validate();
-        P1FacilitySynthesisAssetBuilder.EnsureP1SynthesisAssets();
-
         List<string> errors = new List<string>();
         RunScenario("9개 조합식이 세 모듈 전략만 참조", VerifySynthesisAssets, errors);
         RunScenario("공개 6개와 희귀 3개 가시성", VerifyRecipeVisibility, errors);

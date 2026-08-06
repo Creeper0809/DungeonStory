@@ -277,9 +277,17 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         string displayName,
         out EquipmentMaintenancePolicyData policy)
     {
+        if (policySequence == int.MaxValue)
+        {
+            policy = null;
+            return false;
+        }
+
+        int nextSequence = policySequence + 1;
+        policySequence = nextSequence;
         policy = new EquipmentMaintenancePolicyData
         {
-            id = $"equipment-maintenance:custom:{++policySequence}",
+            id = $"equipment-maintenance:custom:{nextSequence}",
             displayName = string.IsNullOrWhiteSpace(displayName)
                 ? $"장비 정책 {policySequence}"
                 : displayName.Trim(),
@@ -305,9 +313,15 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         {
             return false;
         }
+        if (policySequence == int.MaxValue)
+        {
+            return false;
+        }
 
+        int nextSequence = policySequence + 1;
+        policySequence = nextSequence;
         policy = source.Clone();
-        policy.id = $"equipment-maintenance:custom:{++policySequence}";
+        policy.id = $"equipment-maintenance:custom:{nextSequence}";
         policy.displayName = string.IsNullOrWhiteSpace(displayName)
             ? $"{source.displayName} 복사본"
             : displayName.Trim();
@@ -575,9 +589,17 @@ public sealed class EquipmentMaintenancePolicyRuntime :
         int requiredMaterialAmount =
             Mathf.Max(1, Mathf.CeilToInt(lost / 0.25f))
             * (maintenance?.RepairSupplyPerQuarterDurability ?? 1);
+        if (orderSequence == int.MaxValue)
+        {
+            message = "Equipment repair order sequence is exhausted.";
+            return false;
+        }
+
+        int nextSequence = orderSequence + 1;
+        orderSequence = nextSequence;
         CombatEquipmentRepairOrder order = new CombatEquipmentRepairOrder
         {
-            orderId = $"equipment-repair:{++orderSequence:D6}",
+            orderId = $"equipment-repair:{nextSequence:D6}",
             equipmentInstanceId = instance.instanceId,
             originalOwnerCharacterId = instance.ownerCharacterId,
             facilityBuildingId = facility.RequirePersistentInstanceId().Value,

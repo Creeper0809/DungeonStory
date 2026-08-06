@@ -553,9 +553,24 @@ public sealed class ProductionBuildingPlayModeVerificationRunner : MonoBehaviour
             label.Contains(
                 $"[{link.consumerId}]",
                 StringComparison.Ordinal)));
-        bool allLiveStatesVisible = labels.All(label =>
-            label.Contains("demand ", StringComparison.Ordinal)
-            || label.Contains("blocked: ", StringComparison.Ordinal));
+        bool allLiveStatesVisible = expected.All(link => labels.Any(label =>
+        {
+            string consumerMarker = $"[{link.consumerId}]";
+            int markerIndex = label.IndexOf(
+                consumerMarker,
+                StringComparison.Ordinal);
+            if (markerIndex < 0)
+            {
+                return false;
+            }
+
+            int statusSeparator = label.IndexOf(
+                " | ",
+                markerIndex + consumerMarker.Length,
+                StringComparison.Ordinal);
+            return statusSeparator >= 0
+                && statusSeparator + 3 < label.Length;
+        }));
         string phase = beforeSensor ? "BEFORE_SENSOR" : "AFTER_SENSOR";
         Check(routeRoots.Length >= 2
                 && allConsumersVisible

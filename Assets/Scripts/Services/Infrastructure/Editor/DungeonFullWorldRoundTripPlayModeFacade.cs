@@ -189,15 +189,23 @@ public static class DungeonFullWorldRoundTripPlayModeFacade
 
         try
         {
+            bool gameplaySceneWasAlreadyOpen = string.Equals(
+                SceneManager.GetActiveScene().path,
+                GameplayScenePath,
+                StringComparison.OrdinalIgnoreCase);
             OpenGameplayScene();
-            EditorApplication.delayCall += () =>
+            if (!gameplaySceneWasAlreadyOpen)
             {
-                if (File.Exists(RequestPath)
-                    && !EditorApplication.isPlayingOrWillChangePlaymode)
-                {
-                    EditorApplication.EnterPlaymode();
-                }
-            };
+                // Opening a scene and entering PlayMode in the same editor update
+                // can deadlock Unity's scene transition. The next update observes
+                // the authored gameplay scene and performs the mode transition.
+                return;
+            }
+            if (File.Exists(RequestPath)
+                && !EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                EditorApplication.EnterPlaymode();
+            }
         }
         catch (Exception exception)
         {
@@ -292,6 +300,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
         string detail;
         int registeredSections = 0;
         int capturedSections = 0;
+        int postRoundTripSections = 0;
         if (scope != null)
         {
             OwnerRunManager ownerManager = FindFirstObjectByType<OwnerRunManager>();
@@ -318,6 +327,19 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             IDungeonGameSaveService saves =
                 scope.Container.Resolve<IDungeonGameSaveService>();
             registeredSections = registry.OrderedSections.Count;
+            if (!scope.Container.Resolve<IOwnerRunManagerProvider>()
+                    .TryGetManager(out OwnerRunManager baselineOwnerManager)
+                || baselineOwnerManager.CurrentOwnerActor == null)
+            {
+                throw new InvalidOperationException(
+                    "Full-world baseline requires an initialized owner actor.");
+            }
+            // Body-health currently materializes its aggregate entry lazily on
+            // the first actor query. Establish that canonical state before the
+            // outer baseline so the nested progression contract cannot change
+            // the baseline merely by performing its own first query.
+            scope.Container.Resolve<ICharacterBodyHealthQuery>()
+                .GetSnapshot(baselineOwnerManager.CurrentOwnerActor);
             DungeonGameSaveData baseline = saves.Capture();
             capturedSections = baseline.sections?.Count ?? 0;
             if (registeredSections != ExpectedSectionCount
@@ -350,6 +372,21 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
                     + exception);
             }
 
+            DungeonGameSaveData afterCharacterContracts = saves.Capture();
+            bool characterContractsPreservedBaseline = string.Equals(
+                baselineCanonical,
+                Canonicalize(afterCharacterContracts),
+                StringComparison.Ordinal);
+            if (!characterContractsPreservedBaseline)
+            {
+                errors.Add(
+                    "Character progression save contracts changed the full-world "
+                    + "baseline: "
+                    + DescribeSaveDifferences(
+                        baseline,
+                        afterCharacterContracts));
+            }
+
             bool roundTripReturned = false;
             try
             {
@@ -362,7 +399,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             }
 
             DungeonGameSaveData afterRoundTrip = saves.Capture();
-            int postRoundTripSections = afterRoundTrip.sections?.Count ?? 0;
+            postRoundTripSections = afterRoundTrip.sections?.Count ?? 0;
             if (postRoundTripSections != ExpectedSectionCount)
             {
                 errors.Add(
@@ -380,20 +417,31 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             else
             {
                 errors.Add(
-                    "Full-world scenario did not restore its canonical baseline.");
+                    "Full-world scenario did not restore its canonical baseline: "
+                    + DescribeSaveDifferences(baseline, afterRoundTrip));
                 bool recoverySucceeded = saves.TryRestore(
                     baseline,
                     out DungeonGameRestoreReport recoveryReport);
+                DungeonGameSaveData afterExplicitRecovery = saves.Capture();
+                bool recoveryCanonicalMatched = string.Equals(
+                    baselineCanonical,
+                    Canonicalize(afterExplicitRecovery),
+                    StringComparison.Ordinal);
                 baselineRestored = recoverySucceeded
-                    && string.Equals(
-                        baselineCanonical,
-                        Canonicalize(saves.Capture()),
-                        StringComparison.Ordinal);
+                    && recoveryCanonicalMatched;
                 if (!baselineRestored)
                 {
                     errors.Add(
-                        "Explicit baseline recovery failed: "
-                        + string.Join(" | ", recoveryReport.Errors));
+                        "Explicit baseline recovery failed: returned="
+                        + recoverySucceeded
+                        + "; canonicalMatched="
+                        + recoveryCanonicalMatched
+                        + "; errors="
+                        + string.Join(" | ", recoveryReport.Errors)
+                        + "; differences="
+                        + DescribeSaveDifferences(
+                            baseline,
+                            afterExplicitRecovery));
                 }
             }
 
@@ -418,6 +466,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             detail,
             registeredSections,
             capturedSections,
+            postRoundTripSections,
             baselineRestored,
             canonicalBaselineMatched,
             characterProgressionContractsPassed,
@@ -429,6 +478,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
         string detail,
         int registeredSections,
         int capturedSections,
+        int postRoundTripSections,
         bool baselineRestored,
         bool canonicalBaselineMatched,
         bool characterProgressionContractsPassed,
@@ -444,6 +494,7 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             "scene=" + DungeonFullWorldRoundTripPlayModeFacade.GameplayScenePath,
             "registeredSections=" + registeredSections,
             "capturedSections=" + capturedSections,
+            "postRoundTripSections=" + postRoundTripSections,
             "baselineRestored=" + baselineRestored,
             "canonicalBaselineMatched=" + canonicalBaselineMatched,
             "characterProgressionContractsPassed="
@@ -514,6 +565,97 @@ public sealed class DungeonFullWorldRoundTripPlayModeRunner : MonoBehaviour
             AppendField(builder, section.payloadJson);
         }
         return builder.ToString();
+    }
+
+    private static string DescribeSaveDifferences(
+        DungeonGameSaveData expected,
+        DungeonGameSaveData actual)
+    {
+        Dictionary<string, DungeonSaveSectionEnvelope> expectedById =
+            (expected?.sections ?? new List<DungeonSaveSectionEnvelope>())
+            .Where(section => section != null)
+            .GroupBy(section => section.sectionId ?? string.Empty, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        Dictionary<string, DungeonSaveSectionEnvelope> actualById =
+            (actual?.sections ?? new List<DungeonSaveSectionEnvelope>())
+            .Where(section => section != null)
+            .GroupBy(section => section.sectionId ?? string.Empty, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        List<string> differences = new List<string>();
+        foreach (string sectionId in expectedById.Keys
+                     .Union(actualById.Keys, StringComparer.Ordinal)
+                     .OrderBy(id => id, StringComparer.Ordinal))
+        {
+            if (!expectedById.TryGetValue(
+                    sectionId,
+                    out DungeonSaveSectionEnvelope expectedSection))
+            {
+                differences.Add("added:" + sectionId);
+                continue;
+            }
+            if (!actualById.TryGetValue(
+                    sectionId,
+                    out DungeonSaveSectionEnvelope actualSection))
+            {
+                differences.Add("removed:" + sectionId);
+                continue;
+            }
+            if (!string.Equals(
+                    expectedSection.payloadJson ?? string.Empty,
+                    actualSection.payloadJson ?? string.Empty,
+                    StringComparison.Ordinal))
+            {
+                string expectedPayload = expectedSection.payloadJson
+                    ?? string.Empty;
+                string actualPayload = actualSection.payloadJson
+                    ?? string.Empty;
+                differences.Add(
+                    "changed:"
+                    + sectionId
+                    + "[length "
+                    + expectedPayload.Length
+                    + "->"
+                    + actualPayload.Length
+                    + "; "
+                    + DescribeFirstTextDifference(
+                        expectedPayload,
+                        actualPayload)
+                    + "]");
+            }
+        }
+
+        return differences.Count == 0
+            ? "no section payload difference"
+            : string.Join(" | ", differences);
+    }
+
+    private static string DescribeFirstTextDifference(
+        string expected,
+        string actual)
+    {
+        int sharedLength = Math.Min(expected.Length, actual.Length);
+        int index = 0;
+        while (index < sharedLength && expected[index] == actual[index])
+        {
+            index++;
+        }
+
+        int start = Math.Max(0, index - 48);
+        int expectedLength = Math.Min(112, expected.Length - start);
+        int actualLength = Math.Min(112, actual.Length - start);
+        string expectedSnippet = expected.Substring(start, expectedLength)
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n");
+        string actualSnippet = actual.Substring(start, actualLength)
+            .Replace("\r", "\\r")
+            .Replace("\n", "\\n");
+        return "firstDiff="
+            + index
+            + "; expected='"
+            + expectedSnippet
+            + "'; actual='"
+            + actualSnippet
+            + "'";
     }
 
     private static void AppendField(StringBuilder builder, string value)

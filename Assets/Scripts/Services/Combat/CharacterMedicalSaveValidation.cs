@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 public static class CharacterMedicalSaveValidation
 {
@@ -48,11 +49,11 @@ public static class CharacterMedicalSaveValidation
         int highestSequence = 0;
         foreach (CharacterMedicalOrder order in payload.orders)
         {
-            string orderId = order?.orderId?.Trim() ?? string.Empty;
+            string orderId = order?.orderId ?? string.Empty;
             if (order == null
                 || !TryParseOrderId(orderId, out int sequence)
                 || !orderIds.Add(orderId)
-                || !((CharacterId)(order.patientId ?? string.Empty)).IsValid
+                || !IsCharacterId(order.patientId)
                 || !Enum.IsDefined(
                     typeof(CharacterMedicalOrderState),
                     order.state)
@@ -87,7 +88,7 @@ public static class CharacterMedicalSaveValidation
                     $"Character '{order.patientId}' has more than one active medical order.");
             }
             if (order.rescuerId.Length > 0
-                && (!((CharacterId)order.rescuerId).IsValid
+                && (!IsCharacterId(order.rescuerId)
                     || string.Equals(
                         order.rescuerId,
                         order.patientId,
@@ -97,7 +98,7 @@ public static class CharacterMedicalSaveValidation
                     $"Medical order '{orderId}' has an invalid rescuer ID.");
             }
             if (order.treatmentFacilityId.Length > 0
-                && !((BuildingInstanceId)order.treatmentFacilityId).IsValid)
+                && !IsBuildingInstanceId(order.treatmentFacilityId))
             {
                 report.AddError(
                     $"Medical order '{orderId}' has an invalid treatment facility ID.");
@@ -173,9 +174,39 @@ public static class CharacterMedicalSaveValidation
     {
         const string prefix = "medical:";
         sequence = 0;
-        return orderId.StartsWith(prefix, StringComparison.Ordinal)
-            && int.TryParse(orderId.Substring(prefix.Length), out sequence)
-            && sequence > 0;
+        if (orderId == null
+            || !orderId.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string suffix = orderId.Substring(prefix.Length);
+        return int.TryParse(
+                suffix,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequence)
+            && sequence > 0
+            && string.Equals(
+                suffix,
+                sequence.ToString(CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
+    }
+
+    private static bool IsCharacterId(string value)
+    {
+        string raw = value ?? string.Empty;
+        CharacterId id = (CharacterId)raw;
+        return id.IsValid
+            && string.Equals(id.Value, raw, StringComparison.Ordinal);
+    }
+
+    private static bool IsBuildingInstanceId(string value)
+    {
+        string raw = value ?? string.Empty;
+        BuildingInstanceId id = (BuildingInstanceId)raw;
+        return id.IsValid
+            && string.Equals(id.Value, raw, StringComparison.Ordinal);
     }
 
     private static bool HasValidStatusParameters(

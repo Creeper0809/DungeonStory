@@ -612,6 +612,21 @@ public sealed class ResourceUsageIndex :
                         ? $"Building {building.id} stock sensor"
                         : $"{building.objectName} stock sensor");
             }
+            if (workstation != null
+                && EquipmentProgressionWorkstationTags.IsModuleProcess(
+                    workstation.WorkstationTag)
+                && staticEntries.TryGetValue(
+                    PhysicalItemIds.EquipmentModule,
+                    out StaticUsage moduleProcessUsage))
+            {
+                moduleProcessUsage.AddConsumer(
+                    $"equipment-module-process:{building.id}:{workstation.WorkstationTag}",
+                    string.Empty,
+                    ProductionConsumerKind.EquipmentProcessing,
+                    string.IsNullOrWhiteSpace(building.objectName)
+                        ? $"Building {building.id} equipment module process"
+                        : building.objectName);
+            }
 
             BuildingCropPlotAbility cropPlot =
                 building.GetAbility<BuildingCropPlotAbility>();
@@ -796,6 +811,16 @@ public sealed class ResourceUsageIndex :
                 usage.AddProducer(
                     "source:high-risk-wildlife",
                     "research:husbandry:capture");
+            }
+            else if (PhysicalItemIds.IsEquipmentModule(item.ItemId))
+            {
+                foreach (EquipmentExpeditionRewardKind kind in
+                         Enum.GetValues(typeof(EquipmentExpeditionRewardKind)))
+                {
+                    usage.AddProducer(
+                        EquipmentExpeditionRewardSourceIds.ForModule(kind),
+                        string.Empty);
+                }
             }
 
         }

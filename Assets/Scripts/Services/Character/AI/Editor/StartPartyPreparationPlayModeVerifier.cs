@@ -137,7 +137,9 @@ public static class StartPartyPreparationPlayModeVerifier
                 FindObjectsSortMode.None))
             .Where(actor => actor != null
                 && actor.Identity != null
-                && actor.Identity.PersistentId.StartsWith("staff:", StringComparison.Ordinal))
+                && actor.Identity.PersistentId.StartsWith(
+                    "character:staff:",
+                    StringComparison.Ordinal))
             .ToArray();
         string actors = string.Join(",", staff.Select(actor =>
             $"{actor.name}:{actor.GetInstanceID()}:{actor.Identity.PersistentId}:active={actor.gameObject.activeInHierarchy}"));
@@ -331,7 +333,9 @@ public sealed class StartPartyPreparationPlayModeRunner : MonoBehaviour
                     FindObjectsSortMode.None))
                 .Where(actor => actor != null
                     && actor.Identity != null
-                    && actor.Identity.PersistentId.StartsWith("staff:", StringComparison.Ordinal))
+                    && actor.Identity.PersistentId.StartsWith(
+                        "character:staff:",
+                        StringComparison.Ordinal))
                 .ToArray();
             Check(ownerActor != null && staff.Length == 2,
                 "PARTY_COMMITTED",

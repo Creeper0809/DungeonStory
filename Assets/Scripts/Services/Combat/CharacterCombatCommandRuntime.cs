@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DungeonStory.Foundation;
 using UnityEngine;
+using static CharacterCombatCommandRuntimeRules;
 
 public sealed class CharacterCombatCommandRuntime :
     ICharacterCombatCommandRuntime,
@@ -257,8 +258,20 @@ public sealed class CharacterCombatCommandRuntime :
         if (!RequireCombatStance(actor, out message)
             || !gridProvider.TryGetGrid(out Grid grid)
             || !grid.IsValidGridPos(destination)
-            || !grid.IsWalkable(destination)
-            || !tacticalCoordinator.TryReserve(
+            || !grid.IsWalkable(destination))
+        {
+            if (string.IsNullOrWhiteSpace(message))
+            {
+                message = "이동할 수 없는 칸입니다.";
+            }
+
+            return false;
+        }
+        if (!CanTakeNextCommandSequence(commandSequence, out message))
+        {
+            return false;
+        }
+        if (!tacticalCoordinator.TryReserve(
                 GetId(actor),
                 string.Empty,
                 destination,
@@ -266,13 +279,9 @@ public sealed class CharacterCombatCommandRuntime :
                 0f,
                 out reservationFailure))
         {
-            if (string.IsNullOrWhiteSpace(message))
-            {
-                message = string.IsNullOrWhiteSpace(reservationFailure)
-                    ? "이동할 수 없는 칸입니다."
-                    : reservationFailure;
-            }
-
+            message = string.IsNullOrWhiteSpace(reservationFailure)
+                ? "이동 위치를 예약할 수 없습니다."
+                : reservationFailure;
             return false;
         }
 
@@ -319,6 +328,10 @@ public sealed class CharacterCombatCommandRuntime :
         }
 
         equipment.TryGetActiveWeapon(GetId(actor), out CombatWeaponSnapshot activeWeapon);
+        if (!CanTakeNextCommandSequence(commandSequence, out message))
+        {
+            return false;
+        }
         if (!tacticalCoordinator.TryReserve(
                 GetId(actor),
                 target.Id,
@@ -362,6 +375,11 @@ public sealed class CharacterCombatCommandRuntime :
             return false;
         }
 
+        if (!CanTakeNextCommandSequence(commandSequence, out message))
+        {
+            return false;
+        }
+
         CharacterCombatCommand command = CreateCommand(actor, CombatCommandType.ForceFire);
         command.TargetCell = targetCell;
         command.forceFire = true;
@@ -391,6 +409,11 @@ public sealed class CharacterCombatCommandRuntime :
                 weapon.InstanceId))
         {
             return ammoResupply.TryRequestAmmoResupply(actor, out message);
+        }
+
+        if (!CanTakeNextCommandSequence(commandSequence, out message))
+        {
+            return false;
         }
 
         CharacterCombatCommand command = CreateCommand(actor, CombatCommandType.Reload);
@@ -472,6 +495,11 @@ public sealed class CharacterCombatCommandRuntime :
             message = string.IsNullOrWhiteSpace(message)
                 ? "쓰러진 구조 대상을 정확히 선택해야 합니다."
                 : message;
+            return false;
+        }
+
+        if (!CanTakeNextCommandSequence(commandSequence, out message))
+        {
             return false;
         }
 
@@ -1056,13 +1084,15 @@ public sealed class CharacterCombatCommandRuntime :
         CombatCommandType type,
         bool releaseReservation = true)
     {
+        int nextSequence = TakeNextCommandSequence(commandSequence);
+        commandSequence = nextSequence;
         string actorId = GetId(actor);
         CancelCommandById(actorId, "새 전투 명령", releaseReservation);
         commandRevisions.TryGetValue(actorId, out int revision);
         commandRevisions[actorId] = revision + 1;
         return new CharacterCombatCommand
         {
-            commandId = $"combat-command:{++commandSequence}",
+            commandId = $"combat-command:{nextSequence}",
             actorId = actorId,
             type = type,
             state = CharacterCombatCommandState.Queued,
@@ -1136,40 +1166,9 @@ public sealed class CharacterCombatCommandRuntime :
         return true;
     }
 
-    private static bool CanCommand(CharacterActor actor, out string message)
-    {
-        if (actor == null || actor.IsDead)
-        {
-            message = "명령 가능한 캐릭터가 아닙니다.";
-            return false;
-        }
-
-        if (actor.CurrentLifecycleState != CharacterLifecycleState.Active)
-        {
-            message = actor.CurrentLifecycleState == CharacterLifecycleState.Downed
-                ? "쓰러진 캐릭터에게 명령할 수 없습니다."
-                : "현재 상태에서는 전투 명령을 받을 수 없습니다.";
-            return false;
-        }
-
-        message = string.Empty;
-        return true;
-    }
-
     private bool CanRetryMove(string actorId) =>
         !nextMoveRetryAt.TryGetValue(actorId, out float retryAt)
         || gameClock.Time >= retryAt;
-
-    private static string GetId(CharacterActor actor) =>
-        actor != null
-            ? CharacterPersistentIdentity.Require(actor).Value
-            : string.Empty;
-
-    private static string GetName(CharacterActor actor)
-    {
-        return actor?.Identity?.DisplayName
-            ?? (actor != null ? actor.name : "캐릭터");
-    }
 
     internal void CompleteRecoveredRescues(string recoveredCharacterId)
     {
@@ -1200,4 +1199,64 @@ public sealed class CharacterCombatCommandRuntime :
         commandView = Array.Empty<CharacterCombatCommand>(); viewDirty = true;
     }
     private void MarkDirty() => viewDirty = true;
+}
+
+internal static class CharacterCombatCommandRuntimeRules
+{
+    internal static bool CanTakeNextCommandSequence(
+        int currentSequence,
+        out string message)
+    {
+        if (currentSequence < int.MaxValue)
+        {
+            message = string.Empty;
+            return true;
+        }
+
+        message = "전투 명령 ID를 더 발급할 수 없습니다.";
+        return false;
+    }
+
+    internal static int TakeNextCommandSequence(int currentSequence)
+    {
+        if (currentSequence == int.MaxValue)
+        {
+            throw new InvalidOperationException(
+                "Combat-command sequence is exhausted.");
+        }
+
+        int next = checked(currentSequence + 1);
+        return next;
+    }
+
+    internal static bool CanCommand(
+        CharacterActor actor,
+        out string message)
+    {
+        if (actor == null || actor.IsDead)
+        {
+            message = "명령 가능한 캐릭터가 아닙니다.";
+            return false;
+        }
+
+        if (actor.CurrentLifecycleState != CharacterLifecycleState.Active)
+        {
+            message = actor.CurrentLifecycleState == CharacterLifecycleState.Downed
+                ? "쓰러진 캐릭터에게 명령할 수 없습니다."
+                : "현재 상태에서는 전투 명령을 받을 수 없습니다.";
+            return false;
+        }
+
+        message = string.Empty;
+        return true;
+    }
+
+    internal static string GetId(CharacterActor actor) =>
+        actor != null
+            ? CharacterPersistentIdentity.Require(actor).Value
+            : string.Empty;
+
+    internal static string GetName(CharacterActor actor) =>
+        actor?.Identity?.DisplayName
+        ?? (actor != null ? actor.name : "캐릭터");
 }

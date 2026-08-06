@@ -349,6 +349,11 @@ namespace DungeonStory.Tests.Architecture
                 invasionRuntime,
                 "public void PrepareBegin(",
                 "public void StartPrepared(");
+            AssertInOrder(
+                prepareBegin,
+                "intruderActor.Initialize(data);",
+                "intruderActor.Identity?.SetPersistentId(",
+                "CharacterId.FromStableSuffix(runtimeId));");
             Assert.That(prepareBegin, Does.Not.Contain(
                 "raidAwareness?.IdentifyOperation("));
             AssertInOrder(
@@ -416,8 +421,10 @@ namespace DungeonStory.Tests.Architecture
             AssertInOrder(
                 materializeReinforcements,
                 "characterFactory.CreateInactive(",
+                "CharacterId actorId = CharacterId.FromStableSuffix(",
                 "actor.Initialize(template);",
                 "actor.Identity?.SetPersistentId(actorId);",
+                "domain.AddReinforcementActor(route, actorId.Value);",
                 "characterFactory.Publish(instance);");
             Assert.That(materializeReinforcements, Does.Not.Contain(
                 "RegisterCharacter(actor)"));
@@ -426,8 +433,10 @@ namespace DungeonStory.Tests.Architecture
             AssertInOrder(
                 offenseTrySpawnPrisoner,
                 "characterFactory.CreateInactive(",
+                "CharacterId characterId = CharacterId.FromStableSuffix(",
+                "actorId = characterId.Value;",
                 "actor.Initialize(data);",
-                "actor.Identity?.SetPersistentId(actorId);",
+                "actor.Identity?.SetPersistentId(characterId);",
                 "characterFactory.Publish(characterObject);");
             Assert.That(offenseTrySpawnPrisoner, Does.Not.Contain(
                 "RegisterCharacter(actor)"));
@@ -439,6 +448,18 @@ namespace DungeonStory.Tests.Architecture
                 "actor.Initialize(data);",
                 "actor.Identity?.SetPersistentId(actorId);",
                 "objectFactory.Publish(instance);");
+            string exteriorSpawnVisitor = ExtractMethod(
+                exterior,
+                "protected bool SpawnVisitor(",
+                "protected void DespawnVisitors(");
+            AssertInOrder(
+                exteriorSpawnVisitor,
+                "string actorId = CharacterId.FromStableSuffix(",
+                ").Value;",
+                "Actors.TryFind(actorId, out actor)",
+                "Actors.TrySpawn(",
+                "actorId,",
+                "state.actorIds.Add(actorId);");
             Assert.That(exteriorTrySpawn, Does.Not.Contain(
                 "RegisterCharacter(actor)"));
             Assert.That(exteriorTrySpawn, Does.Not.Contain(
@@ -450,7 +471,7 @@ namespace DungeonStory.Tests.Architecture
                 "candidates.Add(staffCandidate);",
                 "staff.Initialize(staffData);",
                 "ApplyActorState(grid, staff, staffSave);",
-                "AddCandidateIdentity(",
+                "CharacterV18RestoreIdentityResolver.AddCandidate(",
                 "catch (Exception exception)",
                 "DestroyCharacterCandidates(candidates);");
             AssertInOrder(

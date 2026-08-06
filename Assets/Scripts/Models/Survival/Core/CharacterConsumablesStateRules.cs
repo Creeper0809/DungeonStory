@@ -103,7 +103,7 @@ internal static class CharacterConsumablesStateRules
     internal static CharacterDietPolicyState Clone(CharacterDietPolicyState source) =>
         new()
         {
-            characterId = source?.characterId?.Trim() ?? string.Empty,
+            characterId = source?.characterId ?? string.Empty,
             policy = source?.policy ?? CharacterDietPolicyKind.Free
         };
 
@@ -111,8 +111,8 @@ internal static class CharacterConsumablesStateRules
         CharacterSubstancePolicyState source) =>
         new()
         {
-            characterId = source?.characterId?.Trim() ?? string.Empty,
-            itemDefinitionId = source?.itemDefinitionId?.Trim() ?? string.Empty,
+            characterId = source?.characterId ?? string.Empty,
+            itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
             mode = source?.mode ?? SubstancePolicyMode.Forbidden,
             moodThreshold = Mathf.Clamp(source?.moodThreshold ?? 30f, 0f, 100f),
             scheduledHour = Mathf.Clamp(source?.scheduledHour ?? 20, 0, 23)
@@ -121,8 +121,8 @@ internal static class CharacterConsumablesStateRules
     internal static CharacterSubstanceState Clone(CharacterSubstanceState source) =>
         new()
         {
-            characterId = source?.characterId?.Trim() ?? string.Empty,
-            itemDefinitionId = source?.itemDefinitionId?.Trim() ?? string.Empty,
+            characterId = source?.characterId ?? string.Empty,
+            itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
             tolerance = Mathf.Clamp(source?.tolerance ?? 0f, 0f, 100f),
             addiction = Mathf.Clamp(source?.addiction ?? 0f, 0f, 100f),
             withdrawal = Mathf.Clamp(source?.withdrawal ?? 0f, 0f, 100f),
@@ -138,10 +138,10 @@ internal static class CharacterConsumablesStateRules
     internal static CharacterMealDeliveryState Clone(CharacterMealDeliveryState source) =>
         new()
         {
-            deliveryId = source?.deliveryId?.Trim() ?? string.Empty,
-            characterId = source?.characterId?.Trim() ?? string.Empty,
-            buildingInstanceId = source?.buildingInstanceId?.Trim() ?? string.Empty,
-            itemDefinitionId = source?.itemDefinitionId?.Trim() ?? string.Empty,
+            deliveryId = source?.deliveryId ?? string.Empty,
+            characterId = source?.characterId ?? string.Empty,
+            buildingInstanceId = source?.buildingInstanceId ?? string.Empty,
+            itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
             requestedAt = source?.requestedAt ?? 0f,
             retryAfter = source?.retryAfter ?? 0f
         };
@@ -150,10 +150,10 @@ internal static class CharacterConsumablesStateRules
         CharacterConsumableOperationState source) =>
         new()
         {
-            operationId = source?.operationId?.Trim() ?? string.Empty,
-            characterId = source?.characterId?.Trim() ?? string.Empty,
-            itemDefinitionId = source?.itemDefinitionId?.Trim() ?? string.Empty,
-            itemStackId = source?.itemStackId?.Trim() ?? string.Empty,
+            operationId = source?.operationId ?? string.Empty,
+            characterId = source?.characterId ?? string.Empty,
+            itemDefinitionId = source?.itemDefinitionId ?? string.Empty,
+            itemStackId = source?.itemStackId ?? string.Empty,
             meal = source?.meal ?? false,
             completedAt = source?.completedAt ?? 0f
         };
@@ -168,7 +168,7 @@ internal static class CharacterConsumablesStateRules
         {
             throw new ArgumentNullException(nameof(state));
         }
-        return new DungeonCharacterConsumablesSaveData
+        DungeonCharacterConsumablesSaveData payload = new()
         {
             version = DungeonCharacterConsumablesSaveData.CurrentVersion,
             nextOperationSequence = state.NextOperationSequence,
@@ -186,6 +186,15 @@ internal static class CharacterConsumablesStateRules
             completedOperations = state.CompletedOperations.Values.Select(Clone)
                 .OrderBy(value => value.operationId, StringComparer.Ordinal).ToList()
         };
+        DungeonGameRestoreReport report = new();
+        ValidateSequenceWatermarks(payload, report);
+        if (!report.Success)
+        {
+            throw new InvalidOperationException(
+                "Character consumables capture rejected invalid ID sequences: "
+                + string.Join(" | ", report.Errors));
+        }
+        return payload;
     }
 
     internal static void Validate(
@@ -218,6 +227,8 @@ internal static class CharacterConsumablesStateRules
             return;
         }
 
+        ValidateSequenceWatermarks(payload, report);
+
         HashSet<CharacterId> characters = world.CharacterIds.Where(id => id.IsValid).ToHashSet();
         HashSet<BuildingInstanceId> facilities = world.FacilityIds.Where(id => id.IsValid).ToHashSet();
         HashSet<CharacterId> dietIds = new();
@@ -230,7 +241,8 @@ internal static class CharacterConsumablesStateRules
         string previous = null;
         foreach (CharacterDietPolicyState state in payload.dietPolicies)
         {
-            if (state == null || !state.CharacterId.IsValid || !characters.Contains(state.CharacterId)
+            if (state == null || !IsExactCharacterId(state.characterId, state.CharacterId)
+                || !characters.Contains(state.CharacterId)
                 || !dietIds.Add(state.CharacterId)
                 || !Enum.IsDefined(typeof(CharacterDietPolicyKind), state.policy)
                 || !IsAfter(previous, state.characterId))
@@ -246,7 +258,9 @@ internal static class CharacterConsumablesStateRules
         {
             CharacterSubstanceKey key = state == null ? default : new(state.CharacterId, state.ItemDefinitionId);
             string orderKey = state == null ? string.Empty : state.characterId + "\n" + state.itemDefinitionId;
-            if (state == null || !ValidSubstance(state.CharacterId, state.ItemDefinitionId, characters, inventory)
+            if (state == null || !IsExactCharacterId(state.characterId, state.CharacterId)
+                || !IsExactValue(state.itemDefinitionId, state.ItemDefinitionId.Value)
+                || !ValidSubstance(state.CharacterId, state.ItemDefinitionId, characters, inventory)
                 || !policyKeys.Add(key) || !Enum.IsDefined(typeof(SubstancePolicyMode), state.mode)
                 || !InRange(state.moodThreshold, 0f, 100f) || state.scheduledHour < 0
                 || state.scheduledHour > 23 || !IsAfter(previous, orderKey))
@@ -262,7 +276,9 @@ internal static class CharacterConsumablesStateRules
         {
             CharacterSubstanceKey key = state == null ? default : new(state.CharacterId, state.ItemDefinitionId);
             string orderKey = state == null ? string.Empty : state.characterId + "\n" + state.itemDefinitionId;
-            if (state == null || !ValidSubstance(state.CharacterId, state.ItemDefinitionId, characters, inventory)
+            if (state == null || !IsExactCharacterId(state.characterId, state.CharacterId)
+                || !IsExactValue(state.itemDefinitionId, state.ItemDefinitionId.Value)
+                || !ValidSubstance(state.CharacterId, state.ItemDefinitionId, characters, inventory)
                 || !stateKeys.Add(key) || !InRange(state.tolerance, 0f, 100f)
                 || !InRange(state.addiction, 0f, 100f) || !InRange(state.withdrawal, 0f, 100f)
                 || !IsFiniteNonNegative(state.activeSeconds)
@@ -280,7 +296,18 @@ internal static class CharacterConsumablesStateRules
         foreach (CharacterMealDeliveryState delivery in payload.pendingMealDeliveries)
         {
             MealDeliveryRoute route = delivery == null ? default : Route(delivery);
-            if (delivery == null || !delivery.DeliveryId.IsValid
+            if (delivery == null
+                || !delivery.DeliveryId.IsValid
+                || !IsExactValue(delivery.deliveryId, delivery.DeliveryId.Value)
+                || !IsExactCharacterId(delivery.characterId, delivery.CharacterId)
+                || !delivery.BuildingInstanceId.IsValid
+                || !IsExactValue(
+                    delivery.buildingInstanceId,
+                    delivery.BuildingInstanceId.Value)
+                || !delivery.ItemDefinitionId.IsValid
+                || !IsExactValue(
+                    delivery.itemDefinitionId,
+                    delivery.ItemDefinitionId.Value)
                 || !characters.Contains(delivery.CharacterId)
                 || !facilities.Contains(delivery.BuildingInstanceId)
                 || !inventory.TryGetMeal(delivery.ItemDefinitionId, out _)
@@ -302,9 +329,17 @@ internal static class CharacterConsumablesStateRules
             bool validItem = operation != null && (operation.meal
                 ? inventory.TryGetMeal(operation.ItemDefinitionId, out _)
                 : inventory.TryResolveSubstance(operation.ItemDefinitionId, out _));
-            if (operation == null || !operation.OperationId.IsValid
+            if (operation == null
+                || !operation.OperationId.IsValid
+                || !IsExactValue(operation.operationId, operation.OperationId.Value)
+                || !IsExactCharacterId(operation.characterId, operation.CharacterId)
+                || !operation.ItemDefinitionId.IsValid
+                || !IsExactValue(
+                    operation.itemDefinitionId,
+                    operation.ItemDefinitionId.Value)
+                || !operation.ItemStackId.IsValid
+                || !IsExactValue(operation.itemStackId, operation.ItemStackId.Value)
                 || !characters.Contains(operation.CharacterId)
-                || !operation.ItemDefinitionId.IsValid || !operation.ItemStackId.IsValid
                 || !validItem || !operationIds.Add(operation.OperationId)
                 || !IsFiniteNonNegative(operation.completedAt)
                 || !IsAfter(previous, operation.operationId))
@@ -364,6 +399,101 @@ internal static class CharacterConsumablesStateRules
     private static bool IsAfter(string previous, string value) =>
         value != null && string.Equals(value, value.Trim(), StringComparison.Ordinal)
         && (previous == null || string.CompareOrdinal(previous, value) < 0);
+    private static bool IsExactCharacterId(string raw, CharacterId id) =>
+        id.IsValid
+        && string.Equals(id.Value, raw ?? string.Empty, StringComparison.Ordinal);
+    private static bool IsExactValue(string raw, string typedValue) =>
+        string.Equals(typedValue, raw ?? string.Empty, StringComparison.Ordinal);
+
+    private static void ValidateSequenceWatermarks(
+        DungeonCharacterConsumablesSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        long highestOperation = ValidateGeneratedIds(
+            payload.completedOperations,
+            value => value?.operationId,
+            CharacterConsumableIdContract.ClassifyOperation,
+            "operation",
+            report);
+        long highestDelivery = ValidateGeneratedIds(
+            payload.pendingMealDeliveries,
+            value => value?.deliveryId,
+            CharacterConsumableIdContract.ClassifyDelivery,
+            "delivery",
+            report);
+
+        ValidateNextSequence(
+            payload.nextOperationSequence,
+            highestOperation,
+            "operation",
+            report);
+        ValidateNextSequence(
+            payload.nextDeliverySequence,
+            highestDelivery,
+            "delivery",
+            report);
+    }
+
+    private static long ValidateGeneratedIds<T>(
+        IEnumerable<T> values,
+        Func<T, string> selectId,
+        TryClassifyGeneratedId classify,
+        string label,
+        DungeonGameRestoreReport report)
+        where T : class
+    {
+        long highest = 0L;
+        HashSet<string> ids = new(StringComparer.Ordinal);
+        foreach (T value in values ?? Enumerable.Empty<T>())
+        {
+            string id = selectId(value);
+            if (id == null)
+            {
+                continue;
+            }
+            if (!ids.Add(id))
+            {
+                report.AddError(
+                    $"Character consumables {label} ID '{id}' is duplicated.");
+                continue;
+            }
+
+            ConsumableGeneratedIdKind kind = classify(id, out long sequence);
+            if (kind == ConsumableGeneratedIdKind.Malformed)
+            {
+                report.AddError(
+                    $"Character consumables {label} ID '{id}' has a malformed or overflowing generated sequence.");
+            }
+            else if (kind == ConsumableGeneratedIdKind.Generated)
+            {
+                highest = Math.Max(highest, sequence);
+            }
+        }
+        return highest;
+    }
+
+    private static void ValidateNextSequence(
+        long next,
+        long highest,
+        string label,
+        DungeonGameRestoreReport report)
+    {
+        if (next < 1L)
+        {
+            report.AddError(
+                $"Character consumables next {label} sequence must be positive.");
+            return;
+        }
+        if (next <= highest)
+        {
+            report.AddError(
+                $"Character consumables next {label} sequence {next} does not exceed existing generated sequence {highest}.");
+        }
+    }
+
+    private delegate ConsumableGeneratedIdKind TryClassifyGeneratedId(
+        string id,
+        out long sequence);
     private static bool IsFiniteNonNegative(float value) =>
         !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
     private static bool InRange(float value, float minimum, float maximum) =>

@@ -676,6 +676,19 @@ public static class InvasionIntruderDebugScenarios
             DungeonInvasionSaveData payload) =>
             service.PrepareRestore(payload);
 
+        protected override void ValidateParsedPayload(
+            DungeonInvasionSaveData payload)
+        {
+            DungeonGameRestoreReport report = new DungeonGameRestoreReport();
+            service.ValidateRestorePayload(payload, report);
+            if (!report.Success)
+            {
+                throw new InvalidOperationException(
+                    "Invasion restore payload is invalid: "
+                    + string.Join(" | ", report.Errors));
+            }
+        }
+
         protected override void PublishRestoreCandidate(
             InvasionRestoreCandidate candidate) =>
             service.PublishRestore(candidate);
@@ -1801,6 +1814,12 @@ public static class InvasionIntruderDebugScenarios
         public DungeonInvasionSaveData Capture()
         {
             return new DungeonInvasionSaveData();
+        }
+
+        public void ValidateRestorePayload(
+            DungeonInvasionSaveData saveData,
+            DungeonGameRestoreReport report)
+        {
         }
 
         public InvasionRestoreCandidate PrepareRestore(

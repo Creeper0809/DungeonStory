@@ -5,6 +5,32 @@ using UnityEngine;
 public enum EquipmentEra { Starting, Medieval, EarlyIndustrial, MatureIndustrial, RuneAbyssal }
 public enum EquipmentSlotProfile { None = 0, StandardOne = 1, GrowthThree = 3, GrowthFour = 4 }
 public enum EquipmentLineageKind { Weapon, Armor, Shield }
+public enum EquipmentExpeditionRewardKind
+{
+    RegionBoss = 0,
+    EliteCombat = 1,
+    FacilityRaid = 2
+}
+
+public static class EquipmentExpeditionRewardSourceIds
+{
+    public const string RegionBossModule =
+        "expedition-reward:region-boss:equipment-module";
+    public const string EliteCombatModule =
+        "expedition-reward:elite-combat:equipment-module";
+    public const string FacilityRaidModule =
+        "expedition-reward:facility-raid:equipment-module";
+
+    public static string ForModule(EquipmentExpeditionRewardKind kind) =>
+        kind switch
+        {
+            EquipmentExpeditionRewardKind.RegionBoss => RegionBossModule,
+            EquipmentExpeditionRewardKind.EliteCombat => EliteCombatModule,
+            EquipmentExpeditionRewardKind.FacilityRaid => FacilityRaidModule,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+        };
+}
+
 public enum EquipmentModuleProcessState
 {
     Unidentified,
@@ -27,6 +53,15 @@ public static class EquipmentProgressionWorkstationTags
     public const string PrecisionFitting = "workstation:v3:precision-fitting";
     public const string RuneTuning = "workstation:v3:rune-tuning";
     public const string LineageArchive = "workstation:v3:lineage-archive";
+
+    public static bool IsModuleProcess(string workstationTag)
+    {
+        string normalized = workstationTag?.Trim() ?? string.Empty;
+        return normalized == Appraisal
+            || normalized == Restoration
+            || normalized == PrecisionFitting
+            || normalized == RuneTuning;
+    }
 }
 
 [Serializable]

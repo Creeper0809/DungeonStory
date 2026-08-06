@@ -23,15 +23,22 @@ internal static class FinalAcceptanceReportPolicy
             return false;
         }
 
-        return report
+        string[] resultDeclarations = report
             .Split(new[] { "\r\n", "\n" }, StringSplitOptions.None)
-            .Any(line => string.Equals(
-                line.Trim(),
-                "RESULT=PASS",
-                StringComparison.Ordinal)
-                || line.Trim().StartsWith(
-                    "RESULT=PASS;",
-                    StringComparison.Ordinal));
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith("RESULT=", StringComparison.Ordinal))
+            .ToArray();
+        if (resultDeclarations.Length != 1)
+        {
+            return false;
+        }
+
+        string declaration = resultDeclarations[0];
+        int metadataSeparator = declaration.IndexOf(';');
+        string result = metadataSeparator >= 0
+            ? declaration.Substring(0, metadataSeparator)
+            : declaration;
+        return string.Equals(result, "RESULT=PASS", StringComparison.Ordinal);
     }
 
     internal static bool AreFreshArtifacts(

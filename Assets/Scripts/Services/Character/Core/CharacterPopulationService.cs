@@ -270,7 +270,6 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
         CharacterPopulationRestoreTransaction transaction =
             ApplyRestoreCandidate(BuildRestoreCandidate(restoredProfiles));
         CompleteRestore(transaction);
-        ReplenishPreparedPoolBestEffort();
     }
 
     public CharacterPopulationRestoreCandidate BuildRestoreCandidate(
@@ -332,19 +331,6 @@ public sealed class CharacterPopulationApplicationAdapter : IDisposable
     {
         (transaction ?? throw new ArgumentNullException(nameof(transaction)))
             .Complete(this);
-    }
-
-    public void ReplenishPreparedPoolBestEffort()
-    {
-        try
-        {
-            EnsurePreparedPool();
-        }
-        catch
-        {
-            // Pool replenishment is derived work. A committed restore must remain committed
-            // even when preview creation or progression preparation is temporarily unavailable.
-        }
     }
 
     public void Dispose()

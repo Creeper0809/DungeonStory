@@ -32,6 +32,13 @@ public sealed class WorkOrdersSaveSection :
         return runtime.Capture();
     }
 
+    protected override void NormalizeRestorePayload(
+        DungeonWorkOrderSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18WorkProductionCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override void ValidateParsedPayload(
         DungeonWorkOrderSaveData payload)
     {

@@ -387,7 +387,8 @@ public abstract class ExteriorIncidentHandlerBase : IExteriorIncidentHandler
         out CharacterActor actor,
         out string failureReason)
     {
-        string actorId = $"{state.incidentId}:actor";
+        string actorId = CharacterId.FromStableSuffix(
+            $"{state.incidentId}:actor").Value;
         if (Actors.TryFind(actorId, out actor))
         {
             failureReason = string.Empty;

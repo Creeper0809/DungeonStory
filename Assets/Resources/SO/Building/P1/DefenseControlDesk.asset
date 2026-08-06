@@ -36,8 +36,8 @@ MonoBehaviour:
     - rid: 8800000000000001801
     - rid: 7302563312817144224
     - rid: 7302563312817144227
-    - rid: 7737211765905949277
-    - rid: 7737211765905949278
+    - rid: 7737211772876620325
+    - rid: 7737211772876620326
   width: 2
   height: 1
   layer: 1
@@ -67,7 +67,7 @@ MonoBehaviour:
       data:
         abilityId: BuildingFacilityPartAbility
         code: DF02
-    - rid: 7737211765905949277
+    - rid: 7737211772876620325
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -78,7 +78,7 @@ MonoBehaviour:
           requiredWorkers: 1
           supportedWorkTypes: 36
           disabledWhenDamaged: 1
-    - rid: 7737211765905949278
+    - rid: 7737211772876620326
       type: {class: BuildingDefenseAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingDefenseAbility

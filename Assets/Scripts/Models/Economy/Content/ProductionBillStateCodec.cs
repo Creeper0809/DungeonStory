@@ -210,13 +210,23 @@ internal static class ProductionBillStateCodec
             throw new InvalidOperationException(
                 "Production-bill payload contains a null bill.");
         }
-        ProductionBillId billId = (ProductionBillId)saved.billId;
+        string rawBillId = saved.billId ?? string.Empty;
+        string rawBuildingId = saved.buildingInstanceId ?? string.Empty;
+        ProductionBillId billId = (ProductionBillId)rawBillId;
         BuildingInstanceId buildingId =
-            (BuildingInstanceId)saved.buildingInstanceId;
+            (BuildingInstanceId)rawBuildingId;
         if (!billId.IsValid
+            || !string.Equals(
+                billId.Value,
+                rawBillId,
+                StringComparison.Ordinal)
             || !TryParseSequence(billId, out int sequence)
             || !billIds.Add(billId)
             || !buildingId.IsValid
+            || !string.Equals(
+                buildingId.Value,
+                rawBuildingId,
+                StringComparison.Ordinal)
             || !IsCanonical(saved.recipeId)
             || !catalog.TryGetRecipe(saved.recipeId, out ProductionRecipeSO recipe))
         {

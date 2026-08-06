@@ -35,6 +35,13 @@ public sealed class CharacterEnvironmentSaveSection :
     protected override DungeonCharacterEnvironmentSaveData CapturePayload() =>
         persistence.Capture();
 
+    protected override void NormalizeRestorePayload(
+        DungeonCharacterEnvironmentSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18SurvivalEnvironmentCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     protected override CharacterEnvironmentRestoreCandidate
         BuildRestoreCandidate(DungeonCharacterEnvironmentSaveData payload) =>
         persistence.BuildRestoreCandidate(payload);

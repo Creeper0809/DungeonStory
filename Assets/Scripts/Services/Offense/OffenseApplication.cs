@@ -47,13 +47,15 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
 {
     private readonly IOffenseCampaignQuery campaign;
     private readonly IOffenseCampaignCommands campaignCommands;
+    private readonly IOffensePanelService panelService;
     private readonly OffenseExpeditionRuntime expedition;
     private readonly OffenseRewardRuntime reward;
 
     public OffenseApplication(
         OffenseSceneRuntimeReferences runtimeReferences,
         IOffenseCampaignQuery campaign,
-        IOffenseCampaignCommands campaignCommands)
+        IOffenseCampaignCommands campaignCommands,
+        IOffensePanelService panelService)
     {
         runtimeReferences = runtimeReferences
             ?? throw new ArgumentNullException(nameof(runtimeReferences));
@@ -61,6 +63,8 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
             ?? throw new ArgumentNullException(nameof(campaign));
         this.campaignCommands = campaignCommands
             ?? throw new ArgumentNullException(nameof(campaignCommands));
+        this.panelService = panelService
+            ?? throw new ArgumentNullException(nameof(panelService));
         expedition = runtimeReferences.Expedition
             ?? throw new InvalidOperationException(
                 $"{nameof(OffenseApplication)} requires a loaded {nameof(OffenseExpeditionRuntime)}.");
@@ -104,13 +108,13 @@ public sealed class OffenseApplication : IOffenseQuery, IOffenseApplication
 
     public bool TryOpenWorldMap(out string message)
     {
-        if (campaignCommands == null)
+        if (panelService == null)
         {
             message = "OffenseUnavailable";
             return false;
         }
 
-        bool opened = campaignCommands.TryOpenWorldMap();
+        bool opened = panelService.ShowWorldMap() != null;
         message = opened ? "OffenseWorldMapOpened" : "OffenseWorldMapOpenFailed";
         return opened;
     }

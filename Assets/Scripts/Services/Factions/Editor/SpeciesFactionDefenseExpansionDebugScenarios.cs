@@ -272,7 +272,12 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
                     strength = 100,
                     createdDay = 1,
                     estimatedArrivalDay = 2,
-                    reinforcementActorIds = new List<string>(),
+                    actorsSpawned = true,
+                    reinforcementActorIds = new List<string>
+                    {
+                        CharacterId.FromStableSuffix(
+                            "faction-route:1:ally:1").Value
+                    },
                     cargo = new List<FactionCargoLine>
                     {
                         new FactionCargoLine
@@ -308,6 +313,11 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             errors.Add("Faction strict save boundary rejected a canonical payload.");
             return;
         }
+
+        ValidateFactionReinforcementIdCompatibility(
+            errors,
+            runtime.Definitions,
+            valid);
 
         DungeonFactionSaveData invalid = JsonUtility.FromJson<DungeonFactionSaveData>(
             canonicalJson);
@@ -352,6 +362,61 @@ public static class SpeciesFactionDefenseExpansionDebugScenarios
             definitions,
             valid,
             canonicalJson);
+    }
+
+    private static void ValidateFactionReinforcementIdCompatibility(
+        ICollection<string> errors,
+        IReadOnlyList<FactionDefinitionSnapshot> definitions,
+        DungeonFactionSaveData canonical)
+    {
+        DungeonFactionSaveData legacy =
+            JsonUtility.FromJson<DungeonFactionSaveData>(
+                JsonUtility.ToJson(canonical));
+        legacy.routes[0].reinforcementActorIds[0] =
+            "faction-route:1:ally:1";
+        string legacyBefore = JsonUtility.ToJson(legacy);
+        IReadOnlyList<string> validationErrors =
+            FactionPayloadValidation.Validate(
+                legacy,
+                definitions,
+                itemId => string.Equals(
+                    itemId,
+                    "material:iron-ingot",
+                    StringComparison.Ordinal));
+        IReadOnlyList<string> restoredIds =
+            FactionPayloadValidation
+                .CanonicalizeReinforcementActorIdsForRestore(
+                    legacy.routes[0]);
+        string expected = CharacterId.FromStableSuffix(
+            "faction-route:1:ally:1").Value;
+        if (validationErrors.Count != 0
+            || restoredIds.Count != 1
+            || !string.Equals(restoredIds[0], expected,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                JsonUtility.ToJson(legacy),
+                legacyBefore,
+                StringComparison.Ordinal))
+        {
+            errors.Add(
+                "Faction early-V18 reinforcement ID was rejected, not canonicalized in staging, or mutated at source.");
+        }
+
+        DungeonFactionSaveData malformed =
+            JsonUtility.FromJson<DungeonFactionSaveData>(legacyBefore);
+        malformed.routes[0].reinforcementActorIds[0] =
+            "faction-route:1:ally:01";
+        if (FactionPayloadValidation.Validate(
+                malformed,
+                definitions,
+                itemId => string.Equals(
+                    itemId,
+                    "material:iron-ingot",
+                    StringComparison.Ordinal)).Count == 0)
+        {
+            errors.Add(
+                "Faction reinforcement compatibility accepted a non-exact legacy actor ID.");
+        }
     }
 
     private static void ValidateFactionLateFailureDiscard(

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.Scripting.APIUpdating;
 
@@ -13,7 +14,7 @@ public readonly struct ConsumableOperationId : IEquatable<ConsumableOperationId>
         this.value = PersistentEntityId.Normalize(value);
 
     public string Value => value ?? string.Empty;
-    public bool IsValid => PersistentEntityId.IsKind(Value, "consumable-operation");
+    public bool IsValid => CharacterConsumableIdContract.IsValidOperation(Value);
     public bool Equals(ConsumableOperationId other) =>
         PersistentEntityId.Equals(Value, other.Value);
     public override bool Equals(object obj) =>
@@ -33,7 +34,7 @@ public readonly struct ConsumableDeliveryId : IEquatable<ConsumableDeliveryId>
         this.value = PersistentEntityId.Normalize(value);
 
     public string Value => value ?? string.Empty;
-    public bool IsValid => PersistentEntityId.IsKind(Value, "consumable-delivery");
+    public bool IsValid => CharacterConsumableIdContract.IsValidDelivery(Value);
     public bool Equals(ConsumableDeliveryId other) =>
         PersistentEntityId.Equals(Value, other.Value);
     public override bool Equals(object obj) =>
@@ -41,6 +42,116 @@ public readonly struct ConsumableDeliveryId : IEquatable<ConsumableDeliveryId>
     public override int GetHashCode() => PersistentEntityId.GetHashCode(Value);
     public override string ToString() => Value;
     public static explicit operator ConsumableDeliveryId(string value) => new(value);
+}
+
+internal enum ConsumableGeneratedIdKind
+{
+    External,
+    Generated,
+    Malformed
+}
+
+internal static class CharacterConsumableIdContract
+{
+    internal const string OperationPrefix = "consumable-operation:";
+    internal const string DeliveryPrefix = "consumable-delivery:";
+    internal const string AutomaticNamespace = "auto:";
+    internal const string AutomaticV1Namespace = "auto:v1:";
+
+    internal static bool IsValidOperation(string id) =>
+        PersistentEntityId.IsKind(id, "consumable-operation")
+        && ClassifyOperation(id, out _) != ConsumableGeneratedIdKind.Malformed;
+
+    internal static bool IsValidDelivery(string id) =>
+        PersistentEntityId.IsKind(id, "consumable-delivery")
+        && ClassifyDelivery(id, out _) != ConsumableGeneratedIdKind.Malformed;
+
+    internal static bool IsExternalOperation(string id) =>
+        ClassifyOperation(id, out _) == ConsumableGeneratedIdKind.External;
+
+    internal static bool IsCurrentAutomaticOperation(string id) =>
+        id != null
+        && id.StartsWith(
+            OperationPrefix + AutomaticV1Namespace,
+            StringComparison.Ordinal)
+        && ClassifyOperation(id, out _) == ConsumableGeneratedIdKind.Generated;
+
+    internal static ConsumableOperationId CreateAutomaticOperation(long sequence) =>
+        new(CreateAutomaticId(OperationPrefix, sequence));
+
+    internal static ConsumableDeliveryId CreateAutomaticDelivery(long sequence) =>
+        new(CreateAutomaticId(DeliveryPrefix, sequence));
+
+    internal static ConsumableGeneratedIdKind ClassifyOperation(
+        string id,
+        out long sequence) =>
+        Classify(id, OperationPrefix, out sequence);
+
+    internal static ConsumableGeneratedIdKind ClassifyDelivery(
+        string id,
+        out long sequence) =>
+        Classify(id, DeliveryPrefix, out sequence);
+
+    private static string CreateAutomaticId(string prefix, long sequence)
+    {
+        if (sequence < 1L)
+        {
+            throw new ArgumentOutOfRangeException(nameof(sequence));
+        }
+        return prefix + AutomaticV1Namespace
+            + sequence.ToString("D16", CultureInfo.InvariantCulture);
+    }
+
+    private static ConsumableGeneratedIdKind Classify(
+        string id,
+        string prefix,
+        out long sequence)
+    {
+        sequence = 0L;
+        if (string.IsNullOrEmpty(id)
+            || !id.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return ConsumableGeneratedIdKind.External;
+        }
+
+        string suffix = id.Substring(prefix.Length);
+        if (suffix.StartsWith(AutomaticNamespace, StringComparison.Ordinal))
+        {
+            if (!suffix.StartsWith(AutomaticV1Namespace, StringComparison.Ordinal))
+            {
+                return ConsumableGeneratedIdKind.Malformed;
+            }
+            string automaticSequence = suffix.Substring(AutomaticV1Namespace.Length);
+            return TryParseCanonicalSequence(automaticSequence, out sequence)
+                ? ConsumableGeneratedIdKind.Generated
+                : ConsumableGeneratedIdKind.Malformed;
+        }
+
+        // V18 originally emitted an un-namespaced D16 suffix. Exact legacy values
+        // remain reserved so their sequences continue to protect the watermark.
+        return TryParseCanonicalSequence(suffix, out sequence)
+            ? ConsumableGeneratedIdKind.Generated
+            : ConsumableGeneratedIdKind.External;
+    }
+
+    private static bool TryParseCanonicalSequence(string value, out long sequence)
+    {
+        if (long.TryParse(
+                value,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequence)
+            && sequence >= 1L
+            && string.Equals(
+                value,
+                sequence.ToString("D16", CultureInfo.InvariantCulture),
+                StringComparison.Ordinal))
+        {
+            return true;
+        }
+        sequence = 0L;
+        return false;
+    }
 }
 
 /// <summary>

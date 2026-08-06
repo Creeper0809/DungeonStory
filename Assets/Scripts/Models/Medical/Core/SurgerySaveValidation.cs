@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 public static class SurgerySaveValidation
@@ -153,9 +154,15 @@ public static class SurgerySaveValidation
             {
                 report.AddError($"Duplicate surgery order ID '{id}'.");
             }
-            largestSequence = Math.Max(
-                largestSequence,
-                ParseNumericSuffix(id, OrderPrefix));
+            if (!TryParseNumericSuffix(id, OrderPrefix, out int orderSequence))
+            {
+                report.AddError(
+                    $"Surgery order ID '{id}' is not a canonical positive decimal ID.");
+            }
+            else
+            {
+                largestSequence = Math.Max(largestSequence, orderSequence);
+            }
             if (!Enum.IsDefined(typeof(SurgeryOrderState), order.state)
                 || !Enum.IsDefined(typeof(SurgeryFailureSeverity), order.failureSeverity)
                 || !Enum.IsDefined(
@@ -230,9 +237,15 @@ public static class SurgerySaveValidation
             {
                 report.AddError($"Duplicate surgical part ID '{id}'.");
             }
-            largestSequence = Math.Max(
-                largestSequence,
-                ParseNumericSuffix(id, PartPrefix));
+            if (!TryParseNumericSuffix(id, PartPrefix, out int partSequence))
+            {
+                report.AddError(
+                    $"Surgical part ID '{id}' is not a canonical positive decimal ID.");
+            }
+            else
+            {
+                largestSequence = Math.Max(largestSequence, partSequence);
+            }
             if (!Enum.IsDefined(typeof(SurgicalPartKind), part.kind))
             {
                 report.AddError($"Surgical part '{id}' has an invalid kind.");
@@ -706,14 +719,28 @@ public static class SurgerySaveValidation
         return canonical;
     }
 
-    private static int ParseNumericSuffix(string value, string prefix)
+    private static bool TryParseNumericSuffix(
+        string value,
+        string prefix,
+        out int sequence)
     {
-        return value != null
-            && value.StartsWith(prefix, StringComparison.Ordinal)
-            && int.TryParse(value.Substring(prefix.Length), out int parsed)
-            && parsed > 0
-                ? parsed
-                : 0;
+        sequence = 0;
+        if (value == null || !value.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string suffix = value.Substring(prefix.Length);
+        return int.TryParse(
+                suffix,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out sequence)
+            && sequence > 0
+            && string.Equals(
+                suffix,
+                sequence.ToString(CultureInfo.InvariantCulture),
+                StringComparison.Ordinal);
     }
 
     private static bool IsFinite(float value)

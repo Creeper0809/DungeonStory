@@ -776,7 +776,9 @@ internal sealed class CharacterVitalsAuthority
     {
         state.maxHealth = Mathf.Max(1f, maximumHealth);
         state.currentHealth = Mathf.Clamp(currentHealth, 0f, state.maxHealth);
-        state.injurySeverity = Mathf.Clamp01(injurySeverity);
+        // Injury severity is a projection of current/max health. Character-world
+        // compatibility input must never become a second mutable authority.
+        UpdateInjuryProjection(state);
         Project(actor, state);
     }
 

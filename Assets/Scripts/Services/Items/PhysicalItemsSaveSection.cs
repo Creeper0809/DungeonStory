@@ -87,18 +87,34 @@ public sealed class PhysicalItemsSaveSection :
         int sectionVersion,
         DungeonGameRestoreReport report)
     {
-        ValidatePayload(payloadJson, sectionVersion, report);
+        if (report == null)
+        {
+            throw new ArgumentNullException(nameof(report));
+        }
+        if (sectionVersion != SectionVersion)
+        {
+            report.AddError(
+                $"Unsupported physical item section version {sectionVersion}; expected {SectionVersion}.");
+            return new DungeonDelegateSaveRestoreStage(Id, _ => { });
+        }
+
+        DungeonPhysicalItemSaveData payload = Deserialize(payloadJson, report);
+        if (payload != null)
+        {
+            PhysicalItemSaveValidation.Validate(
+                payload,
+                report,
+                runtime.CatalogProvider);
+        }
         if (!report.Success)
         {
             return new DungeonDelegateSaveRestoreStage(Id, _ => { });
         }
 
-        DungeonPhysicalItemSaveData payload = JsonUtility.FromJson<
-            DungeonPhysicalItemSaveData>(payloadJson);
         return restoreStaging.StageRestore(payload);
     }
 
-    private static DungeonPhysicalItemSaveData Deserialize(
+    private DungeonPhysicalItemSaveData Deserialize(
         string payloadJson,
         DungeonGameRestoreReport report)
     {
@@ -115,6 +131,18 @@ public sealed class PhysicalItemsSaveSection :
             if (payload == null)
             {
                 report.AddError("Physical item payload deserialized to null.");
+            }
+            else
+            {
+                V18WorldEconomyCharacterReferenceRestoreNormalizer.Normalize(
+                    payload,
+                    (value, path) =>
+                        V18TypedCharacterReferenceRestoreNormalizer
+                            .RewriteLegacyReference(
+                                value,
+                                report,
+                                SectionId,
+                                path));
             }
             return payload;
         }

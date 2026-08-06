@@ -50,6 +50,36 @@ public static class FactionPayloadValidation
             : int.MaxValue;
     }
 
+    public static IReadOnlyList<string> CanonicalizeReinforcementActorIdsForRestore(
+        FactionRouteState route)
+    {
+        // Early V18 wrote the stable route suffix directly. Resolve only that exact
+        // grammar into the detached candidate; current captures stay character-scoped.
+        if (route == null
+            || !TryParseRouteId(route.routeId, out int sequence)
+            || route.reinforcementActorIds == null)
+        {
+            throw new InvalidOperationException(
+                "Faction reinforcement restore requires a valid route and actor list.");
+        }
+
+        List<string> canonical = new(route.reinforcementActorIds.Count);
+        for (int index = 0; index < route.reinforcementActorIds.Count; index++)
+        {
+            if (!TryResolveReinforcementActorId(
+                    sequence,
+                    index + 1,
+                    route.reinforcementActorIds[index],
+                    out string actorId))
+            {
+                throw new InvalidOperationException(
+                    $"Faction route '{route.routeId}' contains invalid reinforcement actor ID '{route.reinforcementActorIds[index]}'.");
+            }
+            canonical.Add(actorId);
+        }
+        return canonical;
+    }
+
     private static void ValidateFactions(
         DungeonFactionSaveData data,
         IReadOnlyList<FactionDefinitionSnapshot> definitions,
@@ -233,16 +263,29 @@ public static class FactionPayloadValidation
         }
         for (int index = 0; index < route.reinforcementActorIds.Count; index++)
         {
-            string expected = $"{RoutePrefix}{sequence}:ally:{index + 1}";
-            if (!string.Equals(
+            if (!TryResolveReinforcementActorId(
+                    sequence,
+                    index + 1,
                     route.reinforcementActorIds[index],
-                    expected,
-                    StringComparison.Ordinal))
+                    out _))
             {
                 report.AddError(
                     $"Faction route '{route.routeId}' has a non-canonical reinforcement actor ID.");
             }
         }
+    }
+
+    private static bool TryResolveReinforcementActorId(
+        int routeSequence,
+        int actorSequence,
+        string value,
+        out string canonical)
+    {
+        string stableSuffix =
+            $"{RoutePrefix}{routeSequence}:ally:{actorSequence}";
+        canonical = CharacterId.FromStableSuffix(stableSuffix).Value;
+        return string.Equals(value, canonical, StringComparison.Ordinal)
+            || string.Equals(value, stableSuffix, StringComparison.Ordinal);
     }
 
     private static void ValidateCargo(

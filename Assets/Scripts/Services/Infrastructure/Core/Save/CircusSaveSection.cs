@@ -37,6 +37,63 @@ public sealed class CircusSaveSection :
     protected override CircusSaveData CapturePayload() =>
         persistence.Capture();
 
+    protected override void NormalizeRestorePayload(
+        CircusSaveData payload,
+        DungeonGameRestoreReport report)
+    {
+        if (payload?.orders != null)
+        {
+            for (int orderIndex = 0; orderIndex < payload.orders.Count; orderIndex++)
+            {
+                CircusShowOrder order = payload.orders[orderIndex];
+                NormalizeCharacterIds(
+                    order?.performerIds,
+                    report,
+                    $"orders[{orderIndex}].performerIds");
+                NormalizeCharacterIds(
+                    order?.audienceIds,
+                    report,
+                    $"orders[{orderIndex}].audienceIds");
+            }
+        }
+
+        if (payload?.capturedWildlife == null)
+        {
+            return;
+        }
+
+        for (int index = 0; index < payload.capturedWildlife.Count; index++)
+        {
+            CapturedWildlifeState animal = payload.capturedWildlife[index];
+            if (animal != null)
+            {
+                animal.reservedCarrierId = NormalizeV18CharacterReference(
+                    animal.reservedCarrierId,
+                    report,
+                    $"capturedWildlife[{index}].reservedCarrierId");
+            }
+        }
+    }
+
+    private void NormalizeCharacterIds(
+        IList<string> values,
+        DungeonGameRestoreReport report,
+        string path)
+    {
+        if (values == null)
+        {
+            return;
+        }
+
+        for (int index = 0; index < values.Count; index++)
+        {
+            values[index] = NormalizeV18CharacterReference(
+                values[index],
+                report,
+                $"{path}[{index}]");
+        }
+    }
+
     protected override CircusRestoreCandidate BuildRestoreCandidate(
         CircusSaveData payload) =>
         persistence.BuildRestore(payload);

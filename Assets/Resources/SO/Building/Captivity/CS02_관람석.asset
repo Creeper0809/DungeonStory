@@ -33,13 +33,13 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 82a6eb1a53fe9014f824947d5a05aa8d, type: 3}
   abilityModules:
     items:
-    - rid: 7737211765905949256
-    - rid: 7737211765905949257
-    - rid: 7737211765905949258
-    - rid: 7737211765905949259
-    - rid: 7737211765905949260
-    - rid: 7737211765905949261
-    - rid: 7737211765905949262
+    - rid: 7737211772876620304
+    - rid: 7737211772876620305
+    - rid: 7737211772876620306
+    - rid: 7737211772876620307
+    - rid: 7737211772876620308
+    - rid: 7737211772876620309
+    - rid: 7737211772876620310
   width: 2
   height: 1
   layer: 1
@@ -55,12 +55,12 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 7737211765905949256
+    - rid: 7737211772876620304
       type: {class: BuildingFacilityPartAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingFacilityPartAbility
         code: CS02
-    - rid: 7737211765905949257
+    - rid: 7737211772876620305
       type: {class: BuildingEconomyAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingEconomyAbility
@@ -69,7 +69,7 @@ MonoBehaviour:
         maintenance: 1
         unlockPhase: 1
         demolitionRefundRate: 0.5
-    - rid: 7737211765905949258
+    - rid: 7737211772876620306
       type: {class: BuildingWorkAmountAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingWorkAmountAbility
@@ -81,7 +81,7 @@ MonoBehaviour:
         constructionMaterials:
         - itemId: material:lumber
           amount: 5
-    - rid: 7737211765905949259
+    - rid: 7737211772876620307
       type: {class: BuildingFacilityAbility, ns: , asm: Assembly-CSharp}
       data:
         abilityId: BuildingFacilityAbility
@@ -92,16 +92,16 @@ MonoBehaviour:
           requiredWorkers: 0
           supportedWorkTypes: 0
           disabledWhenDamaged: 1
-    - rid: 7737211765905949260
+    - rid: 7737211772876620308
       type: {class: BuildingRoomRequirementAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingRoomRequirementAbility
-    - rid: 7737211765905949261
+    - rid: 7737211772876620309
       type: {class: BuildingSeatingAbility, ns: , asm: DungeonStory.Buildings}
       data:
         abilityId: BuildingSeatingAbility
         capacity: 2
-    - rid: 7737211765905949262
+    - rid: 7737211772876620310
       type: {class: BuildingAudienceSeatingAbility, ns: , asm: DungeonStory.Captivity}
       data:
         abilityId: BuildingAudienceSeatingAbility

@@ -56,6 +56,13 @@ public sealed class StaffDiscontentSaveSection :
         return destination;
     }
 
+    protected override void NormalizeRestorePayload(
+        DungeonStaffDiscontentSaveData payload,
+        DungeonGameRestoreReport report) =>
+        V18SurvivalEnvironmentCharacterReferenceRestoreNormalizer.Normalize(
+            payload,
+            (value, path) => NormalizeV18CharacterReference(value, report, path));
+
     private static void ValidatePayload(
         DungeonStaffDiscontentSaveData payload,
         DungeonGameRestoreReport report)

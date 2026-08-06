@@ -111,7 +111,6 @@ public interface ICharacterPopulationService
         CharacterPopulationRestoreCandidate candidate);
     void RollbackRestore(CharacterPopulationRestoreTransaction transaction);
     void CompleteRestore(CharacterPopulationRestoreTransaction transaction);
-    void ReplenishPreparedPoolBestEffort();
     void RestoreProfiles(IEnumerable<WorldCharacterProfile> profiles);
 }
 
@@ -164,9 +163,6 @@ public sealed class CharacterPopulationService : ICharacterPopulationService, ID
 
     public void CompleteRestore(CharacterPopulationRestoreTransaction transaction) =>
         adapter.CompleteRestore(transaction);
-
-    public void ReplenishPreparedPoolBestEffort() =>
-        adapter.ReplenishPreparedPoolBestEffort();
 
     public void RestoreProfiles(IEnumerable<WorldCharacterProfile> profiles) =>
         adapter.RestoreProfiles(profiles);

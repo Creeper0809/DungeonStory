@@ -176,8 +176,10 @@ internal static class OffenseReturnArrivalSaveValidation
                 returningMembers = source.returningMembers,
                 stage = source.stage,
                 escapeRisk = source.escapeRisk,
-                materializedIds = source.materializedIds.ToList(),
-                escapedIds = source.escapedIds.ToList(),
+                materializedIds = CanonicalizeEntityIdsForRestore(source,
+                    source.materializedIds),
+                escapedIds = CanonicalizeEntityIdsForRestore(source,
+                    source.escapedIds),
                 lastStatus = source.lastStatus
             });
         }
@@ -194,13 +196,11 @@ internal static class OffenseReturnArrivalSaveValidation
         foreach (string raw in values)
         {
             string value = raw ?? string.Empty;
-            bool valid = arrival.kind == OffenseReturnArrivalKind.Prisoner
-                ? IsPrisonerId(arrival.arrivalId, value)
-                : IsWildlifeId(value);
+            bool valid = TryResolveEntityId(arrival, value, out string canonical);
             if (!valid
                 || !string.Equals(value, value.Trim(),
                     StringComparison.Ordinal)
-                || !unique.Add(value))
+                || !unique.Add(canonical))
             {
                 report.AddError(
                     $"Offense return-arrival '{arrival.arrivalId}' contains invalid or duplicate {label} ID '{value}'.");
@@ -208,6 +208,64 @@ internal static class OffenseReturnArrivalSaveValidation
         }
 
         return unique;
+    }
+
+    private static List<string> CanonicalizeEntityIdsForRestore(
+        OffenseReturnArrivalState arrival,
+        IReadOnlyList<string> values)
+    {
+        List<string> canonical = new(values.Count);
+        foreach (string value in values)
+        {
+            if (!TryResolveEntityId(arrival, value, out string resolved))
+            {
+                throw new InvalidOperationException(
+                    $"Offense return-arrival '{arrival.arrivalId}' contains invalid entity ID '{value}'.");
+            }
+            canonical.Add(resolved);
+        }
+        return canonical;
+    }
+
+    private static bool TryResolveEntityId(
+        OffenseReturnArrivalState arrival,
+        string value,
+        out string canonical)
+    {
+        if (arrival.kind != OffenseReturnArrivalKind.Prisoner)
+        {
+            canonical = value;
+            return IsWildlifeId(value);
+        }
+
+        string prefix = arrival.arrivalId + ":prisoner:";
+        string candidate = value ?? string.Empty;
+        // Early V18 persisted the return-arrival suffix without its character scope.
+        // Accept only that exact suffix and canonicalize after validation in staging.
+        const string characterPrefix = "character:";
+        string suffix = candidate.StartsWith(
+                characterPrefix,
+                StringComparison.Ordinal)
+            ? candidate.Substring(characterPrefix.Length)
+            : candidate;
+        if (!suffix.StartsWith(prefix, StringComparison.Ordinal)
+            || !int.TryParse(
+                suffix.Substring(prefix.Length),
+                out int sequence)
+            || sequence <= 0
+            || !string.Equals(
+                suffix,
+                prefix + sequence.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                StringComparison.Ordinal))
+        {
+            canonical = string.Empty;
+            return false;
+        }
+
+        canonical = CharacterId.FromStableSuffix(suffix).Value;
+        return string.Equals(candidate, suffix, StringComparison.Ordinal)
+            || string.Equals(candidate, canonical, StringComparison.Ordinal);
     }
 
     private static bool TryParseArrivalId(
@@ -218,18 +276,6 @@ internal static class OffenseReturnArrivalSaveValidation
         sequence = 0;
         return arrivalId.StartsWith(prefix, StringComparison.Ordinal)
             && int.TryParse(arrivalId.Substring(prefix.Length), out sequence)
-            && sequence > 0;
-    }
-
-    private static bool IsPrisonerId(
-        string arrivalId,
-        string value)
-    {
-        string prefix = arrivalId + ":prisoner:";
-        return value.StartsWith(prefix, StringComparison.Ordinal)
-            && int.TryParse(
-                value.Substring(prefix.Length),
-                out int sequence)
             && sequence > 0;
     }
 

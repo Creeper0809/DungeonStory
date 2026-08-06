@@ -1175,7 +1175,7 @@ public static class P1P2FeatureSurfacePlayModeVerifier
             InjectGameObjectFromLifetimeScope(obj);
             actor.RefreshAbilityCache();
             actor.Initialization(data);
-            actor.Identity.SetPersistentId($"p1p2-ui:{data.id}");
+            actor.Identity.SetPersistentId($"character:p1p2-ui:{data.id}");
             actor.EnsureRuntimeState();
             InjectGameObjectFromLifetimeScope(obj);
             actor.RefreshAbilityCache();
